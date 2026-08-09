@@ -11,7 +11,21 @@ from urllib.parse import quote
 
 import requests
 from writing_coach.languages.english.grammar_course import GRAMMAR_COURSE, GRAMMAR_BY_ID
-from writing_coach.languages.english.profile import RUBRIC_WEIGHTS, SYSTEM_PROMPT, score_to_level
+from writing_coach.languages.runtime import (
+    active_levels,
+    active_profile,
+    active_rubric_weights,
+    active_score_to_level,
+    active_system_prompt,
+    is_chinese,
+    progress_bands,
+    task_guidance,
+    task_system_prompt,
+    task_user_prompt,
+    topic_instruction,
+    validate_target_level,
+    writing_unit_count,
+)
 from auth_support import AUTH_ENABLED, current_db_path, install_auth, require_admin
 from writing_coach.core.platform_api import router as platform_router
 from writing_coach.ai.base import AIProviderError, AIProviderUnavailable
@@ -41,25 +55,25 @@ app.mount("/static", StaticFiles(directory=ROOT / "static"), name="static")
 class EssayIn(BaseModel):
     prompt: str = Field(default="", max_length=5000)
     text: str = Field(min_length=10, max_length=20000)
-    target_cefr: str = Field(default="B2", pattern=r"^(A1|A2|B1|B2|C1|C2)$")
+    target_cefr: str = Field(default="B2", min_length=2, max_length=12)
     parent_essay_id: int | None = Field(default=None, ge=1)
 
 
 class TaskGenerateIn(BaseModel):
     task_type: str = Field(
         default="opinion",
-        pattern=r"^(opinion|email|review|story|toeic)$",
+        pattern=r"^(opinion|email|review|story|toeic|hsk)$",
     )
     topic: str = Field(default="random", min_length=1, max_length=120)
     target_cefr: str = Field(
         default="B2",
         pattern=r"^(A1|A2|B1|B2|C1|C2)$",
     )
-    word_target: int = Field(default=150, ge=60, le=350)
+    word_target: int = Field(default=150, ge=20, le=500)
 
 class ImproveIn(BaseModel):
     text: str = Field(min_length=10, max_length=20000)
-    target_cefr: str = Field(default="B2", pattern=r"^(A1|A2|B1|B2|C1|C2)$")
+    target_cefr: str = Field(default="B2", min_length=2, max_length=12)
     mode: str = Field(default="polish", pattern=r"^(correct|grammar|vocabulary|polish)$")
 
 
@@ -203,12 +217,12 @@ app.include_router(platform_router)
 install_platform_ai(app, require_admin)
 
 def weighted_overall(result: dict[str, Any]) -> float:
-    score = sum(float(result[k]) * w for k, w in RUBRIC_WEIGHTS.items())
+    score = sum(float(result[k]) * w for k, w in active_rubric_weights().items())
     return round(max(0, min(100, score)), 1)
 
 
 def app_cefr(score: float) -> str:
-    return score_to_level(score)
+    return active_score_to_level(score)
 
 def extract_json(text: str) -> dict[str, Any]:
     text = (text or "").strip()
@@ -247,13 +261,13 @@ def contains_cjk(text: str) -> bool:
     return bool(CJK_RE.search(text or ""))
 
 
-def clean_vi_list(items: Any, limit: int = 6) -> list[str]:
+def clean_vi_list(items: Any, limit: int = 6, allow_cjk: bool = False) -> list[str]:
     out: list[str] = []
     if not isinstance(items, list):
         return out
     for item in items:
         value = str(item)[:1000].strip()
-        if value and not contains_cjk(value):
+        if value and (allow_cjk or not contains_cjk(value)):
             out.append(value)
         if len(out) >= limit:
             break
@@ -266,21 +280,22 @@ def normalize_text(value: str) -> str:
 
 def validate_result(raw: dict[str, Any]) -> dict[str, Any]:
     result: dict[str, Any] = {}
-    for key in RUBRIC_WEIGHTS:
+    for key in active_rubric_weights():
         try:
             val = float(raw.get(key, 0))
         except (TypeError, ValueError):
             val = 0.0
         result[key] = round(max(0, min(100, val)), 1)
 
-    result["cefr_estimate"] = str(raw.get("cefr_estimate", "B1"))
-    if result["cefr_estimate"] not in {"A1", "A2", "B1", "B2", "C1", "C2"}:
+    allowed_levels = set(active_levels())
+    result["cefr_estimate"] = str(raw.get("cefr_estimate", active_levels()[0]))
+    if result["cefr_estimate"] not in allowed_levels:
         result["cefr_estimate"] = app_cefr(weighted_overall(result))
 
     summary = str(raw.get("summary_vi", ""))[:4000].strip()
-    result["summary_vi"] = "" if contains_cjk(summary) else summary
-    result["strengths_vi"] = clean_vi_list(raw.get("strengths_vi", []))
-    result["priorities_vi"] = clean_vi_list(raw.get("priorities_vi", []))
+    result["summary_vi"] = summary if is_chinese() else ("" if contains_cjk(summary) else summary)
+    result["strengths_vi"] = clean_vi_list(raw.get("strengths_vi", []), allow_cjk=is_chinese())
+    result["priorities_vi"] = clean_vi_list(raw.get("priorities_vi", []), allow_cjk=is_chinese())
 
     errors: list[dict[str, Any]] = []
     learner_text = str(raw.get("__learner_text", ""))
@@ -300,30 +315,34 @@ def validate_result(raw: dict[str, Any]) -> dict[str, Any]:
             continue
         if not fragment or (learner_text and fragment not in learner_text):
             continue
-        if contains_cjk(explanation) or contains_cjk(rule):
+        if not is_chinese() and (contains_cjk(explanation) or contains_cjk(rule)):
             continue
         if not suggestion or normalize_text(suggestion) == normalize_text(fragment):
             continue
 
-        errors.append(
-            {
-                "category": str(err.get("category", "other"))[:50],
-                "fragment": fragment,
-                "explanation_vi": explanation,
-                "suggestion": suggestion,
-                "mini_rule_vi": rule,
-                "confidence": round(max(0.0, min(1.0, confidence)), 2),
-            }
-        )
+        errors.append({
+            "category": str(err.get("category", "other"))[:50],
+            "fragment": fragment,
+            "explanation_vi": explanation,
+            "suggestion": suggestion,
+            "mini_rule_vi": rule,
+            "confidence": round(max(0.0, min(1.0, confidence)), 2),
+        })
     result["errors"] = errors
     return result
 
-
 def evaluate_with_ai(payload: EssayIn) -> dict[str, Any]:
+    target_level = validate_target_level(payload.target_cefr)
+    free_prompt = (
+        "(Free Chinese writing — evaluate clarity, language control and naturalness.)"
+        if is_chinese()
+        else "(Free writing — evaluate clarity, language control and naturalness.)"
+    )
     user_prompt = (
-        f"TARGET LEVEL: {payload.target_cefr}\n"
+        f"TARGET LANGUAGE: {active_profile().name}\n"
+        f"TARGET LEVEL: {target_level}\n"
         "WRITING TASK:\n"
-        f"{payload.prompt or '(Free writing — evaluate clarity, language control and naturalness.)'}\n\n"
+        f"{payload.prompt or free_prompt}\n\n"
         "LEARNER TEXT:\n"
         f"{payload.text}\n\n"
         "Evaluate the text using the fixed rubric. Identify recurring/reusable learning points, not just typos. "
@@ -337,7 +356,7 @@ def evaluate_with_ai(payload: EssayIn) -> dict[str, Any]:
             "coherence": {"type": "number", "minimum": 0, "maximum": 100},
             "task_achievement": {"type": "number", "minimum": 0, "maximum": 100},
             "naturalness": {"type": "number", "minimum": 0, "maximum": 100},
-            "cefr_estimate": {"type": "string", "enum": ["A1", "A2", "B1", "B2", "C1", "C2"]},
+            "cefr_estimate": {"type": "string", "enum": list(active_levels())},
             "summary_vi": {"type": "string"},
             "strengths_vi": {"type": "array", "items": {"type": "string"}, "maxItems": 6},
             "priorities_vi": {"type": "array", "items": {"type": "string"}, "maxItems": 6},
@@ -351,16 +370,26 @@ def evaluate_with_ai(payload: EssayIn) -> dict[str, Any]:
                         "explanation_vi": {"type": "string"},
                         "suggestion": {"type": "string"},
                         "mini_rule_vi": {"type": "string"},
-                        "confidence": {"type": "number", "minimum": 0, "maximum": 1}
+                        "confidence": {"type": "number", "minimum": 0, "maximum": 1},
                     },
-                    "required": ["category","fragment","explanation_vi","suggestion","mini_rule_vi","confidence"]
-                }
-            }
+                    "required": [
+                        "category", "fragment", "explanation_vi",
+                        "suggestion", "mini_rule_vi", "confidence",
+                    ],
+                },
+            },
         },
-        "required": ["grammar","vocabulary","coherence","task_achievement","naturalness","cefr_estimate","summary_vi","strengths_vi","priorities_vi","errors"]
+        "required": [
+            "grammar", "vocabulary", "coherence", "task_achievement",
+            "naturalness", "cefr_estimate", "summary_vi",
+            "strengths_vi", "priorities_vi", "errors",
+        ],
     }
     ai = generate_structured(
-        messages=[{"role": "system", "content": SYSTEM_PROMPT}, {"role": "user", "content": user_prompt}],
+        messages=[
+            {"role": "system", "content": active_system_prompt()},
+            {"role": "user", "content": user_prompt},
+        ],
         schema=evaluation_schema,
         max_output_tokens=2200,
         temperature=0.0,
@@ -391,9 +420,9 @@ def heuristic_fallback(payload: EssayIn) -> dict[str, Any]:
     return {
         **scores,
         "cefr_estimate": app_cefr(overall),
-        "summary_vi": "Chế độ dự phòng chỉ dùng để kiểm tra luồng ứng dụng. Hãy chạy Ollama để nhận đánh giá AI thật.",
+        "summary_vi": "Chế độ dự phòng chỉ dùng để kiểm tra luồng ứng dụng. Hãy bật AI Coach để nhận đánh giá đầy đủ.",
         "strengths_vi": ["Bài viết có đủ nội dung để lưu vào hồ sơ tiến bộ."],
-        "priorities_vi": ["Kết nối Ollama để bật đánh giá đầy đủ."],
+        "priorities_vi": ["Kết nối AI Coach để bật đánh giá đầy đủ."],
         "errors": [],
     }
 
@@ -448,7 +477,7 @@ def revision_delta(current: dict[str, Any], previous: sqlite3.Row | None) -> dic
     if not previous:
         return {}
     out: dict[str, float] = {}
-    for key in [*RUBRIC_WEIGHTS.keys(), "overall"]:
+    for key in [*active_rubric_weights().keys(), "overall"]:
         out[key] = round(float(current[key]) - float(previous[key]), 1)
     return out
 
@@ -608,24 +637,18 @@ def health() -> dict[str, Any]:
     }
 
 TASK_TYPE_GUIDANCE = {
-    "opinion": "an opinion essay that requires a clear position, reasons and at least one concrete example",
-    "email": "a realistic email with a clear recipient, purpose and 2-3 points the learner must address",
-    "review": "a review of a realistic product, service, place, event, podcast, film or experience with positives, negatives and a recommendation",
-    "story": "a short story with a clear situation, development and ending; give a natural opening situation but do not write the story for the learner",
-    "toeic": "a TOEIC-style practical writing task, preferably an email response or short opinion response with explicit points to address",
+    "opinion": "opinion",
+    "email": "email",
+    "review": "review",
+    "story": "story",
+    "toeic": "toeic",
+    "hsk": "hsk",
 }
 
 TASK_TOPICS = [
-    "daily life",
-    "work",
-    "technology",
-    "education",
-    "travel",
-    "environment",
-    "culture and media",
-    "shopping and services",
-    "communication",
-    "community",
+    "daily life", "work", "technology", "education", "travel",
+    "environment", "culture and media", "shopping and services",
+    "communication", "community",
 ]
 
 
@@ -639,39 +662,82 @@ def fallback_practice_task(payload: TaskGenerateIn) -> dict[str, Any]:
         topic = random.choice(TASK_TOPICS)
     task_type = payload.task_type
 
-    templates = {
-        "opinion": (
-            f"An opinion about {topic}",
-            f"Some people believe that changes related to {topic} make everyday life better, while others disagree. "
-            "Write an opinion response. State your position clearly, give at least two reasons, and support one reason with a specific example.",
-            ["State a clear opinion", "Give at least two reasons", "Include one specific example"],
-        ),
-        "email": (
-            f"An email about {topic}",
-            f"You need to write an email about a recent situation involving {topic}. Explain what happened, describe what you need from the recipient, "
-            "and suggest one practical next step. Use an appropriate opening and closing.",
-            ["Explain the situation", "Make your request clear", "Suggest a next step", "Use an appropriate email tone"],
-        ),
-        "review": (
-            f"A review related to {topic}",
-            f"Write a review of a recent experience related to {topic}. Describe what you experienced, explain what you liked and disliked, "
-            "and say whether you would recommend it to other people.",
-            ["Describe the experience", "Give both a positive and a negative point", "Finish with a recommendation"],
-        ),
-        "story": (
-            f"A short story about {topic}",
-            f"Write a short story connected to {topic}. Begin with a situation where an ordinary plan suddenly changes. "
-            "Show what happened next and finish with a clear ending.",
-            ["Set the scene", "Describe a change or problem", "Show what happens next", "Give the story a clear ending"],
-        ),
-        "toeic": (
-            f"A practical TOEIC-style task about {topic}",
-            f"Your workplace or community is considering a change related to {topic}. Write a response explaining whether you support the change. "
-            "Give two reasons and one practical example or consequence.",
-            ["Give a clear position", "Provide two reasons", "Add a practical example or consequence"],
-        ),
-    }
-    title, instruction, checklist = templates[task_type]
+    if is_chinese():
+        zh_topic = {
+            "daily life": "日常生活",
+            "work": "工作",
+            "technology": "科技",
+            "education": "教育",
+            "travel": "旅行",
+            "environment": "环境",
+            "culture and media": "文化与媒体",
+            "shopping and services": "购物与服务",
+            "communication": "沟通",
+            "community": "社区",
+        }.get(topic, topic)
+        templates = {
+            "opinion": (
+                f"关于{zh_topic}的观点",
+                f"请围绕“{zh_topic}”写一篇短文。清楚表达你的观点，给出至少两个理由，并加入一个具体例子。",
+                ["表达明确观点", "给出至少两个理由", "加入一个具体例子"],
+            ),
+            "email": (
+                f"关于{zh_topic}的消息",
+                f"请写一封简短中文邮件或消息，说明一个与“{zh_topic}”有关的情况、你的需求，以及下一步建议。",
+                ["说明情况", "表达需求", "提出下一步建议", "使用合适的开头和结尾"],
+            ),
+            "review": (
+                f"描述{zh_topic}",
+                f"请描述一次与“{zh_topic}”有关的经历、人物、地点或事物。写出主要特点，并说明你的感受或评价。",
+                ["描述主要信息", "加入具体细节", "表达感受或评价"],
+            ),
+            "story": (
+                f"一个关于{zh_topic}的小故事",
+                f"请写一个与“{zh_topic}”有关的短故事。先交代情况，再写发生的变化，最后给出清楚的结尾。",
+                ["交代情境", "写出变化或问题", "说明后续发展", "有明确结尾"],
+            ),
+            "hsk": (
+                "HSK 风格写作练习",
+                f"请围绕“{zh_topic}”完成一项适合 {validate_target_level(payload.target_cefr)} 的中文写作练习。重点练习句子组织、词序和自然表达。这是练习题，不是官方真题。",
+                ["使用完整中文句子", "注意词序和标点", "尽量使用目标水平的词汇和语法"],
+            ),
+        }
+        title, instruction, checklist = templates.get(task_type, templates["opinion"])
+    else:
+        templates = {
+            "opinion": (
+                f"An opinion about {topic}",
+                f"Some people believe that changes related to {topic} make everyday life better, while others disagree. "
+                "Write an opinion response. State your position clearly, give at least two reasons, and support one reason with a specific example.",
+                ["State a clear opinion", "Give at least two reasons", "Include one specific example"],
+            ),
+            "email": (
+                f"An email about {topic}",
+                f"You need to write an email about a recent situation involving {topic}. Explain what happened, describe what you need from the recipient, "
+                "and suggest one practical next step. Use an appropriate opening and closing.",
+                ["Explain the situation", "Make your request clear", "Suggest a next step", "Use an appropriate email tone"],
+            ),
+            "review": (
+                f"A review related to {topic}",
+                f"Write a review of a recent experience related to {topic}. Describe what you experienced, explain what you liked and disliked, "
+                "and say whether you would recommend it to other people.",
+                ["Describe the experience", "Give both a positive and a negative point", "Finish with a recommendation"],
+            ),
+            "story": (
+                f"A short story about {topic}",
+                f"Write a short story connected to {topic}. Begin with a situation where an ordinary plan suddenly changes. "
+                "Show what happened next and finish with a clear ending.",
+                ["Set the scene", "Describe a change or problem", "Show what happens next", "Give the story a clear ending"],
+            ),
+            "toeic": (
+                f"A practical TOEIC-style task about {topic}",
+                f"Your workplace or community is considering a change related to {topic}. Write a response explaining whether you support the change. "
+                "Give two reasons and one practical example or consequence.",
+                ["Give a clear position", "Provide two reasons", "Add a practical example or consequence"],
+            ),
+        }
+        title, instruction, checklist = templates.get(task_type, templates["opinion"])
+
     return {
         "title": title,
         "instruction": instruction,
@@ -685,29 +751,40 @@ def fallback_practice_task(payload: TaskGenerateIn) -> dict[str, Any]:
 
 def generate_practice_task(payload: TaskGenerateIn) -> dict[str, Any]:
     requested_topic = payload.topic.strip()
-    topic_instruction = "Choose a fresh, concrete everyday topic yourself." if requested_topic.casefold() == "random" else f"Use this topic: {requested_topic}."
-    guidance = TASK_TYPE_GUIDANCE[payload.task_type]
+    guidance = task_guidance(payload.task_type)
+    topic_text = topic_instruction(requested_topic)
+    target_level = validate_target_level(payload.target_cefr)
+
     schema = {
         "type": "object",
         "properties": {
             "title": {"type": "string"},
             "instruction": {"type": "string"},
-            "checklist": {"type": "array", "items": {"type": "string"}, "minItems": 2, "maxItems": 5},
+            "checklist": {
+                "type": "array",
+                "items": {"type": "string"},
+                "minItems": 2,
+                "maxItems": 5,
+            },
             "topic": {"type": "string"},
         },
-        "required": ["title","instruction","checklist","topic"],
+        "required": ["title", "instruction", "checklist", "topic"],
     }
-    system = (
-        "You create English writing practice tasks for language learners. Create exactly ONE task. "
-        "Do not provide the answer. Return only structured JSON."
-    )
-    user = (
-        f"CEFR level: {payload.target_cefr}\nTask format: {guidance}\n{topic_instruction}\n"
-        f"Target response length: about {payload.word_target} words."
-    )
+
     try:
         ai = generate_structured(
-            messages=[{"role":"system","content":system},{"role":"user","content":user}],
+            messages=[
+                {"role": "system", "content": task_system_prompt()},
+                {
+                    "role": "user",
+                    "content": task_user_prompt(
+                        target_level,
+                        guidance,
+                        topic_text,
+                        payload.word_target,
+                    ),
+                },
+            ],
             schema=schema,
             max_output_tokens=500,
             temperature=0.75,
@@ -716,23 +793,46 @@ def generate_practice_task(payload: TaskGenerateIn) -> dict[str, Any]:
         title = normalize_task_piece(raw.get("title"), 140)
         instruction = normalize_task_piece(raw.get("instruction"), 1600)
         topic = normalize_task_piece(raw.get("topic"), 120)
-        checklist = [normalize_task_piece(x,240) for x in raw.get("checklist",[]) if normalize_task_piece(x,240)][:5]
+        checklist = [
+            normalize_task_piece(item, 240)
+            for item in raw.get("checklist", [])
+            if normalize_task_piece(item, 240)
+        ][:5]
+
         if not title or not instruction or len(checklist) < 2:
-            raise ValueError("incomplete task")
-        return {"title":title,"instruction":instruction,"checklist":checklist,"word_target":payload.word_target,"task_type":payload.task_type,"topic":topic or requested_topic,"source":ai.label}
+            raise ValueError("Task generator returned incomplete structured output")
+
+        return {
+            "title": title,
+            "instruction": instruction,
+            "checklist": checklist,
+            "word_target": payload.word_target,
+            "task_type": payload.task_type,
+            "topic": topic or requested_topic,
+            "source": ai.label,
+        }
     except Exception:
         return fallback_practice_task(payload)
 
+
 def task_as_prompt(task: dict[str, Any], target_cefr: str) -> str:
     checklist = "\n".join(f"- {item}" for item in task["checklist"])
+    target_level = validate_target_level(target_cefr)
+    if is_chinese():
+        return (
+            f"任务: {task['title']}\n\n"
+            f"{task['instruction']}\n\n"
+            f"需要包含:\n{checklist}\n\n"
+            f"目标水平: {target_level}\n"
+            f"建议长度: 大约 {task['word_target']} 个汉字/书写单位"
+        )
     return (
         f"TASK: {task['title']}\n\n"
         f"{task['instruction']}\n\n"
         f"WHAT TO INCLUDE:\n{checklist}\n\n"
-        f"TARGET LEVEL: {target_cefr}\n"
+        f"TARGET LEVEL: {target_level}\n"
         f"TARGET LENGTH: about {task['word_target']} words"
     )
-
 
 @app.post("/api/tasks/generate")
 def api_generate_task(payload: TaskGenerateIn) -> dict[str, Any]:
@@ -794,33 +894,59 @@ def improve_with_ai(payload: ImproveIn) -> dict[str, Any]:
                 },
             },
         },
-        "required": ["corrected_text", "upgraded_text", "summary_vi", "grammar_upgrades", "vocabulary_upgrades"],
+        "required": [
+            "corrected_text", "upgraded_text", "summary_vi",
+            "grammar_upgrades", "vocabulary_upgrades",
+        ],
     }
-    system = (
-        "You are an English writing improvement coach. Preserve the learner's intended meaning. "
-        "Never invent facts. Never make the writing unnecessarily formal. "
-        "Vietnamese explanations must use the Latin alphabet and contain no CJK characters."
-    )
-    user = (
-        f"TARGET CEFR: {payload.target_cefr}\n"
-        f"MODE: {payload.mode}\n"
-        f"INSTRUCTION: {IMPROVE_MODE_INSTRUCTIONS[payload.mode]}\n\n"
-        f"LEARNER TEXT:\n{payload.text}\n\n"
-        "Return a corrected version and a realistic upgraded version. "
-        "List only useful reusable grammar and vocabulary improvements."
-    )
+
+    if is_chinese():
+        instructions = {
+            "correct": "Chỉ sửa các lỗi chữ, từ, trật tự từ, trợ từ, ngữ pháp và dấu câu cần thiết; giữ nguyên ý và giọng của người học.",
+            "grammar": "Sửa lỗi rồi nâng cấp cấu trúc câu tiếng Trung một cách tự nhiên, phù hợp mức HSK mục tiêu; không làm câu phức tạp giả tạo.",
+            "vocabulary": "Sửa lỗi rồi cải thiện chọn từ, kết hợp từ và độ tự nhiên; ưu tiên từ thực tế phù hợp mức HSK.",
+            "polish": "Sửa lỗi và tạo một phiên bản tiếng Trung tự nhiên hơn về cả ngữ pháp lẫn từ vựng nhưng giữ nguyên ý.",
+        }
+        system = (
+            "You are a Chinese writing improvement coach for a Vietnamese learner. "
+            "Preserve the learner's intended meaning and do not invent facts. "
+            "Corrected and upgraded writing must be in natural Simplified Chinese unless the learner consistently uses Traditional Chinese. "
+            "Explanations must be primarily in Vietnamese; short Chinese examples are allowed when useful."
+        )
+        user = (
+            f"TARGET HSK LEARNING BAND: {validate_target_level(payload.target_cefr)}\n"
+            f"MODE: {payload.mode}\n"
+            f"INSTRUCTION: {instructions[payload.mode]}\n\n"
+            f"LEARNER TEXT:\n{payload.text}\n\n"
+            "Return a corrected version and a realistic upgraded version. "
+            "List only reusable grammar and vocabulary improvements."
+        )
+    else:
+        system = (
+            "You are an English writing improvement coach. Preserve the learner's intended meaning. "
+            "Never invent facts. Never make the writing unnecessarily formal. "
+            "Vietnamese explanations must use the Latin alphabet and contain no CJK characters."
+        )
+        user = (
+            f"TARGET CEFR: {validate_target_level(payload.target_cefr)}\n"
+            f"MODE: {payload.mode}\n"
+            f"INSTRUCTION: {IMPROVE_MODE_INSTRUCTIONS[payload.mode]}\n\n"
+            f"LEARNER TEXT:\n{payload.text}\n\n"
+            "Return a corrected version and a realistic upgraded version. "
+            "List only useful reusable grammar and vocabulary improvements."
+        )
+
     result = ai_json(
         [{"role": "system", "content": system}, {"role": "user", "content": user}],
         schema,
         num_predict=1800,
         temperature=0.1,
     )
-    if contains_cjk(str(result.get("summary_vi", ""))):
+    if not is_chinese() and contains_cjk(str(result.get("summary_vi", ""))):
         result["summary_vi"] = ""
     result["mode"] = payload.mode
-    result["target_cefr"] = payload.target_cefr
+    result["target_cefr"] = validate_target_level(payload.target_cefr)
     return result
-
 
 def normalise_lookup_word(word: str) -> str:
     word = re.sub(r"\s+", " ", word.strip())
@@ -1332,7 +1458,7 @@ def dashboard() -> dict[str, Any]:
 
     metrics = {
         m: round(statistics.mean(float(r[m]) for r in recent), 1)
-        for m in RUBRIC_WEIGHTS
+        for m in active_rubric_weights()
     }
 
     error_counts: dict[str, int] = {}
@@ -1356,7 +1482,7 @@ def dashboard() -> dict[str, Any]:
                 elif prev < d - timedelta(days=1):
                     break
 
-    bands = [(30, "A2"), (45, "B1"), (60, "B2"), (75, "C1"), (90, "C2")]
+    bands = progress_bands()
     next_level = None
     for threshold, level in bands:
         if skill_score < threshold:

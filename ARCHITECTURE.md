@@ -95,3 +95,13 @@ requires an explicit admin action before changing the platform model.
 Adding or installing a model must not require changes in English/Chinese modules.
 Ollama models are discovered dynamically; cloud model availability is supplied by
 the provider adapter/server configuration. Paid provider failover remains disabled.
+
+
+## Chinese module v1.0
+
+Chinese is an enabled language module sharing auth, global AI provider selection,
+history/analytics infrastructure and user isolation with English.
+
+The first Chinese release supports writing, task generation, improvement and analytics.
+Its HSK label is an internal learning-band estimate, not an official HSK exam score.
+Chinese grammar library and pinyin/dictionary tooling remain separate follow-up modules.

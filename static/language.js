@@ -22,7 +22,7 @@
       const enabled = (data.languages || []).filter(x=>x.enabled);
       note.textContent = enabled.length > 1
         ? 'Progress is stored separately for each language.'
-        : 'Chinese is registered but stays disabled until its learning module is complete.';
+        : 'Choose English or Chinese. Progress is stored separately for each language.';
       select.disabled = enabled.length < 2;
     }catch(err){
       console.error('Language registry load failed:', err);

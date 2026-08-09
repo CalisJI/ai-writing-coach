@@ -1,0 +1,174 @@
+from __future__ import annotations
+
+import re
+from typing import Any
+
+from writing_coach.core.request_context import current_language_code
+from writing_coach.languages.chinese.profile import (
+    PROFILE as CHINESE_PROFILE,
+    RUBRIC_WEIGHTS as CHINESE_RUBRIC_WEIGHTS,
+    SYSTEM_PROMPT as CHINESE_SYSTEM_PROMPT,
+    score_to_level as chinese_score_to_level,
+)
+from writing_coach.languages.english.profile import (
+    PROFILE as ENGLISH_PROFILE,
+    RUBRIC_WEIGHTS as ENGLISH_RUBRIC_WEIGHTS,
+    SYSTEM_PROMPT as ENGLISH_SYSTEM_PROMPT,
+    score_to_level as english_score_to_level,
+)
+
+
+def active_language_code() -> str:
+    return "zh" if current_language_code() == "zh" else "en"
+
+
+def is_chinese() -> bool:
+    return active_language_code() == "zh"
+
+
+def active_profile():
+    return CHINESE_PROFILE if is_chinese() else ENGLISH_PROFILE
+
+
+def active_levels() -> tuple[str, ...]:
+    return active_profile().levels
+
+
+def active_rubric_weights() -> dict[str, float]:
+    return CHINESE_RUBRIC_WEIGHTS if is_chinese() else ENGLISH_RUBRIC_WEIGHTS
+
+
+def active_system_prompt() -> str:
+    return CHINESE_SYSTEM_PROMPT if is_chinese() else ENGLISH_SYSTEM_PROMPT
+
+
+def active_score_to_level(score: float) -> str:
+    return chinese_score_to_level(score) if is_chinese() else english_score_to_level(score)
+
+
+def validate_target_level(level: str) -> str:
+    value = (level or "").strip().upper()
+    levels = active_levels()
+    for candidate in levels:
+        if candidate.upper() == value:
+            return candidate
+    return levels[min(3, len(levels) - 1)]
+
+
+def writing_unit_count(text: str) -> int:
+    if is_chinese():
+        # Count Han characters plus Latin/number tokens. Chinese punctuation and
+        # spaces do not count as writing units.
+        han = re.findall(r"[\u3400-\u4DBF\u4E00-\u9FFF]", text or "")
+        latin = re.findall(r"[A-Za-z0-9]+(?:['-][A-Za-z0-9]+)*", text or "")
+        return len(han) + len(latin)
+    return len(re.findall(r"\b[\w'-]+\b", text or ""))
+
+
+def writing_unit_label() -> str:
+    return "characters" if is_chinese() else "words"
+
+
+ENGLISH_TASK_GUIDANCE = {
+    "opinion": "an opinion essay that requires a clear position, reasons and at least one concrete example",
+    "email": "a realistic email with a clear recipient, purpose and 2-3 points the learner must address",
+    "review": "a review of a realistic product, service, place, event, podcast, film or experience with positives, negatives and a recommendation",
+    "story": "a short story with a clear situation, development and ending; give a natural opening situation but do not write the story for the learner",
+    "toeic": "a TOEIC-style practical writing task, preferably an email response or short opinion response with explicit points to address",
+}
+
+CHINESE_TASK_GUIDANCE = {
+    "opinion": "一篇适合目标HSK学习水平的短观点作文，需要明确观点、理由和至少一个具体例子",
+    "email": "一封自然、实用的中文邮件或消息，需要说明对象、目的和2-3个必须回应的要点",
+    "review": "一项看图、描述人物/地点/经历或评价日常事物的写作任务",
+    "story": "一个简短中文故事任务，要有清楚的情境、发展和结尾，不要替学习者写答案",
+    "hsk": "一个HSK风格的中文写作练习，重点练习句子组织、看图/给词写句子或短文表达；不是官方真题",
+}
+
+
+def task_guidance(task_type: str) -> str:
+    if is_chinese():
+        return CHINESE_TASK_GUIDANCE.get(task_type, CHINESE_TASK_GUIDANCE["opinion"])
+    return ENGLISH_TASK_GUIDANCE.get(task_type, ENGLISH_TASK_GUIDANCE["opinion"])
+
+
+def task_system_prompt() -> str:
+    if is_chinese():
+        return (
+            "你为越南中文学习者创建中文写作练习。"
+            "只创建一个任务。任务本身必须用清楚、自然的简体中文书写。"
+            "不要给答案、范文或会直接解决任务的提示。"
+            "任务要符合目标HSK学习水平，并避免冷门专业知识。"
+            "若是HSK风格任务，要明确说明它只是练习，不声称是官方真题。"
+            "Return only the requested structured JSON."
+        )
+    return (
+        "You create English writing practice tasks for language learners.\n"
+        "Create exactly ONE task.\n"
+        "The task itself must be written in clear English.\n"
+        "Do not provide an answer, sample response, outline, vocabulary list, or hints that solve the task.\n"
+        "Make the task realistic, specific enough to write about, and appropriate for the requested CEFR level.\n"
+        "Avoid obscure specialist knowledge. The learner should be able to answer from everyday knowledge or imagination.\n"
+        "Return only the requested structured JSON."
+    )
+
+
+def task_user_prompt(level: str, guidance: str, topic_instruction: str, target_length: int) -> str:
+    if is_chinese():
+        return (
+            f"学习水平: {level}\n"
+            f"任务形式: {guidance}\n"
+            f"{topic_instruction}\n"
+            f"建议长度: 大约 {target_length} 个汉字/书写单位。\n"
+            "创建一个简短标题、一段完整任务说明，以及2-5个学习者必须包含的要点。"
+        )
+    return (
+        f"CEFR level: {level}\n"
+        f"Task format: {guidance}\n"
+        f"{topic_instruction}\n"
+        f"Target response length: about {target_length} words.\n"
+        "Create a short title, one self-contained instruction, and a checklist of 2-5 things the learner must include."
+    )
+
+
+def topic_instruction(topic: str) -> str:
+    if is_chinese():
+        if topic.casefold() == "random":
+            return "请自己选择一个具体、常见、适合日常表达的新主题。"
+        labels = {
+            "daily life": "日常生活",
+            "work": "工作",
+            "technology": "科技",
+            "education": "教育",
+            "travel": "旅行",
+            "environment": "环境",
+            "culture and media": "文化与媒体",
+            "shopping and services": "购物与服务",
+            "communication": "沟通",
+            "community": "社区",
+        }
+        return f"主题: {labels.get(topic, topic)}。"
+    return (
+        "Choose a fresh, concrete everyday topic yourself."
+        if topic.casefold() == "random"
+        else f"Use this topic: {topic}."
+    )
+
+
+def progress_bands() -> list[tuple[float, str]]:
+    if is_chinese():
+        return [
+            (25, "HSK2"),
+            (40, "HSK3"),
+            (55, "HSK4"),
+            (68, "HSK5"),
+            (80, "HSK6"),
+            (90, "HSK7-9"),
+        ]
+    return [
+        (30, "A2"),
+        (45, "B1"),
+        (60, "B2"),
+        (75, "C1"),
+        (90, "C2"),
+    ]
