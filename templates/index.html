@@ -47,11 +47,68 @@
       <div class="revision-banner hidden" id="revisionBanner"></div>
       <div class="write-layout">
         <div class="card editor-card">
-          <label>Task / prompt</label>
-          <textarea id="prompt" class="prompt" placeholder="Example: Write a review of a podcast. Say what you liked, disliked, and whether it helps English learners."></textarea>
+          <div class="practice-builder">
+            <div class="practice-head">
+              <div><label>Practice task</label><small>Choose a format or let the local AI create a challenge for you.</small></div>
+              <span class="ai-pill">AI task generator</span>
+            </div>
+            <div class="task-controls">
+              <label class="control-field">Mode
+                <select id="taskMode" onchange="taskOptionsChanged()">
+                  <option value="free" selected>Free writing</option>
+                  <option value="opinion">Opinion essay</option>
+                  <option value="email">Email</option>
+                  <option value="review">Review</option>
+                  <option value="story">Story</option>
+                  <option value="toeic">TOEIC-style</option>
+                  <option value="custom">Custom prompt</option>
+                </select>
+              </label>
+              <label class="control-field">Topic
+                <select id="taskTopic" onchange="taskOptionsChanged()">
+                  <option value="random" selected>Random</option>
+                  <option value="daily life">Daily life</option>
+                  <option value="work">Work</option>
+                  <option value="technology">Technology</option>
+                  <option value="education">Education</option>
+                  <option value="travel">Travel</option>
+                  <option value="environment">Environment</option>
+                  <option value="culture and media">Culture & media</option>
+                  <option value="shopping and services">Shopping & services</option>
+                  <option value="communication">Communication</option>
+                  <option value="community">Community</option>
+                </select>
+              </label>
+              <label class="control-field">Level
+                <select id="target" onchange="taskOptionsChanged()">
+                  <option>B1</option><option selected>B2</option><option>C1</option><option>C2</option>
+                </select>
+              </label>
+              <label class="control-field">Length
+                <select id="taskLength" onchange="taskOptionsChanged()">
+                  <option value="100">~100 words</option>
+                  <option value="120">~120 words</option>
+                  <option value="150" selected>~150 words</option>
+                  <option value="180">~180 words</option>
+                  <option value="220">~220 words</option>
+                  <option value="280">~280 words</option>
+                </select>
+              </label>
+            </div>
+            <div class="task-actions">
+              <button id="generateTaskBtn" class="secondary" type="button" onclick="generateTask(false)">Generate task</button>
+              <button id="surpriseTaskBtn" class="ghost" type="button" onclick="generateTask(true)">Surprise me</button>
+            </div>
+            <div id="taskHint" class="task-hint">Free writing: no prompt is required. Your language and clarity will still be evaluated.</div>
+            <div id="taskPreview" class="task-preview hidden"></div>
+            <div id="promptWrap" class="prompt-wrap hidden">
+              <label for="prompt">Task instructions used for scoring</label>
+              <textarea id="prompt" class="prompt" placeholder="Paste or write your own task here."></textarea>
+            </div>
+          </div>
           <div class="editor-head"><label>Your writing</label><span id="wordCount">0 words</span></div>
           <textarea id="essayText" class="essay" placeholder="Start writing in English here..."></textarea>
-          <div class="editor-actions"><label>Target <select id="target"><option>B1</option><option selected>B2</option><option>C1</option><option>C2</option></select></label><button id="submitBtn" class="primary" onclick="submitEssay()">Evaluate & save</button></div>
+          <div class="editor-actions"><span class="evaluation-note">Your selected task and level are used when scoring Task Achievement.</span><button id="submitBtn" class="primary" onclick="submitEssay()">Evaluate & save</button></div>
         </div>
         <div id="resultPane" class="card result-card placeholder"><div><b>AI feedback will appear here</b><p>Scores, explanations, priorities and reusable grammar rules.</p></div></div>
       </div>
@@ -110,9 +167,160 @@ $$('.nav').forEach(b=>b.onclick=()=>go(b.dataset.page));
 $('#essayText').addEventListener('input',updateWordCount);
 function updateWordCount(){const n=($('#essayText').value.match(/\b[\w'-]+\b/g)||[]).length;$('#wordCount').textContent=`${n} words`;}
 
+function promptLabel(s=''){
+  const line=String(s||'').split(/\r?\n/).find(x=>x.trim())||'Free writing';
+  const clean=line.replace(/^TASK:\s*/i,'').trim();
+  return clean.length>86?clean.slice(0,83)+'…':clean;
+}
+
+function taskOptionsChanged(){
+  const mode=$('#taskMode').value;
+  if(!['free','custom'].includes(mode)){
+    $('#prompt').value='';
+    $('#taskPreview').classList.add('hidden');
+    $('#taskPreview').innerHTML='';
+  }
+  syncTaskMode();
+}
+
+function syncTaskMode(){
+  const mode=$('#taskMode').value;
+  const promptWrap=$('#promptWrap');
+  const preview=$('#taskPreview');
+  const generate=$('#generateTaskBtn');
+  const topic=$('#taskTopic');
+  const length=$('#taskLength');
+
+  if(mode==='free'){
+    $('#prompt').value='';
+    promptWrap.classList.add('hidden');
+    preview.classList.add('hidden');
+    generate.disabled=true;
+    topic.disabled=true;
+    length.disabled=true;
+    $('#taskHint').textContent='Free writing: no prompt is required. Your language and clarity will still be evaluated.';
+    return;
+  }
+
+  if(mode==='custom'){
+    promptWrap.classList.remove('hidden');
+    preview.classList.add('hidden');
+    $('#prompt').readOnly=false;
+    generate.disabled=true;
+    topic.disabled=true;
+    length.disabled=true;
+    $('#taskHint').textContent='Custom prompt: enter the exact task you want the evaluator to use for Task Achievement.';
+    return;
+  }
+
+  promptWrap.classList.add('hidden');
+  $('#prompt').readOnly=true;
+  generate.disabled=false;
+  topic.disabled=false;
+  length.disabled=false;
+  $('#taskHint').textContent=$('#prompt').value
+    ?'This generated task will be used for Task Achievement scoring.'
+    :'Choose a topic and length, then generate a task.';
+}
+
+function renderGeneratedTask(d){
+  const checklist=(d.checklist||[]).map(x=>`<li>${esc(x)}</li>`).join('');
+  $('#taskPreview').innerHTML=`
+    <div class="task-preview-head">
+      <div><span class="task-type">${esc((d.task_type||'task').replaceAll('_',' '))}</span><h3>${esc(d.title)}</h3></div>
+      <span class="task-source">${esc(d.source||'local')}</span>
+    </div>
+    <p>${esc(d.instruction)}</p>
+    <div class="task-checklist"><b>Include:</b><ul>${checklist}</ul></div>
+    <small>Target: about ${esc(d.word_target)} words · ${esc($('#target').value)}</small>`;
+  $('#taskPreview').classList.remove('hidden');
+}
+
+async function generateTask(surprise=false){
+  const modes=['opinion','email','review','story','toeic'];
+  const topics=['daily life','work','technology','education','travel','environment','culture and media','shopping and services','communication','community'];
+
+  if(surprise){
+    $('#taskMode').value=modes[Math.floor(Math.random()*modes.length)];
+    $('#taskTopic').value=topics[Math.floor(Math.random()*topics.length)];
+    syncTaskMode();
+  }
+
+  const mode=$('#taskMode').value;
+  if(['free','custom'].includes(mode))return;
+
+  const generate=$('#generateTaskBtn');
+  const surpriseBtn=$('#surpriseTaskBtn');
+  generate.disabled=true;
+  surpriseBtn.disabled=true;
+  const oldGenerate=generate.textContent;
+  generate.textContent='Generating…';
+  $('#taskHint').textContent='Local AI is creating a writing challenge…';
+
+  try{
+    const r=await fetch('/api/tasks/generate',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        task_type:mode,
+        topic:$('#taskTopic').value,
+        target_cefr:$('#target').value,
+        word_target:Number($('#taskLength').value)
+      })
+    });
+    const d=await r.json();
+    if(!r.ok)throw new Error(d.detail||'Could not generate a task');
+    $('#prompt').value=d.prompt||'';
+    renderGeneratedTask(d);
+    $('#taskHint').textContent=d.source&&d.source.startsWith('ollama:')
+      ?'Generated locally by Ollama. Generate again anytime for a new challenge.'
+      :'A built-in task was used because AI task generation was unavailable.';
+  }catch(e){
+    $('#taskHint').textContent=e.message;
+  }finally{
+    generate.disabled=false;
+    surpriseBtn.disabled=false;
+    generate.textContent=oldGenerate;
+  }
+}
+
 async function health(){try{const d=await fetch('/api/health').then(r=>r.json());$('#appVersion').textContent=`v${d.version}`;const el=$('#ollamaStatus');el.className='status '+(d.ollama?'ok':'warn');el.textContent=d.ollama?`● Ollama · ${d.model}`:'● Ollama offline';}catch{}}
-function newWriting(){revisionParentId=null;$('#prompt').value='';$('#essayText').value='';$('#target').value='B2';$('#writeTitle').textContent='Write';$('#writeSubtitle').textContent='Write first. Let the coach diagnose patterns after you submit.';$('#revisionBanner').classList.add('hidden');$('#cancelRevision').classList.add('hidden');$('#resultPane').className='card result-card placeholder';$('#resultPane').innerHTML='<div><b>AI feedback will appear here</b><p>Scores, explanations, priorities and reusable grammar rules.</p></div>';updateWordCount();go('write');}
-async function reviseEssay(id){const d=await fetch(`/api/essays/${id}`).then(r=>r.json());revisionParentId=d.id;$('#prompt').value=d.prompt||'';$('#essayText').value=d.text||'';$('#target').value=d.target_cefr||'B2';$('#writeTitle').textContent=`Revise essay #${d.series_id}`;$('#writeSubtitle').textContent=`You are creating revision ${Math.max(...d.revisions.map(x=>x.revision_no))+1}.`;$('#revisionBanner').innerHTML=`<b>Revision mode</b> · Previous score ${d.overall} · Revision ${d.revision_no}`;$('#revisionBanner').classList.remove('hidden');$('#cancelRevision').classList.remove('hidden');updateWordCount();go('write');}
+function newWriting(){
+  revisionParentId=null;
+  $('#prompt').value='';
+  $('#essayText').value='';
+  $('#target').value='B2';
+  $('#taskMode').value='free';
+  $('#taskTopic').value='random';
+  $('#taskLength').value='150';
+  $('#taskPreview').innerHTML='';
+  $('#taskPreview').classList.add('hidden');
+  $('#writeTitle').textContent='Write';
+  $('#writeSubtitle').textContent='Choose a practice task or write freely, then let the coach diagnose patterns.';
+  $('#revisionBanner').classList.add('hidden');
+  $('#cancelRevision').classList.add('hidden');
+  $('#resultPane').className='card result-card placeholder';
+  $('#resultPane').innerHTML='<div><b>AI feedback will appear here</b><p>Scores, explanations, priorities and reusable grammar rules.</p></div>';
+  syncTaskMode();
+  updateWordCount();
+  go('write');
+}
+async function reviseEssay(id){
+  const d=await fetch(`/api/essays/${id}`).then(r=>r.json());
+  revisionParentId=d.id;
+  $('#taskMode').value='custom';
+  $('#target').value=d.target_cefr||'B2';
+  $('#prompt').value=d.prompt||'';
+  $('#essayText').value=d.text||'';
+  syncTaskMode();
+  $('#writeTitle').textContent=`Revise essay #${d.series_id}`;
+  $('#writeSubtitle').textContent=`You are creating revision ${Math.max(...d.revisions.map(x=>x.revision_no))+1}.`;
+  $('#revisionBanner').innerHTML=`<b>Revision mode</b> · Previous score ${d.overall} · Revision ${d.revision_no}`;
+  $('#revisionBanner').classList.remove('hidden');
+  $('#cancelRevision').classList.remove('hidden');
+  updateWordCount();
+  go('write');
+}
 
 function bars(obj,error=false){const e=Object.entries(obj||{});if(!e.length)return '<div class="empty">Not enough data yet.</div>';const max=error?Math.max(...e.map(x=>x[1]),1):100;return e.map(([k,v])=>`<div class="barrow"><div class="barlabel"><span>${esc(k.replaceAll('_',' '))}</span><b>${v}${error?'':' / 100'}</b></div><div class="bar"><i style="width:${Math.min(100,v/max*100)}%"></i></div></div>`).join('');}
 function lineChart(data){
@@ -191,9 +399,10 @@ function renderErrorMemory(items){const el=$('#errorMemory');if(!items.length){e
 async function submitEssay(){const text=$('#essayText').value.trim();if(text.length<10){alert('Write at least a short paragraph first.');return;}const btn=$('#submitBtn');btn.disabled=true;btn.textContent='Evaluating…';$('#resultPane').className='card result-card loading';$('#resultPane').innerHTML='<div class="spinner"></div><p>Local evaluator is reading your writing…</p>';try{const r=await fetch('/api/evaluate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:$('#prompt').value,text,target_cefr:$('#target').value,parent_essay_id:revisionParentId})});const d=await r.json();if(!r.ok)throw new Error(d.detail||'Evaluation failed');revisionParentId=d.id;renderResult(d);loadDashboard();}catch(e){$('#resultPane').innerHTML=`<div class="error">${esc(e.message)}</div>`;}finally{btn.disabled=false;btn.textContent='Evaluate & save';}}
 function renderResult(d){const metrics={grammar:d.grammar,vocabulary:d.vocabulary,coherence:d.coherence,task_achievement:d.task_achievement,naturalness:d.naturalness};const delta=d.delta&&Object.keys(d.delta).length?`<div class="delta-box"><b>Revision improvement</b>${Object.entries(d.delta).map(([k,v])=>`<span class="${v>=0?'up':'down'}">${esc(k.replaceAll('_',' '))}: ${v>=0?'+':''}${v}</span>`).join('')}</div>`:'';const errors=(d.errors||[]).map((e,i)=>`<details ${i<3?'open':''}><summary><span class="tag">${esc(e.category)}</span> ${esc(e.fragment)}</summary><div class="feedback"><p>${esc(e.explanation_vi)}</p><p><b>Better:</b> ${esc(e.suggestion)}</p><p class="rule"><b>Rule:</b> ${esc(e.mini_rule_vi)}</p></div></details>`).join('');$('#resultPane').className='card result-card';$('#resultPane').innerHTML=`<div class="score-head"><div><span>OVERALL · REVISION ${d.revision_no}</span><strong>${d.overall}</strong><small>${esc(d.cefr_estimate)} estimate</small></div><span class="eval-badge ai">${esc(d.evaluator)}</span></div>${delta}<div class="compact-bars">${bars(metrics)}</div><div class="summary"><h3>Coach summary</h3><p>${esc(d.summary_vi)}</p></div><div class="twocol"><div><h3>Strengths</h3><ul>${(d.strengths_vi||[]).map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div><div><h3>Priorities</h3><ul>${(d.priorities_vi||[]).map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div></div><h3>Why & how</h3><div class="errors">${errors||'<p>No individual errors returned.</p>'}</div><button class="primary wide" onclick="reviseEssay(${d.id})">Revise & check again</button>`;}
 
-async function loadHistory(){const rows=await fetch('/api/essays').then(r=>r.json());const el=$('#historyList');if(!rows.length){el.innerHTML='<div class="card empty">No essays yet.</div>';return;}const groups={};rows.forEach(r=>(groups[r.series_id]??=[]).push(r));el.innerHTML=Object.values(groups).map(g=>{g.sort((a,b)=>a.revision_no-b.revision_no);const latest=g[g.length-1],first=g[0],gain=(latest.overall-first.overall).toFixed(1);return `<div class="card series-card"><div class="series-head"><div><b>Essay #${latest.series_id} · ${esc(latest.prompt||'Free writing')}</b><small>${g.length} revision${g.length>1?'s':''} · latest ${latest.overall} ${g.length>1?`· ${gain>=0?'+':''}${gain} from first`:''}</small></div><button class="ghost" onclick="reviseEssay(${latest.id})">Revise</button></div><div class="revision-list">${g.map(r=>`<button class="revision-chip" onclick="openEssay(${r.id})">v${r.revision_no} <b>${r.overall}</b></button>`).join('')}</div></div>`}).join('');}
-async function openEssay(id){const d=await fetch(`/api/essays/${id}`).then(r=>r.json());$('#modalContent').innerHTML=`<div class="modal-head"><div><span>ESSAY #${d.series_id} · REVISION ${d.revision_no}</span><h2>${esc(d.prompt||'Free writing')}</h2><small>${d.created_at.replace('T',' ').slice(0,16)} · ${d.word_count} words</small></div><div class="history-score bigscore"><strong>${d.overall}</strong><span>${d.cefr_estimate}</span></div></div><div class="revision-nav">${d.revisions.map(x=>`<button class="revision-chip ${x.id===d.id?'active':''}" onclick="openEssay(${x.id})">v${x.revision_no} · ${x.overall}</button>`).join('')}</div><div class="original">${esc(d.text)}</div><button class="primary" onclick="closeModal();reviseEssay(${d.id})">Revise this version</button><h3>Summary</h3><p>${esc(d.summary_vi)}</p><h3>Feedback</h3><div class="errors">${(d.errors||[]).map(e=>`<details open><summary><span class="tag">${esc(e.category)}</span> ${esc(e.fragment)}</summary><div class="feedback"><p>${esc(e.explanation_vi)}</p><p><b>Better:</b> ${esc(e.suggestion)}</p><p class="rule"><b>Rule:</b> ${esc(e.mini_rule_vi)}</p></div></details>`).join('')}</div>`;$('#modal').classList.remove('hidden');}
+async function loadHistory(){const rows=await fetch('/api/essays').then(r=>r.json());const el=$('#historyList');if(!rows.length){el.innerHTML='<div class="card empty">No essays yet.</div>';return;}const groups={};rows.forEach(r=>(groups[r.series_id]??=[]).push(r));el.innerHTML=Object.values(groups).map(g=>{g.sort((a,b)=>a.revision_no-b.revision_no);const latest=g[g.length-1],first=g[0],gain=(latest.overall-first.overall).toFixed(1);return `<div class="card series-card"><div class="series-head"><div><b>Essay #${latest.series_id} · ${esc(promptLabel(latest.prompt))}</b><small>${g.length} revision${g.length>1?'s':''} · latest ${latest.overall} ${g.length>1?`· ${gain>=0?'+':''}${gain} from first`:''}</small></div><button class="ghost" onclick="reviseEssay(${latest.id})">Revise</button></div><div class="revision-list">${g.map(r=>`<button class="revision-chip" onclick="openEssay(${r.id})">v${r.revision_no} <b>${r.overall}</b></button>`).join('')}</div></div>`}).join('');}
+async function openEssay(id){const d=await fetch(`/api/essays/${id}`).then(r=>r.json());$('#modalContent').innerHTML=`<div class="modal-head"><div><span>ESSAY #${d.series_id} · REVISION ${d.revision_no}</span><h2>${esc(promptLabel(d.prompt))}</h2><small>${d.created_at.replace('T',' ').slice(0,16)} · ${d.word_count} words</small></div><div class="history-score bigscore"><strong>${d.overall}</strong><span>${d.cefr_estimate}</span></div></div><div class="revision-nav">${d.revisions.map(x=>`<button class="revision-chip ${x.id===d.id?'active':''}" onclick="openEssay(${x.id})">v${x.revision_no} · ${x.overall}</button>`).join('')}</div><div class="original">${esc(d.text)}</div><button class="primary" onclick="closeModal();reviseEssay(${d.id})">Revise this version</button><h3>Summary</h3><p>${esc(d.summary_vi)}</p><h3>Feedback</h3><div class="errors">${(d.errors||[]).map(e=>`<details open><summary><span class="tag">${esc(e.category)}</span> ${esc(e.fragment)}</summary><div class="feedback"><p>${esc(e.explanation_vi)}</p><p><b>Better:</b> ${esc(e.suggestion)}</p><p class="rule"><b>Rule:</b> ${esc(e.mini_rule_vi)}</p></div></details>`).join('')}</div>`;$('#modal').classList.remove('hidden');}
 function closeModal(){$('#modal').classList.add('hidden');}
+syncTaskMode();
 health();loadDashboard();
 </script>
 </body>

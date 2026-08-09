@@ -1,4 +1,5 @@
 import json
+import random
 import os
 import re
 import sqlite3
@@ -100,6 +101,18 @@ class EssayIn(BaseModel):
     target_cefr: str = Field(default="B2", pattern=r"^(A1|A2|B1|B2|C1|C2)$")
     parent_essay_id: int | None = Field(default=None, ge=1)
 
+
+class TaskGenerateIn(BaseModel):
+    task_type: str = Field(
+        default="opinion",
+        pattern=r"^(opinion|email|review|story|toeic)$",
+    )
+    topic: str = Field(default="random", min_length=1, max_length=120)
+    target_cefr: str = Field(
+        default="B2",
+        pattern=r"^(A1|A2|B1|B2|C1|C2)$",
+    )
+    word_target: int = Field(default=150, ge=60, le=350)
 
 def db() -> sqlite3.Connection:
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
@@ -592,6 +605,197 @@ def health() -> dict[str, Any]:
         "available_models": models,
     }
 
+
+TASK_TYPE_GUIDANCE = {
+    "opinion": "an opinion essay that requires a clear position, reasons and at least one concrete example",
+    "email": "a realistic email with a clear recipient, purpose and 2-3 points the learner must address",
+    "review": "a review of a realistic product, service, place, event, podcast, film or experience with positives, negatives and a recommendation",
+    "story": "a short story with a clear situation, development and ending; give a natural opening situation but do not write the story for the learner",
+    "toeic": "a TOEIC-style practical writing task, preferably an email response or short opinion response with explicit points to address",
+}
+
+TASK_TOPICS = [
+    "daily life",
+    "work",
+    "technology",
+    "education",
+    "travel",
+    "environment",
+    "culture and media",
+    "shopping and services",
+    "communication",
+    "community",
+]
+
+
+def normalize_task_piece(value: Any, limit: int) -> str:
+    return re.sub(r"\s+", " ", str(value or "")).strip()[:limit]
+
+
+def fallback_practice_task(payload: TaskGenerateIn) -> dict[str, Any]:
+    topic = payload.topic.strip()
+    if topic.casefold() == "random":
+        topic = random.choice(TASK_TOPICS)
+    task_type = payload.task_type
+
+    templates = {
+        "opinion": (
+            f"An opinion about {topic}",
+            f"Some people believe that changes related to {topic} make everyday life better, while others disagree. "
+            "Write an opinion response. State your position clearly, give at least two reasons, and support one reason with a specific example.",
+            ["State a clear opinion", "Give at least two reasons", "Include one specific example"],
+        ),
+        "email": (
+            f"An email about {topic}",
+            f"You need to write an email about a recent situation involving {topic}. Explain what happened, describe what you need from the recipient, "
+            "and suggest one practical next step. Use an appropriate opening and closing.",
+            ["Explain the situation", "Make your request clear", "Suggest a next step", "Use an appropriate email tone"],
+        ),
+        "review": (
+            f"A review related to {topic}",
+            f"Write a review of a recent experience related to {topic}. Describe what you experienced, explain what you liked and disliked, "
+            "and say whether you would recommend it to other people.",
+            ["Describe the experience", "Give both a positive and a negative point", "Finish with a recommendation"],
+        ),
+        "story": (
+            f"A short story about {topic}",
+            f"Write a short story connected to {topic}. Begin with a situation where an ordinary plan suddenly changes. "
+            "Show what happened next and finish with a clear ending.",
+            ["Set the scene", "Describe a change or problem", "Show what happens next", "Give the story a clear ending"],
+        ),
+        "toeic": (
+            f"A practical TOEIC-style task about {topic}",
+            f"Your workplace or community is considering a change related to {topic}. Write a response explaining whether you support the change. "
+            "Give two reasons and one practical example or consequence.",
+            ["Give a clear position", "Provide two reasons", "Add a practical example or consequence"],
+        ),
+    }
+    title, instruction, checklist = templates[task_type]
+    return {
+        "title": title,
+        "instruction": instruction,
+        "checklist": checklist,
+        "word_target": payload.word_target,
+        "task_type": task_type,
+        "topic": topic,
+        "source": "built-in",
+    }
+
+
+def generate_practice_task(payload: TaskGenerateIn) -> dict[str, Any]:
+    requested_topic = payload.topic.strip()
+    topic_instruction = (
+        "Choose a fresh, concrete everyday topic yourself."
+        if requested_topic.casefold() == "random"
+        else f"Use this topic: {requested_topic}."
+    )
+    guidance = TASK_TYPE_GUIDANCE[payload.task_type]
+
+    schema = {
+        "type": "object",
+        "properties": {
+            "title": {"type": "string"},
+            "instruction": {"type": "string"},
+            "checklist": {
+                "type": "array",
+                "items": {"type": "string"},
+                "minItems": 2,
+                "maxItems": 5,
+            },
+            "topic": {"type": "string"},
+        },
+        "required": ["title", "instruction", "checklist", "topic"],
+    }
+
+    system = (
+        "You create English writing practice tasks for language learners.\n"
+        "Create exactly ONE task.\n"
+        "The task itself must be written in clear English.\n"
+        "Do not provide an answer, sample response, outline, vocabulary list, or hints that solve the task.\n"
+        "Make the task realistic, specific enough to write about, and appropriate for the requested CEFR level.\n"
+        "Avoid obscure specialist knowledge. The learner should be able to answer from everyday knowledge or imagination.\n"
+        "Return only the requested structured JSON."
+    )
+
+    user = (
+        f"CEFR level: {payload.target_cefr}\n"
+        f"Task format: {guidance}\n"
+        f"{topic_instruction}\n"
+        f"Target response length: about {payload.word_target} words.\n"
+        "Create a short title, one self-contained instruction, and a checklist of 2-5 things the learner must include."
+    )
+
+    body = {
+        "model": OLLAMA_MODEL,
+        "stream": False,
+        "think": False,
+        "keep_alive": "30m",
+        "format": schema,
+        "options": {
+            "temperature": 0.75,
+            "num_ctx": 2048,
+            "num_predict": 500,
+        },
+        "messages": [
+            {"role": "system", "content": system},
+            {"role": "user", "content": user},
+        ],
+    }
+
+    try:
+        response = requests.post(
+            f"{OLLAMA_URL}/api/chat",
+            json=body,
+            timeout=min(REQUEST_TIMEOUT, 90),
+        )
+        response.raise_for_status()
+        envelope = response.json()
+        content = envelope.get("message", {}).get("content", "")
+        raw = extract_json(content)
+
+        title = normalize_task_piece(raw.get("title"), 140)
+        instruction = normalize_task_piece(raw.get("instruction"), 1600)
+        topic = normalize_task_piece(raw.get("topic"), 120)
+        checklist = [
+            normalize_task_piece(item, 240)
+            for item in raw.get("checklist", [])
+            if normalize_task_piece(item, 240)
+        ][:5]
+
+        if not title or not instruction or len(checklist) < 2:
+            raise ValueError("Task generator returned incomplete structured output")
+
+        return {
+            "title": title,
+            "instruction": instruction,
+            "checklist": checklist,
+            "word_target": payload.word_target,
+            "task_type": payload.task_type,
+            "topic": topic or requested_topic,
+            "source": f"ollama:{OLLAMA_MODEL}",
+        }
+    except Exception:
+        return fallback_practice_task(payload)
+
+
+def task_as_prompt(task: dict[str, Any], target_cefr: str) -> str:
+    checklist = "\n".join(f"- {item}" for item in task["checklist"])
+    return (
+        f"TASK: {task['title']}\n\n"
+        f"{task['instruction']}\n\n"
+        f"WHAT TO INCLUDE:\n{checklist}\n\n"
+        f"TARGET LEVEL: {target_cefr}\n"
+        f"TARGET LENGTH: about {task['word_target']} words"
+    )
+
+
+@app.post("/api/tasks/generate")
+def api_generate_task(payload: TaskGenerateIn) -> dict[str, Any]:
+    task = generate_practice_task(payload)
+    return {
+        **task,
+        "prompt": task_as_prompt(task, payload.target_cefr),
+    }
 
 @app.post("/api/evaluate")
 def api_evaluate(payload: EssayIn) -> dict[str, Any]:

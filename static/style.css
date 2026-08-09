@@ -218,3 +218,138 @@ body[data-theme="dark"] .chart-tooltip small{color:#657286}
   .cards .card,.panel,.editor-card,.result-card{padding:18px}
   .chart{height:260px}
 }
+
+
+/* ===== v0.5.0 practice task generator ===== */
+.practice-builder{
+  margin-bottom:22px;
+  padding:18px;
+  border:1px solid var(--line);
+  border-radius:14px;
+  background:var(--card);
+}
+.practice-head{
+  display:flex;
+  justify-content:space-between;
+  gap:16px;
+  align-items:flex-start;
+  margin-bottom:15px;
+}
+.practice-head label{font-size:1.02em;margin:0}
+.practice-head small{display:block;color:var(--muted);font-weight:400;margin-top:3px}
+.ai-pill,.task-type,.task-source{
+  display:inline-flex;
+  align-items:center;
+  border-radius:999px;
+  white-space:nowrap;
+}
+.ai-pill{
+  padding:6px 9px;
+  background:#ececff;
+  color:#5052c8;
+  font-size:.72em;
+  font-weight:700;
+}
+.task-controls{
+  display:grid;
+  grid-template-columns:1.2fr 1.25fr .75fr .85fr;
+  gap:10px;
+}
+.control-field{
+  display:grid!important;
+  gap:6px;
+  margin:0!important;
+  color:var(--muted);
+  font-size:.78em!important;
+  font-weight:700!important;
+}
+.control-field select{
+  width:100%;
+  min-height:42px;
+  border:1px solid var(--line);
+  border-radius:9px;
+  background:var(--card);
+  color:var(--ink);
+  padding:8px 10px;
+  font:600 1.08em/1.2 inherit;
+  outline:none;
+}
+.control-field select:focus{border-color:#888af0;box-shadow:0 0 0 3px rgba(91,92,226,.12)}
+.control-field select:disabled{opacity:.48;cursor:not-allowed}
+.task-actions{display:flex;gap:9px;margin-top:12px}
+.secondary{
+  border:1px solid #cacbf8;
+  background:#eeeeff;
+  color:#4b4dc2;
+  border-radius:10px;
+  padding:11px 14px;
+  font:700 .88em/1.2 inherit;
+  cursor:pointer;
+}
+.secondary:hover{background:#e3e4ff}
+.secondary:disabled,.task-actions .ghost:disabled{opacity:.5;cursor:wait}
+.task-hint{
+  color:var(--muted);
+  font-size:.82em;
+  margin-top:10px;
+  line-height:1.5;
+}
+.prompt-wrap{margin-top:14px}
+.prompt-wrap>label{margin-bottom:7px}
+.task-preview{
+  margin-top:14px;
+  padding:16px 17px;
+  border:1px solid #d9dafb;
+  border-radius:12px;
+  background:#f2f2ff;
+}
+.task-preview-head{
+  display:flex;
+  justify-content:space-between;
+  gap:14px;
+  align-items:flex-start;
+}
+.task-preview h3{font-size:1.02em;margin:6px 0 0}
+.task-preview p{color:var(--ink);margin-top:10px;line-height:1.65}
+.task-preview ul{margin:6px 0 0;padding-left:21px}
+.task-preview li{margin:3px 0}
+.task-preview small{display:block;color:var(--muted);margin-top:11px}
+.task-type{
+  padding:3px 7px;
+  background:#dddfff;
+  color:#4b4dc2;
+  font-size:.66em;
+  font-weight:800;
+  text-transform:uppercase;
+  letter-spacing:.05em;
+}
+.task-source{
+  padding:4px 7px;
+  background:rgba(255,255,255,.65);
+  color:#697386;
+  font-size:.65em;
+}
+.task-checklist{margin-top:10px}
+.evaluation-note{color:var(--muted);font-size:.8em;max-width:65%}
+
+body[data-theme="dark"] .practice-builder{background:#131d2a}
+body[data-theme="dark"] .ai-pill{background:#2b315b;color:#c7c9ff}
+body[data-theme="dark"] .control-field select{background:#111a27;color:#e8edf5}
+body[data-theme="dark"] .secondary{background:#252c54;color:#c9cbff;border-color:#3c467b}
+body[data-theme="dark"] .secondary:hover{background:#303866}
+body[data-theme="dark"] .task-preview{background:#1d2444;border-color:#353e72}
+body[data-theme="dark"] .task-preview p{color:#e4e9f1}
+body[data-theme="dark"] .task-type{background:#303866;color:#d5d6ff}
+body[data-theme="dark"] .task-source{background:#121a2a;color:#9ca9bb}
+
+@media(max-width:1150px){
+  .task-controls{grid-template-columns:1fr 1fr}
+}
+@media(max-width:700px){
+  .practice-builder{padding:14px}
+  .practice-head{display:block}
+  .ai-pill{margin-top:8px}
+  .task-controls{grid-template-columns:1fr}
+  .task-actions{flex-wrap:wrap}
+  .evaluation-note{max-width:55%}
+}
