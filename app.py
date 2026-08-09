@@ -585,6 +585,63 @@ def style() -> HTMLResponse:
     return HTMLResponse((ROOT / "static" / "style.css").read_text(encoding="utf-8"), media_type="text/css")
 
 
+def model_family(model_name: str) -> str:
+    name = (model_name or "").casefold()
+    if "qwen" in name:
+        return "qwen"
+    if "llama" in name:
+        return "llama"
+    if "mistral" in name:
+        return "mistral"
+    if "gemma" in name:
+        return "gemma"
+    if "phi" in name:
+        return "phi"
+    return "generic"
+
+
+def mascot_for_model(model_name: str) -> dict[str, str]:
+    family = model_family(model_name)
+    mascots = {
+        "qwen": {
+            "emoji": "🦉",
+            "name": "Qwen Owl",
+            "subtitle": "Calm reader and detail hunter",
+            "mood": "Focused",
+        },
+        "llama": {
+            "emoji": "🦙",
+            "name": "Llama Scout",
+            "subtitle": "Patient guide for long writing sessions",
+            "mood": "Steady",
+        },
+        "mistral": {
+            "emoji": "🌬️",
+            "name": "Mistral Breeze",
+            "subtitle": "Fast, light and idea-friendly",
+            "mood": "Swift",
+        },
+        "gemma": {
+            "emoji": "💎",
+            "name": "Gemma Spark",
+            "subtitle": "Compact helper with sharp feedback",
+            "mood": "Bright",
+        },
+        "phi": {
+            "emoji": "🧠",
+            "name": "Phi Fox",
+            "subtitle": "Small but clever problem-solver",
+            "mood": "Clever",
+        },
+        "generic": {
+            "emoji": "🤖",
+            "name": "Coach Bot",
+            "subtitle": "Your local writing companion",
+            "mood": "Ready",
+        },
+    }
+    return mascots[family]
+
 @app.get("/api/health")
 def health() -> dict[str, Any]:
     ollama_ok = False
@@ -596,12 +653,15 @@ def health() -> dict[str, Any]:
             models = [m.get("name", "") for m in r.json().get("models", [])]
     except Exception:
         pass
+    mascot = mascot_for_model(OLLAMA_MODEL)
     return {
         "ok": True,
         "version": APP_VERSION,
         "schema_version": SCHEMA_VERSION,
         "ollama": ollama_ok,
         "model": OLLAMA_MODEL,
+        "model_family": model_family(OLLAMA_MODEL),
+        "mascot": mascot,
         "available_models": models,
     }
 
