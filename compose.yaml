@@ -1,0 +1,32 @@
+name: ai-writing-coach
+
+services:
+  writing-coach:
+    build: .
+    image: ai-writing-coach:local
+    restart: unless-stopped
+    environment:
+      OLLAMA_URL: ${OLLAMA_URL:-http://host.docker.internal:11434}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen3:8b}
+      OLLAMA_TIMEOUT: ${OLLAMA_TIMEOUT:-180}
+      WRITING_DB: /data/writing.db
+      ALLOW_FALLBACK: ${ALLOW_FALLBACK:-false}
+      APP_VERSION: ${APP_VERSION:-0.3.0}
+    volumes:
+      - writing_data:/data
+    ports:
+      - "127.0.0.1:8000:8000"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    profiles: ["public"]
+    command: tunnel --no-autoupdate run --token ${CLOUDFLARE_TUNNEL_TOKEN}
+    depends_on:
+      - writing-coach
+
+volumes:
+  writing_data:
+    name: ai-writing-coach-data

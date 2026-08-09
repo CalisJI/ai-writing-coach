@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AI Writing Coach</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="brand"><span class="logo">W</span><div><b>Writing Coach</b><small>Local AI</small></div></div>
+    <nav>
+      <button class="nav active" data-page="dashboard">◫ Dashboard</button>
+      <button class="nav" data-page="write">✎ Write</button>
+      <button class="nav" data-page="history">⌚ History</button>
+      <button class="nav" data-page="analytics">⌁ Analytics</button>
+    </nav>
+    <div class="sidebar-bottom">
+      <div id="ollamaStatus" class="status">● checking Ollama…</div>
+      <small>Data stays in local SQLite.</small>
+    </div>
+  </aside>
+
+  <main class="main">
+    <section id="page-dashboard" class="page active">
+      <header><div><h1>Writing Dashboard</h1><p>Your English writing skill, measured over time.</p></div><button class="primary" onclick="go('write')">+ New writing</button></header>
+      <div class="cards four">
+        <div class="card hero"><span>SKILL SCORE</span><strong id="skillScore">—</strong><small id="skillLevel">No data yet</small></div>
+        <div class="card"><span>RECENT AVG</span><strong id="recentAvg">—</strong><small>Latest 10 essays</small></div>
+        <div class="card"><span>STREAK</span><strong id="streak">0</strong><small>days</small></div>
+        <div class="card"><span>ESSAYS</span><strong id="essayCount">0</strong><small>saved locally</small></div>
+      </div>
+      <div class="grid2">
+        <div class="card panel"><div class="panel-title"><div><h2>Progress</h2><p>Overall score by essay</p></div></div><div id="trendChart" class="chart empty">Write your first essay to create the chart.</div></div>
+        <div class="card panel"><div class="panel-title"><div><h2>Next milestone</h2><p>Internal progress bands</p></div></div><div id="milestone" class="milestone"></div></div>
+      </div>
+      <div class="card panel"><div class="panel-title"><div><h2>Skill breakdown</h2><p>Weighted average of your latest 10 essays</p></div></div><div id="metricBars" class="metric-bars"></div></div>
+    </section>
+
+    <section id="page-write" class="page">
+      <header><div><h1>Write</h1><p>Write first. Let the coach diagnose patterns after you submit.</p></div></header>
+      <div class="write-layout">
+        <div class="card editor-card">
+          <label>Task / prompt</label>
+          <textarea id="prompt" class="prompt" placeholder="Example: Write a review of a podcast. Say what you liked, disliked, and whether it helps English learners."></textarea>
+          <div class="editor-head"><label>Your writing</label><span id="wordCount">0 words</span></div>
+          <textarea id="essayText" class="essay" placeholder="Start writing in English here..."></textarea>
+          <div class="editor-actions"><label>Target <select id="target"><option>B1</option><option selected>B2</option><option>C1</option><option>C2</option></select></label><button id="submitBtn" class="primary" onclick="submitEssay()">Evaluate & save</button></div>
+        </div>
+        <div id="resultPane" class="card result-card placeholder"><div><b>AI feedback will appear here</b><p>Scores, explanations, priorities and reusable grammar rules.</p></div></div>
+      </div>
+    </section>
+
+    <section id="page-history" class="page">
+      <header><div><h1>History</h1><p>Every submitted version is stored locally.</p></div></header>
+      <div id="historyList" class="history-list"></div>
+    </section>
+
+    <section id="page-analytics" class="page">
+      <header><div><h1>Analytics</h1><p>Find what is actually holding your score back.</p></div></header>
+      <div class="grid2">
+        <div class="card panel"><div class="panel-title"><div><h2>Recurring errors</h2><p>Latest 10 essays</p></div></div><div id="errorBars" class="metric-bars"></div></div>
+        <div class="card panel"><div class="panel-title"><div><h2>How scoring works</h2></div></div><div class="rubric"><p><b>Grammar</b> 25%</p><p><b>Vocabulary</b> 20%</p><p><b>Coherence</b> 20%</p><p><b>Task achievement</b> 20%</p><p><b>Naturalness</b> 15%</p><hr><small>The 0–100 score is an internal tracking index. CEFR shown here is an estimate, not an official Cambridge/IELTS result.</small></div></div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div id="modal" class="modal hidden"><div class="modal-card"><button class="close" onclick="closeModal()">×</button><div id="modalContent"></div></div></div>
+
+<script>
+const $ = s => document.querySelector(s);
+const $$ = s => [...document.querySelectorAll(s)];
+function esc(s=''){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));}
+function go(page){ $$('.nav').forEach(x=>x.classList.toggle('active',x.dataset.page===page)); $$('.page').forEach(x=>x.classList.toggle('active',x.id===`page-${page}`)); if(page==='dashboard'||page==='analytics') loadDashboard(); if(page==='history') loadHistory(); }
+$$('.nav').forEach(b=>b.onclick=()=>go(b.dataset.page));
+
+$('#essayText').addEventListener('input',()=>{ const n=($('#essayText').value.match(/\b[\w'-]+\b/g)||[]).length; $('#wordCount').textContent=`${n} words`; });
+
+async function health(){ try{const d=await fetch('/api/health').then(r=>r.json()); const el=$('#ollamaStatus'); if(d.ollama){ el.className='status ok'; el.textContent=`● Ollama · ${d.model}`;} else {el.className='status warn';el.textContent='● Ollama offline · demo fallback';}}catch(e){} }
+
+function lineChart(data){
+ if(!data.length) return '<div class="empty">Write your first essay to create the chart.</div>';
+ const W=800,H=240,p=34; const vals=data.map(x=>x.overall); const min=Math.max(0,Math.floor((Math.min(...vals)-10)/10)*10), max=Math.min(100,Math.ceil((Math.max(...vals)+10)/10)*10||100); const range=Math.max(10,max-min);
+ const pts=data.map((d,i)=>{const x=p+(W-2*p)*(data.length===1?.5:i/(data.length-1));const y=H-p-(d.overall-min)/range*(H-2*p);return {x,y,...d}});
+ const poly=pts.map(q=>`${q.x},${q.y}`).join(' ');
+ const circles=pts.map(q=>`<circle cx="${q.x}" cy="${q.y}" r="5"><title>#${q.id}: ${q.overall}</title></circle>`).join('');
+ return `<svg viewBox="0 0 ${W} ${H}" role="img"><line x1="${p}" y1="${H-p}" x2="${W-p}" y2="${H-p}" class="axis"/><line x1="${p}" y1="${p}" x2="${p}" y2="${H-p}" class="axis"/><text x="4" y="${p+5}" class="svgtext">${max}</text><text x="8" y="${H-p+4}" class="svgtext">${min}</text><polyline points="${poly}" fill="none" class="trendline"/>${circles}</svg>`;
+}
+function bars(obj, error=false){ const entries=Object.entries(obj||{}); if(!entries.length)return '<div class="empty">Not enough data yet.</div>'; const max=error?Math.max(...entries.map(x=>x[1]),1):100; return entries.map(([k,v])=>`<div class="barrow"><div class="barlabel"><span>${esc(k.replaceAll('_',' '))}</span><b>${v}${error?'':' / 100'}</b></div><div class="bar"><i style="width:${Math.min(100,v/max*100)}%"></i></div></div>`).join(''); }
+
+async function loadDashboard(){ const d=await fetch('/api/dashboard').then(r=>r.json()); $('#skillScore').textContent=d.essay_count?d.skill_score:'—'; $('#skillLevel').textContent=d.essay_count?`${d.cefr} estimate`:'No data yet'; $('#recentAvg').textContent=d.essay_count?d.recent_average:'—'; $('#streak').textContent=d.streak; $('#essayCount').textContent=d.essay_count; $('#trendChart').innerHTML=lineChart(d.trend); $('#metricBars').innerHTML=bars(d.metrics); $('#errorBars').innerHTML=bars(d.error_counts,true); if(!d.essay_count){$('#milestone').innerHTML='<div class="empty">Your first milestone appears after one essay.</div>'} else if(d.next_level){ const pct=Math.min(100,d.skill_score/d.next_level.threshold*100); $('#milestone').innerHTML=`<div class="level-big">${d.cefr} <span>${d.skill_score}/100</span></div><div class="bar big"><i style="width:${pct}%"></i></div><p><b>${d.next_level.remaining}</b> points to the ${d.next_level.level} progress band.</p><small>Skill score weights the latest 10 essays, with newer essays counting slightly more.</small>`;} else {$('#milestone').innerHTML='<div class="level-big">C2 <span>90+</span></div><p>Top internal progress band reached.</p>';} }
+
+async function submitEssay(){ const text=$('#essayText').value.trim(); if(text.length<10){alert('Write at least a short paragraph first.');return;} const btn=$('#submitBtn'); btn.disabled=true;btn.textContent='Evaluating…'; $('#resultPane').className='card result-card loading';$('#resultPane').innerHTML='<div class="spinner"></div><p>Local evaluator is reading your writing…</p>'; try{ const r=await fetch('/api/evaluate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:$('#prompt').value,text,target_cefr:$('#target').value})}); const d=await r.json(); if(!r.ok) throw new Error(d.detail||'Evaluation failed'); renderResult(d); loadDashboard(); }catch(e){$('#resultPane').innerHTML=`<div class="error">${esc(e.message)}</div>`;}finally{btn.disabled=false;btn.textContent='Evaluate & save';} }
+
+function renderResult(d){ const metrics={grammar:d.grammar,vocabulary:d.vocabulary,coherence:d.coherence,task_achievement:d.task_achievement,naturalness:d.naturalness}; const errors=(d.errors||[]).map((e,i)=>`<details ${i<3?'open':''}><summary><span class="tag">${esc(e.category)}</span> ${esc(e.fragment||'Learning point')}</summary><div class="feedback"><p>${esc(e.explanation_vi)}</p>${e.suggestion?`<p><b>Better:</b> ${esc(e.suggestion)}</p>`:''}${e.mini_rule_vi?`<p class="rule"><b>Rule:</b> ${esc(e.mini_rule_vi)}</p>`:''}</div></details>`).join(''); $('#resultPane').className='card result-card'; $('#resultPane').innerHTML=`<div class="score-head"><div><span>OVERALL</span><strong>${d.overall}</strong><small>${esc(d.cefr_estimate)} estimate</small></div><span class="eval-badge ${d.evaluator.startsWith('ollama')?'ai':'demo'}">${esc(d.evaluator)}</span></div><div class="compact-bars">${bars(metrics)}</div><div class="summary"><h3>Coach summary</h3><p>${esc(d.summary_vi)}</p></div><div class="twocol"><div><h3>Strengths</h3><ul>${(d.strengths_vi||[]).map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div><div><h3>Priorities</h3><ul>${(d.priorities_vi||[]).map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div></div><h3>Why & how</h3><div class="errors">${errors||'<p>No individual errors returned.</p>'}</div>`; }
+
+async function loadHistory(){ const rows=await fetch('/api/essays').then(r=>r.json()); const el=$('#historyList'); if(!rows.length){el.innerHTML='<div class="card empty">No essays yet.</div>';return;} el.innerHTML=rows.map(r=>`<button class="card history-row" onclick="openEssay(${r.id})"><div><b>#${r.id} · ${esc(r.prompt||'Free writing')}</b><small>${r.created_at.replace('T',' ').slice(0,16)} · ${r.word_count} words · ${esc(r.evaluator)}</small></div><div class="history-score"><strong>${r.overall}</strong><span>${r.cefr_estimate}</span></div></button>`).join(''); }
+async function openEssay(id){ const d=await fetch(`/api/essays/${id}`).then(r=>r.json()); $('#modalContent').innerHTML=`<div class="modal-head"><div><span>ESSAY #${d.id}</span><h2>${esc(d.prompt||'Free writing')}</h2><small>${d.created_at.replace('T',' ').slice(0,16)} · ${d.word_count} words</small></div><div class="history-score bigscore"><strong>${d.overall}</strong><span>${d.cefr_estimate}</span></div></div><div class="original">${esc(d.text)}</div><h3>Summary</h3><p>${esc(d.summary_vi)}</p><h3>Feedback</h3><div class="errors">${(d.errors||[]).map(e=>`<details open><summary><span class="tag">${esc(e.category)}</span> ${esc(e.fragment)}</summary><div class="feedback"><p>${esc(e.explanation_vi)}</p><p><b>Better:</b> ${esc(e.suggestion)}</p><p class="rule"><b>Rule:</b> ${esc(e.mini_rule_vi)}</p></div></details>`).join('')}</div>`; $('#modal').classList.remove('hidden'); }
+function closeModal(){ $('#modal').classList.add('hidden'); }
+
+health(); loadDashboard();
+</script>
+</body>
+</html>

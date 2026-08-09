@@ -1,0 +1,18 @@
+services:
+  writing-coach:
+    develop:
+      watch:
+        - action: sync+restart
+          path: ./app.py
+          target: /app/app.py
+        - action: sync+restart
+          path: ./VERSION
+          target: /app/VERSION
+        - action: sync
+          path: ./templates
+          target: /app/templates
+        - action: sync
+          path: ./static
+          target: /app/static
+        - action: rebuild
+          path: ./requirements.txt
