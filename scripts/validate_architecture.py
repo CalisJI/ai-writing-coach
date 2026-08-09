@@ -16,10 +16,11 @@ index = (ROOT / "templates" / "index.html").read_text(encoding="utf-8")
 app = (ROOT / "app.py").read_text(encoding="utf-8")
 auth = (ROOT / "auth_support.py").read_text(encoding="utf-8")
 
-require(version.startswith("1.0."), "VERSION must be v1.0.x")
+require(version.startswith("1.1."), "VERSION must be v1.1.x")
 require("COPY writing_coach ./writing_coach" in dockerfile, "Dockerfile must copy writing_coach package")
 require('app.mount("/static"' in app, "StaticFiles mount is required")
 require("writing_coach.languages.runtime" in app, "Language evaluator runtime must be modular")
+require("languages.english.grammar_course import" not in app, "English grammar course must not be hardwired in app.py")
 require("GRAMMAR_LIBRARY = [" not in app, "Dead embedded GRAMMAR_LIBRARY must not return")
 require('translation_vi = excluded.translation_vi,\n              translation_vi' not in app, "Duplicate vocabulary SQL assignment exists")
 require("<script>\nconst $=" not in index, "Large inline app JavaScript must stay extracted")
@@ -34,7 +35,12 @@ from writing_coach.core.language_registry import all_languages
 
 langs = {x.code: x for x in all_languages()}
 require("en" in langs and langs["en"].enabled, "English must be enabled")
-require("zh" in langs and langs["zh"].enabled, "Chinese must be enabled in v1.0")
+require("zh" in langs and langs["zh"].enabled, "Chinese must be enabled in v1.1")
+from writing_coach.languages.chinese.grammar_course import GRAMMAR_COURSE as ZH_GRAMMAR
+zh = langs.get("zh")
+require(zh is not None and all(x in zh.capabilities for x in ("grammar","vocabulary","dictionary","translation","pinyin")), "Chinese library capabilities are incomplete")
+require(len(ZH_GRAMMAR) == 56, "Chinese grammar course must contain 56 lessons")
+
 
 if errors:
     print("Architecture validation FAILED:")

@@ -10,10 +10,13 @@ from typing import Any
 from urllib.parse import quote
 
 import requests
-from writing_coach.languages.english.grammar_course import GRAMMAR_COURSE, GRAMMAR_BY_ID
 from writing_coach.languages.runtime import (
     active_levels,
     active_profile,
+    active_grammar_by_id,
+    active_grammar_course,
+    grammar_level_names,
+    grammar_lesson_prompts,
     active_rubric_weights,
     active_score_to_level,
     active_system_prompt,
@@ -65,10 +68,7 @@ class TaskGenerateIn(BaseModel):
         pattern=r"^(opinion|email|review|story|toeic|hsk)$",
     )
     topic: str = Field(default="random", min_length=1, max_length=120)
-    target_cefr: str = Field(
-        default="B2",
-        pattern=r"^(A1|A2|B1|B2|C1|C2)$",
-    )
+    target_cefr: str = Field(default="B2", min_length=2, max_length=12)
     word_target: int = Field(default=150, ge=20, le=500)
 
 class ImproveIn(BaseModel):
@@ -950,6 +950,12 @@ def improve_with_ai(payload: ImproveIn) -> dict[str, Any]:
 
 def normalise_lookup_word(word: str) -> str:
     word = re.sub(r"\s+", " ", word.strip())
+    if is_chinese():
+        word = re.sub(r"^[^\u3400-\u4DBF\u4E00-\u9FFF]+|[^\u3400-\u4DBF\u4E00-\u9FFF]+$", "", word)
+        if not word or len(word) > 20:
+            raise HTTPException(400, "Hãy chọn tối đa 20 chữ Hán.")
+        return word
+
     word = re.sub(r"^[^\w'-]+|[^\w'-]+$", "", word, flags=re.UNICODE)
     if not word or len(word) > 80:
         raise HTTPException(400, "Invalid word or phrase")
@@ -979,7 +985,11 @@ def dictionary_ai_fallback(word: str) -> dict[str, Any]:
                         "part_of_speech": {"type": "string"},
                         "definition": {"type": "string"},
                         "example": {"type": "string"},
-                        "synonyms": {"type": "array", "items": {"type": "string"}, "maxItems": 5},
+                        "synonyms": {
+                            "type": "array",
+                            "items": {"type": "string"},
+                            "maxItems": 5,
+                        },
                     },
                     "required": ["part_of_speech", "definition", "example", "synonyms"],
                 },
@@ -989,7 +999,14 @@ def dictionary_ai_fallback(word: str) -> dict[str, Any]:
     }
     result = ai_json(
         [
-            {"role": "system", "content": "You are a compact English learner dictionary. Definitions must be short, clear English. Examples must be original and natural. Do not claim an exact IPA if uncertain; use an empty phonetic string instead."},
+            {
+                "role": "system",
+                "content": (
+                    "You are a compact English learner dictionary. Definitions must be short, clear English. "
+                    "Examples must be original and natural. Do not claim an exact IPA if uncertain; use an empty "
+                    "phonetic string instead."
+                ),
+            },
             {"role": "user", "content": f"Define this English word or short phrase: {word}"},
         ],
         schema,
@@ -1002,11 +1019,103 @@ def dictionary_ai_fallback(word: str) -> dict[str, Any]:
     return result
 
 
+def chinese_dictionary_ai(word: str) -> dict[str, Any]:
+    schema = {
+        "type": "object",
+        "properties": {
+            "word": {"type": "string"},
+            "traditional": {"type": "string"},
+            "phonetic": {"type": "string"},
+            "part_of_speech": {"type": "string"},
+            "translation_vi": {"type": "string"},
+            "usage_note_vi": {"type": "string"},
+            "definitions": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 4,
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "part_of_speech": {"type": "string"},
+                        "definition": {"type": "string"},
+                        "example": {"type": "string"},
+                        "example_pinyin": {"type": "string"},
+                        "example_vi": {"type": "string"},
+                        "synonyms": {
+                            "type": "array",
+                            "items": {"type": "string"},
+                            "maxItems": 5,
+                        },
+                    },
+                    "required": [
+                        "part_of_speech", "definition", "example",
+                        "example_pinyin", "example_vi", "synonyms",
+                    ],
+                },
+            },
+            "characters": {
+                "type": "array",
+                "maxItems": 8,
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "hanzi": {"type": "string"},
+                        "pinyin": {"type": "string"},
+                        "meaning_vi": {"type": "string"},
+                    },
+                    "required": ["hanzi", "pinyin", "meaning_vi"],
+                },
+            },
+            "collocations": {
+                "type": "array",
+                "items": {"type": "string"},
+                "maxItems": 6,
+            },
+        },
+        "required": [
+            "word", "traditional", "phonetic", "part_of_speech",
+            "translation_vi", "usage_note_vi", "definitions",
+            "characters", "collocations",
+        ],
+    }
+
+    result = ai_json(
+        [
+            {
+                "role": "system",
+                "content": (
+                    "You are a compact Chinese learner dictionary for a Vietnamese learner. "
+                    "Use Simplified Chinese as the main form. Give tone-mark pinyin (for example: xuéxí), "
+                    "a concise Vietnamese meaning, practical usage notes, and original natural examples. "
+                    "If a traditional form is identical or not useful, return an empty traditional string. "
+                    "Do not invent etymology. Character breakdown is only a learning aid; give literal/common "
+                    "character meanings, not false historical explanations."
+                ),
+            },
+            {
+                "role": "user",
+                "content": f"Explain this Chinese word or short phrase for a Vietnamese learner: {word}",
+            },
+        ],
+        schema,
+        num_predict=1100,
+        temperature=0.0,
+    )
+    result["source"] = active_ai_label()
+    result["audio"] = ""
+    result["cambridge_url"] = ""
+    return result
+
+
 def lookup_dictionary(word: str) -> dict[str, Any]:
     clean = normalise_lookup_word(word)
     cache_key = clean.casefold()
+
     with db() as conn:
-        row = conn.execute("SELECT payload_json, fetched_at FROM dictionary_cache WHERE word = ?", (cache_key,)).fetchone()
+        row = conn.execute(
+            "SELECT payload_json, fetched_at FROM dictionary_cache WHERE word = ?",
+            (cache_key,),
+        ).fetchone()
         if row:
             try:
                 fetched = datetime.fromisoformat(row["fetched_at"])
@@ -1018,61 +1127,75 @@ def lookup_dictionary(word: str) -> dict[str, Any]:
                 pass
 
     payload = None
-    try:
-        response = requests.get(
-            f"https://api.dictionaryapi.dev/api/v2/entries/en/{quote(clean)}",
-            timeout=8,
-        )
-        if response.ok:
-            data = response.json()
-            if isinstance(data, list) and data:
-                entry = data[0]
-                phonetic = str(entry.get("phonetic") or "")
-                audio = ""
-                if not phonetic:
-                    for p in entry.get("phonetics", []):
-                        if p.get("text"):
-                            phonetic = str(p["text"])
-                            break
-                for p in entry.get("phonetics", []):
-                    if p.get("audio"):
-                        audio = str(p["audio"])
-                        if audio.startswith("//"):
-                            audio = "https:" + audio
-                        break
-                definitions = []
-                for meaning in entry.get("meanings", []):
-                    pos = str(meaning.get("partOfSpeech") or "")
-                    for definition in meaning.get("definitions", [])[:2]:
-                        definitions.append({
-                            "part_of_speech": pos,
-                            "definition": str(definition.get("definition") or ""),
-                            "example": str(definition.get("example") or ""),
-                            "synonyms": [str(x) for x in definition.get("synonyms", [])[:5]],
-                        })
-                        if len(definitions) >= 5:
-                            break
-                    if len(definitions) >= 5:
-                        break
-                if definitions:
-                    payload = {
-                        "word": str(entry.get("word") or clean),
-                        "phonetic": phonetic,
-                        "audio": audio,
-                        "definitions": definitions,
-                        "source": "dictionaryapi.dev",
-                        "cambridge_url": cambridge_url_for(clean),
-                        "cached": False,
-                    }
-    except Exception:
-        payload = None
 
-    if payload is None:
+    if is_chinese():
         try:
-            payload = dictionary_ai_fallback(clean)
+            payload = chinese_dictionary_ai(clean)
             payload["cached"] = False
         except Exception as exc:
-            raise HTTPException(503, "Dictionary service is unavailable and local AI fallback failed.") from exc
+            raise HTTPException(
+                503,
+                "Chinese dictionary AI is unavailable.",
+            ) from exc
+    else:
+        try:
+            response = requests.get(
+                f"https://api.dictionaryapi.dev/api/v2/entries/en/{quote(clean)}",
+                timeout=8,
+            )
+            if response.ok:
+                data = response.json()
+                if isinstance(data, list) and data:
+                    entry = data[0]
+                    phonetic = str(entry.get("phonetic") or "")
+                    audio = ""
+                    if not phonetic:
+                        for p in entry.get("phonetics", []):
+                            if p.get("text"):
+                                phonetic = str(p["text"])
+                                break
+                    for p in entry.get("phonetics", []):
+                        if p.get("audio"):
+                            audio = str(p["audio"])
+                            if audio.startswith("//"):
+                                audio = "https:" + audio
+                            break
+                    definitions = []
+                    for meaning in entry.get("meanings", []):
+                        pos = str(meaning.get("partOfSpeech") or "")
+                        for definition in meaning.get("definitions", [])[:2]:
+                            definitions.append({
+                                "part_of_speech": pos,
+                                "definition": str(definition.get("definition") or ""),
+                                "example": str(definition.get("example") or ""),
+                                "synonyms": [str(x) for x in definition.get("synonyms", [])[:5]],
+                            })
+                            if len(definitions) >= 5:
+                                break
+                        if len(definitions) >= 5:
+                            break
+                    if definitions:
+                        payload = {
+                            "word": str(entry.get("word") or clean),
+                            "phonetic": phonetic,
+                            "audio": audio,
+                            "definitions": definitions,
+                            "source": "dictionaryapi.dev",
+                            "cambridge_url": cambridge_url_for(clean),
+                            "cached": False,
+                        }
+        except Exception:
+            payload = None
+
+        if payload is None:
+            try:
+                payload = dictionary_ai_fallback(clean)
+                payload["cached"] = False
+            except Exception as exc:
+                raise HTTPException(
+                    503,
+                    "Dictionary service is unavailable and AI fallback failed.",
+                ) from exc
 
     with db() as conn:
         conn.execute(
@@ -1083,11 +1206,15 @@ def lookup_dictionary(word: str) -> dict[str, Any]:
               payload_json = excluded.payload_json,
               fetched_at = excluded.fetched_at
             """,
-            (cache_key, json.dumps(payload, ensure_ascii=False), datetime.now().astimezone().isoformat(timespec="seconds")),
+            (
+                cache_key,
+                json.dumps(payload, ensure_ascii=False),
+                datetime.now().astimezone().isoformat(timespec="seconds"),
+            ),
         )
         conn.commit()
-    return payload
 
+    return payload
 
 @app.post("/api/improve")
 def api_improve(payload: ImproveIn) -> dict[str, Any]:
@@ -1101,173 +1228,309 @@ def api_improve(payload: ImproveIn) -> dict[str, Any]:
 
 @app.get("/api/library/grammar")
 def api_grammar_library() -> dict[str, Any]:
+    course = active_grammar_course()
     with db() as conn:
         completed = {
             str(r["lesson_id"])
             for r in conn.execute("SELECT lesson_id FROM grammar_progress").fetchall()
         }
-    lessons=[]
-    for item in GRAMMAR_COURSE:
-        row=dict(item)
-        row["completed"]=row["id"] in completed
+
+    lessons = []
+    for item in course:
+        row = dict(item)
+        row["completed"] = row["id"] in completed
         lessons.append(row)
+
     return {
         "lessons": lessons,
         "total": len(lessons),
         "completed": len(completed),
-        "levels": ["A1","A2","B1","B2","C1"],
+        "levels": list(active_levels()),
+        "level_names": grammar_level_names(),
+        "language": active_profile().code,
     }
 
 
 def generate_grammar_lesson(lesson: dict[str, Any]) -> dict[str, Any]:
-    schema={
-        "type":"object",
-        "properties":{
-            "explanation_vi":{"type":"string"},
-            "rules":{"type":"array","minItems":3,"maxItems":6,"items":{"type":"string"}},
-            "examples":{
-                "type":"array","minItems":3,"maxItems":5,
-                "items":{
-                    "type":"object",
-                    "properties":{"en":{"type":"string"},"vi":{"type":"string"}},
-                    "required":["en","vi"],
+    schema = {
+        "type": "object",
+        "properties": {
+            "explanation_vi": {"type": "string"},
+            "rules": {
+                "type": "array",
+                "minItems": 3,
+                "maxItems": 6,
+                "items": {"type": "string"},
+            },
+            "examples": {
+                "type": "array",
+                "minItems": 3,
+                "maxItems": 5,
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "target": {"type": "string"},
+                        "pinyin": {"type": "string"},
+                        "vi": {"type": "string"},
+                    },
+                    "required": ["target", "pinyin", "vi"],
                 },
             },
-            "mistakes":{"type":"array","minItems":2,"maxItems":5,"items":{"type":"string"}},
-            "writing_tip_vi":{"type":"string"},
+            "mistakes": {
+                "type": "array",
+                "minItems": 2,
+                "maxItems": 5,
+                "items": {"type": "string"},
+            },
+            "writing_tip_vi": {"type": "string"},
         },
-        "required":["explanation_vi","rules","examples","mistakes","writing_tip_vi"],
+        "required": [
+            "explanation_vi", "rules", "examples", "mistakes", "writing_tip_vi"
+        ],
     }
-    system=(
-        "You write concise original English grammar lessons for Vietnamese learners. "
-        "The lesson must match the requested CEFR level and objective. "
-        "Explain in Vietnamese using Latin alphabet. English examples stay in English. "
-        "Do not copy a textbook or website. Focus on practical writing."
-    )
-    user=(
-        f"LEVEL: {lesson['level']}\n"
-        f"TOPIC: {lesson['title']}\n"
-        f"OBJECTIVE: {lesson['objective_vi']}\n"
-        "Create a short teachable lesson with reusable rules, natural examples, common mistakes, and one writing tip."
-    )
+
+    system, user = grammar_lesson_prompts(lesson)
     return ai_json(
-        [{"role":"system","content":system},{"role":"user","content":user}],
+        [
+            {"role": "system", "content": system},
+            {"role": "user", "content": user},
+        ],
         schema,
-        num_predict=1300,
+        num_predict=1400,
         temperature=0.1,
     )
 
 
 @app.get("/api/library/grammar/{lesson_id}")
 def api_grammar_lesson(lesson_id: str) -> dict[str, Any]:
-    lesson=GRAMMAR_BY_ID.get(lesson_id)
+    grammar_by_id = active_grammar_by_id()
+    lesson = grammar_by_id.get(lesson_id)
     if not lesson:
-        raise HTTPException(404,"Grammar lesson not found")
+        raise HTTPException(404, "Grammar lesson not found")
+
     with db() as conn:
-        row=conn.execute(
+        row = conn.execute(
             "SELECT content_json FROM grammar_lesson_cache WHERE lesson_id = ?",
             (lesson_id,),
         ).fetchone()
+
     if row:
-        detail=json.loads(row["content_json"])
-        source="cache"
+        detail = json.loads(row["content_json"])
+        source = "cache"
     else:
         try:
-            detail=generate_grammar_lesson(lesson)
-            source=active_ai_label()
+            detail = generate_grammar_lesson(lesson)
+            source = active_ai_label()
             with db() as conn:
                 conn.execute(
                     """
                     INSERT INTO grammar_lesson_cache(lesson_id, content_json, generated_at)
                     VALUES (?, ?, ?)
                     ON CONFLICT(lesson_id) DO UPDATE SET
-                      content_json=excluded.content_json,
-                      generated_at=excluded.generated_at
+                      content_json = excluded.content_json,
+                      generated_at = excluded.generated_at
                     """,
                     (
                         lesson_id,
-                        json.dumps(detail,ensure_ascii=False),
+                        json.dumps(detail, ensure_ascii=False),
                         datetime.now().astimezone().isoformat(timespec="seconds"),
                     ),
                 )
                 conn.commit()
         except Exception:
-            detail={
-                "explanation_vi": lesson["objective_vi"]+" Hãy chú ý cách cấu trúc này hoạt động trong câu hoàn chỉnh và trong ngữ cảnh writing.",
-                "rules":["Đọc ví dụ và nhận diện cấu trúc chính.","So sánh câu đúng với lỗi thường gặp.","Tự viết ít nhất hai câu trước khi chuyển bài."],
-                "examples":[
-                    {"en":"Create your own example for this grammar point.","vi":"Tự tạo một ví dụ cho điểm ngữ pháp này."},
-                    {"en":"Use the pattern in a complete sentence.","vi":"Dùng cấu trúc trong một câu hoàn chỉnh."},
-                    {"en":"Review the sentence for accuracy and meaning.","vi":"Kiểm tra lại độ chính xác và ý nghĩa của câu."},
-                ],
-                "mistakes":["Không học công thức tách rời khỏi câu hoàn chỉnh.","Không cố dùng cấu trúc nâng cao khi chưa hiểu nghĩa."],
-                "writing_tip_vi":"Sau khi học, hãy dùng cấu trúc này trong một đoạn writing ngắn.",
-            }
-            source="built-in-fallback"
+            if is_chinese():
+                detail = {
+                    "explanation_vi": (
+                        lesson["objective_vi"]
+                        + " Đây là nội dung dự phòng khi AI Coach chưa sẵn sàng."
+                    ),
+                    "rules": [
+                        "Nhận diện vị trí của cấu trúc trong một câu hoàn chỉnh.",
+                        "So sánh câu đúng với cách dịch từng chữ từ tiếng Việt.",
+                        "Tự viết ít nhất hai câu mới trước khi chuyển bài.",
+                    ],
+                    "examples": [
+                        {
+                            "target": "请用这个语法点写一个完整的句子。",
+                            "pinyin": "Qǐng yòng zhège yǔfǎ diǎn xiě yí ge wánzhěng de jùzi.",
+                            "vi": "Hãy dùng điểm ngữ pháp này để viết một câu hoàn chỉnh.",
+                        },
+                        {
+                            "target": "先看结构，再看句子的意思。",
+                            "pinyin": "Xiān kàn jiégòu, zài kàn jùzi de yìsi.",
+                            "vi": "Trước tiên xem cấu trúc, sau đó xem nghĩa của câu.",
+                        },
+                        {
+                            "target": "写完以后，再检查词序。",
+                            "pinyin": "Xiě wán yǐhòu, zài jiǎnchá cíxù.",
+                            "vi": "Sau khi viết xong, kiểm tra lại trật tự từ.",
+                        },
+                    ],
+                    "mistakes": [
+                        "Không dịch nguyên trật tự tiếng Việt sang tiếng Trung.",
+                        "Không dùng cấu trúc nâng cao khi chưa chắc chức năng và vị trí của nó.",
+                    ],
+                    "writing_tip_vi": (
+                        "Sau bài học, hãy dùng cấu trúc này trong một đoạn tiếng Trung ngắn."
+                    ),
+                }
+            else:
+                detail = {
+                    "explanation_vi": (
+                        lesson["objective_vi"]
+                        + " Hãy chú ý cách cấu trúc này hoạt động trong câu hoàn chỉnh và trong ngữ cảnh writing."
+                    ),
+                    "rules": [
+                        "Đọc ví dụ và nhận diện cấu trúc chính.",
+                        "So sánh câu đúng với lỗi thường gặp.",
+                        "Tự viết ít nhất hai câu trước khi chuyển bài.",
+                    ],
+                    "examples": [
+                        {
+                            "target": "Create your own example for this grammar point.",
+                            "pinyin": "",
+                            "vi": "Tự tạo một ví dụ cho điểm ngữ pháp này.",
+                        },
+                        {
+                            "target": "Use the pattern in a complete sentence.",
+                            "pinyin": "",
+                            "vi": "Dùng cấu trúc trong một câu hoàn chỉnh.",
+                        },
+                        {
+                            "target": "Review the sentence for accuracy and meaning.",
+                            "pinyin": "",
+                            "vi": "Kiểm tra lại độ chính xác và ý nghĩa của câu.",
+                        },
+                    ],
+                    "mistakes": [
+                        "Không học công thức tách rời khỏi câu hoàn chỉnh.",
+                        "Không cố dùng cấu trúc nâng cao khi chưa hiểu nghĩa.",
+                    ],
+                    "writing_tip_vi": (
+                        "Sau khi học, hãy dùng cấu trúc này trong một đoạn writing ngắn."
+                    ),
+                }
+            source = "built-in-fallback"
+
+    # Backward compatibility for English lesson caches generated before v1.1.
+    examples = []
+    for example in detail.get("examples", []):
+        item = dict(example)
+        if "target" not in item:
+            item["target"] = str(item.get("en") or "")
+        item.setdefault("pinyin", "")
+        examples.append(item)
+    detail["examples"] = examples
+
     with db() as conn:
-        done=conn.execute("SELECT 1 FROM grammar_progress WHERE lesson_id = ?",(lesson_id,)).fetchone() is not None
-    return {**lesson,**detail,"completed":done,"source":source}
+        done = (
+            conn.execute(
+                "SELECT 1 FROM grammar_progress WHERE lesson_id = ?",
+                (lesson_id,),
+            ).fetchone()
+            is not None
+        )
+
+    return {
+        **lesson,
+        **detail,
+        "completed": done,
+        "source": source,
+        "language": active_profile().code,
+    }
 
 
 @app.post("/api/library/grammar/{lesson_id}/complete")
 def api_complete_grammar(lesson_id: str) -> dict[str, Any]:
-    if lesson_id not in GRAMMAR_BY_ID:
-        raise HTTPException(404,"Grammar lesson not found")
-    now=datetime.now().astimezone().isoformat(timespec="seconds")
+    if lesson_id not in active_grammar_by_id():
+        raise HTTPException(404, "Grammar lesson not found")
+
+    now = datetime.now().astimezone().isoformat(timespec="seconds")
     with db() as conn:
         conn.execute(
             """
-            INSERT INTO grammar_progress(lesson_id,completed_at)
-            VALUES (?,?)
-            ON CONFLICT(lesson_id) DO UPDATE SET completed_at=excluded.completed_at
+            INSERT INTO grammar_progress(lesson_id, completed_at)
+            VALUES (?, ?)
+            ON CONFLICT(lesson_id) DO UPDATE SET completed_at = excluded.completed_at
             """,
-            (lesson_id,now),
+            (lesson_id, now),
         )
         conn.commit()
-    return {"completed":True,"lesson_id":lesson_id}
+
+    return {"completed": True, "lesson_id": lesson_id}
 
 
 @app.delete("/api/library/grammar/{lesson_id}/complete")
 def api_uncomplete_grammar(lesson_id: str) -> dict[str, Any]:
     with db() as conn:
-        cur=conn.execute("DELETE FROM grammar_progress WHERE lesson_id = ?",(lesson_id,))
+        cur = conn.execute(
+            "DELETE FROM grammar_progress WHERE lesson_id = ?",
+            (lesson_id,),
+        )
         conn.commit()
-    return {"completed":False,"changed":cur.rowcount>0,"lesson_id":lesson_id}
+
+    return {
+        "completed": False,
+        "changed": cur.rowcount > 0,
+        "lesson_id": lesson_id,
+    }
 
 
 @app.post("/api/translate")
 def api_translate(payload: TranslateIn) -> dict[str, Any]:
-    schema={
-        "type":"object",
-        "properties":{
-            "translation_vi":{"type":"string"},
-            "natural_meaning_vi":{"type":"string"},
-            "part_of_speech":{"type":"string"},
-            "note_vi":{"type":"string"},
-        },
-        "required":["translation_vi","natural_meaning_vi","part_of_speech","note_vi"],
-    }
+    if is_chinese():
+        schema = {
+            "type": "object",
+            "properties": {
+                "translation_vi": {"type": "string"},
+                "natural_meaning_vi": {"type": "string"},
+                "part_of_speech": {"type": "string"},
+                "note_vi": {"type": "string"},
+                "pinyin": {"type": "string"},
+            },
+            "required": [
+                "translation_vi", "natural_meaning_vi",
+                "part_of_speech", "note_vi", "pinyin",
+            ],
+        }
+        system = (
+            "Translate Simplified Chinese into natural Vietnamese for a Vietnamese learner. "
+            "For a short word or phrase, also provide accurate tone-mark pinyin. "
+            "Translate by meaning, not word by word. Keep the note concise and useful for learning."
+        )
+    else:
+        schema = {
+            "type": "object",
+            "properties": {
+                "translation_vi": {"type": "string"},
+                "natural_meaning_vi": {"type": "string"},
+                "part_of_speech": {"type": "string"},
+                "note_vi": {"type": "string"},
+            },
+            "required": [
+                "translation_vi", "natural_meaning_vi",
+                "part_of_speech", "note_vi",
+            ],
+        }
+        system = (
+            "Translate English into natural Vietnamese for a language learner. "
+            "Translate phrases by meaning, not word by word. Keep notes concise."
+        )
+
     try:
-        result=ai_json(
+        result = ai_json(
             [
-                {
-                    "role":"system",
-                    "content":(
-                        "Translate English into natural Vietnamese for a language learner. "
-                        "Translate phrases by meaning, not word by word. Keep notes concise."
-                    ),
-                },
-                {"role":"user","content":payload.text},
+                {"role": "system", "content": system},
+                {"role": "user", "content": payload.text},
             ],
             schema,
-            num_predict=500,
+            num_predict=550,
             temperature=0.0,
         )
-        result["text"]=payload.text
+        result["text"] = payload.text
         return result
     except Exception as exc:
-        raise HTTPException(503,"Local translation is unavailable.") from exc
-
+        raise HTTPException(503, "AI translation is unavailable.") from exc
 
 @app.get("/api/dictionary")
 def api_dictionary(word: str) -> dict[str, Any]:
@@ -1334,7 +1597,7 @@ def api_evaluate(payload: EssayIn) -> dict[str, Any]:
 
     result, evaluator = evaluate(payload)
     overall = weighted_overall(result)
-    word_count = len(re.findall(r"\b[\w'-]+\b", payload.text))
+    word_count = writing_unit_count(payload.text)
     now = datetime.now().astimezone().isoformat(timespec="seconds")
 
     with db() as conn:

@@ -1,14 +1,21 @@
 from __future__ import annotations
 
 import re
-from typing import Any
 
 from writing_coach.core.request_context import current_language_code
+from writing_coach.languages.chinese.grammar_course import (
+    GRAMMAR_BY_ID as CHINESE_GRAMMAR_BY_ID,
+    GRAMMAR_COURSE as CHINESE_GRAMMAR_COURSE,
+)
 from writing_coach.languages.chinese.profile import (
     PROFILE as CHINESE_PROFILE,
     RUBRIC_WEIGHTS as CHINESE_RUBRIC_WEIGHTS,
     SYSTEM_PROMPT as CHINESE_SYSTEM_PROMPT,
     score_to_level as chinese_score_to_level,
+)
+from writing_coach.languages.english.grammar_course import (
+    GRAMMAR_BY_ID as ENGLISH_GRAMMAR_BY_ID,
+    GRAMMAR_COURSE as ENGLISH_GRAMMAR_COURSE,
 )
 from writing_coach.languages.english.profile import (
     PROFILE as ENGLISH_PROFILE,
@@ -57,8 +64,6 @@ def validate_target_level(level: str) -> str:
 
 def writing_unit_count(text: str) -> int:
     if is_chinese():
-        # Count Han characters plus Latin/number tokens. Chinese punctuation and
-        # spaces do not count as writing units.
         han = re.findall(r"[\u3400-\u4DBF\u4E00-\u9FFF]", text or "")
         latin = re.findall(r"[A-Za-z0-9]+(?:['-][A-Za-z0-9]+)*", text or "")
         return len(han) + len(latin)
@@ -67,6 +72,70 @@ def writing_unit_count(text: str) -> int:
 
 def writing_unit_label() -> str:
     return "characters" if is_chinese() else "words"
+
+
+def active_grammar_course() -> list[dict]:
+    return CHINESE_GRAMMAR_COURSE if is_chinese() else ENGLISH_GRAMMAR_COURSE
+
+
+def active_grammar_by_id() -> dict[str, dict]:
+    return CHINESE_GRAMMAR_BY_ID if is_chinese() else ENGLISH_GRAMMAR_BY_ID
+
+
+def grammar_level_names() -> dict[str, str]:
+    if is_chinese():
+        return {
+            "HSK1": "Foundation",
+            "HSK2": "Basic",
+            "HSK3": "Lower-intermediate",
+            "HSK4": "Intermediate",
+            "HSK5": "Upper-intermediate",
+            "HSK6": "Advanced",
+            "HSK7-9": "Advanced mastery",
+        }
+    return {
+        "A1": "Foundation",
+        "A2": "Core",
+        "B1": "Intermediate",
+        "B2": "Upper-intermediate",
+        "C1": "Advanced",
+        "C2": "Mastery",
+    }
+
+
+def grammar_lesson_prompts(lesson: dict) -> tuple[str, str]:
+    if is_chinese():
+        system = (
+            "You write concise original Chinese grammar lessons for Vietnamese learners. "
+            "The lesson must match the requested internal HSK learning band and objective. "
+            "Explain primarily in Vietnamese. Chinese examples must use natural Simplified Chinese "
+            "and include accurate pinyin plus Vietnamese meaning. "
+            "Do not claim this is an official HSK lesson or copy a textbook. "
+            "Focus on practical writing and common Vietnamese-learner mistakes."
+        )
+        user = (
+            f"LEARNING BAND: {lesson['level']}\n"
+            f"TOPIC: {lesson['title']}\n"
+            f"OBJECTIVE: {lesson['objective_vi']}\n"
+            "Create a short teachable lesson with reusable rules, natural Chinese examples, "
+            "common mistakes, and one writing tip."
+        )
+        return system, user
+
+    system = (
+        "You write concise original English grammar lessons for Vietnamese learners. "
+        "The lesson must match the requested CEFR level and objective. "
+        "Explain in Vietnamese using Latin alphabet. English examples stay in English. "
+        "Do not copy a textbook or website. Focus on practical writing."
+    )
+    user = (
+        f"LEVEL: {lesson['level']}\n"
+        f"TOPIC: {lesson['title']}\n"
+        f"OBJECTIVE: {lesson['objective_vi']}\n"
+        "Create a short teachable lesson with reusable rules, natural examples, "
+        "common mistakes, and one writing tip."
+    )
+    return system, user
 
 
 ENGLISH_TASK_GUIDANCE = {

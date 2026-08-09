@@ -374,29 +374,58 @@ function renderGrammarLibrary(){
   const rows=grammarLessons.filter(x=>(level==='all'||x.level===level)&&(!q||`${x.title} ${x.category} ${x.objective_vi}`.toLowerCase().includes(q)));
   if(!rows.length){el.innerHTML='<div class="card empty">No grammar lessons match this filter.</div>';return;}
   const groups={};rows.forEach(x=>(groups[x.level]??=[]).push(x));
-  const names={A1:'Foundation',A2:'Core',B1:'Intermediate',B2:'Upper-intermediate',C1:'Advanced',C2:'Mastery'};
-  el.innerHTML=Object.entries(groups).map(([lvl,items])=>`<div class="course-level-block"><div class="course-level-head"><div><span class="level-badge level-${lvl.toLowerCase()}">${lvl}</span><b>${names[lvl]}</b></div><small>${items.filter(x=>x.completed).length}/${items.length} completed</small></div><div class="lesson-grid">${items.map(x=>`<button class="lesson-card card ${x.completed?'completed':''}" onclick="openGrammarLesson('${esc(x.id)}')"><div class="lesson-meta"><span>#${x.order}</span><span>${esc(x.category)}</span></div><h3>${x.completed?'✓ ':''}${esc(x.title)}</h3><p>${esc(x.objective_vi)}</p><span class="lesson-open">${x.completed?'Review lesson':'Start lesson'} -></span></button>`).join('')}</div></div>`).join('');
+  const names={
+    A1:'Foundation',A2:'Core',B1:'Intermediate',B2:'Upper-intermediate',C1:'Advanced',C2:'Mastery',
+    HSK1:'Foundation',HSK2:'Basic',HSK3:'Lower-intermediate',HSK4:'Intermediate',
+    HSK5:'Upper-intermediate',HSK6:'Advanced','HSK7-9':'Advanced mastery'
+  };
+  el.innerHTML=Object.entries(groups).map(([lvl,items])=>`<div class="course-level-block"><div class="course-level-head"><div><span class="level-badge">${esc(lvl)}</span><b>${esc(names[lvl]||'Learning band')}</b></div><small>${items.filter(x=>x.completed).length}/${items.length} completed</small></div><div class="lesson-grid">${items.map(x=>`<button class="lesson-card card ${x.completed?'completed':''}" onclick="openGrammarLesson('${esc(x.id)}')"><div class="lesson-meta"><span>#${x.order}</span><span>${esc(x.category)}</span></div><h3>${x.completed?'✓ ':''}${esc(x.title)}</h3><p>${esc(x.objective_vi)}</p><span class="lesson-open">${x.completed?'Review lesson':'Start lesson'} →</span></button>`).join('')}</div></div>`).join('');
   updateCourseProgress();
 }
+
 async function openGrammarLesson(id){
-  $('#modal').classList.remove('hidden');$('#modalContent').innerHTML='<div class="improve-loading"><div class="spinner"></div><p>Preparing lesson…</p></div>';
+  $('#modal').classList.remove('hidden');
+  $('#modalContent').innerHTML='<div class="improve-loading"><div class="spinner"></div><p>Preparing lesson…</p></div>';
   try{
-    const x=await fetch(`/api/library/grammar/${encodeURIComponent(id)}`).then(r=>r.json()),prev=previousGrammarLesson(id),next=nextGrammarLesson(id);
+    const r=await fetch(`/api/library/grammar/${encodeURIComponent(id)}`);
+    const x=await r.json();
+    if(!r.ok)throw new Error(x.detail||'Could not load lesson');
+    const prev=previousGrammarLesson(id),next=nextGrammarLesson(id);
     const cached=grammarLessons.find(y=>y.id===id);if(cached)cached.completed=x.completed;
-    $('#modalContent').innerHTML=`<div class="modal-head"><div><span>LESSON ${x.order} · ${esc(x.level)} · ${esc(x.category)}</span><h2>${esc(x.title)}</h2><small>${esc(x.objective_vi)}</small></div></div><div class="summary"><h3>What you are learning</h3><p>${esc(x.explanation_vi)}</p></div><h3>Core rules</h3><ul class="lesson-list">${(x.rules||[]).map(r=>`<li>${esc(r)}</li>`).join('')}</ul><h3>Examples</h3><div class="example-grid">${(x.examples||[]).map(e=>`<div class="example-card"><b>${esc(e.en)}</b><span>${esc(e.vi)}</span></div>`).join('')}</div><h3>Common mistakes</h3><ul class="lesson-list warning-list">${(x.mistakes||[]).map(m=>`<li>${esc(m)}</li>`).join('')}</ul><div class="summary writing-tip"><h3>Writing tip</h3><p>${esc(x.writing_tip_vi||'')}</p></div><div class="lesson-actions">${prev?`<button class="ghost" onclick="openGrammarLesson('${esc(prev.id)}')">← Previous</button>`:'<span></span>'}<button class="${x.completed?'ghost':'primary'}" onclick="setGrammarComplete('${esc(x.id)}',${x.completed?'false':'true'});openGrammarLesson('${esc(x.id)}')">${x.completed?'Mark incomplete':'Mark complete ✓'}</button>${next?`<button class="primary" onclick="setGrammarComplete('${esc(x.id)}',true);openGrammarLesson('${esc(next.id)}')">Complete & next →</button>`:'<button class="primary" onclick="setGrammarComplete(\''+esc(x.id)+'\',true);closeModal()">Finish course ✓</button>'}</div>`;
+
+    const examples=(x.examples||[]).map(e=>{
+      const target=e.target||e.en||'';
+      return `<div class="example-card"><b>${esc(target)}</b>${e.pinyin?`<span class="pinyin-line">${esc(e.pinyin)}</span>`:''}<span>${esc(e.vi||'')}</span></div>`;
+    }).join('');
+
+    $('#modalContent').innerHTML=`<div class="modal-head"><div><span>LESSON ${x.order} · ${esc(x.level)} · ${esc(x.category)}</span><h2>${esc(x.title)}</h2><small>${esc(x.objective_vi)}</small></div></div><div class="summary"><h3>What you are learning</h3><p>${esc(x.explanation_vi)}</p></div><h3>Core rules</h3><ul class="lesson-list">${(x.rules||[]).map(r=>`<li>${esc(r)}</li>`).join('')}</ul><h3>Examples</h3><div class="example-grid">${examples}</div><h3>Common mistakes</h3><ul class="lesson-list warning-list">${(x.mistakes||[]).map(m=>`<li>${esc(m)}</li>`).join('')}</ul><div class="summary writing-tip"><h3>Writing tip</h3><p>${esc(x.writing_tip_vi||'')}</p></div>${activeLang()==='zh'?'<div class="zh-library-note">HSK is used here as an internal learning band; this lesson is not an official HSK textbook lesson.</div>':''}<div class="lesson-actions">${prev?`<button class="ghost" onclick="openGrammarLesson('${esc(prev.id)}')">← Previous</button>`:'<span></span>'}<button class="${x.completed?'ghost':'primary'}" onclick="setGrammarComplete('${esc(x.id)}',${x.completed?'false':'true'});openGrammarLesson('${esc(x.id)}')">${x.completed?'Mark incomplete':'Mark complete ✓'}</button>${next?`<button class="primary" onclick="setGrammarComplete('${esc(x.id)}',true);openGrammarLesson('${esc(next.id)}')">Complete & next →</button>`:`<button class="primary" onclick="setGrammarComplete('${esc(x.id)}',true);closeModal()">Finish course ✓</button>`}</div>`;
   }catch(e){$('#modalContent').innerHTML=`<div class="error">${esc(e.message)}</div>`;}
 }
+
 async function loadSavedWords(){
   const el=$('#savedWords');if(!el)return;
   try{
-    const d=await fetch('/api/vocabulary').then(r=>r.json()),items=d.items||[];
-    $('#savedWordCount').textContent=`${items.length} word${items.length===1?'':'s'}`;
-    el.innerHTML=items.length?items.map(x=>`<div class="card saved-word"><div class="saved-word-head"><div><h3>${esc(x.word)}</h3><span>${esc(x.phonetic||'')}</span></div><button class="mini-danger" onclick="removeSavedWord('${esc(x.word)}')">Remove</button></div><span class="pos-label">${esc(x.part_of_speech||'word')}</span><p>${esc(x.translation_vi||x.definition||'')}</p>${x.definition&&x.translation_vi?`<small>${esc(x.definition)}</small>`:''}<button class="ghost lookup-again" onclick="lookupWordCentered('${esc(x.word)}')">Look up again</button></div>`).join(''):'<div class="card empty">No saved words yet. Highlight a word anywhere in the app to start your vocabulary notebook.</div>';
+    const r=await fetch('/api/vocabulary'),d=await r.json();
+    if(!r.ok)throw new Error(d.detail||'Could not load vocabulary');
+    const items=d.items||[];
+    $('#savedWordCount').textContent=activeLang()==='zh'?`${items.length} từ`:`${items.length} word${items.length===1?'':'s'}`;
+    el.innerHTML=items.length?items.map(x=>`<div class="card saved-word"><div class="saved-word-head"><div><h3>${esc(x.word)}</h3><span>${esc(x.phonetic||'')}</span></div><button class="mini-danger" onclick="removeSavedWord('${esc(x.word)}')">Remove</button></div><span class="pos-label">${esc(x.part_of_speech||(activeLang()==='zh'?'词语':'word'))}</span><p>${esc(x.translation_vi||x.definition||'')}</p>${x.definition&&x.translation_vi?`<small>${esc(x.definition)}</small>`:''}<button class="ghost lookup-again" onclick="lookupWordCentered('${esc(x.word)}')">Look up again</button></div>`).join(''):`<div class="card empty">${activeLang()==='zh'?'Chưa có từ tiếng Trung nào. Bôi đen chữ hoặc cụm từ để bắt đầu sổ từ vựng.':'No saved words yet. Highlight a word anywhere in the app to start your vocabulary notebook.'}</div>`;
   }catch(e){el.innerHTML=`<div class="error">${esc(e.message)}</div>`;}
 }
+
 async function removeSavedWord(word){await fetch(`/api/vocabulary/${encodeURIComponent(word)}`,{method:'DELETE'});loadSavedWords();}
 
-function cleanSelectionText(text=''){const t=String(text).trim().replace(/\s+/g,' ');if(t.length<2||t.length>60||t.split(' ').length>4)return '';if(!/^[A-Za-z][A-Za-z' -]*$/.test(t))return '';return t;}
+function cleanSelectionText(text=''){
+  const t=String(text).trim().replace(/\s+/g,' ');
+  if(activeLang()==='zh'){
+    if(!t||t.length>20)return '';
+    return /^[\u3400-\u4DBF\u4E00-\u9FFF]+$/.test(t)?t:'';
+  }
+  if(t.length<2||t.length>60||t.split(' ').length>4)return '';
+  if(!/^[A-Za-z][A-Za-z' -]*$/.test(t))return '';
+  return t;
+}
+
 function selectedTextFromTarget(target){
   if(target&&((target.tagName==='TEXTAREA')||(target.tagName==='INPUT'&&['text','search'].includes(target.type)))){const a=target.selectionStart,b=target.selectionEnd;if(typeof a==='number'&&typeof b==='number'&&b>a)return cleanSelectionText(target.value.slice(a,b));}
   const sel=window.getSelection();return cleanSelectionText(sel?sel.toString():'');
@@ -405,14 +434,26 @@ function hideDictionary(){$('#dictionaryPopover')?.classList.add('hidden');}
 async function lookupWordAt(word,x,y){
   word=cleanSelectionText(word);if(!word)return;
   const pop=$('#dictionaryPopover'),content=$('#dictionaryContent');pop.classList.remove('hidden');
-  pop.style.left=`${Math.max(12,Math.min(window.innerWidth-360,x))}px`;pop.style.top=`${Math.max(12,Math.min(window.innerHeight-300,y))}px`;
+  pop.style.left=`${Math.max(12,Math.min(window.innerWidth-390,x))}px`;
+  pop.style.top=`${Math.max(12,Math.min(window.innerHeight-360,y))}px`;
   content.innerHTML=`<div class="dictionary-loading"><div class="spinner"></div><span>Looking up “${esc(word)}”…</span></div>`;
   try{
-    const d=await fetch(`/api/dictionary?word=${encodeURIComponent(word)}`).then(async r=>{const b=await r.json();if(!r.ok)throw new Error(b.detail||'Lookup failed');return b;});currentDictionary=d;
-    const defs=(d.definitions||[]).map((m,i)=>`<div class="definition-row"><span class="pos-label">${esc(m.part_of_speech||'')}</span><b>${i+1}. ${esc(m.definition)}</b>${m.example?`<p>“${esc(m.example)}”</p>`:''}${(m.synonyms||[]).length?`<small>Similar: ${m.synonyms.map(esc).join(', ')}</small>`:''}</div>`).join('');
-    content.innerHTML=`<div class="dictionary-head"><div><h3>${esc(d.word||word)}</h3><span>${esc(d.phonetic||'')}</span></div><span class="dictionary-source">${esc(d.source||'dictionary')}</span></div><div class="dictionary-definitions">${defs}</div><div class="dictionary-actions">${d.audio?`<button class="ghost" onclick="playDictionaryAudio()">▶ Pronunciation</button>`:''}<button class="ghost" onclick="translateDictionaryWord()">Dịch</button><button class="primary" onclick="saveCurrentWord()">+ Từ mới</button><a class="ghost dictionary-link" href="${esc(d.cambridge_url||'#')}" target="_blank" rel="noopener">Open Cambridge</a></div>`;
+    const r=await fetch(`/api/dictionary?word=${encodeURIComponent(word)}`);
+    const d=await r.json();if(!r.ok)throw new Error(d.detail||'Lookup failed');
+    currentDictionary=d;
+
+    const defs=(d.definitions||[]).map((m,i)=>`<div class="definition-row"><span class="pos-label">${esc(m.part_of_speech||'')}</span><b>${i+1}. ${esc(m.definition||'')}</b>${m.example?`<p class="${activeLang()==='zh'?'example-zh':''}">${esc(m.example)}</p>`:''}${m.example_pinyin?`<span class="pinyin-line">${esc(m.example_pinyin)}</span>`:''}${m.example_vi?`<small class="example-vi">${esc(m.example_vi)}</small>`:''}${(m.synonyms||[]).length?`<small>Similar: ${m.synonyms.map(esc).join(', ')}</small>`:''}</div>`).join('');
+
+    const chars=(d.characters||[]).length?`<div class="character-breakdown">${d.characters.map(c=>`<div class="character-chip"><b>${esc(c.hanzi)}</b><span>${esc(c.pinyin)}</span><small>${esc(c.meaning_vi)}</small></div>`).join('')}</div>`:'';
+    const collocations=(d.collocations||[]).length?`<div class="collocation-list">${d.collocations.map(c=>`<span>${esc(c)}</span>`).join('')}</div>`:'';
+    const traditional=d.traditional?`<small>Traditional: ${esc(d.traditional)}</small>`:'';
+    const meaning=d.translation_vi?`<div class="dictionary-translation"><span>Vietnamese</span><strong>${esc(d.translation_vi)}</strong>${d.usage_note_vi?`<small>${esc(d.usage_note_vi)}</small>`:''}</div>`:'';
+    const external=d.cambridge_url?`<a class="ghost dictionary-link" href="${esc(d.cambridge_url)}" target="_blank" rel="noopener">Open Cambridge</a>`:'';
+
+    content.innerHTML=`<div class="dictionary-head"><div><h3>${esc(d.word||word)}</h3><span>${esc(d.phonetic||'')}</span>${traditional}</div><span class="dictionary-source">${esc(d.source||'dictionary')}</span></div>${meaning}<div class="dictionary-definitions">${defs}</div>${chars}${collocations}<div class="dictionary-actions">${d.audio?`<button class="ghost" onclick="playDictionaryAudio()">▶ Pronunciation</button>`:''}<button class="ghost" onclick="translateDictionaryWord()">Dịch</button><button class="primary" onclick="saveCurrentWord()">+ Từ mới</button>${external}</div>`;
   }catch(e){currentDictionary=null;content.innerHTML=`<div class="error">${esc(e.message)}</div>`;}
 }
+
 function lookupWordCentered(word){lookupWordAt(word,Math.max(20,window.innerWidth/2-170),Math.max(20,window.innerHeight/2-160));}
 function translateDictionaryWord(){if(currentDictionary?.word){selectedLookupText=currentDictionary.word;translateSelectedText();}}
 function playDictionaryAudio(){if(currentDictionary?.audio)new Audio(currentDictionary.audio).play();}
@@ -429,12 +470,17 @@ function selectedTextForTools(target){
   return String(window.getSelection?.()?.toString()||'').trim().replace(/\s+/g,' ').slice(0,500);
 }
 function showSelectionToolbar(text,x,y){
-  if(!text||text.length<2){hideSelectionToolbar();return;}
+  const minLength=activeLang()==='zh'?1:2;
+  if(!text||text.length<minLength){hideSelectionToolbar();return;}
   selectedLookupText=text;selectionAnchor={x,y};
   const bar=$('#selectionToolbar');bar.classList.remove('hidden');
   requestAnimationFrame(()=>{bar.style.left=`${Math.max(8,Math.min(window.innerWidth-bar.offsetWidth-8,x))}px`;bar.style.top=`${Math.max(8,Math.min(window.innerHeight-bar.offsetHeight-8,y))}px`;});
-  $('#selectionDictionaryBtn').disabled=text.split(/\s+/).length>4||!/^[A-Za-z][A-Za-z' -]*$/.test(text);
+  const validDictionary=activeLang()==='zh'
+    ?/^[\u3400-\u4DBF\u4E00-\u9FFF]{1,20}$/.test(text)
+    :(text.split(/\s+/).length<=4&&/^[A-Za-z][A-Za-z' -]*$/.test(text));
+  $('#selectionDictionaryBtn').disabled=!validDictionary;
 }
+
 function hideSelectionToolbar(){$('#selectionToolbar')?.classList.add('hidden');}
 function triggerSelectionLookup(ev){
   if(ev.target?.closest?.('#dictionaryPopover,#selectionToolbar,.modal,.sidebar'))return;
@@ -443,15 +489,18 @@ function triggerSelectionLookup(ev){
 async function translateSelectedText(){
   const text=selectedLookupText;if(!text)return;hideSelectionToolbar();
   const pop=$('#dictionaryPopover'),content=$('#dictionaryContent');pop.classList.remove('hidden');
-  pop.style.left=`${Math.max(12,Math.min(window.innerWidth-380,selectionAnchor.x))}px`;pop.style.top=`${Math.max(12,Math.min(window.innerHeight-320,selectionAnchor.y))}px`;
+  pop.style.left=`${Math.max(12,Math.min(window.innerWidth-380,selectionAnchor.x))}px`;
+  pop.style.top=`${Math.max(12,Math.min(window.innerHeight-320,selectionAnchor.y))}px`;
   content.innerHTML='<div class="dictionary-loading"><div class="spinner"></div><span>Translating…</span></div>';
   try{
     const r=await fetch('/api/translate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text})}),d=await r.json();
     if(!r.ok)throw new Error(d.detail||'Translation failed');
-    currentDictionary={word:text,phonetic:'',definitions:[],translation_vi:d.translation_vi,part_of_speech:d.part_of_speech||'',source:'local translation'};
-    content.innerHTML=`<div class="dictionary-head"><div><h3>${esc(text)}</h3><span>${esc(d.part_of_speech||'')}</span></div><span class="dictionary-source">local AI</span></div><div class="translation-card"><span>Vietnamese</span><strong>${esc(d.translation_vi)}</strong>${d.natural_meaning_vi&&d.natural_meaning_vi!==d.translation_vi?`<p>${esc(d.natural_meaning_vi)}</p>`:''}${d.note_vi?`<small>${esc(d.note_vi)}</small>`:''}</div><div class="dictionary-actions"><button class="primary" onclick="saveCurrentTranslation()">+ Add to My Vocabulary</button>${text.split(/\s+/).length<=4?`<button class="ghost" onclick="dictionarySelectedText()">Dictionary</button>`:''}</div>`;
+    currentDictionary={word:text,phonetic:d.pinyin||'',definitions:[],translation_vi:d.translation_vi,part_of_speech:d.part_of_speech||'',source:'AI translation'};
+    const dictionaryAllowed=activeLang()==='zh'?/^[\u3400-\u4DBF\u4E00-\u9FFF]{1,20}$/.test(text):text.split(/\s+/).length<=4;
+    content.innerHTML=`<div class="dictionary-head"><div><h3>${esc(text)}</h3>${d.pinyin?`<span>${esc(d.pinyin)}</span>`:''}<small>${esc(d.part_of_speech||'')}</small></div><span class="dictionary-source">AI Coach</span></div><div class="translation-card"><span>Vietnamese</span><strong>${esc(d.translation_vi)}</strong>${d.natural_meaning_vi&&d.natural_meaning_vi!==d.translation_vi?`<p>${esc(d.natural_meaning_vi)}</p>`:''}${d.note_vi?`<small>${esc(d.note_vi)}</small>`:''}</div><div class="dictionary-actions"><button class="primary" onclick="saveCurrentTranslation()">+ Add to My Vocabulary</button>${dictionaryAllowed?`<button class="ghost" onclick="dictionarySelectedText()">Dictionary</button>`:''}</div>`;
   }catch(e){content.innerHTML=`<div class="error">${esc(e.message)}</div>`;}
 }
+
 function dictionarySelectedText(){const text=selectedLookupText;if(!text)return;hideSelectionToolbar();lookupWordAt(text,selectionAnchor.x,selectionAnchor.y);}
 async function saveVocabularyPayload(x){await fetch('/api/vocabulary',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({word:x.word||'',phonetic:x.phonetic||'',part_of_speech:x.part_of_speech||'',definition:x.definition||'',translation_vi:x.translation_vi||''})});}
 async function saveSelectedText(){
@@ -459,9 +508,11 @@ async function saveSelectedText(){
   try{
     const r=await fetch('/api/translate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text})}),d=await r.json();
     if(!r.ok)throw new Error(d.detail||'Translation failed');
-    await saveVocabularyPayload({word:text,translation_vi:d.translation_vi||'',part_of_speech:d.part_of_speech||''});showSavedToast(text);
+    await saveVocabularyPayload({word:text,phonetic:d.pinyin||'',translation_vi:d.translation_vi||'',part_of_speech:d.part_of_speech||''});
+    showSavedToast(text);
   }catch(e){alert(e.message);}
 }
+
 async function saveCurrentTranslation(){const d=currentDictionary;if(!d)return;await saveVocabularyPayload({word:d.word,phonetic:d.phonetic||'',part_of_speech:d.part_of_speech||'',definition:(d.definitions||[])[0]?.definition||'',translation_vi:d.translation_vi||''});showSavedToast(d.word);}
 function showSavedToast(word){const t=document.createElement('div');t.className='save-toast';t.textContent=`✓ Added “${word}” to My Vocabulary`;document.body.appendChild(t);setTimeout(()=>t.remove(),1800);loadSavedWords();}
 function triggerSelectionLookup(ev){
@@ -474,9 +525,22 @@ document.addEventListener('touchend',ev=>setTimeout(()=>{const text=selectedText
 let selectedLookupText='';
 let selectionAnchor={x:20,y:20};
 
-function courseStartLevel(){return localStorage.getItem('grammarCourseStartLevel')||'A1';}
-function saveCourseStartLevel(){localStorage.setItem('grammarCourseStartLevel',$('#courseStartLevel').value);renderGrammarLibrary();}
-function levelRank(l){return {A1:1,A2:2,B1:3,B2:4,C1:5,C2:6}[l]||1;}
+function courseStartLevel(){
+  const key=activeLang()==='zh'?'grammarCourseStartLevelZh':'grammarCourseStartLevelEn';
+  return localStorage.getItem(key)||(activeLang()==='zh'?'HSK1':'A1');
+}
+function saveCourseStartLevel(){
+  const key=activeLang()==='zh'?'grammarCourseStartLevelZh':'grammarCourseStartLevelEn';
+  localStorage.setItem(key,$('#courseStartLevel').value);
+  renderGrammarLibrary();
+}
+function levelRank(l){
+  return {
+    A1:1,A2:2,B1:3,B2:4,C1:5,C2:6,
+    HSK1:1,HSK2:2,HSK3:3,HSK4:4,HSK5:5,HSK6:6,'HSK7-9':7
+  }[l]||1;
+}
+
 function updateCourseProgress(){
   if(!grammarLessons.length)return;
   const done=grammarLessons.filter(x=>x.completed).length,total=grammarLessons.length,pct=Math.round(done/total*100);
@@ -504,7 +568,7 @@ function renderResult(d){
 async function loadHistory(){const rows=await fetch('/api/essays').then(r=>r.json());const el=$('#historyList');if(!rows.length){el.innerHTML='<div class="card empty">No essays yet.</div>';return;}const groups={};rows.forEach(r=>(groups[r.series_id]??=[]).push(r));el.innerHTML=Object.values(groups).map(g=>{g.sort((a,b)=>a.revision_no-b.revision_no);const latest=g[g.length-1],first=g[0],gain=(latest.overall-first.overall).toFixed(1);return `<div class="card series-card"><div class="series-head"><div><b>Essay #${latest.series_id} · ${esc(promptLabel(latest.prompt))}</b><small>${g.length} revision${g.length>1?'s':''} · latest ${latest.overall} ${g.length>1?`· ${gain>=0?'+':''}${gain} from first`:''}</small></div><button class="ghost" onclick="reviseEssay(${latest.id})">Revise</button></div><div class="revision-list">${g.map(r=>`<button class="revision-chip" onclick="openEssay(${r.id})">v${r.revision_no} <b>${r.overall}</b></button>`).join('')}</div></div>`}).join('');}
 async function openEssay(id){
   const d=await fetch(`/api/essays/${id}`).then(r=>r.json());
-  $('#modalContent').innerHTML=`<div class="modal-head"><div><span>ESSAY #${d.series_id} · REVISION ${d.revision_no}</span><h2>${esc(promptLabel(d.prompt))}</h2><small>${d.created_at.replace('T',' ').slice(0,16)} · ${d.word_count} words</small></div><div class="history-score bigscore"><strong>${d.overall}</strong><span>${d.cefr_estimate}</span></div></div><div class="revision-nav">${d.revisions.map(x=>`<button class="revision-chip ${x.id===d.id?'active':''}" onclick="openEssay(${x.id})">v${x.revision_no} · ${x.overall}</button>`).join('')}</div><h3>Original writing</h3><div class="original">${esc(d.text)}</div>${feedbackHtml(d,false)}<div class="modal-actions"><button class="primary" onclick="closeModal();reviseEssay(${d.id})">Revise this version</button></div>`;
+  $('#modalContent').innerHTML=`<div class="modal-head"><div><span>ESSAY #${d.series_id} · REVISION ${d.revision_no}</span><h2>${esc(promptLabel(d.prompt))}</h2><small>${d.created_at.replace('T',' ').slice(0,16)} · ${d.word_count} ${activeLang()==='zh'?'字':'words'}</small></div><div class="history-score bigscore"><strong>${d.overall}</strong><span>${d.cefr_estimate}</span></div></div><div class="revision-nav">${d.revisions.map(x=>`<button class="revision-chip ${x.id===d.id?'active':''}" onclick="openEssay(${x.id})">v${x.revision_no} · ${x.overall}</button>`).join('')}</div><h3>Original writing</h3><div class="original">${esc(d.text)}</div>${feedbackHtml(d,false)}<div class="modal-actions"><button class="primary" onclick="closeModal();reviseEssay(${d.id})">Revise this version</button></div>`;
   $('#modal').classList.remove('hidden');
 }
 function closeModal(){$('#modal').classList.add('hidden');}

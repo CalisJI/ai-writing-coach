@@ -105,3 +105,15 @@ history/analytics infrastructure and user isolation with English.
 The first Chinese release supports writing, task generation, improvement and analytics.
 Its HSK label is an internal learning-band estimate, not an official HSK exam score.
 Chinese grammar library and pinyin/dictionary tooling remain separate follow-up modules.
+
+
+## Chinese Learning Library v1.1
+
+Chinese grammar, dictionary, pinyin, translation and saved vocabulary are owned by the Chinese language module but reuse shared platform infrastructure.
+
+- Chinese curriculum metadata lives in `writing_coach/languages/chinese/grammar_course.py`
+- `app.py` selects grammar content through the language runtime rather than importing English curriculum directly
+- lesson progress/cache and vocabulary remain isolated by user + language
+- Chinese dictionary uses the active global AI provider and never exposes provider secrets
+- pinyin is a learning aid generated with dictionary content; ambiguous readings should be interpreted in context
+- HSK labels remain internal learning bands, not official exam scores

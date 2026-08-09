@@ -12,7 +12,7 @@ PROFILE = LanguageProfile(
     levels=("HSK1", "HSK2", "HSK3", "HSK4", "HSK5", "HSK6", "HSK7-9"),
     api_namespace="zh",
     db_namespace="zh",
-    capabilities=("writing", "task_generation", "improve", "analytics"),
+    capabilities=("writing", "task_generation", "improve", "analytics", "grammar", "vocabulary", "dictionary", "translation", "pinyin"),
 )
 
 RUBRIC_WEIGHTS = {
