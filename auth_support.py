@@ -16,6 +16,9 @@ from google.oauth2 import id_token as google_id_token
 from google_auth_oauthlib.flow import Flow
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.middleware.sessions import SessionMiddleware
+from writing_coach.core.request_context import LANGUAGE_CODE_CTX, USER_KEY_CTX, current_language_code
+from writing_coach.core.storage import resolve_language_db_path
+from writing_coach.core.language_registry import DEFAULT_LANGUAGE, enabled_language
 
 ROOT = Path(__file__).resolve().parent
 LEGACY_DB_PATH = Path(os.getenv("WRITING_DB", ROOT / "data" / "writing.db"))
@@ -41,22 +44,34 @@ parsed_redirect = urlparse(GOOGLE_REDIRECT_URI)
 if AUTH_ENABLED and parsed_redirect.scheme == "http" and parsed_redirect.hostname in {"localhost", "127.0.0.1", "::1"}:
     os.environ.setdefault("OAUTHLIB_INSECURE_TRANSPORT", "1")
 
-_user_key: ContextVar[str] = ContextVar("writing_coach_user", default="legacy")
+_user_key = USER_KEY_CTX
+_language_key = LANGUAGE_CODE_CTX
 _db_initializer: Callable[[], None] | None = None
 _initialized_user_dbs: set[str] = set()
 
 
-def user_db_path(user_key: str, legacy_db: Path | None = None) -> Path:
+def user_db_path(
+    user_key: str,
+    legacy_db: Path | None = None,
+    language_code: str | None = None,
+) -> Path:
     legacy_db = legacy_db or LEGACY_DB_PATH
-    if not AUTH_ENABLED or not user_key or user_key == "legacy":
-        return legacy_db
-    digest = hashlib.sha256(user_key.encode("utf-8")).hexdigest()[:24]
-    return USER_DATA_ROOT / digest / "writing.db"
+    lang = enabled_language(language_code or current_language_code()).db_namespace or DEFAULT_LANGUAGE
+    return resolve_language_db_path(
+        user_key=user_key,
+        language_code=lang,
+        legacy_db=legacy_db,
+        user_data_root=USER_DATA_ROOT,
+        auth_enabled=AUTH_ENABLED,
+    )
 
 
 def current_db_path(legacy_db: Path | None = None) -> Path:
-    return user_db_path(_user_key.get(), legacy_db)
-
+    return user_db_path(
+        _user_key.get(),
+        legacy_db=legacy_db,
+        language_code=_language_key.get(),
+    )
 
 def auth_db() -> sqlite3.Connection:
     AUTH_DB_PATH.parent.mkdir(parents=True, exist_ok=True)
@@ -142,7 +157,7 @@ def google_flow(code_verifier: str | None = None) -> Flow:
 def maybe_claim_legacy_data(email: str, google_sub: str) -> bool:
     if not BOOTSTRAP_OWNER_EMAIL or email.strip().casefold() != BOOTSTRAP_OWNER_EMAIL:
         return False
-    target = user_db_path(google_sub)
+    target = user_db_path(google_sub, language_code="en")
     if target.exists() or not LEGACY_DB_PATH.exists():
         return False
     target.parent.mkdir(parents=True, exist_ok=True)
@@ -263,28 +278,41 @@ def api_me(request: Request) -> dict[str, Any]:
         "name": user.get("name") or user.get("email"),
         "email": user.get("email") or "",
         "picture": user.get("picture") or "",
+        "language": current_language_code(),
     }
 
 
 class UserIsolationMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         path = request.url.path
-        if not AUTH_ENABLED:
-            token = _user_key.set("legacy")
-            try:
-                return await call_next(request)
-            finally:
-                _user_key.reset(token)
+        requested_language = enabled_language(
+            request.session.get("language") or DEFAULT_LANGUAGE
+        ).code
 
         public = (
             path == "/login"
             or path == "/api/health"
+            or path == "/api/platform/languages"
             or path.startswith("/auth/")
             or path.startswith("/static/")
             or path == "/favicon.ico"
         )
+
+        if not AUTH_ENABLED:
+            user_token = _user_key.set("legacy")
+            language_token = _language_key.set(requested_language)
+            try:
+                return await call_next(request)
+            finally:
+                _language_key.reset(language_token)
+                _user_key.reset(user_token)
+
         if public:
-            return await call_next(request)
+            language_token = _language_key.set(requested_language)
+            try:
+                return await call_next(request)
+            finally:
+                _language_key.reset(language_token)
 
         user_sub = str(request.session.get("user_sub") or "")
         if not user_sub:
@@ -292,13 +320,14 @@ class UserIsolationMiddleware(BaseHTTPMiddleware):
                 return JSONResponse({"detail": "Authentication required"}, status_code=401)
             return RedirectResponse("/login", status_code=302)
 
-        token = _user_key.set(user_sub)
+        user_token = _user_key.set(user_sub)
+        language_token = _language_key.set(requested_language)
         try:
             ensure_user_db()
             return await call_next(request)
         finally:
-            _user_key.reset(token)
-
+            _language_key.reset(language_token)
+            _user_key.reset(user_token)
 
 def install_auth(app: FastAPI, db_initializer: Callable[[], None]) -> None:
     global _db_initializer

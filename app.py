@@ -10,10 +10,13 @@ from typing import Any
 from urllib.parse import quote
 
 import requests
-from grammar_course import GRAMMAR_COURSE, GRAMMAR_BY_ID
+from writing_coach.languages.english.grammar_course import GRAMMAR_COURSE, GRAMMAR_BY_ID
+from writing_coach.languages.english.profile import RUBRIC_WEIGHTS, SYSTEM_PROMPT, score_to_level
 from auth_support import AUTH_ENABLED, current_db_path, install_auth
+from writing_coach.core.platform_api import router as platform_router
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import HTMLResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 ROOT = Path(__file__).resolve().parent
@@ -28,75 +31,10 @@ APP_VERSION = os.getenv(
     if (ROOT / "VERSION").exists()
     else "dev",
 )
-SCHEMA_VERSION = 5
+SCHEMA_VERSION = 6
 
 app = FastAPI(title="AI Writing Coach", version=APP_VERSION)
-
-RUBRIC_WEIGHTS = {
-    "grammar": 0.25,
-    "vocabulary": 0.20,
-    "coherence": 0.20,
-    "task_achievement": 0.20,
-    "naturalness": 0.15,
-}
-
-SYSTEM_PROMPT = """You are a strict, consistent English writing evaluator and tutor.
-Evaluate the learner's ORIGINAL text, not a rewritten version.
-Your job is to help the learner improve over time, so consistency and factual accuracy matter more than producing many corrections.
-Score each dimension 0-100 using the anchors below.
-
-SCORING ANCHORS
-0-29: very limited control; meaning frequently breaks down.
-30-44: basic control; frequent errors; simple language.
-45-59: developing intermediate; meaning mostly clear but recurring errors and limited range.
-60-74: solid intermediate/upper-intermediate; generally clear, some recurring errors and awkward phrasing.
-75-89: advanced; good control, range and organization; errors are occasional and rarely impede meaning.
-90-100: highly proficient; precise, natural, flexible and consistently well controlled.
-
-DIMENSIONS
-- grammar: accuracy and range of sentence structures, articles, tense, agreement, punctuation.
-- vocabulary: range, precision, collocation, repetition, word form.
-- coherence: logical flow, sentence/paragraph linking, clarity of progression.
-- task_achievement: whether the prompt is fully addressed with enough relevant development.
-- naturalness: idiomatic, native-like phrasing appropriate to context.
-
-LANGUAGE AND ACCURACY RULES — MANDATORY
-1. All explanations, summaries, strengths, priorities and mini-rules MUST be written in Vietnamese using the Latin alphabet. NEVER output Chinese Han characters, Japanese kana, Korean Hangul, or Chinese terminology.
-2. English learner fragments and English corrections remain in English. Do not translate them.
-3. The value of `fragment` MUST be copied EXACTLY from the learner's original text and MUST occur verbatim in that text.
-4. Report an item only when you are confident it is genuinely incorrect or clearly unnatural at the requested target level. Fewer accurate corrections are better than many doubtful corrections.
-5. Do NOT flag a spelling error unless the exact learner spelling is actually wrong.
-6. `suggestion` must be a genuine correction or clearer alternative and should differ from `fragment`.
-7. Be precise about articles. Generic `fashion` normally takes zero article: `I care about fashion`.
-8. Do not manufacture grammar rules. If unsure, omit the error.
-9. For each reported error, provide confidence from 0.0 to 1.0. Only report items with confidence >= 0.75.
-
-Return ONLY valid JSON. No markdown.
-JSON schema:
-{
-  "grammar": 0,
-  "vocabulary": 0,
-  "coherence": 0,
-  "task_achievement": 0,
-  "naturalness": 0,
-  "cefr_estimate": "A1|A2|B1|B2|C1|C2",
-  "summary_vi": "...",
-  "strengths_vi": ["..."],
-  "priorities_vi": ["..."],
-  "errors": [
-    {
-      "category": "article|tense|agreement|word_choice|word_form|preposition|sentence_structure|punctuation|coherence|task|naturalness|spelling|other",
-      "fragment": "exact learner fragment",
-      "explanation_vi": "why it is a problem, in Vietnamese only",
-      "suggestion": "a corrected or more natural English version",
-      "mini_rule_vi": "short reusable rule in Vietnamese only",
-      "confidence": 0.90
-    }
-  ]
-}
-Do not inflate scores because the learner tried hard.
-"""
-
+app.mount("/static", StaticFiles(directory=ROOT / "static"), name="static")
 
 class EssayIn(BaseModel):
     prompt: str = Field(default="", max_length=5000)
@@ -178,6 +116,37 @@ def init_db() -> None:
             conn.execute("ALTER TABLE essays ADD COLUMN revision_no INTEGER NOT NULL DEFAULT 1")
         if "parent_id" not in cols:
             conn.execute("ALTER TABLE essays ADD COLUMN parent_id INTEGER")
+        cols = column_names(conn, "essays")
+        if "language_code" not in cols:
+            conn.execute("ALTER TABLE essays ADD COLUMN language_code TEXT NOT NULL DEFAULT 'en'")
+        if "target_level" not in cols:
+            conn.execute("ALTER TABLE essays ADD COLUMN target_level TEXT")
+        if "level_estimate" not in cols:
+            conn.execute("ALTER TABLE essays ADD COLUMN level_estimate TEXT")
+        if "module_data_json" not in cols:
+            conn.execute("ALTER TABLE essays ADD COLUMN module_data_json TEXT NOT NULL DEFAULT '{}'")
+        conn.execute("UPDATE essays SET language_code = 'en' WHERE language_code IS NULL OR language_code = ''")
+        conn.execute("UPDATE essays SET target_level = target_cefr WHERE target_level IS NULL OR target_level = ''")
+        conn.execute("UPDATE essays SET level_estimate = cefr_estimate WHERE level_estimate IS NULL OR level_estimate = ''")
+        conn.execute(
+            """
+            CREATE TRIGGER IF NOT EXISTS trg_essays_generic_metadata_after_insert
+            AFTER INSERT ON essays
+            BEGIN
+              UPDATE essays
+              SET
+                language_code = COALESCE(NULLIF(language_code, ''), 'en'),
+                target_level = COALESCE(NULLIF(target_level, ''), NEW.target_cefr),
+                level_estimate = COALESCE(NULLIF(level_estimate, ''), NEW.cefr_estimate),
+                module_data_json = COALESCE(NULLIF(module_data_json, ''), '{}')
+              WHERE id = NEW.id;
+            END
+            """
+        )
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_essays_language_series_revision "
+            "ON essays(language_code, series_id, revision_no)"
+        )
         conn.execute("UPDATE essays SET series_id = id WHERE series_id IS NULL")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_essays_series_revision ON essays(series_id, revision_no)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_essays_created_at ON essays(created_at)")
@@ -228,6 +197,7 @@ def init_db() -> None:
 
 
 install_auth(app, init_db)
+app.include_router(platform_router)
 
 def weighted_overall(result: dict[str, Any]) -> float:
     score = sum(float(result[k]) * w for k, w in RUBRIC_WEIGHTS.items())
@@ -235,18 +205,7 @@ def weighted_overall(result: dict[str, Any]) -> float:
 
 
 def app_cefr(score: float) -> str:
-    if score < 30:
-        return "A1"
-    if score < 45:
-        return "A2"
-    if score < 60:
-        return "B1"
-    if score < 75:
-        return "B2"
-    if score < 90:
-        return "C1"
-    return "C2"
-
+    return score_to_level(score)
 
 def extract_json(text: str) -> dict[str, Any]:
     text = (text or "").strip()
@@ -649,6 +608,15 @@ def style() -> HTMLResponse:
     return HTMLResponse((ROOT / "static" / "style.css").read_text(encoding="utf-8"), media_type="text/css")
 
 
+@app.get("/static/account.js")
+def account_script() -> HTMLResponse:
+    return HTMLResponse(
+        (ROOT / "static" / "account.js").read_text(encoding="utf-8"),
+        media_type="application/javascript",
+        headers={"Cache-Control": "no-cache"},
+    )
+
+
 def model_family(model_name: str) -> str:
     name = (model_name or "").casefold()
     if "qwen" in name:
@@ -922,8 +890,6 @@ def api_generate_task(payload: TaskGenerateIn) -> dict[str, Any]:
         **task,
         "prompt": task_as_prompt(task, payload.target_cefr),
     }
-
-GRAMMAR_LIBRARY = [{'id': 'a1-sentence-basics', 'level': 'A1', 'category': 'Sentence basics', 'title': 'Building a clear English sentence', 'summary_vi': 'Nắm trật tự chủ ngữ - động từ - tân ngữ và cách tạo câu khẳng định, phủ định, câu hỏi.', 'explanation_vi': 'Tiếng Anh phụ thuộc nhiều vào trật tự từ. Một câu cơ bản thường cần chủ ngữ rõ ràng và động từ chia phù hợp.', 'rules': ['Câu khẳng định cơ bản: Subject + Verb + Object/Complement.', 'Phủ định với động từ thường dùng do/does + not ở hiện tại đơn.', 'Câu hỏi thường đưa trợ động từ lên trước chủ ngữ.'], 'examples': [{'en': 'I work in Ho Chi Minh City.', 'vi': 'Tôi làm việc ở Thành phố Hồ Chí Minh.'}, {'en': 'Do you use this app every day?', 'vi': 'Bạn có dùng ứng dụng này mỗi ngày không?'}], 'mistakes': ['Thiếu chủ ngữ trong câu hoàn chỉnh.', 'Dùng hai động từ đã chia cạnh nhau mà không có cấu trúc phù hợp.']}, {'id': 'a1-be-have', 'level': 'A1', 'category': 'Core verbs', 'title': 'Be and have without confusion', 'summary_vi': 'Phân biệt khi nào dùng be, have và động từ thường.', 'explanation_vi': 'Be thường nối chủ ngữ với tính từ/danh từ hoặc dùng trong tiếp diễn và bị động. Have thường diễn tả sở hữu hoặc trải nghiệm.', 'rules': ['Be + adjective/noun: She is tired. He is an engineer.', 'Have + noun: I have a meeting.', 'Không thêm be trước động từ thường trong hiện tại đơn.'], 'examples': [{'en': 'The room is quiet.', 'vi': 'Căn phòng yên tĩnh.'}, {'en': 'We have two options.', 'vi': 'Chúng ta có hai lựa chọn.'}], 'mistakes': ['I am work every day. → I work every day.', 'She have a car. → She has a car.']}, {'id': 'a1-present-simple', 'level': 'A1', 'category': 'Tenses', 'title': 'Present simple for habits and facts', 'summary_vi': 'Dùng hiện tại đơn cho thói quen, sự thật và lịch trình.', 'explanation_vi': 'Đây là thì rất quan trọng trong writing vì nó xuất hiện trong mô tả thói quen, ý kiến chung và thông tin mang tính ổn định.', 'rules': ['I/you/we/they + base verb.', 'He/she/it + verb-s/es.', 'Dùng do/does cho câu hỏi và phủ định với động từ thường.'], 'examples': [{'en': 'Technology changes the way we communicate.', 'vi': 'Công nghệ thay đổi cách chúng ta giao tiếp.'}, {'en': 'My team meets every Monday.', 'vi': 'Nhóm của tôi họp mỗi thứ Hai.'}], 'mistakes': ['He work every day. → He works every day.', "She doesn't likes it. → She doesn't like it."]}, {'id': 'a1-articles', 'level': 'A1', 'category': 'Articles', 'title': 'A, an, the and zero article', 'summary_vi': 'Hiểu khi nào danh từ cần a/an, the hoặc không dùng mạo từ.', 'explanation_vi': 'Mạo từ phụ thuộc vào việc danh từ có đếm được không, số ít hay số nhiều, và người đọc đã biết đối tượng đó chưa.', 'rules': ['A/an: một danh từ đếm được số ít chưa xác định.', 'The: đối tượng cụ thể hoặc đã được nhắc tới.', 'Zero article: thường dùng cho danh từ số nhiều hoặc không đếm được khi nói chung.'], 'examples': [{'en': 'I bought a book. The book is about design.', 'vi': 'Tôi mua một cuốn sách. Cuốn sách đó nói về thiết kế.'}, {'en': 'Fashion changes quickly.', 'vi': 'Thời trang thay đổi nhanh.'}], 'mistakes': ['I like the music. khi nói về âm nhạc nói chung → I like music.', 'She bought book. → She bought a book.']}, {'id': 'a2-simple-continuous', 'level': 'A2', 'category': 'Tenses', 'title': 'Present simple vs present continuous', 'summary_vi': 'Phân biệt thói quen với hành động đang diễn ra hoặc tình huống tạm thời.', 'explanation_vi': 'Present simple nhấn mạnh điều thường xuyên hoặc ổn định. Present continuous nhấn mạnh điều đang diễn ra quanh thời điểm hiện tại.', 'rules': ['Present simple: habits, facts, stable states.', 'Present continuous: happening now, temporary situations, changing trends.', 'Stative verbs như know, believe, need thường không dùng ở continuous.'], 'examples': [{'en': 'I usually work from home.', 'vi': 'Tôi thường làm việc ở nhà.'}, {'en': 'This month, I am working at the office.', 'vi': 'Tháng này tôi đang làm việc ở văn phòng.'}], 'mistakes': ['I am knowing the answer. → I know the answer.']}, {'id': 'a2-past-simple', 'level': 'A2', 'category': 'Tenses', 'title': 'Past simple for finished events', 'summary_vi': 'Kể lại sự việc đã hoàn tất trong quá khứ với mốc thời gian rõ.', 'explanation_vi': 'Past simple là nền tảng của review, story và mô tả trải nghiệm đã kết thúc.', 'rules': ['Dùng verb-ed hoặc dạng quá khứ bất quy tắc.', 'Did + base verb cho câu hỏi/phủ định.', 'Dấu hiệu phổ biến: yesterday, last week, in 2025, two days ago.'], 'examples': [{'en': 'I visited Da Nang last year.', 'vi': 'Tôi đã đến Đà Nẵng năm ngoái.'}, {'en': 'The meeting ended at 4 p.m.', 'vi': 'Cuộc họp kết thúc lúc 4 giờ chiều.'}], 'mistakes': ["I didn't went. → I didn't go."]}, {'id': 'a2-countability', 'level': 'A2', 'category': 'Nouns', 'title': 'Countable and uncountable nouns', 'summary_vi': 'Tránh các lỗi như informations, advices và dùng lượng từ chính xác hơn.', 'explanation_vi': 'Danh từ không đếm được không dùng trực tiếp với a/an và thường không thêm -s khi mang nghĩa chung.', 'rules': ['Many/few với danh từ đếm được.', 'Much/little với danh từ không đếm được.', 'A lot of dùng linh hoạt với cả hai loại.'], 'examples': [{'en': 'I received some useful information.', 'vi': 'Tôi nhận được một số thông tin hữu ích.'}, {'en': 'There are many reasons to improve.', 'vi': 'Có nhiều lý do để cải thiện.'}], 'mistakes': ['an advice → some advice / a piece of advice', 'many information → much/a lot of information']}, {'id': 'a2-comparisons', 'level': 'A2', 'category': 'Comparison', 'title': 'Comparatives that sound natural', 'summary_vi': 'So sánh người, vật và ý tưởng mà không lặp cấu trúc đơn giản.', 'explanation_vi': 'Ngoài -er và more, bạn có thể dùng much, slightly, far để điều chỉnh mức độ so sánh.', 'rules': ['Short adjectives: faster, easier.', 'Long adjectives: more useful, more reliable.', 'Modifiers: much better, slightly cheaper, far more effective.'], 'examples': [{'en': 'This solution is much more reliable.', 'vi': 'Giải pháp này đáng tin cậy hơn nhiều.'}, {'en': 'The second option is slightly cheaper.', 'vi': 'Lựa chọn thứ hai rẻ hơn một chút.'}], 'mistakes': ['more easier → easier / much easier']}, {'id': 'b1-present-perfect', 'level': 'B1', 'category': 'Tenses', 'title': 'Present perfect vs past simple', 'summary_vi': 'Phân biệt trải nghiệm/liên hệ với hiện tại và sự kiện quá khứ đã kết thúc.', 'explanation_vi': 'Present perfect nối quá khứ với hiện tại; past simple đặt sự kiện trong một thời điểm quá khứ hoàn tất.', 'rules': ['Present perfect: experience, unfinished time, present result.', 'Past simple: finished time in the past.', 'Tránh dùng present perfect với mốc quá khứ đã kết thúc như yesterday.'], 'examples': [{'en': 'I have worked here for three years.', 'vi': 'Tôi đã làm ở đây được ba năm và vẫn đang làm.'}, {'en': 'I joined the company in 2023.', 'vi': 'Tôi gia nhập công ty vào năm 2023.'}], 'mistakes': ['I have visited it yesterday. → I visited it yesterday.']}, {'id': 'b1-modals', 'level': 'B1', 'category': 'Modals', 'title': 'Modals for advice, obligation and possibility', 'summary_vi': 'Dùng should, must, have to, might, could để thể hiện mức độ chắc chắn và thái độ.', 'explanation_vi': 'Modal verbs giúp writing chính xác hơn vì chúng cho biết bạn đang khuyên, yêu cầu, dự đoán hay chỉ nêu khả năng.', 'rules': ['should: lời khuyên hoặc điều nên làm.', 'must/have to: nghĩa vụ mạnh.', 'might/could: khả năng, đề xuất mềm hơn.'], 'examples': [{'en': 'Companies should provide clearer training.', 'vi': 'Các công ty nên cung cấp đào tạo rõ ràng hơn.'}, {'en': 'This change could reduce costs.', 'vi': 'Thay đổi này có thể giảm chi phí.'}], 'mistakes': ['must to do → must do']}, {'id': 'b1-relative-clauses', 'level': 'B1', 'category': 'Complex sentences', 'title': 'Relative clauses for richer sentences', 'summary_vi': 'Dùng who, which, that, where để thêm thông tin mà không phải tách quá nhiều câu ngắn.', 'explanation_vi': 'Relative clauses giúp bài viết kết nối tự nhiên và giảm lặp danh từ.', 'rules': ['who cho người.', 'which cho vật/ý tưởng.', 'that thường dùng trong defining clauses.', 'where cho nơi chốn.'], 'examples': [{'en': 'The app that I use every day is easy to navigate.', 'vi': 'Ứng dụng mà tôi dùng mỗi ngày rất dễ điều hướng.'}, {'en': 'This is the office where I first met the team.', 'vi': 'Đây là văn phòng nơi tôi lần đầu gặp nhóm.'}], 'mistakes': ['The person which helped me → The person who helped me']}, {'id': 'b1-gerund-infinitive', 'level': 'B1', 'category': 'Verb patterns', 'title': 'Gerunds and infinitives', 'summary_vi': 'Học các mẫu động từ + V-ing và động từ + to V phổ biến trong writing.', 'explanation_vi': 'Nhiều động từ đi với một dạng cố định. Ghi nhớ theo cụm sẽ hiệu quả hơn học từng từ rời.', 'rules': ['enjoy/avoid/consider + V-ing.', 'want/need/plan/decide + to V.', 'Một số động từ đổi nghĩa tùy cấu trúc, ví dụ remember doing vs remember to do.'], 'examples': [{'en': 'I enjoy learning through real projects.', 'vi': 'Tôi thích học thông qua dự án thực tế.'}, {'en': 'We decided to change the schedule.', 'vi': 'Chúng tôi quyết định thay đổi lịch.'}], 'mistakes': ['I suggest to use → I suggest using']}, {'id': 'b2-conditionals', 'level': 'B2', 'category': 'Complex sentences', 'title': 'Conditionals for arguments and consequences', 'summary_vi': 'Dùng câu điều kiện để trình bày hậu quả, giả định và lập luận chặt chẽ.', 'explanation_vi': 'Conditionals rất hữu ích trong opinion writing vì giúp bạn kết nối một lựa chọn với hệ quả của nó.', 'rules': ['First conditional: real future possibility.', 'Second conditional: hypothetical present/future.', 'Third conditional: hypothetical past.'], 'examples': [{'en': 'If companies invest in training, employees will adapt faster.', 'vi': 'Nếu công ty đầu tư vào đào tạo, nhân viên sẽ thích nghi nhanh hơn.'}, {'en': 'If I had more time, I would study another language.', 'vi': 'Nếu có nhiều thời gian hơn, tôi sẽ học thêm một ngôn ngữ.'}], 'mistakes': ['If I will have time → If I have time']}, {'id': 'b2-passive', 'level': 'B2', 'category': 'Voice', 'title': 'Passive voice when the action matters more', 'summary_vi': 'Dùng bị động có mục đích, đặc biệt trong mô tả quy trình và văn phong khách quan.', 'explanation_vi': 'Passive voice phù hợp khi người thực hiện không quan trọng, đã rõ hoặc bạn muốn nhấn mạnh kết quả.', 'rules': ['be + past participle.', 'Giữ đúng tense của be.', 'Không lạm dụng passive nếu active rõ ràng hơn.'], 'examples': [{'en': 'The data is collected every ten minutes.', 'vi': 'Dữ liệu được thu thập mỗi mười phút.'}, {'en': 'The issue was resolved yesterday.', 'vi': 'Vấn đề đã được giải quyết hôm qua.'}], 'mistakes': ['The data collected every day. → The data is collected every day.']}, {'id': 'b2-participle-clauses', 'level': 'B2', 'category': 'Advanced sentences', 'title': 'Participle clauses for concise writing', 'summary_vi': 'Rút gọn mệnh đề bằng V-ing hoặc past participle khi chủ ngữ logic rõ ràng.', 'explanation_vi': 'Participle clauses giúp bài viết gọn và tự nhiên hơn, nhưng cần chắc rằng chủ thể của mệnh đề rút gọn trùng với chủ thể chính.', 'rules': ['V-ing thường mang nghĩa chủ động.', 'Past participle thường mang nghĩa bị động.', 'Tránh dangling participles.'], 'examples': [{'en': 'Working remotely, employees can save commuting time.', 'vi': 'Khi làm việc từ xa, nhân viên có thể tiết kiệm thời gian đi lại.'}, {'en': 'Designed for beginners, the course starts with simple tasks.', 'vi': 'Được thiết kế cho người mới, khóa học bắt đầu bằng nhiệm vụ đơn giản.'}], 'mistakes': ['Driving to work, the rain started. → Chủ ngữ logic bị sai.']}, {'id': 'b2-linking', 'level': 'B2', 'category': 'Coherence', 'title': 'Linking ideas without sounding mechanical', 'summary_vi': 'Nâng từ and/but/because lên các cách nối ý linh hoạt hơn.', 'explanation_vi': 'Coherence tốt không đến từ việc nhồi nhiều linking words, mà từ mối quan hệ logic rõ ràng giữa các ý.', 'rules': ['Contrast: however, whereas, while, although.', 'Result: therefore, as a result, which means that.', 'Addition: moreover, in addition, another reason is that.'], 'examples': [{'en': 'The system is inexpensive; however, it requires regular maintenance.', 'vi': 'Hệ thống rẻ; tuy nhiên, nó cần bảo trì thường xuyên.'}, {'en': 'Remote work reduces commuting time, which means that employees may have more flexible mornings.', 'vi': 'Làm việc từ xa giảm thời gian đi lại, nghĩa là nhân viên có thể có buổi sáng linh hoạt hơn.'}], 'mistakes': ['Dùng However ở mọi đoạn khiến văn phong máy móc.']}, {'id': 'c1-inversion', 'level': 'C1', 'category': 'Advanced sentences', 'title': 'Inversion for emphasis', 'summary_vi': 'Dùng đảo ngữ có chọn lọc để tạo nhấn mạnh trong văn phong nâng cao.', 'explanation_vi': 'Inversion hữu ích ở C1 nhưng chỉ nên dùng khi tự nhiên; nó không làm câu hay hơn nếu ý tưởng đơn giản.', 'rules': ['Never/Rarely/Seldom + auxiliary + subject + verb.', 'Not only + auxiliary + subject + verb, but...', 'Only after/when... + auxiliary + subject + verb.'], 'examples': [{'en': 'Rarely do we consider the long-term cost.', 'vi': 'Hiếm khi chúng ta cân nhắc chi phí dài hạn.'}, {'en': 'Not only does the tool save time, but it also reduces errors.', 'vi': 'Công cụ không chỉ tiết kiệm thời gian mà còn giảm lỗi.'}], 'mistakes': ['Lạm dụng đảo ngữ trong email thông thường.']}, {'id': 'c1-cleft', 'level': 'C1', 'category': 'Emphasis', 'title': 'Cleft sentences for controlled emphasis', 'summary_vi': 'Dùng It is...that và What...is để nhấn đúng thông tin quan trọng.', 'explanation_vi': 'Cleft sentences giúp người viết kiểm soát trọng tâm câu thay vì chỉ dựa vào từ vựng mạnh.', 'rules': ['It is/was X that/who...', 'What + clause + be + focus.', 'Dùng khi thật sự cần contrast hoặc emphasis.'], 'examples': [{'en': 'What matters most is how consistently the system performs.', 'vi': 'Điều quan trọng nhất là hệ thống hoạt động ổn định đến mức nào.'}, {'en': 'It was the lack of training that caused most of the confusion.', 'vi': 'Chính việc thiếu đào tạo gây ra phần lớn sự nhầm lẫn.'}], 'mistakes': ['Dùng cleft sentence cho mọi câu khiến bài viết nặng nề.']}, {'id': 'c1-hedging', 'level': 'C1', 'category': 'Academic style', 'title': 'Hedging: sound precise, not weak', 'summary_vi': 'Giảm các khẳng định tuyệt đối bằng may, tends to, appears to, in many cases.', 'explanation_vi': 'Writing nâng cao thường tránh khẳng định quá mức. Hedging cho thấy bạn hiểu giới hạn của lập luận.', 'rules': ['may/might/could để giảm mức chắc chắn.', 'tends to / is likely to cho xu hướng.', 'in many cases / to some extent để giới hạn phạm vi.'], 'examples': [{'en': 'Remote work may improve productivity in some roles.', 'vi': 'Làm việc từ xa có thể cải thiện năng suất ở một số vị trí.'}, {'en': 'This approach tends to work better for experienced users.', 'vi': 'Cách tiếp cận này có xu hướng hiệu quả hơn với người dùng có kinh nghiệm.'}], 'mistakes': ['Everyone knows... / This always proves... khi không có cơ sở chắc chắn.']}, {'id': 'c1-nominalisation', 'level': 'C1', 'category': 'Formal style', 'title': 'Nominalisation without making writing heavy', 'summary_vi': 'Biến động từ/tính từ thành danh từ khi cần văn phong formal, nhưng tránh câu quá nặng.', 'explanation_vi': 'Nominalisation có thể tạo văn phong trang trọng và giúp gom ý, nhưng active verbs thường vẫn rõ hơn trong nhiều ngữ cảnh.', 'rules': ['decide → decision, improve → improvement, analyse → analysis.', 'Dùng để đóng gói một quá trình thành một khái niệm.', 'Ưu tiên clarity; không nominalise chỉ để trông học thuật.'], 'examples': [{'en': 'The implementation of the policy requires careful planning.', 'vi': 'Việc triển khai chính sách cần lập kế hoạch cẩn thận.'}, {'en': 'A reduction in errors would improve reliability.', 'vi': 'Việc giảm lỗi sẽ cải thiện độ tin cậy.'}], 'mistakes': ['Xếp quá nhiều danh từ liên tiếp làm câu khó đọc.']}]
 
 IMPROVE_MODE_INSTRUCTIONS = {
     "correct": "Correct grammar, spelling and punctuation with the minimum necessary changes. Preserve the learner's voice.",
@@ -1364,7 +1330,6 @@ def api_save_vocabulary(payload: SaveWordIn) -> dict[str, Any]:
               part_of_speech = excluded.part_of_speech,
               definition = excluded.definition,
               added_at = excluded.added_at,
-              translation_vi = excluded.translation_vi,
               translation_vi = excluded.translation_vi
             """,
             (word, payload.phonetic, payload.part_of_speech, payload.definition, now, payload.translation_vi),

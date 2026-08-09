@@ -4,3 +4,4 @@ data/*.db
 .env
 update.log
 backups/
+.upgrade_backups/

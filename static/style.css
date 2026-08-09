@@ -892,3 +892,13 @@ body[data-theme="comfort"] .account-action{
 @media(max-width:800px){
   .account-actions{grid-template-columns:1fr}
 }
+
+
+/* ===== v0.9.0 platform language switcher ===== */
+.language-switcher{margin:0 0 12px;padding:10px;border:1px solid #26354b;border-radius:12px;background:rgba(255,255,255,.025)}
+.language-switcher label{display:block;margin-bottom:6px;color:#8fa0b7;font-size:.64rem;font-weight:800;letter-spacing:.05em;text-transform:uppercase}
+.language-switcher select{width:100%;min-height:34px;border:1px solid #33445d;border-radius:9px;padding:6px 8px;background:#162136;color:#e8edf5;font:700 .76rem/1.2 inherit}
+.language-switcher select:disabled{opacity:.78;cursor:default}
+.language-switcher small{display:block;margin-top:6px;color:#7689a3;font-size:.62rem;line-height:1.4}
+body[data-theme="light"] .language-switcher,body[data-theme="comfort"] .language-switcher{border-color:var(--line)}
+body[data-theme="light"] .language-switcher select,body[data-theme="comfort"] .language-switcher select{background:var(--card);color:var(--ink);border-color:var(--line)}
