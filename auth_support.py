@@ -116,7 +116,7 @@ def upsert_auth_user(info: dict[str, Any]) -> dict[str, Any]:
     return auth_user(sub) or {}
 
 
-def google_flow() -> Flow:
+def google_flow(code_verifier: str | None = None) -> Flow:
     config = {
         "web": {
             "client_id": GOOGLE_CLIENT_ID,
@@ -132,6 +132,8 @@ def google_flow() -> Flow:
             "https://www.googleapis.com/auth/userinfo.email",
             "https://www.googleapis.com/auth/userinfo.profile",
         ],
+        code_verifier=code_verifier,
+        autogenerate_code_verifier=(code_verifier is None),
     )
     flow.redirect_uri = GOOGLE_REDIRECT_URI
     return flow
@@ -189,6 +191,11 @@ def auth_google(request: Request):
         include_granted_scopes="true",
         prompt="select_account",
     )
+
+    if not flow.code_verifier:
+        raise HTTPException(500, "OAuth PKCE verifier was not generated.")
+    request.session["oauth_code_verifier"] = flow.code_verifier
+
     return RedirectResponse(url, status_code=302)
 
 
@@ -209,7 +216,14 @@ def auth_google_callback(request: Request):
     if not code:
         raise HTTPException(400, "Google did not return an authorization code.")
 
-    flow = google_flow()
+    code_verifier = str(request.session.get("oauth_code_verifier") or "")
+    if not code_verifier:
+        raise HTTPException(
+            400,
+            "OAuth session expired or PKCE verifier is missing. Please start Google login again.",
+        )
+
+    flow = google_flow(code_verifier=code_verifier)
     flow.fetch_token(code=code)
     raw_id_token = flow.credentials.id_token
     if not raw_id_token:
