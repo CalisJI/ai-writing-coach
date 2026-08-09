@@ -15,11 +15,16 @@ from pydantic import BaseModel, Field
 ROOT = Path(__file__).resolve().parent
 DB_PATH = Path(os.getenv("WRITING_DB", ROOT / "data" / "writing.db"))
 OLLAMA_URL = os.getenv("OLLAMA_URL", "http://127.0.0.1:11434")
-OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen3:4b")
-REQUEST_TIMEOUT = int(os.getenv("OLLAMA_TIMEOUT", "120"))
-ALLOW_FALLBACK = os.getenv("ALLOW_FALLBACK", "true").lower() in {"1", "true", "yes", "on"}
-APP_VERSION = os.getenv("APP_VERSION", (ROOT / "VERSION").read_text(encoding="utf-8").strip() if (ROOT / "VERSION").exists() else "dev")
-SCHEMA_VERSION = 1
+OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen3:8b")
+REQUEST_TIMEOUT = int(os.getenv("OLLAMA_TIMEOUT", "180"))
+ALLOW_FALLBACK = os.getenv("ALLOW_FALLBACK", "false").lower() in {"1", "true", "yes", "on"}
+APP_VERSION = os.getenv(
+    "APP_VERSION",
+    (ROOT / "VERSION").read_text(encoding="utf-8").strip()
+    if (ROOT / "VERSION").exists()
+    else "dev",
+)
+SCHEMA_VERSION = 2
 
 app = FastAPI(title="AI Writing Coach", version=APP_VERSION)
 
@@ -54,13 +59,13 @@ DIMENSIONS
 LANGUAGE AND ACCURACY RULES — MANDATORY
 1. All explanations, summaries, strengths, priorities and mini-rules MUST be written in Vietnamese using the Latin alphabet. NEVER output Chinese Han characters, Japanese kana, Korean Hangul, or Chinese terminology.
 2. English learner fragments and English corrections remain in English. Do not translate them.
-3. The value of `fragment` MUST be copied EXACTLY from the learner's original text and MUST occur verbatim in that text. Never invent or silently correct the fragment.
+3. The value of `fragment` MUST be copied EXACTLY from the learner's original text and MUST occur verbatim in that text.
 4. Report an item only when you are confident it is genuinely incorrect or clearly unnatural at the requested target level. Fewer accurate corrections are better than many doubtful corrections.
-5. Do NOT flag a spelling error unless the exact learner spelling is actually wrong. Common correct words such as `Normally` must not be flagged merely because of capitalization or model uncertainty.
-6. `suggestion` must be a genuine correction or clearer alternative and should differ from `fragment`. Do not return an unchanged fragment as the correction.
-7. Be precise about articles. Do NOT claim that uncountable/general nouns require `a/an`. For example, generic `fashion` normally takes zero article: `I care about fashion`, not `the fashion` and not `a fashion`.
+5. Do NOT flag a spelling error unless the exact learner spelling is actually wrong.
+6. `suggestion` must be a genuine correction or clearer alternative and should differ from `fragment`.
+7. Be precise about articles. Generic `fashion` normally takes zero article: `I care about fashion`.
 8. Do not manufacture grammar rules. If unsure, omit the error.
-9. For each reported error, provide a confidence score from 0.0 to 1.0. Only report items with confidence >= 0.75.
+9. For each reported error, provide confidence from 0.0 to 1.0. Only report items with confidence >= 0.75.
 
 Return ONLY valid JSON. No markdown.
 JSON schema:
@@ -85,7 +90,7 @@ JSON schema:
     }
   ]
 }
-Do not inflate scores because the learner tried hard. Do not punish a short response if the task explicitly asks for a short response, but do penalize underdevelopment relative to the stated task.
+Do not inflate scores because the learner tried hard.
 """
 
 
@@ -93,6 +98,7 @@ class EssayIn(BaseModel):
     prompt: str = Field(default="", max_length=5000)
     text: str = Field(min_length=10, max_length=20000)
     target_cefr: str = Field(default="B2", pattern=r"^(A1|A2|B1|B2|C1|C2)$")
+    parent_essay_id: int | None = Field(default=None, ge=1)
 
 
 def db() -> sqlite3.Connection:
@@ -100,6 +106,10 @@ def db() -> sqlite3.Connection:
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     return conn
+
+
+def column_names(conn: sqlite3.Connection, table: str) -> set[str]:
+    return {str(r["name"]) for r in conn.execute(f"PRAGMA table_info({table})").fetchall()}
 
 
 def init_db() -> None:
@@ -128,10 +138,17 @@ def init_db() -> None:
             )
             """
         )
-        # Establish a DB schema version now so future releases can migrate safely.
-        current_version = int(conn.execute("PRAGMA user_version").fetchone()[0])
-        if current_version < SCHEMA_VERSION:
-            conn.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
+        cols = column_names(conn, "essays")
+        if "series_id" not in cols:
+            conn.execute("ALTER TABLE essays ADD COLUMN series_id INTEGER")
+        if "revision_no" not in cols:
+            conn.execute("ALTER TABLE essays ADD COLUMN revision_no INTEGER NOT NULL DEFAULT 1")
+        if "parent_id" not in cols:
+            conn.execute("ALTER TABLE essays ADD COLUMN parent_id INTEGER")
+        conn.execute("UPDATE essays SET series_id = id WHERE series_id IS NULL")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_essays_series_revision ON essays(series_id, revision_no)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_essays_created_at ON essays(created_at)")
+        conn.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
         conn.commit()
 
 
@@ -141,7 +158,6 @@ def weighted_overall(result: dict[str, Any]) -> float:
 
 
 def app_cefr(score: float) -> str:
-    # Internal progress-band mapping. It is intentionally labelled as an estimate in the UI.
     if score < 30:
         return "A1"
     if score < 45:
@@ -196,16 +212,22 @@ def normalize_text(value: str) -> str:
 def validate_result(raw: dict[str, Any]) -> dict[str, Any]:
     result: dict[str, Any] = {}
     for key in RUBRIC_WEIGHTS:
-        val = float(raw.get(key, 0))
+        try:
+            val = float(raw.get(key, 0))
+        except (TypeError, ValueError):
+            val = 0.0
         result[key] = round(max(0, min(100, val)), 1)
+
     result["cefr_estimate"] = str(raw.get("cefr_estimate", "B1"))
     if result["cefr_estimate"] not in {"A1", "A2", "B1", "B2", "C1", "C2"}:
         result["cefr_estimate"] = app_cefr(weighted_overall(result))
+
     summary = str(raw.get("summary_vi", ""))[:4000].strip()
     result["summary_vi"] = "" if contains_cjk(summary) else summary
     result["strengths_vi"] = clean_vi_list(raw.get("strengths_vi", []))
     result["priorities_vi"] = clean_vi_list(raw.get("priorities_vi", []))
-    errors = []
+
+    errors: list[dict[str, Any]] = []
     learner_text = str(raw.get("__learner_text", ""))
     for err in raw.get("errors", [])[:30]:
         if not isinstance(err, dict):
@@ -219,7 +241,6 @@ def validate_result(raw: dict[str, Any]) -> dict[str, Any]:
         except (TypeError, ValueError):
             confidence = 0.0
 
-        # Defensive guardrails against multilingual contamination and hallucinated corrections.
         if confidence < 0.75:
             continue
         if not fragment or (learner_text and fragment not in learner_text):
@@ -229,14 +250,16 @@ def validate_result(raw: dict[str, Any]) -> dict[str, Any]:
         if not suggestion or normalize_text(suggestion) == normalize_text(fragment):
             continue
 
-        errors.append({
-            "category": str(err.get("category", "other"))[:50],
-            "fragment": fragment,
-            "explanation_vi": explanation,
-            "suggestion": suggestion,
-            "mini_rule_vi": rule,
-            "confidence": round(max(0.0, min(1.0, confidence)), 2),
-        })
+        errors.append(
+            {
+                "category": str(err.get("category", "other"))[:50],
+                "fragment": fragment,
+                "explanation_vi": explanation,
+                "suggestion": suggestion,
+                "mini_rule_vi": rule,
+                "confidence": round(max(0.0, min(1.0, confidence)), 2),
+            }
+        )
     result["errors"] = errors
     return result
 
@@ -261,7 +284,7 @@ Evaluate the text using the fixed rubric. Identify recurring/reusable learning p
             "temperature": 0.1,
             "seed": 42,
             "num_ctx": 4096,
-            "num_predict": 900
+            "num_predict": 900,
         },
         "messages": [
             {"role": "system", "content": SYSTEM_PROMPT},
@@ -277,58 +300,26 @@ Evaluate the text using the fixed rubric. Identify recurring/reusable learning p
 
 
 def heuristic_fallback(payload: EssayIn) -> dict[str, Any]:
-    # Allows the UI/database to be tested before Ollama is installed. Not intended as a real proficiency score.
     text = payload.text.strip()
     words = re.findall(r"\b[\w'-]+\b", text)
     sentences = [s for s in re.split(r"[.!?]+", text) if s.strip()]
     wc = max(1, len(words))
-    avg_sentence = wc / max(1, len(sentences))
     unique_ratio = len({w.lower() for w in words}) / wc
-
-    grammar = 56.0
-    vocabulary = min(78.0, 48 + unique_ratio * 36)
-    coherence = 58.0 if len(sentences) >= 3 else 48.0
-    task = 62.0 if payload.prompt else 60.0
-    naturalness = 55.0
-    errors = []
-
-    checks = [
-        (r"\bthe fashion\b", "article", "the fashion", "Khi nói về thời trang nói chung, thường không dùng mạo từ 'the'.", "fashion", "Danh từ khái niệm chung thường dùng không có 'the'."),
-        (r"\bone of part\b", "word_form", "one of part", "Sau 'one of' cần danh từ số nhiều.", "one of the parts / one aspect", "one of + plural noun"),
-        (r"\bthe way why\b", "sentence_structure", "the way why", "'the way' và 'why' đang chồng chức năng trong cấu trúc này.", "the reason why / the way I choose", "Tránh dùng 'the way why' như một cụm cố định."),
-        (r"\bother\b\s*[.!?,]", "word_choice", "other", "'other' thường cần đi với danh từ hoặc dùng 'another/others' tùy nghĩa.", "another one / others", "other + noun; others = đại từ số nhiều."),
-    ]
-    for pattern, cat, frag, expl, suggestion, rule in checks:
-        if re.search(pattern, text, re.I):
-            errors.append({"category": cat, "fragment": frag, "explanation_vi": expl, "suggestion": suggestion, "mini_rule_vi": rule})
-            grammar -= 2 if cat in {"article", "word_form", "sentence_structure"} else 0
-            naturalness -= 2
-
-    if avg_sentence > 28:
-        errors.append({
-            "category": "sentence_structure",
-            "fragment": "Một số câu khá dài",
-            "explanation_vi": "Câu dài làm ý khó theo dõi và tăng nguy cơ nối mệnh đề chưa tự nhiên.",
-            "suggestion": "Tách một câu dài thành 2 câu, mỗi câu giữ một ý chính.",
-            "mini_rule_vi": "Ưu tiên một ý chính rõ ràng cho mỗi câu khi đang luyện độ chính xác.",
-        })
-        coherence -= 4
-
     scores = {
-        "grammar": round(max(30, grammar), 1),
-        "vocabulary": round(vocabulary, 1),
-        "coherence": round(coherence, 1),
-        "task_achievement": round(task, 1),
-        "naturalness": round(max(30, naturalness), 1),
+        "grammar": 54.0,
+        "vocabulary": round(min(76.0, 48 + unique_ratio * 34), 1),
+        "coherence": 56.0 if len(sentences) >= 3 else 48.0,
+        "task_achievement": 60.0 if payload.prompt else 58.0,
+        "naturalness": 52.0,
     }
     overall = weighted_overall(scores)
     return {
         **scores,
         "cefr_estimate": app_cefr(overall),
-        "summary_vi": "Đây là chế độ kiểm tra dự phòng vì chưa kết nối được Ollama. Điểm hiện tại chỉ dùng để kiểm tra giao diện và luồng lưu dữ liệu; hãy cài/chạy Ollama để nhận đánh giá AI thật.",
-        "strengths_vi": ["Bài viết có nội dung đủ để hệ thống tạo hồ sơ tiến bộ."],
-        "priorities_vi": ["Kết nối Ollama để bật đánh giá AI đầy đủ.", "Ưu tiên sửa các lỗi lặp lại trước khi cố dùng cấu trúc phức tạp hơn."],
-        "errors": errors,
+        "summary_vi": "Chế độ dự phòng chỉ dùng để kiểm tra luồng ứng dụng. Hãy chạy Ollama để nhận đánh giá AI thật.",
+        "strengths_vi": ["Bài viết có đủ nội dung để lưu vào hồ sơ tiến bộ."],
+        "priorities_vi": ["Kết nối Ollama để bật đánh giá đầy đủ."],
+        "errors": [],
     }
 
 
@@ -341,9 +332,7 @@ def evaluate(payload: EssayIn) -> tuple[dict[str, Any], str]:
                 status_code=503,
                 detail=f"Không kết nối được Ollama ({type(exc).__name__}). Kiểm tra OLLAMA_URL/model trước khi chấm bài.",
             ) from exc
-        result = heuristic_fallback(payload)
-        result["summary_vi"] += f" (Lỗi kết nối: {type(exc).__name__})"
-        return result, "fallback-demo"
+        return heuristic_fallback(payload), "fallback-demo"
 
 
 def row_to_dict(row: sqlite3.Row, detail: bool = False) -> dict[str, Any]:
@@ -359,6 +348,92 @@ def row_to_dict(row: sqlite3.Row, detail: bool = False) -> dict[str, Any]:
         d.pop("text", None)
         d.pop("summary_vi", None)
     return d
+
+
+def latest_series_rows(conn: sqlite3.Connection) -> list[sqlite3.Row]:
+    return conn.execute(
+        """
+        SELECT e.*
+        FROM essays e
+        JOIN (
+            SELECT series_id, MAX(revision_no) AS max_revision
+            FROM essays
+            GROUP BY series_id
+        ) latest
+        ON e.series_id = latest.series_id
+        AND e.revision_no = latest.max_revision
+        ORDER BY e.id ASC
+        """
+    ).fetchall()
+
+
+def revision_delta(current: dict[str, Any], previous: sqlite3.Row | None) -> dict[str, float]:
+    if not previous:
+        return {}
+    out: dict[str, float] = {}
+    for key in [*RUBRIC_WEIGHTS.keys(), "overall"]:
+        out[key] = round(float(current[key]) - float(previous[key]), 1)
+    return out
+
+
+def error_memory(rows: list[sqlite3.Row]) -> list[dict[str, Any]]:
+    if not rows:
+        return []
+    ordered = sorted(rows, key=lambda r: int(r["id"]))
+    midpoint = max(1, len(ordered) // 2)
+    older_ids = {int(r["id"]) for r in ordered[:midpoint]}
+    newer_ids = {int(r["id"]) for r in ordered[midpoint:]}
+    by_cat: dict[str, dict[str, Any]] = {}
+    now = datetime.now().astimezone()
+    weekly_labels = []
+    for offset in range(5, -1, -1):
+        d = (now - timedelta(weeks=offset)).date()
+        monday = d - timedelta(days=d.weekday())
+        weekly_labels.append(monday.isoformat())
+
+    for r in ordered:
+        rid = int(r["id"])
+        created = datetime.fromisoformat(r["created_at"]).astimezone()
+        monday = (created.date() - timedelta(days=created.date().weekday())).isoformat()
+        for err in json.loads(r["errors_json"]):
+            cat = str(err.get("category", "other"))
+            item = by_cat.setdefault(
+                cat,
+                {
+                    "category": cat,
+                    "total": 0,
+                    "older": 0,
+                    "newer": 0,
+                    "first_seen": r["created_at"][:10],
+                    "last_seen": r["created_at"][:10],
+                    "weeks": {label: 0 for label in weekly_labels},
+                },
+            )
+            item["total"] += 1
+            item["last_seen"] = r["created_at"][:10]
+            if rid in older_ids:
+                item["older"] += 1
+            if rid in newer_ids:
+                item["newer"] += 1
+            if monday in item["weeks"]:
+                item["weeks"][monday] += 1
+
+    output = []
+    for item in by_cat.values():
+        if item["total"] <= 1 and item["newer"] == 0:
+            status = "historical"
+        elif item["newer"] < item["older"]:
+            status = "improving"
+        elif item["older"] == 0 and item["newer"] > 0:
+            status = "new"
+        elif item["total"] >= 3:
+            status = "recurring"
+        else:
+            status = "watch"
+        item["status"] = status
+        item["weekly"] = [{"week": k, "count": v} for k, v in item.pop("weeks").items()]
+        output.append(item)
+    return sorted(output, key=lambda x: (x["status"] == "improving", -x["total"]))
 
 
 @app.on_event("startup")
@@ -379,7 +454,7 @@ def style() -> HTMLResponse:
 @app.get("/api/health")
 def health() -> dict[str, Any]:
     ollama_ok = False
-    models = []
+    models: list[str] = []
     try:
         r = requests.get(f"{OLLAMA_URL}/api/tags", timeout=2)
         ollama_ok = r.ok
@@ -387,11 +462,37 @@ def health() -> dict[str, Any]:
             models = [m.get("name", "") for m in r.json().get("models", [])]
     except Exception:
         pass
-    return {"ok": True, "version": APP_VERSION, "schema_version": SCHEMA_VERSION, "ollama": ollama_ok, "model": OLLAMA_MODEL, "available_models": models}
+    return {
+        "ok": True,
+        "version": APP_VERSION,
+        "schema_version": SCHEMA_VERSION,
+        "ollama": ollama_ok,
+        "model": OLLAMA_MODEL,
+        "available_models": models,
+    }
 
 
 @app.post("/api/evaluate")
 def api_evaluate(payload: EssayIn) -> dict[str, Any]:
+    previous: sqlite3.Row | None = None
+    series_id: int | None = None
+    revision_no = 1
+
+    if payload.parent_essay_id:
+        with db() as conn:
+            previous = conn.execute(
+                "SELECT * FROM essays WHERE id = ?", (payload.parent_essay_id,)
+            ).fetchone()
+            if not previous:
+                raise HTTPException(404, "Parent essay not found")
+            series_id = int(previous["series_id"] or previous["id"])
+            revision_no = int(
+                conn.execute(
+                    "SELECT COALESCE(MAX(revision_no), 0) + 1 FROM essays WHERE series_id = ?",
+                    (series_id,),
+                ).fetchone()[0]
+            )
+
     result, evaluator = evaluate(payload)
     overall = weighted_overall(result)
     word_count = len(re.findall(r"\b[\w'-]+\b", payload.text))
@@ -404,8 +505,9 @@ def api_evaluate(payload: EssayIn) -> dict[str, Any]:
               created_at, prompt, text, word_count, target_cefr,
               grammar, vocabulary, coherence, task_achievement, naturalness,
               overall, cefr_estimate, evaluator, summary_vi,
-              strengths_json, priorities_json, errors_json
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+              strengths_json, priorities_json, errors_json,
+              series_id, revision_no, parent_id
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 now, payload.prompt, payload.text, word_count, payload.target_cefr,
@@ -415,16 +517,32 @@ def api_evaluate(payload: EssayIn) -> dict[str, Any]:
                 json.dumps(result["strengths_vi"], ensure_ascii=False),
                 json.dumps(result["priorities_vi"], ensure_ascii=False),
                 json.dumps(result["errors"], ensure_ascii=False),
+                series_id, revision_no, payload.parent_essay_id,
             ),
         )
+        essay_id = int(cur.lastrowid)
+        if series_id is None:
+            series_id = essay_id
+            conn.execute("UPDATE essays SET series_id = ? WHERE id = ?", (series_id, essay_id))
         conn.commit()
-        essay_id = cur.lastrowid
 
-    return {"id": essay_id, "overall": overall, "app_cefr": app_cefr(overall), "evaluator": evaluator, **result}
+    current_for_delta = {**result, "overall": overall}
+    delta = revision_delta(current_for_delta, previous)
+    return {
+        "id": essay_id,
+        "series_id": series_id,
+        "revision_no": revision_no,
+        "parent_id": payload.parent_essay_id,
+        "overall": overall,
+        "app_cefr": app_cefr(overall),
+        "evaluator": evaluator,
+        "delta": delta,
+        **result,
+    }
 
 
 @app.get("/api/essays")
-def essays(limit: int = 100) -> list[dict[str, Any]]:
+def essays(limit: int = 200) -> list[dict[str, Any]]:
     limit = min(max(1, limit), 500)
     with db() as conn:
         rows = conn.execute("SELECT * FROM essays ORDER BY id DESC LIMIT ?", (limit,)).fetchall()
@@ -435,41 +553,68 @@ def essays(limit: int = 100) -> list[dict[str, Any]]:
 def essay_detail(essay_id: int) -> dict[str, Any]:
     with db() as conn:
         row = conn.execute("SELECT * FROM essays WHERE id = ?", (essay_id,)).fetchone()
-    if not row:
-        raise HTTPException(404, "Essay not found")
-    return row_to_dict(row, detail=True)
+        if not row:
+            raise HTTPException(404, "Essay not found")
+        series_rows = conn.execute(
+            "SELECT id, revision_no, overall, created_at FROM essays WHERE series_id = ? ORDER BY revision_no",
+            (row["series_id"],),
+        ).fetchall()
+    d = row_to_dict(row, detail=True)
+    d["revisions"] = [dict(r) for r in series_rows]
+    return d
 
 
 @app.delete("/api/essays/{essay_id}")
 def delete_essay(essay_id: int) -> dict[str, bool]:
     with db() as conn:
-        cur = conn.execute("DELETE FROM essays WHERE id = ?", (essay_id,))
+        row = conn.execute("SELECT series_id FROM essays WHERE id = ?", (essay_id,)).fetchone()
+        if not row:
+            return {"deleted": False}
+        conn.execute("DELETE FROM essays WHERE series_id = ?", (row["series_id"],))
         conn.commit()
-    return {"deleted": cur.rowcount > 0}
+    return {"deleted": True}
+
+
+@app.get("/api/error-memory")
+def api_error_memory() -> dict[str, Any]:
+    with db() as conn:
+        rows = conn.execute("SELECT * FROM essays ORDER BY id ASC").fetchall()
+    return {"items": error_memory(rows), "revision_count": len(rows)}
 
 
 @app.get("/api/dashboard")
 def dashboard() -> dict[str, Any]:
     with db() as conn:
-        rows = conn.execute("SELECT * FROM essays ORDER BY id ASC").fetchall()
+        all_revision_rows = conn.execute("SELECT * FROM essays ORDER BY id ASC").fetchall()
+        rows = latest_series_rows(conn)
+
     if not rows:
         return {
-            "essay_count": 0, "skill_score": 0, "cefr": "—", "streak": 0,
-            "recent_average": 0, "trend": [], "metrics": {}, "error_counts": {},
+            "essay_count": 0,
+            "revision_count": 0,
+            "skill_score": 0,
+            "cefr": "—",
+            "streak": 0,
+            "recent_average": 0,
+            "trend": [],
+            "metrics": {},
+            "error_counts": {},
+            "error_memory": [],
             "next_level": None,
+            "version": APP_VERSION,
         }
 
-    all_rows = [dict(r) for r in rows]
-    recent = all_rows[-10:]
-    # Skill score = weighted recent average with newer essays slightly more important.
+    latest = [dict(r) for r in rows]
+    recent = latest[-10:]
     weights = list(range(1, len(recent) + 1))
-    skill_score = round(sum(r["overall"] * w for r, w in zip(recent, weights)) / sum(weights), 1)
+    skill_score = round(
+        sum(float(r["overall"]) * w for r, w in zip(recent, weights)) / sum(weights), 1
+    )
 
-    metric_names = list(RUBRIC_WEIGHTS.keys())
-    metrics = {}
-    for m in metric_names:
-        vals = [float(r[m]) for r in recent]
-        metrics[m] = round(statistics.mean(vals), 1)
+    metrics = {
+        m: round(statistics.mean(float(r[m]) for r in recent), 1)
+        for m in RUBRIC_WEIGHTS
+    }
 
     error_counts: dict[str, int] = {}
     for r in recent:
@@ -478,7 +623,7 @@ def dashboard() -> dict[str, Any]:
             error_counts[cat] = error_counts.get(cat, 0) + 1
     error_counts = dict(sorted(error_counts.items(), key=lambda kv: kv[1], reverse=True))
 
-    dates = sorted({datetime.fromisoformat(r["created_at"]).date() for r in all_rows})
+    dates = sorted({datetime.fromisoformat(r["created_at"]).date() for r in latest})
     streak = 0
     if dates:
         d = dates[-1]
@@ -496,21 +641,37 @@ def dashboard() -> dict[str, Any]:
     next_level = None
     for threshold, level in bands:
         if skill_score < threshold:
-            next_level = {"level": level, "threshold": threshold, "remaining": round(threshold - skill_score, 1)}
+            next_level = {
+                "level": level,
+                "threshold": threshold,
+                "remaining": round(threshold - skill_score, 1),
+            }
             break
 
     trend = [
-        {"id": r["id"], "date": r["created_at"][:10], "overall": r["overall"]}
-        for r in all_rows[-20:]
+        {
+            "id": r["id"],
+            "series_id": r["series_id"],
+            "revision_no": r["revision_no"],
+            "date": r["created_at"][:10],
+            "overall": r["overall"],
+        }
+        for r in latest[-20:]
     ]
+
     return {
-        "essay_count": len(all_rows),
+        "essay_count": len(latest),
+        "revision_count": len(all_revision_rows),
         "skill_score": skill_score,
         "cefr": app_cefr(skill_score),
         "streak": streak,
-        "recent_average": round(statistics.mean(float(r["overall"]) for r in recent), 1),
+        "recent_average": round(
+            statistics.mean(float(r["overall"]) for r in recent), 1
+        ),
         "trend": trend,
         "metrics": metrics,
         "error_counts": error_counts,
+        "error_memory": error_memory(all_revision_rows)[:8],
         "next_level": next_level,
+        "version": APP_VERSION,
     }
