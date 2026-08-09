@@ -5,3 +5,7 @@ data/*.db
 update.log
 backups/
 .upgrade_backups/
+
+# Updater backups
+*.v*-backup-*
+.upgrade_backups/
