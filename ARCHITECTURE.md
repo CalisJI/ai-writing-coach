@@ -83,3 +83,15 @@ AI-provider selection is a developer/admin concern, not a learner preference.
 - there is no automatic failover from local AI to a paid cloud provider
 - language modules call writing_coach.ai.platform.generate_structured()
 - adding a provider means adding an adapter, not rewriting language modules
+
+
+## AI model administration UX
+
+The learner UI remains provider-neutral. Only persistent Platform Admin accounts
+see the AI Models dashboard. The dashboard discovers models through provider
+adapters, shows the current global model, allows explicit connection tests, and
+requires an explicit admin action before changing the platform model.
+
+Adding or installing a model must not require changes in English/Chinese modules.
+Ollama models are discovered dynamically; cloud model availability is supplied by
+the provider adapter/server configuration. Paid provider failover remains disabled.
