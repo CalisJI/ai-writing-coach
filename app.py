@@ -10,6 +10,7 @@ from typing import Any
 from urllib.parse import quote
 
 import requests
+from grammar_course import GRAMMAR_COURSE, GRAMMAR_BY_ID
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, Field
@@ -26,7 +27,7 @@ APP_VERSION = os.getenv(
     if (ROOT / "VERSION").exists()
     else "dev",
 )
-SCHEMA_VERSION = 3
+SCHEMA_VERSION = 4
 
 app = FastAPI(title="AI Writing Coach", version=APP_VERSION)
 
@@ -121,11 +122,16 @@ class ImproveIn(BaseModel):
     mode: str = Field(default="polish", pattern=r"^(correct|grammar|vocabulary|polish)$")
 
 
+class TranslateIn(BaseModel):
+    text: str = Field(min_length=1, max_length=800)
+
+
 class SaveWordIn(BaseModel):
     word: str = Field(min_length=1, max_length=80)
     phonetic: str = Field(default="", max_length=120)
     part_of_speech: str = Field(default="", max_length=80)
     definition: str = Field(default="", max_length=1200)
+    translation_vi: str = Field(default="", max_length=1200)
 
 def db() -> sqlite3.Connection:
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
@@ -194,6 +200,26 @@ def init_db() -> None:
                 added_at TEXT NOT NULL
             )
             '''
+        )
+        saved_cols = column_names(conn, "saved_words")
+        if "translation_vi" not in saved_cols:
+            conn.execute("ALTER TABLE saved_words ADD COLUMN translation_vi TEXT NOT NULL DEFAULT ''")
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS grammar_progress (
+                lesson_id TEXT PRIMARY KEY,
+                completed_at TEXT NOT NULL
+            )
+            """
+        )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS grammar_lesson_cache (
+                lesson_id TEXT PRIMARY KEY,
+                content_json TEXT NOT NULL,
+                generated_at TEXT NOT NULL
+            )
+            """
         )
         conn.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
         conn.commit()
@@ -1138,7 +1164,172 @@ def api_improve(payload: ImproveIn) -> dict[str, Any]:
 
 @app.get("/api/library/grammar")
 def api_grammar_library() -> dict[str, Any]:
-    return {"lessons": GRAMMAR_LIBRARY}
+    with db() as conn:
+        completed = {
+            str(r["lesson_id"])
+            for r in conn.execute("SELECT lesson_id FROM grammar_progress").fetchall()
+        }
+    lessons=[]
+    for item in GRAMMAR_COURSE:
+        row=dict(item)
+        row["completed"]=row["id"] in completed
+        lessons.append(row)
+    return {
+        "lessons": lessons,
+        "total": len(lessons),
+        "completed": len(completed),
+        "levels": ["A1","A2","B1","B2","C1"],
+    }
+
+
+def generate_grammar_lesson(lesson: dict[str, Any]) -> dict[str, Any]:
+    schema={
+        "type":"object",
+        "properties":{
+            "explanation_vi":{"type":"string"},
+            "rules":{"type":"array","minItems":3,"maxItems":6,"items":{"type":"string"}},
+            "examples":{
+                "type":"array","minItems":3,"maxItems":5,
+                "items":{
+                    "type":"object",
+                    "properties":{"en":{"type":"string"},"vi":{"type":"string"}},
+                    "required":["en","vi"],
+                },
+            },
+            "mistakes":{"type":"array","minItems":2,"maxItems":5,"items":{"type":"string"}},
+            "writing_tip_vi":{"type":"string"},
+        },
+        "required":["explanation_vi","rules","examples","mistakes","writing_tip_vi"],
+    }
+    system=(
+        "You write concise original English grammar lessons for Vietnamese learners. "
+        "The lesson must match the requested CEFR level and objective. "
+        "Explain in Vietnamese using Latin alphabet. English examples stay in English. "
+        "Do not copy a textbook or website. Focus on practical writing."
+    )
+    user=(
+        f"LEVEL: {lesson['level']}\n"
+        f"TOPIC: {lesson['title']}\n"
+        f"OBJECTIVE: {lesson['objective_vi']}\n"
+        "Create a short teachable lesson with reusable rules, natural examples, common mistakes, and one writing tip."
+    )
+    return ollama_json(
+        [{"role":"system","content":system},{"role":"user","content":user}],
+        schema,
+        num_predict=1300,
+        temperature=0.1,
+    )
+
+
+@app.get("/api/library/grammar/{lesson_id}")
+def api_grammar_lesson(lesson_id: str) -> dict[str, Any]:
+    lesson=GRAMMAR_BY_ID.get(lesson_id)
+    if not lesson:
+        raise HTTPException(404,"Grammar lesson not found")
+    with db() as conn:
+        row=conn.execute(
+            "SELECT content_json FROM grammar_lesson_cache WHERE lesson_id = ?",
+            (lesson_id,),
+        ).fetchone()
+    if row:
+        detail=json.loads(row["content_json"])
+        source="cache"
+    else:
+        try:
+            detail=generate_grammar_lesson(lesson)
+            source=f"ollama:{OLLAMA_MODEL}"
+            with db() as conn:
+                conn.execute(
+                    """
+                    INSERT INTO grammar_lesson_cache(lesson_id, content_json, generated_at)
+                    VALUES (?, ?, ?)
+                    ON CONFLICT(lesson_id) DO UPDATE SET
+                      content_json=excluded.content_json,
+                      generated_at=excluded.generated_at
+                    """,
+                    (
+                        lesson_id,
+                        json.dumps(detail,ensure_ascii=False),
+                        datetime.now().astimezone().isoformat(timespec="seconds"),
+                    ),
+                )
+                conn.commit()
+        except Exception:
+            detail={
+                "explanation_vi": lesson["objective_vi"]+" Hãy chú ý cách cấu trúc này hoạt động trong câu hoàn chỉnh và trong ngữ cảnh writing.",
+                "rules":["Đọc ví dụ và nhận diện cấu trúc chính.","So sánh câu đúng với lỗi thường gặp.","Tự viết ít nhất hai câu trước khi chuyển bài."],
+                "examples":[
+                    {"en":"Create your own example for this grammar point.","vi":"Tự tạo một ví dụ cho điểm ngữ pháp này."},
+                    {"en":"Use the pattern in a complete sentence.","vi":"Dùng cấu trúc trong một câu hoàn chỉnh."},
+                    {"en":"Review the sentence for accuracy and meaning.","vi":"Kiểm tra lại độ chính xác và ý nghĩa của câu."},
+                ],
+                "mistakes":["Không học công thức tách rời khỏi câu hoàn chỉnh.","Không cố dùng cấu trúc nâng cao khi chưa hiểu nghĩa."],
+                "writing_tip_vi":"Sau khi học, hãy dùng cấu trúc này trong một đoạn writing ngắn.",
+            }
+            source="built-in-fallback"
+    with db() as conn:
+        done=conn.execute("SELECT 1 FROM grammar_progress WHERE lesson_id = ?",(lesson_id,)).fetchone() is not None
+    return {**lesson,**detail,"completed":done,"source":source}
+
+
+@app.post("/api/library/grammar/{lesson_id}/complete")
+def api_complete_grammar(lesson_id: str) -> dict[str, Any]:
+    if lesson_id not in GRAMMAR_BY_ID:
+        raise HTTPException(404,"Grammar lesson not found")
+    now=datetime.now().astimezone().isoformat(timespec="seconds")
+    with db() as conn:
+        conn.execute(
+            """
+            INSERT INTO grammar_progress(lesson_id,completed_at)
+            VALUES (?,?)
+            ON CONFLICT(lesson_id) DO UPDATE SET completed_at=excluded.completed_at
+            """,
+            (lesson_id,now),
+        )
+        conn.commit()
+    return {"completed":True,"lesson_id":lesson_id}
+
+
+@app.delete("/api/library/grammar/{lesson_id}/complete")
+def api_uncomplete_grammar(lesson_id: str) -> dict[str, Any]:
+    with db() as conn:
+        cur=conn.execute("DELETE FROM grammar_progress WHERE lesson_id = ?",(lesson_id,))
+        conn.commit()
+    return {"completed":False,"changed":cur.rowcount>0,"lesson_id":lesson_id}
+
+
+@app.post("/api/translate")
+def api_translate(payload: TranslateIn) -> dict[str, Any]:
+    schema={
+        "type":"object",
+        "properties":{
+            "translation_vi":{"type":"string"},
+            "natural_meaning_vi":{"type":"string"},
+            "part_of_speech":{"type":"string"},
+            "note_vi":{"type":"string"},
+        },
+        "required":["translation_vi","natural_meaning_vi","part_of_speech","note_vi"],
+    }
+    try:
+        result=ollama_json(
+            [
+                {
+                    "role":"system",
+                    "content":(
+                        "Translate English into natural Vietnamese for a language learner. "
+                        "Translate phrases by meaning, not word by word. Keep notes concise."
+                    ),
+                },
+                {"role":"user","content":payload.text},
+            ],
+            schema,
+            num_predict=500,
+            temperature=0.0,
+        )
+        result["text"]=payload.text
+        return result
+    except Exception as exc:
+        raise HTTPException(503,"Local translation is unavailable.") from exc
 
 
 @app.get("/api/dictionary")
@@ -1160,15 +1351,17 @@ def api_save_vocabulary(payload: SaveWordIn) -> dict[str, Any]:
     with db() as conn:
         conn.execute(
             """
-            INSERT INTO saved_words(word, phonetic, part_of_speech, definition, added_at)
-            VALUES (?, ?, ?, ?, ?)
+            INSERT INTO saved_words(word, phonetic, part_of_speech, definition, added_at, translation_vi)
+            VALUES (?, ?, ?, ?, ?, ?)
             ON CONFLICT(word) DO UPDATE SET
               phonetic = excluded.phonetic,
               part_of_speech = excluded.part_of_speech,
               definition = excluded.definition,
-              added_at = excluded.added_at
+              added_at = excluded.added_at,
+              translation_vi = excluded.translation_vi,
+              translation_vi = excluded.translation_vi
             """,
-            (word, payload.phonetic, payload.part_of_speech, payload.definition, now),
+            (word, payload.phonetic, payload.part_of_speech, payload.definition, now, payload.translation_vi),
         )
         conn.commit()
     return {"saved": True, "word": word, "added_at": now}

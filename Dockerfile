@@ -9,6 +9,7 @@ COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY app.py ./
+COPY grammar_course.py ./
 COPY VERSION ./
 COPY templates ./templates
 COPY static ./static

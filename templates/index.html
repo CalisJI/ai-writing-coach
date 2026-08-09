@@ -177,6 +177,31 @@
         <button id="vocabTabBtn" class="library-tab" onclick="switchLibraryTab('vocabulary')">My vocabulary</button>
       </div>
       <div id="libraryGrammarPane">
+        <div class="card course-hero">
+          <div class="course-hero-copy">
+            <span class="course-kicker">GUIDED GRAMMAR COURSE</span>
+            <h2>Start here and follow the path</h2>
+            <p>60 lessons ordered from A1 foundations to C1 advanced grammar. If you are unsure, start at A1 and skip lessons that are already easy.</p>
+            <div class="course-controls">
+              <label>Starting level
+                <select id="courseStartLevel" onchange="saveCourseStartLevel()">
+                  <option>A1</option><option>A2</option><option>B1</option><option>B2</option><option>C1</option>
+                </select>
+              </label>
+              <button id="continueCourseBtn" class="primary" onclick="continueGrammarCourse()">Continue course</button>
+            </div>
+          </div>
+          <div class="course-progress-box">
+            <strong id="courseProgressPct">0%</strong>
+            <span id="courseProgressText">0 / 60 lessons</span>
+            <div class="bar big"><i id="courseProgressBar" style="width:0%"></i></div>
+            <small id="courseNextText">Start with lesson 1.</small>
+          </div>
+        </div>
+        <div class="card curriculum-note">
+          <b>How to use this course</b>
+          <span>Read the lesson -> study examples -> check common mistakes -> mark complete -> continue.</span>
+        </div>
         <div class="card library-toolbar">
           <input id="grammarSearch" type="search" placeholder="Search grammar topics..." oninput="renderGrammarLibrary()">
           <select id="grammarLevel" onchange="renderGrammarLibrary()">
@@ -210,6 +235,12 @@
   </main>
 </div>
 
+
+<div id="selectionToolbar" class="selection-toolbar hidden">
+  <button onclick="translateSelectedText()">Dịch</button>
+  <button id="selectionDictionaryBtn" onclick="dictionarySelectedText()">Tra từ</button>
+  <button onclick="saveSelectedText()">+ Từ mới</button>
+</div>
 
 <div id="dictionaryPopover" class="dictionary-popover hidden" role="dialog" aria-label="Dictionary lookup">
   <button class="dictionary-close" onclick="hideDictionary()" aria-label="Close dictionary">×</button>
@@ -575,8 +606,8 @@ async function copyImprovedText(){if(lastImprovement)await navigator.clipboard.w
 async function useImprovedAsRevision(){if(!lastImprovement)return;const x={...lastImprovement};closeModal();await reviseEssay(x.essayId);$('#essayText').value=x.text;updateWordCount();}
 
 async function loadLibrary(){
-  if(!grammarLessons.length){try{const d=await fetch('/api/library/grammar').then(r=>r.json());grammarLessons=d.lessons||[];}catch{}}
-  renderGrammarLibrary();loadSavedWords();
+  try{const d=await fetch('/api/library/grammar').then(r=>r.json());grammarLessons=d.lessons||[];}catch{}
+  $('#courseStartLevel').value=courseStartLevel();renderGrammarLibrary();updateCourseProgress();loadSavedWords();
 }
 function switchLibraryTab(tab){
   const grammar=tab==='grammar';
@@ -587,21 +618,27 @@ function switchLibraryTab(tab){
 function renderGrammarLibrary(){
   const el=$('#grammarLibrary');if(!el)return;
   const q=($('#grammarSearch')?.value||'').trim().toLowerCase(),level=$('#grammarLevel')?.value||'all';
-  const rows=grammarLessons.filter(x=>(level==='all'||x.level===level)&&(!q||`${x.title} ${x.category} ${x.summary_vi}`.toLowerCase().includes(q)));
-  el.innerHTML=rows.length?rows.map(x=>`<button class="lesson-card card" onclick="openGrammarLesson('${esc(x.id)}')"><div class="lesson-meta"><span class="level-badge level-${x.level.toLowerCase()}">${esc(x.level)}</span><span>${esc(x.category)}</span></div><h3>${esc(x.title)}</h3><p>${esc(x.summary_vi)}</p><span class="lesson-open">Read lesson →</span></button>`).join(''):'<div class="card empty">No grammar lessons match this filter.</div>';
+  const rows=grammarLessons.filter(x=>(level==='all'||x.level===level)&&(!q||`${x.title} ${x.category} ${x.objective_vi}`.toLowerCase().includes(q)));
+  if(!rows.length){el.innerHTML='<div class="card empty">No grammar lessons match this filter.</div>';return;}
+  const groups={};rows.forEach(x=>(groups[x.level]??=[]).push(x));
+  const names={A1:'Foundation',A2:'Core',B1:'Intermediate',B2:'Upper-intermediate',C1:'Advanced'};
+  el.innerHTML=Object.entries(groups).map(([lvl,items])=>`<div class="course-level-block"><div class="course-level-head"><div><span class="level-badge level-${lvl.toLowerCase()}">${lvl}</span><b>${names[lvl]}</b></div><small>${items.filter(x=>x.completed).length}/${items.length} completed</small></div><div class="lesson-grid">${items.map(x=>`<button class="lesson-card card ${x.completed?'completed':''}" onclick="openGrammarLesson('${esc(x.id)}')"><div class="lesson-meta"><span>#${x.order}</span><span>${esc(x.category)}</span></div><h3>${x.completed?'✓ ':''}${esc(x.title)}</h3><p>${esc(x.objective_vi)}</p><span class="lesson-open">${x.completed?'Review lesson':'Start lesson'} -></span></button>`).join('')}</div></div>`).join('');
+  updateCourseProgress();
 }
-function openGrammarLesson(id){
-  const x=grammarLessons.find(y=>y.id===id);if(!x)return;
-  $('#modalContent').innerHTML=`<div class="modal-head"><div><span>${esc(x.level)} · ${esc(x.category)}</span><h2>${esc(x.title)}</h2></div></div><div class="summary"><p>${esc(x.explanation_vi)}</p></div><h3>Core rules</h3><ul class="lesson-list">${(x.rules||[]).map(r=>`<li>${esc(r)}</li>`).join('')}</ul><h3>Examples</h3><div class="example-grid">${(x.examples||[]).map(e=>`<div class="example-card"><b>${esc(e.en)}</b><span>${esc(e.vi)}</span></div>`).join('')}</div><h3>Common mistakes</h3><ul class="lesson-list warning-list">${(x.mistakes||[]).map(m=>`<li>${esc(m)}</li>`).join('')}</ul>`;
-  $('#modal').classList.remove('hidden');
+async function openGrammarLesson(id){
+  $('#modal').classList.remove('hidden');$('#modalContent').innerHTML='<div class="improve-loading"><div class="spinner"></div><p>Preparing lesson…</p></div>';
+  try{
+    const x=await fetch(`/api/library/grammar/${encodeURIComponent(id)}`).then(r=>r.json()),prev=previousGrammarLesson(id),next=nextGrammarLesson(id);
+    const cached=grammarLessons.find(y=>y.id===id);if(cached)cached.completed=x.completed;
+    $('#modalContent').innerHTML=`<div class="modal-head"><div><span>LESSON ${x.order} · ${esc(x.level)} · ${esc(x.category)}</span><h2>${esc(x.title)}</h2><small>${esc(x.objective_vi)}</small></div></div><div class="summary"><h3>What you are learning</h3><p>${esc(x.explanation_vi)}</p></div><h3>Core rules</h3><ul class="lesson-list">${(x.rules||[]).map(r=>`<li>${esc(r)}</li>`).join('')}</ul><h3>Examples</h3><div class="example-grid">${(x.examples||[]).map(e=>`<div class="example-card"><b>${esc(e.en)}</b><span>${esc(e.vi)}</span></div>`).join('')}</div><h3>Common mistakes</h3><ul class="lesson-list warning-list">${(x.mistakes||[]).map(m=>`<li>${esc(m)}</li>`).join('')}</ul><div class="summary writing-tip"><h3>Writing tip</h3><p>${esc(x.writing_tip_vi||'')}</p></div><div class="lesson-actions">${prev?`<button class="ghost" onclick="openGrammarLesson('${esc(prev.id)}')">← Previous</button>`:'<span></span>'}<button class="${x.completed?'ghost':'primary'}" onclick="setGrammarComplete('${esc(x.id)}',${x.completed?'false':'true'});openGrammarLesson('${esc(x.id)}')">${x.completed?'Mark incomplete':'Mark complete ✓'}</button>${next?`<button class="primary" onclick="setGrammarComplete('${esc(x.id)}',true);openGrammarLesson('${esc(next.id)}')">Complete & next →</button>`:'<button class="primary" onclick="setGrammarComplete(\''+esc(x.id)+'\',true);closeModal()">Finish course ✓</button>'}</div>`;
+  }catch(e){$('#modalContent').innerHTML=`<div class="error">${esc(e.message)}</div>`;}
 }
-
 async function loadSavedWords(){
   const el=$('#savedWords');if(!el)return;
   try{
     const d=await fetch('/api/vocabulary').then(r=>r.json()),items=d.items||[];
     $('#savedWordCount').textContent=`${items.length} word${items.length===1?'':'s'}`;
-    el.innerHTML=items.length?items.map(x=>`<div class="card saved-word"><div class="saved-word-head"><div><h3>${esc(x.word)}</h3><span>${esc(x.phonetic||'')}</span></div><button class="mini-danger" onclick="removeSavedWord('${esc(x.word)}')">Remove</button></div><span class="pos-label">${esc(x.part_of_speech||'word')}</span><p>${esc(x.definition||'')}</p><button class="ghost lookup-again" onclick="lookupWordCentered('${esc(x.word)}')">Look up again</button></div>`).join(''):'<div class="card empty">No saved words yet. Highlight a word anywhere in the app to start your vocabulary notebook.</div>';
+    el.innerHTML=items.length?items.map(x=>`<div class="card saved-word"><div class="saved-word-head"><div><h3>${esc(x.word)}</h3><span>${esc(x.phonetic||'')}</span></div><button class="mini-danger" onclick="removeSavedWord('${esc(x.word)}')">Remove</button></div><span class="pos-label">${esc(x.part_of_speech||'word')}</span><p>${esc(x.translation_vi||x.definition||'')}</p>${x.definition&&x.translation_vi?`<small>${esc(x.definition)}</small>`:''}<button class="ghost lookup-again" onclick="lookupWordCentered('${esc(x.word)}')">Look up again</button></div>`).join(''):'<div class="card empty">No saved words yet. Highlight a word anywhere in the app to start your vocabulary notebook.</div>';
   }catch(e){el.innerHTML=`<div class="error">${esc(e.message)}</div>`;}
 }
 async function removeSavedWord(word){await fetch(`/api/vocabulary/${encodeURIComponent(word)}`,{method:'DELETE'});loadSavedWords();}
@@ -620,23 +657,91 @@ async function lookupWordAt(word,x,y){
   try{
     const d=await fetch(`/api/dictionary?word=${encodeURIComponent(word)}`).then(async r=>{const b=await r.json();if(!r.ok)throw new Error(b.detail||'Lookup failed');return b;});currentDictionary=d;
     const defs=(d.definitions||[]).map((m,i)=>`<div class="definition-row"><span class="pos-label">${esc(m.part_of_speech||'')}</span><b>${i+1}. ${esc(m.definition)}</b>${m.example?`<p>“${esc(m.example)}”</p>`:''}${(m.synonyms||[]).length?`<small>Similar: ${m.synonyms.map(esc).join(', ')}</small>`:''}</div>`).join('');
-    content.innerHTML=`<div class="dictionary-head"><div><h3>${esc(d.word||word)}</h3><span>${esc(d.phonetic||'')}</span></div><span class="dictionary-source">${esc(d.source||'dictionary')}</span></div><div class="dictionary-definitions">${defs}</div><div class="dictionary-actions">${d.audio?`<button class="ghost" onclick="playDictionaryAudio()">▶ Pronunciation</button>`:''}<button class="ghost" onclick="saveCurrentWord()">Save word</button><a class="primary dictionary-link" href="${esc(d.cambridge_url||'#')}" target="_blank" rel="noopener">Open Cambridge</a></div>`;
+    content.innerHTML=`<div class="dictionary-head"><div><h3>${esc(d.word||word)}</h3><span>${esc(d.phonetic||'')}</span></div><span class="dictionary-source">${esc(d.source||'dictionary')}</span></div><div class="dictionary-definitions">${defs}</div><div class="dictionary-actions">${d.audio?`<button class="ghost" onclick="playDictionaryAudio()">▶ Pronunciation</button>`:''}<button class="ghost" onclick="translateDictionaryWord()">Dịch</button><button class="primary" onclick="saveCurrentWord()">+ Từ mới</button><a class="ghost dictionary-link" href="${esc(d.cambridge_url||'#')}" target="_blank" rel="noopener">Open Cambridge</a></div>`;
   }catch(e){currentDictionary=null;content.innerHTML=`<div class="error">${esc(e.message)}</div>`;}
 }
 function lookupWordCentered(word){lookupWordAt(word,Math.max(20,window.innerWidth/2-170),Math.max(20,window.innerHeight/2-160));}
+function translateDictionaryWord(){if(currentDictionary?.word){selectedLookupText=currentDictionary.word;translateSelectedText();}}
 function playDictionaryAudio(){if(currentDictionary?.audio)new Audio(currentDictionary.audio).play();}
 async function saveCurrentWord(){
   const d=currentDictionary;if(!d)return;const first=(d.definitions||[])[0]||{};
-  await fetch('/api/vocabulary',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({word:d.word||'',phonetic:d.phonetic||'',part_of_speech:first.part_of_speech||'',definition:first.definition||''})});
+  await fetch('/api/vocabulary',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({word:d.word||'',phonetic:d.phonetic||'',part_of_speech:first.part_of_speech||'',definition:first.definition||'',translation_vi:d.translation_vi||''})});
   const btn=[...document.querySelectorAll('#dictionaryPopover button')].find(x=>x.textContent==='Save word');if(btn)btn.textContent='Saved ✓';loadSavedWords();
 }
+function selectedTextForTools(target){
+  if(target&&((target.tagName==='TEXTAREA')||(target.tagName==='INPUT'&&['text','search'].includes(target.type)))){
+    const a=target.selectionStart,b=target.selectionEnd;
+    if(typeof a==='number'&&typeof b==='number'&&b>a)return String(target.value.slice(a,b)).trim().replace(/\s+/g,' ').slice(0,500);
+  }
+  return String(window.getSelection?.()?.toString()||'').trim().replace(/\s+/g,' ').slice(0,500);
+}
+function showSelectionToolbar(text,x,y){
+  if(!text||text.length<2){hideSelectionToolbar();return;}
+  selectedLookupText=text;selectionAnchor={x,y};
+  const bar=$('#selectionToolbar');bar.classList.remove('hidden');
+  requestAnimationFrame(()=>{bar.style.left=`${Math.max(8,Math.min(window.innerWidth-bar.offsetWidth-8,x))}px`;bar.style.top=`${Math.max(8,Math.min(window.innerHeight-bar.offsetHeight-8,y))}px`;});
+  $('#selectionDictionaryBtn').disabled=text.split(/\s+/).length>4||!/^[A-Za-z][A-Za-z' -]*$/.test(text);
+}
+function hideSelectionToolbar(){$('#selectionToolbar')?.classList.add('hidden');}
+function triggerSelectionLookup(ev){
+  if(ev.target?.closest?.('#dictionaryPopover,#selectionToolbar,.modal,.sidebar'))return;
+  setTimeout(()=>{const text=selectedTextForTools(ev.target);if(!text){hideSelectionToolbar();return;}showSelectionToolbar(text,(ev.clientX||window.innerWidth/2)+8,(ev.clientY||window.innerHeight/2)+8);},30);
+}
+async function translateSelectedText(){
+  const text=selectedLookupText;if(!text)return;hideSelectionToolbar();
+  const pop=$('#dictionaryPopover'),content=$('#dictionaryContent');pop.classList.remove('hidden');
+  pop.style.left=`${Math.max(12,Math.min(window.innerWidth-380,selectionAnchor.x))}px`;pop.style.top=`${Math.max(12,Math.min(window.innerHeight-320,selectionAnchor.y))}px`;
+  content.innerHTML='<div class="dictionary-loading"><div class="spinner"></div><span>Translating…</span></div>';
+  try{
+    const r=await fetch('/api/translate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text})}),d=await r.json();
+    if(!r.ok)throw new Error(d.detail||'Translation failed');
+    currentDictionary={word:text,phonetic:'',definitions:[],translation_vi:d.translation_vi,part_of_speech:d.part_of_speech||'',source:'local translation'};
+    content.innerHTML=`<div class="dictionary-head"><div><h3>${esc(text)}</h3><span>${esc(d.part_of_speech||'')}</span></div><span class="dictionary-source">local AI</span></div><div class="translation-card"><span>Vietnamese</span><strong>${esc(d.translation_vi)}</strong>${d.natural_meaning_vi&&d.natural_meaning_vi!==d.translation_vi?`<p>${esc(d.natural_meaning_vi)}</p>`:''}${d.note_vi?`<small>${esc(d.note_vi)}</small>`:''}</div><div class="dictionary-actions"><button class="primary" onclick="saveCurrentTranslation()">+ Add to My Vocabulary</button>${text.split(/\s+/).length<=4?`<button class="ghost" onclick="dictionarySelectedText()">Dictionary</button>`:''}</div>`;
+  }catch(e){content.innerHTML=`<div class="error">${esc(e.message)}</div>`;}
+}
+function dictionarySelectedText(){const text=selectedLookupText;if(!text)return;hideSelectionToolbar();lookupWordAt(text,selectionAnchor.x,selectionAnchor.y);}
+async function saveVocabularyPayload(x){await fetch('/api/vocabulary',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({word:x.word||'',phonetic:x.phonetic||'',part_of_speech:x.part_of_speech||'',definition:x.definition||'',translation_vi:x.translation_vi||''})});}
+async function saveSelectedText(){
+  const text=selectedLookupText;if(!text)return;hideSelectionToolbar();
+  try{
+    const r=await fetch('/api/translate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text})}),d=await r.json();
+    if(!r.ok)throw new Error(d.detail||'Translation failed');
+    await saveVocabularyPayload({word:text,translation_vi:d.translation_vi||'',part_of_speech:d.part_of_speech||''});showSavedToast(text);
+  }catch(e){alert(e.message);}
+}
+async function saveCurrentTranslation(){const d=currentDictionary;if(!d)return;await saveVocabularyPayload({word:d.word,phonetic:d.phonetic||'',part_of_speech:d.part_of_speech||'',definition:(d.definitions||[])[0]?.definition||'',translation_vi:d.translation_vi||''});showSavedToast(d.word);}
+function showSavedToast(word){const t=document.createElement('div');t.className='save-toast';t.textContent=`✓ Added “${word}” to My Vocabulary`;document.body.appendChild(t);setTimeout(()=>t.remove(),1800);loadSavedWords();}
 function triggerSelectionLookup(ev){
   if(ev.target?.closest?.('#dictionaryPopover,.modal,.sidebar'))return;
   setTimeout(()=>{const word=selectedTextFromTarget(ev.target);if(word)lookupWordAt(word,(ev.clientX||window.innerWidth/2)+12,(ev.clientY||window.innerHeight/2)+12);},40);
 }
 document.addEventListener('mouseup',triggerSelectionLookup);
-document.addEventListener('touchend',ev=>setTimeout(()=>{const word=selectedTextFromTarget(ev.target);if(word)lookupWordAt(word,16,window.innerHeight-360);},260));
+document.addEventListener('touchend',ev=>setTimeout(()=>{const text=selectedTextForTools(ev.target);if(text)showSelectionToolbar(text,12,window.innerHeight-120);},260));
 
+let selectedLookupText='';
+let selectionAnchor={x:20,y:20};
+
+function courseStartLevel(){return localStorage.getItem('grammarCourseStartLevel')||'A1';}
+function saveCourseStartLevel(){localStorage.setItem('grammarCourseStartLevel',$('#courseStartLevel').value);renderGrammarLibrary();}
+function levelRank(l){return {A1:1,A2:2,B1:3,B2:4,C1:5}[l]||1;}
+function updateCourseProgress(){
+  if(!grammarLessons.length)return;
+  const done=grammarLessons.filter(x=>x.completed).length,total=grammarLessons.length,pct=Math.round(done/total*100);
+  $('#courseProgressPct').textContent=`${pct}%`;$('#courseProgressText').textContent=`${done} / ${total} lessons`;$('#courseProgressBar').style.width=`${pct}%`;
+  const start=courseStartLevel(),next=grammarLessons.find(x=>!x.completed&&levelRank(x.level)>=levelRank(start))||grammarLessons.find(x=>!x.completed);
+  $('#courseNextText').textContent=next?`Next: ${next.level} · ${next.title}`:'Course completed.';
+  $('#continueCourseBtn').textContent=next?'Continue course':'Course complete ✓';
+}
+function continueGrammarCourse(){
+  const start=courseStartLevel(),next=grammarLessons.find(x=>!x.completed&&levelRank(x.level)>=levelRank(start))||grammarLessons.find(x=>!x.completed);
+  if(next)openGrammarLesson(next.id);
+}
+async function setGrammarComplete(id,complete=true){
+  await fetch(`/api/library/grammar/${encodeURIComponent(id)}/complete`,{method:complete?'POST':'DELETE'});
+  const x=grammarLessons.find(y=>y.id===id);if(x)x.completed=complete;renderGrammarLibrary();updateCourseProgress();
+}
+function nextGrammarLesson(id){const i=grammarLessons.findIndex(x=>x.id===id);return i>=0&&i<grammarLessons.length-1?grammarLessons[i+1]:null;}
+function previousGrammarLesson(id){const i=grammarLessons.findIndex(x=>x.id===id);return i>0?grammarLessons[i-1]:null;}
 async function submitEssay(){const text=$('#essayText').value.trim();if(text.length<10){alert('Write at least a short paragraph first.');return;}const btn=$('#submitBtn');btn.disabled=true;btn.textContent='Evaluating…';$('#resultPane').className='card result-card loading';$('#resultPane').innerHTML='<div class="spinner"></div><p>Local evaluator is reading your writing…</p>';try{const r=await fetch('/api/evaluate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:$('#prompt').value,text,target_cefr:$('#target').value,parent_essay_id:revisionParentId})});const d=await r.json();if(!r.ok)throw new Error(d.detail||'Evaluation failed');revisionParentId=d.id;renderResult(d);loadDashboard();}catch(e){$('#resultPane').innerHTML=`<div class="error">${esc(e.message)}</div>`;}finally{btn.disabled=false;btn.textContent='Evaluate & save';}}
 function renderResult(d){
   $('#resultPane').className='card result-card';
