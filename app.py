@@ -172,18 +172,34 @@ def app_cefr(score: float) -> str:
 
 
 def extract_json(text: str) -> dict[str, Any]:
-    text = text.strip()
+    text = (text or "").strip()
     if text.startswith("```"):
         text = re.sub(r"^```(?:json)?\s*", "", text)
         text = re.sub(r"\s*```$", "", text)
-    try:
-        return json.loads(text)
-    except json.JSONDecodeError:
-        match = re.search(r"\{.*\}", text, re.S)
-        if not match:
-            raise
-        return json.loads(match.group(0))
 
+    try:
+        value = json.loads(text)
+        if isinstance(value, dict):
+            return value
+    except json.JSONDecodeError:
+        pass
+
+    decoder = json.JSONDecoder()
+    for pos, char in enumerate(text):
+        if char != "{":
+            continue
+        try:
+            value, _ = decoder.raw_decode(text[pos:])
+        except json.JSONDecodeError:
+            continue
+        if isinstance(value, dict):
+            return value
+
+    raise json.JSONDecodeError(
+        "No complete JSON object found in Ollama response",
+        text,
+        0,
+    )
 
 CJK_RE = re.compile(r"[\u3400-\u4DBF\u4E00-\u9FFF\u3040-\u30FF\uAC00-\uD7AF]")
 
@@ -265,39 +281,117 @@ def validate_result(raw: dict[str, Any]) -> dict[str, Any]:
 
 
 def evaluate_with_ollama(payload: EssayIn) -> dict[str, Any]:
-    user_prompt = f"""TARGET LEVEL: {payload.target_cefr}
-WRITING TASK:
-{payload.prompt or '(Free writing — evaluate clarity, language control and naturalness.)'}
+    user_prompt = (
+        f"TARGET LEVEL: {payload.target_cefr}\n"
+        "WRITING TASK:\n"
+        f"{payload.prompt or '(Free writing — evaluate clarity, language control and naturalness.)'}\n\n"
+        "LEARNER TEXT:\n"
+        f"{payload.text}\n\n"
+        "Evaluate the text using the fixed rubric. Identify recurring/reusable learning points, not just typos. "
+        "Return one COMPLETE JSON object that matches the required schema."
+    )
 
-LEARNER TEXT:
-{payload.text}
-
-Evaluate the text using the fixed rubric. Identify recurring/reusable learning points, not just typos."""
-
-    body = {
-        "model": OLLAMA_MODEL,
-        "stream": False,
-        "think": False,
-        "keep_alive": "30m",
-        "format": "json",
-        "options": {
-            "temperature": 0.1,
-            "seed": 42,
-            "num_ctx": 4096,
-            "num_predict": 900,
+    evaluation_schema = {
+        "type": "object",
+        "properties": {
+            "grammar": {"type": "number", "minimum": 0, "maximum": 100},
+            "vocabulary": {"type": "number", "minimum": 0, "maximum": 100},
+            "coherence": {"type": "number", "minimum": 0, "maximum": 100},
+            "task_achievement": {"type": "number", "minimum": 0, "maximum": 100},
+            "naturalness": {"type": "number", "minimum": 0, "maximum": 100},
+            "cefr_estimate": {"type": "string", "enum": ["A1", "A2", "B1", "B2", "C1", "C2"]},
+            "summary_vi": {"type": "string"},
+            "strengths_vi": {"type": "array", "items": {"type": "string"}, "maxItems": 6},
+            "priorities_vi": {"type": "array", "items": {"type": "string"}, "maxItems": 6},
+            "errors": {
+                "type": "array",
+                "maxItems": 20,
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "category": {"type": "string"},
+                        "fragment": {"type": "string"},
+                        "explanation_vi": {"type": "string"},
+                        "suggestion": {"type": "string"},
+                        "mini_rule_vi": {"type": "string"},
+                        "confidence": {"type": "number", "minimum": 0, "maximum": 1},
+                    },
+                    "required": [
+                        "category", "fragment", "explanation_vi",
+                        "suggestion", "mini_rule_vi", "confidence"
+                    ],
+                },
+            },
         },
-        "messages": [
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": user_prompt},
+        "required": [
+            "grammar", "vocabulary", "coherence", "task_achievement",
+            "naturalness", "cefr_estimate", "summary_vi",
+            "strengths_vi", "priorities_vi", "errors"
         ],
     }
-    r = requests.post(f"{OLLAMA_URL}/api/chat", json=body, timeout=REQUEST_TIMEOUT)
-    r.raise_for_status()
-    content = r.json()["message"]["content"]
-    raw = extract_json(content)
-    raw["__learner_text"] = payload.text
-    return validate_result(raw)
 
+    def request_once(num_predict: int) -> tuple[str, dict[str, Any]]:
+        body = {
+            "model": OLLAMA_MODEL,
+            "stream": False,
+            "think": False,
+            "keep_alive": "30m",
+            "format": evaluation_schema,
+            "options": {
+                "temperature": 0,
+                "seed": 42,
+                "num_ctx": 4096,
+                "num_predict": num_predict,
+            },
+            "messages": [
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": user_prompt},
+            ],
+        }
+
+        response = requests.post(
+            f"{OLLAMA_URL}/api/chat",
+            json=body,
+            timeout=REQUEST_TIMEOUT,
+        )
+        response.raise_for_status()
+
+        try:
+            envelope = response.json()
+        except ValueError as exc:
+            preview = response.text[:300].replace("\n", " ")
+            raise ValueError(
+                f"Ollama API returned a non-JSON HTTP response: {preview}"
+            ) from exc
+
+        message = envelope.get("message")
+        if not isinstance(message, dict):
+            raise ValueError("Ollama response has no message object")
+
+        content = message.get("content")
+        if not isinstance(content, str) or not content.strip():
+            raise ValueError("Ollama returned an empty evaluator response")
+
+        return content, envelope
+
+    content, envelope = request_once(1400)
+    try:
+        raw = extract_json(content)
+    except json.JSONDecodeError:
+        content, envelope = request_once(2400)
+        raw = extract_json(content)
+
+    raw["__learner_text"] = payload.text
+    result = validate_result(raw)
+    result["_runtime"] = {
+        "done_reason": envelope.get("done_reason"),
+        "total_duration_ns": envelope.get("total_duration"),
+        "load_duration_ns": envelope.get("load_duration"),
+        "prompt_eval_count": envelope.get("prompt_eval_count"),
+        "eval_count": envelope.get("eval_count"),
+        "eval_duration_ns": envelope.get("eval_duration"),
+    }
+    return result
 
 def heuristic_fallback(payload: EssayIn) -> dict[str, Any]:
     text = payload.text.strip()
@@ -326,14 +420,41 @@ def heuristic_fallback(payload: EssayIn) -> dict[str, Any]:
 def evaluate(payload: EssayIn) -> tuple[dict[str, Any], str]:
     try:
         return evaluate_with_ollama(payload), f"ollama:{OLLAMA_MODEL}"
+    except (requests.ConnectionError, requests.Timeout) as exc:
+        if ALLOW_FALLBACK:
+            return heuristic_fallback(payload), "fallback-demo"
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                f"Không kết nối được Ollama ({type(exc).__name__}). "
+                "Kiểm tra Ollama service và OLLAMA_URL."
+            ),
+        ) from exc
+    except requests.HTTPError as exc:
+        if ALLOW_FALLBACK:
+            return heuristic_fallback(payload), "fallback-demo"
+        status = exc.response.status_code if exc.response is not None else "?"
+        raise HTTPException(
+            status_code=502,
+            detail=f"Ollama trả HTTP {status}. Kiểm tra model và log Ollama.",
+        ) from exc
+    except (json.JSONDecodeError, ValueError, KeyError, TypeError) as exc:
+        if ALLOW_FALLBACK:
+            return heuristic_fallback(payload), "fallback-demo"
+        raise HTTPException(
+            status_code=502,
+            detail=(
+                "Ollama đã phản hồi nhưng dữ liệu đánh giá không phải JSON hợp lệ "
+                "sau khi đã tự retry. Thử Evaluate lại hoặc kiểm tra log."
+            ),
+        ) from exc
     except Exception as exc:
-        if not ALLOW_FALLBACK:
-            raise HTTPException(
-                status_code=503,
-                detail=f"Không kết nối được Ollama ({type(exc).__name__}). Kiểm tra OLLAMA_URL/model trước khi chấm bài.",
-            ) from exc
-        return heuristic_fallback(payload), "fallback-demo"
-
+        if ALLOW_FALLBACK:
+            return heuristic_fallback(payload), "fallback-demo"
+        raise HTTPException(
+            status_code=500,
+            detail=f"Lỗi evaluator không xác định ({type(exc).__name__}).",
+        ) from exc
 
 def row_to_dict(row: sqlite3.Row, detail: bool = False) -> dict[str, Any]:
     d = dict(row)
