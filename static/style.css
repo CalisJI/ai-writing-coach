@@ -902,3 +902,14 @@ body[data-theme="comfort"] .account-action{
 .language-switcher small{display:block;margin-top:6px;color:#7689a3;font-size:.62rem;line-height:1.4}
 body[data-theme="light"] .language-switcher,body[data-theme="comfort"] .language-switcher{border-color:var(--line)}
 body[data-theme="light"] .language-switcher select,body[data-theme="comfort"] .language-switcher select{background:var(--card);color:var(--ink);border-color:var(--line)}
+
+/* v0.9.1 Platform Admin */
+.admin-hero,.admin-layout{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+.admin-kicker{font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;color:#8d9bb0;font-weight:900}
+.admin-engine-value{font-size:1.3rem;font-weight:900;margin-top:6px}.admin-engine-kind{color:#8fa0b7;font-size:.78rem;margin-top:4px}
+.admin-field{display:grid;gap:6px;margin-top:12px}.admin-field label{font-size:.7rem;color:#8fa0b7;font-weight:800}
+.admin-field select{min-height:40px;border:1px solid #33445d;border-radius:10px;padding:8px;background:#162136;color:#e8edf5}
+.admin-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}.admin-message{min-height:20px;margin-top:10px;color:#8fa0b7}.admin-message.ok{color:#71d5ad}.admin-message.error{color:#ef9aa4}
+.admin-provider-list{display:grid;gap:8px;margin-top:12px}.admin-provider-card{display:flex;justify-content:space-between;gap:12px;border:1px solid #2c3a50;border-radius:10px;padding:10px}
+.admin-provider-card div{display:grid}.admin-provider-card small{color:#7f90a6}.admin-security-note{margin-top:12px;padding:10px;border:1px solid #36465e;border-radius:10px;color:#98a9bf;font-size:.72rem;line-height:1.5}
+@media(max-width:900px){.admin-hero,.admin-layout{grid-template-columns:1fr}}

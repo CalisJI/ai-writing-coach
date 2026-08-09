@@ -18,6 +18,15 @@ services:
       BOOTSTRAP_OWNER_EMAIL: ${BOOTSTRAP_OWNER_EMAIL:-}
       AUTH_DB: /data/auth.db
       USER_DATA_ROOT: /data/users
+      PLATFORM_DB: /data/platform.db
+      PLATFORM_ADMIN_EMAILS: ${PLATFORM_ADMIN_EMAILS:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_BASE_URL: ${OPENAI_BASE_URL:-https://api.openai.com/v1}
+      OPENAI_MODELS: ${OPENAI_MODELS:-}
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
+      DEEPSEEK_BASE_URL: ${DEEPSEEK_BASE_URL:-https://api.deepseek.com}
+      DEEPSEEK_MODELS: ${DEEPSEEK_MODELS:-deepseek-v4-flash,deepseek-v4-pro}
+      CLOUD_AI_TIMEOUT: ${CLOUD_AI_TIMEOUT:-180}
     volumes:
       - writing_data:/data
     ports:

@@ -69,3 +69,17 @@ The sidebar selector reads the registry dynamically, so enabling a complete modu
 ## Compatibility strategy
 
 `app.py` remains the English compatibility adapter during the transition. New multilingual code belongs under `writing_coach/`. This incremental approach avoids a risky rewrite of a working product.
+
+## Platform AI engine
+
+AI-provider selection is a developer/admin concern, not a learner preference.
+
+- one active provider/model is used by the whole platform
+- selection lives in /data/platform.db, not in learner databases
+- only persistent admin-role accounts can call /api/admin/*
+- BOOTSTRAP_OWNER_EMAIL is automatically promoted to admin
+- API keys are server-managed and never returned to browsers
+- ordinary learners see only generic AI Coach availability
+- there is no automatic failover from local AI to a paid cloud provider
+- language modules call writing_coach.ai.platform.generate_structured()
+- adding a provider means adding an adapter, not rewriting language modules

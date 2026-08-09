@@ -12,8 +12,10 @@ from urllib.parse import quote
 import requests
 from writing_coach.languages.english.grammar_course import GRAMMAR_COURSE, GRAMMAR_BY_ID
 from writing_coach.languages.english.profile import RUBRIC_WEIGHTS, SYSTEM_PROMPT, score_to_level
-from auth_support import AUTH_ENABLED, current_db_path, install_auth
+from auth_support import AUTH_ENABLED, current_db_path, install_auth, require_admin
 from writing_coach.core.platform_api import router as platform_router
+from writing_coach.ai.base import AIProviderError, AIProviderUnavailable
+from writing_coach.ai.platform import active_ai_label, active_ai_status, generate_structured, install_platform_ai
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
@@ -198,6 +200,7 @@ def init_db() -> None:
 
 install_auth(app, init_db)
 app.include_router(platform_router)
+install_platform_ai(app, require_admin)
 
 def weighted_overall(result: dict[str, Any]) -> float:
     score = sum(float(result[k]) * w for k, w in RUBRIC_WEIGHTS.items())
@@ -316,7 +319,7 @@ def validate_result(raw: dict[str, Any]) -> dict[str, Any]:
     return result
 
 
-def evaluate_with_ollama(payload: EssayIn) -> dict[str, Any]:
+def evaluate_with_ai(payload: EssayIn) -> dict[str, Any]:
     user_prompt = (
         f"TARGET LEVEL: {payload.target_cefr}\n"
         "WRITING TASK:\n"
@@ -326,7 +329,6 @@ def evaluate_with_ollama(payload: EssayIn) -> dict[str, Any]:
         "Evaluate the text using the fixed rubric. Identify recurring/reusable learning points, not just typos. "
         "Return one COMPLETE JSON object that matches the required schema."
     )
-
     evaluation_schema = {
         "type": "object",
         "properties": {
@@ -340,8 +342,7 @@ def evaluate_with_ollama(payload: EssayIn) -> dict[str, Any]:
             "strengths_vi": {"type": "array", "items": {"type": "string"}, "maxItems": 6},
             "priorities_vi": {"type": "array", "items": {"type": "string"}, "maxItems": 6},
             "errors": {
-                "type": "array",
-                "maxItems": 20,
+                "type": "array", "maxItems": 20,
                 "items": {
                     "type": "object",
                     "properties": {
@@ -350,83 +351,27 @@ def evaluate_with_ollama(payload: EssayIn) -> dict[str, Any]:
                         "explanation_vi": {"type": "string"},
                         "suggestion": {"type": "string"},
                         "mini_rule_vi": {"type": "string"},
-                        "confidence": {"type": "number", "minimum": 0, "maximum": 1},
+                        "confidence": {"type": "number", "minimum": 0, "maximum": 1}
                     },
-                    "required": [
-                        "category", "fragment", "explanation_vi",
-                        "suggestion", "mini_rule_vi", "confidence"
-                    ],
-                },
-            },
+                    "required": ["category","fragment","explanation_vi","suggestion","mini_rule_vi","confidence"]
+                }
+            }
         },
-        "required": [
-            "grammar", "vocabulary", "coherence", "task_achievement",
-            "naturalness", "cefr_estimate", "summary_vi",
-            "strengths_vi", "priorities_vi", "errors"
-        ],
+        "required": ["grammar","vocabulary","coherence","task_achievement","naturalness","cefr_estimate","summary_vi","strengths_vi","priorities_vi","errors"]
     }
-
-    def request_once(num_predict: int) -> tuple[str, dict[str, Any]]:
-        body = {
-            "model": OLLAMA_MODEL,
-            "stream": False,
-            "think": False,
-            "keep_alive": "30m",
-            "format": evaluation_schema,
-            "options": {
-                "temperature": 0,
-                "seed": 42,
-                "num_ctx": 4096,
-                "num_predict": num_predict,
-            },
-            "messages": [
-                {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user", "content": user_prompt},
-            ],
-        }
-
-        response = requests.post(
-            f"{OLLAMA_URL}/api/chat",
-            json=body,
-            timeout=REQUEST_TIMEOUT,
-        )
-        response.raise_for_status()
-
-        try:
-            envelope = response.json()
-        except ValueError as exc:
-            preview = response.text[:300].replace("\n", " ")
-            raise ValueError(
-                f"Ollama API returned a non-JSON HTTP response: {preview}"
-            ) from exc
-
-        message = envelope.get("message")
-        if not isinstance(message, dict):
-            raise ValueError("Ollama response has no message object")
-
-        content = message.get("content")
-        if not isinstance(content, str) or not content.strip():
-            raise ValueError("Ollama returned an empty evaluator response")
-
-        return content, envelope
-
-    content, envelope = request_once(1400)
-    try:
-        raw = extract_json(content)
-    except json.JSONDecodeError:
-        content, envelope = request_once(2400)
-        raw = extract_json(content)
-
+    ai = generate_structured(
+        messages=[{"role": "system", "content": SYSTEM_PROMPT}, {"role": "user", "content": user_prompt}],
+        schema=evaluation_schema,
+        max_output_tokens=2200,
+        temperature=0.0,
+        seed=42,
+    )
+    raw = dict(ai.data)
     raw["__learner_text"] = payload.text
     result = validate_result(raw)
-    result["_runtime"] = {
-        "done_reason": envelope.get("done_reason"),
-        "total_duration_ns": envelope.get("total_duration"),
-        "load_duration_ns": envelope.get("load_duration"),
-        "prompt_eval_count": envelope.get("prompt_eval_count"),
-        "eval_count": envelope.get("eval_count"),
-        "eval_duration_ns": envelope.get("eval_duration"),
-    }
+    result["_runtime"] = ai.runtime
+    result["_ai_provider"] = ai.provider
+    result["_ai_model"] = ai.model
     return result
 
 def heuristic_fallback(payload: EssayIn) -> dict[str, Any]:
@@ -455,42 +400,17 @@ def heuristic_fallback(payload: EssayIn) -> dict[str, Any]:
 
 def evaluate(payload: EssayIn) -> tuple[dict[str, Any], str]:
     try:
-        return evaluate_with_ollama(payload), f"ollama:{OLLAMA_MODEL}"
-    except (requests.ConnectionError, requests.Timeout) as exc:
+        result = evaluate_with_ai(payload)
+        evaluator = f"{result.pop('_ai_provider', 'ai')}:{result.pop('_ai_model', 'model')}"
+        return result, evaluator
+    except AIProviderUnavailable as exc:
         if ALLOW_FALLBACK:
             return heuristic_fallback(payload), "fallback-demo"
-        raise HTTPException(
-            status_code=503,
-            detail=(
-                f"Không kết nối được Ollama ({type(exc).__name__}). "
-                "Kiểm tra Ollama service và OLLAMA_URL."
-            ),
-        ) from exc
-    except requests.HTTPError as exc:
+        raise HTTPException(status_code=503, detail=f"AI engine unavailable: {exc}") from exc
+    except AIProviderError as exc:
         if ALLOW_FALLBACK:
             return heuristic_fallback(payload), "fallback-demo"
-        status = exc.response.status_code if exc.response is not None else "?"
-        raise HTTPException(
-            status_code=502,
-            detail=f"Ollama trả HTTP {status}. Kiểm tra model và log Ollama.",
-        ) from exc
-    except (json.JSONDecodeError, ValueError, KeyError, TypeError) as exc:
-        if ALLOW_FALLBACK:
-            return heuristic_fallback(payload), "fallback-demo"
-        raise HTTPException(
-            status_code=502,
-            detail=(
-                "Ollama đã phản hồi nhưng dữ liệu đánh giá không phải JSON hợp lệ "
-                "sau khi đã tự retry. Thử Evaluate lại hoặc kiểm tra log."
-            ),
-        ) from exc
-    except Exception as exc:
-        if ALLOW_FALLBACK:
-            return heuristic_fallback(payload), "fallback-demo"
-        raise HTTPException(
-            status_code=500,
-            detail=f"Lỗi evaluator không xác định ({type(exc).__name__}).",
-        ) from exc
+        raise HTTPException(status_code=502, detail=f"AI engine returned invalid output: {exc}") from exc
 
 def row_to_dict(row: sqlite3.Row, detail: bool = False) -> dict[str, Any]:
     d = dict(row)
@@ -676,29 +596,16 @@ def mascot_for_model(model_name: str) -> dict[str, str]:
 
 @app.get("/api/health")
 def health() -> dict[str, Any]:
-    ollama_ok = False
-    models: list[str] = []
-    try:
-        r = requests.get(f"{OLLAMA_URL}/api/tags", timeout=2)
-        ollama_ok = r.ok
-        if r.ok:
-            models = [m.get("name", "") for m in r.json().get("models", [])]
-    except Exception:
-        pass
-    mascot = mascot_for_model(OLLAMA_MODEL)
+    ai = active_ai_status()
     return {
         "ok": True,
         "version": APP_VERSION,
         "schema_version": SCHEMA_VERSION,
-        "ollama": ollama_ok,
-        "model": OLLAMA_MODEL,
-        "model_family": model_family(OLLAMA_MODEL),
-        "mascot": mascot,
-        "available_models": models,
+        "ai_ready": ai["ready"],
         "auth_enabled": AUTH_ENABLED,
         "auth_provider": "google" if AUTH_ENABLED else "local",
+        "platform_admin": True,
     }
-
 
 TASK_TYPE_GUIDANCE = {
     "opinion": "an opinion essay that requires a clear position, reasons and at least one concrete example",
@@ -778,99 +685,43 @@ def fallback_practice_task(payload: TaskGenerateIn) -> dict[str, Any]:
 
 def generate_practice_task(payload: TaskGenerateIn) -> dict[str, Any]:
     requested_topic = payload.topic.strip()
-    topic_instruction = (
-        "Choose a fresh, concrete everyday topic yourself."
-        if requested_topic.casefold() == "random"
-        else f"Use this topic: {requested_topic}."
-    )
+    topic_instruction = "Choose a fresh, concrete everyday topic yourself." if requested_topic.casefold() == "random" else f"Use this topic: {requested_topic}."
     guidance = TASK_TYPE_GUIDANCE[payload.task_type]
-
     schema = {
         "type": "object",
         "properties": {
             "title": {"type": "string"},
             "instruction": {"type": "string"},
-            "checklist": {
-                "type": "array",
-                "items": {"type": "string"},
-                "minItems": 2,
-                "maxItems": 5,
-            },
+            "checklist": {"type": "array", "items": {"type": "string"}, "minItems": 2, "maxItems": 5},
             "topic": {"type": "string"},
         },
-        "required": ["title", "instruction", "checklist", "topic"],
+        "required": ["title","instruction","checklist","topic"],
     }
-
     system = (
-        "You create English writing practice tasks for language learners.\n"
-        "Create exactly ONE task.\n"
-        "The task itself must be written in clear English.\n"
-        "Do not provide an answer, sample response, outline, vocabulary list, or hints that solve the task.\n"
-        "Make the task realistic, specific enough to write about, and appropriate for the requested CEFR level.\n"
-        "Avoid obscure specialist knowledge. The learner should be able to answer from everyday knowledge or imagination.\n"
-        "Return only the requested structured JSON."
+        "You create English writing practice tasks for language learners. Create exactly ONE task. "
+        "Do not provide the answer. Return only structured JSON."
     )
-
     user = (
-        f"CEFR level: {payload.target_cefr}\n"
-        f"Task format: {guidance}\n"
-        f"{topic_instruction}\n"
-        f"Target response length: about {payload.word_target} words.\n"
-        "Create a short title, one self-contained instruction, and a checklist of 2-5 things the learner must include."
+        f"CEFR level: {payload.target_cefr}\nTask format: {guidance}\n{topic_instruction}\n"
+        f"Target response length: about {payload.word_target} words."
     )
-
-    body = {
-        "model": OLLAMA_MODEL,
-        "stream": False,
-        "think": False,
-        "keep_alive": "30m",
-        "format": schema,
-        "options": {
-            "temperature": 0.75,
-            "num_ctx": 2048,
-            "num_predict": 500,
-        },
-        "messages": [
-            {"role": "system", "content": system},
-            {"role": "user", "content": user},
-        ],
-    }
-
     try:
-        response = requests.post(
-            f"{OLLAMA_URL}/api/chat",
-            json=body,
-            timeout=min(REQUEST_TIMEOUT, 90),
+        ai = generate_structured(
+            messages=[{"role":"system","content":system},{"role":"user","content":user}],
+            schema=schema,
+            max_output_tokens=500,
+            temperature=0.75,
         )
-        response.raise_for_status()
-        envelope = response.json()
-        content = envelope.get("message", {}).get("content", "")
-        raw = extract_json(content)
-
+        raw = ai.data
         title = normalize_task_piece(raw.get("title"), 140)
         instruction = normalize_task_piece(raw.get("instruction"), 1600)
         topic = normalize_task_piece(raw.get("topic"), 120)
-        checklist = [
-            normalize_task_piece(item, 240)
-            for item in raw.get("checklist", [])
-            if normalize_task_piece(item, 240)
-        ][:5]
-
+        checklist = [normalize_task_piece(x,240) for x in raw.get("checklist",[]) if normalize_task_piece(x,240)][:5]
         if not title or not instruction or len(checklist) < 2:
-            raise ValueError("Task generator returned incomplete structured output")
-
-        return {
-            "title": title,
-            "instruction": instruction,
-            "checklist": checklist,
-            "word_target": payload.word_target,
-            "task_type": payload.task_type,
-            "topic": topic or requested_topic,
-            "source": f"ollama:{OLLAMA_MODEL}",
-        }
+            raise ValueError("incomplete task")
+        return {"title":title,"instruction":instruction,"checklist":checklist,"word_target":payload.word_target,"task_type":payload.task_type,"topic":topic or requested_topic,"source":ai.label}
     except Exception:
         return fallback_practice_task(payload)
-
 
 def task_as_prompt(task: dict[str, Any], target_cefr: str) -> str:
     checklist = "\n".join(f"- {item}" for item in task["checklist"])
@@ -899,27 +750,15 @@ IMPROVE_MODE_INSTRUCTIONS = {
 }
 
 
-def ollama_json(messages: list[dict[str, str]], schema: dict[str, Any], num_predict: int = 1200, temperature: float = 0.1) -> dict[str, Any]:
-    body = {
-        "model": OLLAMA_MODEL,
-        "stream": False,
-        "think": False,
-        "keep_alive": "30m",
-        "format": schema,
-        "options": {
-            "temperature": temperature,
-            "num_ctx": 4096,
-            "num_predict": num_predict,
-        },
-        "messages": messages,
-    }
-    response = requests.post(f"{OLLAMA_URL}/api/chat", json=body, timeout=REQUEST_TIMEOUT)
-    response.raise_for_status()
-    envelope = response.json()
-    return extract_json(envelope.get("message", {}).get("content", ""))
+def ai_json(messages: list[dict[str, str]], schema: dict[str, Any], num_predict: int = 1200, temperature: float = 0.1) -> dict[str, Any]:
+    return generate_structured(
+        messages=messages,
+        schema=schema,
+        max_output_tokens=num_predict,
+        temperature=temperature,
+    ).data
 
-
-def improve_with_ollama(payload: ImproveIn) -> dict[str, Any]:
+def improve_with_ai(payload: ImproveIn) -> dict[str, Any]:
     schema = {
         "type": "object",
         "properties": {
@@ -970,7 +809,7 @@ def improve_with_ollama(payload: ImproveIn) -> dict[str, Any]:
         "Return a corrected version and a realistic upgraded version. "
         "List only useful reusable grammar and vocabulary improvements."
     )
-    result = ollama_json(
+    result = ai_json(
         [{"role": "system", "content": system}, {"role": "user", "content": user}],
         schema,
         num_predict=1800,
@@ -1022,7 +861,7 @@ def dictionary_ai_fallback(word: str) -> dict[str, Any]:
         },
         "required": ["word", "phonetic", "definitions"],
     }
-    result = ollama_json(
+    result = ai_json(
         [
             {"role": "system", "content": "You are a compact English learner dictionary. Definitions must be short, clear English. Examples must be original and natural. Do not claim an exact IPA if uncertain; use an empty phonetic string instead."},
             {"role": "user", "content": f"Define this English word or short phrase: {word}"},
@@ -1031,7 +870,7 @@ def dictionary_ai_fallback(word: str) -> dict[str, Any]:
         num_predict=650,
         temperature=0.0,
     )
-    result["source"] = f"local-ai:{OLLAMA_MODEL}"
+    result["source"] = active_ai_label()
     result["audio"] = ""
     result["cambridge_url"] = cambridge_url_for(word)
     return result
@@ -1127,9 +966,9 @@ def lookup_dictionary(word: str) -> dict[str, Any]:
 @app.post("/api/improve")
 def api_improve(payload: ImproveIn) -> dict[str, Any]:
     try:
-        return improve_with_ollama(payload)
+        return improve_with_ai(payload)
     except requests.RequestException as exc:
-        raise HTTPException(503, "Ollama is unavailable for writing improvement.") from exc
+        raise HTTPException(503, "AI engine is unavailable for writing improvement.") from exc
     except Exception as exc:
         raise HTTPException(502, "The improvement model returned invalid structured output.") from exc
 
@@ -1185,7 +1024,7 @@ def generate_grammar_lesson(lesson: dict[str, Any]) -> dict[str, Any]:
         f"OBJECTIVE: {lesson['objective_vi']}\n"
         "Create a short teachable lesson with reusable rules, natural examples, common mistakes, and one writing tip."
     )
-    return ollama_json(
+    return ai_json(
         [{"role":"system","content":system},{"role":"user","content":user}],
         schema,
         num_predict=1300,
@@ -1209,7 +1048,7 @@ def api_grammar_lesson(lesson_id: str) -> dict[str, Any]:
     else:
         try:
             detail=generate_grammar_lesson(lesson)
-            source=f"ollama:{OLLAMA_MODEL}"
+            source=active_ai_label()
             with db() as conn:
                 conn.execute(
                     """
@@ -1283,7 +1122,7 @@ def api_translate(payload: TranslateIn) -> dict[str, Any]:
         "required":["translation_vi","natural_meaning_vi","part_of_speech","note_vi"],
     }
     try:
-        result=ollama_json(
+        result=ai_json(
             [
                 {
                     "role":"system",

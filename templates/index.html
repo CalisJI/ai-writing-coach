@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>AI Writing Coach</title>
-  <link rel="stylesheet" href="/static/style.css?v=0.9.0">
+  <link rel="stylesheet" href="/static/style.css?v=0.9.1">
 </head>
 <body data-theme="comfort" data-font-scale="large">
 <div class="app-shell">
@@ -34,6 +34,7 @@
       <button class="nav" data-page="history">⌚ History</button>
       <button class="nav" data-page="library">▤ Library</button>
       <button class="nav" data-page="analytics">⌁ Analytics</button>
+      <button id="adminNav" class="nav hidden" data-page="admin">⚙ Platform Admin</button>
     </nav>
     <div class="sidebar-bottom">
       <div id="accountPanel" class="account-panel account-loading">
@@ -255,6 +256,53 @@
     </section>
 
 
+    <section id="page-admin" class="page">
+      <header>
+        <div>
+          <h1>Platform Admin</h1>
+          <p>Developer-only configuration for the shared Writing Coach platform.</p>
+        </div>
+      </header>
+      <div class="admin-hero">
+        <div class="card panel">
+          <span class="admin-kicker">ACTIVE PLATFORM AI</span>
+          <div id="adminCurrentEngine" class="admin-engine-value">Loading…</div>
+          <div id="adminCurrentKind" class="admin-engine-kind">Checking engine</div>
+        </div>
+        <div class="card panel">
+          <span class="admin-kicker">PAID FAILOVER</span>
+          <div class="admin-engine-value">Disabled</div>
+          <div class="admin-engine-kind">The platform never silently switches to a paid provider.</div>
+        </div>
+      </div>
+      <div class="admin-layout">
+        <div class="card panel">
+          <div class="panel-title"><div><h2>AI Engine</h2><p>One provider/model for the whole platform.</p></div></div>
+          <div class="admin-field">
+            <label for="adminAiProvider">Provider</label>
+            <select id="adminAiProvider"><option>Loading…</option></select>
+            <small id="adminAiProviderMeta"></small>
+          </div>
+          <div class="admin-field">
+            <label for="adminAiModel">Model</label>
+            <select id="adminAiModel"><option>Loading…</option></select>
+          </div>
+          <div class="admin-actions">
+            <button id="adminAiTest" class="ghost" type="button">Test connection</button>
+            <button id="adminAiApply" class="primary" type="button">Apply platform model</button>
+          </div>
+          <div id="adminAiMessage" class="admin-message"></div>
+          <div class="admin-security-note">
+            <b>Server-managed credentials.</b> API keys stay in Docker/.env and are never sent to the browser.
+            ChatGPT subscriptions are not used as API credentials.
+          </div>
+        </div>
+        <div class="card panel">
+          <div class="panel-title"><div><h2>Provider status</h2><p>Adapters can be added without changing language modules.</p></div></div>
+          <div id="adminProviderCards" class="admin-provider-list"></div>
+        </div>
+      </div>
+    </section>
     <section id="page-analytics" class="page">
       <header><div><h1>Analytics</h1><p>Track recurring weaknesses and whether they are improving.</p></div></header>
       <div class="grid2">
@@ -279,8 +327,9 @@
 </div>
 
 <div id="modal" class="modal hidden"><div class="modal-card"><button class="close" onclick="closeModal()">×</button><div id="modalContent"></div></div></div>
-<script src="/static/app.js?v=0.9.0"></script>
-<script src="/static/language.js?v=0.9.0"></script>
-<script src="/static/account.js?v=0.9.0"></script>
+<script src="/static/app.js?v=0.9.1"></script>
+<script src="/static/language.js?v=0.9.1"></script>
+<script src="/static/account.js?v=0.9.1"></script>
+<script src="/static/admin.js?v=0.9.1"></script>
 </body>
 </html>

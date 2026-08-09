@@ -33,6 +33,13 @@ GOOGLE_REDIRECT_URI = os.getenv(
 ).strip()
 SESSION_SECRET = os.getenv("SESSION_SECRET", "").strip()
 BOOTSTRAP_OWNER_EMAIL = os.getenv("BOOTSTRAP_OWNER_EMAIL", "").strip().casefold()
+PLATFORM_ADMIN_EMAILS = {
+    x.strip().casefold()
+    for x in os.getenv("PLATFORM_ADMIN_EMAILS", "").split(",")
+    if x.strip()
+}
+if BOOTSTRAP_OWNER_EMAIL:
+    PLATFORM_ADMIN_EMAILS.add(BOOTSTRAP_OWNER_EMAIL)
 
 AUTH_ENABLED = bool(GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET)
 COOKIE_SECURE = GOOGLE_REDIRECT_URI.casefold().startswith("https://")
@@ -94,8 +101,12 @@ def init_auth_db() -> None:
             )
             """
         )
+        cols = {str(r["name"]) for r in conn.execute("PRAGMA table_info(users)").fetchall()}
+        if "role" not in cols:
+            conn.execute("ALTER TABLE users ADD COLUMN role TEXT NOT NULL DEFAULT 'user'")
+        for email in PLATFORM_ADMIN_EMAILS:
+            conn.execute("UPDATE users SET role='admin' WHERE lower(email)=?", (email,))
         conn.commit()
-
 
 def auth_user(google_sub: str) -> dict[str, Any] | None:
     if not google_sub:
@@ -112,24 +123,33 @@ def upsert_auth_user(info: dict[str, Any]) -> dict[str, Any]:
     picture = str(info.get("picture") or "").strip()
     if not sub or not email:
         raise HTTPException(400, "Google account did not provide a valid subject/email.")
-
     now = datetime.now().astimezone().isoformat(timespec="seconds")
     with auth_db() as conn:
         conn.execute(
             """
-            INSERT INTO users(google_sub, email, name, picture, created_at, last_login)
-            VALUES (?, ?, ?, ?, ?, ?)
+            INSERT INTO users(google_sub,email,name,picture,created_at,last_login)
+            VALUES(?,?,?,?,?,?)
             ON CONFLICT(google_sub) DO UPDATE SET
-              email = excluded.email,
-              name = excluded.name,
-              picture = excluded.picture,
-              last_login = excluded.last_login
+              email=excluded.email,name=excluded.name,picture=excluded.picture,last_login=excluded.last_login
             """,
-            (sub, email, name, picture, now, now),
+            (sub,email,name,picture,now,now),
         )
+        if email.casefold() in PLATFORM_ADMIN_EMAILS:
+            conn.execute("UPDATE users SET role='admin' WHERE google_sub=?", (sub,))
         conn.commit()
     return auth_user(sub) or {}
 
+
+def require_admin(request: Request) -> dict[str, Any]:
+    if not AUTH_ENABLED:
+        return {"google_sub":"local-admin","email":"local","name":"Local developer","role":"admin"}
+    sub = str(request.session.get("user_sub") or "")
+    user = auth_user(sub)
+    if not user:
+        raise HTTPException(401, "Authentication required")
+    if str(user.get("role") or "user") != "admin":
+        raise HTTPException(403, "Platform administrator access required")
+    return user
 
 def google_flow(code_verifier: str | None = None) -> Flow:
     config = {
@@ -267,11 +287,12 @@ def auth_logout(request: Request):
 @router.get("/api/me")
 def api_me(request: Request) -> dict[str, Any]:
     if not AUTH_ENABLED:
-        return {"authenticated": True, "mode": "local", "name": "Local user", "email": "", "picture": ""}
+        return {"authenticated":True,"mode":"local","name":"Local user","email":"","picture":"","role":"admin","is_admin":True}
     sub = str(request.session.get("user_sub") or "")
     user = auth_user(sub)
     if not user:
         raise HTTPException(401, "Authentication required")
+    role = str(user.get("role") or "user")
     return {
         "authenticated": True,
         "mode": "google",
@@ -279,8 +300,9 @@ def api_me(request: Request) -> dict[str, Any]:
         "email": user.get("email") or "",
         "picture": user.get("picture") or "",
         "language": current_language_code(),
+        "role": role,
+        "is_admin": role == "admin",
     }
-
 
 class UserIsolationMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):

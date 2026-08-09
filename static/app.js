@@ -163,7 +163,7 @@ async function generateTask(surprise=false){
   surpriseBtn.disabled=true;
   const oldGenerate=generate.textContent;
   generate.textContent='Generating…';
-  $('#taskHint').textContent='Local AI is creating a writing challenge…';
+  $('#taskHint').textContent='AI Coach is creating a writing challenge…';
 
   try{
     const r=await fetch('/api/tasks/generate',{
@@ -197,19 +197,12 @@ async function health(){
     const d=await fetch('/api/health').then(r=>r.json());
     $('#appVersion').textContent=`v${d.version}`;
     const el=$('#ollamaStatus');
-    el.className='status '+(d.ollama?'ok':'warn');
-    el.textContent=d.ollama?`● Ollama · ${d.model}`:'● Ollama offline';
+    el.className='status '+(d.ai_ready?'ok':'warn');
+    el.textContent=d.ai_ready?'● AI Coach ready':'● AI Coach unavailable';
     const buddy=$('#modelBuddy');
     if(buddy){
-      const mascot=d.mascot||{};
       buddy.classList.remove('loading');
-      buddy.innerHTML=`
-        <div class="buddy-avatar">${esc(mascot.emoji||'🤖')}</div>
-        <div class="buddy-copy">
-          <b>${esc(mascot.name||'Local model')}</b>
-          <small id="modelBuddyName">${esc(d.model||'—')}</small>
-          <span id="modelBuddyNote">${esc(mascot.subtitle||'Your local writing companion')}</span>
-        </div>`;
+      buddy.innerHTML=`<div class="buddy-avatar">🦉</div><div class="buddy-copy"><b>AI Writing Coach</b><small>${d.ai_ready?'Ready':'Unavailable'}</small><span>${d.ai_ready?'Ready to help with your writing':'Waiting for the coach engine'}</span></div>`;
     }
   }catch{}
 }
@@ -491,7 +484,7 @@ async function setGrammarComplete(id,complete=true){
 }
 function nextGrammarLesson(id){const i=grammarLessons.findIndex(x=>x.id===id);return i>=0&&i<grammarLessons.length-1?grammarLessons[i+1]:null;}
 function previousGrammarLesson(id){const i=grammarLessons.findIndex(x=>x.id===id);return i>0?grammarLessons[i-1]:null;}
-async function submitEssay(){const text=$('#essayText').value.trim();if(text.length<10){alert('Write at least a short paragraph first.');return;}const btn=$('#submitBtn');btn.disabled=true;btn.textContent='Evaluating…';$('#resultPane').className='card result-card loading';$('#resultPane').innerHTML='<div class="spinner"></div><p>Local evaluator is reading your writing…</p>';try{const r=await fetch('/api/evaluate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:$('#prompt').value,text,target_cefr:$('#target').value,parent_essay_id:revisionParentId})});const d=await r.json();if(!r.ok)throw new Error(d.detail||'Evaluation failed');revisionParentId=d.id;renderResult(d);loadDashboard();}catch(e){$('#resultPane').innerHTML=`<div class="error">${esc(e.message)}</div>`;}finally{btn.disabled=false;btn.textContent='Evaluate & save';}}
+async function submitEssay(){const text=$('#essayText').value.trim();if(text.length<10){alert('Write at least a short paragraph first.');return;}const btn=$('#submitBtn');btn.disabled=true;btn.textContent='Evaluating…';$('#resultPane').className='card result-card loading';$('#resultPane').innerHTML='<div class="spinner"></div><p>AI Coach is reading your writing…</p>';try{const r=await fetch('/api/evaluate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:$('#prompt').value,text,target_cefr:$('#target').value,parent_essay_id:revisionParentId})});const d=await r.json();if(!r.ok)throw new Error(d.detail||'Evaluation failed');revisionParentId=d.id;renderResult(d);loadDashboard();}catch(e){$('#resultPane').innerHTML=`<div class="error">${esc(e.message)}</div>`;}finally{btn.disabled=false;btn.textContent='Evaluate & save';}}
 function renderResult(d){
   $('#resultPane').className='card result-card';
   $('#resultPane').innerHTML=feedbackHtml(d,true)+`<button class="primary wide" onclick="reviseEssay(${d.id})">Revise & check again</button>`;
