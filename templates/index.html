@@ -25,6 +25,7 @@
       <button class="nav active" data-page="dashboard">◫ Dashboard</button>
       <button class="nav" data-page="write">✎ Write</button>
       <button class="nav" data-page="history">⌚ History</button>
+      <button class="nav" data-page="library">▤ Library</button>
       <button class="nav" data-page="analytics">⌁ Analytics</button>
     </nav>
     <div class="sidebar-bottom">
@@ -163,6 +164,41 @@
       <div id="historyList" class="history-list"></div>
     </section>
 
+
+    <section id="page-library" class="page">
+      <header>
+        <div>
+          <h1>Learning Library</h1>
+          <p>Read grammar from foundation to advanced level and keep your own vocabulary notebook.</p>
+        </div>
+      </header>
+      <div class="library-tabs">
+        <button id="grammarTabBtn" class="library-tab active" onclick="switchLibraryTab('grammar')">Grammar path</button>
+        <button id="vocabTabBtn" class="library-tab" onclick="switchLibraryTab('vocabulary')">My vocabulary</button>
+      </div>
+      <div id="libraryGrammarPane">
+        <div class="card library-toolbar">
+          <input id="grammarSearch" type="search" placeholder="Search grammar topics..." oninput="renderGrammarLibrary()">
+          <select id="grammarLevel" onchange="renderGrammarLibrary()">
+            <option value="all">All levels</option>
+            <option>A1</option><option>A2</option><option>B1</option><option>B2</option><option>C1</option>
+          </select>
+        </div>
+        <div class="level-path">
+          <span>A1 Foundations</span><i></i><span>A2 Core</span><i></i><span>B1 Intermediate</span><i></i><span>B2 Upper-intermediate</span><i></i><span>C1 Advanced</span>
+        </div>
+        <div id="grammarLibrary" class="lesson-grid"></div>
+      </div>
+      <div id="libraryVocabularyPane" class="hidden">
+        <div class="card vocab-intro">
+          <div><h2>My vocabulary</h2><p>Highlight a word anywhere in the app, look it up, then save it here.</p></div>
+          <span id="savedWordCount" class="word-count-badge">0 words</span>
+        </div>
+        <div id="savedWords" class="saved-word-grid"></div>
+      </div>
+    </section>
+
+
     <section id="page-analytics" class="page">
       <header><div><h1>Analytics</h1><p>Track recurring weaknesses and whether they are improving.</p></div></header>
       <div class="grid2">
@@ -172,6 +208,12 @@
       <div class="card panel"><div class="panel-title"><div><h2>How scoring works</h2></div></div><div class="rubric"><p><b>Grammar</b> 25%</p><p><b>Vocabulary</b> 20%</p><p><b>Coherence</b> 20%</p><p><b>Task achievement</b> 20%</p><p><b>Naturalness</b> 15%</p><hr><small>The 0–100 score is an internal tracking index. CEFR shown here is an estimate.</small></div></div>
     </section>
   </main>
+</div>
+
+
+<div id="dictionaryPopover" class="dictionary-popover hidden" role="dialog" aria-label="Dictionary lookup">
+  <button class="dictionary-close" onclick="hideDictionary()" aria-label="Close dictionary">×</button>
+  <div id="dictionaryContent"></div>
 </div>
 
 <div id="modal" class="modal hidden"><div class="modal-card"><button class="close" onclick="closeModal()">×</button><div id="modalContent"></div></div></div>
@@ -206,7 +248,7 @@ function cycleFontSize(){
 }
 applyUIPreferences();
 function esc(s=''){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));}
-function go(page){$$('.nav').forEach(x=>x.classList.toggle('active',x.dataset.page===page));$$('.page').forEach(x=>x.classList.toggle('active',x.id===`page-${page}`));if(page==='dashboard'||page==='analytics')loadDashboard();if(page==='history')loadHistory();}
+function go(page){$$('.nav').forEach(x=>x.classList.toggle('active',x.dataset.page===page));$$('.page').forEach(x=>x.classList.toggle('active',x.id===`page-${page}`));if(page==='dashboard'||page==='analytics')loadDashboard();if(page==='history')loadHistory();if(page==='library')loadLibrary();}
 $$('.nav').forEach(b=>b.onclick=()=>go(b.dataset.page));
 $('#essayText').addEventListener('input',updateWordCount);
 function updateWordCount(){const n=($('#essayText').value.match(/\b[\w'-]+\b/g)||[]).length;$('#wordCount').textContent=`${n} words`;}
@@ -502,11 +544,111 @@ function bindChartTooltip(){
 async function loadDashboard(){const d=await fetch('/api/dashboard').then(r=>r.json());$('#appVersion').textContent=`v${d.version||'—'}`;$('#skillScore').textContent=d.essay_count?d.skill_score:'—';$('#skillLevel').textContent=d.essay_count?`${d.cefr} estimate`:'No data yet';$('#recentAvg').textContent=d.essay_count?d.recent_average:'—';$('#streak').textContent=d.streak;$('#essayCount').textContent=d.essay_count;$('#revisionCount').textContent=`${d.revision_count} total submissions`;$('#trendChart').innerHTML=lineChart(d.trend);bindChartTooltip();$('#metricBars').innerHTML=bars(d.metrics);renderTodayFocus(d.metrics||{});$('#errorBars').innerHTML=bars(d.error_counts,true);renderErrorMemory(d.error_memory||[]);if(!d.essay_count)$('#milestone').innerHTML='<div class="empty">Your first milestone appears after one essay.</div>';else if(d.next_level){const pct=Math.min(100,d.skill_score/d.next_level.threshold*100);$('#milestone').innerHTML=`<div class="level-big">${d.cefr}<span>${d.skill_score}/100</span></div><div class="bar big"><i style="width:${pct}%"></i></div><p><b>${d.next_level.remaining}</b> points to ${d.next_level.level}.</p>`;}else $('#milestone').innerHTML='<div class="level-big">C2 <span>90+</span></div><p>Top internal progress band reached.</p>';}
 function renderErrorMemory(items){const el=$('#errorMemory');if(!items.length){el.innerHTML='<div class="empty">No recurring errors yet.</div>';return;}el.innerHTML=items.map(x=>`<div class="memory-row"><div><b>${esc(x.category.replaceAll('_',' '))}</b><small>${x.total} occurrences · ${x.first_seen} → ${x.last_seen}</small></div><span class="memory-status ${x.status}">${x.status}</span></div>`).join('');}
 
+let grammarLessons=[];
+let currentDictionary=null;
+let lastImprovement=null;
+
+function feedbackHtml(d,includeHeader=true){
+  const metrics={grammar:d.grammar,vocabulary:d.vocabulary,coherence:d.coherence,task_achievement:d.task_achievement,naturalness:d.naturalness};
+  const delta=d.delta&&Object.keys(d.delta).length?`<div class="delta-box"><b>Revision improvement</b>${Object.entries(d.delta).map(([k,v])=>`<span class="${v>=0?'up':'down'}">${esc(k.replaceAll('_',' '))}: ${v>=0?'+':''}${v}</span>`).join('')}</div>`:'';
+  const errors=(d.errors||[]).map((e,i)=>`<details ${i<3?'open':''}><summary><span class="tag">${esc((e.category||'other').replaceAll('_',' '))}</span> ${esc(e.fragment)}</summary><div class="feedback"><p>${esc(e.explanation_vi)}</p><p><b>Better:</b> ${esc(e.suggestion)}</p><p class="rule"><b>Rule:</b> ${esc(e.mini_rule_vi)}</p></div></details>`).join('');
+  const head=includeHeader?`<div class="score-head"><div><span>OVERALL · REVISION ${d.revision_no}</span><strong>${d.overall}</strong><small>${esc(d.cefr_estimate)} estimate</small></div><span class="eval-badge ai">${esc(d.evaluator)}</span></div>`:'';
+  return `${head}${delta}<div class="compact-bars">${bars(metrics)}</div><div class="summary"><h3>Coach summary</h3><p>${esc(d.summary_vi)}</p></div><div class="twocol"><div><h3>Strengths</h3><ul>${(d.strengths_vi||[]).map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div><div><h3>Priorities</h3><ul>${(d.priorities_vi||[]).map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div></div><h3>Why & how</h3><div class="errors">${errors||'<p>No individual errors returned.</p>'}</div><div class="upgrade-panel"><div><h3>Upgrade this writing</h3><p>Correct it, strengthen the grammar, or build a better vocabulary set from the same ideas.</p></div><div class="upgrade-actions"><button class="secondary" onclick="improveEssay(${d.id},'correct')">Fix grammar</button><button class="secondary" onclick="improveEssay(${d.id},'grammar')">Stronger grammar</button><button class="secondary" onclick="improveEssay(${d.id},'vocabulary')">Better vocabulary</button><button class="primary" onclick="improveEssay(${d.id},'polish')">Polish both</button></div></div>`;
+}
+
+async function improveEssay(id,mode){
+  $('#modal').classList.remove('hidden');
+  $('#modalContent').innerHTML='<div class="improve-loading"><div class="spinner"></div><p>Local coach is rebuilding the writing…</p></div>';
+  try{
+    const essay=await fetch(`/api/essays/${id}`).then(r=>r.json());
+    const r=await fetch('/api/improve',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:essay.text,target_cefr:essay.target_cefr||'B2',mode})});
+    const d=await r.json();
+    if(!r.ok)throw new Error(d.detail||'Improvement failed');
+    lastImprovement={essayId:id,text:d.upgraded_text||d.corrected_text||essay.text};
+    const grammar=(d.grammar_upgrades||[]).map(x=>`<div class="upgrade-item"><span class="tag">grammar</span><b>${esc(x.pattern||'Improvement')}</b><p><s>${esc(x.original)}</s></p><p class="better-line">→ ${esc(x.improved)}</p><small>${esc(x.reason_vi)}</small></div>`).join('');
+    const vocab=(d.vocabulary_upgrades||[]).map(x=>`<div class="upgrade-item"><span class="tag">vocabulary</span><b>${esc(x.original)} → ${esc(x.improved)}</b><p>${esc(x.note_vi)}</p><small>Example: ${esc(x.example)}</small></div>`).join('');
+    $('#modalContent').innerHTML=`<div class="modal-head"><div><span>WRITING UPGRADE LAB</span><h2>${esc(mode.replaceAll('_',' '))}</h2><small>${esc(d.target_cefr||essay.target_cefr)} target</small></div></div><div class="summary"><h3>Coach note</h3><p>${esc(d.summary_vi)}</p></div><div class="compare-writing"><div><h3>Corrected version</h3><div class="original improved-text">${esc(d.corrected_text)}</div></div><div><h3>Upgraded version</h3><div class="original improved-text highlight-version">${esc(d.upgraded_text)}</div></div></div>${grammar?`<h3>Grammar patterns worth learning</h3><div class="upgrade-list">${grammar}</div>`:''}${vocab?`<h3>Vocabulary upgrades</h3><div class="upgrade-list">${vocab}</div>`:''}<div class="modal-actions"><button class="ghost" onclick="copyImprovedText()">Copy upgraded version</button><button class="primary" onclick="useImprovedAsRevision()">Use as a new revision</button></div>`;
+  }catch(e){$('#modalContent').innerHTML=`<div class="error">${esc(e.message)}</div>`;}
+}
+
+async function copyImprovedText(){if(lastImprovement)await navigator.clipboard.writeText(lastImprovement.text);}
+async function useImprovedAsRevision(){if(!lastImprovement)return;const x={...lastImprovement};closeModal();await reviseEssay(x.essayId);$('#essayText').value=x.text;updateWordCount();}
+
+async function loadLibrary(){
+  if(!grammarLessons.length){try{const d=await fetch('/api/library/grammar').then(r=>r.json());grammarLessons=d.lessons||[];}catch{}}
+  renderGrammarLibrary();loadSavedWords();
+}
+function switchLibraryTab(tab){
+  const grammar=tab==='grammar';
+  $('#grammarTabBtn').classList.toggle('active',grammar);$('#vocabTabBtn').classList.toggle('active',!grammar);
+  $('#libraryGrammarPane').classList.toggle('hidden',!grammar);$('#libraryVocabularyPane').classList.toggle('hidden',grammar);
+  if(!grammar)loadSavedWords();
+}
+function renderGrammarLibrary(){
+  const el=$('#grammarLibrary');if(!el)return;
+  const q=($('#grammarSearch')?.value||'').trim().toLowerCase(),level=$('#grammarLevel')?.value||'all';
+  const rows=grammarLessons.filter(x=>(level==='all'||x.level===level)&&(!q||`${x.title} ${x.category} ${x.summary_vi}`.toLowerCase().includes(q)));
+  el.innerHTML=rows.length?rows.map(x=>`<button class="lesson-card card" onclick="openGrammarLesson('${esc(x.id)}')"><div class="lesson-meta"><span class="level-badge level-${x.level.toLowerCase()}">${esc(x.level)}</span><span>${esc(x.category)}</span></div><h3>${esc(x.title)}</h3><p>${esc(x.summary_vi)}</p><span class="lesson-open">Read lesson →</span></button>`).join(''):'<div class="card empty">No grammar lessons match this filter.</div>';
+}
+function openGrammarLesson(id){
+  const x=grammarLessons.find(y=>y.id===id);if(!x)return;
+  $('#modalContent').innerHTML=`<div class="modal-head"><div><span>${esc(x.level)} · ${esc(x.category)}</span><h2>${esc(x.title)}</h2></div></div><div class="summary"><p>${esc(x.explanation_vi)}</p></div><h3>Core rules</h3><ul class="lesson-list">${(x.rules||[]).map(r=>`<li>${esc(r)}</li>`).join('')}</ul><h3>Examples</h3><div class="example-grid">${(x.examples||[]).map(e=>`<div class="example-card"><b>${esc(e.en)}</b><span>${esc(e.vi)}</span></div>`).join('')}</div><h3>Common mistakes</h3><ul class="lesson-list warning-list">${(x.mistakes||[]).map(m=>`<li>${esc(m)}</li>`).join('')}</ul>`;
+  $('#modal').classList.remove('hidden');
+}
+
+async function loadSavedWords(){
+  const el=$('#savedWords');if(!el)return;
+  try{
+    const d=await fetch('/api/vocabulary').then(r=>r.json()),items=d.items||[];
+    $('#savedWordCount').textContent=`${items.length} word${items.length===1?'':'s'}`;
+    el.innerHTML=items.length?items.map(x=>`<div class="card saved-word"><div class="saved-word-head"><div><h3>${esc(x.word)}</h3><span>${esc(x.phonetic||'')}</span></div><button class="mini-danger" onclick="removeSavedWord('${esc(x.word)}')">Remove</button></div><span class="pos-label">${esc(x.part_of_speech||'word')}</span><p>${esc(x.definition||'')}</p><button class="ghost lookup-again" onclick="lookupWordCentered('${esc(x.word)}')">Look up again</button></div>`).join(''):'<div class="card empty">No saved words yet. Highlight a word anywhere in the app to start your vocabulary notebook.</div>';
+  }catch(e){el.innerHTML=`<div class="error">${esc(e.message)}</div>`;}
+}
+async function removeSavedWord(word){await fetch(`/api/vocabulary/${encodeURIComponent(word)}`,{method:'DELETE'});loadSavedWords();}
+
+function cleanSelectionText(text=''){const t=String(text).trim().replace(/\s+/g,' ');if(t.length<2||t.length>60||t.split(' ').length>4)return '';if(!/^[A-Za-z][A-Za-z' -]*$/.test(t))return '';return t;}
+function selectedTextFromTarget(target){
+  if(target&&((target.tagName==='TEXTAREA')||(target.tagName==='INPUT'&&['text','search'].includes(target.type)))){const a=target.selectionStart,b=target.selectionEnd;if(typeof a==='number'&&typeof b==='number'&&b>a)return cleanSelectionText(target.value.slice(a,b));}
+  const sel=window.getSelection();return cleanSelectionText(sel?sel.toString():'');
+}
+function hideDictionary(){$('#dictionaryPopover')?.classList.add('hidden');}
+async function lookupWordAt(word,x,y){
+  word=cleanSelectionText(word);if(!word)return;
+  const pop=$('#dictionaryPopover'),content=$('#dictionaryContent');pop.classList.remove('hidden');
+  pop.style.left=`${Math.max(12,Math.min(window.innerWidth-360,x))}px`;pop.style.top=`${Math.max(12,Math.min(window.innerHeight-300,y))}px`;
+  content.innerHTML=`<div class="dictionary-loading"><div class="spinner"></div><span>Looking up “${esc(word)}”…</span></div>`;
+  try{
+    const d=await fetch(`/api/dictionary?word=${encodeURIComponent(word)}`).then(async r=>{const b=await r.json();if(!r.ok)throw new Error(b.detail||'Lookup failed');return b;});currentDictionary=d;
+    const defs=(d.definitions||[]).map((m,i)=>`<div class="definition-row"><span class="pos-label">${esc(m.part_of_speech||'')}</span><b>${i+1}. ${esc(m.definition)}</b>${m.example?`<p>“${esc(m.example)}”</p>`:''}${(m.synonyms||[]).length?`<small>Similar: ${m.synonyms.map(esc).join(', ')}</small>`:''}</div>`).join('');
+    content.innerHTML=`<div class="dictionary-head"><div><h3>${esc(d.word||word)}</h3><span>${esc(d.phonetic||'')}</span></div><span class="dictionary-source">${esc(d.source||'dictionary')}</span></div><div class="dictionary-definitions">${defs}</div><div class="dictionary-actions">${d.audio?`<button class="ghost" onclick="playDictionaryAudio()">▶ Pronunciation</button>`:''}<button class="ghost" onclick="saveCurrentWord()">Save word</button><a class="primary dictionary-link" href="${esc(d.cambridge_url||'#')}" target="_blank" rel="noopener">Open Cambridge</a></div>`;
+  }catch(e){currentDictionary=null;content.innerHTML=`<div class="error">${esc(e.message)}</div>`;}
+}
+function lookupWordCentered(word){lookupWordAt(word,Math.max(20,window.innerWidth/2-170),Math.max(20,window.innerHeight/2-160));}
+function playDictionaryAudio(){if(currentDictionary?.audio)new Audio(currentDictionary.audio).play();}
+async function saveCurrentWord(){
+  const d=currentDictionary;if(!d)return;const first=(d.definitions||[])[0]||{};
+  await fetch('/api/vocabulary',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({word:d.word||'',phonetic:d.phonetic||'',part_of_speech:first.part_of_speech||'',definition:first.definition||''})});
+  const btn=[...document.querySelectorAll('#dictionaryPopover button')].find(x=>x.textContent==='Save word');if(btn)btn.textContent='Saved ✓';loadSavedWords();
+}
+function triggerSelectionLookup(ev){
+  if(ev.target?.closest?.('#dictionaryPopover,.modal,.sidebar'))return;
+  setTimeout(()=>{const word=selectedTextFromTarget(ev.target);if(word)lookupWordAt(word,(ev.clientX||window.innerWidth/2)+12,(ev.clientY||window.innerHeight/2)+12);},40);
+}
+document.addEventListener('mouseup',triggerSelectionLookup);
+document.addEventListener('touchend',ev=>setTimeout(()=>{const word=selectedTextFromTarget(ev.target);if(word)lookupWordAt(word,16,window.innerHeight-360);},260));
+
 async function submitEssay(){const text=$('#essayText').value.trim();if(text.length<10){alert('Write at least a short paragraph first.');return;}const btn=$('#submitBtn');btn.disabled=true;btn.textContent='Evaluating…';$('#resultPane').className='card result-card loading';$('#resultPane').innerHTML='<div class="spinner"></div><p>Local evaluator is reading your writing…</p>';try{const r=await fetch('/api/evaluate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:$('#prompt').value,text,target_cefr:$('#target').value,parent_essay_id:revisionParentId})});const d=await r.json();if(!r.ok)throw new Error(d.detail||'Evaluation failed');revisionParentId=d.id;renderResult(d);loadDashboard();}catch(e){$('#resultPane').innerHTML=`<div class="error">${esc(e.message)}</div>`;}finally{btn.disabled=false;btn.textContent='Evaluate & save';}}
-function renderResult(d){const metrics={grammar:d.grammar,vocabulary:d.vocabulary,coherence:d.coherence,task_achievement:d.task_achievement,naturalness:d.naturalness};const delta=d.delta&&Object.keys(d.delta).length?`<div class="delta-box"><b>Revision improvement</b>${Object.entries(d.delta).map(([k,v])=>`<span class="${v>=0?'up':'down'}">${esc(k.replaceAll('_',' '))}: ${v>=0?'+':''}${v}</span>`).join('')}</div>`:'';const errors=(d.errors||[]).map((e,i)=>`<details ${i<3?'open':''}><summary><span class="tag">${esc(e.category.replaceAll('_',' '))}</span> ${esc(e.fragment)}</summary><div class="feedback"><p>${esc(e.explanation_vi)}</p><p><b>Better:</b> ${esc(e.suggestion)}</p><p class="rule"><b>Rule:</b> ${esc(e.mini_rule_vi)}</p></div></details>`).join('');$('#resultPane').className='card result-card';$('#resultPane').innerHTML=`<div class="score-head"><div><span>OVERALL · REVISION ${d.revision_no}</span><strong>${d.overall}</strong><small>${esc(d.cefr_estimate)} estimate</small></div><span class="eval-badge ai">${esc(d.evaluator)}</span></div>${delta}<div class="compact-bars">${bars(metrics)}</div><div class="summary"><h3>Coach summary</h3><p>${esc(d.summary_vi)}</p></div><div class="twocol"><div><h3>Strengths</h3><ul>${(d.strengths_vi||[]).map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div><div><h3>Priorities</h3><ul>${(d.priorities_vi||[]).map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div></div><h3>Why & how</h3><div class="errors">${errors||'<p>No individual errors returned.</p>'}</div><button class="primary wide" onclick="reviseEssay(${d.id})">Revise & check again</button>`;}
+function renderResult(d){
+  $('#resultPane').className='card result-card';
+  $('#resultPane').innerHTML=feedbackHtml(d,true)+`<button class="primary wide" onclick="reviseEssay(${d.id})">Revise & check again</button>`;
+}
 
 async function loadHistory(){const rows=await fetch('/api/essays').then(r=>r.json());const el=$('#historyList');if(!rows.length){el.innerHTML='<div class="card empty">No essays yet.</div>';return;}const groups={};rows.forEach(r=>(groups[r.series_id]??=[]).push(r));el.innerHTML=Object.values(groups).map(g=>{g.sort((a,b)=>a.revision_no-b.revision_no);const latest=g[g.length-1],first=g[0],gain=(latest.overall-first.overall).toFixed(1);return `<div class="card series-card"><div class="series-head"><div><b>Essay #${latest.series_id} · ${esc(promptLabel(latest.prompt))}</b><small>${g.length} revision${g.length>1?'s':''} · latest ${latest.overall} ${g.length>1?`· ${gain>=0?'+':''}${gain} from first`:''}</small></div><button class="ghost" onclick="reviseEssay(${latest.id})">Revise</button></div><div class="revision-list">${g.map(r=>`<button class="revision-chip" onclick="openEssay(${r.id})">v${r.revision_no} <b>${r.overall}</b></button>`).join('')}</div></div>`}).join('');}
-async function openEssay(id){const d=await fetch(`/api/essays/${id}`).then(r=>r.json());$('#modalContent').innerHTML=`<div class="modal-head"><div><span>ESSAY #${d.series_id} · REVISION ${d.revision_no}</span><h2>${esc(promptLabel(d.prompt))}</h2><small>${d.created_at.replace('T',' ').slice(0,16)} · ${d.word_count} words</small></div><div class="history-score bigscore"><strong>${d.overall}</strong><span>${d.cefr_estimate}</span></div></div><div class="revision-nav">${d.revisions.map(x=>`<button class="revision-chip ${x.id===d.id?'active':''}" onclick="openEssay(${x.id})">v${x.revision_no} · ${x.overall}</button>`).join('')}</div><div class="original">${esc(d.text)}</div><button class="primary" onclick="closeModal();reviseEssay(${d.id})">Revise this version</button><h3>Summary</h3><p>${esc(d.summary_vi)}</p><h3>Feedback</h3><div class="errors">${(d.errors||[]).map(e=>`<details open><summary><span class="tag">${esc(e.category.replaceAll('_',' '))}</span> ${esc(e.fragment)}</summary><div class="feedback"><p>${esc(e.explanation_vi)}</p><p><b>Better:</b> ${esc(e.suggestion)}</p><p class="rule"><b>Rule:</b> ${esc(e.mini_rule_vi)}</p></div></details>`).join('')}</div>`;$('#modal').classList.remove('hidden');}
+async function openEssay(id){
+  const d=await fetch(`/api/essays/${id}`).then(r=>r.json());
+  $('#modalContent').innerHTML=`<div class="modal-head"><div><span>ESSAY #${d.series_id} · REVISION ${d.revision_no}</span><h2>${esc(promptLabel(d.prompt))}</h2><small>${d.created_at.replace('T',' ').slice(0,16)} · ${d.word_count} words</small></div><div class="history-score bigscore"><strong>${d.overall}</strong><span>${d.cefr_estimate}</span></div></div><div class="revision-nav">${d.revisions.map(x=>`<button class="revision-chip ${x.id===d.id?'active':''}" onclick="openEssay(${x.id})">v${x.revision_no} · ${x.overall}</button>`).join('')}</div><h3>Original writing</h3><div class="original">${esc(d.text)}</div>${feedbackHtml(d,false)}<div class="modal-actions"><button class="primary" onclick="closeModal();reviseEssay(${d.id})">Revise this version</button></div>`;
+  $('#modal').classList.remove('hidden');
+}
 function closeModal(){$('#modal').classList.add('hidden');}
 syncTaskMode();
 health();loadDashboard();

@@ -716,3 +716,53 @@ body[data-theme="comfort"] .buddy-copy span{
     font-size:.88rem;
   }
 }
+
+/* ===== v0.6.0 Learning Hub ===== */
+.upgrade-panel{margin-top:22px;padding:16px;border:1px solid var(--line);border-radius:13px;background:rgba(91,92,226,.07)}
+.upgrade-panel h3{margin:0 0 3px}.upgrade-panel p{margin:0;color:var(--muted)}
+.upgrade-actions{display:flex;flex-wrap:wrap;gap:9px;margin-top:13px}
+.improve-loading{min-height:280px;display:grid;place-items:center;align-content:center;gap:12px}
+.compare-writing{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:16px}
+.improved-text{min-height:170px}.highlight-version{border:1px solid rgba(91,92,226,.3);background:rgba(91,92,226,.07)}
+.upgrade-list{display:grid;gap:10px}.upgrade-item{border:1px solid var(--line);border-radius:11px;padding:13px}
+.upgrade-item b{display:block;margin:6px 0}.upgrade-item p{margin:5px 0;color:var(--ink)}.upgrade-item small{display:block;color:var(--muted);line-height:1.5}.better-line{color:var(--good)!important}
+.modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:18px;flex-wrap:wrap}
+.library-tabs{display:flex;gap:8px;margin-bottom:14px}
+.library-tab{border:1px solid var(--line);background:var(--card);color:var(--muted);border-radius:999px;padding:10px 16px;font:700 .92rem/1 inherit;cursor:pointer}
+.library-tab.active{background:var(--accent);border-color:var(--accent);color:#fff}
+.library-toolbar{display:flex;gap:10px;padding:14px;margin-bottom:14px}
+.library-toolbar input,.library-toolbar select{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:10px;padding:11px 13px;font:inherit}
+.library-toolbar input{flex:1}
+.level-path{display:flex;align-items:center;gap:8px;overflow:auto;padding:4px 2px 16px;color:var(--muted);font-size:.78rem;white-space:nowrap}
+.level-path span{border:1px solid var(--line);background:var(--card);border-radius:999px;padding:7px 10px}.level-path i{width:22px;height:1px;background:var(--line);flex:0 0 22px}
+.lesson-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.lesson-card{text-align:left;padding:17px;cursor:pointer;color:var(--ink);font:inherit;transition:transform .15s ease,border-color .15s ease}
+.lesson-card:hover{transform:translateY(-2px);border-color:#7779ee}.lesson-card h3{font-size:1rem;margin:10px 0 6px}.lesson-card p{font-size:.9rem;line-height:1.58}
+.lesson-meta{display:flex;justify-content:space-between;gap:10px;align-items:center;color:var(--muted);font-size:.72rem}
+.level-badge{display:inline-flex;align-items:center;justify-content:center;min-width:38px;border-radius:999px;padding:5px 8px;font-weight:800;color:#fff;background:#6d70e8}
+.level-a1{background:#4d9b76}.level-a2{background:#3f8fa8}.level-b1{background:#5977d8}.level-b2{background:#7567da}.level-c1{background:#a25ab2}
+.lesson-open{display:block;color:var(--accent);margin-top:12px;font-size:.8rem;font-weight:800}
+.lesson-list{color:var(--ink);line-height:1.7}.example-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.example-card{border:1px solid var(--line);border-radius:10px;padding:12px}.example-card b,.example-card span{display:block}.example-card span{color:var(--muted);margin-top:5px}.warning-list{color:#a66b38}
+.vocab-intro{padding:18px;display:flex;justify-content:space-between;gap:14px;align-items:center;margin-bottom:14px}.vocab-intro h2{margin:0 0 4px}
+.word-count-badge{border-radius:999px;padding:7px 10px;background:rgba(91,92,226,.12);color:var(--accent);font-weight:800}
+.saved-word-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}.saved-word{padding:16px}.saved-word h3{margin:0;font-size:1.1rem}
+.saved-word-head{display:flex;justify-content:space-between;gap:12px}.saved-word-head span{color:var(--muted)}
+.pos-label{display:inline-flex;margin-top:8px;padding:4px 7px;border-radius:999px;background:rgba(91,92,226,.12);color:var(--accent)!important;font-size:.72rem!important;font-weight:800;letter-spacing:0!important}
+.saved-word p{line-height:1.55}.lookup-again{margin-top:10px}.mini-danger{border:0;background:transparent;color:#b96262;cursor:pointer;font:700 .75rem/1 inherit}
+.dictionary-popover{position:fixed;z-index:50;width:min(360px,calc(100vw - 24px));max-height:min(520px,calc(100vh - 24px));overflow:auto;padding:15px;border:1px solid var(--line);border-radius:14px;background:var(--card);color:var(--ink);box-shadow:0 18px 50px rgba(0,0,0,.28)}
+.dictionary-close{position:absolute;top:7px;right:9px;width:28px;height:28px;border:0;background:transparent;color:var(--muted);font-size:1.35rem;cursor:pointer}
+.dictionary-loading{min-height:90px;display:flex;align-items:center;justify-content:center;gap:10px}.dictionary-head{display:flex;justify-content:space-between;gap:12px;padding-right:24px}
+.dictionary-head h3{font-size:1.25rem;margin:0}.dictionary-head span{color:var(--muted)}.dictionary-source{align-self:flex-start;font-size:.64rem!important;padding:4px 6px;border-radius:999px;background:rgba(91,92,226,.1);color:var(--accent)!important}
+.dictionary-definitions{display:grid;gap:10px;margin-top:12px}.definition-row{padding-top:9px;border-top:1px solid var(--line)}
+.definition-row b{display:block;margin-top:6px;font-size:.9rem;line-height:1.5}.definition-row p{font-size:.82rem;font-style:italic;line-height:1.5}.definition-row small{color:var(--muted);font-size:.76rem}
+.dictionary-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:14px}.dictionary-link{display:inline-flex;align-items:center;text-decoration:none;font-size:.8rem}
+body[data-theme="dark"] .upgrade-panel{background:#151d36}
+body[data-theme="dark"] .library-toolbar input,body[data-theme="dark"] .library-toolbar select{background:#111a27}
+@media(max-width:1100px){.lesson-grid,.saved-word-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:800px){
+  .compare-writing{grid-template-columns:1fr}.lesson-grid,.saved-word-grid{grid-template-columns:1fr}.example-grid{grid-template-columns:1fr}
+  .library-toolbar{display:grid;grid-template-columns:1fr}.vocab-intro{align-items:flex-start}
+  .dictionary-popover{left:10px!important;right:10px!important;top:auto!important;bottom:10px;width:auto;max-height:65vh;border-radius:18px}
+  .upgrade-actions .primary,.upgrade-actions .secondary{flex:1 1 45%}
+}

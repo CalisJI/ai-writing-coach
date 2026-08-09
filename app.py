@@ -7,6 +7,7 @@ import statistics
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
+from urllib.parse import quote
 
 import requests
 from fastapi import FastAPI, HTTPException
@@ -25,7 +26,7 @@ APP_VERSION = os.getenv(
     if (ROOT / "VERSION").exists()
     else "dev",
 )
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 
 app = FastAPI(title="AI Writing Coach", version=APP_VERSION)
 
@@ -114,6 +115,18 @@ class TaskGenerateIn(BaseModel):
     )
     word_target: int = Field(default=150, ge=60, le=350)
 
+class ImproveIn(BaseModel):
+    text: str = Field(min_length=10, max_length=20000)
+    target_cefr: str = Field(default="B2", pattern=r"^(A1|A2|B1|B2|C1|C2)$")
+    mode: str = Field(default="polish", pattern=r"^(correct|grammar|vocabulary|polish)$")
+
+
+class SaveWordIn(BaseModel):
+    word: str = Field(min_length=1, max_length=80)
+    phonetic: str = Field(default="", max_length=120)
+    part_of_speech: str = Field(default="", max_length=80)
+    definition: str = Field(default="", max_length=1200)
+
 def db() -> sqlite3.Connection:
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(DB_PATH)
@@ -161,6 +174,27 @@ def init_db() -> None:
         conn.execute("UPDATE essays SET series_id = id WHERE series_id IS NULL")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_essays_series_revision ON essays(series_id, revision_no)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_essays_created_at ON essays(created_at)")
+
+        conn.execute(
+            '''
+            CREATE TABLE IF NOT EXISTS dictionary_cache (
+                word TEXT PRIMARY KEY,
+                payload_json TEXT NOT NULL,
+                fetched_at TEXT NOT NULL
+            )
+            '''
+        )
+        conn.execute(
+            '''
+            CREATE TABLE IF NOT EXISTS saved_words (
+                word TEXT PRIMARY KEY,
+                phonetic TEXT NOT NULL DEFAULT '',
+                part_of_speech TEXT NOT NULL DEFAULT '',
+                definition TEXT NOT NULL DEFAULT '',
+                added_at TEXT NOT NULL
+            )
+            '''
+        )
         conn.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
         conn.commit()
 
@@ -857,6 +891,297 @@ def api_generate_task(payload: TaskGenerateIn) -> dict[str, Any]:
         "prompt": task_as_prompt(task, payload.target_cefr),
     }
 
+GRAMMAR_LIBRARY = [{'id': 'a1-sentence-basics', 'level': 'A1', 'category': 'Sentence basics', 'title': 'Building a clear English sentence', 'summary_vi': 'Nắm trật tự chủ ngữ - động từ - tân ngữ và cách tạo câu khẳng định, phủ định, câu hỏi.', 'explanation_vi': 'Tiếng Anh phụ thuộc nhiều vào trật tự từ. Một câu cơ bản thường cần chủ ngữ rõ ràng và động từ chia phù hợp.', 'rules': ['Câu khẳng định cơ bản: Subject + Verb + Object/Complement.', 'Phủ định với động từ thường dùng do/does + not ở hiện tại đơn.', 'Câu hỏi thường đưa trợ động từ lên trước chủ ngữ.'], 'examples': [{'en': 'I work in Ho Chi Minh City.', 'vi': 'Tôi làm việc ở Thành phố Hồ Chí Minh.'}, {'en': 'Do you use this app every day?', 'vi': 'Bạn có dùng ứng dụng này mỗi ngày không?'}], 'mistakes': ['Thiếu chủ ngữ trong câu hoàn chỉnh.', 'Dùng hai động từ đã chia cạnh nhau mà không có cấu trúc phù hợp.']}, {'id': 'a1-be-have', 'level': 'A1', 'category': 'Core verbs', 'title': 'Be and have without confusion', 'summary_vi': 'Phân biệt khi nào dùng be, have và động từ thường.', 'explanation_vi': 'Be thường nối chủ ngữ với tính từ/danh từ hoặc dùng trong tiếp diễn và bị động. Have thường diễn tả sở hữu hoặc trải nghiệm.', 'rules': ['Be + adjective/noun: She is tired. He is an engineer.', 'Have + noun: I have a meeting.', 'Không thêm be trước động từ thường trong hiện tại đơn.'], 'examples': [{'en': 'The room is quiet.', 'vi': 'Căn phòng yên tĩnh.'}, {'en': 'We have two options.', 'vi': 'Chúng ta có hai lựa chọn.'}], 'mistakes': ['I am work every day. → I work every day.', 'She have a car. → She has a car.']}, {'id': 'a1-present-simple', 'level': 'A1', 'category': 'Tenses', 'title': 'Present simple for habits and facts', 'summary_vi': 'Dùng hiện tại đơn cho thói quen, sự thật và lịch trình.', 'explanation_vi': 'Đây là thì rất quan trọng trong writing vì nó xuất hiện trong mô tả thói quen, ý kiến chung và thông tin mang tính ổn định.', 'rules': ['I/you/we/they + base verb.', 'He/she/it + verb-s/es.', 'Dùng do/does cho câu hỏi và phủ định với động từ thường.'], 'examples': [{'en': 'Technology changes the way we communicate.', 'vi': 'Công nghệ thay đổi cách chúng ta giao tiếp.'}, {'en': 'My team meets every Monday.', 'vi': 'Nhóm của tôi họp mỗi thứ Hai.'}], 'mistakes': ['He work every day. → He works every day.', "She doesn't likes it. → She doesn't like it."]}, {'id': 'a1-articles', 'level': 'A1', 'category': 'Articles', 'title': 'A, an, the and zero article', 'summary_vi': 'Hiểu khi nào danh từ cần a/an, the hoặc không dùng mạo từ.', 'explanation_vi': 'Mạo từ phụ thuộc vào việc danh từ có đếm được không, số ít hay số nhiều, và người đọc đã biết đối tượng đó chưa.', 'rules': ['A/an: một danh từ đếm được số ít chưa xác định.', 'The: đối tượng cụ thể hoặc đã được nhắc tới.', 'Zero article: thường dùng cho danh từ số nhiều hoặc không đếm được khi nói chung.'], 'examples': [{'en': 'I bought a book. The book is about design.', 'vi': 'Tôi mua một cuốn sách. Cuốn sách đó nói về thiết kế.'}, {'en': 'Fashion changes quickly.', 'vi': 'Thời trang thay đổi nhanh.'}], 'mistakes': ['I like the music. khi nói về âm nhạc nói chung → I like music.', 'She bought book. → She bought a book.']}, {'id': 'a2-simple-continuous', 'level': 'A2', 'category': 'Tenses', 'title': 'Present simple vs present continuous', 'summary_vi': 'Phân biệt thói quen với hành động đang diễn ra hoặc tình huống tạm thời.', 'explanation_vi': 'Present simple nhấn mạnh điều thường xuyên hoặc ổn định. Present continuous nhấn mạnh điều đang diễn ra quanh thời điểm hiện tại.', 'rules': ['Present simple: habits, facts, stable states.', 'Present continuous: happening now, temporary situations, changing trends.', 'Stative verbs như know, believe, need thường không dùng ở continuous.'], 'examples': [{'en': 'I usually work from home.', 'vi': 'Tôi thường làm việc ở nhà.'}, {'en': 'This month, I am working at the office.', 'vi': 'Tháng này tôi đang làm việc ở văn phòng.'}], 'mistakes': ['I am knowing the answer. → I know the answer.']}, {'id': 'a2-past-simple', 'level': 'A2', 'category': 'Tenses', 'title': 'Past simple for finished events', 'summary_vi': 'Kể lại sự việc đã hoàn tất trong quá khứ với mốc thời gian rõ.', 'explanation_vi': 'Past simple là nền tảng của review, story và mô tả trải nghiệm đã kết thúc.', 'rules': ['Dùng verb-ed hoặc dạng quá khứ bất quy tắc.', 'Did + base verb cho câu hỏi/phủ định.', 'Dấu hiệu phổ biến: yesterday, last week, in 2025, two days ago.'], 'examples': [{'en': 'I visited Da Nang last year.', 'vi': 'Tôi đã đến Đà Nẵng năm ngoái.'}, {'en': 'The meeting ended at 4 p.m.', 'vi': 'Cuộc họp kết thúc lúc 4 giờ chiều.'}], 'mistakes': ["I didn't went. → I didn't go."]}, {'id': 'a2-countability', 'level': 'A2', 'category': 'Nouns', 'title': 'Countable and uncountable nouns', 'summary_vi': 'Tránh các lỗi như informations, advices và dùng lượng từ chính xác hơn.', 'explanation_vi': 'Danh từ không đếm được không dùng trực tiếp với a/an và thường không thêm -s khi mang nghĩa chung.', 'rules': ['Many/few với danh từ đếm được.', 'Much/little với danh từ không đếm được.', 'A lot of dùng linh hoạt với cả hai loại.'], 'examples': [{'en': 'I received some useful information.', 'vi': 'Tôi nhận được một số thông tin hữu ích.'}, {'en': 'There are many reasons to improve.', 'vi': 'Có nhiều lý do để cải thiện.'}], 'mistakes': ['an advice → some advice / a piece of advice', 'many information → much/a lot of information']}, {'id': 'a2-comparisons', 'level': 'A2', 'category': 'Comparison', 'title': 'Comparatives that sound natural', 'summary_vi': 'So sánh người, vật và ý tưởng mà không lặp cấu trúc đơn giản.', 'explanation_vi': 'Ngoài -er và more, bạn có thể dùng much, slightly, far để điều chỉnh mức độ so sánh.', 'rules': ['Short adjectives: faster, easier.', 'Long adjectives: more useful, more reliable.', 'Modifiers: much better, slightly cheaper, far more effective.'], 'examples': [{'en': 'This solution is much more reliable.', 'vi': 'Giải pháp này đáng tin cậy hơn nhiều.'}, {'en': 'The second option is slightly cheaper.', 'vi': 'Lựa chọn thứ hai rẻ hơn một chút.'}], 'mistakes': ['more easier → easier / much easier']}, {'id': 'b1-present-perfect', 'level': 'B1', 'category': 'Tenses', 'title': 'Present perfect vs past simple', 'summary_vi': 'Phân biệt trải nghiệm/liên hệ với hiện tại và sự kiện quá khứ đã kết thúc.', 'explanation_vi': 'Present perfect nối quá khứ với hiện tại; past simple đặt sự kiện trong một thời điểm quá khứ hoàn tất.', 'rules': ['Present perfect: experience, unfinished time, present result.', 'Past simple: finished time in the past.', 'Tránh dùng present perfect với mốc quá khứ đã kết thúc như yesterday.'], 'examples': [{'en': 'I have worked here for three years.', 'vi': 'Tôi đã làm ở đây được ba năm và vẫn đang làm.'}, {'en': 'I joined the company in 2023.', 'vi': 'Tôi gia nhập công ty vào năm 2023.'}], 'mistakes': ['I have visited it yesterday. → I visited it yesterday.']}, {'id': 'b1-modals', 'level': 'B1', 'category': 'Modals', 'title': 'Modals for advice, obligation and possibility', 'summary_vi': 'Dùng should, must, have to, might, could để thể hiện mức độ chắc chắn và thái độ.', 'explanation_vi': 'Modal verbs giúp writing chính xác hơn vì chúng cho biết bạn đang khuyên, yêu cầu, dự đoán hay chỉ nêu khả năng.', 'rules': ['should: lời khuyên hoặc điều nên làm.', 'must/have to: nghĩa vụ mạnh.', 'might/could: khả năng, đề xuất mềm hơn.'], 'examples': [{'en': 'Companies should provide clearer training.', 'vi': 'Các công ty nên cung cấp đào tạo rõ ràng hơn.'}, {'en': 'This change could reduce costs.', 'vi': 'Thay đổi này có thể giảm chi phí.'}], 'mistakes': ['must to do → must do']}, {'id': 'b1-relative-clauses', 'level': 'B1', 'category': 'Complex sentences', 'title': 'Relative clauses for richer sentences', 'summary_vi': 'Dùng who, which, that, where để thêm thông tin mà không phải tách quá nhiều câu ngắn.', 'explanation_vi': 'Relative clauses giúp bài viết kết nối tự nhiên và giảm lặp danh từ.', 'rules': ['who cho người.', 'which cho vật/ý tưởng.', 'that thường dùng trong defining clauses.', 'where cho nơi chốn.'], 'examples': [{'en': 'The app that I use every day is easy to navigate.', 'vi': 'Ứng dụng mà tôi dùng mỗi ngày rất dễ điều hướng.'}, {'en': 'This is the office where I first met the team.', 'vi': 'Đây là văn phòng nơi tôi lần đầu gặp nhóm.'}], 'mistakes': ['The person which helped me → The person who helped me']}, {'id': 'b1-gerund-infinitive', 'level': 'B1', 'category': 'Verb patterns', 'title': 'Gerunds and infinitives', 'summary_vi': 'Học các mẫu động từ + V-ing và động từ + to V phổ biến trong writing.', 'explanation_vi': 'Nhiều động từ đi với một dạng cố định. Ghi nhớ theo cụm sẽ hiệu quả hơn học từng từ rời.', 'rules': ['enjoy/avoid/consider + V-ing.', 'want/need/plan/decide + to V.', 'Một số động từ đổi nghĩa tùy cấu trúc, ví dụ remember doing vs remember to do.'], 'examples': [{'en': 'I enjoy learning through real projects.', 'vi': 'Tôi thích học thông qua dự án thực tế.'}, {'en': 'We decided to change the schedule.', 'vi': 'Chúng tôi quyết định thay đổi lịch.'}], 'mistakes': ['I suggest to use → I suggest using']}, {'id': 'b2-conditionals', 'level': 'B2', 'category': 'Complex sentences', 'title': 'Conditionals for arguments and consequences', 'summary_vi': 'Dùng câu điều kiện để trình bày hậu quả, giả định và lập luận chặt chẽ.', 'explanation_vi': 'Conditionals rất hữu ích trong opinion writing vì giúp bạn kết nối một lựa chọn với hệ quả của nó.', 'rules': ['First conditional: real future possibility.', 'Second conditional: hypothetical present/future.', 'Third conditional: hypothetical past.'], 'examples': [{'en': 'If companies invest in training, employees will adapt faster.', 'vi': 'Nếu công ty đầu tư vào đào tạo, nhân viên sẽ thích nghi nhanh hơn.'}, {'en': 'If I had more time, I would study another language.', 'vi': 'Nếu có nhiều thời gian hơn, tôi sẽ học thêm một ngôn ngữ.'}], 'mistakes': ['If I will have time → If I have time']}, {'id': 'b2-passive', 'level': 'B2', 'category': 'Voice', 'title': 'Passive voice when the action matters more', 'summary_vi': 'Dùng bị động có mục đích, đặc biệt trong mô tả quy trình và văn phong khách quan.', 'explanation_vi': 'Passive voice phù hợp khi người thực hiện không quan trọng, đã rõ hoặc bạn muốn nhấn mạnh kết quả.', 'rules': ['be + past participle.', 'Giữ đúng tense của be.', 'Không lạm dụng passive nếu active rõ ràng hơn.'], 'examples': [{'en': 'The data is collected every ten minutes.', 'vi': 'Dữ liệu được thu thập mỗi mười phút.'}, {'en': 'The issue was resolved yesterday.', 'vi': 'Vấn đề đã được giải quyết hôm qua.'}], 'mistakes': ['The data collected every day. → The data is collected every day.']}, {'id': 'b2-participle-clauses', 'level': 'B2', 'category': 'Advanced sentences', 'title': 'Participle clauses for concise writing', 'summary_vi': 'Rút gọn mệnh đề bằng V-ing hoặc past participle khi chủ ngữ logic rõ ràng.', 'explanation_vi': 'Participle clauses giúp bài viết gọn và tự nhiên hơn, nhưng cần chắc rằng chủ thể của mệnh đề rút gọn trùng với chủ thể chính.', 'rules': ['V-ing thường mang nghĩa chủ động.', 'Past participle thường mang nghĩa bị động.', 'Tránh dangling participles.'], 'examples': [{'en': 'Working remotely, employees can save commuting time.', 'vi': 'Khi làm việc từ xa, nhân viên có thể tiết kiệm thời gian đi lại.'}, {'en': 'Designed for beginners, the course starts with simple tasks.', 'vi': 'Được thiết kế cho người mới, khóa học bắt đầu bằng nhiệm vụ đơn giản.'}], 'mistakes': ['Driving to work, the rain started. → Chủ ngữ logic bị sai.']}, {'id': 'b2-linking', 'level': 'B2', 'category': 'Coherence', 'title': 'Linking ideas without sounding mechanical', 'summary_vi': 'Nâng từ and/but/because lên các cách nối ý linh hoạt hơn.', 'explanation_vi': 'Coherence tốt không đến từ việc nhồi nhiều linking words, mà từ mối quan hệ logic rõ ràng giữa các ý.', 'rules': ['Contrast: however, whereas, while, although.', 'Result: therefore, as a result, which means that.', 'Addition: moreover, in addition, another reason is that.'], 'examples': [{'en': 'The system is inexpensive; however, it requires regular maintenance.', 'vi': 'Hệ thống rẻ; tuy nhiên, nó cần bảo trì thường xuyên.'}, {'en': 'Remote work reduces commuting time, which means that employees may have more flexible mornings.', 'vi': 'Làm việc từ xa giảm thời gian đi lại, nghĩa là nhân viên có thể có buổi sáng linh hoạt hơn.'}], 'mistakes': ['Dùng However ở mọi đoạn khiến văn phong máy móc.']}, {'id': 'c1-inversion', 'level': 'C1', 'category': 'Advanced sentences', 'title': 'Inversion for emphasis', 'summary_vi': 'Dùng đảo ngữ có chọn lọc để tạo nhấn mạnh trong văn phong nâng cao.', 'explanation_vi': 'Inversion hữu ích ở C1 nhưng chỉ nên dùng khi tự nhiên; nó không làm câu hay hơn nếu ý tưởng đơn giản.', 'rules': ['Never/Rarely/Seldom + auxiliary + subject + verb.', 'Not only + auxiliary + subject + verb, but...', 'Only after/when... + auxiliary + subject + verb.'], 'examples': [{'en': 'Rarely do we consider the long-term cost.', 'vi': 'Hiếm khi chúng ta cân nhắc chi phí dài hạn.'}, {'en': 'Not only does the tool save time, but it also reduces errors.', 'vi': 'Công cụ không chỉ tiết kiệm thời gian mà còn giảm lỗi.'}], 'mistakes': ['Lạm dụng đảo ngữ trong email thông thường.']}, {'id': 'c1-cleft', 'level': 'C1', 'category': 'Emphasis', 'title': 'Cleft sentences for controlled emphasis', 'summary_vi': 'Dùng It is...that và What...is để nhấn đúng thông tin quan trọng.', 'explanation_vi': 'Cleft sentences giúp người viết kiểm soát trọng tâm câu thay vì chỉ dựa vào từ vựng mạnh.', 'rules': ['It is/was X that/who...', 'What + clause + be + focus.', 'Dùng khi thật sự cần contrast hoặc emphasis.'], 'examples': [{'en': 'What matters most is how consistently the system performs.', 'vi': 'Điều quan trọng nhất là hệ thống hoạt động ổn định đến mức nào.'}, {'en': 'It was the lack of training that caused most of the confusion.', 'vi': 'Chính việc thiếu đào tạo gây ra phần lớn sự nhầm lẫn.'}], 'mistakes': ['Dùng cleft sentence cho mọi câu khiến bài viết nặng nề.']}, {'id': 'c1-hedging', 'level': 'C1', 'category': 'Academic style', 'title': 'Hedging: sound precise, not weak', 'summary_vi': 'Giảm các khẳng định tuyệt đối bằng may, tends to, appears to, in many cases.', 'explanation_vi': 'Writing nâng cao thường tránh khẳng định quá mức. Hedging cho thấy bạn hiểu giới hạn của lập luận.', 'rules': ['may/might/could để giảm mức chắc chắn.', 'tends to / is likely to cho xu hướng.', 'in many cases / to some extent để giới hạn phạm vi.'], 'examples': [{'en': 'Remote work may improve productivity in some roles.', 'vi': 'Làm việc từ xa có thể cải thiện năng suất ở một số vị trí.'}, {'en': 'This approach tends to work better for experienced users.', 'vi': 'Cách tiếp cận này có xu hướng hiệu quả hơn với người dùng có kinh nghiệm.'}], 'mistakes': ['Everyone knows... / This always proves... khi không có cơ sở chắc chắn.']}, {'id': 'c1-nominalisation', 'level': 'C1', 'category': 'Formal style', 'title': 'Nominalisation without making writing heavy', 'summary_vi': 'Biến động từ/tính từ thành danh từ khi cần văn phong formal, nhưng tránh câu quá nặng.', 'explanation_vi': 'Nominalisation có thể tạo văn phong trang trọng và giúp gom ý, nhưng active verbs thường vẫn rõ hơn trong nhiều ngữ cảnh.', 'rules': ['decide → decision, improve → improvement, analyse → analysis.', 'Dùng để đóng gói một quá trình thành một khái niệm.', 'Ưu tiên clarity; không nominalise chỉ để trông học thuật.'], 'examples': [{'en': 'The implementation of the policy requires careful planning.', 'vi': 'Việc triển khai chính sách cần lập kế hoạch cẩn thận.'}, {'en': 'A reduction in errors would improve reliability.', 'vi': 'Việc giảm lỗi sẽ cải thiện độ tin cậy.'}], 'mistakes': ['Xếp quá nhiều danh từ liên tiếp làm câu khó đọc.']}]
+
+IMPROVE_MODE_INSTRUCTIONS = {
+    "correct": "Correct grammar, spelling and punctuation with the minimum necessary changes. Preserve the learner's voice.",
+    "grammar": "First correct errors, then suggest a stronger version using more varied but natural grammar appropriate to the target CEFR level. Do not make the writing artificially complex.",
+    "vocabulary": "First correct errors, then improve word choice, collocations and precision. Avoid rare words that a learner would not realistically use.",
+    "polish": "Correct errors and produce a stronger version with both more natural grammar and better vocabulary while preserving the original meaning and tone.",
+}
+
+
+def ollama_json(messages: list[dict[str, str]], schema: dict[str, Any], num_predict: int = 1200, temperature: float = 0.1) -> dict[str, Any]:
+    body = {
+        "model": OLLAMA_MODEL,
+        "stream": False,
+        "think": False,
+        "keep_alive": "30m",
+        "format": schema,
+        "options": {
+            "temperature": temperature,
+            "num_ctx": 4096,
+            "num_predict": num_predict,
+        },
+        "messages": messages,
+    }
+    response = requests.post(f"{OLLAMA_URL}/api/chat", json=body, timeout=REQUEST_TIMEOUT)
+    response.raise_for_status()
+    envelope = response.json()
+    return extract_json(envelope.get("message", {}).get("content", ""))
+
+
+def improve_with_ollama(payload: ImproveIn) -> dict[str, Any]:
+    schema = {
+        "type": "object",
+        "properties": {
+            "corrected_text": {"type": "string"},
+            "upgraded_text": {"type": "string"},
+            "summary_vi": {"type": "string"},
+            "grammar_upgrades": {
+                "type": "array",
+                "maxItems": 8,
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "original": {"type": "string"},
+                        "improved": {"type": "string"},
+                        "pattern": {"type": "string"},
+                        "reason_vi": {"type": "string"},
+                    },
+                    "required": ["original", "improved", "pattern", "reason_vi"],
+                },
+            },
+            "vocabulary_upgrades": {
+                "type": "array",
+                "maxItems": 10,
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "original": {"type": "string"},
+                        "improved": {"type": "string"},
+                        "example": {"type": "string"},
+                        "note_vi": {"type": "string"},
+                    },
+                    "required": ["original", "improved", "example", "note_vi"],
+                },
+            },
+        },
+        "required": ["corrected_text", "upgraded_text", "summary_vi", "grammar_upgrades", "vocabulary_upgrades"],
+    }
+    system = (
+        "You are an English writing improvement coach. Preserve the learner's intended meaning. "
+        "Never invent facts. Never make the writing unnecessarily formal. "
+        "Vietnamese explanations must use the Latin alphabet and contain no CJK characters."
+    )
+    user = (
+        f"TARGET CEFR: {payload.target_cefr}\n"
+        f"MODE: {payload.mode}\n"
+        f"INSTRUCTION: {IMPROVE_MODE_INSTRUCTIONS[payload.mode]}\n\n"
+        f"LEARNER TEXT:\n{payload.text}\n\n"
+        "Return a corrected version and a realistic upgraded version. "
+        "List only useful reusable grammar and vocabulary improvements."
+    )
+    result = ollama_json(
+        [{"role": "system", "content": system}, {"role": "user", "content": user}],
+        schema,
+        num_predict=1800,
+        temperature=0.1,
+    )
+    if contains_cjk(str(result.get("summary_vi", ""))):
+        result["summary_vi"] = ""
+    result["mode"] = payload.mode
+    result["target_cefr"] = payload.target_cefr
+    return result
+
+
+def normalise_lookup_word(word: str) -> str:
+    word = re.sub(r"\s+", " ", word.strip())
+    word = re.sub(r"^[^\w'-]+|[^\w'-]+$", "", word, flags=re.UNICODE)
+    if not word or len(word) > 80:
+        raise HTTPException(400, "Invalid word or phrase")
+    if len(word.split()) > 4:
+        raise HTTPException(400, "Select up to four words")
+    return word
+
+
+def cambridge_url_for(word: str) -> str:
+    slug = re.sub(r"[^a-z0-9]+", "-", word.casefold()).strip("-")
+    return f"https://dictionary.cambridge.org/dictionary/english/{quote(slug)}"
+
+
+def dictionary_ai_fallback(word: str) -> dict[str, Any]:
+    schema = {
+        "type": "object",
+        "properties": {
+            "word": {"type": "string"},
+            "phonetic": {"type": "string"},
+            "definitions": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 4,
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "part_of_speech": {"type": "string"},
+                        "definition": {"type": "string"},
+                        "example": {"type": "string"},
+                        "synonyms": {"type": "array", "items": {"type": "string"}, "maxItems": 5},
+                    },
+                    "required": ["part_of_speech", "definition", "example", "synonyms"],
+                },
+            },
+        },
+        "required": ["word", "phonetic", "definitions"],
+    }
+    result = ollama_json(
+        [
+            {"role": "system", "content": "You are a compact English learner dictionary. Definitions must be short, clear English. Examples must be original and natural. Do not claim an exact IPA if uncertain; use an empty phonetic string instead."},
+            {"role": "user", "content": f"Define this English word or short phrase: {word}"},
+        ],
+        schema,
+        num_predict=650,
+        temperature=0.0,
+    )
+    result["source"] = f"local-ai:{OLLAMA_MODEL}"
+    result["audio"] = ""
+    result["cambridge_url"] = cambridge_url_for(word)
+    return result
+
+
+def lookup_dictionary(word: str) -> dict[str, Any]:
+    clean = normalise_lookup_word(word)
+    cache_key = clean.casefold()
+    with db() as conn:
+        row = conn.execute("SELECT payload_json, fetched_at FROM dictionary_cache WHERE word = ?", (cache_key,)).fetchone()
+        if row:
+            try:
+                fetched = datetime.fromisoformat(row["fetched_at"])
+                if datetime.now().astimezone() - fetched < timedelta(days=30):
+                    payload = json.loads(row["payload_json"])
+                    payload["cached"] = True
+                    return payload
+            except Exception:
+                pass
+
+    payload = None
+    try:
+        response = requests.get(
+            f"https://api.dictionaryapi.dev/api/v2/entries/en/{quote(clean)}",
+            timeout=8,
+        )
+        if response.ok:
+            data = response.json()
+            if isinstance(data, list) and data:
+                entry = data[0]
+                phonetic = str(entry.get("phonetic") or "")
+                audio = ""
+                if not phonetic:
+                    for p in entry.get("phonetics", []):
+                        if p.get("text"):
+                            phonetic = str(p["text"])
+                            break
+                for p in entry.get("phonetics", []):
+                    if p.get("audio"):
+                        audio = str(p["audio"])
+                        if audio.startswith("//"):
+                            audio = "https:" + audio
+                        break
+                definitions = []
+                for meaning in entry.get("meanings", []):
+                    pos = str(meaning.get("partOfSpeech") or "")
+                    for definition in meaning.get("definitions", [])[:2]:
+                        definitions.append({
+                            "part_of_speech": pos,
+                            "definition": str(definition.get("definition") or ""),
+                            "example": str(definition.get("example") or ""),
+                            "synonyms": [str(x) for x in definition.get("synonyms", [])[:5]],
+                        })
+                        if len(definitions) >= 5:
+                            break
+                    if len(definitions) >= 5:
+                        break
+                if definitions:
+                    payload = {
+                        "word": str(entry.get("word") or clean),
+                        "phonetic": phonetic,
+                        "audio": audio,
+                        "definitions": definitions,
+                        "source": "dictionaryapi.dev",
+                        "cambridge_url": cambridge_url_for(clean),
+                        "cached": False,
+                    }
+    except Exception:
+        payload = None
+
+    if payload is None:
+        try:
+            payload = dictionary_ai_fallback(clean)
+            payload["cached"] = False
+        except Exception as exc:
+            raise HTTPException(503, "Dictionary service is unavailable and local AI fallback failed.") from exc
+
+    with db() as conn:
+        conn.execute(
+            """
+            INSERT INTO dictionary_cache(word, payload_json, fetched_at)
+            VALUES (?, ?, ?)
+            ON CONFLICT(word) DO UPDATE SET
+              payload_json = excluded.payload_json,
+              fetched_at = excluded.fetched_at
+            """,
+            (cache_key, json.dumps(payload, ensure_ascii=False), datetime.now().astimezone().isoformat(timespec="seconds")),
+        )
+        conn.commit()
+    return payload
+
+
+@app.post("/api/improve")
+def api_improve(payload: ImproveIn) -> dict[str, Any]:
+    try:
+        return improve_with_ollama(payload)
+    except requests.RequestException as exc:
+        raise HTTPException(503, "Ollama is unavailable for writing improvement.") from exc
+    except Exception as exc:
+        raise HTTPException(502, "The improvement model returned invalid structured output.") from exc
+
+
+@app.get("/api/library/grammar")
+def api_grammar_library() -> dict[str, Any]:
+    return {"lessons": GRAMMAR_LIBRARY}
+
+
+@app.get("/api/dictionary")
+def api_dictionary(word: str) -> dict[str, Any]:
+    return lookup_dictionary(word)
+
+
+@app.get("/api/vocabulary")
+def api_vocabulary() -> dict[str, Any]:
+    with db() as conn:
+        rows = conn.execute("SELECT * FROM saved_words ORDER BY added_at DESC").fetchall()
+    return {"items": [dict(row) for row in rows]}
+
+
+@app.post("/api/vocabulary")
+def api_save_vocabulary(payload: SaveWordIn) -> dict[str, Any]:
+    word = normalise_lookup_word(payload.word)
+    now = datetime.now().astimezone().isoformat(timespec="seconds")
+    with db() as conn:
+        conn.execute(
+            """
+            INSERT INTO saved_words(word, phonetic, part_of_speech, definition, added_at)
+            VALUES (?, ?, ?, ?, ?)
+            ON CONFLICT(word) DO UPDATE SET
+              phonetic = excluded.phonetic,
+              part_of_speech = excluded.part_of_speech,
+              definition = excluded.definition,
+              added_at = excluded.added_at
+            """,
+            (word, payload.phonetic, payload.part_of_speech, payload.definition, now),
+        )
+        conn.commit()
+    return {"saved": True, "word": word, "added_at": now}
+
+
+@app.delete("/api/vocabulary/{word}")
+def api_delete_vocabulary(word: str) -> dict[str, Any]:
+    clean = normalise_lookup_word(word)
+    with db() as conn:
+        cur = conn.execute("DELETE FROM saved_words WHERE lower(word) = lower(?)", (clean,))
+        conn.commit()
+    return {"deleted": cur.rowcount > 0}
+
 @app.post("/api/evaluate")
 def api_evaluate(payload: EssayIn) -> dict[str, Any]:
     previous: sqlite3.Row | None = None
@@ -944,10 +1269,16 @@ def essay_detail(essay_id: int) -> dict[str, Any]:
             "SELECT id, revision_no, overall, created_at FROM essays WHERE series_id = ? ORDER BY revision_no",
             (row["series_id"],),
         ).fetchall()
+        previous = None
+        if int(row["revision_no"] or 1) > 1:
+            previous = conn.execute(
+                "SELECT * FROM essays WHERE series_id = ? AND revision_no = ?",
+                (row["series_id"], int(row["revision_no"]) - 1),
+            ).fetchone()
     d = row_to_dict(row, detail=True)
     d["revisions"] = [dict(r) for r in series_rows]
+    d["delta"] = revision_delta(d, previous)
     return d
-
 
 @app.delete("/api/essays/{essay_id}")
 def delete_essay(essay_id: int) -> dict[str, bool]:
