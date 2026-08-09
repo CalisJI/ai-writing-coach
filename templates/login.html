@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Sign in · Writing Coach</title><style>
+*{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;background:#0f1724;color:#e8edf5;font-family:Inter,system-ui,sans-serif;padding:20px}
+.shell{width:min(960px,100%);display:grid;grid-template-columns:1.1fr .9fr;border:1px solid #2b394d;background:#172233;border-radius:24px;overflow:hidden;box-shadow:0 28px 80px rgba(0,0,0,.32)}
+.intro{padding:52px;background:linear-gradient(145deg,#191f3d,#192a42)}.mark{width:58px;height:58px;display:grid;place-items:center;border-radius:18px;background:linear-gradient(145deg,#8478ff,#5b5ce2);font-size:26px;font-weight:900}
+h1{font-size:42px;letter-spacing:-.04em;margin:24px 0 12px}.intro p{color:#a9b6c9;font-size:17px;line-height:1.65}.features{display:grid;gap:12px;margin-top:32px;color:#c8d3e1}
+.login{padding:52px 42px;display:grid;align-content:center}.login h2{font-size:26px;margin:0 0 8px}.login p{color:#96a5ba;line-height:1.55;margin:0 0 26px}
+.google{display:flex;align-items:center;justify-content:center;gap:12px;text-decoration:none;color:#172033;background:#fff;border-radius:12px;padding:14px 18px;font-weight:800;border:1px solid #d9dfe8}
+.g{font:900 20px Arial;color:#4285f4}small{display:block;color:#73849b;margin-top:18px;line-height:1.55}.version{margin-top:28px;color:#62748c;font-size:12px}
+@media(max-width:720px){.shell{grid-template-columns:1fr}.intro,.login{padding:32px}h1{font-size:32px}}
+</style></head><body><main class="shell">
+<section class="intro"><div class="mark">W</div><h1>Writing Coach</h1><p>Your private writing workspace: practice, revise, track progress, learn grammar and build vocabulary.</p>
+<div class="features"><span>✓ Personal essays and progress</span><span>✓ Local Ollama writing evaluation</span><span>✓ Separate learning history for every account</span></div></section>
+<section class="login"><h2>Welcome back</h2><p>Sign in to open your personal Writing Coach workspace.</p><a class="google" href="/auth/google"><span class="g">G</span> Continue with Google</a>
+<small>The app requests basic identity information needed for your account: name, email and profile picture.</small><div class="version">Writing Coach v{{APP_VERSION}}</div></section>
+</main></body></html>

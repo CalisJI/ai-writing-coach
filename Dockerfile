@@ -10,6 +10,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY app.py ./
 COPY grammar_course.py ./
+COPY auth_support.py ./
 COPY VERSION ./
 COPY templates ./templates
 COPY static ./static

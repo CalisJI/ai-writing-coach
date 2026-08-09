@@ -181,11 +181,11 @@
           <div class="course-hero-copy">
             <span class="course-kicker">GUIDED GRAMMAR COURSE</span>
             <h2>Start here and follow the path</h2>
-            <p>60 lessons ordered from A1 foundations to C1 advanced grammar. If you are unsure, start at A1 and skip lessons that are already easy.</p>
+            <p>72 lessons ordered from A1 foundations to C2 mastery. If you are unsure, start at A1 and skip lessons that are already easy.</p>
             <div class="course-controls">
               <label>Starting level
                 <select id="courseStartLevel" onchange="saveCourseStartLevel()">
-                  <option>A1</option><option>A2</option><option>B1</option><option>B2</option><option>C1</option>
+                  <option>A1</option><option>A2</option><option>B1</option><option>B2</option><option>C1</option><option>C2</option>
                 </select>
               </label>
               <button id="continueCourseBtn" class="primary" onclick="continueGrammarCourse()">Continue course</button>
@@ -193,7 +193,7 @@
           </div>
           <div class="course-progress-box">
             <strong id="courseProgressPct">0%</strong>
-            <span id="courseProgressText">0 / 60 lessons</span>
+            <span id="courseProgressText">0 / 72 lessons</span>
             <div class="bar big"><i id="courseProgressBar" style="width:0%"></i></div>
             <small id="courseNextText">Start with lesson 1.</small>
           </div>
@@ -206,11 +206,11 @@
           <input id="grammarSearch" type="search" placeholder="Search grammar topics..." oninput="renderGrammarLibrary()">
           <select id="grammarLevel" onchange="renderGrammarLibrary()">
             <option value="all">All levels</option>
-            <option>A1</option><option>A2</option><option>B1</option><option>B2</option><option>C1</option>
+            <option>A1</option><option>A2</option><option>B1</option><option>B2</option><option>C1</option><option>C2</option>
           </select>
         </div>
         <div class="level-path">
-          <span>A1 Foundations</span><i></i><span>A2 Core</span><i></i><span>B1 Intermediate</span><i></i><span>B2 Upper-intermediate</span><i></i><span>C1 Advanced</span>
+          <span>A1 Foundations</span><i></i><span>A2 Core</span><i></i><span>B1 Intermediate</span><i></i><span>B2 Upper-intermediate</span><i></i><span>C1 Advanced</span><i></i><span>C2 Mastery</span>
         </div>
         <div id="grammarLibrary" class="lesson-grid"></div>
       </div>
@@ -621,7 +621,7 @@ function renderGrammarLibrary(){
   const rows=grammarLessons.filter(x=>(level==='all'||x.level===level)&&(!q||`${x.title} ${x.category} ${x.objective_vi}`.toLowerCase().includes(q)));
   if(!rows.length){el.innerHTML='<div class="card empty">No grammar lessons match this filter.</div>';return;}
   const groups={};rows.forEach(x=>(groups[x.level]??=[]).push(x));
-  const names={A1:'Foundation',A2:'Core',B1:'Intermediate',B2:'Upper-intermediate',C1:'Advanced'};
+  const names={A1:'Foundation',A2:'Core',B1:'Intermediate',B2:'Upper-intermediate',C1:'Advanced',C2:'Mastery'};
   el.innerHTML=Object.entries(groups).map(([lvl,items])=>`<div class="course-level-block"><div class="course-level-head"><div><span class="level-badge level-${lvl.toLowerCase()}">${lvl}</span><b>${names[lvl]}</b></div><small>${items.filter(x=>x.completed).length}/${items.length} completed</small></div><div class="lesson-grid">${items.map(x=>`<button class="lesson-card card ${x.completed?'completed':''}" onclick="openGrammarLesson('${esc(x.id)}')"><div class="lesson-meta"><span>#${x.order}</span><span>${esc(x.category)}</span></div><h3>${x.completed?'✓ ':''}${esc(x.title)}</h3><p>${esc(x.objective_vi)}</p><span class="lesson-open">${x.completed?'Review lesson':'Start lesson'} -></span></button>`).join('')}</div></div>`).join('');
   updateCourseProgress();
 }
@@ -723,7 +723,7 @@ let selectionAnchor={x:20,y:20};
 
 function courseStartLevel(){return localStorage.getItem('grammarCourseStartLevel')||'A1';}
 function saveCourseStartLevel(){localStorage.setItem('grammarCourseStartLevel',$('#courseStartLevel').value);renderGrammarLibrary();}
-function levelRank(l){return {A1:1,A2:2,B1:3,B2:4,C1:5}[l]||1;}
+function levelRank(l){return {A1:1,A2:2,B1:3,B2:4,C1:5,C2:6}[l]||1;}
 function updateCourseProgress(){
   if(!grammarLessons.length)return;
   const done=grammarLessons.filter(x=>x.completed).length,total=grammarLessons.length,pct=Math.round(done/total*100);
@@ -758,5 +758,6 @@ function closeModal(){$('#modal').classList.add('hidden');}
 syncTaskMode();
 health();loadDashboard();
 </script>
+<script src="/static/account.js"></script>
 </body>
 </html>

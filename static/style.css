@@ -793,3 +793,11 @@ body[data-theme="dark"] .library-toolbar input,body[data-theme="dark"] .library-
  .curriculum-note{display:grid}.lesson-actions{grid-template-columns:1fr}.lesson-actions button{width:100%}
  .selection-toolbar{max-width:calc(100vw - 16px);overflow:auto}
 }
+
+/* ===== v0.8.0 multi-user account UI ===== */
+.level-c2{background:#b35d72}
+.account-profile{display:grid;grid-template-columns:42px minmax(0,1fr) auto;gap:9px;align-items:center;padding:10px;margin-bottom:12px;border:1px solid #2a3850;border-radius:13px;background:rgba(255,255,255,.035)}
+.account-profile img,.account-avatar{width:42px;height:42px;border-radius:12px;object-fit:cover}.account-avatar{display:grid;place-items:center;background:linear-gradient(145deg,#5b5ce2,#8378ff);color:#fff;font-weight:900}
+.account-copy{display:grid;gap:2px;min-width:0}.account-copy b{font-size:.82rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.account-copy small{font-size:.68rem;color:#91a0b8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.account-logout{border:1px solid #334259;border-radius:8px;background:transparent;color:#a8b4c8;cursor:pointer;padding:6px 8px;font:700 .68rem/1 inherit}.account-logout:hover{background:#26344a;color:#fff}
+@media(max-width:900px){.account-profile{max-width:380px}}

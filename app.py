@@ -11,6 +11,7 @@ from urllib.parse import quote
 
 import requests
 from grammar_course import GRAMMAR_COURSE, GRAMMAR_BY_ID
+from auth_support import AUTH_ENABLED, current_db_path, install_auth
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, Field
@@ -27,7 +28,7 @@ APP_VERSION = os.getenv(
     if (ROOT / "VERSION").exists()
     else "dev",
 )
-SCHEMA_VERSION = 4
+SCHEMA_VERSION = 5
 
 app = FastAPI(title="AI Writing Coach", version=APP_VERSION)
 
@@ -134,11 +135,11 @@ class SaveWordIn(BaseModel):
     translation_vi: str = Field(default="", max_length=1200)
 
 def db() -> sqlite3.Connection:
-    DB_PATH.parent.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(DB_PATH)
+    path = current_db_path(DB_PATH)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    conn = sqlite3.connect(path)
     conn.row_factory = sqlite3.Row
     return conn
-
 
 def column_names(conn: sqlite3.Connection, table: str) -> set[str]:
     return {str(r["name"]) for r in conn.execute(f"PRAGMA table_info({table})").fetchall()}
@@ -224,6 +225,9 @@ def init_db() -> None:
         conn.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
         conn.commit()
 
+
+
+install_auth(app, init_db)
 
 def weighted_overall(result: dict[str, Any]) -> float:
     score = sum(float(result[k]) * w for k, w in RUBRIC_WEIGHTS.items())
@@ -723,6 +727,8 @@ def health() -> dict[str, Any]:
         "model_family": model_family(OLLAMA_MODEL),
         "mascot": mascot,
         "available_models": models,
+        "auth_enabled": AUTH_ENABLED,
+        "auth_provider": "google" if AUTH_ENABLED else "local",
     }
 
 

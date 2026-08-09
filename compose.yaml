@@ -1,4 +1,4 @@
-﻿name: ai-writing-coach
+name: ai-writing-coach
 
 services:
   writing-coach:
@@ -11,6 +11,13 @@ services:
       OLLAMA_TIMEOUT: ${OLLAMA_TIMEOUT:-180}
       WRITING_DB: /data/writing.db
       ALLOW_FALLBACK: ${ALLOW_FALLBACK:-false}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      GOOGLE_REDIRECT_URI: ${GOOGLE_REDIRECT_URI:-http://127.0.0.1:8000/auth/google/callback}
+      SESSION_SECRET: ${SESSION_SECRET:-}
+      BOOTSTRAP_OWNER_EMAIL: ${BOOTSTRAP_OWNER_EMAIL:-}
+      AUTH_DB: /data/auth.db
+      USER_DATA_ROOT: /data/users
     volumes:
       - writing_data:/data
     ports:
