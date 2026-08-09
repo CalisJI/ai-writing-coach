@@ -29,6 +29,30 @@
       <button class="nav" data-page="analytics">⌁ Analytics</button>
     </nav>
     <div class="sidebar-bottom">
+      <div id="accountPanel" class="account-panel account-loading">
+        <button id="accountToggle" class="account-summary" type="button" onclick="toggleAccountMenu()" aria-expanded="false">
+          <span class="account-avatar-wrap">
+            <img id="accountAvatarImage" class="hidden" src="" alt="">
+            <span id="accountAvatarFallback" class="account-avatar-fallback">U</span>
+          </span>
+          <span class="account-main-copy">
+            <b id="accountName">Loading account…</b>
+            <small id="accountEmail">Please wait</small>
+          </span>
+          <span class="account-chevron">▼</span>
+        </button>
+        <div id="accountMenu" class="account-menu">
+          <div class="account-mode-row">
+            <span>Signed in with</span>
+            <b id="accountMode">—</b>
+          </div>
+          <div id="googleAccountActions" class="account-actions">
+            <button class="account-action" type="button" onclick="switchGoogleAccount()">Switch account</button>
+            <button class="account-action danger" type="button" onclick="signOutAccount()">Sign out</button>
+          </div>
+          <div id="accountStatus" class="account-status"></div>
+        </div>
+      </div>
       <div class="ui-controls" aria-label="Reading preferences">
         <button id="themeBtn" class="ui-control" type="button" onclick="cycleTheme()" title="Change theme">◐ Comfort</button>
         <button id="fontBtn" class="ui-control" type="button" onclick="cycleFontSize()" title="Change text size">A+ Large</button>
@@ -758,6 +782,6 @@ function closeModal(){$('#modal').classList.add('hidden');}
 syncTaskMode();
 health();loadDashboard();
 </script>
-<script src="/static/account.js"></script>
+<script src="/static/account.js?v=0.8.2"></script>
 </body>
 </html>
