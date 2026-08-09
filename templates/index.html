@@ -6,7 +6,7 @@
   <title>AI Writing Coach</title>
   <link rel="stylesheet" href="/static/style.css">
 </head>
-<body>
+<body data-theme="comfort" data-font-scale="large">
 <div class="app-shell">
   <aside class="sidebar">
     <div class="brand"><span class="logo">W</span><div><b>Writing Coach</b><small id="appVersion">v—</small></div></div>
@@ -17,6 +17,10 @@
       <button class="nav" data-page="analytics">⌁ Analytics</button>
     </nav>
     <div class="sidebar-bottom">
+      <div class="ui-controls" aria-label="Reading preferences">
+        <button id="themeBtn" class="ui-control" type="button" onclick="cycleTheme()" title="Change theme">◐ Comfort</button>
+        <button id="fontBtn" class="ui-control" type="button" onclick="cycleFontSize()" title="Change text size">A+ Large</button>
+      </div>
       <div id="ollamaStatus" class="status">● checking Ollama…</div>
       <small>Data stays in local SQLite.</small>
     </div>
@@ -73,6 +77,33 @@
 <script>
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 let revisionParentId=null;
+const THEME_ORDER=['comfort','dark','light'];
+const FONT_ORDER=['large','xlarge','normal'];
+const THEME_LABELS={comfort:'◐ Comfort',dark:'☾ Dark',light:'☀ Light'};
+const FONT_LABELS={normal:'A  Normal',large:'A+ Large',xlarge:'A++ Extra'};
+
+function applyUIPreferences(){
+  const theme=localStorage.getItem('writingCoachTheme')||'comfort';
+  const fontScale=localStorage.getItem('writingCoachFontScale')||'large';
+  document.body.dataset.theme=THEME_ORDER.includes(theme)?theme:'comfort';
+  document.body.dataset.fontScale=FONT_ORDER.includes(fontScale)?fontScale:'large';
+  const themeBtn=$('#themeBtn'),fontBtn=$('#fontBtn');
+  if(themeBtn) themeBtn.textContent=THEME_LABELS[document.body.dataset.theme];
+  if(fontBtn) fontBtn.textContent=FONT_LABELS[document.body.dataset.fontScale];
+}
+function cycleTheme(){
+  const current=document.body.dataset.theme||'comfort';
+  const next=THEME_ORDER[(THEME_ORDER.indexOf(current)+1)%THEME_ORDER.length];
+  localStorage.setItem('writingCoachTheme',next);
+  applyUIPreferences();
+}
+function cycleFontSize(){
+  const current=document.body.dataset.fontScale||'large';
+  const next=FONT_ORDER[(FONT_ORDER.indexOf(current)+1)%FONT_ORDER.length];
+  localStorage.setItem('writingCoachFontScale',next);
+  applyUIPreferences();
+}
+applyUIPreferences();
 function esc(s=''){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));}
 function go(page){$$('.nav').forEach(x=>x.classList.toggle('active',x.dataset.page===page));$$('.page').forEach(x=>x.classList.toggle('active',x.id===`page-${page}`));if(page==='dashboard'||page==='analytics')loadDashboard();if(page==='history')loadHistory();}
 $$('.nav').forEach(b=>b.onclick=()=>go(b.dataset.page));
@@ -84,9 +115,77 @@ function newWriting(){revisionParentId=null;$('#prompt').value='';$('#essayText'
 async function reviseEssay(id){const d=await fetch(`/api/essays/${id}`).then(r=>r.json());revisionParentId=d.id;$('#prompt').value=d.prompt||'';$('#essayText').value=d.text||'';$('#target').value=d.target_cefr||'B2';$('#writeTitle').textContent=`Revise essay #${d.series_id}`;$('#writeSubtitle').textContent=`You are creating revision ${Math.max(...d.revisions.map(x=>x.revision_no))+1}.`;$('#revisionBanner').innerHTML=`<b>Revision mode</b> · Previous score ${d.overall} · Revision ${d.revision_no}`;$('#revisionBanner').classList.remove('hidden');$('#cancelRevision').classList.remove('hidden');updateWordCount();go('write');}
 
 function bars(obj,error=false){const e=Object.entries(obj||{});if(!e.length)return '<div class="empty">Not enough data yet.</div>';const max=error?Math.max(...e.map(x=>x[1]),1):100;return e.map(([k,v])=>`<div class="barrow"><div class="barlabel"><span>${esc(k.replaceAll('_',' '))}</span><b>${v}${error?'':' / 100'}</b></div><div class="bar"><i style="width:${Math.min(100,v/max*100)}%"></i></div></div>`).join('');}
-function lineChart(data){if(!data.length)return '<div class="empty">Write your first essay to create the chart.</div>';const W=800,H=240,p=34,vals=data.map(x=>x.overall),min=Math.max(0,Math.floor((Math.min(...vals)-10)/10)*10),max=Math.min(100,Math.ceil((Math.max(...vals)+10)/10)*10||100),range=Math.max(10,max-min);const pts=data.map((d,i)=>({x:p+(W-2*p)*(data.length===1?.5:i/(data.length-1)),y:H-p-(d.overall-min)/range*(H-2*p),...d}));return `<svg viewBox="0 0 ${W} ${H}"><line x1="${p}" y1="${H-p}" x2="${W-p}" y2="${H-p}" class="axis"/><line x1="${p}" y1="${p}" x2="${p}" y2="${H-p}" class="axis"/><text x="4" y="${p+5}" class="svgtext">${max}</text><text x="8" y="${H-p+4}" class="svgtext">${min}</text><polyline points="${pts.map(q=>`${q.x},${q.y}`).join(' ')}" fill="none" class="trendline"/>${pts.map(q=>`<circle cx="${q.x}" cy="${q.y}" r="5"><title>#${q.series_id}: ${q.overall}</title></circle>`).join('')}</svg>`;}
+function lineChart(data){
+  if(!data.length)return '<div class="empty">Write your first essay to create the chart.</div>';
+  const W=800,H=280,p=44;
+  const vals=data.map(x=>x.overall);
+  const min=Math.max(0,Math.floor((Math.min(...vals)-10)/10)*10);
+  const max=Math.min(100,Math.ceil((Math.max(...vals)+10)/10)*10||100);
+  const range=Math.max(10,max-min);
+  const pts=data.map((d,i)=>({
+    x:p+(W-2*p)*(data.length===1?.5:i/(data.length-1)),
+    y:H-p-(d.overall-min)/range*(H-2*p),
+    ...d
+  }));
+  const grid=[0,.25,.5,.75,1].map(t=>{
+    const y=p+(H-2*p)*t;
+    const value=Math.round(max-range*t);
+    return `<line x1="${p}" y1="${y}" x2="${W-p}" y2="${y}" class="chart-grid"/><text x="7" y="${y+4}" class="svgtext">${value}</text>`;
+  }).join('');
+  const points=pts.map(q=>`
+    <circle class="chart-point" tabindex="0" role="img"
+      aria-label="Essay ${q.series_id}, score ${q.overall}, ${q.date||''}"
+      data-series="${q.series_id}" data-score="${q.overall}" data-date="${q.date||''}"
+      cx="${q.x}" cy="${q.y}" r="6"></circle>`).join('');
+  return `<div class="chart-tooltip hidden" role="status"></div>
+    <svg viewBox="0 0 ${W} ${H}" aria-label="Writing score progress chart">
+      ${grid}
+      <polyline points="${pts.map(q=>`${q.x},${q.y}`).join(' ')}" fill="none" class="trendline"/>
+      ${points}
+    </svg>`;
+}
 
-async function loadDashboard(){const d=await fetch('/api/dashboard').then(r=>r.json());$('#appVersion').textContent=`v${d.version||'—'}`;$('#skillScore').textContent=d.essay_count?d.skill_score:'—';$('#skillLevel').textContent=d.essay_count?`${d.cefr} estimate`:'No data yet';$('#recentAvg').textContent=d.essay_count?d.recent_average:'—';$('#streak').textContent=d.streak;$('#essayCount').textContent=d.essay_count;$('#revisionCount').textContent=`${d.revision_count} total submissions`;$('#trendChart').innerHTML=lineChart(d.trend);$('#metricBars').innerHTML=bars(d.metrics);$('#errorBars').innerHTML=bars(d.error_counts,true);renderErrorMemory(d.error_memory||[]);if(!d.essay_count)$('#milestone').innerHTML='<div class="empty">Your first milestone appears after one essay.</div>';else if(d.next_level){const pct=Math.min(100,d.skill_score/d.next_level.threshold*100);$('#milestone').innerHTML=`<div class="level-big">${d.cefr}<span>${d.skill_score}/100</span></div><div class="bar big"><i style="width:${pct}%"></i></div><p><b>${d.next_level.remaining}</b> points to ${d.next_level.level}.</p>`;}else $('#milestone').innerHTML='<div class="level-big">C2 <span>90+</span></div><p>Top internal progress band reached.</p>';}
+function bindChartTooltip(){
+  const chart=$('#trendChart');
+  if(!chart)return;
+  const tip=chart.querySelector('.chart-tooltip');
+  const points=[...chart.querySelectorAll('.chart-point')];
+  if(!tip||!points.length)return;
+
+  const show=(point)=>{
+    const chartRect=chart.getBoundingClientRect();
+    const pointRect=point.getBoundingClientRect();
+    const series=point.dataset.series;
+    const score=point.dataset.score;
+    const date=point.dataset.date||'';
+    tip.innerHTML=`<b>Essay #${esc(series)}</b><span>Score <strong>${esc(score)}</strong> / 100</span>${date?`<small>${esc(date)}</small>`:''}`;
+    tip.classList.remove('hidden');
+    const x=pointRect.left-chartRect.left+pointRect.width/2;
+    const y=pointRect.top-chartRect.top;
+    requestAnimationFrame(()=>{
+      const half=tip.offsetWidth/2;
+      const left=Math.max(half+8,Math.min(chartRect.width-half-8,x));
+      const top=Math.max(8,y-tip.offsetHeight-13);
+      tip.style.left=`${left}px`;
+      tip.style.top=`${top}px`;
+    });
+    points.forEach(p=>p.classList.toggle('active',p===point));
+  };
+
+  const hide=()=>{
+    tip.classList.add('hidden');
+    points.forEach(p=>p.classList.remove('active'));
+  };
+
+  points.forEach(point=>{
+    point.addEventListener('mouseenter',()=>show(point));
+    point.addEventListener('focus',()=>show(point));
+    point.addEventListener('mouseleave',hide);
+    point.addEventListener('blur',hide);
+  });
+}
+
+async function loadDashboard(){const d=await fetch('/api/dashboard').then(r=>r.json());$('#appVersion').textContent=`v${d.version||'—'}`;$('#skillScore').textContent=d.essay_count?d.skill_score:'—';$('#skillLevel').textContent=d.essay_count?`${d.cefr} estimate`:'No data yet';$('#recentAvg').textContent=d.essay_count?d.recent_average:'—';$('#streak').textContent=d.streak;$('#essayCount').textContent=d.essay_count;$('#revisionCount').textContent=`${d.revision_count} total submissions`;$('#trendChart').innerHTML=lineChart(d.trend);bindChartTooltip();$('#metricBars').innerHTML=bars(d.metrics);$('#errorBars').innerHTML=bars(d.error_counts,true);renderErrorMemory(d.error_memory||[]);if(!d.essay_count)$('#milestone').innerHTML='<div class="empty">Your first milestone appears after one essay.</div>';else if(d.next_level){const pct=Math.min(100,d.skill_score/d.next_level.threshold*100);$('#milestone').innerHTML=`<div class="level-big">${d.cefr}<span>${d.skill_score}/100</span></div><div class="bar big"><i style="width:${pct}%"></i></div><p><b>${d.next_level.remaining}</b> points to ${d.next_level.level}.</p>`;}else $('#milestone').innerHTML='<div class="level-big">C2 <span>90+</span></div><p>Top internal progress band reached.</p>';}
 function renderErrorMemory(items){const el=$('#errorMemory');if(!items.length){el.innerHTML='<div class="empty">No recurring errors yet.</div>';return;}el.innerHTML=items.map(x=>`<div class="memory-row"><div><b>${esc(x.category.replaceAll('_',' '))}</b><small>${x.total} occurrences · ${x.first_seen} → ${x.last_seen}</small></div><span class="memory-status ${x.status}">${x.status}</span></div>`).join('');}
 
 async function submitEssay(){const text=$('#essayText').value.trim();if(text.length<10){alert('Write at least a short paragraph first.');return;}const btn=$('#submitBtn');btn.disabled=true;btn.textContent='Evaluating…';$('#resultPane').className='card result-card loading';$('#resultPane').innerHTML='<div class="spinner"></div><p>Local evaluator is reading your writing…</p>';try{const r=await fetch('/api/evaluate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:$('#prompt').value,text,target_cefr:$('#target').value,parent_essay_id:revisionParentId})});const d=await r.json();if(!r.ok)throw new Error(d.detail||'Evaluation failed');revisionParentId=d.id;renderResult(d);loadDashboard();}catch(e){$('#resultPane').innerHTML=`<div class="error">${esc(e.message)}</div>`;}finally{btn.disabled=false;btn.textContent='Evaluate & save';}}

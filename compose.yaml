@@ -1,4 +1,4 @@
-name: ai-writing-coach
+﻿name: ai-writing-coach
 
 services:
   writing-coach:
@@ -11,7 +11,6 @@ services:
       OLLAMA_TIMEOUT: ${OLLAMA_TIMEOUT:-180}
       WRITING_DB: /data/writing.db
       ALLOW_FALLBACK: ${ALLOW_FALLBACK:-false}
-      APP_VERSION: ${APP_VERSION:-0.3.0}
     volumes:
       - writing_data:/data
     ports:
