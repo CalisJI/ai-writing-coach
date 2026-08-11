@@ -75,3 +75,6 @@ class ProductService:
 
 
 product_service = ProductService()
+
+def configure_product_repository(repository: ProductRepository) -> None:
+    product_service.repository = repository

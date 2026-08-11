@@ -25,6 +25,10 @@ class AIConfigIn(BaseModel):
 
 _platform_repository = SQLitePlatformRepository(PLATFORM_DB_PATH)
 
+def configure_platform_repository(repository: SQLitePlatformRepository) -> None:
+    global _platform_repository
+    _platform_repository = repository
+
 
 def init_platform_ai_db() -> None:
     _platform_repository.initialize()

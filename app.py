@@ -28,11 +28,13 @@ from writing_coach.languages.runtime import (
     validate_target_level,
     writing_unit_count,
 )
-from auth_support import APP_ENV, AUTH_ENABLED, current_db_path, install_auth, require_admin
+from auth_support import APP_ENV, AUTH_ENABLED, current_db_path, install_auth, require_admin, AUTH_DB_PATH, configure_auth_repository
 from writing_coach.product.api import router as product_router
 from writing_coach.core.platform_api import router as platform_router
 from writing_coach.ai.base import AIProviderError, AIProviderUnavailable
-from writing_coach.ai.platform import active_ai_label, active_ai_status, generate_structured, install_platform_ai
+from writing_coach.ai.platform import active_ai_label, active_ai_status, generate_structured, install_platform_ai, configure_platform_repository
+from writing_coach.product.service import configure_product_repository
+from writing_coach.persistence.runtime import build_runtime
 from writing_coach.persistence.learning_repository import (
     SQLiteLearningCacheRepository,
     SQLiteLearningRepository,
@@ -117,9 +119,13 @@ class SaveWordIn(BaseModel):
     definition: str = Field(default="", max_length=1200)
     translation_vi: str = Field(default="", max_length=1200)
 
-_learning_repository = SQLiteLearningRepository(lambda: current_db_path(DB_PATH))
+_persistence_runtime = build_runtime(auth_db=AUTH_DB_PATH, platform_db=Path(os.getenv("PLATFORM_DB", ROOT / "data" / "platform.db")), product_db=Path(os.getenv("PRODUCT_DB", ROOT / "data" / "product.db")), learning_path=lambda: current_db_path(DB_PATH))
+configure_auth_repository(_persistence_runtime.auth_repository)
+configure_platform_repository(_persistence_runtime.platform_repository)
+configure_product_repository(_persistence_runtime.product_repository)
+_learning_repository = _persistence_runtime.learning_repository
 _learning_cache = SQLiteLearningCacheRepository(_learning_repository)
-_specialized_learning_repository = SQLiteSpecializedLearningRepository(_learning_repository.connect)
+_specialized_learning_repository = _persistence_runtime.specialized_learning_repository
 
 
 def init_db() -> None:

@@ -78,6 +78,10 @@ def current_db_path(legacy_db: Path | None = None) -> Path:
 
 _auth_repository = SQLiteAuthRepository(AUTH_DB_PATH)
 
+def configure_auth_repository(repository: SQLiteAuthRepository) -> None:
+    global _auth_repository
+    _auth_repository = repository
+
 
 def init_auth_db() -> None:
     _auth_repository.initialize(PLATFORM_ADMIN_EMAILS)
