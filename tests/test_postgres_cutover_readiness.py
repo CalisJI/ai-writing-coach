@@ -42,20 +42,40 @@ def test_verify_alembic_head_success_returns_evidence(monkeypatch, rehearsal_mod
     assert result == {"step": "alembic-head-verification", "returncode": 0, "expected_revision": "head", "actual_revision": "head"}
 
 
-@pytest.mark.parametrize("failure", [RuntimeError("PostgreSQL Alembic revision mismatch: expected expected, actual actual."), RuntimeError("connection unavailable")])
-def test_final_head_failures_are_structured(monkeypatch, capsys, rehearsal_module, failure) -> None:
+def _head_dependencies(monkeypatch, module, expected: str, actual: str | None = None, error: Exception | None = None) -> None:
+    class Connection:
+        def __enter__(self): return self
+        def __exit__(self, *args): return False
+    class Engine:
+        def connect(self):
+            if error: raise error
+            return Connection()
+    monkeypatch.setattr(module, "create_shadow_engine", lambda _url: Engine())
+    monkeypatch.setattr(module.ScriptDirectory, "from_config", lambda _cfg: type("S", (), {"get_current_head": lambda self: expected})())
+    monkeypatch.setattr(module.MigrationContext, "configure", lambda _connection: type("C", (), {"get_current_revision": lambda self: actual})())
+
+
+def test_verify_alembic_head_real_mismatch_includes_revisions(monkeypatch, rehearsal_module) -> None:
+    _head_dependencies(monkeypatch, rehearsal_module, "expected-rev", "actual-rev")
+    with pytest.raises(RuntimeError, match="expected-rev.*actual-rev"):
+        rehearsal_module.verify_alembic_head("postgresql+psycopg://redacted")
+
+
+@pytest.mark.parametrize("expected,actual,error", [("expected-rev", "actual-rev", None), ("expected-rev", None, RuntimeError("connection unavailable"))])
+def test_final_head_failures_are_structured(monkeypatch, capsys, rehearsal_module, expected, actual, error) -> None:
     monkeypatch.setattr(rehearsal_module, "discover_sources", lambda _path: Discovery(data_root=Path("/data")))
     monkeypatch.setattr(rehearsal_module, "run", lambda label, command, completed: {"step": label, "returncode": 0})
-    monkeypatch.setattr(rehearsal_module, "verify_alembic_head", lambda _url: (_ for _ in ()).throw(failure))
+    _head_dependencies(monkeypatch, rehearsal_module, expected, actual, error)
     monkeypatch.setattr(rehearsal_module, "shadow_url", lambda: "postgresql+psycopg://redacted")
     monkeypatch.setattr(sys, "argv", ["rehearsal"])
     with pytest.raises(SystemExit): rehearsal_module.main()
-    report = json.loads(capsys.readouterr().out)
+    output = capsys.readouterr().out
+    report = json.loads(output)
     assert report["ok"] is False and report["runtime"] == "sqlite"
     assert report["completed_steps"]
     assert report["failing_step"]["step"] == "alembic-head-verification"
-    assert "PASS" not in capsys.readouterr().out
-    if "mismatch" in str(failure): assert "expected" in report["failing_step"]["error"] and "actual" in report["failing_step"]["error"]
+    assert "PASS" not in output
+    if error is None: assert "expected-rev" in report["failing_step"]["error"] and "actual-rev" in report["failing_step"]["error"]
 
 
 def test_orphan_preflight_prevents_subprocess(monkeypatch, capsys, rehearsal_module) -> None:
@@ -63,8 +83,10 @@ def test_orphan_preflight_prevents_subprocess(monkeypatch, capsys, rehearsal_mod
     monkeypatch.setattr(rehearsal_module, "run", lambda *args: pytest.fail("subprocess invoked after orphan preflight"))
     monkeypatch.setattr(sys, "argv", ["rehearsal"])
     with pytest.raises(SystemExit): rehearsal_module.main()
-    report=json.loads(capsys.readouterr().out)
+    output=capsys.readouterr().out
+    report=json.loads(output)
     assert report["ok"] is False and report["failing_step"]["step"] == "source-discovery"
+    assert "orphan-hash" in report["failing_step"]["orphan_user_dirs"]
 
 
 def _domain_fixture(tmp_path: Path, subscription_end: str, usage_at: str, auth_email: str = "a@example.com"):
