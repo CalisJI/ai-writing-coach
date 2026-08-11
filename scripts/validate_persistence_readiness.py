@@ -50,7 +50,6 @@ def main() -> None:
     for rel in [
         "writing_coach/persistence/read_compare.py",
         "writing_coach/persistence/cutover_verification.py",
-        "writing_coach/persistence/cutover_verification.py",
         "scripts/persistence_readiness.py",
         "docs/PERSISTENCE_RUNTIME_READINESS.md",
     ]:
