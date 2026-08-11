@@ -17,7 +17,7 @@ def text(rel: str) -> str:
 
 
 def main() -> None:
-    req((ROOT / "VERSION").read_text(encoding="utf-8").strip() in {"1.3.1", "1.3.2", "1.3.3", "1.3.4"}, "app version must remain on readiness line")
+    req((ROOT / "VERSION").read_text(encoding="utf-8").strip() in {"1.3.1", "1.3.2", "1.3.3", "1.3.4", "1.3.5"}, "app version must remain on readiness line")
     req((ROOT / "BECOMING_FRONTEND_VERSION").read_text(encoding="utf-8").strip() == "2.15.7", "frontend version must remain 2.15.7")
 
     auth = text("auth_support.py")

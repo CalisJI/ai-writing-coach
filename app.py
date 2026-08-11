@@ -28,7 +28,7 @@ from writing_coach.languages.runtime import (
     validate_target_level,
     writing_unit_count,
 )
-from auth_support import AUTH_ENABLED, current_db_path, install_auth, require_admin
+from auth_support import APP_ENV, AUTH_ENABLED, current_db_path, install_auth, require_admin
 from writing_coach.product.api import router as product_router
 from writing_coach.core.platform_api import router as platform_router
 from writing_coach.ai.base import AIProviderError, AIProviderUnavailable
@@ -598,12 +598,22 @@ def health() -> dict[str, Any]:
     ai = active_ai_status()
     return {
         "ok": True,
+        "platform_admin": True,
         "version": APP_VERSION,
         "schema_version": SCHEMA_VERSION,
         "ai_ready": ai["ready"],
         "auth_enabled": AUTH_ENABLED,
         "auth_provider": "google" if AUTH_ENABLED else "local",
-        "platform_admin": True,
+    }
+
+
+@app.get("/api/readiness")
+def readiness() -> dict[str, Any]:
+    """Non-sensitive configuration readiness for local and public operations."""
+    return {
+        "ready": True,
+        "environment": APP_ENV,
+        "auth_enabled": AUTH_ENABLED,
     }
 
 TASK_TYPE_GUIDANCE = {

@@ -76,6 +76,7 @@ def main() -> None:
         root / "docs" / "BECOMING_VISUAL_REFERENCE_ALIGNMENT_ADDENDUM.md",
         root / "docs" / "BECOMING_HIGH_FIDELITY_IMPLEMENTATION_MODE.md",
         root / "docs" / "BECOMING_UIUX_IMPLEMENTATION_CONTRACT.md",
+        root / "docs" / "PUBLIC_DEPLOYMENT.md",
     ]
     for path in required:
         if not path.exists():
@@ -599,6 +600,13 @@ def main() -> None:
         errors.append("v1.3 no-cutover guard: PostgreSQL product repository activated before cutover")
     if "create_shadow_engine" in app:
         errors.append("v1.3 no-cutover guard: app.py activated PostgreSQL shadow engine")
+    deployment = read("writing_coach/core/deployment.py")
+    if "PUBLIC_BASE_URL is required when APP_ENV=production." not in deployment:
+        errors.append("v1.3.5 production public-origin guard missing")
+    if "Google authentication must be configured when APP_ENV=production." not in deployment:
+        errors.append("v1.3.5 production authentication guard missing")
+    if '"/api/readiness"' not in read("auth_support.py") or '@app.get("/api/readiness")' not in app:
+        errors.append("v1.3.5 non-sensitive readiness route missing")
     if 'profiles: ["postgres"]' not in compose:
         errors.append("v1.3 no-cutover guard: PostgreSQL compose service is not opt-in")
 

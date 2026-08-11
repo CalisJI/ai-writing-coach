@@ -6,7 +6,6 @@ from contextvars import ContextVar
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Callable
-from urllib.parse import urlparse
 
 from fastapi import APIRouter, FastAPI, HTTPException, Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
@@ -18,6 +17,7 @@ from starlette.middleware.sessions import SessionMiddleware
 from writing_coach.core.request_context import LANGUAGE_CODE_CTX, USER_KEY_CTX, current_language_code
 from writing_coach.core.storage import resolve_language_db_path
 from writing_coach.core.language_registry import DEFAULT_LANGUAGE, enabled_language
+from writing_coach.core.deployment import DeploymentConfig, resolve_deployment_config
 from writing_coach.persistence.auth_repository import SQLiteAuthRepository
 
 ROOT = Path(__file__).resolve().parent
@@ -25,12 +25,12 @@ LEGACY_DB_PATH = Path(os.getenv("WRITING_DB", ROOT / "data" / "writing.db"))
 AUTH_DB_PATH = Path(os.getenv("AUTH_DB", LEGACY_DB_PATH.parent / "auth.db"))
 USER_DATA_ROOT = Path(os.getenv("USER_DATA_ROOT", LEGACY_DB_PATH.parent / "users"))
 
+DEPLOYMENT: DeploymentConfig = resolve_deployment_config()
+APP_ENV = DEPLOYMENT.app_env
+PUBLIC_BASE_URL = DEPLOYMENT.public_base_url
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "").strip()
 GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET", "").strip()
-GOOGLE_REDIRECT_URI = os.getenv(
-    "GOOGLE_REDIRECT_URI",
-    "http://127.0.0.1:8000/auth/google/callback",
-).strip()
+GOOGLE_REDIRECT_URI = DEPLOYMENT.google_redirect_uri
 SESSION_SECRET = os.getenv("SESSION_SECRET", "").strip()
 BOOTSTRAP_OWNER_EMAIL = os.getenv("BOOTSTRAP_OWNER_EMAIL", "").strip().casefold()
 PLATFORM_ADMIN_EMAILS = {
@@ -41,14 +41,10 @@ PLATFORM_ADMIN_EMAILS = {
 if BOOTSTRAP_OWNER_EMAIL:
     PLATFORM_ADMIN_EMAILS.add(BOOTSTRAP_OWNER_EMAIL)
 
-AUTH_ENABLED = bool(GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET)
-COOKIE_SECURE = GOOGLE_REDIRECT_URI.casefold().startswith("https://")
+AUTH_ENABLED = DEPLOYMENT.auth_enabled
+COOKIE_SECURE = DEPLOYMENT.cookie_secure
 
-if AUTH_ENABLED and not SESSION_SECRET:
-    raise RuntimeError("SESSION_SECRET is required when Google authentication is enabled.")
-
-parsed_redirect = urlparse(GOOGLE_REDIRECT_URI)
-if AUTH_ENABLED and parsed_redirect.scheme == "http" and parsed_redirect.hostname in {"localhost", "127.0.0.1", "::1"}:
+if AUTH_ENABLED and GOOGLE_REDIRECT_URI.startswith("http://"):
     os.environ.setdefault("OAUTHLIB_INSECURE_TRANSPORT", "1")
 
 _user_key = USER_KEY_CTX
@@ -100,6 +96,8 @@ def upsert_auth_user(info: dict[str, Any]) -> dict[str, Any]:
 
 def require_admin(request: Request) -> dict[str, Any]:
     if not AUTH_ENABLED:
+        if DEPLOYMENT.production:
+            raise HTTPException(503, "Production authentication is not configured.")
         return {"google_sub":"local-admin","email":"local","name":"Local developer","role":"admin"}
     sub = str(request.session.get("user_sub") or "")
     user = auth_user(sub)
@@ -272,6 +270,7 @@ class UserIsolationMiddleware(BaseHTTPMiddleware):
         public = (
             path == "/login"
             or path == "/api/health"
+            or path == "/api/readiness"
             or path == "/api/platform/languages"
             or path.startswith("/auth/")
             or path.startswith("/static/")

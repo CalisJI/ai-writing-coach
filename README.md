@@ -156,3 +156,10 @@ Memory, practice outcomes, active recall, reading, and linguistic annotation per
 Specialized BECOMING SQLite schema initialization now belongs to the specialized
 repository rather than the service modules. SQLite remains authoritative;
 PostgreSQL remains shadow-only.
+
+## Public deployment readiness (v1.3.5)
+
+Local and public configuration now use `APP_ENV` and `PUBLIC_BASE_URL`; public
+HTTPS deployment requires Google OAuth and a session secret. See
+[`docs/PUBLIC_DEPLOYMENT.md`](docs/PUBLIC_DEPLOYMENT.md) for Cloudflare Tunnel,
+Google OAuth callback, readiness, and backup guidance.

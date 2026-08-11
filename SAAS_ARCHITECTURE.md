@@ -143,3 +143,11 @@ Memory, practice outcomes, active recall, reading, and linguistic annotation per
 The specialized SQLite repository owns its durable schema bootstrap and legacy
 compatibility backfills. Service modules are storage-neutral; SQLite remains
 authoritative and PostgreSQL remains shadow-only.
+
+## v1.3.5 public deployment foundation
+
+Public deployment is configuration-led: `APP_ENV=production` requires a
+non-local HTTPS `PUBLIC_BASE_URL`, Google OAuth, and `SESSION_SECRET`. The
+callback derives from the public origin unless explicitly overridden. Runtime
+persistence selection is unchanged: SQLite remains authoritative and PostgreSQL
+remains shadow-only.
