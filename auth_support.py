@@ -18,7 +18,7 @@ from writing_coach.core.request_context import LANGUAGE_CODE_CTX, USER_KEY_CTX, 
 from writing_coach.core.storage import resolve_language_db_path
 from writing_coach.core.language_registry import DEFAULT_LANGUAGE, enabled_language
 from writing_coach.core.deployment import DeploymentConfig, resolve_deployment_config
-from writing_coach.persistence.auth_repository import SQLiteAuthRepository
+from writing_coach.persistence.auth_repository import AuthRepository, SQLiteAuthRepository
 
 ROOT = Path(__file__).resolve().parent
 LEGACY_DB_PATH = Path(os.getenv("WRITING_DB", ROOT / "data" / "writing.db"))
@@ -78,7 +78,7 @@ def current_db_path(legacy_db: Path | None = None) -> Path:
 
 _auth_repository = SQLiteAuthRepository(AUTH_DB_PATH)
 
-def configure_auth_repository(repository: SQLiteAuthRepository) -> None:
+def configure_auth_repository(repository: AuthRepository) -> None:
     global _auth_repository
     _auth_repository = repository
 

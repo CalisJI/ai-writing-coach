@@ -9,7 +9,7 @@ from pydantic import BaseModel, Field
 
 from writing_coach.ai.base import AIProviderError, AIProviderUnavailable, AIResult
 from writing_coach.ai.providers import build_providers
-from writing_coach.persistence.platform_repository import SQLitePlatformRepository
+from writing_coach.persistence.platform_repository import PlatformRepository, SQLitePlatformRepository
 
 ROOT = Path(__file__).resolve().parents[2]
 PLATFORM_DB_PATH = Path(os.getenv("PLATFORM_DB", ROOT / "data" / "platform.db"))
@@ -25,7 +25,7 @@ class AIConfigIn(BaseModel):
 
 _platform_repository = SQLitePlatformRepository(PLATFORM_DB_PATH)
 
-def configure_platform_repository(repository: SQLitePlatformRepository) -> None:
+def configure_platform_repository(repository: PlatformRepository) -> None:
     global _platform_repository
     _platform_repository = repository
 

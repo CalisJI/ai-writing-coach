@@ -124,7 +124,7 @@ configure_auth_repository(_persistence_runtime.auth_repository)
 configure_platform_repository(_persistence_runtime.platform_repository)
 configure_product_repository(_persistence_runtime.product_repository)
 _learning_repository = _persistence_runtime.learning_repository
-_learning_cache = SQLiteLearningCacheRepository(_learning_repository)
+_learning_cache = SQLiteLearningCacheRepository(lambda: SQLiteLearningRepository(lambda: current_db_path(DB_PATH).with_name("learning_cache.db")).connect())
 _specialized_learning_repository = _persistence_runtime.specialized_learning_repository
 
 
