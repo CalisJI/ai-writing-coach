@@ -4,9 +4,13 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>AI Writing Coach</title>
-  <link rel="stylesheet" href="/static/style.css?v=1.1.0">
+  <link rel="stylesheet" href="/static/style.css?v=1.2.0">
+  <link rel="stylesheet" href="/static/product-v120.css?v=1.2.5">
+  <link rel="stylesheet" href="/static/product-theme-v121.css?v=1.2.5">
+  <link rel="stylesheet" href="/static/product-ux-v122.css?v=1.2.5">
+  <link rel="stylesheet" href="/static/product-design-v123.css?v=1.2.5">
 </head>
-<body data-theme="comfort" data-font-scale="large">
+<body class="product-shell-v120" data-theme="light" data-font-scale="normal">
 <div class="app-shell">
   <aside class="sidebar">
     <div class="brand">
@@ -74,11 +78,19 @@
         </div>
       </div>
       <div id="ollamaStatus" class="status">● checking Ollama…</div>
-      <small>Data stays in local SQLite.</small>
     </div>
   </aside>
 
   <main class="main">
+    <div class="product-topbar" id="productTopbar">
+      <div class="product-topbar-left">
+        <span class="product-topbar-title">Learning workspace</span>
+      </div>
+      <div class="product-topbar-right">
+        <div id="productTopbarLanguage"></div>
+        <span id="productPlanBadge" class="product-plan-badge" data-plan="free">Free</span>
+      </div>
+    </div>
     <section id="page-dashboard" class="page active">
       <header><div><h1>Writing Dashboard</h1><p>Your English writing skill, measured over time.</p></div><button class="primary" onclick="newWriting()">+ New writing</button></header>
       <div class="cards four">
@@ -344,10 +356,13 @@
 </div>
 
 <div id="modal" class="modal hidden"><div class="modal-card"><button class="close" onclick="closeModal()">×</button><div id="modalContent"></div></div></div>
-<script src="/static/app.js?v=1.1.0"></script>
-<script src="/static/language.js?v=1.1.0"></script>
-<script src="/static/chinese.js?v=1.1.0"></script>
-<script src="/static/account.js?v=0.9.1"></script>
-<script src="/static/admin.js?v=0.9.2"></script>
+<script src="/static/app.js?v=1.2.0"></script>
+<script src="/static/language.js?v=1.2.0"></script>
+<script src="/static/chinese.js?v=1.2.5"></script>
+<script src="/static/account.js?v=1.2.0"></script>
+<script src="/static/admin.js?v=1.2.0"></script>
+<script src="/static/product-shell.js?v=1.2.5"></script>
+<script src="/static/product-ux-v122.js?v=1.2.5"></script>
+<script src="/static/product-design-v124.js?v=1.2.5"></script>
 </body>
 </html>

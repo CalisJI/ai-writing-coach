@@ -19,6 +19,7 @@ services:
       AUTH_DB: /data/auth.db
       USER_DATA_ROOT: /data/users
       PLATFORM_DB: /data/platform.db
+      PRODUCT_DB: /data/product.db
       PLATFORM_ADMIN_EMAILS: ${PLATFORM_ADMIN_EMAILS:-}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       OPENAI_BASE_URL: ${OPENAI_BASE_URL:-https://api.openai.com/v1}
@@ -29,8 +30,15 @@ services:
       CLOUD_AI_TIMEOUT: ${CLOUD_AI_TIMEOUT:-180}
     volumes:
       - writing_data:/data
+      - ./app.py:/app/app.py:ro
+      - ./auth_support.py:/app/auth_support.py:ro
+      - ./grammar_course.py:/app/grammar_course.py:ro
+      - ./writing_coach:/app/writing_coach:ro
+      - ./VERSION:/app/VERSION:ro
+      - ./static:/app/static:ro
+      - ./templates:/app/templates:ro
     ports:
-      - "127.0.0.1:8000:8000"
+      - "8000:8000"
     extra_hosts:
       - "host.docker.internal:host-gateway"
 

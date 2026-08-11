@@ -317,6 +317,7 @@ class UserIsolationMiddleware(BaseHTTPMiddleware):
             or path == "/api/platform/languages"
             or path.startswith("/auth/")
             or path.startswith("/static/")
+            or path.startswith("/becoming-assets/")
             or path == "/favicon.ico"
         )
 

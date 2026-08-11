@@ -1,0 +1,93 @@
+# SaaS Product Architecture
+
+Writing Coach is moving from a local-first prototype to a multi-user SaaS product.
+
+## Product direction
+
+The architecture remains a modular monolith while the product is still evolving:
+
+- FastAPI remains the backend/API host.
+- Language modules continue to own language-specific evaluation/curriculum behavior.
+- AI providers remain hidden from learners and are controlled by Platform Admin.
+- Product plans and feature access are resolved through a dedicated entitlement layer.
+- Billing providers must update subscription state; application features must not call billing vendors directly.
+- Learning features must ask the entitlement service instead of checking `user.premium`.
+- Frontend UX should expose learning concepts, not infrastructure concepts.
+
+## Transitional v1.2 storage
+
+v1.2 introduces one centralized `product.db` for subscription state and usage events.
+
+This is deliberately isolated behind `ProductRepository`.
+It is NOT the final SaaS database design.
+
+The next data-foundation milestone will add:
+
+- PostgreSQL
+- SQLAlchemy 2
+- Alembic migrations
+- repository implementations backed by PostgreSQL
+- an importer for existing SQLite learning data
+- verification before switching reads/writes
+
+Old SQLite learning data must not be deleted during migration.
+
+## Planned PostgreSQL domains
+
+- users
+- user_language_profiles
+- essays
+- essay_revisions
+- writing_errors
+- saved_words
+- grammar_progress
+- subscriptions
+- plans
+- plan_entitlements
+- usage_events
+- platform_settings
+- audit_logs
+
+Every learning row should carry a stable `user_id` and `language_code`.
+
+## Product plans
+
+The application starts with product catalog definitions:
+
+- Free
+- Premium
+
+Plans grant entitlements such as:
+
+- `writing.evaluate`
+- `writing.improve`
+- `library.grammar`
+- `dictionary.lookup`
+- `vocabulary.save`
+- `analytics.basic`
+- `analytics.advanced`
+- `practice.personalized`
+- `export.report`
+
+Quota enforcement will be activated endpoint-by-endpoint after billing and PostgreSQL are ready.
+
+## UI rules
+
+Learners should not see:
+
+- Ollama/provider names
+- model names
+- API keys
+- database implementation details
+- technical health messages
+
+Learners should see:
+
+- what to do next
+- current learning language
+- plan name
+- writing feedback
+- progress
+- saved learning content
+
+Theme/font controls belong in account/settings rather than primary navigation.

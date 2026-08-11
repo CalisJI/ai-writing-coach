@@ -1,17 +1,93 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Sign in · Writing Coach</title><style>
-*{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;background:#0f1724;color:#e8edf5;font-family:Inter,system-ui,sans-serif;padding:20px}
-.shell{width:min(960px,100%);display:grid;grid-template-columns:1.1fr .9fr;border:1px solid #2b394d;background:#172233;border-radius:24px;overflow:hidden;box-shadow:0 28px 80px rgba(0,0,0,.32)}
-.intro{padding:52px;background:linear-gradient(145deg,#191f3d,#192a42)}.mark{width:58px;height:58px;display:grid;place-items:center;border-radius:18px;background:linear-gradient(145deg,#8478ff,#5b5ce2);font-size:26px;font-weight:900}
-h1{font-size:42px;letter-spacing:-.04em;margin:24px 0 12px}.intro p{color:#a9b6c9;font-size:17px;line-height:1.65}.features{display:grid;gap:12px;margin-top:32px;color:#c8d3e1}
-.login{padding:52px 42px;display:grid;align-content:center}.login h2{font-size:26px;margin:0 0 8px}.login p{color:#96a5ba;line-height:1.55;margin:0 0 26px}
-.google{display:flex;align-items:center;justify-content:center;gap:12px;text-decoration:none;color:#172033;background:#fff;border-radius:12px;padding:14px 18px;font-weight:800;border:1px solid #d9dfe8}
-.g{font:900 20px Arial;color:#4285f4}small{display:block;color:#73849b;margin-top:18px;line-height:1.55}.version{margin-top:28px;color:#62748c;font-size:12px}
-@media(max-width:720px){.shell{grid-template-columns:1fr}.intro,.login{padding:32px}h1{font-size:32px}}
-</style></head><body><main class="shell">
-<section class="intro"><div class="mark">W</div><h1>Writing Coach</h1><p>Your private writing workspace: practice, revise, track progress, learn grammar and build vocabulary.</p>
-<div class="features"><span>✓ Personal essays and progress</span><span>✓ Local Ollama writing evaluation</span><span>✓ Separate learning history for every account</span></div></section>
-<section class="login"><h2>Welcome back</h2><p>Sign in to open your personal Writing Coach workspace.</p><a class="google" href="/auth/google"><span class="g">G</span> Continue with Google</a>
-<small>The app requests basic identity information needed for your account: name, email and profile picture.</small><div class="version">Writing Coach v{{APP_VERSION}}</div></section>
-</main></body></html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Sign in · Writing Coach</title>
+  <style>
+    :root{
+      --bg:#f7f8fc;--surface:#fff;--text:#172033;--muted:#6d788b;
+      --line:#e6e9f0;--accent:#5b5ce2;--accent2:#7678ee;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;min-height:100vh;display:grid;place-items:center;padding:24px;
+      background:
+        radial-gradient(circle at 15% 15%,rgba(91,92,226,.10),transparent 28%),
+        radial-gradient(circle at 90% 85%,rgba(118,120,238,.09),transparent 28%),
+        var(--bg);
+      color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+    }
+    .shell{
+      width:min(1040px,100%);display:grid;grid-template-columns:1.05fr .95fr;
+      overflow:hidden;border:1px solid var(--line);border-radius:28px;background:var(--surface);
+      box-shadow:0 28px 80px rgba(35,45,75,.12);
+    }
+    .intro{
+      padding:58px;background:
+        radial-gradient(circle at 85% 10%,rgba(255,255,255,.16),transparent 24%),
+        linear-gradient(145deg,#5b5ce2,#6d70e9);
+      color:#fff;
+    }
+    .brand{display:flex;align-items:center;gap:12px;font-weight:900}
+    .mark{
+      width:48px;height:48px;display:grid;place-items:center;border-radius:15px;
+      background:rgba(255,255,255,.17);border:1px solid rgba(255,255,255,.2);
+      font-size:20px;
+    }
+    h1{font-size:44px;letter-spacing:-.045em;line-height:1.05;margin:56px 0 16px}
+    .intro>p{max-width:520px;color:#e8e9ff;font-size:17px;line-height:1.7;margin:0}
+    .features{display:grid;gap:13px;margin-top:34px}
+    .feature{display:flex;gap:10px;align-items:flex-start;color:#f1f2ff;font-size:14px}
+    .check{
+      width:22px;height:22px;flex:0 0 22px;display:grid;place-items:center;
+      border-radius:999px;background:rgba(255,255,255,.15);font-size:12px;
+    }
+    .login{padding:58px 48px;display:grid;align-content:center}
+    .eyebrow{font-size:12px;letter-spacing:.1em;font-weight:900;color:var(--accent);margin-bottom:10px}
+    h2{font-size:30px;letter-spacing:-.03em;margin:0 0 10px}
+    .login>p{color:var(--muted);line-height:1.65;margin:0 0 30px}
+    .google{
+      min-height:50px;display:flex;align-items:center;justify-content:center;gap:12px;
+      text-decoration:none;color:var(--text);background:#fff;border-radius:13px;
+      padding:13px 18px;font-weight:800;border:1px solid #dce0e8;
+      box-shadow:0 5px 16px rgba(35,45,75,.06);transition:.15s ease;
+    }
+    .google:hover{transform:translateY(-1px);box-shadow:0 10px 24px rgba(35,45,75,.1)}
+    .g{
+      width:24px;height:24px;display:grid;place-items:center;border-radius:50%;
+      font:900 18px Arial;color:#4285f4;
+    }
+    .privacy{margin-top:18px;color:#8792a4;font-size:12px;line-height:1.55}
+    .version{margin-top:30px;color:#a1a9b7;font-size:11px}
+    @media(max-width:760px){
+      body{padding:14px}.shell{grid-template-columns:1fr;border-radius:22px}
+      .intro{padding:34px}.login{padding:36px 30px}
+      h1{font-size:34px;margin-top:36px}
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <section class="intro">
+      <div class="brand"><span class="mark">W</span><span>Writing Coach</span></div>
+      <h1>Write better.<br>Learn from every draft.</h1>
+      <p>Practice English or Chinese, get clear feedback, and turn recurring mistakes into your next learning step.</p>
+      <div class="features">
+        <div class="feature"><span class="check">✓</span><span>Personal writing feedback and revision history</span></div>
+        <div class="feature"><span class="check">✓</span><span>Grammar, vocabulary and progress in one learning workspace</span></div>
+        <div class="feature"><span class="check">✓</span><span>Your learning history stays separate for each account and language</span></div>
+      </div>
+    </section>
+
+    <section class="login">
+      <div class="eyebrow">WELCOME</div>
+      <h2>Continue your learning</h2>
+      <p>Sign in to open your Writing Coach workspace and pick up where you left off.</p>
+      <a class="google" href="/auth/google"><span class="g">G</span> Continue with Google</a>
+      <div class="privacy">Writing Coach uses your basic Google profile information to create and secure your account.</div>
+      <div class="version">Writing Coach v{{APP_VERSION}}</div>
+    </section>
+  </main>
+</body>
+</html>

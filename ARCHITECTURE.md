@@ -117,3 +117,19 @@ Chinese grammar, dictionary, pinyin, translation and saved vocabulary are owned 
 - Chinese dictionary uses the active global AI provider and never exposes provider secrets
 - pinyin is a learning aid generated with dictionary content; ambiguous readings should be interpreted in context
 - HSK labels remain internal learning bands, not official exam scores
+
+
+## SaaS product foundation v1.2
+
+The application is transitioning from a local-style prototype to a multi-user SaaS product.
+
+- keep a modular monolith while product boundaries are still changing
+- learners see learning concepts, not AI/database infrastructure
+- product plans and entitlements live in `writing_coach/product`
+- feature modules must not check `user.premium` directly
+- billing vendors will update subscription state through the product layer
+- v1.2 `product.db` is transitional and centralized; learning SQLite files remain untouched
+- PostgreSQL + SQLAlchemy + Alembic migration is the next data-foundation milestone
+- old SQLite learning data must remain available until migration verification succeeds
+
+See `SAAS_ARCHITECTURE.md`.

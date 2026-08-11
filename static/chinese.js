@@ -54,15 +54,16 @@
   }
 
   function applyChineseLibrary(){
+    // Global navigation is owned by the shared product shell.
+    // Language modules may enable/disable a destination, but must not rename
+    // shared navigation labels. This keeps both languages geometrically stable.
     const nav=document.querySelector('.nav[data-page="library"]');
     if(nav){
       nav.classList.remove('hidden');
-      nav.textContent='▤ Chinese Library';
-      nav.title='';
     }
 
     const header=$('#page-library header h1');
-    if(header)header.textContent='Chinese Learning Library';
+    if(header)header.textContent='Learning Library';
     const headerP=$('#page-library header p');
     if(headerP)headerP.textContent='Ngữ pháp, pinyin và sổ từ vựng tiếng Trung được lưu riêng cho tài khoản của bạn.';
 

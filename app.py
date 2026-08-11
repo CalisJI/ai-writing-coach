@@ -30,11 +30,18 @@ from writing_coach.languages.runtime import (
     writing_unit_count,
 )
 from auth_support import AUTH_ENABLED, current_db_path, install_auth, require_admin
+from writing_coach.product.api import router as product_router
 from writing_coach.core.platform_api import router as platform_router
 from writing_coach.ai.base import AIProviderError, AIProviderUnavailable
 from writing_coach.ai.platform import active_ai_label, active_ai_status, generate_structured, install_platform_ai
+from writing_coach.becoming_memory import (LearnerProfileIn, configure_becoming_memory, ensure_becoming_schema, get_learner_profile, get_learning_memory, put_learner_profile)
+from writing_coach.becoming_practice import PracticeNextIn, build_practice_recommendation, personalize_generated_task
+from writing_coach.becoming_outcomes import PracticeContextIn, configure_becoming_outcomes, get_practice_outcome, list_practice_outcomes
+from writing_coach.becoming_library import LibraryVocabularyIn, VocabularyReviewIn, configure_becoming_library, delete_library_vocabulary, ensure_becoming_library_schema, list_library_vocabulary, review_library_vocabulary, save_library_vocabulary
+from writing_coach.becoming_linguistics import configure_becoming_linguistics, linguistic_annotations_for_essay
+from writing_coach.becoming_reading import ReadingAnswerIn, ReadingGenerateIn, configure_becoming_reading, create_reading_session, ensure_becoming_reading_schema, get_reading_session, list_reading_sessions, submit_reading_answers
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import HTMLResponse
+from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
@@ -50,16 +57,34 @@ APP_VERSION = os.getenv(
     if (ROOT / "VERSION").exists()
     else "dev",
 )
-SCHEMA_VERSION = 6
+SCHEMA_VERSION = 11
 
 app = FastAPI(title="AI Writing Coach", version=APP_VERSION)
 app.mount("/static", StaticFiles(directory=ROOT / "static"), name="static")
+
+BECOMING_ASSET_ROOT = (ROOT / "static" / "becoming").resolve()
+
+@app.get("/becoming-assets/{asset_path:path}", include_in_schema=False)
+def becoming_asset(asset_path: str):
+    # Dedicated BECOMING asset route, isolated from the legacy /static mount.
+    candidate = (BECOMING_ASSET_ROOT / asset_path).resolve()
+    try:
+        candidate.relative_to(BECOMING_ASSET_ROOT)
+    except ValueError as exc:
+        raise HTTPException(404, "Asset not found") from exc
+
+    if not candidate.is_file():
+        raise HTTPException(404, "Asset not found")
+
+    return FileResponse(candidate, headers={"Cache-Control": "no-cache"})
+
 
 class EssayIn(BaseModel):
     prompt: str = Field(default="", max_length=5000)
     text: str = Field(min_length=10, max_length=20000)
     target_cefr: str = Field(default="B2", min_length=2, max_length=12)
     parent_essay_id: int | None = Field(default=None, ge=1)
+    practice_context: PracticeContextIn | None = None
 
 
 class TaskGenerateIn(BaseModel):
@@ -141,6 +166,8 @@ def init_db() -> None:
             conn.execute("ALTER TABLE essays ADD COLUMN level_estimate TEXT")
         if "module_data_json" not in cols:
             conn.execute("ALTER TABLE essays ADD COLUMN module_data_json TEXT NOT NULL DEFAULT '{}'")
+        if "strength_evidence_json" not in cols:
+            conn.execute("ALTER TABLE essays ADD COLUMN strength_evidence_json TEXT NOT NULL DEFAULT '[]'")
         conn.execute("UPDATE essays SET language_code = 'en' WHERE language_code IS NULL OR language_code = ''")
         conn.execute("UPDATE essays SET target_level = target_cefr WHERE target_level IS NULL OR target_level = ''")
         conn.execute("UPDATE essays SET level_estimate = cefr_estimate WHERE level_estimate IS NULL OR level_estimate = ''")
@@ -207,6 +234,9 @@ def init_db() -> None:
             )
             """
         )
+        ensure_becoming_schema(conn)
+        ensure_becoming_library_schema(conn)
+        ensure_becoming_reading_schema(conn)
         conn.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
         conn.commit()
 
@@ -214,7 +244,13 @@ def init_db() -> None:
 
 install_auth(app, init_db)
 app.include_router(platform_router)
+app.include_router(product_router)
 install_platform_ai(app, require_admin)
+configure_becoming_memory(db)
+configure_becoming_outcomes(db)
+configure_becoming_library(db)
+configure_becoming_reading(db, generate_structured)
+configure_becoming_linguistics(db, generate_structured)
 
 def weighted_overall(result: dict[str, Any]) -> float:
     score = sum(float(result[k]) * w for k, w in active_rubric_weights().items())
@@ -297,8 +333,37 @@ def validate_result(raw: dict[str, Any]) -> dict[str, Any]:
     result["strengths_vi"] = clean_vi_list(raw.get("strengths_vi", []), allow_cjk=is_chinese())
     result["priorities_vi"] = clean_vi_list(raw.get("priorities_vi", []), allow_cjk=is_chinese())
 
-    errors: list[dict[str, Any]] = []
     learner_text = str(raw.get("__learner_text", ""))
+    strength_evidence: list[dict[str, Any]] = []
+    for item in raw.get("strength_evidence", [])[:6]:
+        if not isinstance(item, dict):
+            continue
+        category = str(item.get("category", "")).strip()
+        if category not in active_rubric_weights():
+            continue
+        fragment = str(item.get("fragment", ""))[:500].strip()
+        explanation = str(item.get("explanation_vi", ""))[:1500].strip()
+        try:
+            confidence = float(item.get("confidence", 1.0))
+        except (TypeError, ValueError):
+            confidence = 0.0
+
+        if confidence < 0.75:
+            continue
+        if not fragment or (learner_text and fragment not in learner_text):
+            continue
+        if not is_chinese() and contains_cjk(explanation):
+            continue
+
+        strength_evidence.append({
+            "category": category,
+            "fragment": fragment,
+            "explanation_vi": explanation,
+            "confidence": round(max(0.0, min(1.0, confidence)), 2),
+        })
+    result["strength_evidence"] = strength_evidence
+
+    errors: list[dict[str, Any]] = []
     for err in raw.get("errors", [])[:30]:
         if not isinstance(err, dict):
             continue
@@ -346,6 +411,8 @@ def evaluate_with_ai(payload: EssayIn) -> dict[str, Any]:
         "LEARNER TEXT:\n"
         f"{payload.text}\n\n"
         "Evaluate the text using the fixed rubric. Identify recurring/reusable learning points, not just typos. "
+        "Also identify 1-3 exact fragments from the learner text that demonstrate genuine strengths; "
+        "do not invent positive evidence that is not literally present in the learner text. "
         "Return one COMPLETE JSON object that matches the required schema."
     )
     evaluation_schema = {
@@ -359,6 +426,20 @@ def evaluate_with_ai(payload: EssayIn) -> dict[str, Any]:
             "cefr_estimate": {"type": "string", "enum": list(active_levels())},
             "summary_vi": {"type": "string"},
             "strengths_vi": {"type": "array", "items": {"type": "string"}, "maxItems": 6},
+            "strength_evidence": {
+                "type": "array",
+                "maxItems": 6,
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "category": {"type": "string", "enum": list(active_rubric_weights().keys())},
+                        "fragment": {"type": "string"},
+                        "explanation_vi": {"type": "string"},
+                        "confidence": {"type": "number", "minimum": 0, "maximum": 1},
+                    },
+                    "required": ["category", "fragment", "explanation_vi", "confidence"],
+                },
+            },
             "priorities_vi": {"type": "array", "items": {"type": "string"}, "maxItems": 6},
             "errors": {
                 "type": "array", "maxItems": 20,
@@ -382,7 +463,7 @@ def evaluate_with_ai(payload: EssayIn) -> dict[str, Any]:
         "required": [
             "grammar", "vocabulary", "coherence", "task_achievement",
             "naturalness", "cefr_estimate", "summary_vi",
-            "strengths_vi", "priorities_vi", "errors",
+            "strengths_vi", "strength_evidence", "priorities_vi", "errors",
         ],
     }
     ai = generate_structured(
@@ -422,6 +503,7 @@ def heuristic_fallback(payload: EssayIn) -> dict[str, Any]:
         "cefr_estimate": app_cefr(overall),
         "summary_vi": "Chế độ dự phòng chỉ dùng để kiểm tra luồng ứng dụng. Hãy bật AI Coach để nhận đánh giá đầy đủ.",
         "strengths_vi": ["Bài viết có đủ nội dung để lưu vào hồ sơ tiến bộ."],
+        "strength_evidence": [],
         "priorities_vi": ["Kết nối AI Coach để bật đánh giá đầy đủ."],
         "errors": [],
     }
@@ -445,14 +527,24 @@ def row_to_dict(row: sqlite3.Row, detail: bool = False) -> dict[str, Any]:
     d = dict(row)
     if detail:
         d["strengths_vi"] = json.loads(d.pop("strengths_json"))
+        d["strength_evidence"] = json.loads(d.pop("strength_evidence_json", "[]") or "[]")
         d["priorities_vi"] = json.loads(d.pop("priorities_json"))
         d["errors"] = json.loads(d.pop("errors_json"))
+        module_data = json.loads(d.pop("module_data_json", "{}") or "{}")
+        d["module_data"] = module_data if isinstance(module_data, dict) else {}
+        d["practice_context"] = (
+            d["module_data"].get("practice")
+            if isinstance(d["module_data"].get("practice"), dict)
+            else None
+        )
     else:
         d.pop("strengths_json", None)
         d.pop("priorities_json", None)
         d.pop("errors_json", None)
         d.pop("text", None)
         d.pop("summary_vi", None)
+        d.pop("module_data_json", None)
+        d.pop("strength_evidence_json", None)
     return d
 
 
@@ -552,6 +644,14 @@ def home() -> str:
     return (ROOT / "templates" / "index.html").read_text(encoding="utf-8")
 
 
+
+
+@app.get("/becoming", response_class=HTMLResponse)
+@app.get("/becoming/", response_class=HTMLResponse)
+def becoming_preview() -> str:
+    return (
+        ROOT / "templates" / "becoming" / "index.html"
+    ).read_text(encoding="utf-8")
 @app.get("/static/style.css")
 def style() -> HTMLResponse:
     return HTMLResponse((ROOT / "static" / "style.css").read_text(encoding="utf-8"), media_type="text/css")
@@ -1607,9 +1707,9 @@ def api_evaluate(payload: EssayIn) -> dict[str, Any]:
               created_at, prompt, text, word_count, target_cefr,
               grammar, vocabulary, coherence, task_achievement, naturalness,
               overall, cefr_estimate, evaluator, summary_vi,
-              strengths_json, priorities_json, errors_json,
+              strengths_json, strength_evidence_json, priorities_json, errors_json,
               series_id, revision_no, parent_id
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 now, payload.prompt, payload.text, word_count, payload.target_cefr,
@@ -1617,12 +1717,26 @@ def api_evaluate(payload: EssayIn) -> dict[str, Any]:
                 result["task_achievement"], result["naturalness"], overall,
                 result["cefr_estimate"], evaluator, result["summary_vi"],
                 json.dumps(result["strengths_vi"], ensure_ascii=False),
+                json.dumps(result["strength_evidence"], ensure_ascii=False),
                 json.dumps(result["priorities_vi"], ensure_ascii=False),
                 json.dumps(result["errors"], ensure_ascii=False),
                 series_id, revision_no, payload.parent_essay_id,
             ),
         )
         essay_id = int(cur.lastrowid)
+        if payload.practice_context is not None:
+            practice_context = (
+                payload.practice_context.model_dump()
+                if hasattr(payload.practice_context, "model_dump")
+                else payload.practice_context.dict()
+            )
+            conn.execute(
+                "UPDATE essays SET module_data_json = ? WHERE id = ?",
+                (
+                    json.dumps({"practice": practice_context}, ensure_ascii=False),
+                    essay_id,
+                ),
+            )
         if series_id is None:
             series_id = essay_id
             conn.execute("UPDATE essays SET series_id = ? WHERE id = ?", (series_id, essay_id))
@@ -1783,3 +1897,139 @@ def dashboard() -> dict[str, Any]:
         "next_level": next_level,
         "version": APP_VERSION,
     }
+
+# Register BECOMING memory routes explicitly after all application endpoints.
+# This makes route availability deterministic in the final FastAPI app.
+
+# === BECOMING MEMORY DIRECT ROUTES START ===
+# Route ownership is explicit in app.py; service logic stays in becoming_memory.py.
+@app.get("/api/learner-profile", name="becoming_learner_profile_get")
+def becoming_learner_profile_get() -> dict[str, Any]:
+    return get_learner_profile()
+
+@app.put("/api/learner-profile", name="becoming_learner_profile_put")
+def becoming_learner_profile_put(payload: LearnerProfileIn) -> dict[str, Any]:
+    return put_learner_profile(payload)
+
+@app.get("/api/learning-memory", name="becoming_learning_memory_get")
+def becoming_learning_memory_get() -> dict[str, Any]:
+    return get_learning_memory()
+# === BECOMING MEMORY DIRECT ROUTES END ===
+
+# === BECOMING PERSONALIZED PRACTICE ROUTES START ===
+@app.get("/api/practice-recommendation", name="becoming_practice_recommendation")
+def becoming_practice_recommendation() -> dict[str, Any]:
+    return build_practice_recommendation(
+        language=active_profile().code,
+        profile=get_learner_profile(),
+        memory=get_learning_memory(),
+    )
+
+@app.post("/api/practice/next", name="becoming_practice_next")
+def becoming_practice_next(payload: PracticeNextIn) -> dict[str, Any]:
+    language = active_profile().code
+    default_level = "HSK4" if language == "zh" else "B2"
+    target_level = validate_target_level(payload.target_level or default_level)
+
+    recommendation = build_practice_recommendation(
+        language=language,
+        profile=get_learner_profile(),
+        memory=get_learning_memory(),
+        target_level=target_level,
+    )
+
+    task_payload = TaskGenerateIn(
+        task_type=recommendation["task_type"],
+        topic=recommendation["topic"],
+        target_cefr=target_level,
+        word_target=int(recommendation["word_target"]),
+    )
+    task = generate_practice_task(task_payload)
+    personalized = personalize_generated_task(task, recommendation)
+    personalized["prompt"] = task_as_prompt(personalized, target_level)
+    personalized["target_level"] = target_level
+    return personalized
+# === BECOMING PERSONALIZED PRACTICE ROUTES END ===
+
+# === BECOMING PRACTICE OUTCOME ROUTES START ===
+@app.get("/api/practice-outcome/{essay_id}", name="becoming_practice_outcome")
+def becoming_practice_outcome(essay_id: int) -> dict[str, Any]:
+    return get_practice_outcome(essay_id)
+
+
+@app.get("/api/practice-outcomes", name="becoming_practice_outcomes")
+def becoming_practice_outcomes(limit: int = 20) -> dict[str, Any]:
+    return list_practice_outcomes(limit)
+# === BECOMING PRACTICE OUTCOME ROUTES END ===
+
+# === BECOMING VOCABULARY LIBRARY ROUTES START ===
+@app.get("/api/library/vocabulary", name="becoming_library_vocabulary_list")
+def becoming_library_vocabulary_list() -> dict[str, Any]:
+    return list_library_vocabulary()
+
+@app.post("/api/library/vocabulary", name="becoming_library_vocabulary_save")
+def becoming_library_vocabulary_save(payload: LibraryVocabularyIn) -> dict[str, Any]:
+    try:
+        return save_library_vocabulary(payload)
+    except ValueError as exc:
+        raise HTTPException(422, str(exc)) from exc
+
+@app.post("/api/library/vocabulary/{word}/review", name="becoming_library_vocabulary_review")
+def becoming_library_vocabulary_review(
+    word: str,
+    payload: VocabularyReviewIn,
+) -> dict[str, Any]:
+    return review_library_vocabulary(word, payload)
+
+@app.delete("/api/library/vocabulary/{word}", name="becoming_library_vocabulary_delete")
+def becoming_library_vocabulary_delete(word: str) -> dict[str, Any]:
+    return delete_library_vocabulary(word)
+# === BECOMING VOCABULARY LIBRARY ROUTES END ===
+
+# === BECOMING READING STUDIO ROUTES START ===
+@app.get("/api/reading/sessions", name="becoming_reading_sessions")
+def becoming_reading_sessions(limit: int = 8) -> dict[str, Any]:
+    return list_reading_sessions(limit)
+
+@app.get("/api/reading/session/{session_id}", name="becoming_reading_session")
+def becoming_reading_session(session_id: int) -> dict[str, Any]:
+    return get_reading_session(session_id)
+
+@app.post("/api/reading/session", name="becoming_reading_create")
+def becoming_reading_create(payload: ReadingGenerateIn) -> dict[str, Any]:
+    language = active_profile().code
+    default_level = "HSK4" if language == "zh" else "B2"
+    target_level = validate_target_level(payload.target_level or default_level)
+    return create_reading_session(
+        payload,
+        language_code=language,
+        target_level=target_level,
+        learner_profile=get_learner_profile(),
+    )
+
+@app.post("/api/reading/session/{session_id}/answer", name="becoming_reading_answer")
+def becoming_reading_answer(
+    session_id: int,
+    payload: ReadingAnswerIn,
+) -> dict[str, Any]:
+    result = submit_reading_answers(session_id, payload)
+    if not result.get("found", False):
+        raise HTTPException(404, "Reading session not found.")
+    if not result.get("valid", True):
+        raise HTTPException(422, result.get("message") or "Invalid reading answers.")
+    return result
+# === BECOMING READING STUDIO ROUTES END ===
+
+# === BECOMING LINGUISTIC LENS ROUTES START ===
+@app.post("/api/essays/{essay_id}/linguistic-annotations", name="becoming_linguistic_annotations")
+def becoming_linguistic_annotations(essay_id: int) -> dict[str, Any]:
+    try:
+        result = linguistic_annotations_for_essay(essay_id)
+    except AIProviderUnavailable as exc:
+        raise HTTPException(503, "Linguistic analysis is temporarily unavailable.") from exc
+    except AIProviderError as exc:
+        raise HTTPException(502, "Linguistic analysis returned invalid output.") from exc
+    if not result.get("found", False):
+        raise HTTPException(404, "Essay not found.")
+    return result
+# === BECOMING LINGUISTIC LENS ROUTES END ===

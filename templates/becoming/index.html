@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#F7F7F5">
+  <title>BECOMING</title>
+  <script>
+    (() => {
+      try {
+        const saved = localStorage.getItem('becoming.theme.v1');
+        const theme = saved === 'dark' || saved === 'light' ? saved : 'light';
+        const palette = localStorage.getItem('becoming.palette.v1') || 'editorial';
+        const uiLocale = localStorage.getItem('becoming.support-language.v1') || 'vi';
+        document.documentElement.dataset.theme = theme;
+        document.documentElement.dataset.palette = palette;
+        document.documentElement.lang = uiLocale === 'zh' ? 'zh-Hans' : uiLocale;
+      } catch {
+        document.documentElement.dataset.theme = 'light';
+        document.documentElement.dataset.palette = 'editorial';
+      }
+    })();
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;600;700&family=Roboto+Condensed:wght@600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/becoming-assets/tokens.css?v=2.15.7">
+  <link rel="stylesheet" href="/becoming-assets/theme.css?v=2.15.7">
+  <link rel="stylesheet" href="/becoming-assets/base.css?v=2.15.7">
+  <link rel="stylesheet" href="/becoming-assets/app.css?v=2.15.7">
+  <link rel="stylesheet" href="/becoming-assets/physical.css?v=2.15.7">
+  <link rel="stylesheet" href="/becoming-assets/phase3.css?v=2.15.7">
+  <link rel="stylesheet" href="/becoming-assets/phase4.css?v=2.15.7">
+  <link rel="stylesheet" href="/becoming-assets/phase5.css?v=2.15.7">
+  <link rel="stylesheet" href="/becoming-assets/phase6.css?v=2.15.7">
+  <link rel="stylesheet" href="/becoming-assets/phase7.css?v=2.15.7">
+  <link rel="stylesheet" href="/becoming-assets/phase8.css?v=2.15.7">
+  <link rel="stylesheet" href="/becoming-assets/visual-alignment.css?v=2.15.7">
+  <link rel="stylesheet" href="/becoming-assets/consistency-v212.css?v=2.15.7">
+  <link rel="stylesheet" href="/becoming-assets/trusted-ui-v213.css?v=2.15.7">
+  <link rel="stylesheet" href="/becoming-assets/lively-details-v214.css?v=2.15.7">
+</head>
+<body>
+  <a class="skip-link" href="#mainContent">Skip to content</a>
+
+  <div id="app" class="app-shell">
+    <aside class="app-sidebar" aria-label="BECOMING navigation">
+      <div class="sidebar-brand-row">
+        <a class="brand" href="#/home" aria-label="BECOMING home">
+          <span class="brand-mark" aria-hidden="true"><i></i></span>
+          <span>BECOMING</span>
+        </a>
+      </div>
+
+      <nav id="primaryNav" class="primary-nav" aria-label="Primary">
+        <a href="#/home" data-route="home">
+          <span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3.5 10.7 12 3.8l8.5 6.9v8.8a1 1 0 0 1-1 1h-5.2v-6h-4.6v6H4.5a1 1 0 0 1-1-1Z"/></svg></span>
+          <span class="nav-label" data-i18n-label>Home</span>
+        </a>
+        <a href="#/write" data-route="write">
+          <span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m4 19.8 1.2-5.1L15.6 4.3a2 2 0 0 1 2.8 0l1.3 1.3a2 2 0 0 1 0 2.8L9.3 18.8Z"/><path d="m13.8 6.1 4.1 4.1"/></svg></span>
+          <span class="nav-label" data-i18n-label>Write</span>
+        </a>
+        <a href="#/read" data-route="read">
+          <span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 5.2A2.2 2.2 0 0 1 6.2 3H11v16H6.2A2.2 2.2 0 0 0 4 21.2Z"/><path d="M20 5.2A2.2 2.2 0 0 0 17.8 3H13v16h4.8a2.2 2.2 0 0 1 2.2 2.2Z"/></svg></span>
+          <span class="nav-label" data-i18n-label>Read</span>
+        </a>
+        <a href="#/library" data-route="library">
+          <span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 5.5h14v4H5zM5 10h14v4H5zM5 14.5h14v4H5z"/></svg></span>
+          <span class="nav-label" data-i18n-label>Library</span>
+        </a>
+        <a href="#/journey" data-route="journey">
+          <span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M6 20V5.2c3.8-2.7 7.3 2.7 12 0v8.2c-4.7 2.7-8.2-2.7-12 0"/></svg></span>
+          <span class="nav-label" data-i18n-label>Journey</span>
+        </a>
+        <a href="#/profile" data-route="profile">
+          <span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.5"/><path d="M5.5 20c.5-4 2.6-6 6.5-6s6 2 6.5 6"/></svg></span>
+          <span class="nav-label" data-i18n-label>Profile</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <button id="accountButton" class="account-button sidebar-account" type="button" aria-haspopup="menu" aria-expanded="false">
+          <span id="accountAvatar" class="account-avatar" aria-hidden="true">U</span>
+          <span class="sidebar-account-copy">
+            <span id="accountName" class="account-name">Account</span>
+            <small data-account-role>Learner</small>
+          </span>
+          <svg class="sidebar-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m8 10 4 4 4-4"/></svg>
+        </button>
+      </div>
+    </aside>
+
+    <section class="app-workspace">
+      <header class="app-header">
+        <div class="workspace-quiet-mark" aria-hidden="true"><span></span></div>
+        <div class="header-actions">
+          <label class="learning-language-control" for="languageSelect">
+            <span class="utility-label" data-learning-language-label>Learning language</span>
+            <select id="languageSelect" class="language-select" aria-label="Learning language">
+              <option value="">Loading…</option>
+            </select>
+          </label>
+
+          <button id="themeButton" class="theme-button physical-control" type="button" aria-label="Toggle theme">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 15.5A8.5 8.5 0 0 1 8.5 4 8.7 8.7 0 1 0 20 15.5Z"/></svg>
+            <span class="sr-only">Toggle theme</span>
+          </button>
+        </div>
+      </header>
+
+      <main id="mainContent" class="main-content" tabindex="-1"></main>
+    </section>
+
+    <div id="toastRegion" class="toast-region" aria-live="polite" aria-atomic="true"></div>
+
+    <div id="accountMenu" class="account-menu hidden" role="menu">
+      <div class="account-menu-meta">
+        <strong id="accountMenuName">Account</strong>
+        <span id="accountMenuEmail"></span>
+      </div>
+      <button type="button" data-account-action="switch" role="menuitem">Switch account</button>
+      <button type="button" data-account-action="logout" role="menuitem">Sign out</button>
+    </div>
+
+    <div id="dialogBackdrop" class="dialog-backdrop hidden" aria-hidden="true">
+      <section id="dialog" class="dialog" role="dialog" aria-modal="true" aria-labelledby="dialogTitle">
+        <div class="dialog-head">
+          <h2 id="dialogTitle">Details</h2>
+          <button id="dialogClose" class="icon-button" type="button" aria-label="Close dialog">×</button>
+        </div>
+        <div id="dialogBody" class="dialog-body"></div>
+      </section>
+    </div>
+  </div>
+
+  <script type="module" src="/becoming-assets/app.js?v=2.15.7"></script>
+  <script type="module">
+  import { installConsistencyV212 } from "/becoming-assets/consistency-v212.js?v=2.15.7";
+  installConsistencyV212();
+</script>
+  <script type="module">
+  import { installTrustedUiV213 } from "/becoming-assets/trusted-ui-v213.js?v=2.15.7";
+  installTrustedUiV213();
+</script>
+  <script type="module">
+  import { installLivelyDetailsV214 } from "/becoming-assets/lively-details-v214.js?v=2.15.7";
+  installLivelyDetailsV214();
+</script>
+</body>
+</html>
