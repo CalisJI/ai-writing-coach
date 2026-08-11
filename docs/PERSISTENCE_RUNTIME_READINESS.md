@@ -77,3 +77,6 @@ The remaining learning cutover blocker is narrower: BECOMING memory,
 outcomes, Active Recall library, Reading Studio, and linguistic services still
 use transitional SQLite adapters. These are intentionally deferred to the next
 boundary phase instead of being refactored together with stable core routes.
+
+## v1.3.3 specialized persistence boundary
+Memory, practice outcomes, active recall, reading, and linguistic annotation persistence now use a dedicated repository contract. SQLite remains authoritative; the PostgreSQL implementation is ready but not selected.

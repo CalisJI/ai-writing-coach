@@ -1,5 +1,7 @@
 import sqlite3
 
+from writing_coach.persistence.specialized_repository import SQLiteSpecializedLearningRepository
+
 from writing_coach.becoming_reading import (
     ReadingAnswerIn,
     ReadingGenerateIn,
@@ -124,7 +126,8 @@ def main() -> None:
     )
     conn.commit()
 
-    configure_becoming_reading(lambda: conn, fake_generate)
+    repository = SQLiteSpecializedLearningRepository(lambda: conn)
+    configure_becoming_reading(repository, fake_generate)
     ensure_becoming_reading_schema(conn)
 
     session = create_reading_session(
@@ -163,7 +166,7 @@ def main() -> None:
     assert invalid["valid"] is False
 
     configure_becoming_reading(
-        lambda: conn,
+        repository,
         lambda **kwargs: (_ for _ in ()).throw(RuntimeError("offline")),
     )
     fallback = create_reading_session(

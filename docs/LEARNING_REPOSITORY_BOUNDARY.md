@@ -53,3 +53,6 @@ large one-shot refactor across stable learning features.
 No PostgreSQL runtime switch is allowed until the specialized BECOMING service
 adapters are moved behind repository contracts and real SQLite/PostgreSQL
 semantic parity passes for their read/write workflows.
+
+## v1.3.3 specialized persistence boundary
+Memory, practice outcomes, active recall, reading, and linguistic annotation persistence now use a dedicated repository contract. SQLite remains authoritative; the PostgreSQL implementation is ready but not selected.

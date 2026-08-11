@@ -195,14 +195,14 @@ def main() -> None:
     # Accept the old direct connection spelling or the new explicit SQLite
     # repository adapter, but require one of them for every protected service.
     adapter_contracts = [
-        ("configure_becoming_memory(db)", "configure_becoming_memory(_learning_repository.connect)"),
-        ("configure_becoming_outcomes(db)", "configure_becoming_outcomes(_learning_repository.connect)"),
-        ("configure_becoming_library(db)", "configure_becoming_library(_learning_repository.connect)"),
-        ("configure_becoming_reading(db, generate_structured)", "configure_becoming_reading(_learning_repository.connect, generate_structured)"),
-        ("configure_becoming_linguistics(db, generate_structured)", "configure_becoming_linguistics(_learning_repository.connect, generate_structured)"),
+        ("configure_becoming_memory(db)", "configure_becoming_memory(_learning_repository.connect)", "configure_becoming_memory(_specialized_learning_repository)"),
+        ("configure_becoming_outcomes(db)", "configure_becoming_outcomes(_learning_repository.connect)", "configure_becoming_outcomes(_specialized_learning_repository)"),
+        ("configure_becoming_library(db)", "configure_becoming_library(_learning_repository.connect)", "configure_becoming_library(_specialized_learning_repository)"),
+        ("configure_becoming_reading(db, generate_structured)", "configure_becoming_reading(_learning_repository.connect, generate_structured)", "configure_becoming_reading(_specialized_learning_repository, generate_structured)"),
+        ("configure_becoming_linguistics(db, generate_structured)", "configure_becoming_linguistics(_learning_repository.connect, generate_structured)", "configure_becoming_linguistics(_specialized_learning_repository, generate_structured)"),
     ]
-    for old_needle, new_needle in adapter_contracts:
-        if old_needle not in app and new_needle not in app:
+    for old_needle, core_needle, specialized_needle in adapter_contracts:
+        if old_needle not in app and core_needle not in app and specialized_needle not in app:
             errors.append(f"historical app contract missing repository adapter: {old_needle}")
     for schema_needle in ["ensure_becoming_library_schema", "ensure_becoming_reading_schema", "ensure_becoming_schema"]:
         if schema_needle not in app:
@@ -588,7 +588,7 @@ def main() -> None:
     if 'profiles: ["postgres"]' not in compose:
         errors.append("v1.3 no-cutover guard: PostgreSQL compose service is not opt-in")
 
-    # v1.3.1 persistence runtime readiness: close auth/platform SQLite bypasses
+    # v1.3.1 persistence runtime readiness + specialized persistence boundary: close auth/platform SQLite bypasses
     # while keeping all live stores on SQLite until a separately approved cutover.
     readiness_required = [
         root / "writing_coach" / "persistence" / "auth_repository.py",
@@ -654,7 +654,7 @@ def main() -> None:
 
     print("BECOMING RELEASE GATE OK")
     print(f"Frontend version: {frontend_version}")
-    print("Guarded: historical incidents + v2.10 product contracts + HIGH-FIDELITY visual execution + PostgreSQL no-cutover foundation + persistence runtime readiness")
+    print("Guarded: historical incidents + v2.10 product contracts + HIGH-FIDELITY visual execution + PostgreSQL no-cutover foundation + persistence runtime readiness + specialized persistence boundary")
 
 
 if __name__ == "__main__":

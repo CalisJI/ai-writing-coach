@@ -17,7 +17,7 @@ def text(rel: str) -> str:
 
 
 def main() -> None:
-    req((ROOT / "VERSION").read_text(encoding="utf-8").strip() in {"1.3.1", "1.3.2"}, "app version must remain on readiness line")
+    req((ROOT / "VERSION").read_text(encoding="utf-8").strip() in {"1.3.1", "1.3.2", "1.3.3"}, "app version must remain on readiness line")
     req((ROOT / "BECOMING_FRONTEND_VERSION").read_text(encoding="utf-8").strip() == "2.15.7", "frontend version must remain 2.15.7")
 
     auth = text("auth_support.py")
@@ -81,7 +81,7 @@ def main() -> None:
     print("Auth boundary: READY / SQLite active / PostgreSQL implementation present")
     print("Platform boundary: READY / SQLite active / PostgreSQL implementation present")
     print("Product boundary: READY / SQLite active / PostgreSQL implementation present")
-    print("Learning boundary: CORE READY / specialized BECOMING SQLite adapters remain the next cutover blocker")
+    print("Learning boundary: CORE + SPECIALIZED READY / SQLite active / PostgreSQL implementations present")
     print("Runtime cutover: NOT ENABLED")
 
 

@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import sqlite3
 
+from writing_coach.persistence.specialized_repository import SQLiteSpecializedLearningRepository
+
 from writing_coach.becoming_memory import (
     LearnerProfileIn,
     configure_becoming_memory,
@@ -69,7 +71,7 @@ def main() -> None:
     ).fetchone()["c"]
     assert count == 1
 
-    configure_becoming_memory(lambda: conn)
+    configure_becoming_memory(SQLiteSpecializedLearningRepository(lambda: conn))
     saved = put_learner_profile(
         LearnerProfileIn(
             goal="work",

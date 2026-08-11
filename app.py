@@ -37,6 +37,7 @@ from writing_coach.persistence.learning_repository import (
     SQLiteLearningCacheRepository,
     SQLiteLearningRepository,
 )
+from writing_coach.persistence.specialized_repository import SQLiteSpecializedLearningRepository
 from writing_coach.becoming_memory import (LearnerProfileIn, configure_becoming_memory, ensure_becoming_schema, get_learner_profile, get_learning_memory, put_learner_profile)
 from writing_coach.becoming_practice import PracticeNextIn, build_practice_recommendation, personalize_generated_task
 from writing_coach.becoming_outcomes import PracticeContextIn, configure_becoming_outcomes, get_practice_outcome, list_practice_outcomes
@@ -118,6 +119,7 @@ class SaveWordIn(BaseModel):
 
 _learning_repository = SQLiteLearningRepository(lambda: current_db_path(DB_PATH))
 _learning_cache = SQLiteLearningCacheRepository(_learning_repository)
+_specialized_learning_repository = SQLiteSpecializedLearningRepository(_learning_repository.connect)
 
 
 def init_db() -> None:
@@ -133,11 +135,11 @@ install_auth(app, init_db)
 app.include_router(platform_router)
 app.include_router(product_router)
 install_platform_ai(app, require_admin)
-configure_becoming_memory(_learning_repository.connect)
-configure_becoming_outcomes(_learning_repository.connect)
-configure_becoming_library(_learning_repository.connect)
-configure_becoming_reading(_learning_repository.connect, generate_structured)
-configure_becoming_linguistics(_learning_repository.connect, generate_structured)
+configure_becoming_memory(_specialized_learning_repository)
+configure_becoming_outcomes(_specialized_learning_repository)
+configure_becoming_library(_specialized_learning_repository)
+configure_becoming_reading(_specialized_learning_repository, generate_structured)
+configure_becoming_linguistics(_specialized_learning_repository, generate_structured)
 
 def weighted_overall(result: dict[str, Any]) -> float:
     score = sum(float(result[k]) * w for k, w in active_rubric_weights().items())

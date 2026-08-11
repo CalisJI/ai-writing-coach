@@ -147,3 +147,6 @@ Dictionary and generated grammar-lesson caches remain local/rebuildable.
 BECOMING memory, outcomes, Active Recall library, Reading Studio, and linguistic
 services still use transitional SQLite adapters and remain the next persistence
 boundary milestone. PostgreSQL runtime cutover is still disabled.
+
+## v1.3.3 specialized persistence boundary
+Memory, practice outcomes, active recall, reading, and linguistic annotation persistence now use a dedicated repository contract. SQLite remains authoritative; the PostgreSQL implementation is ready but not selected.

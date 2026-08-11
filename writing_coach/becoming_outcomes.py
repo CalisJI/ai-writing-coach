@@ -1,13 +1,13 @@
 from __future__ import annotations
 
 import json
-import sqlite3
-from typing import Any, Callable
+from typing import Any
 
 from pydantic import BaseModel, Field
+from writing_coach.persistence.specialized_repository import SpecializedLearningRepository
 
 
-_db_factory: Callable[[], sqlite3.Connection] | None = None
+_repository: SpecializedLearningRepository | None = None
 
 
 class PracticeContextIn(BaseModel):
@@ -28,16 +28,15 @@ class PracticeContextIn(BaseModel):
     focus_instruction: str = Field(default="", max_length=1600)
 
 
-def configure_becoming_outcomes(db_factory: Callable[[], sqlite3.Connection]) -> None:
-    global _db_factory
-    _db_factory = db_factory
+def configure_becoming_outcomes(repository: SpecializedLearningRepository) -> None:
+    global _repository
+    _repository = repository
 
 
-def _db() -> sqlite3.Connection:
-    if _db_factory is None:
-        raise RuntimeError("BECOMING outcome database factory is not installed")
-    return _db_factory()
-
+def _repo() -> SpecializedLearningRepository:
+    if _repository is None:
+        raise RuntimeError("BECOMING outcome repository is not installed")
+    return _repository
 
 def _safe_json(value: Any, fallback: Any) -> Any:
     try:
@@ -76,7 +75,7 @@ def _family(category: Any) -> str:
     return "expression"
 
 
-def _practice_context(row: sqlite3.Row) -> dict[str, Any] | None:
+def _practice_context(row: dict[str, Any]) -> dict[str, Any] | None:
     module_data = _safe_json(row["module_data_json"], {})
     if not isinstance(module_data, dict):
         return None
@@ -90,7 +89,7 @@ def _category_key(value: Any) -> str:
 
 
 def _matching_errors(
-    row: sqlite3.Row,
+    row: dict[str, Any],
     focus_category: str,
     focus_family: str,
 ) -> list[dict[str, Any]]:
@@ -125,7 +124,7 @@ def _matching_errors(
     return exactish
 
 
-def _matching_strengths(row: sqlite3.Row, focus_family: str) -> list[dict[str, Any]]:
+def _matching_strengths(row: dict[str, Any], focus_family: str) -> list[dict[str, Any]]:
     output = []
     for item in _safe_json(row["strength_evidence_json"], []):
         if not isinstance(item, dict):
@@ -138,38 +137,29 @@ def _matching_strengths(row: sqlite3.Row, focus_family: str) -> list[dict[str, A
 
 
 def _previous_comparable(
-    conn: sqlite3.Connection,
-    row: sqlite3.Row,
+    rows: list[dict[str, Any]],
+    row: dict[str, Any],
     focus_family: str,
-) -> sqlite3.Row | None:
+) -> dict[str, Any] | None:
     series_id = int(row["series_id"] or row["id"])
     revision_no = int(row["revision_no"] or 1)
     if revision_no <= 1:
         return None
-
-    candidates = conn.execute(
-        """
-        SELECT id, series_id, revision_no, created_at, overall,
-               errors_json, strength_evidence_json, module_data_json
-        FROM essays
-        WHERE series_id = ? AND revision_no < ?
-        ORDER BY revision_no DESC
-        """,
-        (series_id, revision_no),
-    ).fetchall()
-
+    candidates = [
+        item for item in rows
+        if int(item.get("series_id") or item["id"]) == series_id
+        and int(item.get("revision_no") or 1) < revision_no
+    ]
+    candidates.sort(key=lambda item: int(item.get("revision_no") or 1), reverse=True)
     for candidate in candidates:
         context = _practice_context(candidate)
-        if not context:
-            continue
-        if str(context.get("focus_family") or "") == focus_family:
+        if context and str(context.get("focus_family") or "") == focus_family:
             return candidate
     return None
 
-
 def derive_practice_outcome(
-    conn: sqlite3.Connection,
-    row: sqlite3.Row,
+    rows: list[dict[str, Any]],
+    row: dict[str, Any],
 ) -> dict[str, Any] | None:
     context = _practice_context(row)
     if not context:
@@ -180,7 +170,7 @@ def derive_practice_outcome(
     focus_category = str(context.get("focus_category") or "expression")
     errors = _matching_errors(row, focus_category, focus_family)
     strengths = _matching_strengths(row, focus_family)
-    previous = _previous_comparable(conn, row, focus_family)
+    previous = _previous_comparable(rows, row, focus_family)
     previous_errors = _matching_errors(previous, focus_category, focus_family) if previous else []
 
     issue_count = len(errors)
@@ -245,49 +235,23 @@ def derive_practice_outcome(
 
 
 def get_practice_outcome(essay_id: int) -> dict[str, Any]:
-    with _db() as conn:
-        row = conn.execute(
-            """
-            SELECT id, series_id, revision_no, created_at, overall,
-                   errors_json, strength_evidence_json, module_data_json
-            FROM essays
-            WHERE id = ?
-            """,
-            (essay_id,),
-        ).fetchone()
-        if not row:
-            return {"found": False, "outcome": None}
-
-        outcome = derive_practice_outcome(conn, row)
-        return {"found": outcome is not None, "outcome": outcome}
+    row = _repo().get_outcome_essay(essay_id)
+    if not row:
+        return {"found": False, "outcome": None}
+    rows = _repo().memory_essay_rows()
+    outcome = derive_practice_outcome(rows, row)
+    return {"found": outcome is not None, "outcome": outcome}
 
 
 def list_practice_outcomes(limit: int = 20) -> dict[str, Any]:
     limit = min(max(int(limit or 20), 1), 100)
-    with _db() as conn:
-        rows = conn.execute(
-            """
-            SELECT id, series_id, revision_no, created_at, overall,
-                   errors_json, strength_evidence_json, module_data_json
-            FROM essays
-            WHERE module_data_json IS NOT NULL
-              AND module_data_json != ''
-              AND module_data_json != '{}'
-            ORDER BY id DESC
-            LIMIT ?
-            """,
-            (max(limit * 3, 30),),
-        ).fetchall()
-
-        outcomes: list[dict[str, Any]] = []
-        for row in rows:
-            outcome = derive_practice_outcome(conn, row)
-            if outcome:
-                outcomes.append(outcome)
-            if len(outcomes) >= limit:
-                break
-
-    return {
-        "items": outcomes,
-        "latest": outcomes[0] if outcomes else None,
-    }
+    rows = _repo().list_outcome_essays(max(limit * 3, 30))
+    context_rows = _repo().memory_essay_rows()
+    outcomes: list[dict[str, Any]] = []
+    for row in rows:
+        outcome = derive_practice_outcome(context_rows, row)
+        if outcome:
+            outcomes.append(outcome)
+        if len(outcomes) >= limit:
+            break
+    return {"items": outcomes, "latest": outcomes[0] if outcomes else None}

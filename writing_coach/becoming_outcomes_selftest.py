@@ -2,6 +2,7 @@ import json
 import sqlite3
 
 from writing_coach.becoming_outcomes import derive_practice_outcome
+from writing_coach.persistence.specialized_repository import SQLiteSpecializedLearningRepository
 
 
 def main() -> None:
@@ -74,14 +75,17 @@ def main() -> None:
     )
     conn.commit()
 
-    row2 = conn.execute("SELECT * FROM essays WHERE id=2").fetchone()
-    out2 = derive_practice_outcome(conn, row2)
+    repo = SQLiteSpecializedLearningRepository(lambda: conn)
+    rows = repo.memory_essay_rows()
+    row2 = next(r for r in rows if r["id"] == 2)
+    out2 = derive_practice_outcome(rows, row2)
     assert out2 and out2["status"] == "improved"
     assert out2["previous_issue_count"] == 2
     assert out2["issue_count"] == 1
 
-    row3 = conn.execute("SELECT * FROM essays WHERE id=3").fetchone()
-    out3 = derive_practice_outcome(conn, row3)
+    rows = repo.memory_essay_rows()
+    row3 = next(r for r in rows if r["id"] == 3)
+    out3 = derive_practice_outcome(rows, row3)
     assert out3 and out3["status"] == "improved"
     assert out3["issue_count"] == 0
     assert out3["strength_count"] == 1
@@ -111,8 +115,9 @@ def main() -> None:
         ),
     )
     conn.commit()
-    row4 = conn.execute("SELECT * FROM essays WHERE id=4").fetchone()
-    out4 = derive_practice_outcome(conn, row4)
+    rows = repo.memory_essay_rows()
+    row4 = next(r for r in rows if r["id"] == 4)
+    out4 = derive_practice_outcome(rows, row4)
     assert out4 and out4["status"] == "transferred"
 
     print("BECOMING Phase 6 practice-outcome self-test OK")

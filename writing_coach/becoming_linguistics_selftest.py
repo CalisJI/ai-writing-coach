@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import sqlite3
 
+from writing_coach.persistence.specialized_repository import SQLiteSpecializedLearningRepository
+
 from writing_coach.becoming_linguistics import (
     configure_becoming_linguistics,
     linguistic_annotations_for_essay,
@@ -56,7 +58,7 @@ def main() -> None:
         calls["count"] += 1
         return fake_generate(**kwargs)
 
-    configure_becoming_linguistics(lambda: conn, generate)
+    configure_becoming_linguistics(SQLiteSpecializedLearningRepository(lambda: conn), generate)
 
     first = linguistic_annotations_for_essay(1)
     assert first["found"] is True

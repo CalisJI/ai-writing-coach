@@ -2,12 +2,13 @@ from __future__ import annotations
 
 import hashlib
 import json
-import sqlite3
 from datetime import datetime
 from typing import Any, Callable
 
 
-_db_factory: Callable[[], sqlite3.Connection] | None = None
+from writing_coach.persistence.specialized_repository import SpecializedLearningRepository
+
+_repository: SpecializedLearningRepository | None = None
 _ai_generate: Callable[..., Any] | None = None
 
 ALLOWED_POS = {
@@ -29,20 +30,16 @@ MAX_ANNOTATIONS = 220
 CACHE_KEY = "linguistic_annotations_v1"
 
 
-def configure_becoming_linguistics(
-    db_factory: Callable[[], sqlite3.Connection],
-    ai_generate: Callable[..., Any],
-) -> None:
-    global _db_factory, _ai_generate
-    _db_factory = db_factory
+def configure_becoming_linguistics(repository: SpecializedLearningRepository, ai_generate: Callable[..., Any]) -> None:
+    global _repository, _ai_generate
+    _repository = repository
     _ai_generate = ai_generate
 
 
-def _db() -> sqlite3.Connection:
-    if _db_factory is None:
-        raise RuntimeError("BECOMING linguistics database factory is not installed")
-    return _db_factory()
-
+def _repo() -> SpecializedLearningRepository:
+    if _repository is None:
+        raise RuntimeError("BECOMING linguistics repository is not installed")
+    return _repository
 
 def _now() -> str:
     return datetime.now().astimezone().isoformat(timespec="seconds")
@@ -199,48 +196,15 @@ def linguistic_annotations_for_essay(essay_id: int) -> dict[str, Any]:
     if _ai_generate is None:
         raise RuntimeError("BECOMING linguistics AI generator is not installed")
 
-    with _db() as conn:
-        row = conn.execute(
-            """
-            SELECT id, text, language_code, module_data_json
-            FROM essays
-            WHERE id = ?
-            """,
-            (essay_id,),
-        ).fetchone()
-
-        if not row:
-            return {
-                "found": False,
-                "essay_id": essay_id,
-                "annotations": [],
-            }
-
-        full_text = str(row["text"] or "")
-        language = str(row["language_code"] or "en")
-        source = full_text[:MAX_ANNOTATED_CHARS]
-        truncated = len(full_text) > len(source)
-        digest = _hash_text(language, source)
-        module_data = _safe_module_data(row["module_data_json"])
-        cached = module_data.get(CACHE_KEY)
-
-        if (
-            isinstance(cached, dict)
-            and cached.get("hash") == digest
-            and cached.get("language_code") == language
-            and isinstance(cached.get("annotations"), list)
-        ):
-            annotations = _validated_annotations(
-                source,
-                cached.get("annotations"),
-            )
-            return _public_payload(
-                essay_id,
-                language=language,
-                annotations=annotations,
-                cached=True,
-                truncated=bool(cached.get("truncated", truncated)),
-            )
+    row = _repo().get_linguistic_essay(essay_id)
+    if not row:
+        return {"found": False, "essay_id": essay_id, "annotations": []}
+    full_text = str(row["text"] or ""); language = str(row["language_code"] or "en")
+    source = full_text[:MAX_ANNOTATED_CHARS]; truncated = len(full_text) > len(source); digest = _hash_text(language, source)
+    module_data = _safe_module_data(row["module_data_json"]); cached = module_data.get(CACHE_KEY)
+    if isinstance(cached, dict) and cached.get("hash") == digest and cached.get("language_code") == language and isinstance(cached.get("annotations"), list):
+        annotations = _validated_annotations(source, cached.get("annotations"))
+        return _public_payload(essay_id, language=language, annotations=annotations, cached=True, truncated=bool(cached.get("truncated", truncated)))
 
     system, user = _prompt(language, source)
     result = _ai_generate(
@@ -265,22 +229,11 @@ def linguistic_annotations_for_essay(essay_id: int) -> dict[str, Any]:
         "generated_at": _now(),
     }
 
-    with _db() as conn:
-        row = conn.execute(
-            "SELECT module_data_json FROM essays WHERE id = ?",
-            (essay_id,),
-        ).fetchone()
-        if row:
-            module_data = _safe_module_data(row["module_data_json"])
-            module_data[CACHE_KEY] = cache_payload
-            conn.execute(
-                "UPDATE essays SET module_data_json = ? WHERE id = ?",
-                (
-                    json.dumps(module_data, ensure_ascii=False),
-                    essay_id,
-                ),
-            )
-            conn.commit()
+    current = _repo().get_linguistic_essay(essay_id)
+    if current:
+        module_data = _safe_module_data(current["module_data_json"]); module_data[CACHE_KEY] = cache_payload
+        _repo().update_essay_module_data(essay_id, module_data)
+
 
     return _public_payload(
         essay_id,

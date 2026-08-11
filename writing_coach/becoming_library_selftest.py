@@ -1,5 +1,7 @@
 import sqlite3
 
+from writing_coach.persistence.specialized_repository import SQLiteSpecializedLearningRepository
+
 from writing_coach.becoming_library import (
     LibraryVocabularyIn,
     VocabularyReviewIn,
@@ -27,7 +29,7 @@ def main() -> None:
         )
         """
     )
-    configure_becoming_library(lambda: conn)
+    configure_becoming_library(SQLiteSpecializedLearningRepository(lambda: conn))
     ensure_becoming_library_schema(conn)
 
     saved = save_library_vocabulary(

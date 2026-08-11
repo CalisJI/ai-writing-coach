@@ -9,7 +9,9 @@ from typing import Any, Callable
 from pydantic import BaseModel, Field
 
 
-_db_factory: Callable[[], sqlite3.Connection] | None = None
+from writing_coach.persistence.specialized_repository import SpecializedLearningRepository
+
+_repository: SpecializedLearningRepository | None = None
 _ai_generate: Callable[..., Any] | None = None
 
 
@@ -26,20 +28,16 @@ class ReadingAnswerIn(BaseModel):
     answers: list[int] = Field(min_length=1, max_length=8)
 
 
-def configure_becoming_reading(
-    db_factory: Callable[[], sqlite3.Connection],
-    ai_generate: Callable[..., Any],
-) -> None:
-    global _db_factory, _ai_generate
-    _db_factory = db_factory
+def configure_becoming_reading(repository: SpecializedLearningRepository, ai_generate: Callable[..., Any]) -> None:
+    global _repository, _ai_generate
+    _repository = repository
     _ai_generate = ai_generate
 
 
-def _db() -> sqlite3.Connection:
-    if _db_factory is None:
-        raise RuntimeError("BECOMING reading database factory is not installed")
-    return _db_factory()
-
+def _repo() -> SpecializedLearningRepository:
+    if _repository is None:
+        raise RuntimeError("BECOMING reading repository is not installed")
+    return _repository
 
 def _now() -> str:
     return datetime.now().astimezone().isoformat(timespec="seconds")
@@ -119,41 +117,8 @@ def _reading_length(language: str, level: str) -> tuple[int, str]:
     return target, "words"
 
 
-def _select_library_terms(conn: sqlite3.Connection, limit: int = 3) -> list[str]:
-    try:
-        rows = conn.execute(
-            """
-            SELECT s.word
-            FROM saved_words s
-            LEFT JOIN vocabulary_learning v
-              ON lower(v.word) = lower(s.word)
-            ORDER BY
-              CASE
-                WHEN v.next_review_at IS NULL OR v.next_review_at = '' THEN 0
-                WHEN v.next_review_at <= ? THEN 0
-                ELSE 1
-              END,
-              COALESCE(v.review_stage, 0) ASC,
-              s.added_at DESC
-            LIMIT ?
-            """,
-            (_now(), limit * 3),
-        ).fetchall()
-    except sqlite3.Error:
-        return []
-
-    output: list[str] = []
-    for row in rows:
-        term = " ".join(str(row["word"] or "").split())
-        if not term or len(term) > 80:
-            continue
-        if term.casefold() in {item.casefold() for item in output}:
-            continue
-        output.append(term)
-        if len(output) >= limit:
-            break
-    return output
-
+def _select_library_terms(limit: int = 3) -> list[str]:
+    return _repo().select_library_terms(limit)
 
 def _term_occurs(passage: str, term: str) -> bool:
     source = str(passage or "")
@@ -435,7 +400,7 @@ def _public_question(item: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def _session_payload(row: sqlite3.Row, include_answers: bool = False) -> dict[str, Any]:
+def _session_payload(row: dict[str, Any], include_answers: bool = False) -> dict[str, Any]:
     questions = _safe_json(row["questions_json"], [])
     public_questions = (
         questions
@@ -468,13 +433,7 @@ def create_reading_session(
     goal = str(learner_profile.get("goal") or "everyday")
     length, unit = _reading_length(language_code, target_level)
 
-    with _db() as conn:
-        ensure_becoming_reading_schema(conn)
-        library_terms = (
-            _select_library_terms(conn, 3)
-            if payload.recycle_library
-            else []
-        )
+    library_terms = _select_library_terms(3) if payload.recycle_library else []
 
     recycled_instruction = ""
     if library_terms:
@@ -558,194 +517,48 @@ def create_reading_session(
     ]
 
     now = _now()
-    with _db() as conn:
-        ensure_becoming_reading_schema(conn)
-        cur = conn.execute(
-            """
-            INSERT INTO reading_sessions(
-                created_at, language_code, target_level, topic, learner_goal,
-                title, passage, questions_json, recycled_words_json, generation_mode
-            )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """,
-            (
-                now,
-                language_code,
-                target_level,
-                payload.topic,
-                goal,
-                generated["title"],
-                passage,
-                json.dumps(generated["questions"], ensure_ascii=False),
-                json.dumps(actual_recycled, ensure_ascii=False),
-                generation_mode,
-            ),
-        )
-        session_id = int(cur.lastrowid)
-        conn.commit()
-        row = conn.execute(
-            "SELECT * FROM reading_sessions WHERE id = ?",
-            (session_id,),
-        ).fetchone()
-
+    row = _repo().create_reading_session_record({
+        "created_at": now, "language_code": language_code, "target_level": target_level,
+        "topic": payload.topic, "learner_goal": goal, "title": generated["title"],
+        "passage": passage, "questions": generated["questions"], "recycled_words": actual_recycled,
+        "generation_mode": generation_mode,
+    })
     return _session_payload(row)
 
 
 def get_reading_session(session_id: int) -> dict[str, Any]:
-    with _db() as conn:
-        ensure_becoming_reading_schema(conn)
-        row = conn.execute(
-            "SELECT * FROM reading_sessions WHERE id = ?",
-            (session_id,),
-        ).fetchone()
-        if not row:
-            return {"found": False, "session": None}
-
-        attempt = conn.execute(
-            """
-            SELECT correct_count, total, created_at
-            FROM reading_attempts
-            WHERE session_id = ?
-            ORDER BY id DESC
-            LIMIT 1
-            """,
-            (session_id,),
-        ).fetchone()
-
-    payload = _session_payload(row)
+    row = _repo().get_reading_session_record(session_id)
+    if not row:
+        return {"found": False, "session": None}
+    attempt = _repo().latest_reading_attempt(session_id)
+    value = _session_payload(row)
     if attempt:
-        payload["latest_attempt"] = {
-            "correct_count": int(attempt["correct_count"]),
-            "total": int(attempt["total"]),
-            "created_at": str(attempt["created_at"]),
-        }
-    return {"found": True, "session": payload}
+        value["latest_attempt"] = {"correct_count": int(attempt["correct_count"]), "total": int(attempt["total"]), "created_at": str(attempt["created_at"])}
+    return {"found": True, "session": value}
 
 
 def list_reading_sessions(limit: int = 8) -> dict[str, Any]:
-    limit = min(max(int(limit or 8), 1), 30)
-    with _db() as conn:
-        ensure_becoming_reading_schema(conn)
-        rows = conn.execute(
-            """
-            SELECT
-              s.*,
-              (
-                SELECT correct_count
-                FROM reading_attempts a
-                WHERE a.session_id = s.id
-                ORDER BY a.id DESC
-                LIMIT 1
-              ) AS last_correct,
-              (
-                SELECT total
-                FROM reading_attempts a
-                WHERE a.session_id = s.id
-                ORDER BY a.id DESC
-                LIMIT 1
-              ) AS last_total
-            FROM reading_sessions s
-            ORDER BY s.id DESC
-            LIMIT ?
-            """,
-            (limit,),
-        ).fetchall()
-
-    items = []
+    limit=min(max(int(limit or 8),1),30); rows=_repo().list_reading_session_records(limit); items=[]
     for row in rows:
-        item = {
-            "id": int(row["id"]),
-            "created_at": str(row["created_at"]),
-            "target_level": str(row["target_level"]),
-            "topic": str(row["topic"]),
-            "title": str(row["title"]),
-            "recycled_words": _safe_json(row["recycled_words_json"], []),
-            "generation_mode": str(row["generation_mode"]),
-            "latest_attempt": None,
-        }
-        if row["last_total"] is not None:
-            item["latest_attempt"] = {
-                "correct_count": int(row["last_correct"]),
-                "total": int(row["last_total"]),
-            }
+        item={"id":int(row["id"]),"created_at":str(row["created_at"]),"target_level":str(row["target_level"]),"topic":str(row["topic"]),
+              "title":str(row["title"]),"recycled_words":_safe_json(row["recycled_words_json"],[]),"generation_mode":str(row["generation_mode"]),"latest_attempt":None}
+        if row.get("last_total") is not None:
+            item["latest_attempt"]={"correct_count":int(row["last_correct"]),"total":int(row["last_total"])}
         items.append(item)
+    return {"items":items}
 
-    return {"items": items}
 
-
-def submit_reading_answers(
-    session_id: int,
-    payload: ReadingAnswerIn,
-) -> dict[str, Any]:
-    with _db() as conn:
-        ensure_becoming_reading_schema(conn)
-        row = conn.execute(
-            "SELECT * FROM reading_sessions WHERE id = ?",
-            (session_id,),
-        ).fetchone()
-        if not row:
-            return {"found": False}
-
-        questions = _safe_json(row["questions_json"], [])
-        if len(payload.answers) != len(questions):
-            return {
-                "found": True,
-                "valid": False,
-                "message": f"Expected {len(questions)} answers.",
-            }
-        if any(int(value) not in range(4) for value in payload.answers):
-            return {
-                "found": True,
-                "valid": False,
-                "message": "Each reading answer must be an option index from 0 to 3.",
-            }
-
-        results = []
-        correct_count = 0
-        for index, question in enumerate(questions):
-            selected = int(payload.answers[index])
-            correct_index = int(question["correct_index"])
-            correct = selected == correct_index
-            if correct:
-                correct_count += 1
-            results.append(
-                {
-                    "id": int(question["id"]),
-                    "question": str(question["question"]),
-                    "options": list(question["options"]),
-                    "selected_index": selected,
-                    "correct_index": correct_index,
-                    "correct": correct,
-                    "explanation_vi": str(question["explanation_vi"]),
-                    "evidence_fragment": str(question["evidence_fragment"]),
-                }
-            )
-
-        now = _now()
-        conn.execute(
-            """
-            INSERT INTO reading_attempts(
-                session_id, created_at, answers_json, correct_count, total
-            )
-            VALUES (?, ?, ?, ?, ?)
-            """,
-            (
-                session_id,
-                now,
-                json.dumps(payload.answers),
-                correct_count,
-                len(questions),
-            ),
-        )
-        conn.commit()
-
-    return {
-        "found": True,
-        "valid": True,
-        "session_id": session_id,
-        "correct_count": correct_count,
-        "total": len(questions),
-        "accuracy": round(correct_count / len(questions), 3) if questions else 0.0,
-        "results": results,
-        "claim": "comprehension_check_only",
-    }
+def submit_reading_answers(session_id: int, payload: ReadingAnswerIn) -> dict[str, Any]:
+    row=_repo().get_reading_session_record(session_id)
+    if not row: return {"found":False}
+    questions=_safe_json(row["questions_json"],[])
+    if len(payload.answers)!=len(questions): return {"found":True,"valid":False,"message":f"Expected {len(questions)} answers."}
+    if any(int(value) not in range(4) for value in payload.answers): return {"found":True,"valid":False,"message":"Each reading answer must be an option index from 0 to 3."}
+    results=[]; correct_count=0
+    for index,question in enumerate(questions):
+        selected=int(payload.answers[index]); correct_index=int(question["correct_index"]); correct=selected==correct_index; correct_count+=1 if correct else 0
+        results.append({"id":int(question["id"]),"question":str(question["question"]),"options":list(question["options"]),"selected_index":selected,
+                        "correct_index":correct_index,"correct":correct,"explanation_vi":str(question["explanation_vi"]),"evidence_fragment":str(question["evidence_fragment"])})
+    _repo().create_reading_attempt_record(session_id,{"created_at":_now(),"answers":list(payload.answers),"correct_count":correct_count,"total":len(questions)})
+    return {"found":True,"valid":True,"session_id":session_id,"correct_count":correct_count,"total":len(questions),
+            "accuracy":round(correct_count/len(questions),3) if questions else 0.0,"results":results,"claim":"comprehension_check_only"}

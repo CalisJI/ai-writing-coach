@@ -4,14 +4,15 @@ import json
 import sqlite3
 from collections import defaultdict
 from datetime import datetime
-from typing import Any, Callable
+from typing import Any
 
 from pydantic import BaseModel, Field
 
 from writing_coach.languages.runtime import active_profile
+from writing_coach.persistence.specialized_repository import SpecializedLearningRepository
 
 
-_db_factory: Callable[[], sqlite3.Connection] | None = None
+_repository: SpecializedLearningRepository | None = None
 
 
 class LearnerProfileIn(BaseModel):
@@ -25,16 +26,15 @@ class LearnerProfileIn(BaseModel):
     )
 
 
-def configure_becoming_memory(db_factory: Callable[[], sqlite3.Connection]) -> None:
-    global _db_factory
-    _db_factory = db_factory
+def configure_becoming_memory(repository: SpecializedLearningRepository) -> None:
+    global _repository
+    _repository = repository
 
 
-def _db() -> sqlite3.Connection:
-    if _db_factory is None:
-        raise RuntimeError("BECOMING memory database factory is not installed")
-    return _db_factory()
-
+def _repo() -> SpecializedLearningRepository:
+    if _repository is None:
+        raise RuntimeError("BECOMING memory repository is not installed")
+    return _repository
 
 def ensure_becoming_schema(conn: sqlite3.Connection) -> None:
     conn.execute(
@@ -96,86 +96,37 @@ def _profile_defaults() -> dict[str, Any]:
 
 
 def get_learner_profile() -> dict[str, Any]:
-    with _db() as conn:
-        ensure_becoming_schema(conn)
-        row = conn.execute(
-            "SELECT goal, style, pinyin, native_language, theme_preset, updated_at "
-            "FROM learner_profile WHERE id = 1"
-        ).fetchone()
-
+    row = _repo().get_profile_record()
     if not row:
         return _profile_defaults()
-
     return {
-        "exists": True,
-        "language": active_profile().code,
-        "goal": str(row["goal"]),
-        "style": str(row["style"]),
-        "pinyin": str(row["pinyin"]),
-        "native_language": str(row["native_language"] or "vi"),
-        "theme_preset": str(row["theme_preset"] or "editorial"),
-        "updated_at": str(row["updated_at"]),
+        "exists": True, "language": active_profile().code, "goal": str(row["goal"]),
+        "style": str(row["style"]), "pinyin": str(row["pinyin"]),
+        "native_language": str(row.get("native_language") or "vi"),
+        "theme_preset": str(row.get("theme_preset") or "editorial"),
+        "updated_at": str(row.get("updated_at") or ""),
     }
-
 
 def put_learner_profile(payload: LearnerProfileIn) -> dict[str, Any]:
     now = datetime.now().astimezone().isoformat(timespec="seconds")
-    with _db() as conn:
-        ensure_becoming_schema(conn)
-        existing = conn.execute("SELECT created_at FROM learner_profile WHERE id = 1").fetchone()
-        created_at = str(existing["created_at"]) if existing else now
-        conn.execute(
-            """
-            INSERT INTO learner_profile(
-              id, goal, style, pinyin, native_language, theme_preset, created_at, updated_at
-            )
-            VALUES (1, ?, ?, ?, ?, ?, ?, ?)
-            ON CONFLICT(id) DO UPDATE SET
-              goal = excluded.goal,
-              style = excluded.style,
-              pinyin = excluded.pinyin,
-              native_language = excluded.native_language,
-              theme_preset = excluded.theme_preset,
-              updated_at = excluded.updated_at
-            """,
-            (
-                payload.goal,
-                payload.style,
-                payload.pinyin,
-                payload.native_language,
-                payload.theme_preset,
-                created_at,
-                now,
-            ),
-        )
-        conn.commit()
-
+    existing = _repo().get_profile_record()
+    created_at = str(existing.get("created_at")) if existing else now
+    _repo().upsert_profile_record({
+        "goal": payload.goal, "style": payload.style, "pinyin": payload.pinyin,
+        "native_language": payload.native_language, "theme_preset": payload.theme_preset,
+        "created_at": created_at, "updated_at": now,
+    })
     return {
-        "exists": True,
-        "language": active_profile().code,
-        "goal": payload.goal,
-        "style": payload.style,
-        "pinyin": payload.pinyin,
-        "native_language": payload.native_language,
-        "theme_preset": payload.theme_preset,
+        "exists": True, "language": active_profile().code, "goal": payload.goal,
+        "style": payload.style, "pinyin": payload.pinyin,
+        "native_language": payload.native_language, "theme_preset": payload.theme_preset,
         "updated_at": now,
     }
 
+def _essay_rows() -> list[dict[str, Any]]:
+    return _repo().memory_essay_rows()
 
-def _essay_rows(conn: sqlite3.Connection) -> list[sqlite3.Row]:
-    return conn.execute(
-        """
-        SELECT
-          id, series_id, revision_no, created_at, overall,
-          errors_json, strengths_json,
-          COALESCE(strength_evidence_json, '[]') AS strength_evidence_json
-        FROM essays
-        ORDER BY id ASC
-        """
-    ).fetchall()
-
-
-def _error_patterns(rows: list[sqlite3.Row]) -> list[dict[str, Any]]:
+def _error_patterns(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     if not rows:
         return []
 
@@ -247,7 +198,7 @@ def _error_patterns(rows: list[sqlite3.Row]) -> list[dict[str, Any]]:
     return output
 
 
-def _strength_patterns(rows: list[sqlite3.Row], error_patterns: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def _strength_patterns(rows: list[dict[str, Any]], error_patterns: list[dict[str, Any]]) -> list[dict[str, Any]]:
     by_cat: dict[str, dict[str, Any]] = {}
     recent_rows = rows[-5:]
     recent_ids = {int(row["id"]) for row in recent_rows}
@@ -333,8 +284,8 @@ def _strength_patterns(rows: list[sqlite3.Row], error_patterns: list[dict[str, A
     return output
 
 
-def _revision_wins(rows: list[sqlite3.Row]) -> list[dict[str, Any]]:
-    by_series: dict[int, list[sqlite3.Row]] = defaultdict(list)
+def _revision_wins(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    by_series: dict[int, list[dict[str, Any]]] = defaultdict(list)
     for row in rows:
         by_series[int(row["series_id"] or row["id"])].append(row)
 
@@ -377,9 +328,7 @@ def _revision_wins(rows: list[sqlite3.Row]) -> list[dict[str, Any]]:
 
 
 def get_learning_memory() -> dict[str, Any]:
-    with _db() as conn:
-        ensure_becoming_schema(conn)
-        rows = _essay_rows(conn)
+    rows = _essay_rows()
 
     patterns = _error_patterns(rows)
     strengths = _strength_patterns(rows, patterns)

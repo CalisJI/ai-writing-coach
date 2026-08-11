@@ -134,3 +134,6 @@ PostgreSQL has a matching core implementation but remains inactive.
 Generated dictionary and grammar-lesson caches are separated from durable
 learning persistence and remain local/rebuildable. Specialized BECOMING service
 adapters remain the final learning-domain blocker before a cutover decision.
+
+## v1.3.3 specialized persistence boundary
+Memory, practice outcomes, active recall, reading, and linguistic annotation persistence now use a dedicated repository contract. SQLite remains authoritative; the PostgreSQL implementation is ready but not selected.

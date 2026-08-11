@@ -16,7 +16,7 @@ def text(rel: str) -> str:
 
 
 def main() -> None:
-    req((ROOT / "VERSION").read_text(encoding="utf-8").strip() == "1.3.2", "app version must be 1.3.2")
+    req((ROOT / "VERSION").read_text(encoding="utf-8").strip() in {"1.3.2", "1.3.3"}, "app version must remain on learning-boundary line")
     req((ROOT / "BECOMING_FRONTEND_VERSION").read_text(encoding="utf-8").strip() == "2.15.7", "frontend must remain 2.15.7")
 
     app = text("app.py")
@@ -52,9 +52,6 @@ def main() -> None:
     ]:
         req(token in app, f"core learning path does not delegate: {token}")
 
-    # Specialized BECOMING services are intentionally still SQLite adapters in
-    # this batch. Their direct SQL remains the next cutover blocker and must be
-    # visible rather than silently bypassing the repository migration plan.
     specialized = [
         "writing_coach/becoming_memory.py",
         "writing_coach/becoming_outcomes.py",
@@ -62,12 +59,17 @@ def main() -> None:
         "writing_coach/becoming_reading.py",
         "writing_coach/becoming_linguistics.py",
     ]
-    specialized_sql = []
-    for rel in specialized:
-        src = text(rel)
-        if "conn.execute(" in src:
-            specialized_sql.append(rel)
-    req(specialized_sql == specialized, "specialized SQLite adapter inventory changed unexpectedly")
+    version = (ROOT / "VERSION").read_text(encoding="utf-8").strip()
+    if version == "1.3.2":
+        specialized_sql = [rel for rel in specialized if "conn.execute(" in text(rel)]
+        req(specialized_sql == specialized, "v1.3.2 specialized SQLite adapter inventory changed unexpectedly")
+    else:
+        for rel in specialized:
+            src = text(rel)
+            req("_db_factory" not in src and "def _db()" not in src, f"v1.3.3 specialized service still owns DB factory: {rel}")
+        repo = text("writing_coach/persistence/specialized_repository.py")
+        req("class SQLiteSpecializedLearningRepository" in repo, "v1.3.3 SQLite specialized repository missing")
+        req("class PostgresSpecializedLearningRepository" in repo, "v1.3.3 PostgreSQL specialized repository missing")
 
     # sqlite3.connect is allowed only in explicit repository/migration/verification
     # adapters. Core app and service orchestration may not open DBs directly.
@@ -102,7 +104,7 @@ def main() -> None:
     print("Core app direct SQLite SQL: REMOVED")
     print("Learning runtime selection: SQLiteLearningRepository")
     print("PostgreSQL core implementation: PRESENT / NOT SELECTED")
-    print("Specialized BECOMING service adapters: PARTIAL / next cutover blocker")
+    print("Specialized BECOMING persistence: REPOSITORY-BOUND on v1.3.3")
     print("Runtime cutover: NOT ENABLED")
 
 

@@ -2,12 +2,13 @@ from __future__ import annotations
 
 import sqlite3
 from datetime import datetime, timedelta
-from typing import Any, Callable
+from typing import Any
 
 from pydantic import BaseModel, Field
+from writing_coach.persistence.specialized_repository import SpecializedLearningRepository
 
 
-_db_factory: Callable[[], sqlite3.Connection] | None = None
+_repository: SpecializedLearningRepository | None = None
 
 STAGE_LABELS = {
     0: "New",
@@ -37,16 +38,15 @@ class VocabularyReviewIn(BaseModel):
     result: str = Field(pattern=r"^(again|got_it)$")
 
 
-def configure_becoming_library(db_factory: Callable[[], sqlite3.Connection]) -> None:
-    global _db_factory
-    _db_factory = db_factory
+def configure_becoming_library(repository: SpecializedLearningRepository) -> None:
+    global _repository
+    _repository = repository
 
 
-def _db() -> sqlite3.Connection:
-    if _db_factory is None:
-        raise RuntimeError("BECOMING library database factory is not installed")
-    return _db_factory()
-
+def _repo() -> SpecializedLearningRepository:
+    if _repository is None:
+        raise RuntimeError("BECOMING library repository is not installed")
+    return _repository
 
 def _now() -> datetime:
     return datetime.now().astimezone()
@@ -114,7 +114,7 @@ def _stage_label(stage: int) -> str:
     return STAGE_LABELS.get(max(0, min(4, int(stage or 0))), "New")
 
 
-def _row_to_item(row: sqlite3.Row) -> dict[str, Any]:
+def _row_to_item(row: dict[str, Any]) -> dict[str, Any]:
     stage = int(row["review_stage"] or 0)
     return {
         "word": str(row["word"]),
@@ -138,287 +138,38 @@ def _row_to_item(row: sqlite3.Row) -> dict[str, Any]:
 
 
 def list_library_vocabulary() -> dict[str, Any]:
-    with _db() as conn:
-        ensure_becoming_library_schema(conn)
-        rows = conn.execute(
-            """
-            SELECT
-              s.word, s.phonetic, s.part_of_speech, s.definition,
-              s.translation_vi, s.added_at,
-              v.source_essay_id, v.source_fragment, v.source_kind,
-              v.focus_note, v.review_stage, v.successful_recalls,
-              v.lapse_count, v.last_reviewed_at, v.next_review_at
-            FROM saved_words AS s
-            LEFT JOIN vocabulary_learning AS v
-              ON lower(v.word) = lower(s.word)
-            ORDER BY s.added_at DESC
-            """
-        ).fetchall()
-
-    items = [_row_to_item(row) for row in rows]
-    items.sort(
-        key=lambda item: (
-            0 if item["due"] else 1,
-            item["next_review_at"] or item["added_at"],
-            item["word"].casefold(),
-        )
-    )
-    return {
-        "items": items,
-        "summary": {
-            "total": len(items),
-            "due": sum(1 for item in items if item["due"]),
-            "available": sum(1 for item in items if item["review_stage"] >= 3),
-        },
-    }
+    items = [_row_to_item(row) for row in _repo().list_library_records()]
+    items.sort(key=lambda item: (0 if item["due"] else 1, item["next_review_at"] or item["added_at"], item["word"].casefold()))
+    return {"items": items, "summary": {"total": len(items), "due": sum(1 for item in items if item["due"]), "available": sum(1 for item in items if item["review_stage"] >= 3)}}
 
 
 def save_library_vocabulary(payload: LibraryVocabularyIn) -> dict[str, Any]:
     term = _clean_term(payload.word)
     if not term:
         raise ValueError("Vocabulary item cannot be empty.")
-
-    now = _iso(_now())
-
-    with _db() as conn:
-        ensure_becoming_library_schema(conn)
-
-        existing = conn.execute(
-            "SELECT word FROM saved_words WHERE lower(word) = lower(?) LIMIT 1",
-            (term,),
-        ).fetchone()
-        canonical = str(existing["word"]) if existing else term
-
-        if existing:
-            conn.execute(
-                """
-                UPDATE saved_words
-                SET
-                  phonetic = CASE WHEN ? != '' THEN ? ELSE phonetic END,
-                  part_of_speech = CASE WHEN ? != '' THEN ? ELSE part_of_speech END,
-                  definition = CASE WHEN ? != '' THEN ? ELSE definition END,
-                  translation_vi = CASE WHEN ? != '' THEN ? ELSE translation_vi END
-                WHERE lower(word) = lower(?)
-                """,
-                (
-                    payload.phonetic, payload.phonetic,
-                    payload.part_of_speech, payload.part_of_speech,
-                    payload.definition, payload.definition,
-                    payload.translation_vi, payload.translation_vi,
-                    canonical,
-                ),
-            )
-        else:
-            conn.execute(
-                """
-                INSERT INTO saved_words(
-                    word, phonetic, part_of_speech, definition,
-                    added_at, translation_vi
-                )
-                VALUES (?, ?, ?, ?, ?, ?)
-                """,
-                (
-                    canonical,
-                    payload.phonetic,
-                    payload.part_of_speech,
-                    payload.definition,
-                    now,
-                    payload.translation_vi,
-                ),
-            )
-
-        learning = conn.execute(
-            "SELECT word FROM vocabulary_learning WHERE lower(word) = lower(?) LIMIT 1",
-            (canonical,),
-        ).fetchone()
-
-        if learning:
-            if existing:
-                conn.execute(
-                    """
-                    UPDATE vocabulary_learning
-                    SET
-                      source_essay_id = COALESCE(?, source_essay_id),
-                      source_fragment = CASE WHEN ? != '' THEN ? ELSE source_fragment END,
-                      source_kind = CASE WHEN ? != '' THEN ? ELSE source_kind END,
-                      focus_note = CASE WHEN ? != '' THEN ? ELSE focus_note END,
-                      updated_at = ?
-                    WHERE lower(word) = lower(?)
-                    """,
-                    (
-                        payload.source_essay_id,
-                        payload.source_fragment, payload.source_fragment,
-                        payload.source_kind, payload.source_kind,
-                        payload.focus_note, payload.focus_note,
-                        now,
-                        canonical,
-                    ),
-                )
-            else:
-                # A legacy /api/vocabulary delete can leave only the companion
-                # metadata row. Re-adding the term must start a fresh recall lane.
-                conn.execute(
-                    """
-                    UPDATE vocabulary_learning
-                    SET
-                      word = ?,
-                      source_essay_id = ?,
-                      source_fragment = ?,
-                      source_kind = ?,
-                      focus_note = ?,
-                      review_stage = 0,
-                      successful_recalls = 0,
-                      lapse_count = 0,
-                      last_reviewed_at = '',
-                      next_review_at = ?,
-                      updated_at = ?
-                    WHERE lower(word) = lower(?)
-                    """,
-                    (
-                        canonical,
-                        payload.source_essay_id,
-                        payload.source_fragment,
-                        payload.source_kind,
-                        payload.focus_note,
-                        now,
-                        now,
-                        canonical,
-                    ),
-                )
-        else:
-            conn.execute(
-                """
-                INSERT INTO vocabulary_learning(
-                    word, source_essay_id, source_fragment, source_kind,
-                    focus_note, review_stage, successful_recalls, lapse_count,
-                    last_reviewed_at, next_review_at, updated_at
-                )
-                VALUES (?, ?, ?, ?, ?, 0, 0, 0, '', ?, ?)
-                """,
-                (
-                    canonical,
-                    payload.source_essay_id,
-                    payload.source_fragment,
-                    payload.source_kind,
-                    payload.focus_note,
-                    now,
-                    now,
-                ),
-            )
-
-        conn.commit()
-
-        row = conn.execute(
-            """
-            SELECT
-              s.word, s.phonetic, s.part_of_speech, s.definition,
-              s.translation_vi, s.added_at,
-              v.source_essay_id, v.source_fragment, v.source_kind,
-              v.focus_note, v.review_stage, v.successful_recalls,
-              v.lapse_count, v.last_reviewed_at, v.next_review_at
-            FROM saved_words s
-            JOIN vocabulary_learning v
-              ON lower(v.word) = lower(s.word)
-            WHERE lower(s.word) = lower(?)
-            LIMIT 1
-            """,
-            (canonical,),
-        ).fetchone()
-
+    row = _repo().save_library_record({
+        "word": term, "phonetic": payload.phonetic, "part_of_speech": payload.part_of_speech,
+        "definition": payload.definition, "translation_vi": payload.translation_vi,
+        "source_essay_id": payload.source_essay_id, "source_fragment": payload.source_fragment,
+        "source_kind": payload.source_kind, "focus_note": payload.focus_note, "now": _iso(_now()),
+    })
     return {"saved": True, "item": _row_to_item(row)}
 
 
-def review_library_vocabulary(
-    word: str,
-    payload: VocabularyReviewIn,
-) -> dict[str, Any]:
-    clean = _clean_term(word)
-    now_dt = _now()
-    now = _iso(now_dt)
-
-    with _db() as conn:
-        ensure_becoming_library_schema(conn)
-        row = conn.execute(
-            """
-            SELECT review_stage, successful_recalls, lapse_count
-            FROM vocabulary_learning
-            WHERE lower(word) = lower(?)
-            LIMIT 1
-            """,
-            (clean,),
-        ).fetchone()
-        if not row:
-            return {"found": False}
-
-        stage = int(row["review_stage"] or 0)
-        success = int(row["successful_recalls"] or 0)
-        lapses = int(row["lapse_count"] or 0)
-
-        if payload.result == "got_it":
-            next_stage = min(4, stage + 1)
-            success += 1
-            intervals = {1: 1, 2: 3, 3: 7, 4: 21}
-            next_dt = now_dt + timedelta(days=intervals[next_stage])
-        else:
-            next_stage = max(0, stage - 1)
-            lapses += 1
-            next_dt = now_dt + timedelta(minutes=10)
-
-        conn.execute(
-            """
-            UPDATE vocabulary_learning
-            SET
-              review_stage = ?,
-              successful_recalls = ?,
-              lapse_count = ?,
-              last_reviewed_at = ?,
-              next_review_at = ?,
-              updated_at = ?
-            WHERE lower(word) = lower(?)
-            """,
-            (
-                next_stage,
-                success,
-                lapses,
-                now,
-                _iso(next_dt),
-                now,
-                clean,
-            ),
-        )
-        conn.commit()
-
-        updated = conn.execute(
-            """
-            SELECT
-              s.word, s.phonetic, s.part_of_speech, s.definition,
-              s.translation_vi, s.added_at,
-              v.source_essay_id, v.source_fragment, v.source_kind,
-              v.focus_note, v.review_stage, v.successful_recalls,
-              v.lapse_count, v.last_reviewed_at, v.next_review_at
-            FROM saved_words s
-            JOIN vocabulary_learning v
-              ON lower(v.word) = lower(s.word)
-            WHERE lower(s.word) = lower(?)
-            LIMIT 1
-            """,
-            (clean,),
-        ).fetchone()
-
-    return {"found": True, "item": _row_to_item(updated)}
+def review_library_vocabulary(word: str, payload: VocabularyReviewIn) -> dict[str, Any]:
+    clean = _clean_term(word); now_dt = _now(); now = _iso(now_dt)
+    row = _repo().get_library_progress(clean)
+    if not row:
+        return {"found": False}
+    stage=int(row["review_stage"] or 0); success=int(row["successful_recalls"] or 0); lapses=int(row["lapse_count"] or 0)
+    if payload.result == "got_it":
+        next_stage=min(4,stage+1); success+=1; intervals={1:1,2:3,3:7,4:21}; next_dt=now_dt+timedelta(days=intervals[next_stage])
+    else:
+        next_stage=max(0,stage-1); lapses+=1; next_dt=now_dt+timedelta(minutes=10)
+    updated=_repo().update_library_review(clean,{"review_stage":next_stage,"successful_recalls":success,"lapse_count":lapses,
+        "last_reviewed_at":now,"next_review_at":_iso(next_dt),"updated_at":now})
+    return {"found": updated is not None, "item": _row_to_item(updated) if updated else None}
 
 
 def delete_library_vocabulary(word: str) -> dict[str, Any]:
-    clean = _clean_term(word)
-    with _db() as conn:
-        ensure_becoming_library_schema(conn)
-        conn.execute(
-            "DELETE FROM vocabulary_learning WHERE lower(word) = lower(?)",
-            (clean,),
-        )
-        cur = conn.execute(
-            "DELETE FROM saved_words WHERE lower(word) = lower(?)",
-            (clean,),
-        )
-        conn.commit()
-    return {"deleted": cur.rowcount > 0}
+    return {"deleted": _repo().delete_library_record(_clean_term(word))}

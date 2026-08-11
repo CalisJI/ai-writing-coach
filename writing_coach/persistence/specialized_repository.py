@@ -1,0 +1,509 @@
+from __future__ import annotations
+
+import json
+import sqlite3
+from datetime import datetime, timezone
+from typing import Any, Callable, Protocol
+
+from sqlalchemy import Engine, func, select
+from sqlalchemy.orm import Session
+
+from writing_coach.core.request_context import current_language_code, current_user_key
+from writing_coach.persistence.config import create_shadow_engine
+from writing_coach.persistence.ids import stable_uuid
+from writing_coach.persistence.models import (
+    Essay,
+    EssayRevision,
+    ReadingAttempt,
+    ReadingSession,
+    SavedWord,
+    User,
+    UserLanguageProfile,
+)
+
+
+class SpecializedLearningRepository(Protocol):
+    def get_profile_record(self) -> dict[str, Any] | None: ...
+    def upsert_profile_record(self, values: dict[str, Any]) -> None: ...
+    def memory_essay_rows(self) -> list[dict[str, Any]]: ...
+    def get_outcome_essay(self, essay_id: int) -> dict[str, Any] | None: ...
+    def list_outcome_essays(self, limit: int) -> list[dict[str, Any]]: ...
+    def list_library_records(self) -> list[dict[str, Any]]: ...
+    def save_library_record(self, values: dict[str, Any]) -> dict[str, Any]: ...
+    def get_library_progress(self, word: str) -> dict[str, Any] | None: ...
+    def update_library_review(self, word: str, values: dict[str, Any]) -> dict[str, Any] | None: ...
+    def delete_library_record(self, word: str) -> bool: ...
+    def select_library_terms(self, limit: int = 3) -> list[str]: ...
+    def create_reading_session_record(self, values: dict[str, Any]) -> dict[str, Any]: ...
+    def get_reading_session_record(self, session_id: int) -> dict[str, Any] | None: ...
+    def latest_reading_attempt(self, session_id: int) -> dict[str, Any] | None: ...
+    def list_reading_session_records(self, limit: int) -> list[dict[str, Any]]: ...
+    def create_reading_attempt_record(self, session_id: int, values: dict[str, Any]) -> None: ...
+    def get_linguistic_essay(self, essay_id: int) -> dict[str, Any] | None: ...
+    def update_essay_module_data(self, essay_id: int, module_data: dict[str, Any]) -> bool: ...
+
+
+class SQLiteSpecializedLearningRepository:
+    """SQLite implementation used by the live v1.3.3 runtime.
+
+    The DB resolver already scopes one user + one language. Specialized services
+    consume this contract and no longer own SQLite queries themselves.
+    """
+
+    def __init__(self, db_factory: Callable[[], sqlite3.Connection]) -> None:
+        self._db_factory = db_factory
+
+    def _db(self) -> sqlite3.Connection:
+        return self._db_factory()
+
+    @staticmethod
+    def _has_table(conn: sqlite3.Connection, table: str) -> bool:
+        row = conn.execute(
+            "SELECT 1 FROM sqlite_master WHERE type='table' AND name=?",
+            (table,),
+        ).fetchone()
+        return bool(row)
+
+    @staticmethod
+    def _dict(row: sqlite3.Row | None) -> dict[str, Any] | None:
+        return dict(row) if row else None
+
+    def get_profile_record(self) -> dict[str, Any] | None:
+        try:
+            with self._db() as conn:
+                row = conn.execute(
+                    "SELECT goal, style, pinyin, native_language, theme_preset, created_at, updated_at FROM learner_profile WHERE id=1"
+                ).fetchone()
+        except sqlite3.Error:
+            return None
+        return self._dict(row)
+
+    def upsert_profile_record(self, values: dict[str, Any]) -> None:
+        with self._db() as conn:
+            existing = conn.execute("SELECT created_at FROM learner_profile WHERE id=1").fetchone()
+            created_at = str(existing["created_at"]) if existing else values["created_at"]
+            conn.execute(
+                """INSERT INTO learner_profile(id,goal,style,pinyin,native_language,theme_preset,created_at,updated_at)
+                   VALUES(1,?,?,?,?,?,?,?)
+                   ON CONFLICT(id) DO UPDATE SET
+                     goal=excluded.goal, style=excluded.style, pinyin=excluded.pinyin,
+                     native_language=excluded.native_language, theme_preset=excluded.theme_preset,
+                     updated_at=excluded.updated_at""",
+                (values["goal"], values["style"], values["pinyin"], values["native_language"],
+                 values["theme_preset"], created_at, values["updated_at"]),
+            )
+            conn.commit()
+
+    def memory_essay_rows(self) -> list[dict[str, Any]]:
+        try:
+            with self._db() as conn:
+                columns = {str(r["name"]) for r in conn.execute("PRAGMA table_info(essays)").fetchall()}
+                if not columns:
+                    return []
+                strengths = "strengths_json" if "strengths_json" in columns else "'[]' AS strengths_json"
+                evidence = "COALESCE(strength_evidence_json,'[]') AS strength_evidence_json" if "strength_evidence_json" in columns else "'[]' AS strength_evidence_json"
+                module_data = "COALESCE(module_data_json,'{}') AS module_data_json" if "module_data_json" in columns else "'{}' AS module_data_json"
+                rows = conn.execute(
+                    f"SELECT id,series_id,revision_no,created_at,overall,errors_json,{strengths},{evidence},{module_data} FROM essays ORDER BY id ASC"
+                ).fetchall()
+        except sqlite3.Error:
+            return []
+        return [dict(r) for r in rows]
+
+    def get_outcome_essay(self, essay_id: int) -> dict[str, Any] | None:
+        with self._db() as conn:
+            row = conn.execute(
+                """SELECT id,series_id,revision_no,created_at,overall,errors_json,
+                          strength_evidence_json,module_data_json
+                   FROM essays WHERE id=?""", (essay_id,)
+            ).fetchone()
+        return self._dict(row)
+
+    def list_outcome_essays(self, limit: int) -> list[dict[str, Any]]:
+        with self._db() as conn:
+            rows = conn.execute(
+                """SELECT id,series_id,revision_no,created_at,overall,errors_json,
+                          strength_evidence_json,module_data_json
+                   FROM essays
+                   WHERE module_data_json IS NOT NULL AND module_data_json != '' AND module_data_json != '{}'
+                   ORDER BY id DESC LIMIT ?""", (limit,)
+            ).fetchall()
+        return [dict(r) for r in rows]
+
+    @staticmethod
+    def _library_select() -> str:
+        return """SELECT s.word,s.phonetic,s.part_of_speech,s.definition,s.translation_vi,s.added_at,
+                         v.source_essay_id,v.source_fragment,v.source_kind,v.focus_note,v.review_stage,
+                         v.successful_recalls,v.lapse_count,v.last_reviewed_at,v.next_review_at
+                  FROM saved_words s LEFT JOIN vocabulary_learning v ON lower(v.word)=lower(s.word)"""
+
+    def list_library_records(self) -> list[dict[str, Any]]:
+        with self._db() as conn:
+            if not self._has_table(conn, "saved_words"):
+                return []
+            if self._has_table(conn, "vocabulary_learning"):
+                rows = conn.execute(
+                    self._library_select() + " ORDER BY s.added_at DESC"
+                ).fetchall()
+            else:
+                # Legacy/partially initialized language DB: saved words are durable,
+                # while Active Recall metadata has never been created. Mirror the
+                # PostgreSQL importer defaults without mutating the SQLite source.
+                rows = conn.execute(
+                    """SELECT s.word,s.phonetic,s.part_of_speech,s.definition,
+                              COALESCE(s.translation_vi,'') AS translation_vi,s.added_at,
+                              NULL AS source_essay_id,'' AS source_fragment,'manual' AS source_kind,
+                              '' AS focus_note,0 AS review_stage,0 AS successful_recalls,
+                              0 AS lapse_count,'' AS last_reviewed_at,'' AS next_review_at
+                       FROM saved_words s ORDER BY s.added_at DESC"""
+                ).fetchall()
+        return [dict(r) for r in rows]
+
+    def save_library_record(self, values: dict[str, Any]) -> dict[str, Any]:
+        term=values["word"]; now=values["now"]
+        with self._db() as conn:
+            existing=conn.execute("SELECT word FROM saved_words WHERE lower(word)=lower(?) LIMIT 1",(term,)).fetchone()
+            canonical=str(existing["word"]) if existing else term
+            if existing:
+                conn.execute(
+                    """UPDATE saved_words SET
+                       phonetic=CASE WHEN ?!='' THEN ? ELSE phonetic END,
+                       part_of_speech=CASE WHEN ?!='' THEN ? ELSE part_of_speech END,
+                       definition=CASE WHEN ?!='' THEN ? ELSE definition END,
+                       translation_vi=CASE WHEN ?!='' THEN ? ELSE translation_vi END
+                       WHERE lower(word)=lower(?)""",
+                    (values["phonetic"],values["phonetic"],values["part_of_speech"],values["part_of_speech"],
+                     values["definition"],values["definition"],values["translation_vi"],values["translation_vi"],canonical),
+                )
+            else:
+                conn.execute("INSERT INTO saved_words(word,phonetic,part_of_speech,definition,added_at,translation_vi) VALUES(?,?,?,?,?,?)",
+                             (canonical,values["phonetic"],values["part_of_speech"],values["definition"],now,values["translation_vi"]))
+            learning=conn.execute("SELECT word FROM vocabulary_learning WHERE lower(word)=lower(?) LIMIT 1",(canonical,)).fetchone()
+            if learning and existing:
+                conn.execute(
+                    """UPDATE vocabulary_learning SET source_essay_id=COALESCE(?,source_essay_id),
+                       source_fragment=CASE WHEN ?!='' THEN ? ELSE source_fragment END,
+                       source_kind=CASE WHEN ?!='' THEN ? ELSE source_kind END,
+                       focus_note=CASE WHEN ?!='' THEN ? ELSE focus_note END, updated_at=?
+                       WHERE lower(word)=lower(?)""",
+                    (values["source_essay_id"],values["source_fragment"],values["source_fragment"],values["source_kind"],values["source_kind"],
+                     values["focus_note"],values["focus_note"],now,canonical),
+                )
+            elif learning:
+                conn.execute(
+                    """UPDATE vocabulary_learning SET word=?,source_essay_id=?,source_fragment=?,source_kind=?,focus_note=?,
+                       review_stage=0,successful_recalls=0,lapse_count=0,last_reviewed_at='',next_review_at=?,updated_at=?
+                       WHERE lower(word)=lower(?)""",
+                    (canonical,values["source_essay_id"],values["source_fragment"],values["source_kind"],values["focus_note"],now,now,canonical),
+                )
+            else:
+                conn.execute(
+                    """INSERT INTO vocabulary_learning(word,source_essay_id,source_fragment,source_kind,focus_note,
+                       review_stage,successful_recalls,lapse_count,last_reviewed_at,next_review_at,updated_at)
+                       VALUES(?,?,?,?,?,0,0,0,'',?,?)""",
+                    (canonical,values["source_essay_id"],values["source_fragment"],values["source_kind"],values["focus_note"],now,now),
+                )
+            conn.commit()
+            row=conn.execute(self._library_select()+" WHERE lower(s.word)=lower(?) LIMIT 1",(canonical,)).fetchone()
+        return dict(row)
+
+    def get_library_progress(self, word: str) -> dict[str, Any] | None:
+        with self._db() as conn:
+            row=conn.execute("SELECT review_stage,successful_recalls,lapse_count FROM vocabulary_learning WHERE lower(word)=lower(?) LIMIT 1",(word,)).fetchone()
+        return self._dict(row)
+
+    def update_library_review(self, word: str, values: dict[str, Any]) -> dict[str, Any] | None:
+        with self._db() as conn:
+            conn.execute(
+                """UPDATE vocabulary_learning SET review_stage=?,successful_recalls=?,lapse_count=?,last_reviewed_at=?,next_review_at=?,updated_at=?
+                   WHERE lower(word)=lower(?)""",
+                (values["review_stage"],values["successful_recalls"],values["lapse_count"],values["last_reviewed_at"],values["next_review_at"],values["updated_at"],word),
+            )
+            conn.commit()
+            row=conn.execute(self._library_select()+" WHERE lower(s.word)=lower(?) LIMIT 1",(word,)).fetchone()
+        return self._dict(row)
+
+    def delete_library_record(self, word: str) -> bool:
+        with self._db() as conn:
+            conn.execute("DELETE FROM vocabulary_learning WHERE lower(word)=lower(?)",(word,))
+            cur=conn.execute("DELETE FROM saved_words WHERE lower(word)=lower(?)",(word,))
+            conn.commit()
+        return cur.rowcount > 0
+
+    def select_library_terms(self, limit: int = 3) -> list[str]:
+        with self._db() as conn:
+            if not self._has_table(conn, "saved_words"):
+                return []
+            if self._has_table(conn, "vocabulary_learning"):
+                rows = conn.execute(
+                    """SELECT s.word FROM saved_words s LEFT JOIN vocabulary_learning v ON lower(v.word)=lower(s.word)
+                       ORDER BY CASE WHEN COALESCE(v.review_stage,0)<3 THEN 0 ELSE 1 END,
+                                COALESCE(NULLIF(v.next_review_at,''),s.added_at) ASC, s.added_at DESC LIMIT ?""",
+                    (limit,),
+                ).fetchall()
+            else:
+                rows = conn.execute(
+                    "SELECT word FROM saved_words ORDER BY added_at DESC LIMIT ?",
+                    (limit,),
+                ).fetchall()
+        return [str(r["word"]) for r in rows if str(r["word"] or "").strip()]
+
+    def create_reading_session_record(self, values: dict[str, Any]) -> dict[str, Any]:
+        with self._db() as conn:
+            cur=conn.execute(
+                """INSERT INTO reading_sessions(created_at,language_code,target_level,topic,learner_goal,title,passage,questions_json,recycled_words_json,generation_mode)
+                   VALUES(?,?,?,?,?,?,?,?,?,?)""",
+                (values["created_at"],values["language_code"],values["target_level"],values["topic"],values["learner_goal"],values["title"],values["passage"],
+                 json.dumps(values["questions"],ensure_ascii=False),json.dumps(values["recycled_words"],ensure_ascii=False),values["generation_mode"]),
+            )
+            sid=int(cur.lastrowid); conn.commit(); row=conn.execute("SELECT * FROM reading_sessions WHERE id=?",(sid,)).fetchone()
+        return dict(row)
+
+    def get_reading_session_record(self, session_id: int) -> dict[str, Any] | None:
+        with self._db() as conn: row=conn.execute("SELECT * FROM reading_sessions WHERE id=?",(session_id,)).fetchone()
+        return self._dict(row)
+
+    def latest_reading_attempt(self, session_id: int) -> dict[str, Any] | None:
+        with self._db() as conn:
+            row=conn.execute("SELECT correct_count,total,created_at FROM reading_attempts WHERE session_id=? ORDER BY id DESC LIMIT 1",(session_id,)).fetchone()
+        return self._dict(row)
+
+    def list_reading_session_records(self, limit: int) -> list[dict[str, Any]]:
+        with self._db() as conn:
+            if not self._has_table(conn, "reading_sessions"):
+                return []
+            if self._has_table(conn, "reading_attempts"):
+                rows = conn.execute(
+                    """SELECT s.*,
+                       (SELECT correct_count FROM reading_attempts a WHERE a.session_id=s.id ORDER BY a.id DESC LIMIT 1) AS last_correct,
+                       (SELECT total FROM reading_attempts a WHERE a.session_id=s.id ORDER BY a.id DESC LIMIT 1) AS last_total
+                       FROM reading_sessions s ORDER BY s.id DESC LIMIT ?""",
+                    (limit,),
+                ).fetchall()
+            else:
+                rows = conn.execute(
+                    """SELECT s.*, NULL AS last_correct, NULL AS last_total
+                       FROM reading_sessions s ORDER BY s.id DESC LIMIT ?""",
+                    (limit,),
+                ).fetchall()
+        return [dict(r) for r in rows]
+
+    def create_reading_attempt_record(self, session_id: int, values: dict[str, Any]) -> None:
+        with self._db() as conn:
+            conn.execute("INSERT INTO reading_attempts(session_id,created_at,answers_json,correct_count,total) VALUES(?,?,?,?,?)",
+                         (session_id,values["created_at"],json.dumps(values["answers"]),values["correct_count"],values["total"]))
+            conn.commit()
+
+    def get_linguistic_essay(self, essay_id: int) -> dict[str, Any] | None:
+        with self._db() as conn:
+            row=conn.execute("SELECT id,text,language_code,module_data_json FROM essays WHERE id=?",(essay_id,)).fetchone()
+        return self._dict(row)
+
+    def update_essay_module_data(self, essay_id: int, module_data: dict[str, Any]) -> bool:
+        with self._db() as conn:
+            cur=conn.execute("UPDATE essays SET module_data_json=? WHERE id=?",(json.dumps(module_data,ensure_ascii=False),essay_id))
+            conn.commit()
+        return cur.rowcount > 0
+
+
+class PostgresSpecializedLearningRepository:
+    """SQLAlchemy implementation ready for a later explicit runtime cutover."""
+
+    def __init__(self, engine: Engine | None = None, *, url: str | None = None,
+                 user_key_provider: Callable[[], str] = current_user_key,
+                 language_provider: Callable[[], str] = current_language_code) -> None:
+        self.engine=engine or create_shadow_engine(url)
+        self._user_key_provider=user_key_provider
+        self._language_provider=language_provider
+
+    def _scope(self) -> tuple[Any,str]:
+        key=self._user_key_provider(); return stable_uuid("user",key), self._language_provider().casefold()
+
+    def _key(self) -> str: return self._user_key_provider()
+
+    @staticmethod
+    def _dt(value: Any) -> datetime:
+        if isinstance(value, datetime): return value if value.tzinfo else value.replace(tzinfo=timezone.utc)
+        parsed=datetime.fromisoformat(str(value).replace("Z","+00:00")); return parsed if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
+
+    @staticmethod
+    def _iso(value: datetime | None) -> str:
+        return value.isoformat() if value else ""
+
+    def get_profile_record(self) -> dict[str, Any] | None:
+        uid,lang=self._scope()
+        with Session(self.engine) as s:
+            r=s.scalar(select(UserLanguageProfile).where(UserLanguageProfile.user_id==uid,UserLanguageProfile.language_code==lang))
+            if r is None: return None
+            return {"goal":r.goal,"style":r.style,"pinyin":r.pinyin,"native_language":r.native_language,"theme_preset":r.theme_preset,
+                    "created_at":self._iso(r.created_at),"updated_at":self._iso(r.updated_at)}
+
+    def upsert_profile_record(self, values: dict[str, Any]) -> None:
+        uid,lang=self._scope(); pid=stable_uuid("profile",self._key(),lang)
+        with Session(self.engine) as s, s.begin():
+            if s.get(User,uid) is None: raise RuntimeError("PostgreSQL scope user missing; shadow/import must run first.")
+            r=s.get(UserLanguageProfile,pid)
+            if r is None:
+                s.add(UserLanguageProfile(id=pid,user_id=uid,language_code=lang,goal=values["goal"],style=values["style"],pinyin=values["pinyin"],
+                                          native_language=values["native_language"],theme_preset=values["theme_preset"],created_at=self._dt(values["created_at"]),updated_at=self._dt(values["updated_at"])))
+            else:
+                r.goal=values["goal"]; r.style=values["style"]; r.pinyin=values["pinyin"]; r.native_language=values["native_language"]
+                r.theme_preset=values["theme_preset"]; r.updated_at=self._dt(values["updated_at"])
+
+    def _essay_rows(self, *, desc: bool=False) -> list[dict[str, Any]]:
+        uid,lang=self._scope(); order=Essay.legacy_id.desc() if desc else Essay.legacy_id.asc()
+        with Session(self.engine) as s:
+            essays=s.scalars(select(Essay).where(Essay.user_id==uid,Essay.language_code==lang).order_by(order)).all()
+            revs={r.essay_id:r for r in s.scalars(select(EssayRevision).where(EssayRevision.user_id==uid,EssayRevision.language_code==lang)).all()}
+            out=[]
+            for e in essays:
+                r=revs.get(e.id)
+                out.append({"id":e.legacy_id,"series_id":r.series_legacy_id if r else e.legacy_id,"revision_no":r.revision_no if r else 1,
+                            "created_at":self._iso(e.created_at),"overall":e.overall,"errors_json":json.dumps(e.errors,ensure_ascii=False),
+                            "strengths_json":json.dumps(e.strengths,ensure_ascii=False),"strength_evidence_json":json.dumps(e.strength_evidence,ensure_ascii=False),
+                            "module_data_json":json.dumps(e.module_data,ensure_ascii=False)})
+        return out
+
+    def memory_essay_rows(self) -> list[dict[str, Any]]: return self._essay_rows()
+    def get_outcome_essay(self, essay_id: int) -> dict[str, Any] | None:
+        return next((r for r in self._essay_rows() if int(r["id"])==essay_id),None)
+    def list_outcome_essays(self, limit: int) -> list[dict[str, Any]]:
+        rows=[r for r in self._essay_rows(desc=True) if r.get("module_data_json") not in (None,"","{}")]
+        return rows[:limit]
+
+    def list_library_records(self) -> list[dict[str, Any]]:
+        uid,lang=self._scope()
+        with Session(self.engine) as s:
+            rows=s.scalars(select(SavedWord).where(SavedWord.user_id==uid,SavedWord.language_code==lang).order_by(SavedWord.added_at.desc())).all()
+            return [self._saved_payload(r) for r in rows]
+
+    def _saved_payload(self,r: SavedWord) -> dict[str,Any]:
+        source_legacy=None
+        if r.source_essay_id:
+            with Session(self.engine) as s:
+                e=s.get(Essay,r.source_essay_id); source_legacy=e.legacy_id if e else None
+        return {"word":r.word,"phonetic":r.phonetic,"part_of_speech":r.part_of_speech,"definition":r.definition,"translation_vi":r.translation_vi,
+                "added_at":self._iso(r.added_at),"source_essay_id":source_legacy,"source_fragment":r.source_fragment,"source_kind":r.source_kind,
+                "focus_note":r.focus_note,"review_stage":r.review_stage,"successful_recalls":r.successful_recalls,"lapse_count":r.lapse_count,
+                "last_reviewed_at":self._iso(r.last_reviewed_at),"next_review_at":self._iso(r.next_review_at)}
+
+    def _saved(self,s: Session,word: str) -> SavedWord | None:
+        uid,lang=self._scope(); return s.scalar(select(SavedWord).where(SavedWord.user_id==uid,SavedWord.language_code==lang,SavedWord.normalized_word==word.casefold()))
+
+    def save_library_record(self, values: dict[str, Any]) -> dict[str, Any]:
+        uid,lang=self._scope(); normalized=values["word"].casefold(); sid=stable_uuid("saved-word",self._key(),lang,normalized); now=self._dt(values["now"])
+        with Session(self.engine) as s, s.begin():
+            r=s.get(SavedWord,sid)
+            source_uuid=None
+            if values.get("source_essay_id"):
+                e=s.scalar(select(Essay).where(Essay.user_id==uid,Essay.language_code==lang,Essay.legacy_id==int(values["source_essay_id"])))
+                source_uuid=e.id if e else None
+            if r is None:
+                r=SavedWord(id=sid,user_id=uid,language_code=lang,word=values["word"],normalized_word=normalized,phonetic=values["phonetic"],
+                            part_of_speech=values["part_of_speech"],definition=values["definition"],translation_vi=values["translation_vi"],added_at=now,
+                            source_essay_id=source_uuid,source_fragment=values["source_fragment"],source_kind=values["source_kind"],focus_note=values["focus_note"],
+                            review_stage=0,successful_recalls=0,lapse_count=0,last_reviewed_at=None,next_review_at=now,updated_at=now); s.add(r)
+            else:
+                if values["phonetic"]: r.phonetic=values["phonetic"]
+                if values["part_of_speech"]: r.part_of_speech=values["part_of_speech"]
+                if values["definition"]: r.definition=values["definition"]
+                if values["translation_vi"]: r.translation_vi=values["translation_vi"]
+                if source_uuid: r.source_essay_id=source_uuid
+                if values["source_fragment"]: r.source_fragment=values["source_fragment"]
+                if values["source_kind"]: r.source_kind=values["source_kind"]
+                if values["focus_note"]: r.focus_note=values["focus_note"]
+                r.updated_at=now
+            s.flush(); payload=self._saved_payload_from_session(s,r)
+        return payload
+
+    def _saved_payload_from_session(self,s:Session,r:SavedWord)->dict[str,Any]:
+        source_legacy=None
+        if r.source_essay_id:
+            e=s.get(Essay,r.source_essay_id); source_legacy=e.legacy_id if e else None
+        return {"word":r.word,"phonetic":r.phonetic,"part_of_speech":r.part_of_speech,"definition":r.definition,"translation_vi":r.translation_vi,
+                "added_at":self._iso(r.added_at),"source_essay_id":source_legacy,"source_fragment":r.source_fragment,"source_kind":r.source_kind,"focus_note":r.focus_note,
+                "review_stage":r.review_stage,"successful_recalls":r.successful_recalls,"lapse_count":r.lapse_count,"last_reviewed_at":self._iso(r.last_reviewed_at),
+                "next_review_at":self._iso(r.next_review_at)}
+
+    def get_library_progress(self, word: str) -> dict[str, Any] | None:
+        with Session(self.engine) as s:
+            r=self._saved(s,word)
+            return None if r is None else {"review_stage":r.review_stage,"successful_recalls":r.successful_recalls,"lapse_count":r.lapse_count}
+
+    def update_library_review(self, word: str, values: dict[str, Any]) -> dict[str, Any] | None:
+        with Session(self.engine) as s, s.begin():
+            r=self._saved(s,word)
+            if r is None: return None
+            r.review_stage=int(values["review_stage"]); r.successful_recalls=int(values["successful_recalls"]); r.lapse_count=int(values["lapse_count"])
+            r.last_reviewed_at=self._dt(values["last_reviewed_at"]); r.next_review_at=self._dt(values["next_review_at"]); r.updated_at=self._dt(values["updated_at"])
+            s.flush(); return self._saved_payload_from_session(s,r)
+
+    def delete_library_record(self, word: str) -> bool:
+        with Session(self.engine) as s, s.begin():
+            r=self._saved(s,word)
+            if r is None: return False
+            s.delete(r); return True
+
+    def select_library_terms(self, limit: int = 3) -> list[str]:
+        rows=self.list_library_records()
+        rows.sort(key=lambda r:(0 if int(r["review_stage"] or 0)<3 else 1,r["next_review_at"] or r["added_at"],r["word"].casefold()))
+        return [str(r["word"]) for r in rows[:limit]]
+
+    def create_reading_session_record(self, values: dict[str, Any]) -> dict[str, Any]:
+        uid,lang=self._scope()
+        with Session(self.engine) as s, s.begin():
+            max_id=s.scalar(select(func.max(ReadingSession.legacy_id)).where(ReadingSession.user_id==uid,ReadingSession.language_code==lang))
+            legacy=int(max_id or 0)+1; sid=stable_uuid("reading-session",self._key(),lang,legacy)
+            r=ReadingSession(id=sid,user_id=uid,language_code=lang,legacy_id=legacy,created_at=self._dt(values["created_at"]),target_level=values["target_level"],
+                             topic=values["topic"],learner_goal=values["learner_goal"],title=values["title"],passage=values["passage"],questions=values["questions"],
+                             recycled_words=values["recycled_words"],generation_mode=values["generation_mode"]); s.add(r); s.flush(); return self._reading_payload(r)
+
+    def _reading_payload(self,r:ReadingSession)->dict[str,Any]:
+        return {"id":r.legacy_id,"created_at":self._iso(r.created_at),"language_code":r.language_code,"target_level":r.target_level,"topic":r.topic,
+                "learner_goal":r.learner_goal,"title":r.title,"passage":r.passage,"questions_json":json.dumps(r.questions,ensure_ascii=False),
+                "recycled_words_json":json.dumps(r.recycled_words,ensure_ascii=False),"generation_mode":r.generation_mode}
+
+    def _reading(self,s:Session,session_id:int)->ReadingSession|None:
+        uid,lang=self._scope(); return s.scalar(select(ReadingSession).where(ReadingSession.user_id==uid,ReadingSession.language_code==lang,ReadingSession.legacy_id==session_id))
+
+    def get_reading_session_record(self, session_id: int) -> dict[str, Any] | None:
+        with Session(self.engine) as s:
+            r=self._reading(s,session_id); return self._reading_payload(r) if r else None
+
+    def latest_reading_attempt(self, session_id: int) -> dict[str, Any] | None:
+        with Session(self.engine) as s:
+            r=self._reading(s,session_id)
+            if r is None: return None
+            a=s.scalar(select(ReadingAttempt).where(ReadingAttempt.session_id==r.id).order_by(ReadingAttempt.legacy_id.desc()).limit(1))
+            return None if a is None else {"correct_count":a.correct_count,"total":a.total,"created_at":self._iso(a.created_at)}
+
+    def list_reading_session_records(self, limit: int) -> list[dict[str, Any]]:
+        uid,lang=self._scope()
+        with Session(self.engine) as s:
+            rows=s.scalars(select(ReadingSession).where(ReadingSession.user_id==uid,ReadingSession.language_code==lang).order_by(ReadingSession.legacy_id.desc()).limit(limit)).all()
+            out=[]
+            for r in rows:
+                item=self._reading_payload(r); a=s.scalar(select(ReadingAttempt).where(ReadingAttempt.session_id==r.id).order_by(ReadingAttempt.legacy_id.desc()).limit(1))
+                item["last_correct"]=a.correct_count if a else None; item["last_total"]=a.total if a else None; out.append(item)
+            return out
+
+    def create_reading_attempt_record(self, session_id: int, values: dict[str, Any]) -> None:
+        with Session(self.engine) as s, s.begin():
+            r=self._reading(s,session_id)
+            if r is None: raise ValueError("Reading session not found")
+            max_id=s.scalar(select(func.max(ReadingAttempt.legacy_id))); legacy=int(max_id or 0)+1
+            s.add(ReadingAttempt(id=stable_uuid("reading-attempt",self._key(),self._language_provider().casefold(),legacy),session_id=r.id,legacy_id=legacy,
+                                 created_at=self._dt(values["created_at"]),answers=list(values["answers"]),correct_count=int(values["correct_count"]),total=int(values["total"])))
+
+    def get_linguistic_essay(self, essay_id: int) -> dict[str, Any] | None:
+        uid,lang=self._scope()
+        with Session(self.engine) as s:
+            e=s.scalar(select(Essay).where(Essay.user_id==uid,Essay.language_code==lang,Essay.legacy_id==essay_id))
+            return None if e is None else {"id":e.legacy_id,"text":e.text,"language_code":e.language_code,"module_data_json":json.dumps(e.module_data,ensure_ascii=False)}
+
+    def update_essay_module_data(self, essay_id: int, module_data: dict[str, Any]) -> bool:
+        uid,lang=self._scope()
+        with Session(self.engine) as s, s.begin():
+            e=s.scalar(select(Essay).where(Essay.user_id==uid,Essay.language_code==lang,Essay.legacy_id==essay_id))
+            if e is None: return False
+            e.module_data=module_data; return True

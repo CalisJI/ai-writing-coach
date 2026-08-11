@@ -25,12 +25,27 @@ def test_learning_repository_contract_and_no_cutover():
     assert "create_shadow_engine" not in app
 
 
-def test_specialized_adapters_remain_explicit_blocker():
-    for rel in [
+def test_specialized_services_are_repository_bound_on_v133():
+    version = (ROOT / "VERSION").read_text(encoding="utf-8").strip()
+    services = [
         "writing_coach/becoming_memory.py",
         "writing_coach/becoming_outcomes.py",
         "writing_coach/becoming_library.py",
         "writing_coach/becoming_reading.py",
         "writing_coach/becoming_linguistics.py",
-    ]:
-        assert "conn.execute(" in (ROOT / rel).read_text(encoding="utf-8")
+    ]
+    if version == "1.3.2":
+        for rel in services:
+            assert "conn.execute(" in (ROOT / rel).read_text(encoding="utf-8")
+        return
+
+    assert version == "1.3.3"
+    for rel in services:
+        src = (ROOT / rel).read_text(encoding="utf-8")
+        assert "_db_factory" not in src
+        assert "def _db()" not in src
+        assert "_repository" in src
+
+    repo = (ROOT / "writing_coach/persistence/specialized_repository.py").read_text(encoding="utf-8")
+    assert "class SQLiteSpecializedLearningRepository" in repo
+    assert "class PostgresSpecializedLearningRepository" in repo
