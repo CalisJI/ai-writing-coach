@@ -32,8 +32,14 @@ def verify_alembic_head(url: str) -> dict[str, object]:
     expected=ScriptDirectory.from_config(cfg).get_current_head()
     with create_shadow_engine(url).connect() as connection:
         actual=MigrationContext.configure(connection).get_current_revision()
-    if actual != expected: raise RuntimeError('PostgreSQL Alembic revision is not at repository head.')
-    return {'step':'alembic-head-verification','returncode':0}
+    if actual != expected:
+        raise RuntimeError(f"PostgreSQL Alembic revision mismatch: expected {expected}, actual {actual}.")
+    return {'step':'alembic-head-verification','returncode':0, 'expected_revision': expected, 'actual_revision': actual}
+
+def fail(completed_steps: list[dict[str, object]], step: str, error: Exception) -> None:
+    print(json.dumps({"ok": False, "runtime": "sqlite", "completed_steps": completed_steps,
+        "failing_step": {"step": step, "error": str(error)}}, indent=2))
+    raise SystemExit(f"Cutover rehearsal failed at {step}; SQLite remains authoritative.")
 
 
 def main() -> None:
@@ -58,7 +64,10 @@ def main() -> None:
     steps.append(run("domain-semantic-parity-pass-2", [sys.executable, "scripts/postgres_cutover_domain_parity.py", *common], steps))
     steps.append(run("core-scoped-parity-pass-2", [sys.executable, "scripts/persistence_readiness.py", "shadow-compare", *common], steps))
     steps.append(run("specialized-scoped-parity-pass-2", [sys.executable, "scripts/specialized_persistence.py", "shadow-compare", *common], steps))
-    steps.append(verify_alembic_head(args.url or shadow_url()))
+    try:
+        steps.append(verify_alembic_head(args.url or shadow_url()))
+    except Exception as exc:
+        fail(steps, "alembic-head-verification", exc)
     print(json.dumps({"ok": True, "runtime": "sqlite", "steps": steps}, indent=2))
     print("PostgreSQL cutover rehearsal PASS. PostgreSQL runtime remains NOT SELECTED.")
 
