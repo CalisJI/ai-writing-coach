@@ -80,3 +80,9 @@ boundary phase instead of being refactored together with stable core routes.
 
 ## v1.3.3 specialized persistence boundary
 Memory, practice outcomes, active recall, reading, and linguistic annotation persistence now use a dedicated repository contract. SQLite remains authoritative; the PostgreSQL implementation is ready but not selected.
+
+## v1.3.4 schema ownership completion
+
+Specialized service modules no longer own SQLite schema initialization. Their
+repository owns the SQLite bootstrap; PostgreSQL schema ownership remains with
+Alembic and runtime selection remains SQLite.

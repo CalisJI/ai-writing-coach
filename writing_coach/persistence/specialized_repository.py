@@ -56,6 +56,115 @@ class SQLiteSpecializedLearningRepository:
     def _db(self) -> sqlite3.Connection:
         return self._db_factory()
 
+    def initialize(self) -> None:
+        """Create or upgrade durable specialized-learning tables for SQLite.
+
+        Core learning initialization must run first because the Active Recall
+        compatibility backfill reads the durable ``saved_words`` table.
+        """
+        with self._db() as conn:
+            conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS learner_profile (
+                    id INTEGER PRIMARY KEY CHECK (id = 1),
+                    goal TEXT NOT NULL DEFAULT 'everyday',
+                    style TEXT NOT NULL DEFAULT 'guided',
+                    pinyin TEXT NOT NULL DEFAULT 'auto',
+                    native_language TEXT NOT NULL DEFAULT 'vi',
+                    theme_preset TEXT NOT NULL DEFAULT 'editorial',
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL
+                )
+                """
+            )
+            profile_columns = {
+                str(row["name"])
+                for row in conn.execute("PRAGMA table_info(learner_profile)").fetchall()
+            }
+            if "native_language" not in profile_columns:
+                conn.execute(
+                    "ALTER TABLE learner_profile "
+                    "ADD COLUMN native_language TEXT NOT NULL DEFAULT 'vi'"
+                )
+            if "theme_preset" not in profile_columns:
+                conn.execute(
+                    "ALTER TABLE learner_profile "
+                    "ADD COLUMN theme_preset TEXT NOT NULL DEFAULT 'editorial'"
+                )
+
+            conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS vocabulary_learning (
+                    word TEXT PRIMARY KEY COLLATE NOCASE,
+                    source_essay_id INTEGER,
+                    source_fragment TEXT NOT NULL DEFAULT '',
+                    source_kind TEXT NOT NULL DEFAULT 'manual',
+                    focus_note TEXT NOT NULL DEFAULT '',
+                    review_stage INTEGER NOT NULL DEFAULT 0,
+                    successful_recalls INTEGER NOT NULL DEFAULT 0,
+                    lapse_count INTEGER NOT NULL DEFAULT 0,
+                    last_reviewed_at TEXT NOT NULL DEFAULT '',
+                    next_review_at TEXT NOT NULL DEFAULT '',
+                    updated_at TEXT NOT NULL
+                )
+                """
+            )
+            now = datetime.now().astimezone().isoformat(timespec="seconds")
+            conn.execute(
+                """
+                INSERT OR IGNORE INTO vocabulary_learning(
+                    word, source_kind, review_stage, successful_recalls,
+                    lapse_count, last_reviewed_at, next_review_at, updated_at
+                )
+                SELECT
+                    word, 'manual', 0, 0, 0, '',
+                    COALESCE(NULLIF(added_at, ''), ?),
+                    COALESCE(NULLIF(added_at, ''), ?)
+                FROM saved_words
+                """,
+                (now, now),
+            )
+
+            conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS reading_sessions (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    created_at TEXT NOT NULL,
+                    language_code TEXT NOT NULL,
+                    target_level TEXT NOT NULL,
+                    topic TEXT NOT NULL,
+                    learner_goal TEXT NOT NULL DEFAULT '',
+                    title TEXT NOT NULL,
+                    passage TEXT NOT NULL,
+                    questions_json TEXT NOT NULL,
+                    recycled_words_json TEXT NOT NULL DEFAULT '[]',
+                    generation_mode TEXT NOT NULL DEFAULT 'practice'
+                )
+                """
+            )
+            conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS reading_attempts (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    session_id INTEGER NOT NULL,
+                    created_at TEXT NOT NULL,
+                    answers_json TEXT NOT NULL,
+                    correct_count INTEGER NOT NULL,
+                    total INTEGER NOT NULL,
+                    FOREIGN KEY(session_id) REFERENCES reading_sessions(id)
+                )
+                """
+            )
+            conn.execute(
+                "CREATE INDEX IF NOT EXISTS idx_reading_sessions_created "
+                "ON reading_sessions(created_at DESC)"
+            )
+            conn.execute(
+                "CREATE INDEX IF NOT EXISTS idx_reading_attempts_session "
+                "ON reading_attempts(session_id, id DESC)"
+            )
+            conn.commit()
+
     @staticmethod
     def _has_table(conn: sqlite3.Connection, table: str) -> bool:
         row = conn.execute(

@@ -137,3 +137,9 @@ adapters remain the final learning-domain blocker before a cutover decision.
 
 ## v1.3.3 specialized persistence boundary
 Memory, practice outcomes, active recall, reading, and linguistic annotation persistence now use a dedicated repository contract. SQLite remains authoritative; the PostgreSQL implementation is ready but not selected.
+
+## v1.3.4 learning schema repository completion
+
+The specialized SQLite repository owns its durable schema bootstrap and legacy
+compatibility backfills. Service modules are storage-neutral; SQLite remains
+authoritative and PostgreSQL remains shadow-only.

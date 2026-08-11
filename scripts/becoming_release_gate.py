@@ -118,10 +118,12 @@ def main() -> None:
     library_service = root / "writing_coach" / "becoming_library.py"
     reading_service = root / "writing_coach" / "becoming_reading.py"
     linguistics_service = root / "writing_coach" / "becoming_linguistics.py"
+    specialized_repository = root / "writing_coach" / "persistence" / "specialized_repository.py"
     memory_text = memory_service.read_text(encoding="utf-8")
     library_text = library_service.read_text(encoding="utf-8")
     reading_text = reading_service.read_text(encoding="utf-8")
     linguistics_text = linguistics_service.read_text(encoding="utf-8")
+    specialized_repository_text = specialized_repository.read_text(encoding="utf-8")
     frontend_version = read("BECOMING_FRONTEND_VERSION").strip()
 
     # Historical source/deployment incidents.
@@ -204,9 +206,16 @@ def main() -> None:
     for old_needle, core_needle, specialized_needle in adapter_contracts:
         if old_needle not in app and core_needle not in app and specialized_needle not in app:
             errors.append(f"historical app contract missing repository adapter: {old_needle}")
-    for schema_needle in ["ensure_becoming_library_schema", "ensure_becoming_reading_schema", "ensure_becoming_schema"]:
-        if schema_needle not in app:
-            errors.append(f"historical app contract missing schema initializer: {schema_needle}")
+    schema_initializers = [
+        "_learning_repository.initialize(schema_version=SCHEMA_VERSION)",
+        "_specialized_learning_repository.initialize()",
+        "_learning_cache.initialize()",
+    ]
+    schema_positions = [app.find(item) for item in schema_initializers]
+    if any(position < 0 for position in schema_positions):
+        errors.append("v1.3.4 schema initialization call missing")
+    elif schema_positions != sorted(schema_positions):
+        errors.append("v1.3.4 schema initialization order must be core, specialized, cache")
     require_contains(errors, app, [
         "practice_context: PracticeContextIn | None",
         'd["practice_context"]',
@@ -238,15 +247,18 @@ def main() -> None:
         errors.append("Home does not surface latest practice outcome")
 
     require_contains(errors, library_text, [
-        "CREATE TABLE IF NOT EXISTS vocabulary_learning",
         "def list_library_vocabulary", "def save_library_vocabulary",
         "def review_library_vocabulary", "def delete_library_vocabulary",
     ], "Library service")
     require_contains(errors, reading_text, [
-        "CREATE TABLE IF NOT EXISTS reading_sessions", "CREATE TABLE IF NOT EXISTS reading_attempts",
         "def create_reading_session", "def submit_reading_answers", "def _public_question",
         "comprehension_check_only", "def _term_occurs",
     ], "Reading service")
+    require_contains(errors, specialized_repository_text, [
+        "CREATE TABLE IF NOT EXISTS vocabulary_learning",
+        "CREATE TABLE IF NOT EXISTS reading_sessions",
+        "CREATE TABLE IF NOT EXISTS reading_attempts",
+    ], "specialized repository schema")
     for forbidden in ["requests.", "OLLAMA_URL", "/api/chat"]:
         if forbidden in reading_text:
             errors.append(f"Reading service bypasses shared AI abstraction: {forbidden}")
@@ -273,9 +285,11 @@ def main() -> None:
     # v2.7.2 profile migration: additive theme preference only.
     require_contains(errors, memory_text, [
         "native_language: str", "theme_preset: str",
-        "ADD COLUMN native_language", "ADD COLUMN theme_preset",
         '"native_language": "vi"', '"theme_preset": "editorial"',
     ], "learner profile migration")
+    require_contains(errors, specialized_repository_text, [
+        "ADD COLUMN native_language", "ADD COLUMN theme_preset",
+    ], "learner profile schema migration")
 
     # Interface localization is a separate product layer from learning language.
     require_contains(errors, i18n, [

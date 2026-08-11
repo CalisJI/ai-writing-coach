@@ -150,3 +150,9 @@ boundary milestone. PostgreSQL runtime cutover is still disabled.
 
 ## v1.3.3 specialized persistence boundary
 Memory, practice outcomes, active recall, reading, and linguistic annotation persistence now use a dedicated repository contract. SQLite remains authoritative; the PostgreSQL implementation is ready but not selected.
+
+## v1.3.4 learning schema repository completion
+
+Specialized BECOMING SQLite schema initialization now belongs to the specialized
+repository rather than the service modules. SQLite remains authoritative;
+PostgreSQL remains shadow-only.

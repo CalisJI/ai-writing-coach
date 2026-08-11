@@ -25,7 +25,7 @@ def test_learning_repository_contract_and_no_cutover():
     assert "create_shadow_engine" not in app
 
 
-def test_specialized_services_are_repository_bound_on_v133():
+def test_specialized_services_are_storage_neutral_on_v134():
     version = (ROOT / "VERSION").read_text(encoding="utf-8").strip()
     services = [
         "writing_coach/becoming_memory.py",
@@ -34,18 +34,20 @@ def test_specialized_services_are_repository_bound_on_v133():
         "writing_coach/becoming_reading.py",
         "writing_coach/becoming_linguistics.py",
     ]
-    if version == "1.3.2":
-        for rel in services:
-            assert "conn.execute(" in (ROOT / rel).read_text(encoding="utf-8")
-        return
-
-    assert version == "1.3.3"
+    assert version == "1.3.4"
     for rel in services:
         src = (ROOT / rel).read_text(encoding="utf-8")
         assert "_db_factory" not in src
         assert "def _db()" not in src
         assert "_repository" in src
+        for forbidden in ["import sqlite3", "sqlite3.Connection", "CREATE TABLE", "ALTER TABLE", "PRAGMA"]:
+            assert forbidden not in src
 
     repo = (ROOT / "writing_coach/persistence/specialized_repository.py").read_text(encoding="utf-8")
     assert "class SQLiteSpecializedLearningRepository" in repo
     assert "class PostgresSpecializedLearningRepository" in repo
+    protocol, remainder = repo.split("class SQLiteSpecializedLearningRepository", 1)
+    sqlite_repo, postgres_repo = remainder.split("class PostgresSpecializedLearningRepository", 1)
+    assert "def initialize(self)" not in protocol
+    assert "def initialize(self)" in sqlite_repo
+    assert "def initialize(self)" not in postgres_repo

@@ -56,3 +56,9 @@ semantic parity passes for their read/write workflows.
 
 ## v1.3.3 specialized persistence boundary
 Memory, practice outcomes, active recall, reading, and linguistic annotation persistence now use a dedicated repository contract. SQLite remains authoritative; the PostgreSQL implementation is ready but not selected.
+
+## v1.3.4 schema ownership completion
+
+The specialized SQLite repository also owns the durable schema bootstrap and
+legacy compatibility backfills for those services. `app.py` initializes core
+learning first, specialized learning second, and rebuildable caches last.

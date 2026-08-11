@@ -12,3 +12,12 @@ Repository-bound services:
 Runtime selection remains `SQLiteSpecializedLearningRepository`. `PostgresSpecializedLearningRepository` is implemented and verified but is not selected by the application. No billing or PostgreSQL runtime cutover is enabled.
 
 The shadow verifier compares specialized repository reads for every discovered user/language SQLite source against PostgreSQL after the idempotent shadow refresh.
+
+## v1.3.4 schema ownership completion
+
+Durable SQLite schema initialization for learner profiles, Active Recall, and
+Reading Studio now belongs to `SQLiteSpecializedLearningRepository`. BECOMING
+services are storage-neutral: they no longer import SQLite or own DDL/migration
+callbacks. Runtime initialization remains ordered as core learning, specialized
+learning, then rebuildable cache initialization. PostgreSQL remains Alembic-owned
+and shadow-only.

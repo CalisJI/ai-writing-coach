@@ -7,8 +7,8 @@ from writing_coach.becoming_memory import (
     _error_patterns,
     _revision_wins,
     _strength_patterns,
-    ensure_becoming_schema,
 )
+from writing_coach.persistence.specialized_repository import SQLiteSpecializedLearningRepository
 
 
 def row(conn: sqlite3.Connection, sql: str, params=()):
@@ -32,7 +32,8 @@ def main() -> None:
         )
         """
     )
-    ensure_becoming_schema(conn)
+    conn.execute("CREATE TABLE saved_words(word TEXT PRIMARY KEY, added_at TEXT NOT NULL)")
+    SQLiteSpecializedLearningRepository(lambda: conn).initialize()
 
     profile_cols = {
         str(r["name"])

@@ -16,7 +16,7 @@ def text(rel: str) -> str:
 
 
 def main() -> None:
-    req((ROOT / "VERSION").read_text(encoding="utf-8").strip() in {"1.3.2", "1.3.3"}, "app version must remain on learning-boundary line")
+    req((ROOT / "VERSION").read_text(encoding="utf-8").strip() in {"1.3.2", "1.3.3", "1.3.4"}, "app version must remain on learning-boundary line")
     req((ROOT / "BECOMING_FRONTEND_VERSION").read_text(encoding="utf-8").strip() == "2.15.7", "frontend must remain 2.15.7")
 
     app = text("app.py")
@@ -70,6 +70,11 @@ def main() -> None:
         repo = text("writing_coach/persistence/specialized_repository.py")
         req("class SQLiteSpecializedLearningRepository" in repo, "v1.3.3 SQLite specialized repository missing")
         req("class PostgresSpecializedLearningRepository" in repo, "v1.3.3 PostgreSQL specialized repository missing")
+        if version == "1.3.4":
+            for rel in ["writing_coach/becoming_memory.py", "writing_coach/becoming_library.py", "writing_coach/becoming_reading.py"]:
+                src = text(rel)
+                for forbidden in ["import sqlite3", "sqlite3.Connection", "CREATE TABLE", "ALTER TABLE", "PRAGMA"]:
+                    req(forbidden not in src, f"v1.3.4 service schema coupling remains: {rel}: {forbidden}")
 
     # sqlite3.connect is allowed only in explicit repository/migration/verification
     # adapters. Core app and service orchestration may not open DBs directly.
@@ -104,7 +109,7 @@ def main() -> None:
     print("Core app direct SQLite SQL: REMOVED")
     print("Learning runtime selection: SQLiteLearningRepository")
     print("PostgreSQL core implementation: PRESENT / NOT SELECTED")
-    print("Specialized BECOMING persistence: REPOSITORY-BOUND on v1.3.3")
+    print("Specialized BECOMING persistence: CRUD + schema repository-bound on v1.3.4")
     print("Runtime cutover: NOT ENABLED")
 
 

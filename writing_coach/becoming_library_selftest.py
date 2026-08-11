@@ -7,7 +7,6 @@ from writing_coach.becoming_library import (
     VocabularyReviewIn,
     configure_becoming_library,
     delete_library_vocabulary,
-    ensure_becoming_library_schema,
     list_library_vocabulary,
     review_library_vocabulary,
     save_library_vocabulary,
@@ -29,8 +28,9 @@ def main() -> None:
         )
         """
     )
-    configure_becoming_library(SQLiteSpecializedLearningRepository(lambda: conn))
-    ensure_becoming_library_schema(conn)
+    repository = SQLiteSpecializedLearningRepository(lambda: conn)
+    configure_becoming_library(repository)
+    repository.initialize()
 
     saved = save_library_vocabulary(
         LibraryVocabularyIn(

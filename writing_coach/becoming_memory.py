@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-import sqlite3
 from collections import defaultdict
 from datetime import datetime
 from typing import Any
@@ -35,38 +34,6 @@ def _repo() -> SpecializedLearningRepository:
     if _repository is None:
         raise RuntimeError("BECOMING memory repository is not installed")
     return _repository
-
-def ensure_becoming_schema(conn: sqlite3.Connection) -> None:
-    conn.execute(
-        """
-        CREATE TABLE IF NOT EXISTS learner_profile (
-            id INTEGER PRIMARY KEY CHECK (id = 1),
-            goal TEXT NOT NULL DEFAULT 'everyday',
-            style TEXT NOT NULL DEFAULT 'guided',
-            pinyin TEXT NOT NULL DEFAULT 'auto',
-            native_language TEXT NOT NULL DEFAULT 'vi',
-            theme_preset TEXT NOT NULL DEFAULT 'editorial',
-            created_at TEXT NOT NULL,
-            updated_at TEXT NOT NULL
-        )
-        """
-    )
-    profile_columns = {
-        str(row["name"])
-        for row in conn.execute("PRAGMA table_info(learner_profile)").fetchall()
-    }
-    if "native_language" not in profile_columns:
-        conn.execute(
-            "ALTER TABLE learner_profile "
-            "ADD COLUMN native_language TEXT NOT NULL DEFAULT 'vi'"
-        )
-    if "theme_preset" not in profile_columns:
-        conn.execute(
-            "ALTER TABLE learner_profile "
-            "ADD COLUMN theme_preset TEXT NOT NULL DEFAULT 'editorial'"
-        )
-    conn.commit()
-
 
 def _safe_json(value: Any, fallback: Any) -> Any:
     try:

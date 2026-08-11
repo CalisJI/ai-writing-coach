@@ -7,7 +7,6 @@ from writing_coach.becoming_reading import (
     ReadingGenerateIn,
     configure_becoming_reading,
     create_reading_session,
-    ensure_becoming_reading_schema,
     get_reading_session,
     list_reading_sessions,
     submit_reading_answers,
@@ -104,8 +103,16 @@ def main() -> None:
         """
         CREATE TABLE vocabulary_learning(
             word TEXT PRIMARY KEY COLLATE NOCASE,
+            source_essay_id INTEGER,
+            source_fragment TEXT NOT NULL DEFAULT '',
+            source_kind TEXT NOT NULL DEFAULT 'manual',
+            focus_note TEXT NOT NULL DEFAULT '',
             review_stage INTEGER NOT NULL DEFAULT 0,
-            next_review_at TEXT NOT NULL DEFAULT ''
+            successful_recalls INTEGER NOT NULL DEFAULT 0,
+            lapse_count INTEGER NOT NULL DEFAULT 0,
+            last_reviewed_at TEXT NOT NULL DEFAULT '',
+            next_review_at TEXT NOT NULL DEFAULT '',
+            updated_at TEXT NOT NULL
         )
         """
     )
@@ -121,14 +128,14 @@ def main() -> None:
         ),
     )
     conn.execute(
-        "INSERT INTO vocabulary_learning VALUES(?,?,?)",
-        ("focused work", 1, "2026-08-10T06:00:00+07:00"),
+        "INSERT INTO vocabulary_learning(word,review_stage,next_review_at,updated_at) VALUES(?,?,?,?)",
+        ("focused work", 1, "2026-08-10T06:00:00+07:00", "2026-08-10T07:00:00+07:00"),
     )
     conn.commit()
 
     repository = SQLiteSpecializedLearningRepository(lambda: conn)
     configure_becoming_reading(repository, fake_generate)
-    ensure_becoming_reading_schema(conn)
+    repository.initialize()
 
     session = create_reading_session(
         ReadingGenerateIn(

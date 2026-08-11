@@ -38,12 +38,12 @@ from writing_coach.persistence.learning_repository import (
     SQLiteLearningRepository,
 )
 from writing_coach.persistence.specialized_repository import SQLiteSpecializedLearningRepository
-from writing_coach.becoming_memory import (LearnerProfileIn, configure_becoming_memory, ensure_becoming_schema, get_learner_profile, get_learning_memory, put_learner_profile)
+from writing_coach.becoming_memory import (LearnerProfileIn, configure_becoming_memory, get_learner_profile, get_learning_memory, put_learner_profile)
 from writing_coach.becoming_practice import PracticeNextIn, build_practice_recommendation, personalize_generated_task
 from writing_coach.becoming_outcomes import PracticeContextIn, configure_becoming_outcomes, get_practice_outcome, list_practice_outcomes
-from writing_coach.becoming_library import LibraryVocabularyIn, VocabularyReviewIn, configure_becoming_library, delete_library_vocabulary, ensure_becoming_library_schema, list_library_vocabulary, review_library_vocabulary, save_library_vocabulary
+from writing_coach.becoming_library import LibraryVocabularyIn, VocabularyReviewIn, configure_becoming_library, delete_library_vocabulary, list_library_vocabulary, review_library_vocabulary, save_library_vocabulary
 from writing_coach.becoming_linguistics import configure_becoming_linguistics, linguistic_annotations_for_essay
-from writing_coach.becoming_reading import ReadingAnswerIn, ReadingGenerateIn, configure_becoming_reading, create_reading_session, ensure_becoming_reading_schema, get_reading_session, list_reading_sessions, submit_reading_answers
+from writing_coach.becoming_reading import ReadingAnswerIn, ReadingGenerateIn, configure_becoming_reading, create_reading_session, get_reading_session, list_reading_sessions, submit_reading_answers
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
@@ -123,10 +123,8 @@ _specialized_learning_repository = SQLiteSpecializedLearningRepository(_learning
 
 
 def init_db() -> None:
-    _learning_repository.initialize(
-        (ensure_becoming_schema, ensure_becoming_library_schema, ensure_becoming_reading_schema),
-        schema_version=SCHEMA_VERSION,
-    )
+    _learning_repository.initialize(schema_version=SCHEMA_VERSION)
+    _specialized_learning_repository.initialize()
     _learning_cache.initialize()
 
 

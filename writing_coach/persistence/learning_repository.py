@@ -4,7 +4,7 @@ import json
 import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Callable, Iterable, Protocol
+from typing import Any, Callable, Protocol
 
 from sqlalchemy import Engine, func, select
 from sqlalchemy.orm import Session
@@ -15,9 +15,6 @@ from writing_coach.persistence.ids import stable_uuid
 from writing_coach.persistence.models import (
     Essay, EssayRevision, GrammarProgress, SavedWord, User, WritingError,
 )
-
-SchemaInitializer = Callable[[sqlite3.Connection], None]
-
 
 class LearningRepository(Protocol):
     def get_essay(self, essay_id: int) -> dict[str, Any] | None: ...
@@ -68,7 +65,7 @@ class SQLiteLearningRepository:
     def _column_names(conn: sqlite3.Connection, table: str) -> set[str]:
         return {str(r["name"]) for r in conn.execute(f"PRAGMA table_info({table})").fetchall()}
 
-    def initialize(self, schema_initializers: Iterable[SchemaInitializer] = (), *, schema_version: int = 11) -> None:
+    def initialize(self, *, schema_version: int = 11) -> None:
         with self.connect() as conn:
             conn.execute(
                 """
@@ -154,8 +151,6 @@ class SQLiteLearningRepository:
                     completed_at TEXT NOT NULL
                 )"""
             )
-            for initializer in schema_initializers:
-                initializer(conn)
             conn.execute(f"PRAGMA user_version = {int(schema_version)}")
             conn.commit()
 

@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import json
 import re
-import sqlite3
 from datetime import datetime
 from typing import Any, Callable
 
@@ -49,48 +48,6 @@ def _safe_json(value: Any, fallback: Any) -> Any:
     except Exception:
         return fallback
     return parsed
-
-
-def ensure_becoming_reading_schema(conn: sqlite3.Connection) -> None:
-    conn.execute(
-        """
-        CREATE TABLE IF NOT EXISTS reading_sessions (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            created_at TEXT NOT NULL,
-            language_code TEXT NOT NULL,
-            target_level TEXT NOT NULL,
-            topic TEXT NOT NULL,
-            learner_goal TEXT NOT NULL DEFAULT '',
-            title TEXT NOT NULL,
-            passage TEXT NOT NULL,
-            questions_json TEXT NOT NULL,
-            recycled_words_json TEXT NOT NULL DEFAULT '[]',
-            generation_mode TEXT NOT NULL DEFAULT 'practice'
-        )
-        """
-    )
-    conn.execute(
-        """
-        CREATE TABLE IF NOT EXISTS reading_attempts (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            session_id INTEGER NOT NULL,
-            created_at TEXT NOT NULL,
-            answers_json TEXT NOT NULL,
-            correct_count INTEGER NOT NULL,
-            total INTEGER NOT NULL,
-            FOREIGN KEY(session_id) REFERENCES reading_sessions(id)
-        )
-        """
-    )
-    conn.execute(
-        "CREATE INDEX IF NOT EXISTS idx_reading_sessions_created "
-        "ON reading_sessions(created_at DESC)"
-    )
-    conn.execute(
-        "CREATE INDEX IF NOT EXISTS idx_reading_attempts_session "
-        "ON reading_attempts(session_id, id DESC)"
-    )
-    conn.commit()
 
 
 def _reading_length(language: str, level: str) -> tuple[int, str]:

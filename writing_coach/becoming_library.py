@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import sqlite3
 from datetime import datetime, timedelta
 from typing import Any
 
@@ -58,44 +57,6 @@ def _iso(value: datetime) -> str:
 
 def _clean_term(value: str) -> str:
     return " ".join(str(value or "").strip().split())
-
-
-def ensure_becoming_library_schema(conn: sqlite3.Connection) -> None:
-    conn.execute(
-        """
-        CREATE TABLE IF NOT EXISTS vocabulary_learning (
-            word TEXT PRIMARY KEY COLLATE NOCASE,
-            source_essay_id INTEGER,
-            source_fragment TEXT NOT NULL DEFAULT '',
-            source_kind TEXT NOT NULL DEFAULT 'manual',
-            focus_note TEXT NOT NULL DEFAULT '',
-            review_stage INTEGER NOT NULL DEFAULT 0,
-            successful_recalls INTEGER NOT NULL DEFAULT 0,
-            lapse_count INTEGER NOT NULL DEFAULT 0,
-            last_reviewed_at TEXT NOT NULL DEFAULT '',
-            next_review_at TEXT NOT NULL DEFAULT '',
-            updated_at TEXT NOT NULL
-        )
-        """
-    )
-
-    # Existing legacy saved words become reviewable without rewriting their content.
-    # They start as "New" and are due now/at their original added time.
-    conn.execute(
-        """
-        INSERT OR IGNORE INTO vocabulary_learning(
-            word, source_kind, review_stage, successful_recalls,
-            lapse_count, last_reviewed_at, next_review_at, updated_at
-        )
-        SELECT
-            word, 'manual', 0, 0, 0, '',
-            COALESCE(NULLIF(added_at, ''), ?),
-            COALESCE(NULLIF(added_at, ''), ?)
-        FROM saved_words
-        """,
-        (_iso(_now()), _iso(_now())),
-    )
-    conn.commit()
 
 
 def _parse_time(value: str) -> datetime | None:

@@ -16,7 +16,7 @@ index = (ROOT / "templates" / "index.html").read_text(encoding="utf-8")
 app = (ROOT / "app.py").read_text(encoding="utf-8")
 auth = (ROOT / "auth_support.py").read_text(encoding="utf-8")
 
-require(version.startswith("1.2."), "VERSION must be v1.2.x")
+require(version.startswith("1.3."), "VERSION must be v1.3.x")
 require("COPY writing_coach ./writing_coach" in dockerfile, "Dockerfile must copy writing_coach package")
 require('app.mount("/static"' in app, "StaticFiles mount is required")
 require("writing_coach.languages.runtime" in app, "Language evaluator runtime must be modular")

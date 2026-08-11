@@ -7,7 +7,6 @@ from writing_coach.persistence.specialized_repository import SQLiteSpecializedLe
 from writing_coach.becoming_memory import (
     LearnerProfileIn,
     configure_becoming_memory,
-    ensure_becoming_schema,
     get_learner_profile,
     put_learner_profile,
 )
@@ -16,6 +15,7 @@ from writing_coach.becoming_memory import (
 def main() -> None:
     conn = sqlite3.connect(":memory:")
     conn.row_factory = sqlite3.Row
+    conn.execute("CREATE TABLE saved_words(word TEXT PRIMARY KEY, added_at TEXT NOT NULL)")
 
     # Simulate an existing v9 learner_profile before this polish.
     conn.execute(
@@ -38,7 +38,8 @@ def main() -> None:
     )
     conn.commit()
 
-    ensure_becoming_schema(conn)
+    repository = SQLiteSpecializedLearningRepository(lambda: conn)
+    repository.initialize()
     columns = {
         str(row["name"])
         for row in conn.execute("PRAGMA table_info(learner_profile)").fetchall()
@@ -61,7 +62,7 @@ def main() -> None:
     assert row["created_at"] == "2026-08-01T00:00:00+07:00"
 
     # Re-running the migration must be idempotent.
-    ensure_becoming_schema(conn)
+    repository.initialize()
     count = conn.execute(
         """
         SELECT COUNT(*) AS c
@@ -71,7 +72,7 @@ def main() -> None:
     ).fetchone()["c"]
     assert count == 1
 
-    configure_becoming_memory(SQLiteSpecializedLearningRepository(lambda: conn))
+    configure_becoming_memory(repository)
     saved = put_learner_profile(
         LearnerProfileIn(
             goal="work",

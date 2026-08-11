@@ -7,7 +7,6 @@ from writing_coach.persistence.specialized_repository import SQLiteSpecializedLe
 from writing_coach.becoming_memory import (
     LearnerProfileIn,
     configure_becoming_memory,
-    ensure_becoming_schema,
     get_learner_profile,
     put_learner_profile,
 )
@@ -16,6 +15,7 @@ from writing_coach.becoming_memory import (
 def main() -> None:
     conn = sqlite3.connect(":memory:")
     conn.row_factory = sqlite3.Row
+    conn.execute("CREATE TABLE saved_words(word TEXT PRIMARY KEY, added_at TEXT NOT NULL)")
 
     # Simulate the passing schema-v10 learner profile: native_language exists,
     # theme_preset does not yet exist.
@@ -44,7 +44,8 @@ def main() -> None:
     )
     conn.commit()
 
-    ensure_becoming_schema(conn)
+    repository = SQLiteSpecializedLearningRepository(lambda: conn)
+    repository.initialize()
     row = conn.execute(
         """
         SELECT goal,style,pinyin,native_language,theme_preset,created_at
@@ -59,7 +60,7 @@ def main() -> None:
     assert row["theme_preset"] == "editorial"
     assert row["created_at"] == "2026-08-10T08:00:00+07:00"
 
-    ensure_becoming_schema(conn)
+    repository.initialize()
     count = conn.execute(
         """
         SELECT COUNT(*) AS c
@@ -69,7 +70,7 @@ def main() -> None:
     ).fetchone()["c"]
     assert count == 1
 
-    configure_becoming_memory(SQLiteSpecializedLearningRepository(lambda: conn))
+    configure_becoming_memory(repository)
     saved = put_learner_profile(
         LearnerProfileIn(
             goal="work",
