@@ -25,5 +25,8 @@ def test_chinese_writing_unit_count():
     try:
         assert writing_unit_count("我今天学习中文。") == 7
         assert writing_unit_count("我用AI学习中文123") == 7
+        assert writing_unit_count("AI") == 1
+        assert writing_unit_count("GPT-4") == 1
+        assert writing_unit_count("123") == 0
     finally:
         LANGUAGE_CODE_CTX.reset(token)
