@@ -17,7 +17,7 @@ def text(rel: str) -> str:
 
 
 def main() -> None:
-    req((ROOT / "VERSION").read_text(encoding="utf-8").strip() in {"1.3.1", "1.3.2", "1.3.3", "1.3.4", "1.3.5"}, "app version must remain on readiness line")
+    req((ROOT / "VERSION").read_text(encoding="utf-8").strip() in {"1.3.1", "1.3.2", "1.3.3", "1.3.4", "1.3.5", "1.3.6"}, "app version must remain on readiness line")
     req((ROOT / "BECOMING_FRONTEND_VERSION").read_text(encoding="utf-8").strip() == "2.15.7", "frontend version must remain 2.15.7")
 
     auth = text("auth_support.py")
@@ -49,6 +49,8 @@ def main() -> None:
 
     for rel in [
         "writing_coach/persistence/read_compare.py",
+        "writing_coach/persistence/cutover_verification.py",
+        "writing_coach/persistence/cutover_verification.py",
         "scripts/persistence_readiness.py",
         "docs/PERSISTENCE_RUNTIME_READINESS.md",
     ]:
@@ -73,6 +75,7 @@ def main() -> None:
         "writing_coach/persistence/platform_repository.py",
         "writing_coach/persistence/importer.py",
         "writing_coach/persistence/read_compare.py",
+        "writing_coach/persistence/cutover_verification.py",
     }
     req(actual_connectors <= allowed_connectors, f"unexpected SQLite connector bypasses: {sorted(actual_connectors - allowed_connectors)}")
 

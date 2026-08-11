@@ -34,7 +34,7 @@ def test_specialized_services_are_storage_neutral_on_v134():
         "writing_coach/becoming_reading.py",
         "writing_coach/becoming_linguistics.py",
     ]
-    assert version in {"1.3.4", "1.3.5"}
+    assert version in {"1.3.4", "1.3.5", "1.3.6"}
     for rel in services:
         src = (ROOT / rel).read_text(encoding="utf-8")
         assert "_db_factory" not in src
