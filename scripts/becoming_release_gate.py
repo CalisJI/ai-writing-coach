@@ -548,6 +548,35 @@ def main() -> None:
             if unsafe.search(line):
                 errors.append(f"unsafe PowerShell URI interpolation: {ps1.relative_to(root)}:{lineno}")
 
+    # v1.3 PostgreSQL shadow foundation: architecture exists, runtime cutover does not.
+    postgres_required = [
+        root / "alembic.ini",
+        root / "migrations" / "env.py",
+        root / "migrations" / "versions" / "20260811_0001_postgres_foundation.py",
+        root / "writing_coach" / "persistence" / "models.py",
+        root / "writing_coach" / "persistence" / "importer.py",
+        root / "writing_coach" / "persistence" / "product_repository.py",
+        root / "scripts" / "postgres_shadow.py",
+        root / "scripts" / "validate_postgres_foundation.py",
+        root / "docs" / "POSTGRES_FOUNDATION.md",
+    ]
+    for path in postgres_required:
+        if not path.exists():
+            errors.append(f"v1.3 PostgreSQL foundation missing: {path.relative_to(root)}")
+    requirements = read("requirements.txt")
+    for dep in ["SQLAlchemy>=2.0,<3", "alembic>=1.13,<2", "psycopg[binary]>=3.1,<4"]:
+        if dep not in requirements:
+            errors.append(f"v1.3 PostgreSQL foundation dependency missing: {dep}")
+    product_service = read("writing_coach/product/service.py")
+    if "SQLiteProductRepository" not in product_service:
+        errors.append("v1.3 no-cutover guard: ProductService no longer defaults to SQLite")
+    if "PostgresProductRepository" in product_service:
+        errors.append("v1.3 no-cutover guard: PostgreSQL product repository activated before cutover")
+    if "create_shadow_engine" in app:
+        errors.append("v1.3 no-cutover guard: app.py activated PostgreSQL shadow engine")
+    if 'profiles: ["postgres"]' not in compose:
+        errors.append("v1.3 no-cutover guard: PostgreSQL compose service is not opt-in")
+
     # Version/cache consistency.
     # INC-009: browser modules must be validated as an ESM graph.
     node = shutil.which("node")
@@ -578,7 +607,7 @@ def main() -> None:
 
     print("BECOMING RELEASE GATE OK")
     print(f"Frontend version: {frontend_version}")
-    print("Guarded: historical incidents + v2.10 product contracts + HIGH-FIDELITY visual execution + physical depth + icon family + responsive refinement")
+    print("Guarded: historical incidents + v2.10 product contracts + HIGH-FIDELITY visual execution + PostgreSQL no-cutover foundation")
 
 
 if __name__ == "__main__":

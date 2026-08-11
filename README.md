@@ -116,3 +116,8 @@ The dashboard skill score is a weighted average of the latest 10 essays so a sin
 ## v0.3 update-ready workflow
 
 This release introduces a stable data volume, app/schema versioning, Docker Compose Watch for local development, and a safe Git-based updater with SQLite backup. See `UPDATE_SYSTEM.md`.
+
+
+## PostgreSQL shadow foundation (v1.3.0)
+
+The project now includes an opt-in PostgreSQL/SQLAlchemy/Alembic shadow data foundation. Runtime reads/writes remain on SQLite until a separately approved cutover. See `docs/POSTGRES_FOUNDATION.md`.

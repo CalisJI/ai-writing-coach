@@ -13,6 +13,12 @@ COPY grammar_course.py ./
 COPY auth_support.py ./
 COPY writing_coach ./writing_coach
 COPY VERSION ./
+COPY BECOMING_FRONTEND_VERSION ./
+COPY compose.yaml ./
+COPY docs/POSTGRES_FOUNDATION.md ./docs/POSTGRES_FOUNDATION.md
+COPY alembic.ini ./
+COPY migrations ./migrations
+COPY scripts ./scripts
 COPY templates ./templates
 COPY static ./static
 

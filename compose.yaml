@@ -20,6 +20,7 @@ services:
       USER_DATA_ROOT: /data/users
       PLATFORM_DB: /data/platform.db
       PRODUCT_DB: /data/product.db
+      POSTGRES_SHADOW_URL: ${POSTGRES_SHADOW_URL:-}
       PLATFORM_ADMIN_EMAILS: ${PLATFORM_ADMIN_EMAILS:-}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       OPENAI_BASE_URL: ${OPENAI_BASE_URL:-https://api.openai.com/v1}
@@ -42,6 +43,22 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
 
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    profiles: ["postgres"]
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-becoming}
+      POSTGRES_USER: ${POSTGRES_USER:-becoming}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-becoming-local-dev}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-becoming} -d $${POSTGRES_DB:-becoming}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
   cloudflared:
     image: cloudflare/cloudflared:latest
     restart: unless-stopped
@@ -53,3 +70,5 @@ services:
 volumes:
   writing_data:
     name: ai-writing-coach-data
+  postgres_data:
+    name: ai-writing-coach-postgres-data

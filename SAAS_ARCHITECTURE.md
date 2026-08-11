@@ -32,6 +32,20 @@ The next data-foundation milestone will add:
 
 Old SQLite learning data must not be deleted during migration.
 
+
+## v1.3 PostgreSQL shadow foundation
+
+v1.3 implements the next data-foundation milestone in **no-cutover mode**:
+
+- SQLAlchemy 2 models and PostgreSQL repository foundation exist;
+- Alembic owns the PostgreSQL schema;
+- a SQLite importer can discover legacy and authenticated per-language DBs;
+- source/target verification is required after shadow import;
+- PostgreSQL is optional under the Compose `postgres` profile;
+- runtime reads/writes remain on SQLite until a separately approved cutover.
+
+SQLite files remain authoritative and are never deleted by the shadow tools.
+
 ## Planned PostgreSQL domains
 
 - users
