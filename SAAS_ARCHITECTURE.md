@@ -105,3 +105,21 @@ Learners should see:
 - saved learning content
 
 Theme/font controls belong in account/settings rather than primary navigation.
+
+
+## v1.3.1 persistence runtime readiness
+
+v1.3.1 does not cut over runtime reads/writes. It narrows the remaining
+persistence debt before that decision:
+
+- authentication now sits behind an `AuthRepository`;
+- platform AI configuration now sits behind a `PlatformRepository`;
+- PostgreSQL implementations exist for auth, platform and product contracts;
+- current runtime still selects the SQLite implementations;
+- a per-user/per-language shadow read comparator verifies isolation, not only
+  global row totals;
+- the learning SQLite connection path in `app.py` remains the primary cutover
+  blocker and is intentionally deferred to the next persistence milestone.
+
+Dictionary and generated grammar-lesson caches are rebuildable and are not
+required migration domains.

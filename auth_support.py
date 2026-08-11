@@ -2,7 +2,6 @@ import hashlib
 import os
 import secrets
 import shutil
-import sqlite3
 from contextvars import ContextVar
 from datetime import datetime
 from pathlib import Path
@@ -19,6 +18,7 @@ from starlette.middleware.sessions import SessionMiddleware
 from writing_coach.core.request_context import LANGUAGE_CODE_CTX, USER_KEY_CTX, current_language_code
 from writing_coach.core.storage import resolve_language_db_path
 from writing_coach.core.language_registry import DEFAULT_LANGUAGE, enabled_language
+from writing_coach.persistence.auth_repository import SQLiteAuthRepository
 
 ROOT = Path(__file__).resolve().parent
 LEGACY_DB_PATH = Path(os.getenv("WRITING_DB", ROOT / "data" / "writing.db"))
@@ -80,64 +80,22 @@ def current_db_path(legacy_db: Path | None = None) -> Path:
         language_code=_language_key.get(),
     )
 
-def auth_db() -> sqlite3.Connection:
-    AUTH_DB_PATH.parent.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(AUTH_DB_PATH)
-    conn.row_factory = sqlite3.Row
-    return conn
+_auth_repository = SQLiteAuthRepository(AUTH_DB_PATH)
 
 
 def init_auth_db() -> None:
-    with auth_db() as conn:
-        conn.execute(
-            """
-            CREATE TABLE IF NOT EXISTS users (
-                google_sub TEXT PRIMARY KEY,
-                email TEXT NOT NULL UNIQUE,
-                name TEXT NOT NULL DEFAULT '',
-                picture TEXT NOT NULL DEFAULT '',
-                created_at TEXT NOT NULL,
-                last_login TEXT NOT NULL
-            )
-            """
-        )
-        cols = {str(r["name"]) for r in conn.execute("PRAGMA table_info(users)").fetchall()}
-        if "role" not in cols:
-            conn.execute("ALTER TABLE users ADD COLUMN role TEXT NOT NULL DEFAULT 'user'")
-        for email in PLATFORM_ADMIN_EMAILS:
-            conn.execute("UPDATE users SET role='admin' WHERE lower(email)=?", (email,))
-        conn.commit()
+    _auth_repository.initialize(PLATFORM_ADMIN_EMAILS)
+
 
 def auth_user(google_sub: str) -> dict[str, Any] | None:
-    if not google_sub:
-        return None
-    with auth_db() as conn:
-        row = conn.execute("SELECT * FROM users WHERE google_sub = ?", (google_sub,)).fetchone()
-    return dict(row) if row else None
+    return _auth_repository.get_user(google_sub)
 
 
 def upsert_auth_user(info: dict[str, Any]) -> dict[str, Any]:
-    sub = str(info.get("sub") or "")
-    email = str(info.get("email") or "").strip()
-    name = str(info.get("name") or "").strip()
-    picture = str(info.get("picture") or "").strip()
-    if not sub or not email:
-        raise HTTPException(400, "Google account did not provide a valid subject/email.")
-    now = datetime.now().astimezone().isoformat(timespec="seconds")
-    with auth_db() as conn:
-        conn.execute(
-            """
-            INSERT INTO users(google_sub,email,name,picture,created_at,last_login)
-            VALUES(?,?,?,?,?,?)
-            ON CONFLICT(google_sub) DO UPDATE SET
-              email=excluded.email,name=excluded.name,picture=excluded.picture,last_login=excluded.last_login
-            """,
-            (sub,email,name,picture,now,now),
-        )
-        if email.casefold() in PLATFORM_ADMIN_EMAILS:
-            conn.execute("UPDATE users SET role='admin' WHERE google_sub=?", (sub,))
-        conn.commit()
-    return auth_user(sub) or {}
+    try:
+        return _auth_repository.upsert_user(info, PLATFORM_ADMIN_EMAILS)
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from exc
 
 
 def require_admin(request: Request) -> dict[str, Any]:

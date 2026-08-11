@@ -13,7 +13,7 @@ errors=[]
 def req(cond,msg):
     if not cond: errors.append(msg)
 
-req((ROOT/'VERSION').read_text(encoding='utf-8').strip() == '1.3.0', 'VERSION must be 1.3.0')
+req((ROOT/'VERSION').read_text(encoding='utf-8').strip().startswith('1.3.'), 'VERSION must remain on the v1.3 persistence line')
 req((ROOT/'BECOMING_FRONTEND_VERSION').read_text(encoding='utf-8').strip() == '2.15.7', 'frontend must remain 2.15.7')
 
 requirements=(ROOT/'requirements.txt').read_text(encoding='utf-8')

@@ -577,6 +577,34 @@ def main() -> None:
     if 'profiles: ["postgres"]' not in compose:
         errors.append("v1.3 no-cutover guard: PostgreSQL compose service is not opt-in")
 
+    # v1.3.1 persistence runtime readiness: close auth/platform SQLite bypasses
+    # while keeping all live stores on SQLite until a separately approved cutover.
+    readiness_required = [
+        root / "writing_coach" / "persistence" / "auth_repository.py",
+        root / "writing_coach" / "persistence" / "platform_repository.py",
+        root / "writing_coach" / "persistence" / "read_compare.py",
+        root / "scripts" / "persistence_readiness.py",
+        root / "scripts" / "validate_persistence_readiness.py",
+        root / "docs" / "PERSISTENCE_RUNTIME_READINESS.md",
+    ]
+    for path in readiness_required:
+        if not path.exists():
+            errors.append(f"v1.3.1 persistence readiness missing: {path.relative_to(root)}")
+    auth_text = read("auth_support.py")
+    platform_ai_text = read("writing_coach/ai/platform.py")
+    auth_repo_text = read("writing_coach/persistence/auth_repository.py") if (root / "writing_coach/persistence/auth_repository.py").exists() else ""
+    platform_repo_text = read("writing_coach/persistence/platform_repository.py") if (root / "writing_coach/persistence/platform_repository.py").exists() else ""
+    if "import sqlite3" in auth_text or "sqlite3.connect" in auth_text:
+        errors.append("v1.3.1 auth boundary regression: auth_support.py bypasses AuthRepository")
+    if "SQLiteAuthRepository" not in auth_text or "PostgresAuthRepository" not in auth_repo_text:
+        errors.append("v1.3.1 auth repository contract incomplete")
+    if "import sqlite3" in platform_ai_text or "sqlite3.connect" in platform_ai_text:
+        errors.append("v1.3.1 platform boundary regression: ai/platform.py bypasses PlatformRepository")
+    if "SQLitePlatformRepository" not in platform_ai_text or "PostgresPlatformRepository" not in platform_repo_text:
+        errors.append("v1.3.1 platform repository contract incomplete")
+    if "sqlite3.connect(path)" not in app:
+        errors.append("v1.3.1 no-cutover guard: learning SQLite runtime changed unexpectedly")
+
     # Version/cache consistency.
     # INC-009: browser modules must be validated as an ESM graph.
     node = shutil.which("node")
@@ -607,7 +635,7 @@ def main() -> None:
 
     print("BECOMING RELEASE GATE OK")
     print(f"Frontend version: {frontend_version}")
-    print("Guarded: historical incidents + v2.10 product contracts + HIGH-FIDELITY visual execution + PostgreSQL no-cutover foundation")
+    print("Guarded: historical incidents + v2.10 product contracts + HIGH-FIDELITY visual execution + PostgreSQL no-cutover foundation + persistence runtime readiness")
 
 
 if __name__ == "__main__":

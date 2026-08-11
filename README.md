@@ -121,3 +121,17 @@ This release introduces a stable data volume, app/schema versioning, Docker Comp
 ## PostgreSQL shadow foundation (v1.3.0)
 
 The project now includes an opt-in PostgreSQL/SQLAlchemy/Alembic shadow data foundation. Runtime reads/writes remain on SQLite until a separately approved cutover. See `docs/POSTGRES_FOUNDATION.md`.
+
+
+## Persistence runtime readiness (v1.3.1)
+
+v1.3.1 keeps SQLite authoritative while moving runtime storage behind clearer
+repository boundaries. Authentication and platform AI configuration now use
+SQLite repository implementations rather than embedding SQLite SQL in service
+modules, and PostgreSQL implementations of those same contracts are present for
+a later cutover. Product storage already had this boundary from v1.2/v1.3.
+
+A new scoped shadow-read verifier compares SQLite and PostgreSQL learning data
+per user + language, preventing global-count verification from hiding isolation
+errors. The learning runtime itself is deliberately still SQLite and is the next
+major persistence cutover blocker.

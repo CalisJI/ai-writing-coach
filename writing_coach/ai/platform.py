@@ -1,8 +1,6 @@
 from __future__ import annotations
 
 import os
-import sqlite3
-from datetime import datetime
 from pathlib import Path
 from typing import Any, Callable
 
@@ -11,6 +9,7 @@ from pydantic import BaseModel, Field
 
 from writing_coach.ai.base import AIProviderError, AIProviderUnavailable, AIResult
 from writing_coach.ai.providers import build_providers
+from writing_coach.persistence.platform_repository import SQLitePlatformRepository
 
 ROOT = Path(__file__).resolve().parents[2]
 PLATFORM_DB_PATH = Path(os.getenv("PLATFORM_DB", ROOT / "data" / "platform.db"))
@@ -24,27 +23,11 @@ class AIConfigIn(BaseModel):
     model: str = Field(min_length=1, max_length=160)
 
 
-def platform_db() -> sqlite3.Connection:
-    PLATFORM_DB_PATH.parent.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(PLATFORM_DB_PATH)
-    conn.row_factory = sqlite3.Row
-    return conn
+_platform_repository = SQLitePlatformRepository(PLATFORM_DB_PATH)
 
 
 def init_platform_ai_db() -> None:
-    with platform_db() as conn:
-        conn.execute(
-            """
-            CREATE TABLE IF NOT EXISTS platform_ai_config (
-                id INTEGER PRIMARY KEY CHECK (id = 1),
-                provider TEXT NOT NULL,
-                model TEXT NOT NULL,
-                updated_at TEXT NOT NULL,
-                updated_by_sub TEXT NOT NULL DEFAULT ''
-            )
-            """
-        )
-        conn.commit()
+    _platform_repository.initialize()
 
 
 def providers() -> dict[str, Any]:
@@ -79,14 +62,11 @@ def active_selection() -> tuple[Any, str]:
     init_platform_ai_db()
     items = providers()
 
-    with platform_db() as conn:
-        row = conn.execute(
-            "SELECT provider, model FROM platform_ai_config WHERE id = 1"
-        ).fetchone()
+    row = _platform_repository.get_ai_selection()
 
     if row:
-        provider_id = str(row["provider"])
-        model = str(row["model"])
+        provider_id = row.provider
+        model = row.model
         item = items.get(provider_id)
         if item and item.configured and model:
             return item, model
@@ -186,21 +166,11 @@ def admin_ai_config_update(payload: AIConfigIn, request: Request) -> dict[str, A
     if models and model not in models:
         raise HTTPException(400, "Selected model is not available for this provider.")
 
-    now = datetime.now().astimezone().isoformat(timespec="seconds")
-    with platform_db() as conn:
-        conn.execute(
-            """
-            INSERT INTO platform_ai_config(id, provider, model, updated_at, updated_by_sub)
-            VALUES (1, ?, ?, ?, ?)
-            ON CONFLICT(id) DO UPDATE SET
-              provider = excluded.provider,
-              model = excluded.model,
-              updated_at = excluded.updated_at,
-              updated_by_sub = excluded.updated_by_sub
-            """,
-            (provider_id, model, now, str(admin.get("google_sub") or "")),
-        )
-        conn.commit()
+    _platform_repository.set_ai_selection(
+        provider=provider_id,
+        model=model,
+        updated_by=str(admin.get("google_sub") or ""),
+    )
 
     return _config_payload()
 

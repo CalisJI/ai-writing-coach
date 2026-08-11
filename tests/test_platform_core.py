@@ -9,8 +9,8 @@ def test_language_registry_contract():
     items = {x.code: x for x in all_languages()}
     assert DEFAULT_LANGUAGE == "en"
     assert items["en"].enabled is True
-    assert items["zh"].enabled is False
-    assert enabled_language("zh").code == "en"
+    assert items["zh"].enabled is True
+    assert enabled_language("zh").code == "zh"
 
 
 def test_core_rubric_is_stable():
