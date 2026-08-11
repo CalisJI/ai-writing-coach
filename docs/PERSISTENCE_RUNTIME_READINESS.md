@@ -65,3 +65,15 @@ Compared per scope:
 The next persistence milestone is the **learning repository boundary**. It must
 replace direct learning SQL without changing current API behavior, then compare
 SQLite and PostgreSQL read semantics before any runtime switch is approved.
+
+## v1.3.2 learning core boundary
+
+The core FastAPI learning routes no longer own SQLite SQL. They now delegate to
+`SQLiteLearningRepository`, with a matching `PostgresLearningRepository`
+implementation present but not selected. Rebuildable dictionary/grammar caches
+use a separate local cache repository.
+
+The remaining learning cutover blocker is narrower: BECOMING memory,
+outcomes, Active Recall library, Reading Studio, and linguistic services still
+use transitional SQLite adapters. These are intentionally deferred to the next
+boundary phase instead of being refactored together with stable core routes.

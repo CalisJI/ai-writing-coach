@@ -123,3 +123,14 @@ persistence debt before that decision:
 
 Dictionary and generated grammar-lesson caches are rebuildable and are not
 required migration domains.
+
+## v1.3.2 learning repository boundary
+
+v1.3.2 removes direct learning SQL from `app.py` and places core essay,
+revision, dashboard, grammar-progress, and basic vocabulary persistence behind a
+`LearningRepository` contract. SQLite remains the selected implementation;
+PostgreSQL has a matching core implementation but remains inactive.
+
+Generated dictionary and grammar-lesson caches are separated from durable
+learning persistence and remain local/rebuildable. Specialized BECOMING service
+adapters remain the final learning-domain blocker before a cutover decision.

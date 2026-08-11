@@ -37,7 +37,7 @@ req('SQLiteProductRepository' in service, 'ProductService SQLite default removed
 req('PostgresProductRepository' not in service, 'ProductService must not activate PostgreSQL yet')
 
 app=(ROOT/'app.py').read_text(encoding='utf-8')
-req('sqlite3.connect(path)' in app, 'current SQLite learning path was changed')
+req(('sqlite3.connect(path)' in app) or ('SQLiteLearningRepository' in app and 'PostgresLearningRepository' not in app), 'current SQLite learning runtime was changed')
 req('create_shadow_engine' not in app, 'app.py must not activate shadow engine')
 
 migration=(ROOT/'migrations/versions/20260811_0001_postgres_foundation.py').read_text(encoding='utf-8')

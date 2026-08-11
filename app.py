@@ -2,7 +2,6 @@ import json
 import random
 import os
 import re
-import sqlite3
 import statistics
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -34,6 +33,10 @@ from writing_coach.product.api import router as product_router
 from writing_coach.core.platform_api import router as platform_router
 from writing_coach.ai.base import AIProviderError, AIProviderUnavailable
 from writing_coach.ai.platform import active_ai_label, active_ai_status, generate_structured, install_platform_ai
+from writing_coach.persistence.learning_repository import (
+    SQLiteLearningCacheRepository,
+    SQLiteLearningRepository,
+)
 from writing_coach.becoming_memory import (LearnerProfileIn, configure_becoming_memory, ensure_becoming_schema, get_learner_profile, get_learning_memory, put_learner_profile)
 from writing_coach.becoming_practice import PracticeNextIn, build_practice_recommendation, personalize_generated_task
 from writing_coach.becoming_outcomes import PracticeContextIn, configure_becoming_outcomes, get_practice_outcome, list_practice_outcomes
@@ -113,132 +116,16 @@ class SaveWordIn(BaseModel):
     definition: str = Field(default="", max_length=1200)
     translation_vi: str = Field(default="", max_length=1200)
 
-def db() -> sqlite3.Connection:
-    path = current_db_path(DB_PATH)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(path)
-    conn.row_factory = sqlite3.Row
-    return conn
-
-def column_names(conn: sqlite3.Connection, table: str) -> set[str]:
-    return {str(r["name"]) for r in conn.execute(f"PRAGMA table_info({table})").fetchall()}
+_learning_repository = SQLiteLearningRepository(lambda: current_db_path(DB_PATH))
+_learning_cache = SQLiteLearningCacheRepository(_learning_repository)
 
 
 def init_db() -> None:
-    with db() as conn:
-        conn.execute(
-            """
-            CREATE TABLE IF NOT EXISTS essays (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                created_at TEXT NOT NULL,
-                prompt TEXT NOT NULL,
-                text TEXT NOT NULL,
-                word_count INTEGER NOT NULL,
-                target_cefr TEXT NOT NULL,
-                grammar REAL NOT NULL,
-                vocabulary REAL NOT NULL,
-                coherence REAL NOT NULL,
-                task_achievement REAL NOT NULL,
-                naturalness REAL NOT NULL,
-                overall REAL NOT NULL,
-                cefr_estimate TEXT NOT NULL,
-                evaluator TEXT NOT NULL,
-                summary_vi TEXT NOT NULL,
-                strengths_json TEXT NOT NULL,
-                priorities_json TEXT NOT NULL,
-                errors_json TEXT NOT NULL
-            )
-            """
-        )
-        cols = column_names(conn, "essays")
-        if "series_id" not in cols:
-            conn.execute("ALTER TABLE essays ADD COLUMN series_id INTEGER")
-        if "revision_no" not in cols:
-            conn.execute("ALTER TABLE essays ADD COLUMN revision_no INTEGER NOT NULL DEFAULT 1")
-        if "parent_id" not in cols:
-            conn.execute("ALTER TABLE essays ADD COLUMN parent_id INTEGER")
-        cols = column_names(conn, "essays")
-        if "language_code" not in cols:
-            conn.execute("ALTER TABLE essays ADD COLUMN language_code TEXT NOT NULL DEFAULT 'en'")
-        if "target_level" not in cols:
-            conn.execute("ALTER TABLE essays ADD COLUMN target_level TEXT")
-        if "level_estimate" not in cols:
-            conn.execute("ALTER TABLE essays ADD COLUMN level_estimate TEXT")
-        if "module_data_json" not in cols:
-            conn.execute("ALTER TABLE essays ADD COLUMN module_data_json TEXT NOT NULL DEFAULT '{}'")
-        if "strength_evidence_json" not in cols:
-            conn.execute("ALTER TABLE essays ADD COLUMN strength_evidence_json TEXT NOT NULL DEFAULT '[]'")
-        conn.execute("UPDATE essays SET language_code = 'en' WHERE language_code IS NULL OR language_code = ''")
-        conn.execute("UPDATE essays SET target_level = target_cefr WHERE target_level IS NULL OR target_level = ''")
-        conn.execute("UPDATE essays SET level_estimate = cefr_estimate WHERE level_estimate IS NULL OR level_estimate = ''")
-        conn.execute(
-            """
-            CREATE TRIGGER IF NOT EXISTS trg_essays_generic_metadata_after_insert
-            AFTER INSERT ON essays
-            BEGIN
-              UPDATE essays
-              SET
-                language_code = COALESCE(NULLIF(language_code, ''), 'en'),
-                target_level = COALESCE(NULLIF(target_level, ''), NEW.target_cefr),
-                level_estimate = COALESCE(NULLIF(level_estimate, ''), NEW.cefr_estimate),
-                module_data_json = COALESCE(NULLIF(module_data_json, ''), '{}')
-              WHERE id = NEW.id;
-            END
-            """
-        )
-        conn.execute(
-            "CREATE INDEX IF NOT EXISTS idx_essays_language_series_revision "
-            "ON essays(language_code, series_id, revision_no)"
-        )
-        conn.execute("UPDATE essays SET series_id = id WHERE series_id IS NULL")
-        conn.execute("CREATE INDEX IF NOT EXISTS idx_essays_series_revision ON essays(series_id, revision_no)")
-        conn.execute("CREATE INDEX IF NOT EXISTS idx_essays_created_at ON essays(created_at)")
-
-        conn.execute(
-            '''
-            CREATE TABLE IF NOT EXISTS dictionary_cache (
-                word TEXT PRIMARY KEY,
-                payload_json TEXT NOT NULL,
-                fetched_at TEXT NOT NULL
-            )
-            '''
-        )
-        conn.execute(
-            '''
-            CREATE TABLE IF NOT EXISTS saved_words (
-                word TEXT PRIMARY KEY,
-                phonetic TEXT NOT NULL DEFAULT '',
-                part_of_speech TEXT NOT NULL DEFAULT '',
-                definition TEXT NOT NULL DEFAULT '',
-                added_at TEXT NOT NULL
-            )
-            '''
-        )
-        saved_cols = column_names(conn, "saved_words")
-        if "translation_vi" not in saved_cols:
-            conn.execute("ALTER TABLE saved_words ADD COLUMN translation_vi TEXT NOT NULL DEFAULT ''")
-        conn.execute(
-            """
-            CREATE TABLE IF NOT EXISTS grammar_progress (
-                lesson_id TEXT PRIMARY KEY,
-                completed_at TEXT NOT NULL
-            )
-            """
-        )
-        conn.execute(
-            """
-            CREATE TABLE IF NOT EXISTS grammar_lesson_cache (
-                lesson_id TEXT PRIMARY KEY,
-                content_json TEXT NOT NULL,
-                generated_at TEXT NOT NULL
-            )
-            """
-        )
-        ensure_becoming_schema(conn)
-        ensure_becoming_library_schema(conn)
-        ensure_becoming_reading_schema(conn)
-        conn.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
-        conn.commit()
+    _learning_repository.initialize(
+        (ensure_becoming_schema, ensure_becoming_library_schema, ensure_becoming_reading_schema),
+        schema_version=SCHEMA_VERSION,
+    )
+    _learning_cache.initialize()
 
 
 
@@ -246,11 +133,11 @@ install_auth(app, init_db)
 app.include_router(platform_router)
 app.include_router(product_router)
 install_platform_ai(app, require_admin)
-configure_becoming_memory(db)
-configure_becoming_outcomes(db)
-configure_becoming_library(db)
-configure_becoming_reading(db, generate_structured)
-configure_becoming_linguistics(db, generate_structured)
+configure_becoming_memory(_learning_repository.connect)
+configure_becoming_outcomes(_learning_repository.connect)
+configure_becoming_library(_learning_repository.connect)
+configure_becoming_reading(_learning_repository.connect, generate_structured)
+configure_becoming_linguistics(_learning_repository.connect, generate_structured)
 
 def weighted_overall(result: dict[str, Any]) -> float:
     score = sum(float(result[k]) * w for k, w in active_rubric_weights().items())
@@ -523,7 +410,7 @@ def evaluate(payload: EssayIn) -> tuple[dict[str, Any], str]:
             return heuristic_fallback(payload), "fallback-demo"
         raise HTTPException(status_code=502, detail=f"AI engine returned invalid output: {exc}") from exc
 
-def row_to_dict(row: sqlite3.Row, detail: bool = False) -> dict[str, Any]:
+def row_to_dict(row: dict[str, Any], detail: bool = False) -> dict[str, Any]:
     d = dict(row)
     if detail:
         d["strengths_vi"] = json.loads(d.pop("strengths_json"))
@@ -548,24 +435,7 @@ def row_to_dict(row: sqlite3.Row, detail: bool = False) -> dict[str, Any]:
     return d
 
 
-def latest_series_rows(conn: sqlite3.Connection) -> list[sqlite3.Row]:
-    return conn.execute(
-        """
-        SELECT e.*
-        FROM essays e
-        JOIN (
-            SELECT series_id, MAX(revision_no) AS max_revision
-            FROM essays
-            GROUP BY series_id
-        ) latest
-        ON e.series_id = latest.series_id
-        AND e.revision_no = latest.max_revision
-        ORDER BY e.id ASC
-        """
-    ).fetchall()
-
-
-def revision_delta(current: dict[str, Any], previous: sqlite3.Row | None) -> dict[str, float]:
+def revision_delta(current: dict[str, Any], previous: dict[str, Any] | None) -> dict[str, float]:
     if not previous:
         return {}
     out: dict[str, float] = {}
@@ -574,7 +444,7 @@ def revision_delta(current: dict[str, Any], previous: sqlite3.Row | None) -> dic
     return out
 
 
-def error_memory(rows: list[sqlite3.Row]) -> list[dict[str, Any]]:
+def error_memory(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     if not rows:
         return []
     ordered = sorted(rows, key=lambda r: int(r["id"]))
@@ -1211,20 +1081,16 @@ def lookup_dictionary(word: str) -> dict[str, Any]:
     clean = normalise_lookup_word(word)
     cache_key = clean.casefold()
 
-    with db() as conn:
-        row = conn.execute(
-            "SELECT payload_json, fetched_at FROM dictionary_cache WHERE word = ?",
-            (cache_key,),
-        ).fetchone()
-        if row:
-            try:
-                fetched = datetime.fromisoformat(row["fetched_at"])
-                if datetime.now().astimezone() - fetched < timedelta(days=30):
-                    payload = json.loads(row["payload_json"])
-                    payload["cached"] = True
-                    return payload
-            except Exception:
-                pass
+    row = _learning_cache.get_dictionary(cache_key)
+    if row:
+        try:
+            fetched = datetime.fromisoformat(row["fetched_at"])
+            if datetime.now().astimezone() - fetched < timedelta(days=30):
+                payload = json.loads(row["payload_json"])
+                payload["cached"] = True
+                return payload
+        except Exception:
+            pass
 
     payload = None
 
@@ -1297,22 +1163,11 @@ def lookup_dictionary(word: str) -> dict[str, Any]:
                     "Dictionary service is unavailable and AI fallback failed.",
                 ) from exc
 
-    with db() as conn:
-        conn.execute(
-            """
-            INSERT INTO dictionary_cache(word, payload_json, fetched_at)
-            VALUES (?, ?, ?)
-            ON CONFLICT(word) DO UPDATE SET
-              payload_json = excluded.payload_json,
-              fetched_at = excluded.fetched_at
-            """,
-            (
-                cache_key,
-                json.dumps(payload, ensure_ascii=False),
-                datetime.now().astimezone().isoformat(timespec="seconds"),
-            ),
-        )
-        conn.commit()
+    _learning_cache.put_dictionary(
+        cache_key,
+        payload,
+        datetime.now().astimezone().isoformat(timespec="seconds"),
+    )
 
     return payload
 
@@ -1329,11 +1184,7 @@ def api_improve(payload: ImproveIn) -> dict[str, Any]:
 @app.get("/api/library/grammar")
 def api_grammar_library() -> dict[str, Any]:
     course = active_grammar_course()
-    with db() as conn:
-        completed = {
-            str(r["lesson_id"])
-            for r in conn.execute("SELECT lesson_id FROM grammar_progress").fetchall()
-        }
+    completed = _learning_repository.completed_grammar_ids()
 
     lessons = []
     for item in course:
@@ -1408,35 +1259,20 @@ def api_grammar_lesson(lesson_id: str) -> dict[str, Any]:
     if not lesson:
         raise HTTPException(404, "Grammar lesson not found")
 
-    with db() as conn:
-        row = conn.execute(
-            "SELECT content_json FROM grammar_lesson_cache WHERE lesson_id = ?",
-            (lesson_id,),
-        ).fetchone()
+    cached_lesson = _learning_cache.get_grammar_lesson(lesson_id)
 
-    if row:
-        detail = json.loads(row["content_json"])
+    if cached_lesson:
+        detail = cached_lesson
         source = "cache"
     else:
         try:
             detail = generate_grammar_lesson(lesson)
             source = active_ai_label()
-            with db() as conn:
-                conn.execute(
-                    """
-                    INSERT INTO grammar_lesson_cache(lesson_id, content_json, generated_at)
-                    VALUES (?, ?, ?)
-                    ON CONFLICT(lesson_id) DO UPDATE SET
-                      content_json = excluded.content_json,
-                      generated_at = excluded.generated_at
-                    """,
-                    (
-                        lesson_id,
-                        json.dumps(detail, ensure_ascii=False),
-                        datetime.now().astimezone().isoformat(timespec="seconds"),
-                    ),
-                )
-                conn.commit()
+            _learning_cache.put_grammar_lesson(
+                lesson_id,
+                detail,
+                datetime.now().astimezone().isoformat(timespec="seconds"),
+            )
         except Exception:
             if is_chinese():
                 detail = {
@@ -1522,14 +1358,7 @@ def api_grammar_lesson(lesson_id: str) -> dict[str, Any]:
         examples.append(item)
     detail["examples"] = examples
 
-    with db() as conn:
-        done = (
-            conn.execute(
-                "SELECT 1 FROM grammar_progress WHERE lesson_id = ?",
-                (lesson_id,),
-            ).fetchone()
-            is not None
-        )
+    done = _learning_repository.grammar_completed(lesson_id)
 
     return {
         **lesson,
@@ -1546,32 +1375,16 @@ def api_complete_grammar(lesson_id: str) -> dict[str, Any]:
         raise HTTPException(404, "Grammar lesson not found")
 
     now = datetime.now().astimezone().isoformat(timespec="seconds")
-    with db() as conn:
-        conn.execute(
-            """
-            INSERT INTO grammar_progress(lesson_id, completed_at)
-            VALUES (?, ?)
-            ON CONFLICT(lesson_id) DO UPDATE SET completed_at = excluded.completed_at
-            """,
-            (lesson_id, now),
-        )
-        conn.commit()
-
+    _learning_repository.set_grammar_completed(lesson_id, now)
     return {"completed": True, "lesson_id": lesson_id}
 
 
 @app.delete("/api/library/grammar/{lesson_id}/complete")
 def api_uncomplete_grammar(lesson_id: str) -> dict[str, Any]:
-    with db() as conn:
-        cur = conn.execute(
-            "DELETE FROM grammar_progress WHERE lesson_id = ?",
-            (lesson_id,),
-        )
-        conn.commit()
-
+    changed = _learning_repository.unset_grammar_completed(lesson_id)
     return {
         "completed": False,
-        "changed": cur.rowcount > 0,
+        "changed": changed,
         "lesson_id": lesson_id,
     }
 
@@ -1639,108 +1452,82 @@ def api_dictionary(word: str) -> dict[str, Any]:
 
 @app.get("/api/vocabulary")
 def api_vocabulary() -> dict[str, Any]:
-    with db() as conn:
-        rows = conn.execute("SELECT * FROM saved_words ORDER BY added_at DESC").fetchall()
-    return {"items": [dict(row) for row in rows]}
+    return {"items": _learning_repository.list_saved_words()}
 
 
 @app.post("/api/vocabulary")
 def api_save_vocabulary(payload: SaveWordIn) -> dict[str, Any]:
     word = normalise_lookup_word(payload.word)
     now = datetime.now().astimezone().isoformat(timespec="seconds")
-    with db() as conn:
-        conn.execute(
-            """
-            INSERT INTO saved_words(word, phonetic, part_of_speech, definition, added_at, translation_vi)
-            VALUES (?, ?, ?, ?, ?, ?)
-            ON CONFLICT(word) DO UPDATE SET
-              phonetic = excluded.phonetic,
-              part_of_speech = excluded.part_of_speech,
-              definition = excluded.definition,
-              added_at = excluded.added_at,
-              translation_vi = excluded.translation_vi
-            """,
-            (word, payload.phonetic, payload.part_of_speech, payload.definition, now, payload.translation_vi),
-        )
-        conn.commit()
+    _learning_repository.upsert_saved_word({
+        "word": word,
+        "phonetic": payload.phonetic,
+        "part_of_speech": payload.part_of_speech,
+        "definition": payload.definition,
+        "added_at": now,
+        "translation_vi": payload.translation_vi,
+    })
     return {"saved": True, "word": word, "added_at": now}
 
 
 @app.delete("/api/vocabulary/{word}")
 def api_delete_vocabulary(word: str) -> dict[str, Any]:
     clean = normalise_lookup_word(word)
-    with db() as conn:
-        cur = conn.execute("DELETE FROM saved_words WHERE lower(word) = lower(?)", (clean,))
-        conn.commit()
-    return {"deleted": cur.rowcount > 0}
+    return {"deleted": _learning_repository.delete_saved_word(clean)}
 
 @app.post("/api/evaluate")
 def api_evaluate(payload: EssayIn) -> dict[str, Any]:
-    previous: sqlite3.Row | None = None
+    previous: dict[str, Any] | None = None
     series_id: int | None = None
     revision_no = 1
 
     if payload.parent_essay_id:
-        with db() as conn:
-            previous = conn.execute(
-                "SELECT * FROM essays WHERE id = ?", (payload.parent_essay_id,)
-            ).fetchone()
-            if not previous:
-                raise HTTPException(404, "Parent essay not found")
-            series_id = int(previous["series_id"] or previous["id"])
-            revision_no = int(
-                conn.execute(
-                    "SELECT COALESCE(MAX(revision_no), 0) + 1 FROM essays WHERE series_id = ?",
-                    (series_id,),
-                ).fetchone()[0]
-            )
+        previous = _learning_repository.get_essay(payload.parent_essay_id)
+        if not previous:
+            raise HTTPException(404, "Parent essay not found")
+        series_id = int(previous["series_id"] or previous["id"])
+        revision_no = _learning_repository.next_revision_no(series_id)
 
     result, evaluator = evaluate(payload)
     overall = weighted_overall(result)
     word_count = writing_unit_count(payload.text)
     now = datetime.now().astimezone().isoformat(timespec="seconds")
 
-    with db() as conn:
-        cur = conn.execute(
-            """
-            INSERT INTO essays (
-              created_at, prompt, text, word_count, target_cefr,
-              grammar, vocabulary, coherence, task_achievement, naturalness,
-              overall, cefr_estimate, evaluator, summary_vi,
-              strengths_json, strength_evidence_json, priorities_json, errors_json,
-              series_id, revision_no, parent_id
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """,
-            (
-                now, payload.prompt, payload.text, word_count, payload.target_cefr,
-                result["grammar"], result["vocabulary"], result["coherence"],
-                result["task_achievement"], result["naturalness"], overall,
-                result["cefr_estimate"], evaluator, result["summary_vi"],
-                json.dumps(result["strengths_vi"], ensure_ascii=False),
-                json.dumps(result["strength_evidence"], ensure_ascii=False),
-                json.dumps(result["priorities_vi"], ensure_ascii=False),
-                json.dumps(result["errors"], ensure_ascii=False),
-                series_id, revision_no, payload.parent_essay_id,
-            ),
+    practice_context = None
+    if payload.practice_context is not None:
+        practice_context = (
+            payload.practice_context.model_dump()
+            if hasattr(payload.practice_context, "model_dump")
+            else payload.practice_context.dict()
         )
-        essay_id = int(cur.lastrowid)
-        if payload.practice_context is not None:
-            practice_context = (
-                payload.practice_context.model_dump()
-                if hasattr(payload.practice_context, "model_dump")
-                else payload.practice_context.dict()
-            )
-            conn.execute(
-                "UPDATE essays SET module_data_json = ? WHERE id = ?",
-                (
-                    json.dumps({"practice": practice_context}, ensure_ascii=False),
-                    essay_id,
-                ),
-            )
-        if series_id is None:
-            series_id = essay_id
-            conn.execute("UPDATE essays SET series_id = ? WHERE id = ?", (series_id, essay_id))
-        conn.commit()
+
+    created = _learning_repository.create_essay({
+        "created_at": now,
+        "prompt": payload.prompt,
+        "text": payload.text,
+        "word_count": word_count,
+        "target_cefr": payload.target_cefr,
+        "grammar": result["grammar"],
+        "vocabulary": result["vocabulary"],
+        "coherence": result["coherence"],
+        "task_achievement": result["task_achievement"],
+        "naturalness": result["naturalness"],
+        "overall": overall,
+        "cefr_estimate": result["cefr_estimate"],
+        "evaluator": evaluator,
+        "summary_vi": result["summary_vi"],
+        "strengths_json": json.dumps(result["strengths_vi"], ensure_ascii=False),
+        "strength_evidence_json": json.dumps(result["strength_evidence"], ensure_ascii=False),
+        "priorities_json": json.dumps(result["priorities_vi"], ensure_ascii=False),
+        "errors_json": json.dumps(result["errors"], ensure_ascii=False),
+        "series_id": series_id,
+        "revision_no": revision_no,
+        "parent_id": payload.parent_essay_id,
+        "practice_context": practice_context,
+    })
+    essay_id = int(created["id"])
+    series_id = int(created["series_id"])
+
 
     current_for_delta = {**result, "overall": overall}
     delta = revision_delta(current_for_delta, previous)
@@ -1760,55 +1547,38 @@ def api_evaluate(payload: EssayIn) -> dict[str, Any]:
 @app.get("/api/essays")
 def essays(limit: int = 200) -> list[dict[str, Any]]:
     limit = min(max(1, limit), 500)
-    with db() as conn:
-        rows = conn.execute("SELECT * FROM essays ORDER BY id DESC LIMIT ?", (limit,)).fetchall()
+    rows = _learning_repository.list_essays(limit)
     return [row_to_dict(r) for r in rows]
 
 
 @app.get("/api/essays/{essay_id}")
 def essay_detail(essay_id: int) -> dict[str, Any]:
-    with db() as conn:
-        row = conn.execute("SELECT * FROM essays WHERE id = ?", (essay_id,)).fetchone()
-        if not row:
-            raise HTTPException(404, "Essay not found")
-        series_rows = conn.execute(
-            "SELECT id, revision_no, overall, created_at FROM essays WHERE series_id = ? ORDER BY revision_no",
-            (row["series_id"],),
-        ).fetchall()
-        previous = None
-        if int(row["revision_no"] or 1) > 1:
-            previous = conn.execute(
-                "SELECT * FROM essays WHERE series_id = ? AND revision_no = ?",
-                (row["series_id"], int(row["revision_no"]) - 1),
-            ).fetchone()
+    row = _learning_repository.get_essay(essay_id)
+    if not row:
+        raise HTTPException(404, "Essay not found")
+    series_id = int(row["series_id"] or row["id"])
+    series_rows = _learning_repository.list_series_revisions(series_id)
+    previous = _learning_repository.previous_revision(series_id, int(row["revision_no"] or 1))
     d = row_to_dict(row, detail=True)
-    d["revisions"] = [dict(r) for r in series_rows]
+    d["revisions"] = series_rows
     d["delta"] = revision_delta(d, previous)
     return d
 
 @app.delete("/api/essays/{essay_id}")
 def delete_essay(essay_id: int) -> dict[str, bool]:
-    with db() as conn:
-        row = conn.execute("SELECT series_id FROM essays WHERE id = ?", (essay_id,)).fetchone()
-        if not row:
-            return {"deleted": False}
-        conn.execute("DELETE FROM essays WHERE series_id = ?", (row["series_id"],))
-        conn.commit()
-    return {"deleted": True}
+    return {"deleted": _learning_repository.delete_series_for_essay(essay_id)}
 
 
 @app.get("/api/error-memory")
 def api_error_memory() -> dict[str, Any]:
-    with db() as conn:
-        rows = conn.execute("SELECT * FROM essays ORDER BY id ASC").fetchall()
+    rows = _learning_repository.list_essays(0, ascending=True)
     return {"items": error_memory(rows), "revision_count": len(rows)}
 
 
 @app.get("/api/dashboard")
 def dashboard() -> dict[str, Any]:
-    with db() as conn:
-        all_revision_rows = conn.execute("SELECT * FROM essays ORDER BY id ASC").fetchall()
-        rows = latest_series_rows(conn)
+    all_revision_rows = _learning_repository.list_essays(0, ascending=True)
+    rows = _learning_repository.list_latest_series()
 
     if not rows:
         return {

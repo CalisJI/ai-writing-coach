@@ -191,19 +191,30 @@ def main() -> None:
         if count != 1:
             errors.append(f"route contract count={count}, expected=1: {needle}")
 
+    # Historical behavior must survive the v1.3.2 repository-boundary move.
+    # Accept the old direct connection spelling or the new explicit SQLite
+    # repository adapter, but require one of them for every protected service.
+    adapter_contracts = [
+        ("configure_becoming_memory(db)", "configure_becoming_memory(_learning_repository.connect)"),
+        ("configure_becoming_outcomes(db)", "configure_becoming_outcomes(_learning_repository.connect)"),
+        ("configure_becoming_library(db)", "configure_becoming_library(_learning_repository.connect)"),
+        ("configure_becoming_reading(db, generate_structured)", "configure_becoming_reading(_learning_repository.connect, generate_structured)"),
+        ("configure_becoming_linguistics(db, generate_structured)", "configure_becoming_linguistics(_learning_repository.connect, generate_structured)"),
+    ]
+    for old_needle, new_needle in adapter_contracts:
+        if old_needle not in app and new_needle not in app:
+            errors.append(f"historical app contract missing repository adapter: {old_needle}")
+    for schema_needle in ["ensure_becoming_library_schema", "ensure_becoming_reading_schema", "ensure_becoming_schema"]:
+        if schema_needle not in app:
+            errors.append(f"historical app contract missing schema initializer: {schema_needle}")
     require_contains(errors, app, [
-        "configure_becoming_memory(db)",
-        "configure_becoming_outcomes(db)",
-        "configure_becoming_library(db)",
-        "ensure_becoming_library_schema(conn)",
-        "configure_becoming_reading(db, generate_structured)",
-        "ensure_becoming_reading_schema(conn)",
-        "configure_becoming_linguistics(db, generate_structured)",
         "practice_context: PracticeContextIn | None",
-        '"UPDATE essays SET module_data_json = ? WHERE id = ?"',
         'd["practice_context"]',
         "strength_evidence_json",
     ], "historical app contract")
+    learning_repo_text_for_contract = read("writing_coach/persistence/learning_repository.py") if (root / "writing_coach/persistence/learning_repository.py").exists() else ""
+    if '"UPDATE essays SET module_data_json = ? WHERE id = ?"' not in app and "module_data_json = ?" not in learning_repo_text_for_contract:
+        errors.append("historical app contract missing practice-context persistence")
 
     if "SCHEMA_VERSION = 11" not in app:
         errors.append("backend schema version 11 missing")
@@ -603,7 +614,15 @@ def main() -> None:
     if "SQLitePlatformRepository" not in platform_ai_text or "PostgresPlatformRepository" not in platform_repo_text:
         errors.append("v1.3.1 platform repository contract incomplete")
     if "sqlite3.connect(path)" not in app:
-        errors.append("v1.3.1 no-cutover guard: learning SQLite runtime changed unexpectedly")
+        if "SQLiteLearningRepository" not in app or "PostgresLearningRepository" in app:
+            errors.append("v1.3.2 no-cutover guard: SQLite learning repository is not the active runtime")
+    learning_repo_path = root / "writing_coach" / "persistence" / "learning_repository.py"
+    if learning_repo_path.exists():
+        learning_repo_text = read("writing_coach/persistence/learning_repository.py")
+        if "class PostgresLearningRepository" not in learning_repo_text:
+            errors.append("v1.3.2 learning repository PostgreSQL implementation missing")
+        if "conn.execute(" in app or "import sqlite3" in app:
+            errors.append("v1.3.2 learning core boundary regression: app.py still owns SQLite SQL")
 
     # Version/cache consistency.
     # INC-009: browser modules must be validated as an ESM graph.

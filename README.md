@@ -135,3 +135,15 @@ A new scoped shadow-read verifier compares SQLite and PostgreSQL learning data
 per user + language, preventing global-count verification from hiding isolation
 errors. The learning runtime itself is deliberately still SQLite and is the next
 major persistence cutover blocker.
+
+## Learning repository boundary (v1.3.2)
+
+Core learning persistence no longer executes SQLite SQL in `app.py`. Essays,
+revision history, dashboard/error-memory reads, grammar completion, and basic
+vocabulary CRUD now use `LearningRepository`, with SQLite still authoritative
+and a PostgreSQL core implementation present for later cutover verification.
+Dictionary and generated grammar-lesson caches remain local/rebuildable.
+
+BECOMING memory, outcomes, Active Recall library, Reading Studio, and linguistic
+services still use transitional SQLite adapters and remain the next persistence
+boundary milestone. PostgreSQL runtime cutover is still disabled.
