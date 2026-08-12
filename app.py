@@ -129,8 +129,9 @@ _specialized_learning_repository = _persistence_runtime.specialized_learning_rep
 
 
 def init_db() -> None:
-    _learning_repository.initialize(schema_version=SCHEMA_VERSION)
-    _specialized_learning_repository.initialize()
+    if _persistence_runtime.backend == "sqlite":
+        _learning_repository.initialize(schema_version=SCHEMA_VERSION)
+        _specialized_learning_repository.initialize()
     _learning_cache.initialize()
 
 
