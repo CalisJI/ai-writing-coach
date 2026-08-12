@@ -44,15 +44,20 @@ CLOUDFLARE_TUNNEL_TOKEN=replace-locally
 The example hostname and replacement markers are not deployable credentials.
 Do not paste real secret values into commands, logs, tickets, or review files.
 
-Run the secret-safe preflight before starting staging:
+For production-like staging, create an ignored local `.env` from the example
+and replace only its local staging values. Set `APP_BIND_HOST=127.0.0.1` there.
+Run the secret-safe preflight against that explicit source before starting:
 
 ```powershell
-python scripts/validate_public_staging_readiness.py
+python scripts/validate_public_staging_readiness.py --env-file .env
 if ($LASTEXITCODE -ne 0) { throw 'Public staging preflight failed.' }
 ```
 
 The preflight reports only requirement names and PASS/FAIL status. It never
 prints the Google client secret, session secret, database URL, or tunnel token.
+The explicit env file is the complete validation source: process environment
+values do not override or supplement it. It accepts `KEY=value`, blank lines,
+and `#` comments; duplicate keys use the last assignment.
 
 ## Google OAuth contract
 
@@ -94,7 +99,7 @@ cutover. Do not rerun migration, import, rehearsal, or parity commands here.
 ### A. Validate configuration
 
 ```powershell
-python scripts/validate_public_staging_readiness.py
+python scripts/validate_public_staging_readiness.py --env-file .env
 if ($LASTEXITCODE -ne 0) { throw 'Public staging preflight failed.' }
 ```
 
@@ -185,6 +190,11 @@ An isolated developer/test process may explicitly use
 and is never a production fallback. Host binding beyond loopback is permitted
 only for an intentional local LAN/Tailscale workflow with an appropriate local
 origin; public staging remains loopback-only behind Cloudflare Tunnel.
+
+The checked-in `.env.example` intentionally uses this working developer mode:
+`APP_ENV=development`, `APP_BIND_HOST=0.0.0.0`,
+`PUBLIC_BASE_URL=http://127.0.0.1:8000`, and explicit SQLite. It does not alter
+the PostgreSQL-authoritative staging contract above.
 
 ## Health and readiness data policy
 

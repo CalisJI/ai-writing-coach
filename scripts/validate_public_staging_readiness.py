@@ -37,6 +37,30 @@ def _valid_runtime_url(value: str) -> bool:
     )
 
 
+def read_env_file(path: Path) -> dict[str, str]:
+    """Read ordinary .env assignments; blank lines/comments are ignored.
+
+    The last assignment for a key wins. No shell execution or interpolation is
+    performed, and the caller's process environment is not merged in.
+    """
+    values: dict[str, str] = {}
+    try:
+        lines = path.read_text(encoding="utf-8").splitlines()
+    except (OSError, UnicodeError) as exc:
+        raise RuntimeError("Unable to read the requested environment file.") from exc
+    for line in lines:
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#"):
+            continue
+        if "=" not in stripped:
+            continue
+        key, value = stripped.split("=", 1)
+        key = key.strip()
+        if key:
+            values[key] = value.strip()
+    return values
+
+
 def validate_public_staging_readiness(
     env: Mapping[str, str], *, require_tunnel: bool = True
 ) -> StagingReadinessReport:
@@ -118,10 +142,21 @@ def main() -> int:
         action="store_true",
         help="Validate production application staging without requiring a tunnel token.",
     )
-    args = parser.parse_args()
-    report = validate_public_staging_readiness(
-        os.environ, require_tunnel=not args.without_tunnel
+    parser.add_argument(
+        "--env-file",
+        type=Path,
+        help="Read staging configuration from an explicit .env file; its values are not merged with process environment.",
     )
+    args = parser.parse_args()
+    try:
+        environment: Mapping[str, str] = (
+            read_env_file(args.env_file) if args.env_file else os.environ
+        )
+    except RuntimeError as exc:
+        print("PUBLIC STAGING READINESS FAIL")
+        print(f"FAIL: {exc}")
+        return 1
+    report = validate_public_staging_readiness(environment, require_tunnel=not args.without_tunnel)
     print(render_report(report))
     return 0 if report.ok else 1
 

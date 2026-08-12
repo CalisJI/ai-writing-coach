@@ -13,10 +13,10 @@ def test_compose_keeps_runtime_and_shadow_selection_separate() -> None:
     assert "POSTGRES_RUNTIME_URL: ${POSTGRES_SHADOW_URL" not in compose
 
 
-def test_environment_template_uses_authoritative_postgres_staging_contract() -> None:
+def test_environment_template_is_explicitly_developer_only() -> None:
     template = (ROOT / ".env.example").read_text(encoding="utf-8")
     values = dict(line.split("=", 1) for line in template.splitlines() if line and not line.startswith("#") and "=" in line)
-    assert values["PERSISTENCE_BACKEND"] == "postgresql"
+    assert values["PERSISTENCE_BACKEND"] == "sqlite"
     assert values["POSTGRES_RUNTIME_URL"] == ""
     assert values["POSTGRES_SHADOW_URL"] == ""
 

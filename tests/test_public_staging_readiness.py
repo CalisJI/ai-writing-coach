@@ -1,8 +1,11 @@
 from __future__ import annotations
 
 import pytest
+from pathlib import Path
 
+import scripts.validate_public_staging_readiness as staging_validator
 from scripts.validate_public_staging_readiness import (
+    read_env_file,
     render_report,
     validate_public_staging_readiness,
 )
@@ -89,3 +92,47 @@ def test_report_never_contains_injected_secret_values() -> None:
     assert "database-secret-value" not in output
     assert "shadow-secret-value" not in output
     assert "cloudflare-secret-value" not in output
+
+
+def test_env_file_accepts_comments_blanks_and_last_assignment_wins(tmp_path: Path) -> None:
+    fixture = tmp_path / "staging.env"
+    fixture.write_text(
+        "# ignored\n\nAPP_ENV=development\nAPP_ENV=production\n"
+        "APP_BIND_HOST=127.0.0.1\nPUBLIC_BASE_URL=https://staging.example.com\n"
+        "GOOGLE_CLIENT_ID=google-client-id\n"
+        f"GOOGLE_CLIENT_SECRET={SECRETS['GOOGLE_CLIENT_SECRET']}\n"
+        f"SESSION_SECRET={SECRETS['SESSION_SECRET']}\n"
+        "PERSISTENCE_BACKEND=postgresql\n"
+        f"POSTGRES_RUNTIME_URL={SECRETS['POSTGRES_RUNTIME_URL']}\n"
+        f"POSTGRES_SHADOW_URL={SECRETS['POSTGRES_SHADOW_URL']}\n"
+        f"CLOUDFLARE_TUNNEL_TOKEN={SECRETS['CLOUDFLARE_TUNNEL_TOKEN']}\n",
+        encoding="utf-8",
+    )
+    values = read_env_file(fixture)
+    assert values["APP_ENV"] == "production"
+    assert validate_public_staging_readiness(values).ok is True
+
+
+def test_env_file_cli_is_explicit_source_and_redacts_secrets(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    fixture = tmp_path / "staging.env"
+    fixture.write_text("\n".join(f"{key}={value}" for key, value in valid_env().items()), encoding="utf-8")
+    monkeypatch.setenv("APP_ENV", "development")
+    monkeypatch.setattr("sys.argv", ["validate_public_staging_readiness.py", "--env-file", str(fixture)])
+    assert staging_validator.main() == 0
+    output = capsys.readouterr().out
+    assert "PUBLIC STAGING READINESS PASS" in output
+    for secret in SECRETS.values():
+        assert secret not in output
+
+
+def test_missing_env_file_fails_without_leaking_path(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    missing = tmp_path / "secretly-named-missing.env"
+    monkeypatch.setattr("sys.argv", ["validate_public_staging_readiness.py", "--env-file", str(missing)])
+    assert staging_validator.main() == 1
+    output = capsys.readouterr().out
+    assert "Unable to read the requested environment file." in output
+    assert str(missing) not in output

@@ -14,7 +14,7 @@ services:
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
       APP_ENV: ${APP_ENV:-development}
-      APP_BIND_HOST: ${APP_BIND_HOST:-127.0.0.1}
+      APP_BIND_HOST: ${APP_BIND_HOST:-0.0.0.0}
       PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-}
       GOOGLE_REDIRECT_URI: ${GOOGLE_REDIRECT_URI:-}
       SESSION_SECRET: ${SESSION_SECRET:-}
@@ -44,7 +44,7 @@ services:
       - ./static:/app/static:ro
       - ./templates:/app/templates:ro
     ports:
-      - "${APP_BIND_HOST:-127.0.0.1}:8000:8000"
+      - "${APP_BIND_HOST:-0.0.0.0}:8000:8000"
     extra_hosts:
       - "host.docker.internal:host-gateway"
 
