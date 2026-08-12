@@ -45,3 +45,13 @@ def test_real_env_is_not_a_tracked_phase_c1_artifact() -> None:
     assert ".env" in rules
     assert ".env.*" in rules
     assert "!.env.example" in rules
+
+
+def test_runbook_separates_local_and_oauth_product_smoke_reads() -> None:
+    runbook = (ROOT / "docs/POSTGRES_OPERATIONAL_CUTOVER.md").read_text(encoding="utf-8")
+    main_smoke, local_section = runbook.split("### Local/auth-disabled mode", 1)
+    local_section, oauth_section = local_section.split("### OAuth-enabled mode", 1)
+    assert "/api/product/me" not in main_smoke
+    assert "Invoke-RestMethod http://127.0.0.1:8000/api/product/me" in local_section
+    assert "Do not run the unauthenticated PowerShell product request." in oauth_section
+    assert "signed-in session" in oauth_section

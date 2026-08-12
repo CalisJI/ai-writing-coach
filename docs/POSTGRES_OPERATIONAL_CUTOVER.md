@@ -87,13 +87,27 @@ Invoke-RestMethod http://127.0.0.1:8000/api/health
 Invoke-RestMethod http://127.0.0.1:8000/api/readiness
 $Languages = Invoke-RestMethod http://127.0.0.1:8000/api/platform/languages
 $Languages | ConvertTo-Json -Depth 5
-# Local mode: safe PostgreSQL-backed product read. With OAuth enabled, perform
-# the equivalent authenticated GET /api/product/me in the signed-in browser.
-Invoke-RestMethod http://127.0.0.1:8000/api/product/me
 $AfterManifest = Join-Path $BackupDirectory "sqlite-$CutoverStamp-after.sha256"
 docker run --rm --mount type=volume,src=ai-writing-coach-data,dst=/source,readonly alpine:3.20 sh -c "find /source -type f ! -name 'learning_cache.db*' -exec sha256sum {} + | sort" | Set-Content $AfterManifest
 if (Compare-Object (Get-Content $FrozenManifest) (Get-Content $AfterManifest)) { throw 'Authoritative SQLite changed during smoke; rollback required.' }
 ```
+
+### Local/auth-disabled mode
+
+Use this safe PostgreSQL-backed product read only when authentication is
+disabled:
+
+```powershell
+Invoke-RestMethod http://127.0.0.1:8000/api/product/me
+```
+
+### OAuth-enabled mode
+
+Do not run the unauthenticated PowerShell product request. Open the
+application in a browser, sign in through the existing OAuth flow, and use the
+signed-in session to perform `GET /api/product/me`. Confirm the account/product
+read succeeds. Authentication/login failure or any repository failure is a
+smoke failure and requires rollback.
 
 Require clean startup with no PostgreSQL connectivity/Alembic error, HTTP 200
 in local mode or the expected login flow in OAuth mode, healthy status, a
