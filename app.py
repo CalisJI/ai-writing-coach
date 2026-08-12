@@ -47,7 +47,7 @@ from writing_coach.becoming_library import LibraryVocabularyIn, VocabularyReview
 from writing_coach.becoming_linguistics import configure_becoming_linguistics, linguistic_annotations_for_essay
 from writing_coach.becoming_reading import ReadingAnswerIn, ReadingGenerateIn, configure_becoming_reading, create_reading_session, get_reading_session, list_reading_sessions, submit_reading_answers
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
@@ -518,17 +518,15 @@ def startup() -> None:
 
 @app.get("/", response_class=HTMLResponse)
 def home() -> str:
-    return (ROOT / "templates" / "index.html").read_text(encoding="utf-8")
+    return (ROOT / "templates" / "becoming" / "index.html").read_text(encoding="utf-8")
 
 
 
 
 @app.get("/becoming", response_class=HTMLResponse)
 @app.get("/becoming/", response_class=HTMLResponse)
-def becoming_preview() -> str:
-    return (
-        ROOT / "templates" / "becoming" / "index.html"
-    ).read_text(encoding="utf-8")
+def becoming_preview() -> RedirectResponse:
+    return RedirectResponse("/", status_code=302)
 @app.get("/static/style.css")
 def style() -> HTMLResponse:
     return HTMLResponse((ROOT / "static" / "style.css").read_text(encoding="utf-8"), media_type="text/css")
