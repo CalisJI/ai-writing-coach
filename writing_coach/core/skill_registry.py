@@ -55,7 +55,7 @@ class SkillCapability:
 _REGISTRY: tuple[SkillCapability, ...] = (
     SkillCapability(
         key="writing",
-        release_state=SkillReleaseState.PUBLIC,
+        release_state=SkillReleaseState.BETA,
         source_available=True,
         internal_available=True,
     ),

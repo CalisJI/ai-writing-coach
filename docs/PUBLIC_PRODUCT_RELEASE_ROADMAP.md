@@ -25,13 +25,14 @@ contract instead of receiving a copied feature.
 - English + Chinese: mandatory release coverage for both public core skills.
 
 R0 establishes the release contract only. It does not claim that Speaking is
-implemented or complete.
+implemented or complete. Promotion to PUBLIC is a later release-gate action,
+after both Writing and Speaking are complete for English and Chinese.
 
 ## Current R0 truth
 
-- Writing is the existing public learner skill.
+- Writing is BETA and internal-only during this pre-release stage.
 - Speaking is in development and is not available yet.
-- Reading remains an internal development capability; its implementation,
+- Reading is development/internal; its implementation,
   routes, APIs, and data remain intact without a Public R1 claim.
 - Listening remains hidden future work.
 - Home, Library, Journey, and Profile are supporting product capabilities,

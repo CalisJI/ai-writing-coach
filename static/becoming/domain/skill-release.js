@@ -1,5 +1,6 @@
 const SKILL_BY_ROUTE=Object.freeze({
   write:'writing',
+  review:'writing',
   read:'reading',
 });
 
