@@ -10,6 +10,7 @@ from writing_coach.core.language_registry import (
     is_enabled,
 )
 from writing_coach.core.request_context import current_language_code
+from writing_coach.core.skill_registry import all_skills
 
 router = APIRouter()
 
@@ -38,3 +39,14 @@ def api_platform_language(payload: LanguageSelectIn, request: Request) -> dict[s
         raise HTTPException(409, f"Language module '{code}' is not enabled yet.")
     request.session["language"] = code
     return {"ok": True, "active": code}
+
+
+@router.get("/api/platform/skills")
+def api_platform_skills() -> dict[str, object]:
+    """Return the single language-wide learner skill release contract."""
+    return {
+        "api_version": 1,
+        "policy": "language-wide",
+        "language_scope": [item.code for item in all_languages() if item.enabled],
+        "skills": [item.public_dict() for item in all_skills()],
+    }

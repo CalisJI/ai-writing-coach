@@ -71,6 +71,7 @@ export const state={
   me:null,
   health:null,
   languages:[],
+  skills:[],
   language:'en',
   profile:null,
   legacyProfile,

@@ -31,6 +31,7 @@ export const api={
   me:()=>request('/api/me'),
   health:()=>request('/api/health'),
   languages:()=>request('/api/platform/languages'),
+  skills:()=>request('/api/platform/skills'),
   setLanguage:(language)=>request('/api/platform/language',{
     method:'POST',
     headers:JSON_HEADERS,

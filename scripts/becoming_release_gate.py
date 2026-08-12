@@ -45,6 +45,7 @@ def main() -> None:
         root / "writing_coach" / "becoming_library.py",
         root / "writing_coach" / "becoming_reading.py",
         root / "writing_coach" / "becoming_linguistics.py",
+        root / "writing_coach" / "core" / "skill_registry.py",
         root / "templates" / "becoming" / "index.html",
         root / "static" / "becoming" / "app.js",
         root / "static" / "becoming" / "app.css",
@@ -59,6 +60,7 @@ def main() -> None:
         root / "static" / "becoming" / "domain" / "support.js",
         root / "static" / "becoming" / "domain" / "i18n.js",
         root / "static" / "becoming" / "domain" / "screen-contract.js",
+        root / "static" / "becoming" / "domain" / "skill-release.js",
         root / "static" / "becoming" / "domain" / "rank.js",
         root / "static" / "becoming" / "domain" / "feedback-map.js",
         root / "static" / "becoming" / "screens" / "home.js",
@@ -77,6 +79,7 @@ def main() -> None:
         root / "docs" / "BECOMING_HIGH_FIDELITY_IMPLEMENTATION_MODE.md",
         root / "docs" / "BECOMING_UIUX_IMPLEMENTATION_CONTRACT.md",
         root / "docs" / "PUBLIC_DEPLOYMENT.md",
+        root / "docs" / "PUBLIC_PRODUCT_RELEASE_ROADMAP.md",
     ]
     for path in required:
         if not path.exists():
@@ -104,6 +107,9 @@ def main() -> None:
     rank_frame = read("static/becoming/components/rank-frame.js")
     i18n = read("static/becoming/domain/i18n.js")
     screen_contract = read("static/becoming/domain/screen-contract.js")
+    skill_release = read("static/becoming/domain/skill-release.js")
+    skill_registry = read("writing_coach/core/skill_registry.py")
+    platform_api = read("writing_coach/core/platform_api.py")
     rank_domain = read("static/becoming/domain/rank.js")
     feedback_map = read("static/becoming/domain/feedback-map.js")
     phase3_css = read("static/becoming/phase3.css")
@@ -476,6 +482,21 @@ def main() -> None:
     ], "canonical visual grammar")
     if "const label=node.querySelector('[data-i18n-label]')" not in i18n:
         errors.append("chrome i18n can destroy navigation icons instead of updating only the nav label")
+    require_contains(errors, skill_registry, [
+        'key="writing"', 'key="speaking"', 'key="reading"', 'key="listening"',
+        'SkillReleaseState.PUBLIC', 'SkillReleaseState.DEVELOPMENT', 'SkillReleaseState.HIDDEN',
+    ], "public skill release registry")
+    require_contains(errors, platform_api, [
+        '@router.get("/api/platform/skills")', '"policy": "language-wide"',
+    ], "public skill platform contract")
+    require_contains(errors, template, [
+        'data-route="write" data-skill="writing"',
+        'data-route="read" data-skill="reading"',
+    ], "skill-aware navigation")
+    require_contains(errors, app_js + skill_release, [
+        "applySkillNavigation(state.skills", "item.public_available===true",
+        "item.internal_available===true",
+    ], "shared skill navigation contract")
     if 'html[data-theme="dark"][data-palette="editorial"]' not in visual_css:
         errors.append("canonical dark visual calibration missing")
     if '--theme-accent-600:#FF6A00' not in visual_css:
@@ -574,7 +595,7 @@ def main() -> None:
             if unsafe.search(line):
                 errors.append(f"unsafe PowerShell URI interpolation: {ps1.relative_to(root)}:{lineno}")
 
-    # v1.3 PostgreSQL shadow foundation: architecture exists, runtime cutover does not.
+    # PostgreSQL foundation remains present behind the v1.4 central runtime selector.
     postgres_required = [
         root / "alembic.ini",
         root / "migrations" / "env.py",
@@ -594,12 +615,20 @@ def main() -> None:
         if dep not in requirements:
             errors.append(f"v1.3 PostgreSQL foundation dependency missing: {dep}")
     product_service = read("writing_coach/product/service.py")
-    if "SQLiteProductRepository" not in product_service:
-        errors.append("v1.3 no-cutover guard: ProductService no longer defaults to SQLite")
-    if "PostgresProductRepository" in product_service:
-        errors.append("v1.3 no-cutover guard: PostgreSQL product repository activated before cutover")
+    persistence_runtime = read("writing_coach/persistence/runtime.py")
+    if "configure_product_repository" not in app or "Product repository has not been installed" not in product_service:
+        errors.append("v1.4 product repository is not installed fail-closed by the central runtime")
+    for repository in [
+        "PostgresAuthRepository(engine)", "PostgresPlatformRepository(engine)",
+        "PostgresProductRepository(engine)", "PostgresLearningRepository(engine)",
+        "PostgresSpecializedLearningRepository(engine)",
+    ]:
+        if repository not in persistence_runtime:
+            errors.append(f"v1.4 PostgreSQL runtime family missing: {repository}")
+    if "build_runtime(" not in app or "PERSISTENCE_BACKEND" not in persistence_runtime:
+        errors.append("v1.4 central persistence runtime selection missing")
     if "create_shadow_engine" in app:
-        errors.append("v1.3 no-cutover guard: app.py activated PostgreSQL shadow engine")
+        errors.append("v1.4 runtime must not select the shadow PostgreSQL engine")
     deployment = read("writing_coach/core/deployment.py")
     if "PUBLIC_BASE_URL is required when APP_ENV=production." not in deployment:
         errors.append("v1.3.5 production public-origin guard missing")
@@ -610,8 +639,8 @@ def main() -> None:
     if 'profiles: ["postgres"]' not in compose:
         errors.append("v1.3 no-cutover guard: PostgreSQL compose service is not opt-in")
 
-    # v1.3.1 persistence runtime readiness + specialized persistence boundary: close auth/platform SQLite bypasses
-    # while keeping all live stores on SQLite until a separately approved cutover.
+    # Repository boundaries remain storage-neutral while the central runtime owns
+    # the selected SQLite or PostgreSQL implementations.
     readiness_required = [
         root / "writing_coach" / "persistence" / "auth_repository.py",
         root / "writing_coach" / "persistence" / "platform_repository.py",
@@ -629,15 +658,18 @@ def main() -> None:
     platform_repo_text = read("writing_coach/persistence/platform_repository.py") if (root / "writing_coach/persistence/platform_repository.py").exists() else ""
     if "import sqlite3" in auth_text or "sqlite3.connect" in auth_text:
         errors.append("v1.3.1 auth boundary regression: auth_support.py bypasses AuthRepository")
-    if "SQLiteAuthRepository" not in auth_text or "PostgresAuthRepository" not in auth_repo_text:
-        errors.append("v1.3.1 auth repository contract incomplete")
+    if "configure_auth_repository" not in auth_text or not all(
+        name in auth_repo_text for name in ["SQLiteAuthRepository", "PostgresAuthRepository"]
+    ):
+        errors.append("v1.4 auth repository contract incomplete")
     if "import sqlite3" in platform_ai_text or "sqlite3.connect" in platform_ai_text:
         errors.append("v1.3.1 platform boundary regression: ai/platform.py bypasses PlatformRepository")
-    if "SQLitePlatformRepository" not in platform_ai_text or "PostgresPlatformRepository" not in platform_repo_text:
-        errors.append("v1.3.1 platform repository contract incomplete")
-    if "sqlite3.connect(path)" not in app:
-        if "SQLiteLearningRepository" not in app or "PostgresLearningRepository" in app:
-            errors.append("v1.3.2 no-cutover guard: SQLite learning repository is not the active runtime")
+    if "configure_platform_repository" not in platform_ai_text or not all(
+        name in platform_repo_text for name in ["SQLitePlatformRepository", "PostgresPlatformRepository"]
+    ):
+        errors.append("v1.4 platform repository contract incomplete")
+    if "_persistence_runtime.learning_repository" not in app:
+        errors.append("v1.4 learning repository is not owned by the central runtime")
     learning_repo_path = root / "writing_coach" / "persistence" / "learning_repository.py"
     if learning_repo_path.exists():
         learning_repo_text = read("writing_coach/persistence/learning_repository.py")
@@ -676,7 +708,7 @@ def main() -> None:
 
     print("BECOMING RELEASE GATE OK")
     print(f"Frontend version: {frontend_version}")
-    print("Guarded: historical incidents + v2.10 product contracts + HIGH-FIDELITY visual execution + PostgreSQL no-cutover foundation + persistence runtime readiness + specialized persistence boundary")
+    print("Guarded: historical incidents + v2.10 product contracts + HIGH-FIDELITY visual execution + v1.4 central persistence runtime + public skill release architecture")
 
 
 if __name__ == "__main__":
