@@ -18,7 +18,7 @@ from writing_coach.core.request_context import LANGUAGE_CODE_CTX, USER_KEY_CTX, 
 from writing_coach.core.storage import resolve_language_db_path
 from writing_coach.core.language_registry import DEFAULT_LANGUAGE, enabled_language
 from writing_coach.core.deployment import DeploymentConfig, resolve_deployment_config
-from writing_coach.persistence.auth_repository import SQLiteAuthRepository
+from writing_coach.persistence.auth_repository import AuthRepository
 
 ROOT = Path(__file__).resolve().parent
 LEGACY_DB_PATH = Path(os.getenv("WRITING_DB", ROOT / "data" / "writing.db"))
@@ -76,20 +76,29 @@ def current_db_path(legacy_db: Path | None = None) -> Path:
         language_code=_language_key.get(),
     )
 
-_auth_repository = SQLiteAuthRepository(AUTH_DB_PATH)
+_auth_repository: AuthRepository | None = None
+
+def _installed_auth_repository() -> AuthRepository:
+    if _auth_repository is None:
+        raise RuntimeError("Auth repository has not been installed by the persistence runtime.")
+    return _auth_repository
+
+def configure_auth_repository(repository: AuthRepository) -> None:
+    global _auth_repository
+    _auth_repository = repository
 
 
 def init_auth_db() -> None:
-    _auth_repository.initialize(PLATFORM_ADMIN_EMAILS)
+    _installed_auth_repository().initialize(PLATFORM_ADMIN_EMAILS)
 
 
 def auth_user(google_sub: str) -> dict[str, Any] | None:
-    return _auth_repository.get_user(google_sub)
+    return _installed_auth_repository().get_user(google_sub)
 
 
 def upsert_auth_user(info: dict[str, Any]) -> dict[str, Any]:
     try:
-        return _auth_repository.upsert_user(info, PLATFORM_ADMIN_EMAILS)
+        return _installed_auth_repository().upsert_user(info, PLATFORM_ADMIN_EMAILS)
     except ValueError as exc:
         raise HTTPException(400, str(exc)) from exc
 

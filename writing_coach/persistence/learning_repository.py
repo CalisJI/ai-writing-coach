@@ -314,11 +314,11 @@ class SQLiteLearningRepository:
 class SQLiteLearningCacheRepository:
     """Non-critical generated caches stay local and are independent from cutover."""
 
-    def __init__(self, learning: SQLiteLearningRepository) -> None:
-        self.learning = learning
+    def __init__(self, connect: Callable[[], sqlite3.Connection]) -> None:
+        self._connect = connect
 
     def initialize(self) -> None:
-        with self.learning.connect() as conn:
+        with self._connect() as conn:
             conn.execute(
                 """CREATE TABLE IF NOT EXISTS dictionary_cache (
                     word TEXT PRIMARY KEY,
@@ -336,14 +336,14 @@ class SQLiteLearningCacheRepository:
             conn.commit()
 
     def get_dictionary(self, word: str) -> dict[str, Any] | None:
-        with self.learning.connect() as conn:
+        with self._connect() as conn:
             row = conn.execute("SELECT payload_json, fetched_at FROM dictionary_cache WHERE word = ?", (word,)).fetchone()
         if not row:
             return None
         return {"payload_json": str(row["payload_json"]), "fetched_at": str(row["fetched_at"])}
 
     def put_dictionary(self, word: str, payload: dict[str, Any], fetched_at: str) -> None:
-        with self.learning.connect() as conn:
+        with self._connect() as conn:
             conn.execute(
                 """INSERT INTO dictionary_cache(word, payload_json, fetched_at)
                    VALUES (?, ?, ?)
@@ -355,7 +355,7 @@ class SQLiteLearningCacheRepository:
             conn.commit()
 
     def get_grammar_lesson(self, lesson_id: str) -> dict[str, Any] | None:
-        with self.learning.connect() as conn:
+        with self._connect() as conn:
             row = conn.execute("SELECT content_json FROM grammar_lesson_cache WHERE lesson_id = ?", (lesson_id,)).fetchone()
         if not row:
             return None
@@ -366,7 +366,7 @@ class SQLiteLearningCacheRepository:
         return value if isinstance(value, dict) else None
 
     def put_grammar_lesson(self, lesson_id: str, content: dict[str, Any], generated_at: str) -> None:
-        with self.learning.connect() as conn:
+        with self._connect() as conn:
             conn.execute(
                 """INSERT INTO grammar_lesson_cache(lesson_id, content_json, generated_at)
                    VALUES (?, ?, ?)

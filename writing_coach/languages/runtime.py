@@ -65,7 +65,9 @@ def validate_target_level(level: str) -> str:
 def writing_unit_count(text: str) -> int:
     if is_chinese():
         han = re.findall(r"[\u3400-\u4DBF\u4E00-\u9FFF]", text or "")
-        latin = re.findall(r"[A-Za-z0-9]+(?:['-][A-Za-z0-9]+)*", text or "")
+        # A Latin writing unit needs an alphabetic component; numeric-only
+        # sequences are not Chinese writing units.
+        latin = re.findall(r"[A-Za-z]+(?:['-][A-Za-z0-9]+)*", text or "")
         return len(han) + len(latin)
     return len(re.findall(r"\b[\w'-]+\b", text or ""))
 

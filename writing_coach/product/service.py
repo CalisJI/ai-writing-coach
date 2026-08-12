@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from writing_coach.product.catalog import DEFAULT_PLAN_ID, Plan, plan_by_id
-from writing_coach.product.repository import ProductRepository, SQLiteProductRepository
+from writing_coach.product.repository import ProductRepository
 
 
 @dataclass(frozen=True)
@@ -27,10 +27,15 @@ class FeatureAccess:
 
 class ProductService:
     def __init__(self, repository: ProductRepository | None = None) -> None:
-        self.repository = repository or SQLiteProductRepository()
+        self.repository = repository
+
+    def _repository(self) -> ProductRepository:
+        if self.repository is None:
+            raise RuntimeError("Product repository has not been installed by the persistence runtime.")
+        return self.repository
 
     def plan_for_user(self, user_key: str) -> Plan:
-        subscription = self.repository.get_subscription(user_key)
+        subscription = self._repository().get_subscription(user_key)
         if not subscription or subscription.status not in {"active", "trialing"}:
             return plan_by_id(DEFAULT_PLAN_ID)
         return plan_by_id(subscription.plan_id)
@@ -41,7 +46,7 @@ class ProductService:
         if not entitlement:
             return FeatureAccess(feature, False, None, 0, None)
 
-        used = self.repository.monthly_usage(user_key=user_key, feature=feature)
+        used = self._repository().monthly_usage(user_key=user_key, feature=feature)
         remaining = (
             None
             if entitlement.monthly_limit is None
@@ -75,3 +80,6 @@ class ProductService:
 
 
 product_service = ProductService()
+
+def configure_product_repository(repository: ProductRepository) -> None:
+    product_service.repository = repository

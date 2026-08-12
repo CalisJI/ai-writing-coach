@@ -9,7 +9,7 @@ from pydantic import BaseModel, Field
 
 from writing_coach.ai.base import AIProviderError, AIProviderUnavailable, AIResult
 from writing_coach.ai.providers import build_providers
-from writing_coach.persistence.platform_repository import SQLitePlatformRepository
+from writing_coach.persistence.platform_repository import PlatformRepository
 
 ROOT = Path(__file__).resolve().parents[2]
 PLATFORM_DB_PATH = Path(os.getenv("PLATFORM_DB", ROOT / "data" / "platform.db"))
@@ -23,11 +23,20 @@ class AIConfigIn(BaseModel):
     model: str = Field(min_length=1, max_length=160)
 
 
-_platform_repository = SQLitePlatformRepository(PLATFORM_DB_PATH)
+_platform_repository: PlatformRepository | None = None
+
+def _installed_platform_repository() -> PlatformRepository:
+    if _platform_repository is None:
+        raise RuntimeError("Platform repository has not been installed by the persistence runtime.")
+    return _platform_repository
+
+def configure_platform_repository(repository: PlatformRepository) -> None:
+    global _platform_repository
+    _platform_repository = repository
 
 
 def init_platform_ai_db() -> None:
-    _platform_repository.initialize()
+    _installed_platform_repository().initialize()
 
 
 def providers() -> dict[str, Any]:
@@ -62,7 +71,7 @@ def active_selection() -> tuple[Any, str]:
     init_platform_ai_db()
     items = providers()
 
-    row = _platform_repository.get_ai_selection()
+    row = _installed_platform_repository().get_ai_selection()
 
     if row:
         provider_id = row.provider
@@ -166,7 +175,7 @@ def admin_ai_config_update(payload: AIConfigIn, request: Request) -> dict[str, A
     if models and model not in models:
         raise HTTPException(400, "Selected model is not available for this provider.")
 
-    _platform_repository.set_ai_selection(
+    _installed_platform_repository().set_ai_selection(
         provider=provider_id,
         model=model,
         updated_by=str(admin.get("google_sub") or ""),
