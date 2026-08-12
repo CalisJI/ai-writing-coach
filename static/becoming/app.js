@@ -6,6 +6,7 @@ import {closeDialog,toast,setBusy,installTooltipLayer} from './components/primit
 import {installTheme,applyPalette,activePalette,storedPalette} from './theme.js';
 import {t,applyChromeI18n,uiHtmlLang} from './domain/i18n.js';
 import {screenContract} from './domain/screen-contract.js';
+import {applySkillNavigation,routeAvailable} from './domain/skill-release.js';
 import {renderOnboarding} from './screens/onboarding.js';
 import {renderHome} from './screens/home.js';
 import {renderWrite} from './screens/write.js';
@@ -163,6 +164,14 @@ async function renderCurrent(){
   }
 
   let route=currentRoute();
+  const internal=Boolean(state.me?.is_admin);
+
+  if(!routeAvailable(route,state.skills,{internal})){
+    route='home';
+    if(location.hash!=='#/home'){
+      history.replaceState(null,'','#/home');
+    }
+  }
 
   if(!state.profile && route!=='onboarding'){
     route='onboarding';
@@ -263,13 +272,16 @@ async function bootstrap(){
   installDialogEvents();
 
   try{
-    const [me,languages,health]=await Promise.all([
+    const [me,languages,skills,health]=await Promise.all([
       api.me(),
       api.languages(),
+      api.skills(),
       api.health(),
     ]);
     state.me=me;
     state.languages=languages.languages||[];
+    state.skills=skills.skills||[];
+    applySkillNavigation(state.skills,{internal:Boolean(me.is_admin)});
     const activeLanguage=languages.active||state.legacyProfile?.language||'en';
     activateLanguage(activeLanguage,{allowLegacyMigration:true});
     state.health=health;
