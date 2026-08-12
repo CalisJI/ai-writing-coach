@@ -1,5 +1,9 @@
 # PostgreSQL operational cutover runbook (Phase C2)
 
+> Historical cutover record. The operational cutover is complete and
+> PostgreSQL is authoritative. Do not rerun this procedure for public staging;
+> use `docs/PUBLIC_DEPLOYMENT.md`.
+
 Phase C1 adds this procedure only. SQLite remains authoritative until the
 operator reaches and explicitly accepts the commit point below.
 

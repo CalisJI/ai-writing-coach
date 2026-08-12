@@ -163,3 +163,14 @@ Local and public configuration now use `APP_ENV` and `PUBLIC_BASE_URL`; public
 HTTPS deployment requires Google OAuth and a session secret. See
 [`docs/PUBLIC_DEPLOYMENT.md`](docs/PUBLIC_DEPLOYMENT.md) for Cloudflare Tunnel,
 Google OAuth callback, readiness, and backup guidance.
+
+## v1.4.0 authoritative PostgreSQL runtime
+
+The completed operational cutover makes PostgreSQL the authoritative deployed
+runtime. SQLite is retained as frozen rollback/archive evidence, not as a
+production fallback. Production-like Cloudflare staging requires
+`PERSISTENCE_BACKEND=postgresql`, a valid `POSTGRES_RUNTIME_URL`, Google OAuth,
+and a non-local HTTPS public origin. See
+[`docs/PUBLIC_DEPLOYMENT.md`](docs/PUBLIC_DEPLOYMENT.md) for the current
+production staging contract. The earlier v1.3 sections above are historical
+milestone records.

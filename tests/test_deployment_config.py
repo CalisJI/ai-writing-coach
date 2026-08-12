@@ -3,6 +3,7 @@ from __future__ import annotations
 import pytest
 from pathlib import Path
 
+from scripts.validate_public_staging_readiness import read_env_file
 from writing_coach.core.deployment import CALLBACK_PATH, resolve_deployment_config
 
 
@@ -114,3 +115,18 @@ def test_health_contract_retains_platform_admin_field() -> None:
     app_source = (Path(__file__).resolve().parents[1] / "app.py").read_text(encoding="utf-8")
     health = app_source.split('@app.get("/api/health")', 1)[1].split('@app.get("/api/readiness")', 1)[0]
     assert '"platform_admin": True' in health
+
+
+def test_environment_example_remains_a_usable_development_configuration() -> None:
+    root = Path(__file__).resolve().parents[1]
+    values = read_env_file(root / ".env.example")
+    resolved = resolve_deployment_config(values)
+    assert resolved.app_env == "development"
+    assert resolved.public_base_url == "http://127.0.0.1:8000"
+    assert values["APP_BIND_HOST"] == "0.0.0.0"
+    assert values["PERSISTENCE_BACKEND"] == "sqlite"
+    example = (root / ".env.example").read_text(encoding="utf-8")
+    assert "SQLite is NOT authoritative" in example
+    assert "Production-like staging requires PERSISTENCE_BACKEND=postgresql" in example
+    assert (root / "VERSION").read_text(encoding="utf-8").strip() == "1.4.0"
+    assert (root / "BECOMING_FRONTEND_VERSION").read_text(encoding="utf-8").strip() == "2.15.7"

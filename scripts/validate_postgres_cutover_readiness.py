@@ -1,4 +1,4 @@
-"""Structural guards for the non-active PostgreSQL cutover-readiness batch."""
+"""Structural guards retained after the completed PostgreSQL cutover."""
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -9,8 +9,11 @@ def req(value: bool, message: str) -> None:
 req((ROOT / "VERSION").read_text(encoding="utf-8").strip() == "1.4.0", "v1.4.0 version missing")
 req((ROOT / "BECOMING_FRONTEND_VERSION").read_text(encoding="utf-8").strip() == "2.15.7", "protected frontend changed")
 app = (ROOT / "app.py").read_text(encoding="utf-8")
-req("SQLiteLearningRepository" in app and "create_shadow_engine" not in app, "SQLite runtime is no longer explicit")
-req("PostgresLearningRepository" not in app, "PostgreSQL runtime selected before v1.4.0")
+runtime = (ROOT / "writing_coach/persistence/runtime.py").read_text(encoding="utf-8")
+req("build_runtime(" in app and "create_shadow_engine" not in app, "central runtime selection missing or shadow engine selected")
+for name in ["PostgresAuthRepository", "PostgresPlatformRepository", "PostgresProductRepository", "PostgresLearningRepository", "PostgresSpecializedLearningRepository"]:
+    req(f"{name}(engine)" in runtime, f"PostgreSQL runtime family missing: {name}")
+req("create_runtime_engine" in runtime and "_verify_runtime_readiness" in runtime, "PostgreSQL runtime fail-closed readiness missing")
 for path in ["scripts/postgres_cutover_rehearsal.py", "docs/POSTGRES_CUTOVER_READINESS.md", "scripts/postgres_shadow.py", "scripts/persistence_readiness.py", "scripts/specialized_persistence.py"]:
     req((ROOT / path).is_file(), f"missing readiness artifact: {path}")
 config = (ROOT / "writing_coach/persistence/config.py").read_text(encoding="utf-8")
@@ -32,5 +35,5 @@ if errors:
     for error in errors: print(" -", error)
     raise SystemExit(1)
 print("PostgreSQL cutover readiness structural validation OK")
-print("SQLite runtime: ACTIVE / AUTHORITATIVE")
-print("PostgreSQL repositories: READY / NOT SELECTED")
+print("PostgreSQL runtime: AUTHORITATIVE / SELECTED BY PRODUCTION CONFIG")
+print("SQLite: FROZEN ARCHIVE / ISOLATED DEVELOPMENT ADAPTER")

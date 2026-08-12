@@ -1,5 +1,10 @@
 # PostgreSQL runtime activation (Phase B)
 
+> Historical Phase B record. PostgreSQL runtime activation and operational
+> cutover completed before v1.4.0. For the current authoritative production
+> contract, use `docs/PUBLIC_DEPLOYMENT.md`; do not use this document to select
+> SQLite for production.
+
 The deployed default remains `PERSISTENCE_BACKEND=sqlite`; SQLite remains the
 authoritative production store until Phase C approval.
 

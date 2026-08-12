@@ -1,4 +1,4 @@
-"""Single authoritative persistence-family selection; Phase A is SQLite-only."""
+"""Single authoritative persistence-family selection with fail-closed PostgreSQL."""
 from __future__ import annotations
 import os
 from dataclasses import dataclass

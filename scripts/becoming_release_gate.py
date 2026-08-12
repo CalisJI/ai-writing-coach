@@ -79,6 +79,7 @@ def main() -> None:
         root / "docs" / "BECOMING_HIGH_FIDELITY_IMPLEMENTATION_MODE.md",
         root / "docs" / "BECOMING_UIUX_IMPLEMENTATION_CONTRACT.md",
         root / "docs" / "PUBLIC_DEPLOYMENT.md",
+        root / "scripts" / "validate_public_staging_readiness.py",
         root / "docs" / "PUBLIC_PRODUCT_RELEASE_ROADMAP.md",
     ]
     for path in required:
@@ -636,6 +637,18 @@ def main() -> None:
         errors.append("v1.3.5 production authentication guard missing")
     if '"/api/readiness"' not in read("auth_support.py") or '@app.get("/api/readiness")' not in app:
         errors.append("v1.3.5 non-sensitive readiness route missing")
+    public_deployment = read("docs/PUBLIC_DEPLOYMENT.md")
+    staging_validator = read("scripts/validate_public_staging_readiness.py")
+    require_contains(errors, public_deployment, [
+        "PERSISTENCE_BACKEND=postgresql", "POSTGRES_RUNTIME_URL=postgresql+psycopg://...",
+        "APP_BIND_HOST=127.0.0.1", "Cloudflare Tunnel -> writing-coach:8000 -> PostgreSQL",
+        "POSTGRES_SHADOW_URL", "Do not rerun migration, import, rehearsal, or parity commands",
+    ], "v1.4 public PostgreSQL staging contract")
+    require_contains(errors, staging_validator, [
+        "resolve_deployment_config(env)", 'backend == "postgresql"',
+        "_valid_runtime_url(raw_runtime_url)", 'APP_BIND_HOST", "")).strip() == "127.0.0.1"',
+        'CLOUDFLARE_TUNNEL_TOKEN", "")).strip()',
+    ], "v1.4 secret-safe public staging validator")
     if 'profiles: ["postgres"]' not in compose:
         errors.append("v1.3 no-cutover guard: PostgreSQL compose service is not opt-in")
 
@@ -708,7 +721,7 @@ def main() -> None:
 
     print("BECOMING RELEASE GATE OK")
     print(f"Frontend version: {frontend_version}")
-    print("Guarded: historical incidents + v2.10 product contracts + HIGH-FIDELITY visual execution + v1.4 central persistence runtime + public skill release architecture")
+    print("Guarded: historical incidents + v2.10 product contracts + HIGH-FIDELITY visual execution + v1.4 central persistence runtime + public skill release architecture + PostgreSQL public staging")
 
 
 if __name__ == "__main__":
