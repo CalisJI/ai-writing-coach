@@ -6,7 +6,7 @@ errors: list[str] = []
 def req(value: bool, message: str) -> None:
     if not value: errors.append(message)
 
-req((ROOT / "VERSION").read_text(encoding="utf-8").strip() == "1.3.6", "v1.3.6 version missing")
+req((ROOT / "VERSION").read_text(encoding="utf-8").strip() == "1.4.0", "v1.4.0 version missing")
 req((ROOT / "BECOMING_FRONTEND_VERSION").read_text(encoding="utf-8").strip() == "2.15.7", "protected frontend changed")
 app = (ROOT / "app.py").read_text(encoding="utf-8")
 req("SQLiteLearningRepository" in app and "create_shadow_engine" not in app, "SQLite runtime is no longer explicit")

@@ -3,7 +3,7 @@ ROOT=Path(__file__).resolve().parents[1]
 def req(ok,msg):
     if not ok: raise SystemExit('Specialized persistence boundary validation FAILED: '+msg)
 def text(rel): return (ROOT/rel).read_text(encoding='utf-8')
-req((ROOT/'VERSION').read_text().strip() in {'1.3.4','1.3.5','1.3.6'},'VERSION must remain on the specialized-boundary line')
+req((ROOT/'VERSION').read_text().strip() == '1.4.0','VERSION must be v1.4.0')
 req((ROOT/'BECOMING_FRONTEND_VERSION').read_text().strip()=='2.15.7','frontend must remain 2.15.7')
 app=text('app.py'); repo=text('writing_coach/persistence/specialized_repository.py')
 for name in ['becoming_memory.py','becoming_outcomes.py','becoming_library.py','becoming_reading.py','becoming_linguistics.py']:
