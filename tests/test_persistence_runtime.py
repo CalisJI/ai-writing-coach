@@ -6,6 +6,12 @@ from writing_coach.persistence.platform_repository import SQLitePlatformReposito
 from writing_coach.product.repository import SQLiteProductRepository
 from writing_coach.persistence.learning_repository import SQLiteLearningRepository
 from writing_coach.persistence.specialized_repository import SQLiteSpecializedLearningRepository
+from writing_coach.persistence.auth_repository import PostgresAuthRepository
+from writing_coach.persistence.platform_repository import PostgresPlatformRepository
+from writing_coach.persistence.product_repository import PostgresProductRepository
+from writing_coach.persistence.learning_repository import PostgresLearningRepository
+from writing_coach.persistence.specialized_repository import PostgresSpecializedLearningRepository
+import writing_coach.persistence.runtime as runtime_module
 from writing_coach.persistence.learning_repository import SQLiteLearningCacheRepository
 import sqlite3
 
@@ -22,12 +28,34 @@ def test_default_and_explicit_sqlite_are_atomic(tmp_path):
         assert isinstance(runtime.specialized_learning_repository,SQLiteSpecializedLearningRepository)
 def test_invalid_and_postgres_fail_without_bundle(tmp_path):
     with pytest.raises(RuntimeError,match='Unsupported'): make(tmp_path,'invalid')
-    with pytest.raises(RuntimeError,match='cutover is not enabled'): make(tmp_path,'postgresql')
+    with pytest.raises(RuntimeError,match='POSTGRES_RUNTIME_URL'): make(tmp_path,'postgresql')
 
 def test_environment_default_explicit_and_shadow_isolation(tmp_path, monkeypatch):
     monkeypatch.delenv('PERSISTENCE_BACKEND',raising=False); monkeypatch.setenv('POSTGRES_SHADOW_URL','postgresql+psycopg://shadow-example')
     assert make(tmp_path).backend == 'sqlite'
     monkeypatch.setenv('PERSISTENCE_BACKEND','sqlite'); assert make(tmp_path).backend == 'sqlite'
+    monkeypatch.delenv('PERSISTENCE_BACKEND'); monkeypatch.setenv('POSTGRES_RUNTIME_URL','postgresql+psycopg://runtime-example'); assert make(tmp_path).backend == 'sqlite'
+
+def test_postgres_runtime_shared_engine_and_no_sqlite_fallback(tmp_path, monkeypatch):
+    class Connection:
+        def __enter__(self): return self
+        def __exit__(self,*args): return False
+    class Engine:
+        def connect(self): return Connection()
+    engine=Engine()
+    monkeypatch.setattr(runtime_module,'create_runtime_engine',lambda:engine)
+    monkeypatch.setattr(runtime_module,'_verify_runtime_readiness',lambda value: None)
+    for name in ('SQLiteAuthRepository','SQLitePlatformRepository','SQLiteProductRepository','SQLiteLearningRepository','SQLiteSpecializedLearningRepository'):
+        monkeypatch.setattr(runtime_module,name,lambda *a,**k: pytest.fail('SQLite constructed in PostgreSQL branch'))
+    value=make(tmp_path,'postgresql')
+    assert value.backend == 'postgresql' and value.engine is engine
+    assert all(isinstance(item, kind) for item,kind in [(value.auth_repository,PostgresAuthRepository),(value.platform_repository,PostgresPlatformRepository),(value.product_repository,PostgresProductRepository),(value.learning_repository,PostgresLearningRepository),(value.specialized_learning_repository,PostgresSpecializedLearningRepository)])
+    assert all(item.engine is engine for item in [value.auth_repository,value.platform_repository,value.product_repository,value.learning_repository,value.specialized_learning_repository])
+
+def test_postgres_connectivity_and_revision_fail_closed(tmp_path, monkeypatch):
+    monkeypatch.setattr(runtime_module,'create_runtime_engine',lambda: object())
+    monkeypatch.setattr(runtime_module,'_verify_runtime_readiness',lambda _engine: (_ for _ in ()).throw(RuntimeError('PostgreSQL runtime unavailable')))
+    with pytest.raises(RuntimeError,match='unavailable'): make(tmp_path,'postgresql')
 
 def test_auth_platform_fail_closed_and_injection(monkeypatch, tmp_path):
     import auth_support
