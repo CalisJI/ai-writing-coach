@@ -3,11 +3,74 @@ from __future__ import annotations
 import json
 import os
 import re
+from dataclasses import dataclass
+from types import MappingProxyType
 from typing import Any
 
 import requests
 
 from writing_coach.ai.base import AIProviderError, AIProviderUnavailable, AIResult, extract_json_object
+from writing_coach.ai.capabilities import AIOperation
+
+
+@dataclass(frozen=True)
+class ProviderDefinition:
+    """Static provider metadata, independent of credentials or live status."""
+
+    id: str
+    name: str
+    kind: str
+    secret_mode: str
+    supported_operations: frozenset[AIOperation]
+    supported_option_keys: frozenset[str]
+
+    def supports(self, operation: AIOperation) -> bool:
+        return operation in self.supported_operations
+
+
+_STRUCTURED_TEXT_OPERATIONS = frozenset({AIOperation.STRUCTURED_TEXT_GENERATION})
+_TEXT_OPTION_KEYS = frozenset({"timeout_seconds", "temperature", "max_output_tokens", "seed"})
+_PROVIDER_DEFINITIONS = (
+    ProviderDefinition(
+        id="ollama",
+        name="Ollama",
+        kind="local",
+        secret_mode="none",
+        supported_operations=_STRUCTURED_TEXT_OPERATIONS,
+        supported_option_keys=_TEXT_OPTION_KEYS,
+    ),
+    ProviderDefinition(
+        id="openai",
+        name="OpenAI API",
+        kind="cloud",
+        secret_mode="server-managed",
+        supported_operations=_STRUCTURED_TEXT_OPERATIONS,
+        supported_option_keys=_TEXT_OPTION_KEYS,
+    ),
+    ProviderDefinition(
+        id="deepseek",
+        name="DeepSeek API",
+        kind="cloud",
+        secret_mode="server-managed",
+        supported_operations=_STRUCTURED_TEXT_OPERATIONS,
+        supported_option_keys=_TEXT_OPTION_KEYS,
+    ),
+)
+_PROVIDER_CATALOG = MappingProxyType(
+    {definition.id: definition for definition in _PROVIDER_DEFINITIONS}
+)
+
+
+def provider_definitions() -> tuple[ProviderDefinition, ...]:
+    """Return static descriptors without instantiating or probing providers."""
+
+    return _PROVIDER_DEFINITIONS
+
+
+def get_provider_definition(provider_id: str) -> ProviderDefinition | None:
+    """Look up a known provider descriptor without inspecting its environment."""
+
+    return _PROVIDER_CATALOG.get(str(provider_id or "").strip().casefold())
 
 
 def _schema_instruction(schema: dict[str, Any]) -> str:
