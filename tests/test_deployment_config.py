@@ -106,8 +106,8 @@ def test_readiness_and_compose_keep_public_deployment_non_sensitive_and_configur
     assert '"/api/readiness"' in auth_source
     assert "SESSION_SECRET" not in readiness
     assert "GOOGLE_CLIENT_SECRET" not in readiness
-    assert '"${APP_BIND_HOST:-0.0.0.0}:8000:8000"' in compose
-    assert "APP_BIND_HOST=0.0.0.0" in (root / ".env.example").read_text(encoding="utf-8")
+    assert '"${APP_BIND_HOST:-127.0.0.1}:8000:8000"' in compose
+    assert "APP_BIND_HOST=127.0.0.1" in (root / ".env.example").read_text(encoding="utf-8")
 
 
 def test_health_contract_retains_platform_admin_field() -> None:

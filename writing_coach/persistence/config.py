@@ -11,14 +11,14 @@ RUNTIME_URL_ENV = "POSTGRES_RUNTIME_URL"
 def shadow_url(value: str | None = None) -> str:
     """Return the explicitly configured shadow PostgreSQL URL.
 
-    No default is provided on purpose: the application must not silently
-    switch away from SQLite just because this foundation exists.
+    No default is provided: shadow operations remain explicit and this value
+    is never used to select the authoritative application runtime.
     """
 
     url = (value if value is not None else os.getenv(SHADOW_URL_ENV, "")).strip()
     if not url:
         raise RuntimeError(
-            f"{SHADOW_URL_ENV} is not configured. SQLite remains the active store."
+            f"{SHADOW_URL_ENV} is not configured for a shadow operation."
         )
     if not url.startswith("postgresql+psycopg://"):
         raise RuntimeError(

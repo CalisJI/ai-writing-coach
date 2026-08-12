@@ -1,107 +1,195 @@
-# BECOMING Public Deployment Contract
+# BECOMING Public PostgreSQL Staging Contract
 
-## Deployment modes
+## Authoritative architecture
 
-The app uses configuration rather than source edits to choose its public origin.
+Production-like staging uses this path:
 
-| Mode | Required public origin | Authentication |
-| --- | --- | --- |
-| Local development | `APP_ENV=development`; `PUBLIC_BASE_URL` defaults to `http://127.0.0.1:8000` | Google OAuth is optional; local developer mode remains available when it is unset. |
-| Public deployment | `APP_ENV=production`; HTTPS `PUBLIC_BASE_URL` | Google OAuth and `SESSION_SECRET` are mandatory. |
+```text
+Internet -> Cloudflare HTTPS -> Cloudflare Tunnel -> writing-coach:8000 -> PostgreSQL
+```
 
-`APP_ENV=public` and `APP_ENV=prod` are accepted aliases for production.
+PostgreSQL is the authoritative product runtime. Staging requires both:
+
+```env
+PERSISTENCE_BACKEND=postgresql
+POSTGRES_RUNTIME_URL=postgresql+psycopg://...
+```
+
+`POSTGRES_SHADOW_URL` is reserved for historical migration, rehearsal, and
+parity tooling. It is not a runtime selector and cannot replace
+`POSTGRES_RUNTIME_URL`. Startup verifies PostgreSQL connectivity and the
+existing Alembic head, then fails closed if either check fails. Startup does
+not migrate, import, fall back to SQLite, dual-write, or reverse-sync.
+
+The retained SQLite volume is frozen rollback/archive evidence. Do not delete
+or modify it as part of staging startup.
 
 ## Required public configuration
+
+Store real values only in the deployment environment or an ignored local
+`.env`; never commit them.
 
 ```env
 APP_ENV=production
 APP_BIND_HOST=127.0.0.1
-PUBLIC_BASE_URL=https://becoming.example.com
-SESSION_SECRET=replace-with-a-long-random-secret
-GOOGLE_CLIENT_ID=google-client-id
-GOOGLE_CLIENT_SECRET=google-client-secret
-CLOUDFLARE_TUNNEL_TOKEN=cloudflare-tunnel-token
+PUBLIC_BASE_URL=https://staging.example.com
+SESSION_SECRET=replace-locally
+GOOGLE_CLIENT_ID=replace-locally
+GOOGLE_CLIENT_SECRET=replace-locally
+PERSISTENCE_BACKEND=postgresql
+POSTGRES_RUNTIME_URL=replace-locally
+CLOUDFLARE_TUNNEL_TOKEN=replace-locally
 ```
 
-Do not commit `.env`. Keep all values above in the deployment environment or a
-local untracked `.env` file.
+The example hostname and replacement markers are not deployable credentials.
+Do not paste real secret values into commands, logs, tickets, or review files.
 
-Production refuses to start when its origin is missing, HTTP, or local; when
-Google OAuth is absent; or when `SESSION_SECRET` is missing. It never falls
-back to the local-admin mode in production.
+Run the secret-safe preflight before starting staging:
 
-## Google OAuth callback
+```powershell
+python scripts/validate_public_staging_readiness.py
+if ($LASTEXITCODE -ne 0) { throw 'Public staging preflight failed.' }
+```
 
-By default the callback is derived as:
+The preflight reports only requirement names and PASS/FAIL status. It never
+prints the Google client secret, session secret, database URL, or tunnel token.
+
+## Google OAuth contract
+
+The canonical callback is always:
 
 ```text
 PUBLIC_BASE_URL + /auth/google/callback
 ```
 
-For example, `https://becoming.example.com` becomes
-`https://becoming.example.com/auth/google/callback`.
+For example, the placeholder origin above resolves to
+`https://staging.example.com/auth/google/callback`. Register the real staging
+callback as an Authorized redirect URI in Google Cloud Console.
 
-`GOOGLE_REDIRECT_URI` is an optional explicit override. It must be an absolute
-HTTP(S) URL ending exactly in `/auth/google/callback` on the same normalized
-origin as `PUBLIC_BASE_URL`. It is retained for compatibility with existing
-configuration, not for a distinct callback host.
+`GOOGLE_REDIRECT_URI` remains an optional compatibility override. When set, it
+must normalize to the same `PUBLIC_BASE_URL` origin and end exactly in
+`/auth/google/callback`.
 
-In Google Cloud Console, add the public callback URI as an Authorized redirect
-URI. Local and public callback URIs can coexist in the same OAuth client, for
-example `http://127.0.0.1:8000/auth/google/callback` and the HTTPS public URI.
+Production fails closed when the public origin is absent, HTTP, or local; when
+either Google OAuth credential is absent; or when `SESSION_SECRET` is absent.
+OAuth state, PKCE, nonce, verified-email checks, and secure cookies remain
+mandatory. Health and readiness output never exposes OAuth configuration.
 
-## Cloudflare Tunnel
+## Cloudflare Tunnel contract
 
-Expected path:
+Cloudflared reaches `writing-coach:8000` over the Compose network. The host
+application port is loopback-bound with `APP_BIND_HOST=127.0.0.1`; no inbound
+router port-forward is required. PostgreSQL and Ollama must not be published to
+the Internet. Configure the named tunnel outside this repository to route the
+real staging hostname to `http://writing-coach:8000`.
 
-```text
-Internet → Cloudflare HTTPS → Cloudflare Tunnel → writing-coach container
-```
+Cloudflare Access is not part of this stage. Do not hardcode a real hostname in
+source or Compose configuration.
 
-Start public mode:
+## Exact staging start order
 
-```powershell
-docker compose --profile public up -d --build
-```
+The PostgreSQL schema and imported data were accepted during the completed
+cutover. Do not rerun migration, import, rehearsal, or parity commands here.
 
-Set `APP_BIND_HOST=127.0.0.1` for public mode so the host port is loopback-only.
-Cloudflared reaches the container over the Compose network; do not publish port
-8000 or Ollama to the internet. Callback and cookie configuration use
-`PUBLIC_BASE_URL`, so the app does not trust arbitrary `Forwarded` or
-`X-Forwarded-*` request headers.
-
-## Health and readiness
-
-- `GET /api/health` is a liveness/status endpoint.
-- `GET /api/readiness` reports only non-sensitive deployment readiness fields:
-  `ready`, `environment`, and `auth_enabled`.
-
-Neither endpoint returns secrets, callback values, API keys, or credentials.
-
-## CORS and host handling
-
-The browser application is same-origin, so no CORS middleware is configured
-and no permissive wildcard origin is required. The public callback origin comes
-from `PUBLIC_BASE_URL`; the application does not infer it from arbitrary proxy
-headers. Configure Cloudflare and the tunnel to route only the intended public
-hostname.
-
-## Local startup
+### A. Validate configuration
 
 ```powershell
-Copy-Item .env.example .env
-docker compose up -d --build
+python scripts/validate_public_staging_readiness.py
+if ($LASTEXITCODE -ne 0) { throw 'Public staging preflight failed.' }
 ```
 
-The default local origin is `http://127.0.0.1:8000`. Google OAuth may remain
-unset for local developer mode. The default `APP_BIND_HOST=0.0.0.0` preserves
-direct LAN/Tailscale access; use a host-specific `PUBLIC_BASE_URL` only when
-the browser and OAuth callback need that origin.
+### B. Start PostgreSQL
 
-## Persistent-data responsibility
+```powershell
+docker compose --profile postgres up -d postgres
+```
 
-SQLite runtime data is stored in the `ai-writing-coach-data` Docker volume.
-PostgreSQL shadow data is stored in `ai-writing-coach-postgres-data`. Back up
-both volumes before host maintenance or upgrades. Do not use `docker compose
-down -v` unless intentional data deletion has been approved. SQLite remains
-authoritative; the PostgreSQL volume is shadow verification data only.
+### C. Verify PostgreSQL health
+
+```powershell
+docker compose --profile postgres exec postgres sh -lc 'pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB"'
+if ($LASTEXITCODE -ne 0) { throw 'PostgreSQL is not healthy; staging aborted.' }
+```
+
+Do not proceed until PostgreSQL is healthy. Do not run Alembic automatically;
+the application performs a read-only revision equality check during startup.
+
+### D. Start or recreate the application
+
+```powershell
+docker compose --profile postgres up -d --build --force-recreate writing-coach
+```
+
+If the runtime URL, connection, or Alembic revision is wrong, the application
+must remain unavailable rather than fall back to SQLite.
+
+### E. Verify local health and readiness
+
+```powershell
+Invoke-RestMethod http://127.0.0.1:8000/api/health
+Invoke-RestMethod http://127.0.0.1:8000/api/readiness
+```
+
+Require successful responses with production environment and authentication
+enabled. These endpoints intentionally omit secrets and database URLs.
+
+### F. Start Cloudflare Tunnel
+
+```powershell
+docker compose --profile public up -d cloudflared
+```
+
+### G. Verify public HTTPS
+
+```powershell
+Invoke-RestMethod "$env:PUBLIC_BASE_URL/api/health"
+Invoke-RestMethod "$env:PUBLIC_BASE_URL/api/readiness"
+```
+
+Require HTTPS success through the configured public hostname.
+
+### H. Verify Google login
+
+Open the public HTTPS origin in a browser. Complete Google login and confirm the
+callback returns to `/`. Treat state, callback, cookie, or login failure as a
+staging failure.
+
+### I. Verify authenticated application behavior
+
+Using the existing signed-in browser session:
+
+1. Confirm `/api/product/me` succeeds against the PostgreSQL runtime.
+2. Open the canonical `/` application.
+3. Smoke Writing without changing its BETA release state.
+4. Switch between English and Chinese and confirm the same session/deployment
+   contract applies.
+5. Confirm Library, Journey, and Profile load normally.
+
+### J. Accept or stop staging
+
+Accept staging only after every prior check passes. If any check fails, stop
+the public tunnel and application, preserve PostgreSQL for diagnosis, and keep
+the SQLite archive untouched:
+
+```powershell
+docker compose stop cloudflared writing-coach
+```
+
+Do not switch public staging to SQLite, delete either volume, import again, or
+reverse-sync data to make a failed check pass.
+
+## Local development exception
+
+An isolated developer/test process may explicitly use
+`PERSISTENCE_BACKEND=sqlite`. That mode is not the deployed product authority
+and is never a production fallback. Host binding beyond loopback is permitted
+only for an intentional local LAN/Tailscale workflow with an appropriate local
+origin; public staging remains loopback-only behind Cloudflare Tunnel.
+
+## Health and readiness data policy
+
+- `GET /api/health` exposes liveness/status fields only.
+- `GET /api/readiness` exposes `ready`, `environment`, and `auth_enabled` only.
+
+Neither endpoint returns database URLs or passwords, OAuth credentials,
+session secrets, callback configuration, API keys, or Cloudflare tokens.

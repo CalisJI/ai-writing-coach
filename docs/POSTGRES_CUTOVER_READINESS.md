@@ -1,5 +1,9 @@
 # PostgreSQL cutover readiness (v1.3.6)
 
+> Historical pre-cutover verification record. PostgreSQL is authoritative as
+> of v1.4.0. Do not rerun import/parity rehearsal for public staging; use
+> `docs/PUBLIC_DEPLOYMENT.md`.
+
 ## Current state
 
 SQLite is the active, authoritative runtime store. PostgreSQL is a migrated,

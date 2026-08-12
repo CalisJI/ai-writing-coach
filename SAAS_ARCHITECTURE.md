@@ -151,3 +151,15 @@ non-local HTTPS `PUBLIC_BASE_URL`, Google OAuth, and `SESSION_SECRET`. The
 callback derives from the public origin unless explicitly overridden. Runtime
 persistence selection is unchanged: SQLite remains authoritative and PostgreSQL
 remains shadow-only.
+
+## v1.4.0 authoritative runtime
+
+The accepted operational cutover supersedes the pre-cutover runtime statements
+in the historical v1.3 milestone sections above. PostgreSQL is authoritative
+for deployed product data. SQLite is frozen rollback/archive evidence only;
+there is no production fallback, dual-write, or reverse-sync path.
+
+Production-like staging selects `PERSISTENCE_BACKEND=postgresql` with an
+explicit `POSTGRES_RUNTIME_URL`. `POSTGRES_SHADOW_URL` remains isolated from
+runtime selection. Startup checks connectivity and Alembic-head equality and
+fails closed without automatically running migrations.
