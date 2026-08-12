@@ -13,6 +13,7 @@ from writing_coach.persistence.learning_repository import PostgresLearningReposi
 from writing_coach.persistence.specialized_repository import PostgresSpecializedLearningRepository
 import writing_coach.persistence.runtime as runtime_module
 from writing_coach.persistence.learning_repository import SQLiteLearningCacheRepository
+from writing_coach.product.service import ProductService
 import sqlite3
 
 def make(tmp_path, backend=None):
@@ -52,10 +53,31 @@ def test_postgres_runtime_shared_engine_and_no_sqlite_fallback(tmp_path, monkeyp
     assert all(isinstance(item, kind) for item,kind in [(value.auth_repository,PostgresAuthRepository),(value.platform_repository,PostgresPlatformRepository),(value.product_repository,PostgresProductRepository),(value.learning_repository,PostgresLearningRepository),(value.specialized_learning_repository,PostgresSpecializedLearningRepository)])
     assert all(item.engine is engine for item in [value.auth_repository,value.platform_repository,value.product_repository,value.learning_repository,value.specialized_learning_repository])
 
-def test_postgres_connectivity_and_revision_fail_closed(tmp_path, monkeypatch):
-    monkeypatch.setattr(runtime_module,'create_runtime_engine',lambda: object())
-    monkeypatch.setattr(runtime_module,'_verify_runtime_readiness',lambda _engine: (_ for _ in ()).throw(RuntimeError('PostgreSQL runtime unavailable')))
-    with pytest.raises(RuntimeError,match='unavailable'): make(tmp_path,'postgresql')
+def test_real_runtime_readiness_connectivity_failure():
+    class Engine:
+        def connect(self): raise OSError('offline')
+    with pytest.raises(RuntimeError,match='PostgreSQL runtime unavailable'):
+        runtime_module._verify_runtime_readiness(Engine())
+
+def test_real_runtime_readiness_success_and_mismatch(monkeypatch):
+    class Connection:
+        def __enter__(self): return self
+        def __exit__(self,*args): return False
+    class Engine:
+        def connect(self): return Connection()
+    monkeypatch.setattr(runtime_module.ScriptDirectory,'from_config',lambda cfg:type('S',(),{'get_current_head':lambda self:'head-123'})())
+    monkeypatch.setattr(runtime_module.MigrationContext,'configure',lambda conn:type('C',(),{'get_current_revision':lambda self:'head-123'})())
+    assert runtime_module._verify_runtime_readiness(Engine()) is None
+    monkeypatch.setattr(runtime_module.MigrationContext,'configure',lambda conn:type('C',(),{'get_current_revision':lambda self:'old-456'})())
+    with pytest.raises(RuntimeError,match='expected head-123, actual old-456'):
+        runtime_module._verify_runtime_readiness(Engine())
+
+@pytest.mark.parametrize('url',[None,'sqlite:///wrong.db','postgresql://missing-psycopg'])
+def test_runtime_url_missing_or_invalid_fails_before_engine(tmp_path,monkeypatch,url):
+    monkeypatch.setenv('PERSISTENCE_BACKEND','postgresql')
+    if url is None: monkeypatch.delenv('POSTGRES_RUNTIME_URL',raising=False)
+    else: monkeypatch.setenv('POSTGRES_RUNTIME_URL',url)
+    with pytest.raises(RuntimeError): make(tmp_path)
 
 def test_auth_platform_fail_closed_and_injection(monkeypatch, tmp_path):
     import auth_support
@@ -73,3 +95,26 @@ def test_cache_is_independent_of_authoritative_learning_repository(tmp_path):
         conn=sqlite3.connect(tmp_path/'cache.db'); conn.row_factory=sqlite3.Row; return conn
     cache=SQLiteLearningCacheRepository(connect); cache.initialize(); cache.put_dictionary('word',{'definition':'x'},'now')
     assert cache.get_dictionary('word')['payload_json']
+
+def test_product_service_fail_closed_and_injection():
+    service=ProductService()
+    with pytest.raises(RuntimeError,match='Product repository'): service.plan_for_user('user')
+    class Repo:
+        def get_subscription(self,key): self.key=key; return None
+        def monthly_usage(self,**kwargs): return 0
+    repo=Repo(); service.repository=repo
+    service.plan_for_user('injected')
+    assert repo.key == 'injected'
+
+def test_backend_aware_app_initialization(monkeypatch):
+    import app
+    class Item:
+        def __init__(self): self.calls=[]
+        def initialize(self,*args,**kwargs): self.calls.append((args,kwargs))
+    learning=Item(); specialized=Item(); cache=Item()
+    monkeypatch.setattr(app,'_learning_repository',learning); monkeypatch.setattr(app,'_specialized_learning_repository',specialized); monkeypatch.setattr(app,'_learning_cache',cache)
+    monkeypatch.setattr(app,'_persistence_runtime',type('R',(),{'backend':'sqlite'})()); app.init_db()
+    assert learning.calls and specialized.calls and cache.calls
+    learning.calls.clear(); specialized.calls.clear(); cache.calls.clear()
+    monkeypatch.setattr(app,'_persistence_runtime',type('R',(),{'backend':'postgresql'})()); app.init_db()
+    assert not learning.calls and not specialized.calls and cache.calls
