@@ -28,6 +28,11 @@ from writing_coach.languages.runtime import (
     validate_target_level,
     writing_unit_count,
 )
+from writing_coach.writing_evaluation import (
+    calculate_weighted_overall,
+    contains_cjk,
+    normalize_writing_evaluation,
+)
 from auth_support import APP_ENV, AUTH_ENABLED, current_db_path, install_auth, require_admin, AUTH_DB_PATH, configure_auth_repository
 from writing_coach.product.api import router as product_router
 from writing_coach.core.platform_api import router as platform_router
@@ -147,8 +152,7 @@ configure_becoming_reading(_specialized_learning_repository, generate_structured
 configure_becoming_linguistics(_specialized_learning_repository, generate_structured)
 
 def weighted_overall(result: dict[str, Any]) -> float:
-    score = sum(float(result[k]) * w for k, w in active_rubric_weights().items())
-    return round(max(0, min(100, score)), 1)
+    return calculate_weighted_overall(result, active_rubric_weights())
 
 
 def app_cefr(score: float) -> str:
@@ -184,111 +188,15 @@ def extract_json(text: str) -> dict[str, Any]:
         0,
     )
 
-CJK_RE = re.compile(r"[\u3400-\u4DBF\u4E00-\u9FFF\u3040-\u30FF\uAC00-\uD7AF]")
-
-
-def contains_cjk(text: str) -> bool:
-    return bool(CJK_RE.search(text or ""))
-
-
-def clean_vi_list(items: Any, limit: int = 6, allow_cjk: bool = False) -> list[str]:
-    out: list[str] = []
-    if not isinstance(items, list):
-        return out
-    for item in items:
-        value = str(item)[:1000].strip()
-        if value and (allow_cjk or not contains_cjk(value)):
-            out.append(value)
-        if len(out) >= limit:
-            break
-    return out
-
-
-def normalize_text(value: str) -> str:
-    return re.sub(r"\s+", " ", value.strip()).casefold()
-
-
 def validate_result(raw: dict[str, Any]) -> dict[str, Any]:
-    result: dict[str, Any] = {}
-    for key in active_rubric_weights():
-        try:
-            val = float(raw.get(key, 0))
-        except (TypeError, ValueError):
-            val = 0.0
-        result[key] = round(max(0, min(100, val)), 1)
-
-    allowed_levels = set(active_levels())
-    result["cefr_estimate"] = str(raw.get("cefr_estimate", active_levels()[0]))
-    if result["cefr_estimate"] not in allowed_levels:
-        result["cefr_estimate"] = app_cefr(weighted_overall(result))
-
-    summary = str(raw.get("summary_vi", ""))[:4000].strip()
-    result["summary_vi"] = summary if is_chinese() else ("" if contains_cjk(summary) else summary)
-    result["strengths_vi"] = clean_vi_list(raw.get("strengths_vi", []), allow_cjk=is_chinese())
-    result["priorities_vi"] = clean_vi_list(raw.get("priorities_vi", []), allow_cjk=is_chinese())
-
-    learner_text = str(raw.get("__learner_text", ""))
-    strength_evidence: list[dict[str, Any]] = []
-    for item in raw.get("strength_evidence", [])[:6]:
-        if not isinstance(item, dict):
-            continue
-        category = str(item.get("category", "")).strip()
-        if category not in active_rubric_weights():
-            continue
-        fragment = str(item.get("fragment", ""))[:500].strip()
-        explanation = str(item.get("explanation_vi", ""))[:1500].strip()
-        try:
-            confidence = float(item.get("confidence", 1.0))
-        except (TypeError, ValueError):
-            confidence = 0.0
-
-        if confidence < 0.75:
-            continue
-        if not fragment or (learner_text and fragment not in learner_text):
-            continue
-        if not is_chinese() and contains_cjk(explanation):
-            continue
-
-        strength_evidence.append({
-            "category": category,
-            "fragment": fragment,
-            "explanation_vi": explanation,
-            "confidence": round(max(0.0, min(1.0, confidence)), 2),
-        })
-    result["strength_evidence"] = strength_evidence
-
-    errors: list[dict[str, Any]] = []
-    for err in raw.get("errors", [])[:30]:
-        if not isinstance(err, dict):
-            continue
-        fragment = str(err.get("fragment", ""))[:500].strip()
-        explanation = str(err.get("explanation_vi", ""))[:2000].strip()
-        suggestion = str(err.get("suggestion", ""))[:1000].strip()
-        rule = str(err.get("mini_rule_vi", ""))[:1500].strip()
-        try:
-            confidence = float(err.get("confidence", 1.0))
-        except (TypeError, ValueError):
-            confidence = 0.0
-
-        if confidence < 0.75:
-            continue
-        if not fragment or (learner_text and fragment not in learner_text):
-            continue
-        if not is_chinese() and (contains_cjk(explanation) or contains_cjk(rule)):
-            continue
-        if not suggestion or normalize_text(suggestion) == normalize_text(fragment):
-            continue
-
-        errors.append({
-            "category": str(err.get("category", "other"))[:50],
-            "fragment": fragment,
-            "explanation_vi": explanation,
-            "suggestion": suggestion,
-            "mini_rule_vi": rule,
-            "confidence": round(max(0.0, min(1.0, confidence)), 2),
-        })
-    result["errors"] = errors
-    return result
+    return normalize_writing_evaluation(
+        raw,
+        rubric_weights=active_rubric_weights(),
+        allowed_levels=active_levels(),
+        score_to_level=active_score_to_level,
+        allow_cjk=is_chinese(),
+        learner_text=str(raw.get("__learner_text", "")),
+    )
 
 def evaluate_with_ai(payload: EssayIn) -> dict[str, Any]:
     target_level = validate_target_level(payload.target_cefr)
