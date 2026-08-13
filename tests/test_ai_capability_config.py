@@ -153,6 +153,8 @@ def _exercise_repository(repository, *, sqlite_path: Path | None = None) -> None
     repository.set_capability_config("writing_evaluator", selected, updated_by="admin")
     row = repository.get_capability_config("writing_evaluator")
     assert row is not None and row.config == selected and row.updated_by == "admin"
+    canonical = repository.get_capability_config(" WRITING_EVALUATOR ")
+    assert canonical is not None and canonical.capability_key == "writing_evaluator"
     assert [item.capability_key for item in repository.list_capability_configs()] == [
         "writing_evaluator"
     ]

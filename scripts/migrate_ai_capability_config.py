@@ -99,7 +99,6 @@ def migrate_capability_configs(
         "backend": "postgresql",
         "dry_run": dry_run,
         "provider": provider,
-        "model": model,
         "would_create" if dry_run else "created": created,
         "skipped_existing": skipped,
     }

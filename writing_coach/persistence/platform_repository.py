@@ -255,7 +255,7 @@ class PostgresPlatformRepository:
             if row is None:
                 return None
             return CapabilityConfigRecord(
-                capability_key=capability_key,
+                capability_key=capability_key_from_setting(row.key) or "",
                 config=CapabilityConfig.from_dict(row.value),
                 updated_at=row.updated_at.isoformat(),
                 updated_by=row.updated_by,

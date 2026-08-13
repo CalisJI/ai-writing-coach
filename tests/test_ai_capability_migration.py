@@ -179,3 +179,31 @@ def test_operator_output_does_not_expose_environment_secrets_or_database_url(
     preflight.main()
     output = capsys.readouterr().out
     assert "api-secret-value" not in output and "db-secret" not in output
+
+
+@pytest.mark.parametrize(
+    "hostile_model",
+    [
+        "https://user:super-secret@example.invalid/model",
+        "token=super-secret",
+        "abc?api_key=super-secret",
+    ],
+)
+def test_operator_output_never_echoes_sensitive_legacy_model(
+    monkeypatch, capsys, hostile_model: str
+) -> None:
+    repository = FakeRepository(legacy(model=hostile_model))
+    monkeypatch.setattr(migration, "postgres_repository", lambda: repository)
+    monkeypatch.setattr(sys, "argv", ["migrate_ai_capability_config.py", "--dry-run"])
+
+    migration.main()
+
+    captured = capsys.readouterr()
+    assert "super-secret" not in captured.out
+    assert "super-secret" not in captured.err
+    assert hostile_model not in captured.out
+    assert hostile_model not in captured.err
+    assert repository.configs == {}
+    report = migration.migrate_capability_configs(repository, dry_run=False)
+    assert report["ok"] is True
+    assert {item.model for item in repository.configs.values()} == {hostile_model}
