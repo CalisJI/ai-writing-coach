@@ -12,6 +12,7 @@ import requests
 from writing_coach.ai.base import (
     AIProviderError,
     AIProviderNotConfigured,
+    AIProviderResponseInvalid,
     AIProviderUnavailable,
     AIResult,
     extract_json_object,
@@ -89,6 +90,54 @@ def _schema_instruction(schema: dict[str, Any]) -> str:
     )
 
 
+def _invalid_model_catalog() -> AIProviderResponseInvalid:
+    return AIProviderResponseInvalid("AI provider returned an invalid model catalog.")
+
+
+def _model_catalog(envelope: object, *, container_key: str, model_key: str) -> list[str]:
+    if not isinstance(envelope, dict):
+        raise _invalid_model_catalog()
+    entries = envelope.get(container_key)
+    if not isinstance(entries, list):
+        raise _invalid_model_catalog()
+    models: list[str] = []
+    for entry in entries:
+        if not isinstance(entry, dict):
+            raise _invalid_model_catalog()
+        model = entry.get(model_key)
+        if not isinstance(model, str) or not model.strip():
+            raise _invalid_model_catalog()
+        models.append(model.strip())
+    return models
+
+
+def _openai_message_content(envelope: object) -> tuple[dict[str, Any], str]:
+    if not isinstance(envelope, dict):
+        raise AIProviderResponseInvalid("AI provider returned an invalid response.")
+    choices = envelope.get("choices")
+    if not isinstance(choices, list) or not choices or not isinstance(choices[0], dict):
+        raise AIProviderResponseInvalid("AI provider returned an invalid response.")
+    message = choices[0].get("message")
+    if not isinstance(message, dict):
+        raise AIProviderResponseInvalid("AI provider returned an invalid response.")
+    content = message.get("content")
+    if not isinstance(content, str) or not content.strip():
+        raise AIProviderResponseInvalid("AI provider returned an invalid response.")
+    return choices[0], content
+
+
+def _ollama_message_content(envelope: object) -> tuple[dict[str, Any], str]:
+    if not isinstance(envelope, dict):
+        raise AIProviderResponseInvalid("AI provider returned an invalid response.")
+    message = envelope.get("message")
+    if not isinstance(message, dict):
+        raise AIProviderResponseInvalid("AI provider returned an invalid response.")
+    content = message.get("content")
+    if not isinstance(content, str) or not content.strip():
+        raise AIProviderResponseInvalid("AI provider returned an invalid response.")
+    return envelope, content
+
+
 class OllamaProvider:
     id = "ollama"
     name = "Ollama"
@@ -134,13 +183,7 @@ class OllamaProvider:
             raise AIProviderError(f"Ollama returned HTTP {status} during model discovery.") from exc
         except ValueError as exc:
             raise AIProviderError("Ollama returned an invalid model catalog.") from exc
-        return sorted(
-            {
-                str(item.get("name") or "").strip()
-                for item in envelope.get("models", [])
-                if str(item.get("name") or "").strip()
-            }
-        )
+        return sorted(set(_model_catalog(envelope, container_key="models", model_key="name")))
 
     def generate_json_once(self, **kwargs: Any) -> AIResult:
         """Execute one live-test request; Ollama has no compatibility retry."""
@@ -196,9 +239,7 @@ class OllamaProvider:
         except ValueError as exc:
             raise AIProviderError("Ollama returned a non-JSON HTTP response.") from exc
 
-        content = (envelope.get("message") or {}).get("content", "")
-        if not isinstance(content, str) or not content.strip():
-            raise AIProviderError("Ollama returned an empty response.")
+        envelope, content = _ollama_message_content(envelope)
 
         return AIResult(
             data=extract_json_object(content),
@@ -327,11 +368,9 @@ class OpenAICompatibleProvider:
         except ValueError as exc:
             raise AIProviderError(f"{self.name} returned an invalid model catalog.") from exc
         return sorted(
-            {
-                str(item.get("id") or "").strip()
-                for item in envelope.get("data", [])
-                if self._accept_model(str(item.get("id") or "").strip())
-            }
+            model
+            for model in set(_model_catalog(envelope, container_key="data", model_key="id"))
+            if self._accept_model(model)
         )
 
     def _post_chat(self, body: dict[str, Any]) -> dict[str, Any]:
@@ -398,11 +437,7 @@ class OpenAICompatibleProvider:
             except AIProviderError:
                 raise first_error
 
-        choices = envelope.get("choices") or []
-        message = choices[0].get("message", {}) if choices else {}
-        content = message.get("content", "")
-        if not isinstance(content, str) or not content.strip():
-            raise AIProviderError(f"{self.name} returned an empty response.")
+        first_choice, content = _openai_message_content(envelope)
 
         usage = envelope.get("usage") if isinstance(envelope.get("usage"), dict) else {}
         return AIResult(
@@ -410,7 +445,7 @@ class OpenAICompatibleProvider:
             provider=self.id,
             model=model,
             runtime={
-                "finish_reason": choices[0].get("finish_reason") if choices else None,
+                "finish_reason": first_choice.get("finish_reason"),
                 "prompt_tokens": usage.get("prompt_tokens"),
                 "completion_tokens": usage.get("completion_tokens"),
                 "total_tokens": usage.get("total_tokens"),
@@ -457,18 +492,14 @@ class OpenAICompatibleProvider:
         except requests.Timeout as exc:
             raise AIProviderUnavailable(f"{self.name} timed out.") from exc
 
-        choices = envelope.get("choices") or []
-        message = choices[0].get("message", {}) if choices else {}
-        content = message.get("content", "")
-        if not isinstance(content, str) or not content.strip():
-            raise AIProviderError(f"{self.name} returned an empty response.")
+        first_choice, content = _openai_message_content(envelope)
         usage = envelope.get("usage") if isinstance(envelope.get("usage"), dict) else {}
         return AIResult(
             data=extract_json_object(content),
             provider=self.id,
             model=model,
             runtime={
-                "finish_reason": choices[0].get("finish_reason") if choices else None,
+                "finish_reason": first_choice.get("finish_reason"),
                 "prompt_tokens": usage.get("prompt_tokens"),
                 "completion_tokens": usage.get("completion_tokens"),
                 "total_tokens": usage.get("total_tokens"),

@@ -21,7 +21,7 @@ from writing_coach.ai.base import (
     AIResult,
 )
 from writing_coach.ai.config import CapabilityConfig
-from writing_coach.ai.control_plane import AIControlPlane
+from writing_coach.ai.control_plane import AIControlPlane, safe_model_display
 from writing_coach.ai.providers import build_providers
 from writing_coach.persistence.platform_repository import PlatformRepository
 
@@ -69,15 +69,22 @@ def providers() -> dict[str, Any]:
 
 
 def _provider_snapshot(item: Any) -> dict[str, Any]:
-    models = item.list_models()
+    raw_models = item.list_models()
+    displayed_models = [safe_model_display(model) for model in raw_models]
+    raw_default = getattr(item, "default_model", "") or (
+        raw_models[0] if raw_models else ""
+    )
+    default_model, default_model_redacted = safe_model_display(raw_default)
     return {
         "id": item.id,
         "name": item.name,
         "kind": item.kind,
         "configured": bool(item.configured),
-        "available": bool(models),
-        "models": models,
-        "default_model": getattr(item, "default_model", "") or (models[0] if models else ""),
+        "available": bool(raw_models),
+        "models": [model for model, _redacted in displayed_models],
+        "models_redacted": any(redacted for _model, redacted in displayed_models),
+        "default_model": default_model,
+        "default_model_redacted": default_model_redacted,
         "secret_mode": item.secret_mode,
     }
 
@@ -161,11 +168,13 @@ def _require_admin(request: Request) -> dict[str, Any]:
 
 def _legacy_config_payload() -> dict[str, Any]:
     item, model = active_selection()
+    displayed_model, model_redacted = safe_model_display(model)
     return {
         "active": {
             "provider": item.id,
             "provider_name": item.name,
-            "model": model,
+            "model": displayed_model,
+            "model_redacted": model_redacted,
             "kind": item.kind,
         },
         "providers": [_provider_snapshot(value) for value in providers().values()],
@@ -243,15 +252,18 @@ def admin_ai_test(payload: AIConfigIn, request: Request) -> dict[str, Any]:
             temperature=0.0,
         )
     except AIProviderUnavailable as exc:
-        raise HTTPException(503, str(exc)) from exc
+        raise HTTPException(503, "AI provider is unavailable.") from exc
     except AIProviderError as exc:
-        raise HTTPException(502, str(exc)) from exc
+        raise HTTPException(502, "AI provider request failed.") from exc
+
+    displayed_model, model_redacted = safe_model_display(result.model)
 
     return {
         "ok": bool(result.data.get("ok", True)),
         "provider": result.provider,
-        "model": result.model,
-        "message": str(result.data.get("message") or "Connection succeeded."),
+        "model": displayed_model,
+        "model_redacted": model_redacted,
+        "message": "Connection succeeded.",
     }
 
 

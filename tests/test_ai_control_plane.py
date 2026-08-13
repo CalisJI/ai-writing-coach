@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass
 from typing import Any
 
@@ -20,7 +21,7 @@ from writing_coach.ai.base import (
 from writing_coach.ai.capabilities import all_capabilities
 from writing_coach.ai.config import CapabilityConfig
 from writing_coach.ai.control_plane import AIControlPlane
-from writing_coach.ai.providers import OpenAICompatibleProvider
+from writing_coach.ai.providers import OllamaProvider, OpenAICompatibleProvider
 from writing_coach.persistence.platform_repository import (
     AISelectionRecord,
     CapabilityConfigRecord,
@@ -244,7 +245,6 @@ def test_get_is_capability_centric_network_free_and_secret_safe(
         "role": "live-global-routing-until-R2-activation",
         "selection_present": True,
     }
-    import json
     rendered = json.dumps(payload)
     assert "super-secret" not in rendered
     assert "db-password" not in rendered
@@ -583,3 +583,229 @@ def test_one_shot_provider_request_has_typed_transport_and_response_failures(
     with pytest.raises(AIProviderResponseInvalid):
         provider.generate_json_once(**kwargs)
     assert calls == ["unavailable", "malformed"]
+
+
+class ProviderResponse:
+    def __init__(self, payload: object) -> None:
+        self.payload = payload
+        self.status_code = 200
+
+    def raise_for_status(self) -> None:
+        pass
+
+    def json(self) -> object:
+        return self.payload
+
+
+@pytest.mark.parametrize(
+    "envelope",
+    [
+        [],
+        {"data": None},
+        {"data": "invalid"},
+        {"data": [None]},
+        {"data": [{"id": {"unexpected": "super-secret"}}]},
+    ],
+)
+def test_openai_live_discovery_rejects_malformed_json_envelopes(
+    monkeypatch: pytest.MonkeyPatch,
+    envelope: object,
+) -> None:
+    provider = openai_provider(monkeypatch)
+    calls = []
+    monkeypatch.setattr(
+        requests,
+        "get",
+        lambda *_args, **_kwargs: calls.append(True) or ProviderResponse(envelope),
+    )
+    with pytest.raises(AIProviderResponseInvalid) as caught:
+        provider.discover_models_live()
+    assert str(caught.value) == "AI provider returned an invalid model catalog."
+    assert "super-secret" not in str(caught.value)
+    assert calls == [True]
+
+
+@pytest.mark.parametrize(
+    "envelope",
+    [
+        [],
+        {"models": None},
+        {"models": "invalid"},
+        {"models": [None]},
+        {"models": [{"name": {"unexpected": "super-secret"}}]},
+    ],
+)
+def test_ollama_live_discovery_rejects_malformed_json_envelopes(
+    monkeypatch: pytest.MonkeyPatch,
+    envelope: object,
+) -> None:
+    provider = OllamaProvider()
+    calls = []
+    monkeypatch.setattr(
+        requests,
+        "get",
+        lambda *_args, **_kwargs: calls.append(True) or ProviderResponse(envelope),
+    )
+    with pytest.raises(AIProviderResponseInvalid) as caught:
+        provider.discover_models_live()
+    assert str(caught.value) == "AI provider returned an invalid model catalog."
+    assert "super-secret" not in str(caught.value)
+    assert calls == [True]
+
+
+@pytest.mark.parametrize(
+    "envelope",
+    [
+        [],
+        {"choices": "invalid"},
+        {"choices": [None]},
+        {"choices": [{}]},
+        {"choices": [{"message": None}]},
+        {"choices": [{"message": "super-secret raw-body"}]},
+    ],
+)
+def test_openai_one_shot_generation_rejects_malformed_json_envelopes_once(
+    monkeypatch: pytest.MonkeyPatch,
+    envelope: object,
+) -> None:
+    provider = openai_provider(monkeypatch)
+    calls = []
+    monkeypatch.setattr(
+        provider,
+        "_post_chat",
+        lambda _body: calls.append(True) or envelope,
+    )
+    with pytest.raises(AIProviderResponseInvalid) as caught:
+        provider.generate_json_once(
+            messages=[{"role": "user", "content": "test"}],
+            schema={"type": "object"},
+            model="model-1",
+            max_output_tokens=40,
+            temperature=0.0,
+        )
+    assert "super-secret" not in str(caught.value)
+    assert "raw-body" not in str(caught.value)
+    assert calls == [True]
+
+
+@pytest.mark.parametrize(
+    "envelope",
+    [
+        [],
+        {"message": None},
+        {"message": "invalid"},
+        {"message": {"content": None}},
+        {"message": {"content": ""}},
+    ],
+)
+def test_ollama_live_generation_rejects_malformed_json_envelopes_once(
+    monkeypatch: pytest.MonkeyPatch,
+    envelope: object,
+) -> None:
+    provider = OllamaProvider()
+    calls = []
+    monkeypatch.setattr(
+        requests,
+        "post",
+        lambda *_args, **_kwargs: calls.append(True) or ProviderResponse(envelope),
+    )
+    with pytest.raises(AIProviderResponseInvalid):
+        provider.generate_json_once(
+            messages=[{"role": "user", "content": "test"}],
+            schema={"type": "object"},
+            model="model-1",
+            max_output_tokens=40,
+            temperature=0.0,
+        )
+    assert calls == [True]
+
+
+def test_malformed_provider_envelope_is_sanitized_by_admin_endpoint_without_fallback(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    repository = FakeRepository()
+    repository.capabilities["writing_evaluator"] = capability_config()
+    provider = openai_provider(monkeypatch)
+    provider.allowed_models = ["model-1"]
+    fallback = FakeProvider(id="deepseek")
+    calls = []
+    monkeypatch.setattr(
+        provider,
+        "_post_chat",
+        lambda _body: calls.append(True) or {"choices": "super-secret raw-body"},
+    )
+    request = configure_platform(
+        monkeypatch,
+        repository,
+        providers={"openai": provider, "deepseek": fallback},
+    )
+    with pytest.raises(HTTPException) as caught:
+        platform_module.admin_ai_capability_test("writing_evaluator", request)
+    assert caught.value.status_code == 502
+    assert caught.value.detail["error_class"] == "provider_response_invalid"
+    assert "super-secret" not in str(caught.value.detail)
+    assert "raw-body" not in str(caught.value.detail)
+    assert calls == [True]
+    assert fallback.discovery_calls == 0
+    assert fallback.generation_calls == []
+
+
+def test_legacy_endpoints_redact_models_and_provider_errors_without_changing_storage(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    hostile = "abc?api_key=super-secret"
+    repository = FakeRepository()
+    provider = FakeProvider(models=(hostile,), response={"ok": True, "message": "raw-body"})
+    request = configure_platform(monkeypatch, repository, providers={"openai": provider})
+
+    put_result = platform_module.admin_ai_config_update(
+        platform_module.AIConfigIn(provider="openai", model=hostile), request
+    )
+    assert repository.legacy is not None and repository.legacy.model == hostile
+    assert repository.capability_writes == []
+    assert put_result["active"]["model"] == "[redacted]"
+    assert put_result["active"]["model_redacted"] is True
+    assert put_result["providers"][0]["models"] == ["[redacted]"]
+    assert put_result["providers"][0]["models_redacted"] is True
+    assert put_result["providers"][0]["default_model"] == "[redacted]"
+    assert put_result["providers"][0]["default_model_redacted"] is True
+    assert "super-secret" not in json.dumps(put_result)
+
+    success = platform_module.admin_ai_test(
+        platform_module.AIConfigIn(provider="openai", model=hostile), request
+    )
+    assert success["model"] == "[redacted]"
+    assert success["model_redacted"] is True
+    assert success["message"] == "Connection succeeded."
+    assert "super-secret" not in json.dumps(success)
+    assert "raw-body" not in json.dumps(success)
+    assert repository.capability_writes == []
+    legacy_write_count = len(repository.legacy_writes)
+
+    provider.generation_error = AIProviderError(
+        "Authorization: Bearer super-secret raw-body"
+    )
+    with pytest.raises(HTTPException) as caught:
+        platform_module.admin_ai_test(
+            platform_module.AIConfigIn(provider="openai", model=hostile), request
+        )
+    assert caught.value.status_code == 502
+    assert caught.value.detail == "AI provider request failed."
+    assert "super-secret" not in str(caught.value.detail)
+    assert "raw-body" not in str(caught.value.detail)
+    assert len(repository.legacy_writes) == legacy_write_count
+    assert repository.capability_writes == []
+
+    provider.generation_error = AIProviderUnavailable(
+        "connection failed with token=super-secret raw-body"
+    )
+    with pytest.raises(HTTPException) as caught:
+        platform_module.admin_ai_test(
+            platform_module.AIConfigIn(provider="openai", model=hostile), request
+        )
+    assert caught.value.status_code == 503
+    assert caught.value.detail == "AI provider is unavailable."
+    assert "super-secret" not in str(caught.value.detail)
+    assert "raw-body" not in str(caught.value.detail)
+    assert len(repository.legacy_writes) == legacy_write_count
+    assert repository.capability_writes == []
