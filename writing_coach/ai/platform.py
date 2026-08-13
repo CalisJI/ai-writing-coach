@@ -5,9 +5,23 @@ from pathlib import Path
 from typing import Any, Callable
 
 from fastapi import APIRouter, FastAPI, HTTPException, Request
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
-from writing_coach.ai.base import AIProviderError, AIProviderUnavailable, AIResult
+from writing_coach.ai.base import (
+    AICapabilityConfigInvalid,
+    AICapabilityDisabled,
+    AICapabilityNotConfigured,
+    AICapabilityUnsupported,
+    AIModelCatalogEmpty,
+    AIModelUnavailable,
+    AIProviderError,
+    AIProviderNotConfigured,
+    AIProviderResponseInvalid,
+    AIProviderUnavailable,
+    AIResult,
+)
+from writing_coach.ai.config import CapabilityConfig
+from writing_coach.ai.control_plane import AIControlPlane, safe_model_display
 from writing_coach.ai.providers import build_providers
 from writing_coach.persistence.platform_repository import PlatformRepository
 
@@ -21,6 +35,17 @@ router = APIRouter(prefix="/api/admin/ai", tags=["platform-admin"])
 class AIConfigIn(BaseModel):
     provider: str = Field(min_length=2, max_length=40)
     model: str = Field(min_length=1, max_length=160)
+
+
+class CapabilityConfigIn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    enabled: bool
+    provider: str = Field(min_length=1, max_length=40)
+    model: str = Field(min_length=1, max_length=160)
+    timeout_seconds: int | None = None
+    temperature: float | None = None
+    fallback_policy: str = "none"
 
 
 _platform_repository: PlatformRepository | None = None
@@ -44,15 +69,22 @@ def providers() -> dict[str, Any]:
 
 
 def _provider_snapshot(item: Any) -> dict[str, Any]:
-    models = item.list_models()
+    raw_models = item.list_models()
+    displayed_models = [safe_model_display(model) for model in raw_models]
+    raw_default = getattr(item, "default_model", "") or (
+        raw_models[0] if raw_models else ""
+    )
+    default_model, default_model_redacted = safe_model_display(raw_default)
     return {
         "id": item.id,
         "name": item.name,
         "kind": item.kind,
         "configured": bool(item.configured),
-        "available": bool(models),
-        "models": models,
-        "default_model": getattr(item, "default_model", "") or (models[0] if models else ""),
+        "available": bool(raw_models),
+        "models": [model for model, _redacted in displayed_models],
+        "models_redacted": any(redacted for _model, redacted in displayed_models),
+        "default_model": default_model,
+        "default_model_redacted": default_model_redacted,
         "secret_mode": item.secret_mode,
     }
 
@@ -134,13 +166,15 @@ def _require_admin(request: Request) -> dict[str, Any]:
     return _admin_guard(request)
 
 
-def _config_payload() -> dict[str, Any]:
+def _legacy_config_payload() -> dict[str, Any]:
     item, model = active_selection()
+    displayed_model, model_redacted = safe_model_display(model)
     return {
         "active": {
             "provider": item.id,
             "provider_name": item.name,
-            "model": model,
+            "model": displayed_model,
+            "model_redacted": model_redacted,
             "kind": item.kind,
         },
         "providers": [_provider_snapshot(value) for value in providers().values()],
@@ -155,10 +189,10 @@ def _config_payload() -> dict[str, Any]:
 @router.get("/config")
 def admin_ai_config(request: Request) -> dict[str, Any]:
     _require_admin(request)
-    return _config_payload()
+    return AIControlPlane(_installed_platform_repository()).inspect()
 
 
-@router.put("/config")
+@router.put("/config", deprecated=True)
 def admin_ai_config_update(payload: AIConfigIn, request: Request) -> dict[str, Any]:
     admin = _require_admin(request)
     items = providers()
@@ -181,10 +215,10 @@ def admin_ai_config_update(payload: AIConfigIn, request: Request) -> dict[str, A
         updated_by=str(admin.get("google_sub") or ""),
     )
 
-    return _config_payload()
+    return _legacy_config_payload()
 
 
-@router.post("/test")
+@router.post("/test", deprecated=True)
 def admin_ai_test(payload: AIConfigIn, request: Request) -> dict[str, Any]:
     _require_admin(request)
     items = providers()
@@ -218,16 +252,110 @@ def admin_ai_test(payload: AIConfigIn, request: Request) -> dict[str, Any]:
             temperature=0.0,
         )
     except AIProviderUnavailable as exc:
-        raise HTTPException(503, str(exc)) from exc
+        raise HTTPException(503, "AI provider is unavailable.") from exc
     except AIProviderError as exc:
-        raise HTTPException(502, str(exc)) from exc
+        raise HTTPException(502, "AI provider request failed.") from exc
+
+    displayed_model, model_redacted = safe_model_display(result.model)
 
     return {
         "ok": bool(result.data.get("ok", True)),
         "provider": result.provider,
-        "model": result.model,
-        "message": str(result.data.get("message") or "Connection succeeded."),
+        "model": displayed_model,
+        "model_redacted": model_redacted,
+        "message": "Connection succeeded.",
     }
+
+
+def _capability_config(payload: CapabilityConfigIn) -> CapabilityConfig:
+    return CapabilityConfig(
+        enabled=payload.enabled,
+        provider=payload.provider,
+        model=payload.model,
+        timeout_seconds=payload.timeout_seconds,
+        temperature=payload.temperature,
+        fallback_policy=payload.fallback_policy,
+    )
+
+
+@router.put("/config/{capability_key}")
+def admin_ai_capability_config_update(
+    capability_key: str,
+    payload: CapabilityConfigIn,
+    request: Request,
+) -> dict[str, Any]:
+    admin = _require_admin(request)
+    try:
+        return AIControlPlane(_installed_platform_repository()).set_config(
+            capability_key,
+            _capability_config(payload),
+            updated_by=str(admin.get("google_sub") or ""),
+        )
+    except (AICapabilityConfigInvalid, AICapabilityUnsupported) as exc:
+        raise HTTPException(400, str(exc)) from exc
+
+
+def _live_failure(
+    control_plane: AIControlPlane,
+    capability_key: str,
+    exc: Exception,
+) -> HTTPException:
+    if isinstance(exc, AICapabilityDisabled):
+        status, error_class, message = 409, "capability_disabled", "Capability is disabled."
+    elif isinstance(exc, AICapabilityNotConfigured):
+        status, error_class, message = 404, "capability_not_configured", "Capability has no explicit configuration."
+    elif isinstance(exc, AIProviderNotConfigured):
+        status, error_class, message = 409, "provider_not_configured", "Provider credentials or server configuration are missing."
+    elif isinstance(exc, AIModelCatalogEmpty):
+        status, error_class, message = 409, "model_catalog_empty", "Provider model catalog is empty."
+    elif isinstance(exc, AIModelUnavailable):
+        status, error_class, message = 409, "model_unavailable", "Configured model is not available."
+    elif isinstance(exc, AIProviderResponseInvalid):
+        status, error_class, message = 502, "provider_response_invalid", "Provider response failed capability validation."
+    elif isinstance(exc, AIProviderUnavailable):
+        status, error_class, message = 503, "provider_unavailable", "Provider is unavailable."
+    elif isinstance(exc, AIProviderError):
+        status, error_class, message = 502, "provider_error", "Provider request failed."
+    elif isinstance(exc, (AICapabilityConfigInvalid, AICapabilityUnsupported)):
+        status, error_class, message = 400, "capability_invalid", "Capability is not available for live testing."
+    else:  # Programming errors must remain visible rather than masquerading as provider failures.
+        raise exc
+
+    try:
+        context = control_plane.diagnostic_context(capability_key)
+    except (AICapabilityConfigInvalid, AICapabilityUnsupported):
+        context = {
+            "capability": "[invalid]",
+            "provider": None,
+            "model": None,
+            "model_redacted": False,
+        }
+    return HTTPException(
+        status,
+        {
+            "ok": False,
+            **context,
+            "latency_ms": None,
+            "error_class": error_class,
+            "error": message,
+        },
+    )
+
+
+@router.post("/test/{capability_key}")
+def admin_ai_capability_test(capability_key: str, request: Request) -> dict[str, Any]:
+    _require_admin(request)
+    control_plane = AIControlPlane(_installed_platform_repository())
+    try:
+        return control_plane.live_test(capability_key)
+    except (
+        AICapabilityConfigInvalid,
+        AICapabilityDisabled,
+        AICapabilityNotConfigured,
+        AICapabilityUnsupported,
+        AIProviderError,
+    ) as exc:
+        raise _live_failure(control_plane, capability_key, exc) from exc
 
 
 def install_platform_ai(
