@@ -182,7 +182,7 @@ class OllamaProvider:
             status = exc.response.status_code if exc.response is not None else "?"
             raise AIProviderError(f"Ollama returned HTTP {status} during model discovery.") from exc
         except ValueError as exc:
-            raise AIProviderError("Ollama returned an invalid model catalog.") from exc
+            raise _invalid_model_catalog() from exc
         return sorted(set(_model_catalog(envelope, container_key="models", model_key="name")))
 
     def generate_json_once(self, **kwargs: Any) -> AIResult:
@@ -366,7 +366,7 @@ class OpenAICompatibleProvider:
                 f"{self.name} returned HTTP {status} during model discovery."
             ) from exc
         except ValueError as exc:
-            raise AIProviderError(f"{self.name} returned an invalid model catalog.") from exc
+            raise _invalid_model_catalog() from exc
         return sorted(
             model
             for model in set(_model_catalog(envelope, container_key="data", model_key="id"))
