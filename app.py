@@ -199,6 +199,7 @@ def validate_result(raw: dict[str, Any]) -> dict[str, Any]:
         rubric_weights=active_rubric_weights(),
         allowed_levels=active_levels(),
         score_to_level=active_score_to_level,
+        error_categories=active_error_categories(),
         allow_cjk=is_chinese(),
         learner_text=str(raw.get("__learner_text", "")),
     )

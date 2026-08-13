@@ -35,6 +35,7 @@ def normalize_writing_evaluation(
     rubric_weights: Mapping[str, float],
     allowed_levels: Sequence[str],
     score_to_level: Callable[[float], str],
+    error_categories: Sequence[str],
     allow_cjk: bool,
     learner_text: str,
 ) -> dict[str, Any]:
@@ -66,6 +67,7 @@ def normalize_writing_evaluation(
     )
     result["errors"] = _normalize_errors(
         raw.get("errors", []),
+        error_categories=set(error_categories),
         allow_cjk=allow_cjk,
         learner_text=learner_text,
     )
@@ -128,6 +130,7 @@ def _normalize_strength_evidence(
     if not isinstance(items, list):
         return []
     output: list[dict[str, Any]] = []
+    seen: set[tuple[str, str]] = set()
     for item in items[:MAX_STRENGTH_EVIDENCE_ITEMS]:
         if not isinstance(item, Mapping):
             continue
@@ -141,6 +144,10 @@ def _normalize_strength_evidence(
             continue
         if not allow_cjk and contains_cjk(explanation):
             continue
+        identity = (category, fragment)
+        if identity in seen:
+            continue
+        seen.add(identity)
         output.append(
             {
                 "category": category,
@@ -155,14 +162,19 @@ def _normalize_strength_evidence(
 def _normalize_errors(
     items: Any,
     *,
+    error_categories: set[str],
     allow_cjk: bool,
     learner_text: str,
 ) -> list[dict[str, Any]]:
     if not isinstance(items, list):
         return []
     output: list[dict[str, Any]] = []
+    seen: set[tuple[str, str]] = set()
     for item in items[:MAX_ERROR_ITEMS]:
         if not isinstance(item, Mapping):
+            continue
+        category = item.get("category")
+        if not isinstance(category, str) or category not in error_categories:
             continue
         fragment = _bounded_text(item.get("fragment", ""), 500)
         explanation = _bounded_text(item.get("explanation_vi", ""), 2000)
@@ -175,9 +187,13 @@ def _normalize_errors(
             continue
         if not suggestion or _normalize_text(suggestion) == _normalize_text(fragment):
             continue
+        identity = (category, fragment)
+        if identity in seen:
+            continue
+        seen.add(identity)
         output.append(
             {
-                "category": _bounded_text(item.get("category", "other"), 50),
+                "category": category,
                 "fragment": fragment,
                 "explanation_vi": explanation,
                 "suggestion": suggestion,
