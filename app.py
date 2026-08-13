@@ -38,6 +38,7 @@ from writing_coach.writing_evaluator_contract import (
     build_writing_evaluator_request,
     build_writing_evaluator_schema,
 )
+from writing_coach.writing_analytics import parse_persisted_error_events
 from auth_support import APP_ENV, AUTH_ENABLED, current_db_path, install_auth, require_admin, AUTH_DB_PATH, configure_auth_repository
 from writing_coach.product.api import router as product_router
 from writing_coach.core.platform_api import router as platform_router
@@ -316,7 +317,10 @@ def revision_delta(current: dict[str, Any], previous: dict[str, Any] | None) -> 
     return out
 
 
-def error_memory(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def error_memory(
+    rows: list[dict[str, Any]],
+    error_categories: tuple[str, ...],
+) -> list[dict[str, Any]]:
     if not rows:
         return []
     ordered = sorted(rows, key=lambda r: int(r["id"]))
@@ -335,8 +339,10 @@ def error_memory(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
         rid = int(r["id"])
         created = datetime.fromisoformat(r["created_at"]).astimezone()
         monday = (created.date() - timedelta(days=created.date().weekday())).isoformat()
-        for err in json.loads(r["errors_json"]):
-            cat = str(err.get("category", "other"))
+        for err in parse_persisted_error_events(
+            r["errors_json"], error_categories=error_categories
+        ):
+            cat = err["category"]
             item = by_cat.setdefault(
                 cat,
                 {
@@ -1463,7 +1469,10 @@ def delete_essay(essay_id: int) -> dict[str, bool]:
 @app.get("/api/error-memory")
 def api_error_memory() -> dict[str, Any]:
     rows = _learning_repository.list_essays(0, ascending=True)
-    return {"items": error_memory(rows), "revision_count": len(rows)}
+    return {
+        "items": error_memory(rows, active_error_categories()),
+        "revision_count": len(rows),
+    }
 
 
 @app.get("/api/dashboard")
@@ -1500,9 +1509,12 @@ def dashboard() -> dict[str, Any]:
     }
 
     error_counts: dict[str, int] = {}
+    error_categories = active_error_categories()
     for r in recent:
-        for err in json.loads(r["errors_json"]):
-            cat = err.get("category", "other")
+        for err in parse_persisted_error_events(
+            r["errors_json"], error_categories=error_categories
+        ):
+            cat = err["category"]
             error_counts[cat] = error_counts.get(cat, 0) + 1
     error_counts = dict(sorted(error_counts.items(), key=lambda kv: kv[1], reverse=True))
 
@@ -1554,7 +1566,7 @@ def dashboard() -> dict[str, Any]:
         "trend": trend,
         "metrics": metrics,
         "error_counts": error_counts,
-        "error_memory": error_memory(all_revision_rows)[:8],
+        "error_memory": error_memory(all_revision_rows, error_categories)[:8],
         "next_level": next_level,
         "version": APP_VERSION,
     }
