@@ -14,6 +14,34 @@ class AIProviderUnavailable(AIProviderError):
     pass
 
 
+class AIModelUnavailable(AIProviderUnavailable):
+    """The selected model cannot currently satisfy a provider request."""
+
+
+class AICapabilityError(RuntimeError):
+    """Base error for capability configuration and routing contracts."""
+
+
+class AICapabilityDisabled(AICapabilityError):
+    pass
+
+
+class AICapabilityNotConfigured(AICapabilityError):
+    pass
+
+
+class AICapabilityConfigInvalid(AICapabilityError):
+    """Persisted or proposed capability configuration is malformed."""
+
+
+class AICapabilityUnsupported(AICapabilityError):
+    pass
+
+
+class AIProviderUnsupportedOperation(AICapabilityUnsupported):
+    """A known provider cannot perform a capability's declared operation."""
+
+
 @dataclass
 class AIResult:
     data: dict[str, Any]
