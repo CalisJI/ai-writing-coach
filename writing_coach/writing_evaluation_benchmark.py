@@ -356,9 +356,15 @@ def compare_target_level_results(
     second_case: WritingBenchmarkCase,
     second_result: Mapping[str, Any],
     *,
+    declared_levels: Sequence[str],
     tolerance: float = TARGET_LEVEL_SCORE_TOLERANCE,
+    maximum_level_drift: int = 1,
 ) -> BenchmarkComparison:
-    """Check that a target-level change does not rewrite demonstrated ability."""
+    """Check that a target-level change does not rewrite demonstrated ability.
+
+    ``declared_levels`` supplies the language profile's proficiency ordering so
+    this shared comparison does not embed CEFR, HSK, or other language rules.
+    """
 
     if (
         not first_case.target_pair_id
@@ -368,6 +374,19 @@ def compare_target_level_results(
         or first_case.target_level == second_case.target_level
     ):
         raise ValueError("cases do not form a valid target-level comparison pair")
+
+    level_order = tuple(declared_levels)
+    if not level_order or len(set(level_order)) != len(level_order):
+        raise ValueError("declared_levels must be a non-empty unique ordered sequence")
+    if not isinstance(maximum_level_drift, int) or maximum_level_drift < 0:
+        raise ValueError("maximum_level_drift must be a non-negative integer")
+
+    first_band = first_case.constraints.expected_demonstrated_levels
+    second_band = second_case.constraints.expected_demonstrated_levels
+    if not first_band or first_band != second_band:
+        raise ValueError("target-level pair must share one non-empty plausible demonstrated band")
+    if any(level not in level_order for level in first_band):
+        raise ValueError("plausible demonstrated levels must belong to declared_levels")
 
     first_scores = _result_scores(first_result)
     second_scores = _result_scores(second_result)
@@ -396,6 +415,25 @@ def compare_target_level_results(
             BenchmarkFinding(
                 "target_level_echo",
                 "demonstrated level echoes each requested target for identical learner text",
+            )
+        )
+
+    if first_level in level_order and second_level in level_order:
+        demonstrated_level_drift = abs(level_order.index(first_level) - level_order.index(second_level))
+        metrics.append(("demonstrated_level_drift", demonstrated_level_drift))
+        if demonstrated_level_drift > maximum_level_drift:
+            failures.append(
+                BenchmarkFinding(
+                    "demonstrated_level_drift",
+                    "demonstrated levels changed by "
+                    f"{demonstrated_level_drift} bands, exceeding tolerance {maximum_level_drift}",
+                )
+            )
+    else:
+        failures.append(
+            BenchmarkFinding(
+                "target_level_stability",
+                "demonstrated levels must belong to the supplied language-level sequence",
             )
         )
 

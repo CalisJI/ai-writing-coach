@@ -65,6 +65,7 @@ def test_corpus_contract_is_versioned_immutable_balanced_and_complete():
     for case in WRITING_BENCHMARK_CASES:
         assert case.language in {"en", "zh"}
         assert case.target_level in levels[case.language]
+        assert set(case.constraints.expected_demonstrated_levels) <= levels[case.language]
         assert case.task_prompt.strip()
         assert case.learner_text.strip()
         assert case.rationale.strip()
@@ -187,6 +188,7 @@ def test_low_confidence_error_cannot_survive_normalization_and_then_fails_recall
         score_to_level=english_score_to_level,
         allow_cjk=False,
         learner_text=case.learner_text,
+        error_categories=ENGLISH_ERROR_CATEGORIES,
     )
     assert normalized["errors"] == []
     evaluation = _evaluate(case, normalized)
@@ -251,35 +253,110 @@ def test_pairwise_clean_text_cannot_score_below_broken_text_beyond_tolerance(str
 
 
 @pytest.mark.parametrize(
-    ("first_id", "second_id", "stable_level"),
+    ("first_id", "second_id", "first_level", "second_level", "declared_levels"),
     [
-        ("en-target-a2", "en-target-c1", "B1"),
-        ("zh-target-hsk2", "zh-target-hsk7-9", "HSK5"),
+        ("en-target-a2", "en-target-c1", "B1", "B2", ENGLISH_PROFILE.levels),
+        ("zh-target-hsk2", "zh-target-hsk7-9", "HSK4", "HSK5", CHINESE_PROFILE.levels),
     ],
 )
-def test_target_level_pairs_allow_small_score_drift_but_reject_large_drift_and_echo(
-    first_id, second_id, stable_level
+def test_target_level_pairs_allow_adjacent_levels_and_small_score_drift_but_reject_score_drift_and_echo(
+    first_id, second_id, first_level, second_level, declared_levels
 ):
     first = benchmark_case(first_id)
     second = benchmark_case(second_id)
     first_result = known_passing_result(first)
     second_result = known_passing_result(second)
     second_result["grammar"] = first_result["grammar"] + 5
-    first_result["cefr_estimate"] = stable_level
-    second_result["cefr_estimate"] = stable_level
-    assert compare_target_level_results(first, first_result, second, second_result).passed
+    first_result["cefr_estimate"] = first_level
+    second_result["cefr_estimate"] = second_level
+    comparison = compare_target_level_results(
+        first,
+        first_result,
+        second,
+        second_result,
+        declared_levels=declared_levels,
+    )
+    assert comparison.passed
+    assert dict(comparison.metrics)["demonstrated_level_drift"] == 1
 
     second_result["grammar"] = first_result["grammar"] + 6
-    drift = compare_target_level_results(first, first_result, second, second_result)
+    drift = compare_target_level_results(
+        first,
+        first_result,
+        second,
+        second_result,
+        declared_levels=declared_levels,
+    )
     assert not drift.passed
     assert "target_level_stability" in {item.check for item in drift.failed_checks}
 
     second_result["grammar"] = first_result["grammar"]
     first_result["cefr_estimate"] = first.target_level
     second_result["cefr_estimate"] = second.target_level
-    echo = compare_target_level_results(first, first_result, second, second_result)
+    echo = compare_target_level_results(
+        first,
+        first_result,
+        second,
+        second_result,
+        declared_levels=declared_levels,
+    )
     assert not echo.passed
     assert "target_level_echo" in {item.check for item in echo.failed_checks}
+
+
+@pytest.mark.parametrize(
+    ("first_id", "second_id", "first_level", "second_level", "declared_levels"),
+    [
+        ("en-target-a2", "en-target-c1", "A1", "C2", ENGLISH_PROFILE.levels),
+        ("zh-target-hsk2", "zh-target-hsk7-9", "HSK1", "HSK6", CHINESE_PROFILE.levels),
+    ],
+)
+def test_target_level_pair_rejects_unreasonable_ordered_band_jump_without_language_branching(
+    first_id, second_id, first_level, second_level, declared_levels
+):
+    first = benchmark_case(first_id)
+    second = benchmark_case(second_id)
+    first_result = known_passing_result(first)
+    second_result = known_passing_result(second)
+    first_result["cefr_estimate"] = first_level
+    second_result["cefr_estimate"] = second_level
+
+    comparison = compare_target_level_results(
+        first,
+        first_result,
+        second,
+        second_result,
+        declared_levels=declared_levels,
+    )
+
+    assert not comparison.passed
+    assert "demonstrated_level_drift" in {item.check for item in comparison.failed_checks}
+
+
+@pytest.mark.parametrize(
+    ("first_id", "second_id", "alternative_level", "declared_levels"),
+    [
+        ("en-target-a2", "en-target-c1", "B2", ENGLISH_PROFILE.levels),
+        ("zh-target-hsk2", "zh-target-hsk7-9", "HSK4", CHINESE_PROFILE.levels),
+    ],
+)
+def test_target_pair_does_not_require_fixture_authors_single_preferred_label(
+    first_id, second_id, alternative_level, declared_levels
+):
+    first = benchmark_case(first_id)
+    second = benchmark_case(second_id)
+    first_result = known_passing_result(first)
+    second_result = known_passing_result(second)
+    first_result["cefr_estimate"] = alternative_level
+    second_result["cefr_estimate"] = alternative_level
+
+    assert compare_target_level_results(
+        first,
+        first_result,
+        second,
+        second_result,
+        declared_levels=declared_levels,
+    ).passed
 
 
 def test_chinese_normalized_result_is_accepted_without_provider_or_runtime_dependencies():
@@ -304,6 +381,7 @@ def test_chinese_normalized_result_is_accepted_without_provider_or_runtime_depen
         score_to_level=chinese_score_to_level,
         allow_cjk=True,
         learner_text=case.learner_text,
+        error_categories=CHINESE_ERROR_CATEGORIES,
     )
     assert _evaluate(case, normalized).passed
 
