@@ -8,7 +8,7 @@ historical narrative.
 - Product: Orena / BECOMING codebase
 - Repository: `CalisJI/ai-writing-coach`
 - Last verified application/runtime baseline:
-  `13da0da4d73a743ca06e1581b0069f92a4a7c7b9`
+  `5b5807a0986a8563406322f0cca884eb0100902c`
 
 This SHA identifies the verified application/runtime baseline inherited by this
 governance checkpoint. Documentation-only or governance-only descendant commits
@@ -99,6 +99,7 @@ Conceptually language-scoped learner data remains isolated by:
 - Slice 1: **CLOSED / APPROVED / merged**.
 - Slice 2: **CLOSED / APPROVED / merged**.
 - Slice 3: **CLOSED / APPROVED / merged via PR #10**.
+- Slice 4: **CLOSED / APPROVED / merged via PR #15**.
 
 The capability-centric control plane exists. Canonical admin APIs are:
 
@@ -109,9 +110,12 @@ The capability-centric control plane exists. Canonical admin APIs are:
 Legacy global admin mutation and provider-test endpoints remain transitional
 and deprecated.
 
-Learner runtime capability routing is **not active**. `generate_structured()`
-still selects the provider and model through the legacy global
-`active_selection()` path. This is intentional until atomic R2 activation.
+Capability-aware learner runtime support is implemented behind one central
+`LEGACY` / `CAPABILITY` mode. All eight provider-backed workloads pass explicit,
+product-wide capability identities. `LEGACY` remains the default and current
+production behavior; production has **not** been activated to `CAPABILITY`.
+In `CAPABILITY` mode, routing resolves the exact persisted provider/model and
+does not fall back to `active_selection()`.
 
 ### Current capability catalog
 
@@ -146,7 +150,6 @@ fallback and no silent paid-provider failover.
 
 ## Current next development area
 
-R2 runtime activation remains the next major technical area, but production
-migration and runtime activation are a human gate. Agents may inspect, design,
-test, and prepare dry-run or preflight work. They may not execute production
-mutation or cutover without explicit human authorization.
+R2 remains **IN PROGRESS**. Static activation readiness/preflight is the current
+technical checkpoint. Production migration/config initialization, live provider
+validation, runtime activation, and rollback execution remain human gates.
