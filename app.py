@@ -31,7 +31,7 @@ from writing_coach.languages.runtime import (
 from auth_support import APP_ENV, AUTH_ENABLED, current_db_path, install_auth, require_admin, AUTH_DB_PATH, configure_auth_repository
 from writing_coach.product.api import router as product_router
 from writing_coach.core.platform_api import router as platform_router
-from writing_coach.ai.base import AIProviderError, AIProviderUnavailable
+from writing_coach.ai.base import AICapabilityError, AIProviderError, AIProviderUnavailable
 from writing_coach.ai.platform import active_ai_label, active_ai_status, generate_structured, install_platform_ai, configure_platform_repository
 from writing_coach.product.service import configure_product_repository
 from writing_coach.persistence.runtime import build_runtime
@@ -369,6 +369,7 @@ def evaluate_with_ai(payload: EssayIn) -> dict[str, Any]:
         max_output_tokens=2200,
         temperature=0.0,
         seed=42,
+        capability_key="writing_evaluator",
     )
     raw = dict(ai.data)
     raw["__learner_text"] = payload.text
@@ -773,6 +774,7 @@ def generate_practice_task(payload: TaskGenerateIn) -> dict[str, Any]:
             schema=schema,
             max_output_tokens=500,
             temperature=0.75,
+            capability_key="writing_task_generator",
         )
         raw = ai.data
         title = normalize_task_piece(raw.get("title"), 140)
@@ -796,6 +798,8 @@ def generate_practice_task(payload: TaskGenerateIn) -> dict[str, Any]:
             "topic": topic or requested_topic,
             "source": ai.label,
         }
+    except AICapabilityError:
+        raise
     except Exception:
         return fallback_practice_task(payload)
 
@@ -835,12 +839,13 @@ IMPROVE_MODE_INSTRUCTIONS = {
 }
 
 
-def ai_json(messages: list[dict[str, str]], schema: dict[str, Any], num_predict: int = 1200, temperature: float = 0.1) -> dict[str, Any]:
+def ai_json(capability_key: str, messages: list[dict[str, str]], schema: dict[str, Any], num_predict: int = 1200, temperature: float = 0.1) -> dict[str, Any]:
     return generate_structured(
         messages=messages,
         schema=schema,
         max_output_tokens=num_predict,
         temperature=temperature,
+        capability_key=capability_key,
     ).data
 
 def improve_with_ai(payload: ImproveIn) -> dict[str, Any]:
@@ -922,6 +927,7 @@ def improve_with_ai(payload: ImproveIn) -> dict[str, Any]:
         )
 
     result = ai_json(
+        "writing_improver",
         [{"role": "system", "content": system}, {"role": "user", "content": user}],
         schema,
         num_predict=1800,
@@ -983,6 +989,7 @@ def dictionary_ai_fallback(word: str) -> dict[str, Any]:
         "required": ["word", "phonetic", "definitions"],
     }
     result = ai_json(
+        "learner_dictionary",
         [
             {
                 "role": "system",
@@ -998,7 +1005,7 @@ def dictionary_ai_fallback(word: str) -> dict[str, Any]:
         num_predict=650,
         temperature=0.0,
     )
-    result["source"] = active_ai_label()
+    result["source"] = active_ai_label("learner_dictionary")
     result["audio"] = ""
     result["cambridge_url"] = cambridge_url_for(word)
     return result
@@ -1065,6 +1072,7 @@ def chinese_dictionary_ai(word: str) -> dict[str, Any]:
     }
 
     result = ai_json(
+        "learner_dictionary",
         [
             {
                 "role": "system",
@@ -1086,7 +1094,7 @@ def chinese_dictionary_ai(word: str) -> dict[str, Any]:
         num_predict=1100,
         temperature=0.0,
     )
-    result["source"] = active_ai_label()
+    result["source"] = active_ai_label("learner_dictionary")
     result["audio"] = ""
     result["cambridge_url"] = ""
     return result
@@ -1257,6 +1265,7 @@ def generate_grammar_lesson(lesson: dict[str, Any]) -> dict[str, Any]:
 
     system, user = grammar_lesson_prompts(lesson)
     return ai_json(
+        "grammar_lesson_generator",
         [
             {"role": "system", "content": system},
             {"role": "user", "content": user},
@@ -1282,12 +1291,14 @@ def api_grammar_lesson(lesson_id: str) -> dict[str, Any]:
     else:
         try:
             detail = generate_grammar_lesson(lesson)
-            source = active_ai_label()
+            source = active_ai_label("grammar_lesson_generator")
             _learning_cache.put_grammar_lesson(
                 lesson_id,
                 detail,
                 datetime.now().astimezone().isoformat(timespec="seconds"),
             )
+        except AICapabilityError:
+            raise
         except Exception:
             if is_chinese():
                 detail = {
@@ -1447,6 +1458,7 @@ def api_translate(payload: TranslateIn) -> dict[str, Any]:
 
     try:
         result = ai_json(
+            "learner_translation",
             [
                 {"role": "system", "content": system},
                 {"role": "user", "content": payload.text},

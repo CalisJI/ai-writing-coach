@@ -8,10 +8,12 @@ from typing import Any, Callable
 from pydantic import BaseModel, Field
 
 
+from writing_coach.ai.base import AICapabilityError
 from writing_coach.persistence.specialized_repository import SpecializedLearningRepository
 
 _repository: SpecializedLearningRepository | None = None
 _ai_generate: Callable[..., Any] | None = None
+READING_GENERATOR_CAPABILITY = "reading_generator"
 
 
 class ReadingGenerateIn(BaseModel):
@@ -454,12 +456,15 @@ def create_reading_session(
                 schema=_schema(language_code),
                 max_output_tokens=2200,
                 temperature=0.35,
+                capability_key=READING_GENERATOR_CAPABILITY,
             )
             data = getattr(result, "data", result)
             if isinstance(data, dict):
                 generated = _validate_generated(data)
                 if generated:
                     generation_mode = "generated"
+        except AICapabilityError:
+            raise
         except Exception:
             generated = None
 
