@@ -597,6 +597,39 @@ class ProviderResponse:
         return self.payload
 
 
+class InvalidJSONResponse(ProviderResponse):
+    def json(self) -> object:
+        raise ValueError("Authorization: Bearer super-secret raw-body")
+
+
+@pytest.mark.parametrize(
+    "provider_factory",
+    [
+        lambda monkeypatch: openai_provider(monkeypatch),
+        lambda _monkeypatch: OllamaProvider(),
+    ],
+)
+def test_live_discovery_rejects_invalid_json_bodies_with_safe_catalog_error(
+    monkeypatch: pytest.MonkeyPatch,
+    provider_factory,
+) -> None:
+    provider = provider_factory(monkeypatch)
+    calls = []
+    monkeypatch.setattr(
+        requests,
+        "get",
+        lambda *_args, **_kwargs: calls.append(True) or InvalidJSONResponse({}),
+    )
+
+    with pytest.raises(AIProviderResponseInvalid) as caught:
+        provider.discover_models_live()
+
+    assert str(caught.value) == "AI provider returned an invalid model catalog."
+    assert "super-secret" not in str(caught.value)
+    assert "raw-body" not in str(caught.value)
+    assert calls == [True]
+
+
 @pytest.mark.parametrize(
     "envelope",
     [
@@ -741,6 +774,37 @@ def test_malformed_provider_envelope_is_sanitized_by_admin_endpoint_without_fall
     )
     with pytest.raises(HTTPException) as caught:
         platform_module.admin_ai_capability_test("writing_evaluator", request)
+    assert caught.value.status_code == 502
+    assert caught.value.detail["error_class"] == "provider_response_invalid"
+    assert "super-secret" not in str(caught.value.detail)
+    assert "raw-body" not in str(caught.value.detail)
+    assert calls == [True]
+    assert fallback.discovery_calls == 0
+    assert fallback.generation_calls == []
+
+
+def test_invalid_json_catalog_is_sanitized_by_admin_endpoint_without_fallback(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    repository = FakeRepository()
+    repository.capabilities["writing_evaluator"] = capability_config()
+    provider = openai_provider(monkeypatch)
+    fallback = FakeProvider(id="deepseek")
+    calls = []
+    monkeypatch.setattr(
+        requests,
+        "get",
+        lambda *_args, **_kwargs: calls.append(True) or InvalidJSONResponse({}),
+    )
+    request = configure_platform(
+        monkeypatch,
+        repository,
+        providers={"openai": provider, "deepseek": fallback},
+    )
+
+    with pytest.raises(HTTPException) as caught:
+        platform_module.admin_ai_capability_test("writing_evaluator", request)
+
     assert caught.value.status_code == 502
     assert caught.value.detail["error_class"] == "provider_response_invalid"
     assert "super-secret" not in str(caught.value.detail)
