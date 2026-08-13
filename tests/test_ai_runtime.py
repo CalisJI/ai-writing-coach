@@ -9,6 +9,7 @@ import pytest
 
 import writing_coach.ai.platform as platform
 from writing_coach.ai.base import (
+    AICapabilityConfigInvalid,
     AICapabilityDisabled,
     AICapabilityNotConfigured,
     AICapabilityUnsupported,
@@ -129,6 +130,23 @@ def test_capability_mode_fails_closed(
 
     with pytest.raises(error):
         request(capability_key=capability_key)
+    assert provider.calls == []
+
+
+def test_malformed_persisted_config_fails_without_legacy_routing(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class MalformedRepository(Repository):
+        def get_capability_config(self, key: str) -> CapabilityConfigRecord | None:
+            raise AICapabilityConfigInvalid("malformed persisted config")
+
+    monkeypatch.setenv("AI_RUNTIME_MODE", "capability")
+    provider = Provider()
+    install(monkeypatch, MalformedRepository(), provider)
+    monkeypatch.setattr(platform, "active_selection", lambda: pytest.fail("legacy routing used"))
+
+    with pytest.raises(AICapabilityConfigInvalid, match="malformed persisted config"):
+        request(capability_key="writing_evaluator")
     assert provider.calls == []
 
 
