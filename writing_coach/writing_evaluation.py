@@ -9,7 +9,10 @@ from typing import Any
 
 
 _CJK_RE = re.compile(r"[\u3400-\u4DBF\u4E00-\u9FFF\u3040-\u30FF\uAC00-\uD7AF]")
-_CONFIDENCE_THRESHOLD = 0.75
+CONFIDENCE_THRESHOLD = 0.75
+MAX_LEARNER_LIST_ITEMS = 6
+MAX_STRENGTH_EVIDENCE_ITEMS = 6
+MAX_ERROR_ITEMS = 20
 
 
 def contains_cjk(text: str) -> bool:
@@ -97,7 +100,12 @@ def _bounded_text(value: Any, limit: int) -> str:
     return str(value)[:limit].strip()
 
 
-def _clean_learner_list(items: Any, *, limit: int = 6, allow_cjk: bool) -> list[str]:
+def _clean_learner_list(
+    items: Any,
+    *,
+    limit: int = MAX_LEARNER_LIST_ITEMS,
+    allow_cjk: bool,
+) -> list[str]:
     if not isinstance(items, list):
         return []
     output: list[str] = []
@@ -120,14 +128,14 @@ def _normalize_strength_evidence(
     if not isinstance(items, list):
         return []
     output: list[dict[str, Any]] = []
-    for item in items[:6]:
+    for item in items[:MAX_STRENGTH_EVIDENCE_ITEMS]:
         if not isinstance(item, Mapping):
             continue
         category = _bounded_text(item.get("category", ""), 1000)
         fragment = _bounded_text(item.get("fragment", ""), 500)
         explanation = _bounded_text(item.get("explanation_vi", ""), 1500)
         confidence = _normalized_confidence(item.get("confidence", 1.0))
-        if category not in rubric_categories or confidence < _CONFIDENCE_THRESHOLD:
+        if category not in rubric_categories or confidence < CONFIDENCE_THRESHOLD:
             continue
         if not fragment or fragment not in learner_text:
             continue
@@ -153,7 +161,7 @@ def _normalize_errors(
     if not isinstance(items, list):
         return []
     output: list[dict[str, Any]] = []
-    for item in items[:30]:
+    for item in items[:MAX_ERROR_ITEMS]:
         if not isinstance(item, Mapping):
             continue
         fragment = _bounded_text(item.get("fragment", ""), 500)
@@ -161,7 +169,7 @@ def _normalize_errors(
         suggestion = _bounded_text(item.get("suggestion", ""), 1000)
         rule = _bounded_text(item.get("mini_rule_vi", ""), 1500)
         confidence = _normalized_confidence(item.get("confidence", 1.0))
-        if confidence < _CONFIDENCE_THRESHOLD or not fragment or fragment not in learner_text:
+        if confidence < CONFIDENCE_THRESHOLD or not fragment or fragment not in learner_text:
             continue
         if not allow_cjk and (contains_cjk(explanation) or contains_cjk(rule)):
             continue

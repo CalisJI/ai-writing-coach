@@ -10,6 +10,7 @@ from urllib.parse import quote
 
 import requests
 from writing_coach.languages.runtime import (
+    active_error_categories,
     active_levels,
     active_profile,
     active_grammar_by_id,
@@ -32,6 +33,10 @@ from writing_coach.writing_evaluation import (
     calculate_weighted_overall,
     contains_cjk,
     normalize_writing_evaluation,
+)
+from writing_coach.writing_evaluator_contract import (
+    build_writing_evaluator_request,
+    build_writing_evaluator_schema,
 )
 from auth_support import APP_ENV, AUTH_ENABLED, current_db_path, install_auth, require_admin, AUTH_DB_PATH, configure_auth_repository
 from writing_coach.product.api import router as product_router
@@ -200,74 +205,24 @@ def validate_result(raw: dict[str, Any]) -> dict[str, Any]:
 
 def evaluate_with_ai(payload: EssayIn) -> dict[str, Any]:
     target_level = validate_target_level(payload.target_cefr)
-    free_prompt = (
+    free_writing_context = (
         "(Free Chinese writing — evaluate clarity, language control and naturalness.)"
         if is_chinese()
         else "(Free writing — evaluate clarity, language control and naturalness.)"
     )
-    user_prompt = (
-        f"TARGET LANGUAGE: {active_profile().name}\n"
-        f"TARGET LEVEL: {target_level}\n"
-        "WRITING TASK:\n"
-        f"{payload.prompt or free_prompt}\n\n"
-        "LEARNER TEXT:\n"
-        f"{payload.text}\n\n"
-        "Evaluate the text using the fixed rubric. Identify recurring/reusable learning points, not just typos. "
-        "Also identify 1-3 exact fragments from the learner text that demonstrate genuine strengths; "
-        "do not invent positive evidence that is not literally present in the learner text. "
-        "Return one COMPLETE JSON object that matches the required schema."
+    user_prompt = build_writing_evaluator_request(
+        language_name=active_profile().name,
+        target_level=target_level,
+        task_prompt=payload.prompt,
+        learner_text=payload.text,
+        free_writing_context=free_writing_context,
     )
-    evaluation_schema = {
-        "type": "object",
-        "properties": {
-            "grammar": {"type": "number", "minimum": 0, "maximum": 100},
-            "vocabulary": {"type": "number", "minimum": 0, "maximum": 100},
-            "coherence": {"type": "number", "minimum": 0, "maximum": 100},
-            "task_achievement": {"type": "number", "minimum": 0, "maximum": 100},
-            "naturalness": {"type": "number", "minimum": 0, "maximum": 100},
-            "cefr_estimate": {"type": "string", "enum": list(active_levels())},
-            "summary_vi": {"type": "string"},
-            "strengths_vi": {"type": "array", "items": {"type": "string"}, "maxItems": 6},
-            "strength_evidence": {
-                "type": "array",
-                "maxItems": 6,
-                "items": {
-                    "type": "object",
-                    "properties": {
-                        "category": {"type": "string", "enum": list(active_rubric_weights().keys())},
-                        "fragment": {"type": "string"},
-                        "explanation_vi": {"type": "string"},
-                        "confidence": {"type": "number", "minimum": 0, "maximum": 1},
-                    },
-                    "required": ["category", "fragment", "explanation_vi", "confidence"],
-                },
-            },
-            "priorities_vi": {"type": "array", "items": {"type": "string"}, "maxItems": 6},
-            "errors": {
-                "type": "array", "maxItems": 20,
-                "items": {
-                    "type": "object",
-                    "properties": {
-                        "category": {"type": "string"},
-                        "fragment": {"type": "string"},
-                        "explanation_vi": {"type": "string"},
-                        "suggestion": {"type": "string"},
-                        "mini_rule_vi": {"type": "string"},
-                        "confidence": {"type": "number", "minimum": 0, "maximum": 1},
-                    },
-                    "required": [
-                        "category", "fragment", "explanation_vi",
-                        "suggestion", "mini_rule_vi", "confidence",
-                    ],
-                },
-            },
-        },
-        "required": [
-            "grammar", "vocabulary", "coherence", "task_achievement",
-            "naturalness", "cefr_estimate", "summary_vi",
-            "strengths_vi", "strength_evidence", "priorities_vi", "errors",
-        ],
-    }
+    evaluation_schema = build_writing_evaluator_schema(
+        rubric_weights=active_rubric_weights(),
+        allowed_levels=active_levels(),
+        score_to_level=active_score_to_level,
+        error_categories=active_error_categories(),
+    )
     ai = generate_structured(
         messages=[
             {"role": "system", "content": active_system_prompt()},

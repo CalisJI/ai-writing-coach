@@ -8,6 +8,7 @@ from writing_coach.languages.chinese.grammar_course import (
     GRAMMAR_COURSE as CHINESE_GRAMMAR_COURSE,
 )
 from writing_coach.languages.chinese.profile import (
+    ERROR_CATEGORIES as CHINESE_ERROR_CATEGORIES,
     PROFILE as CHINESE_PROFILE,
     RUBRIC_WEIGHTS as CHINESE_RUBRIC_WEIGHTS,
     SYSTEM_PROMPT as CHINESE_SYSTEM_PROMPT,
@@ -18,6 +19,7 @@ from writing_coach.languages.english.grammar_course import (
     GRAMMAR_COURSE as ENGLISH_GRAMMAR_COURSE,
 )
 from writing_coach.languages.english.profile import (
+    ERROR_CATEGORIES as ENGLISH_ERROR_CATEGORIES,
     PROFILE as ENGLISH_PROFILE,
     RUBRIC_WEIGHTS as ENGLISH_RUBRIC_WEIGHTS,
     SYSTEM_PROMPT as ENGLISH_SYSTEM_PROMPT,
@@ -43,6 +45,10 @@ def active_levels() -> tuple[str, ...]:
 
 def active_rubric_weights() -> dict[str, float]:
     return CHINESE_RUBRIC_WEIGHTS if is_chinese() else ENGLISH_RUBRIC_WEIGHTS
+
+
+def active_error_categories() -> tuple[str, ...]:
+    return CHINESE_ERROR_CATEGORIES if is_chinese() else ENGLISH_ERROR_CATEGORIES
 
 
 def active_system_prompt() -> str:

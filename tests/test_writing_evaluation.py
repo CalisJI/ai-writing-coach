@@ -138,10 +138,10 @@ def test_errors_require_exact_evidence_meaningful_suggestion_and_confidence() ->
     assert rejected["errors"] == []
 
 
-def test_errors_are_bounded_and_confidence_is_clamped_and_rounded() -> None:
+def test_errors_are_bounded_to_schema_limit_and_confidence_is_clamped_and_rounded() -> None:
     items = [_error(confidence=1.6) for _ in range(32)]
     result = _normalize({"errors": items})
-    assert len(result["errors"]) == 30
+    assert len(result["errors"]) == 20
     assert result["errors"][0]["confidence"] == 1.0
 
 
