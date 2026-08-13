@@ -9,7 +9,13 @@ from typing import Any
 
 import requests
 
-from writing_coach.ai.base import AIProviderError, AIProviderUnavailable, AIResult, extract_json_object
+from writing_coach.ai.base import (
+    AIProviderError,
+    AIProviderNotConfigured,
+    AIProviderUnavailable,
+    AIResult,
+    extract_json_object,
+)
 from writing_coach.ai.capabilities import AIOperation
 
 
@@ -111,6 +117,35 @@ class OllamaProvider:
             )
         except Exception:
             return []
+
+    def discover_models_live(self) -> list[str]:
+        """Discover models without collapsing transport failures into an empty list."""
+
+        try:
+            response = requests.get(f"{self.base_url}/api/tags", timeout=3)
+            response.raise_for_status()
+            envelope = response.json()
+        except requests.ConnectionError as exc:
+            raise AIProviderUnavailable("Ollama is not reachable.") from exc
+        except requests.Timeout as exc:
+            raise AIProviderUnavailable("Ollama timed out.") from exc
+        except requests.HTTPError as exc:
+            status = exc.response.status_code if exc.response is not None else "?"
+            raise AIProviderError(f"Ollama returned HTTP {status} during model discovery.") from exc
+        except ValueError as exc:
+            raise AIProviderError("Ollama returned an invalid model catalog.") from exc
+        return sorted(
+            {
+                str(item.get("name") or "").strip()
+                for item in envelope.get("models", [])
+                if str(item.get("name") or "").strip()
+            }
+        )
+
+    def generate_json_once(self, **kwargs: Any) -> AIResult:
+        """Execute one live-test request; Ollama has no compatibility retry."""
+
+        return self.generate_json(**kwargs)
 
     def generate_json(
         self,
@@ -264,6 +299,41 @@ class OpenAICompatibleProvider:
         except Exception:
             return []
 
+    def discover_models_live(self) -> list[str]:
+        """Return an authoritative catalog or a typed live-discovery failure."""
+
+        if not self.configured:
+            raise AIProviderNotConfigured(f"{self.name} is not configured on the server.")
+        if self.allowed_models:
+            return sorted(dict.fromkeys(self.allowed_models))
+
+        try:
+            response = requests.get(
+                f"{self.base_url}/models",
+                headers=self._headers(),
+                timeout=10,
+            )
+            response.raise_for_status()
+            envelope = response.json()
+        except requests.ConnectionError as exc:
+            raise AIProviderUnavailable(f"{self.name} is not reachable.") from exc
+        except requests.Timeout as exc:
+            raise AIProviderUnavailable(f"{self.name} timed out.") from exc
+        except requests.HTTPError as exc:
+            status = exc.response.status_code if exc.response is not None else "?"
+            raise AIProviderError(
+                f"{self.name} returned HTTP {status} during model discovery."
+            ) from exc
+        except ValueError as exc:
+            raise AIProviderError(f"{self.name} returned an invalid model catalog.") from exc
+        return sorted(
+            {
+                str(item.get("id") or "").strip()
+                for item in envelope.get("data", [])
+                if self._accept_model(str(item.get("id") or "").strip())
+            }
+        )
+
     def _post_chat(self, body: dict[str, Any]) -> dict[str, Any]:
         response = requests.post(
             f"{self.base_url}/chat/completions",
@@ -334,6 +404,64 @@ class OpenAICompatibleProvider:
         if not isinstance(content, str) or not content.strip():
             raise AIProviderError(f"{self.name} returned an empty response.")
 
+        usage = envelope.get("usage") if isinstance(envelope.get("usage"), dict) else {}
+        return AIResult(
+            data=extract_json_object(content),
+            provider=self.id,
+            model=model,
+            runtime={
+                "finish_reason": choices[0].get("finish_reason") if choices else None,
+                "prompt_tokens": usage.get("prompt_tokens"),
+                "completion_tokens": usage.get("completion_tokens"),
+                "total_tokens": usage.get("total_tokens"),
+            },
+        )
+
+    def generate_json_once(
+        self,
+        *,
+        messages: list[dict[str, str]],
+        schema: dict[str, Any],
+        model: str,
+        max_output_tokens: int,
+        temperature: float,
+        seed: int | None = None,
+    ) -> AIResult:
+        """Execute one structured request without the legacy compatibility retry."""
+
+        if not self.configured:
+            raise AIProviderNotConfigured(f"{self.name} is not configured on the server.")
+        if not model:
+            raise AIProviderUnavailable(f"No model is selected for {self.name}.")
+
+        enriched = [dict(message) for message in messages]
+        if enriched and enriched[0].get("role") == "system":
+            enriched[0]["content"] = str(enriched[0].get("content") or "") + _schema_instruction(schema)
+        else:
+            enriched.insert(0, {"role": "system", "content": _schema_instruction(schema).strip()})
+
+        body: dict[str, Any] = {
+            "model": model,
+            "messages": enriched,
+            "stream": False,
+            "max_tokens": max_output_tokens,
+            "response_format": {"type": "json_object"},
+            "temperature": temperature,
+        }
+        if seed is not None:
+            body["seed"] = seed
+        try:
+            envelope = self._post_chat(body)
+        except requests.ConnectionError as exc:
+            raise AIProviderUnavailable(f"{self.name} is not reachable.") from exc
+        except requests.Timeout as exc:
+            raise AIProviderUnavailable(f"{self.name} timed out.") from exc
+
+        choices = envelope.get("choices") or []
+        message = choices[0].get("message", {}) if choices else {}
+        content = message.get("content", "")
+        if not isinstance(content, str) or not content.strip():
+            raise AIProviderError(f"{self.name} returned an empty response.")
         usage = envelope.get("usage") if isinstance(envelope.get("usage"), dict) else {}
         return AIResult(
             data=extract_json_object(content),

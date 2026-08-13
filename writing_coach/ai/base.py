@@ -14,8 +14,20 @@ class AIProviderUnavailable(AIProviderError):
     pass
 
 
+class AIProviderNotConfigured(AIProviderUnavailable):
+    """The server lacks the credentials or endpoint configuration for a provider."""
+
+
+class AIModelCatalogEmpty(AIProviderUnavailable):
+    """Live discovery succeeded but returned no usable models."""
+
+
 class AIModelUnavailable(AIProviderUnavailable):
     """The selected model cannot currently satisfy a provider request."""
+
+
+class AIProviderResponseInvalid(AIProviderError):
+    """A provider response did not satisfy the requested capability schema."""
 
 
 class AICapabilityError(RuntimeError):
@@ -78,4 +90,4 @@ def extract_json_object(text: str) -> dict[str, Any]:
         if isinstance(value, dict):
             return value
 
-    raise AIProviderError("AI provider did not return a complete JSON object.")
+    raise AIProviderResponseInvalid("AI provider did not return a complete JSON object.")
