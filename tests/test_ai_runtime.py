@@ -55,6 +55,9 @@ class Provider:
 
     generate_json = generate_json_once
 
+    def discover_models_live(self) -> None:
+        pytest.fail("learner runtime performed live model discovery")
+
 
 def config(**overrides: Any) -> CapabilityConfig:
     values = {
