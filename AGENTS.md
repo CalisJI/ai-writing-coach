@@ -29,6 +29,12 @@ Source-of-truth precedence is:
 If a material contradiction appears, stop and report it. Do not silently pick
 the convenient source or invent a resolution.
 
+An application/runtime baseline SHA records the verified state inherited by a
+checkpoint. A newer docs-only or governance-only descendant `main` commit does
+not alone create a contradiction or require refreshing that SHA. Refresh it
+only after a reviewed change materially changes the documented application,
+runtime, product, or operational facts.
+
 ## 1. Repository roles
 
 `main` is the STABLE and VERIFIED branch.
@@ -225,7 +231,8 @@ module execution where appropriate.
 
 ## 14. Project-context update protocol
 
-- Update `PROJECT_STATE.md` only after a fact is verified.
+- Update `PROJECT_STATE.md` only after a fact is verified. Its
+  application/runtime baseline SHA is not a moving `main`-HEAD field.
 - Update `CURRENT_HANDOFF.md` whenever active stage, ownership, status, human
   gate, or next checkpoint materially changes.
 - Append to `DECISION_LOG.md` when a durable product or architecture decision

@@ -54,10 +54,17 @@ convenient source, reinterpret a historical record as current truth, or invent
 a resolution. Report the conflicting files, implementation evidence, and Git
 checkpoint to the human coordinator.
 
+An application/runtime baseline SHA records the commit at which the documented
+application, runtime, product, or operational facts were verified. A newer
+docs-only or governance-only descendant `main` commit is not, by itself, a
+contradiction and does not require refreshing that baseline. Refresh it only
+when a reviewed change materially changes the facts it represents.
+
 ## Update responsibilities
 
 - Update `PROJECT_STATE.md` only after a fact is verified by implementation,
-  tests, operations evidence, or an accepted Git checkpoint.
+  tests, operations evidence, or an accepted Git checkpoint. Its
+  application/runtime baseline SHA is not a moving `main`-HEAD field.
 - Update `CURRENT_HANDOFF.md` whenever active stage, task ownership, status,
   human-gate state, or next checkpoint materially changes.
 - Append to `DECISION_LOG.md` when a durable product or architecture decision

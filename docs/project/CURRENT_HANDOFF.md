@@ -1,7 +1,10 @@
 # Current Handoff
 
-**Last verified main:**
+**Application/runtime baseline:**
 `13da0da4d73a743ca06e1581b0069f92a4a7c7b9`
+
+This is the inherited verified application/runtime baseline, not a requirement
+that `main` HEAD remain identical after docs-only or governance-only commits.
 
 **Current program:** R2 — AI Capability Control Plane
 
