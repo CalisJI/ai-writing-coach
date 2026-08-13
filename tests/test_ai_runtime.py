@@ -8,7 +8,17 @@ from typing import Any
 import pytest
 
 import writing_coach.ai.platform as platform
+from writing_coach.becoming_linguistics import (
+    configure_becoming_linguistics,
+    linguistic_annotations_for_essay,
+)
+from writing_coach.becoming_reading import (
+    ReadingGenerateIn,
+    configure_becoming_reading,
+    create_reading_session,
+)
 from writing_coach.ai.base import (
+    AICapabilityError,
     AICapabilityConfigInvalid,
     AICapabilityDisabled,
     AICapabilityNotConfigured,
@@ -150,6 +160,153 @@ def test_malformed_persisted_config_fails_without_legacy_routing(
     assert provider.calls == []
 
 
+class SpecializedRepository:
+    def __init__(self, language_code: str = "en") -> None:
+        self.language_code = language_code
+
+    def select_library_terms(self, limit: int) -> list[str]:
+        return []
+
+    def create_reading_session_record(self, record: dict[str, Any]) -> dict[str, Any]:
+        return {
+            "id": 1,
+            **record,
+            "questions_json": record["questions"],
+            "recycled_words_json": [],
+        }
+
+    def get_linguistic_essay(self, essay_id: int) -> dict[str, Any] | None:
+        if essay_id != 1:
+            return None
+        return {
+            "text": "I write." if self.language_code == "en" else "我写。",
+            "language_code": self.language_code,
+            "module_data_json": "{}",
+        }
+
+    def update_essay_module_data(self, essay_id: int, value: dict[str, Any]) -> None:
+        self.module_data = value
+
+
+def test_reading_injected_generator_binds_the_shared_capability_key() -> None:
+    calls: list[dict[str, Any]] = []
+
+    def generate(**kwargs: Any) -> dict[str, Any]:
+        calls.append(kwargs)
+        return {"title": "invalid"}
+
+    configure_becoming_reading(SpecializedRepository(), generate)
+    session = create_reading_session(
+        ReadingGenerateIn(), language_code="en", target_level="B1"
+    )
+
+    assert calls[0]["capability_key"] == "reading_generator"
+    assert session["generation_mode"] == "built-in"
+
+
+@pytest.mark.parametrize(
+    "error",
+    [
+        AICapabilityNotConfigured,
+        AICapabilityDisabled,
+        AICapabilityConfigInvalid,
+        AICapabilityUnsupported,
+    ],
+)
+def test_reading_capability_errors_do_not_use_builtin_fallback(
+    error: type[AICapabilityError],
+) -> None:
+    def generate(**kwargs: Any) -> None:
+        raise error("capability configuration failure")
+
+    configure_becoming_reading(SpecializedRepository(), generate)
+
+    with pytest.raises(error):
+        create_reading_session(ReadingGenerateIn(), language_code="zh", target_level="HSK3")
+
+
+@pytest.mark.parametrize("language_code", ["en", "zh"])
+def test_linguistics_injected_generator_binds_the_shared_capability_key(
+    language_code: str,
+) -> None:
+    calls: list[dict[str, Any]] = []
+
+    def generate(**kwargs: Any) -> dict[str, Any]:
+        calls.append(kwargs)
+        fragment = "I" if language_code == "en" else "我"
+        return {"annotations": [{"fragment": fragment, "pos": "pronoun"}]}
+
+    configure_becoming_linguistics(SpecializedRepository(language_code), generate)
+    result = linguistic_annotations_for_essay(1)
+
+    assert calls[0]["capability_key"] == "writing_linguistic"
+    assert result["language_code"] == language_code
+
+
+@pytest.mark.parametrize(
+    ("language_code", "target_level"), [("en", "B1"), ("zh", "HSK3")]
+)
+def test_reading_uses_capability_runtime_without_legacy_selection(
+    monkeypatch: pytest.MonkeyPatch, language_code: str, target_level: str
+) -> None:
+    monkeypatch.setenv("AI_RUNTIME_MODE", "capability")
+    provider = Provider()
+    install(monkeypatch, Repository(config()), provider)
+    monkeypatch.setattr(platform, "active_selection", lambda: pytest.fail("legacy routing used"))
+    configure_becoming_reading(SpecializedRepository(), platform.generate_structured)
+
+    create_reading_session(ReadingGenerateIn(), language_code=language_code, target_level=target_level)
+
+    assert provider.calls[0]["model"] == "capability-model"
+
+
+def test_linguistics_uses_capability_runtime_without_legacy_selection(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("AI_RUNTIME_MODE", "capability")
+    provider = Provider()
+    install(monkeypatch, Repository(config()), provider)
+    monkeypatch.setattr(platform, "active_selection", lambda: pytest.fail("legacy routing used"))
+    configure_becoming_linguistics(SpecializedRepository(), platform.generate_structured)
+
+    linguistic_annotations_for_essay(1)
+
+    assert provider.calls[0]["model"] == "capability-model"
+
+
+@pytest.mark.parametrize("runtime_config", [None, config(enabled=False)])
+def test_reading_capability_runtime_fails_closed(
+    monkeypatch: pytest.MonkeyPatch, runtime_config: CapabilityConfig | None
+) -> None:
+    monkeypatch.setenv("AI_RUNTIME_MODE", "capability")
+    provider = Provider()
+    install(monkeypatch, Repository(runtime_config), provider)
+    monkeypatch.setattr(platform, "active_selection", lambda: pytest.fail("legacy routing used"))
+    configure_becoming_reading(SpecializedRepository(), platform.generate_structured)
+
+    with pytest.raises((AICapabilityNotConfigured, AICapabilityDisabled)):
+        create_reading_session(ReadingGenerateIn(), language_code="en", target_level="B1")
+    assert provider.calls == []
+
+
+def test_switching_to_legacy_restores_global_routing_without_deleting_config(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    repository = Repository(config())
+    capability = Provider()
+    legacy = Provider(id="legacy", name="Legacy")
+    install(monkeypatch, repository, capability)
+    monkeypatch.setattr(platform, "active_selection", lambda: (legacy, "legacy-model"))
+    monkeypatch.setenv("AI_RUNTIME_MODE", "capability")
+    request(capability_key="writing_evaluator")
+
+    monkeypatch.setenv("AI_RUNTIME_MODE", "legacy")
+    result = request(capability_key="writing_evaluator")
+
+    assert result.model == "legacy-model"
+    assert repository.get_capability_config("writing_evaluator") is not None
+
+
 def test_workloads_pass_product_wide_explicit_capabilities() -> None:
     tree = ast.parse((Path(__file__).parents[1] / "app.py").read_text(encoding="utf-8"))
     values = {
@@ -175,4 +332,9 @@ def test_workloads_pass_product_wide_explicit_capabilities() -> None:
     }
     assert ai_json_capabilities == {
         "writing_improver", "learner_dictionary", "grammar_lesson_generator", "learner_translation"
+    }
+    assert values | ai_json_capabilities | {"reading_generator", "writing_linguistic"} == {
+        "writing_evaluator", "writing_linguistic", "reading_generator",
+        "writing_task_generator", "writing_improver", "learner_dictionary",
+        "learner_translation", "grammar_lesson_generator",
     }

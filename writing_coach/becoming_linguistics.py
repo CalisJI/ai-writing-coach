@@ -10,6 +10,7 @@ from writing_coach.persistence.specialized_repository import SpecializedLearning
 
 _repository: SpecializedLearningRepository | None = None
 _ai_generate: Callable[..., Any] | None = None
+WRITING_LINGUISTIC_CAPABILITY = "writing_linguistic"
 
 ALLOWED_POS = {
     "noun",
@@ -216,6 +217,7 @@ def linguistic_annotations_for_essay(essay_id: int) -> dict[str, Any]:
         max_output_tokens=2800,
         temperature=0.0,
         seed=42,
+        capability_key=WRITING_LINGUISTIC_CAPABILITY,
     )
     data = getattr(result, "data", result)
     raw_annotations = data.get("annotations", []) if isinstance(data, dict) else []
