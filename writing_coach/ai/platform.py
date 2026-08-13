@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+from enum import Enum
 from pathlib import Path
 from typing import Any, Callable
 
@@ -20,7 +21,8 @@ from writing_coach.ai.base import (
     AIProviderUnavailable,
     AIResult,
 )
-from writing_coach.ai.config import CapabilityConfig
+from writing_coach.ai.capabilities import require_capability
+from writing_coach.ai.config import CapabilityConfig, validate_capability_config
 from writing_coach.ai.control_plane import AIControlPlane, safe_model_display
 from writing_coach.ai.providers import build_providers
 from writing_coach.persistence.platform_repository import PlatformRepository
@@ -30,6 +32,21 @@ PLATFORM_DB_PATH = Path(os.getenv("PLATFORM_DB", ROOT / "data" / "platform.db"))
 _admin_guard: Callable[[Request], dict[str, Any]] | None = None
 
 router = APIRouter(prefix="/api/admin/ai", tags=["platform-admin"])
+
+
+class AIRuntimeMode(str, Enum):
+    LEGACY = "legacy"
+    CAPABILITY = "capability"
+
+
+def runtime_mode() -> AIRuntimeMode:
+    """Return the single learner-routing mode; legacy remains the default."""
+
+    value = os.getenv("AI_RUNTIME_MODE", AIRuntimeMode.LEGACY).strip().casefold()
+    try:
+        return AIRuntimeMode(value)
+    except ValueError as exc:
+        raise AICapabilityConfigInvalid(f"Unsupported AI runtime mode: {value!r}.") from exc
 
 
 class AIConfigIn(BaseModel):
@@ -116,7 +133,17 @@ def active_selection() -> tuple[Any, str]:
     return items[provider_id], model
 
 
-def active_ai_label() -> str:
+def active_ai_label(capability_key: str | None = None) -> str:
+    if runtime_mode() is AIRuntimeMode.CAPABILITY:
+        if capability_key is None:
+            raise AICapabilityUnsupported("Capability mode requires an explicit AI capability.")
+        definition = require_capability(capability_key)
+        row = _installed_platform_repository().get_capability_config(definition.key)
+        if row is None:
+            raise AICapabilityNotConfigured(
+                f"AI capability {definition.key!r} has no explicit configuration."
+            )
+        return f"{row.config.provider}:{row.config.model}"
     item, model = active_selection()
     return f"{item.id}:{model}"
 
@@ -144,18 +171,52 @@ def generate_structured(
     max_output_tokens: int = 1200,
     temperature: float = 0.1,
     seed: int | None = None,
+    capability_key: str | None = None,
 ) -> AIResult:
-    item, model = active_selection()
+    if runtime_mode() is AIRuntimeMode.LEGACY:
+        item, model = active_selection()
+        if not item.configured:
+            raise AIProviderUnavailable(f"{item.name} is not configured.")
+
+        # Do not silently fail over to a paid provider.
+        return item.generate_json(
+            messages=messages,
+            schema=schema,
+            model=model,
+            max_output_tokens=max_output_tokens,
+            temperature=temperature,
+            seed=seed,
+        )
+
+    if capability_key is None:
+        raise AICapabilityUnsupported("Capability mode requires an explicit AI capability.")
+    definition = require_capability(capability_key)
+    if not definition.implemented or not definition.provider_backed or not definition.configurable:
+        raise AICapabilityUnsupported(
+            f"AI capability {definition.key!r} is not provider-configurable."
+        )
+    row = _installed_platform_repository().get_capability_config(definition.key)
+    if row is None:
+        raise AICapabilityNotConfigured(
+            f"AI capability {definition.key!r} has no explicit configuration."
+        )
+    config = row.config
+    if not config.enabled:
+        raise AICapabilityDisabled(f"AI capability {definition.key!r} is disabled.")
+    validate_capability_config(definition.key, config)
+
+    item = providers().get(config.provider)
+    if item is None:
+        raise AICapabilityUnsupported(f"Unknown AI provider: {config.provider!r}.")
     if not item.configured:
         raise AIProviderUnavailable(f"{item.name} is not configured.")
-
-    # Do not silently fail over to a paid provider.
-    return item.generate_json(
+    generate_once = getattr(item, "generate_json_once", None) or item.generate_json
+    return generate_once(
         messages=messages,
         schema=schema,
-        model=model,
+        model=config.model,
         max_output_tokens=max_output_tokens,
-        temperature=temperature,
+        temperature=config.temperature if config.temperature is not None else temperature,
         seed=seed,
     )
 
@@ -189,7 +250,9 @@ def _legacy_config_payload() -> dict[str, Any]:
 @router.get("/config")
 def admin_ai_config(request: Request) -> dict[str, Any]:
     _require_admin(request)
-    return AIControlPlane(_installed_platform_repository()).inspect()
+    result = AIControlPlane(_installed_platform_repository()).inspect()
+    result["learner_runtime"] = {"mode": runtime_mode().value}
+    return result
 
 
 @router.put("/config", deprecated=True)

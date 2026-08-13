@@ -245,6 +245,7 @@ def test_get_is_capability_centric_network_free_and_secret_safe(
         "role": "live-global-routing-until-R2-activation",
         "selection_present": True,
     }
+    assert payload["learner_runtime"] == {"mode": "legacy"}
     rendered = json.dumps(payload)
     assert "super-secret" not in rendered
     assert "db-password" not in rendered
