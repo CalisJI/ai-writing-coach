@@ -23,6 +23,22 @@ RUBRIC_WEIGHTS = {
     "naturalness": 0.15,
 }
 
+ERROR_CATEGORIES = (
+    "article",
+    "tense",
+    "agreement",
+    "word_choice",
+    "word_form",
+    "preposition",
+    "sentence_structure",
+    "punctuation",
+    "coherence",
+    "task",
+    "naturalness",
+    "spelling",
+    "other",
+)
+
 SYSTEM_PROMPT = """You are a strict, consistent English writing evaluator and tutor.
 Evaluate the learner's ORIGINAL text, not a rewritten version.
 Your job is to help the learner improve over time, so consistency and factual accuracy matter more than producing many corrections.
@@ -54,29 +70,7 @@ LANGUAGE AND ACCURACY RULES — MANDATORY
 8. Do not manufacture grammar rules. If unsure, omit the error.
 9. For each reported error, provide confidence from 0.0 to 1.0. Only report items with confidence >= 0.75.
 
-Return ONLY valid JSON. No markdown.
-JSON schema:
-{
-  "grammar": 0,
-  "vocabulary": 0,
-  "coherence": 0,
-  "task_achievement": 0,
-  "naturalness": 0,
-  "cefr_estimate": "A1|A2|B1|B2|C1|C2",
-  "summary_vi": "...",
-  "strengths_vi": ["..."],
-  "priorities_vi": ["..."],
-  "errors": [
-    {
-      "category": "article|tense|agreement|word_choice|word_form|preposition|sentence_structure|punctuation|coherence|task|naturalness|spelling|other",
-      "fragment": "exact learner fragment",
-      "explanation_vi": "why it is a problem, in Vietnamese only",
-      "suggestion": "a corrected or more natural English version",
-      "mini_rule_vi": "short reusable rule in Vietnamese only",
-      "confidence": 0.90
-    }
-  ]
-}
+Follow the structured response schema supplied by the application. Return only valid JSON with no markdown.
 Do not inflate scores because the learner tried hard.
 """
 

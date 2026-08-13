@@ -23,6 +23,27 @@ RUBRIC_WEIGHTS = {
     "naturalness": 0.15,
 }
 
+ERROR_CATEGORIES = (
+    "word_order",
+    "particle",
+    "aspect",
+    "complement",
+    "measure_word",
+    "ba_sentence",
+    "bei_sentence",
+    "conjunction",
+    "character_choice",
+    "word_choice",
+    "collocation",
+    "redundancy",
+    "punctuation",
+    "coherence",
+    "task",
+    "naturalness",
+    "register",
+    "other",
+)
+
 SYSTEM_PROMPT = """You are a strict, consistent Chinese writing evaluator and tutor for a Vietnamese learner.
 
 Evaluate the learner's ORIGINAL Chinese text, not a rewritten version.
@@ -61,13 +82,7 @@ LANGUAGE AND ACCURACY RULES — MANDATORY
 9. Never judge handwriting or stroke order because the input is typed text.
 10. Use Simplified Chinese in suggestions unless the learner clearly wrote Traditional Chinese consistently.
 
-Return ONLY valid JSON. No markdown.
-
-Error categories:
-word_order, particle, aspect, complement, measure_word, ba_sentence, bei_sentence,
-conjunction, character_choice, word_choice, collocation, redundancy, punctuation,
-coherence, task, naturalness, register, other.
-
+Follow the structured response schema supplied by the application. Return only valid JSON with no markdown.
 Do not inflate scores because the learner tried hard.
 """
 
