@@ -5,6 +5,8 @@ from typing import Any
 
 import pytest
 
+from writing_coach.languages.chinese.profile import ERROR_CATEGORIES as CHINESE_ERROR_CATEGORIES
+from writing_coach.languages.english.profile import ERROR_CATEGORIES as ENGLISH_ERROR_CATEGORIES
 from writing_coach.writing_evaluation import normalize_writing_evaluation
 
 
@@ -25,6 +27,7 @@ def _normalize(
     *,
     allowed_levels: tuple[str, ...] = ("A1", "B2"),
     score_to_level: Callable[[float], str] = _en_level,
+    error_categories: tuple[str, ...] = ENGLISH_ERROR_CATEGORIES,
     allow_cjk: bool = False,
     learner_text: str = LEARNER_TEXT,
 ) -> dict[str, Any]:
@@ -33,6 +36,7 @@ def _normalize(
         rubric_weights=RUBRIC_WEIGHTS,
         allowed_levels=allowed_levels,
         score_to_level=score_to_level,
+        error_categories=error_categories,
         allow_cjk=allow_cjk,
         learner_text=learner_text,
     )
@@ -115,7 +119,11 @@ def test_strength_evidence_requires_exact_fragment_category_and_confidence() -> 
 
 
 def test_strength_evidence_is_bounded() -> None:
-    result = _normalize({"strength_evidence": [_strength() for _ in range(8)]})
+    fragments = [f"good {index}" for index in range(8)]
+    result = _normalize(
+        {"strength_evidence": [_strength(fragment=fragment) for fragment in fragments]},
+        learner_text=" ".join(fragments),
+    )
     assert len(result["strength_evidence"]) == 6
 
 
@@ -138,9 +146,70 @@ def test_errors_require_exact_evidence_meaningful_suggestion_and_confidence() ->
     assert rejected["errors"] == []
 
 
+def test_error_categories_follow_exact_active_language_taxonomy() -> None:
+    english = _normalize(
+        {
+            "errors": [
+                _error(category="article"),
+                _error(category="word_order"),
+                _error(category="unknown"),
+                _error(category=""),
+                _error(category=" article "),
+                _error(category="other"),
+                _error(category="Article"),
+                _error(category=["article"]),
+                {key: value for key, value in _error().items() if key != "category"},
+            ]
+        }
+    )
+    assert [item["category"] for item in english["errors"]] == ["article", "other"]
+
+    chinese = _normalize(
+        {"errors": [_error(category="word_order"), _error(category="article"), _error(category="other")]},
+        error_categories=CHINESE_ERROR_CATEGORIES,
+        allow_cjk=True,
+    )
+    assert [item["category"] for item in chinese["errors"]] == ["word_order", "other"]
+
+
+def test_error_duplicates_collapse_by_exact_category_and_fragment_in_first_valid_order() -> None:
+    first = _error(category="agreement", explanation_vi="first")
+    result = _normalize(
+        {
+            "errors": [
+                first,
+                _error(category="agreement", explanation_vi="duplicate"),
+                _error(category="article", explanation_vi="different category"),
+            ]
+        }
+    )
+    assert result["errors"] == [first, _error(category="article", explanation_vi="different category")]
+
+
+def test_strength_duplicates_collapse_by_exact_category_and_fragment_in_first_valid_order() -> None:
+    first = _strength(explanation_vi="first")
+    result = _normalize(
+        {
+            "strength_evidence": [
+                first,
+                _strength(explanation_vi="duplicate"),
+                _strength(category="vocabulary", explanation_vi="different category"),
+            ]
+        }
+    )
+    assert result["strength_evidence"] == [
+        first,
+        _strength(category="vocabulary", explanation_vi="different category"),
+    ]
+
+
 def test_errors_are_bounded_to_schema_limit_and_confidence_is_clamped_and_rounded() -> None:
-    items = [_error(confidence=1.6) for _ in range(32)]
-    result = _normalize({"errors": items})
+    fragments = [f"error {index}" for index in range(32)]
+    items = [
+        _error(fragment=fragment, suggestion=f"fix {index}", confidence=1.6)
+        for index, fragment in enumerate(fragments)
+    ]
+    result = _normalize({"errors": items}, learner_text=" ".join(fragments))
     assert len(result["errors"]) == 20
     assert result["errors"][0]["confidence"] == 1.0
 
@@ -209,6 +278,7 @@ def test_app_validate_result_delegates_to_the_extracted_contract(monkeypatch: py
     monkeypatch.setattr(app, "active_rubric_weights", lambda: {"grammar": 1.0})
     monkeypatch.setattr(app, "active_levels", lambda: ("A1",))
     monkeypatch.setattr(app, "active_score_to_level", lambda score: "A1")
+    monkeypatch.setattr(app, "active_error_categories", lambda: ("agreement", "other"))
     monkeypatch.setattr(app, "is_chinese", lambda: False)
 
     raw = {"grammar": 1, "__learner_text": LEARNER_TEXT}
@@ -216,6 +286,7 @@ def test_app_validate_result_delegates_to_the_extracted_contract(monkeypatch: py
     assert captured["raw"] is raw
     assert captured["learner_text"] == LEARNER_TEXT
     assert captured["allow_cjk"] is False
+    assert captured["error_categories"] == ("agreement", "other")
 
 
 def test_app_writing_evaluator_path_keeps_its_capability_identity(monkeypatch: pytest.MonkeyPatch) -> None:
