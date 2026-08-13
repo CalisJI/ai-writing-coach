@@ -30,6 +30,10 @@ class AICapabilityNotConfigured(AICapabilityError):
     pass
 
 
+class AICapabilityConfigInvalid(AICapabilityError):
+    """Persisted or proposed capability configuration is malformed."""
+
+
 class AICapabilityUnsupported(AICapabilityError):
     pass
 

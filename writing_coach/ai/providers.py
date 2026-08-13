@@ -29,7 +29,10 @@ class ProviderDefinition:
 
 
 _STRUCTURED_TEXT_OPERATIONS = frozenset({AIOperation.STRUCTURED_TEXT_GENERATION})
-_TEXT_OPTION_KEYS = frozenset({"timeout_seconds", "temperature", "max_output_tokens", "seed"})
+# generate_json() consumes temperature per request. Timeout is currently bound
+# to each runtime instance from environment configuration, so capability config
+# must not claim it is independently supported yet.
+_TEXT_OPTION_KEYS = frozenset({"temperature"})
 _PROVIDER_DEFINITIONS = (
     ProviderDefinition(
         id="ollama",

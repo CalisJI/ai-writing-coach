@@ -190,6 +190,18 @@ def all_capabilities() -> tuple[AICapabilityDefinition, ...]:
     return _DEFINITIONS
 
 
+def configurable_provider_capabilities() -> tuple[AICapabilityDefinition, ...]:
+    """Return the current capabilities that require explicit provider config."""
+
+    return tuple(
+        definition
+        for definition in _DEFINITIONS
+        if definition.implemented
+        and definition.provider_backed
+        and definition.configurable
+    )
+
+
 def get_capability(key: str) -> AICapabilityDefinition | None:
     """Return an exact capability match; unknown values never select a default."""
 
