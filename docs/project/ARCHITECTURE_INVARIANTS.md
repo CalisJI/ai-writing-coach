@@ -1,0 +1,96 @@
+# Architecture Invariants
+
+These rules must not drift through incidental implementation work. Changing an
+invariant requires an explicit accepted decision, an appended Decision Log
+entry, and corresponding current-state and handoff updates.
+
+## Persistence
+
+- PostgreSQL is authoritative.
+- SQLite is frozen rollback/archive only.
+- No dual-write.
+- No reverse sync from PostgreSQL to SQLite.
+- No silent SQLite fallback.
+- No startup import.
+- No automatic startup Alembic.
+- No destructive persistent-volume cleanup.
+- Production data mutation is always a human gate.
+- Schema ownership remains Alembic-based for PostgreSQL.
+
+## Frontend
+
+- `BECOMING_FRONTEND_VERSION` remains exactly `2.15.7` until an explicitly
+  scoped, reviewed change updates it.
+- Backend and architecture tasks do not casually touch frontend code or assets.
+- Preserve shared responsive behavior, accessibility, EN/ZH parity, light/dark
+  parity, shared tokens, and the established visual identity.
+- Journey, Review, Library / Active Recall UI, shared layout primitives,
+  gutters, spacing, overflow, and container-width primitives are protected.
+- `docs/visual-references/**` remains untouched unless explicitly scoped.
+
+## Multilingual product
+
+- Shared product behavior applies to EN and ZH.
+- A shared feature is implemented once through a language-neutral contract.
+- Language adapters are used only for genuine linguistic differences.
+- Future languages plug into shared contracts rather than receiving copied
+  product flows.
+- Conceptually language-scoped learner data is isolated by user and learning
+  language.
+
+## Release
+
+- Writing and Speaking form the first complete public learning product.
+- Writing COMPLETE, Speaking COMPLETE, EN PASS, and ZH PASS are all required.
+- Reading is a separate later public release.
+- Listening is later still.
+- No learner skill is currently PUBLIC. Promotion requires a reviewed release
+  gate and an explicit repository-state transition.
+
+## AI Platform
+
+- The AI Control Plane owns AI infrastructure and AI workload configuration;
+  it is not a general product-domain registry.
+- `reading_evaluator` is deterministic and not provider-configurable.
+- Speech capabilities are reserved and unimplemented until Speaking work
+  explicitly implements them.
+- Capability configuration and diagnostics never persist or expose credentials.
+- No provider-to-provider fallback or silent paid-provider failover.
+- Static configuration validation remains separate from live provider/model
+  testing.
+- Learner `generate_structured()` remains on legacy `active_selection()` until
+  one reviewed atomic activation switches the whole runtime contract.
+- Persisted fallback policy is metadata until runtime activation explicitly
+  implements its behavior.
+
+## Operations
+
+- Never use `docker compose down -v`.
+- Never print or commit secrets, credential-bearing URLs, authorization
+  headers, or raw sensitive provider responses.
+- No automatic production migration or production capability-row mutation.
+- Cloudflare, DNS, OAuth, secret, and production staging infrastructure changes
+  require explicit scope and human authorization.
+- Do not casually re-enable the disabled Windows Cloudflared service; the
+  Docker connector is canonical.
+- Preserve rollback evidence and persistent PostgreSQL data.
+
+## Git
+
+- `main` is stable and verified; development occurs on `codex/*` or an
+  explicitly approved development branch.
+- Never force-push `main`, merge automatically to `main`, or rewrite verified
+  history.
+- Never use `git clean -fd`, arbitrary `git add -A`, or destructive
+  `git reset --hard` without explicit authorization.
+- Do not delete unrelated untracked files or `docs/visual-references/**`.
+- Stage only files belonging to the coherent reviewed change.
+- Leave every checkpoint reviewable with exact validation and status evidence.
+
+## Human gates
+
+Stop before production data mutation, runtime activation, unapproved schema or
+Alembic work, Cloudflare/DNS/OAuth/secret changes, paid-provider or billing
+decisions, destructive Git, volume deletion, public release, rollback-path
+removal, ambiguous architecture decisions, unresolved P0 findings, or repeated
+P1 findings that require broader redesign.
