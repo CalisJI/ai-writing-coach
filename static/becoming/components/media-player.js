@@ -30,6 +30,10 @@ function sendCommand(root,playback,func,args=[]){
   return true;
 }
 
+export function playbackAvailable(playback){
+  return playbackAdapter(playback)!==null;
+}
+
 export function mediaPlayer(playback,title){
   const adapter=playbackAdapter(playback);
   if(!adapter){

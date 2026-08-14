@@ -8,7 +8,7 @@ historical narrative.
 - Product: Orena / BECOMING codebase
 - Repository: `CalisJI/ai-writing-coach`
 - Last verified application/runtime baseline:
-  `113d42afef04c089a469e92de0ff7fa8215deb57`
+  `38e023aaea735e81d3d725dfc912702d84fdefbe`
 
 This SHA identifies the verified application/runtime baseline inherited by this
 governance checkpoint. Documentation-only or governance-only descendant commits
@@ -124,13 +124,16 @@ PV-2 / OREN-10 merged the first authenticated internal Listening workspace.
 PV-3 / OREN-11 merged selected-segment navigation, Previous / Next, canonical
 timestamp replay, supported playback rates, and stronger selection visibility.
 
-M1.4 is **IN PROGRESS** as the Listening MVP integration and acceptance
-checkpoint. It verifies that the reviewed M1.1-M1.3 backend and PV-2/PV-3
-workspace form one truthful, internally usable EN/ZH follow-along flow.
-Listening remains **DEVELOPMENT**, internally available, and not public. There
-is still no durable media or Listening progress persistence, Listening scoring,
-active Listening exercise flow, dictation, comprehension evaluation, Shadowing
-activation, or public Listening release.
+M1.4 is **CLOSED / APPROVED / merged**. It verified that the reviewed M1.1-M1.3
+backend and PV-2/PV-3 workspace form one truthful, internally usable EN/ZH
+follow-along flow over canonical Media Learning segments.
+
+M1.5 is **IN PROGRESS** as Active Listening over those same canonical Media
+Learning segments. Practice state is browser-session state that references
+canonical `asset_id` and `segment_id`; it does not duplicate transcript content
+or add durable learner-progress persistence. Listening remains
+**DEVELOPMENT**, internally available, and not public. Listening completion,
+Shadowing activation, and public release remain later gates.
 
 ## R2 AI Capability Control Plane
 
@@ -195,6 +198,6 @@ Two development tracks are active:
   live provider validation, runtime activation, and rollback execution remain
   human gates.
 - M1 is **IN PROGRESS** as a cross-cutting product-development track. M1.1,
-  M1.2, and M1.3 are closed and merged. The internal Listening workspace from
-  PV-2 / OREN-10 and its PV-3 / OREN-11 practice controls are merged. M1.4
-  Listening MVP integration and acceptance is the current checkpoint.
+  M1.2, M1.3, and M1.4 are closed and merged. The internal Listening workspace
+  from PV-2 / OREN-10 and its PV-3 / OREN-11 controls are merged. M1.5 Active
+  Listening is the current checkpoint.
