@@ -48,11 +48,13 @@ M1.4 Listening MVP integration and acceptance is **CLOSED / APPROVED / merged**.
 It established one shared EN/ZH passive follow-along flow over the reviewed
 Media Learning backend.
 
-M1.5 Active Listening is **IN PROGRESS**. It adds bounded, deterministic
-transcript-reconstruction practice over canonical Media Learning segments with
-browser-session-only practice state. There is no durable media or Listening
-progress persistence, AI dictation grading, or Shadowing activation. Listening
-and Speaking remain non-public.
+M1.5 Active Listening is **CLOSED / APPROVED / merged**. It added bounded,
+deterministic transcript-reconstruction practice over canonical Media Learning
+segments with browser-session-only practice state. There is no durable media
+or Listening progress persistence or AI dictation grading.
+
+M1.6 Shared-media Shadowing integration is **PLANNED** and is the next M1
+checkpoint. Listening and Speaking remain non-public.
 
 ## Current runtime truth
 
@@ -66,9 +68,9 @@ and Speaking remain non-public.
 
 ## Next checkpoints
 
-- M1 product-development lane: complete review of M1.5 Active Listening. After
-  its reviewed merge, M1.6 Shared-media Shadowing integration is next. M1.5
-  does not make Listening complete or public.
+- M1 product-development lane: M1.5 Active Listening is closed and merged.
+  M1.6 Shared-media Shadowing integration is next and remains PLANNED until
+  implementation begins. Neither checkpoint makes Listening or Speaking public.
 - R2 control-plane lane: static activation-readiness gate and operator
   checkpoint. R2 remains IN PROGRESS.
 
