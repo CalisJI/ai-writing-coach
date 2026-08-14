@@ -8,7 +8,6 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from writing_coach.core.request_context import current_language_code
-from writing_coach.core.support_languages import normalize_support_language
 from writing_coach.media_ingestion import (
     MediaAcquisition,
     MediaImportCategory,
@@ -37,7 +36,7 @@ class MediaImportIn(BaseModel):
     @field_validator("target_language")
     @classmethod
     def normalize_target_language(cls, value: str) -> str:
-        return normalize_support_language(value)
+        return value.strip().casefold()
 
 
 def configure_media_ingestion(service: MediaIngestionService) -> None:

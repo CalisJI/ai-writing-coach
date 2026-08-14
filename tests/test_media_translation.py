@@ -1,12 +1,13 @@
 from __future__ import annotations
 
+import asyncio
 import inspect
 import json
 from dataclasses import replace
 from typing import Any
 
 import pytest
-from pydantic import ValidationError
+from fastapi import FastAPI
 
 import writing_coach.media_api as media_api
 import writing_coach.media_translation as media_translation
@@ -21,7 +22,11 @@ from writing_coach.core.support_languages import (
     support_language,
 )
 from writing_coach.media_api import MediaImportIn
-from writing_coach.media_ingestion import MediaAcquisition, MediaPlayback
+from writing_coach.media_ingestion import (
+    MediaAcquisition,
+    MediaIngestionService,
+    MediaPlayback,
+)
 from writing_coach.media_learning import (
     MediaLearningAsset,
     MediaLearningObject,
@@ -426,12 +431,101 @@ def _api_response(
     )
 
 
-def test_invalid_api_target_language_is_a_validation_error() -> None:
-    with pytest.raises(ValidationError):
-        MediaImportIn(
-            source_url="https://example.invalid/media",
-            target_language="fr",
+def test_invalid_api_target_language_preserves_structured_http_contract(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class CountingAdapter:
+        provider_id = "test"
+
+        def __init__(self) -> None:
+            self.calls: list[str] = []
+
+        def recognizes(self, source_url: str) -> bool:
+            self.calls.append(f"recognizes:{source_url}")
+            return True
+
+        def acquire(self, source_url: str, source_language: str) -> MediaAcquisition:
+            self.calls.append(f"acquire:{source_url}:{source_language}")
+            raise AssertionError("Invalid support language reached media acquisition")
+
+    class CountingTranslationService:
+        def __init__(self) -> None:
+            self.calls: list[tuple[MediaLearningObject, str]] = []
+
+        def translate(
+            self, media_object: MediaLearningObject, target_language: str
+        ) -> MediaTranslationResult:
+            self.calls.append((media_object, target_language))
+            raise AssertionError("Invalid support language reached translation")
+
+    adapter = CountingAdapter()
+    translation = CountingTranslationService()
+    ingestion = MediaIngestionService((adapter,), lambda _language: True)
+    monkeypatch.setattr(media_api, "_media_ingestion_service", ingestion)
+    monkeypatch.setattr(media_api, "_media_translation_service", translation)
+    application = FastAPI()
+    application.include_router(media_api.router)
+
+    request_body = json.dumps(
+        {
+            "source_url": "https://example.invalid/media",
+            "target_language": "fr",
+        }
+    ).encode()
+    sent: list[dict[str, Any]] = []
+    request_sent = False
+
+    async def receive() -> dict[str, Any]:
+        nonlocal request_sent
+        if request_sent:
+            return {"type": "http.disconnect"}
+        request_sent = True
+        return {"type": "http.request", "body": request_body, "more_body": False}
+
+    async def send(message: dict[str, Any]) -> None:
+        sent.append(message)
+
+    asyncio.run(
+        application(
+            {
+                "type": "http",
+                "asgi": {"version": "3.0"},
+                "http_version": "1.1",
+                "method": "POST",
+                "scheme": "http",
+                "path": "/api/media-learning/import",
+                "raw_path": b"/api/media-learning/import",
+                "query_string": b"",
+                "headers": [
+                    (b"content-type", b"application/json"),
+                    (b"content-length", str(len(request_body)).encode()),
+                ],
+                "client": ("test", 123),
+                "server": ("test", 80),
+                "root_path": "",
+            },
+            receive,
+            send,
         )
+    )
+
+    response_start = next(
+        message for message in sent if message["type"] == "http.response.start"
+    )
+    response_body = b"".join(
+        message.get("body", b"")
+        for message in sent
+        if message["type"] == "http.response.body"
+    )
+    assert response_start["status"] == 422
+    assert json.loads(response_body) == {
+        "detail": {
+            "category": "invalid_target_language",
+            "message": "Choose a valid support language.",
+        }
+    }
+    assert adapter.calls == []
+    assert translation.calls == []
 
 
 def test_api_ready_response_preserves_pv2_fields_and_safe_provenance(

@@ -370,13 +370,16 @@ def test_provider_network_and_product_side_effects_remain_isolated() -> None:
     assert "yt_dlp" not in combined
 
 
-def test_request_dto_accepts_current_support_language_without_starting_translation() -> None:
+@pytest.mark.parametrize("raw_language", (" vi ", " EN ", " Zh "))
+def test_request_dto_normalizes_current_support_languages_without_translation(
+    raw_language: str,
+) -> None:
     payload = MediaImportIn(
         source_url=f"https://youtu.be/{VIDEO_ID}",
-        target_language=" vi ",
+        target_language=raw_language,
     )
 
-    assert payload.target_language == "vi"
+    assert payload.target_language == raw_language.strip().casefold()
 
 
 @pytest.mark.parametrize(

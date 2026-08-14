@@ -70,6 +70,21 @@ assert.equal(untranslated.model.payload.translation.status,'unavailable');
 assert.match(untranslated.html(),/这是共享的原文字幕。/);
 assert.match(untranslated.html(),/translation-unavailable/);
 
+const sameLanguage={
+  ...MEDIA_LEARNING_FIXTURE,
+  asset:{...MEDIA_LEARNING_FIXTURE.asset,translation_available:false},
+  translations:[],
+  translation:{status:'not_required',target_language:'en',source:null,failure_kind:null},
+};
+const translationNotRequired=createListeningController({importMedia:async()=>sameLanguage,targetLanguage:()=> 'en'});
+await translationNotRequired.importUrl('https://youtu.be/dQw4w9WgXcQ');
+assert.equal(translationNotRequired.model.status,'ready');
+assert.equal(translationNotRequired.model.payload.translation.status,'not_required');
+assert.match(translationNotRequired.html(),/translation-not-required/);
+assert.match(translationNotRequired.html(),/Không cần bản dịch|Translation is not required|不需要翻译/);
+assert.doesNotMatch(translationNotRequired.html(),/translation-unavailable/);
+assert.doesNotMatch(translationNotRequired.html(),/Meaning is not available yet\./);
+
 const noCaption={...MEDIA_LEARNING_FIXTURE,asset:{...MEDIA_LEARNING_FIXTURE.asset,transcript_available:false,translation_available:false},transcript:null,translations:[],translation:{status:'transcript_unavailable',target_language:'vi',source:null,failure_kind:null}};
 const captionless=createListeningController({importMedia:async()=>noCaption,targetLanguage:()=> 'vi'});
 await captionless.importUrl('https://youtu.be/dQw4w9WgXcQ');
