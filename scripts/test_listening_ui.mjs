@@ -24,6 +24,7 @@ assert.deepEqual(states.slice(-2),['validating','ready']);
 assert.equal(controller.model.status,'ready');
 assert.equal(controller.model.payload.translation.status,'ready');
 assert.equal(controller.model.selected,'segment-001');
+assert.doesNotMatch(controller.html(),/translation-status-(?:unavailable|too_large)/);
 assert.match(controller.html(),/Listen for the first complete idea\./);
 assert.match(controller.html(),/listening-segment selected[^>]*data-segment-id="segment-001"/);
 assert.match(controller.html(),/data-segment-id="segment-001" aria-current="true"/);
@@ -154,16 +155,22 @@ controller.moveSelection(1);
 assert.match(controller.html(),/The same segment can support shadowing later\./);
 assert.match(controller.html(),/Cùng đoạn này có thể dùng để luyện nói sau\./);
 
-const untranslated=createListeningController({importMedia:async()=>MEDIA_LEARNING_ZH_FIXTURE,targetLanguage:()=> 'vi'});
+const translationFailure={
+  ...MEDIA_LEARNING_ZH_FIXTURE,
+  translation:{...MEDIA_LEARNING_ZH_FIXTURE.translation,provider_error:'RAW PROVIDER EXCEPTION'},
+};
+const untranslated=createListeningController({importMedia:async()=>translationFailure,targetLanguage:()=> 'vi'});
 await untranslated.importUrl('https://youtu.be/dQw4w9WgXcQ');
 assert.equal(untranslated.model.status,'ready');
 assert.equal(untranslated.model.payload.translation.status,'unavailable');
 assert.match(untranslated.html(),/这是共享的原文字幕。/);
-assert.match(untranslated.html(),/translation-unavailable/);
+assert.match(untranslated.html(),/translation-status-unavailable/);
+assert.match(untranslated.html(),/Hiện chưa thể tạo phần nghĩa|Meaning could not be generated|目前无法生成释义/);
+assert.doesNotMatch(untranslated.html(),/RAW PROVIDER EXCEPTION|translation-unavailable/);
 assert.equal(untranslated.moveSelection(1),true);
 assert.equal(untranslated.model.selected,'segment-zh-002');
 assert.match(untranslated.html(),/下一句也使用同一个学习流程。/);
-assert.match(untranslated.html(),/translation-unavailable/);
+assert.match(untranslated.html(),/translation-status-unavailable/);
 assert.equal(untranslated.moveSelection(-1),true);
 
 const sameLanguage={
@@ -189,7 +196,10 @@ const oversizedTranslation=createListeningController({importMedia:async()=>tooLa
 await oversizedTranslation.importUrl('https://youtu.be/dQw4w9WgXcQ');
 assert.equal(oversizedTranslation.model.status,'ready');
 assert.match(oversizedTranslation.html(),/这是共享的原文字幕。/);
-assert.match(oversizedTranslation.html(),/translation-unavailable/);
+assert.match(oversizedTranslation.html(),/translation-status-too_large/);
+assert.match(oversizedTranslation.html(),/quá lớn để tự động tạo phần nghĩa|too large for automatic meaning generation|内容过大/);
+assert.doesNotMatch(oversizedTranslation.html(),/translation-status-unavailable|translation-unavailable/);
+assert.notEqual(oversizedTranslation.html(),untranslated.html());
 
 const noCaption={...MEDIA_LEARNING_FIXTURE,asset:{...MEDIA_LEARNING_FIXTURE.asset,transcript_available:false,translation_available:false},transcript:null,translations:[],translation:{status:'transcript_unavailable',target_language:'vi',source:null,failure_kind:null}};
 const captionless=createListeningController({importMedia:async()=>noCaption,targetLanguage:()=> 'vi'});
@@ -198,12 +208,28 @@ assert.equal(captionless.model.status,'transcript-unavailable');
 assert.equal(captionless.model.payload.translation.status,'transcript_unavailable');
 assert.match(captionless.html(),/listening-state-transcript-unavailable/);
 
-const categorized=new Error('This media provider is not supported yet.');
-categorized.category='unsupported_provider';
-const unsupported=createListeningController({importMedia:async()=>{throw categorized;},targetLanguage:()=> 'vi'});
-await unsupported.importUrl('https://example.invalid/video');
-assert.equal(unsupported.model.status,'unsupported');
-assert.doesNotMatch(unsupported.html(),/\[object Object\]/);
+const acquisitionCases=[
+  ['malformed_url','unsupported',/URL media công khai hợp lệ|valid public media URL|有效的公开视频网址/],
+  ['unsupported_provider','unsupported',/Nhà cung cấp media này chưa được hỗ trợ|media provider is not supported|媒体提供方/],
+  ['media_unavailable','error',/riêng tư hoặc không khả dụng|private or unavailable|私密内容或暂不可用/],
+  ['provider_timeout','error',/không phản hồi kịp thời|did not respond in time|响应超时/],
+  ['provider_failure','error',/không thể chuẩn bị bài học này|could not prepare this lesson|无法准备本课/],
+  ['unsupported_source_language','error',/Ngôn ngữ của media này chưa được hỗ trợ|media language is not supported|媒体语言/],
+];
+const acquisitionMessages=[];
+for(const [category,status,safeCopy] of acquisitionCases){
+  const categorized=new Error(`RAW PROVIDER EXCEPTION FOR ${category}`);
+  categorized.category=category;
+  const degraded=createListeningController({importMedia:async()=>{throw categorized;},targetLanguage:()=> 'vi'});
+  await degraded.importUrl('https://example.invalid/video');
+  const html=degraded.html();
+  assert.equal(degraded.model.status,status);
+  assert.match(html,new RegExp(`listening-state-${category}`));
+  assert.match(html,safeCopy);
+  assert.doesNotMatch(html,/RAW PROVIDER EXCEPTION|\[object Object\]/);
+  acquisitionMessages.push(html.match(/<div class="listening-state[^>]*>([^<]+)<\/div>/)?.[1]);
+}
+assert.equal(new Set(acquisitionMessages).size,acquisitionCases.length);
 for(const category of ['malformed_url','unsupported_provider']){
   assert.equal(mediaImportErrorState({category}),'unsupported');
 }
