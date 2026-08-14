@@ -241,7 +241,7 @@ function savePosLensPreference(enabled){
   }catch{}
 }
 
-function posLegend(){
+function posLegend(className='pos-legend'){
   const groups=[
     ['noun','review.pos_group_noun'],
     ['verb','review.pos_group_verb'],
@@ -250,7 +250,7 @@ function posLegend(){
     ['reference','review.pos_group_reference'],
     ['number','review.pos_group_number'],
   ];
-  return `<div class="pos-legend" aria-label="${esc(t('review.pos_legend'))}">
+  return `<div class="${className}" aria-label="${esc(t('review.pos_legend'))}">
     ${groups.map(([group,key])=>`<span><i class="pos-swatch pos-${group}" aria-hidden="true"></i>${esc(t(key))}</span>`).join('')}
   </div>`;
 }
@@ -265,6 +265,7 @@ export async function installLinguisticLens(root,{
   const toggle=root.querySelector('#posLensToggle');
   const status=root.querySelector('#posLensStatus');
   const legend=root.querySelector('#posLensLegend');
+  const lens=root.querySelector('#posLens');
   if(!textNode||!toggle)return;
 
   let enabled=posLensEnabled();
@@ -283,6 +284,9 @@ export async function installLinguisticLens(root,{
   };
 
   const syncUi=()=>{
+    const viewState=unavailable?'unavailable':enabled?(loaded?'ready':'loading'):'off';
+    lens?.setAttribute('data-state',viewState);
+    lens?.classList.toggle('active',viewState==='ready');
     toggle.setAttribute('aria-pressed',enabled?'true':'false');
     toggle.textContent=enabled?t('review.pos_hide'):t('review.pos_show');
     legend?.classList.toggle('hidden',!(enabled&&loaded&&annotations.length));
@@ -302,6 +306,7 @@ export async function installLinguisticLens(root,{
     }
 
     unavailable=false;
+    syncUi();
     setBusy(toggle,true,{label:t('review.pos_loading')});
     if(status)status.textContent=t('review.pos_loading');
 
@@ -474,13 +479,16 @@ export async function renderReview(root){
         <p class="review-density-note">${t('review.highlight_note')}</p>
         ${supportNote('lookup_tip',state.profile||{})}
 
-        <div class="linguistic-lens-bar visual-section-surface" aria-labelledby="posLensTitle">
-          <div>
+        <div id="posLens" class="linguistic-lens-bar visual-section-surface" data-state="off" aria-labelledby="posLensTitle">
+          <span class="linguistic-lens-mark" aria-hidden="true">Aa</span>
+          <div class="linguistic-lens-copy">
             <div class="section-title-row">
               <span class="context-label">${t('review.pos_kicker')}</span>
               ${helpTip(t('review.pos_help'),t('review.pos_title'))}
             </div>
             <strong id="posLensTitle">${t('review.pos_title')}</strong>
+            <p>${t('review.pos_intro')}</p>
+            ${posLegend('pos-preview')}
             <small id="posLensStatus" aria-live="polite">${t('review.pos_off')}</small>
           </div>
           <button id="posLensToggle" class="button button-secondary linguistic-lens-toggle" type="button" aria-pressed="false">${t('review.pos_show')}</button>

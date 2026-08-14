@@ -17,6 +17,7 @@ class ClassList{
     if(force)this.values.add(name);
     else this.values.delete(name);
   }
+  contains(name){return this.values.has(name);}
 }
 
 class Element{
@@ -43,6 +44,7 @@ function root(){
     '#posLensToggle':new Element(),
     '#posLensStatus':new Element(),
     '#posLensLegend':new Element(),
+    '#posLens':new Element(),
   };
   return {
     nodes,
@@ -67,6 +69,8 @@ async function enabledLens(language,text,annotations){
     errors:[{fragment:annotations[0].fragment}],
     strengths:[],
   });
+  assert.equal(view.nodes['#posLens'].attributes['data-state'],'off');
+  assert.equal(view.nodes['#posLens'].classList.contains('active'),false);
   await Promise.all([view.nodes['#posLensToggle'].click(),view.nodes['#posLensToggle'].click()]);
   assert.equal(calls,1,'one lens lifecycle must make one linguistic API call');
   assert.match(
@@ -76,8 +80,11 @@ async function enabledLens(language,text,annotations){
   );
   assert.match(view.nodes['#learnerTextEvidence'].innerHTML,/pos-token/);
   assert.equal(view.nodes['#posLensToggle'].attributes['aria-pressed'],'true');
+  assert.equal(view.nodes['#posLens'].attributes['data-state'],'ready');
+  assert.equal(view.nodes['#posLens'].classList.contains('active'),true);
   assert.equal(view.nodes['#posLensLegend'].classList.values.has('hidden'),false);
   await view.nodes['#posLensToggle'].click();
+  assert.equal(view.nodes['#posLens'].attributes['data-state'],'off');
   assert.doesNotMatch(view.nodes['#learnerTextEvidence'].innerHTML,/pos-token/);
   assert.match(view.nodes['#learnerTextEvidence'].innerHTML,/error-mark/);
 }
@@ -104,11 +111,19 @@ await installLinguisticLens(unavailable,{
 await unavailable.nodes['#posLensToggle'].click();
 assert.match(unavailable.nodes['#posLensStatus'].textContent,/unavailable/i);
 assert.equal(unavailable.nodes['#posLensToggle'].attributes['aria-pressed'],'false');
+assert.equal(unavailable.nodes['#posLens'].attributes['data-state'],'unavailable');
 assert.doesNotMatch(unavailable.nodes['#learnerTextEvidence'].innerHTML,/pos-token/);
 
 const source=fs.readFileSync(new URL('../static/becoming/screens/review.js',import.meta.url),'utf8');
-assert.match(source,/id="posLensToggle"/,'Review must visibly render the lens control');
+const styles=fs.readFileSync(new URL('../static/becoming/phase3.css',import.meta.url),'utf8');
+assert.match(source,/id="posLens" class="linguistic-lens-bar/,'Review must visibly render the lens container');
+assert.match(source,/posLegend\('pos-preview'\)/,'Review must show the compact POS preview while off');
+for(const group of ['noun','verb','modifier','connector','reference','number']){
+  assert.match(source,new RegExp(`\\['${group}','review\\.pos_group_${group}'\\]`),`POS preview must include ${group}`);
+}
+assert.match(styles,/\.linguistic-lens-bar\.active\{/,'enabled lens must have a visible active treatment');
+assert.match(styles,/@media\(max-width:640px\)[\s\S]*\.linguistic-lens-toggle\{[\s\S]*grid-column:1\/-1;/,'narrow layout must wrap the toggle below the preview');
 assert.equal((source.match(/function installLinguisticLens/g)||[]).length,1,'EN and ZH must share one lens implementation');
 assert.equal((source.match(/^  installLinguisticLens\(root,\{/gm)||[]).length,1,'Review must install the shared lens exactly once per render');
 
-console.log('Review linguistic lens checks passed: 9');
+console.log('Review linguistic lens visible-contract checks passed');
