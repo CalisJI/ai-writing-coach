@@ -104,19 +104,24 @@ function listeningPage(model,viewId){
 export function createListeningController({importMedia,targetLanguage,onChange=()=>{}}){
   const model={status:'empty',payload:null,error:null,selected:null,original:true,meaning:true,playbackRate:1};
   const viewId=`listening-${++listeningViewSequence}`;
+  let importGeneration=0;
   const changed=()=>onChange({...model});
   return {
     model,
     viewId,
     html:()=>listeningPage(model,viewId),
     async importUrl(sourceUrl){
+      const generation=++importGeneration;
       model.status='validating';model.error=null;changed();
       if(!validMediaUrl(sourceUrl)){model.status='unsupported';changed();return;}
       try{
-        model.payload=await importMedia({source_url:sourceUrl,target_language:targetLanguage()});
+        const payload=await importMedia({source_url:sourceUrl,target_language:targetLanguage()});
+        if(generation!==importGeneration)return;
+        model.payload=payload;
         model.status=mediaImportState(model.payload);
         model.selected=model.status==='ready'?model.payload.transcript.segments[0].segment_id:null;
       }catch(error){
+        if(generation!==importGeneration)return;
         model.error=error;
         model.status=mediaImportErrorState(error);
       }

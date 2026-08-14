@@ -56,6 +56,80 @@ delayedResolve(MEDIA_LEARNING_FIXTURE);
 await delayed;
 assert.equal(mountedHtml,'<section id="new-route">New route</section>');
 
+const scrolledSegments=[];
+let scrollHtml='';
+const scrollRoot={
+  get innerHTML(){return scrollHtml;},
+  set innerHTML(value){scrollHtml=value;},
+  querySelector(selector){
+    if(selector.startsWith('[data-listening-view=')){
+      const viewId=selector.match(/"([^"]+)"/)?.[1];
+      return viewId&&scrollHtml.includes(`data-listening-view="${viewId}"`)?{}:null;
+    }
+    return null;
+  },
+  querySelectorAll(selector){
+    if(selector==='[data-segment-id]'){
+      return ['segment-001','segment-002'].map(segmentId=>({
+        dataset:{segmentId},
+        scrollIntoView:()=>scrolledSegments.push(segmentId),
+      }));
+    }
+    return [];
+  },
+};
+const scrollController=await renderListening(scrollRoot,{importMedia:async()=>MEDIA_LEARNING_FIXTURE,targetLanguage:()=> 'vi'});
+await scrollController.importUrl('https://youtu.be/dQw4w9WgXcQ');
+assert.deepEqual(scrolledSegments,['segment-001']);
+assert.equal(scrollController.moveSelection(1),true);
+assert.deepEqual(scrolledSegments,['segment-001','segment-002']);
+
+const overlapping=[];
+const raceController=createListeningController({
+  importMedia:payload=>new Promise((resolve,reject)=>overlapping.push({payload,resolve,reject})),
+  targetLanguage:()=> 'vi',
+});
+const olderImport=raceController.importUrl('https://example.invalid/lesson-a');
+const newerImport=raceController.importUrl('https://example.invalid/lesson-b');
+assert.deepEqual(overlapping.map(item=>item.payload.source_url),[
+  'https://example.invalid/lesson-a',
+  'https://example.invalid/lesson-b',
+]);
+overlapping[1].resolve(MEDIA_LEARNING_ZH_FIXTURE);
+await newerImport;
+assert.equal(raceController.model.payload.asset.asset_id,'asset-fixture-zh');
+assert.equal(raceController.model.selected,'segment-zh-001');
+overlapping[0].resolve(MEDIA_LEARNING_FIXTURE);
+await olderImport;
+assert.equal(raceController.model.payload.asset.asset_id,'asset-fixture-zh');
+assert.equal(raceController.model.selected,'segment-zh-001');
+assert.equal(raceController.model.status,'ready');
+
+const importFailure=new Error('The media provider could not complete this request.');
+importFailure.category='provider_failure';
+const resetController=createListeningController({
+  importMedia:async({source_url})=>{
+    if(source_url.endsWith('/failure'))throw importFailure;
+    return source_url.endsWith('/lesson-zh')?MEDIA_LEARNING_ZH_FIXTURE:MEDIA_LEARNING_FIXTURE;
+  },
+  targetLanguage:()=> 'vi',
+});
+await resetController.importUrl('https://example.invalid/lesson-en');
+resetController.select('segment-002');
+resetController.toggleOriginal(false);
+resetController.toggleMeaning(false);
+assert.equal(resetController.setPlaybackRate(.75),true);
+await resetController.importUrl('https://example.invalid/failure');
+assert.equal(resetController.model.status,'error');
+assert.equal(resetController.model.error,importFailure);
+await resetController.importUrl('https://example.invalid/lesson-zh');
+assert.equal(resetController.model.selected,'segment-zh-001');
+assert.equal(resetController.model.error,null);
+assert.equal(resetController.model.original,false);
+assert.equal(resetController.model.meaning,false);
+assert.equal(resetController.model.playbackRate,.75);
+assert.match(resetController.html(),/value="0.75" selected/);
+
 controller.toggleOriginal(false);
 controller.toggleMeaning(false);
 assert.equal(controller.moveSelection(1),true);
@@ -106,6 +180,16 @@ assert.match(translationNotRequired.html(),/translation-not-required/);
 assert.match(translationNotRequired.html(),/Không cần bản dịch|Translation is not required|不需要翻译/);
 assert.doesNotMatch(translationNotRequired.html(),/translation-unavailable/);
 assert.doesNotMatch(translationNotRequired.html(),/Meaning is not available yet\./);
+
+const tooLarge={
+  ...MEDIA_LEARNING_ZH_FIXTURE,
+  translation:{status:'too_large',target_language:'vi',source:null,failure_kind:null},
+};
+const oversizedTranslation=createListeningController({importMedia:async()=>tooLarge,targetLanguage:()=> 'vi'});
+await oversizedTranslation.importUrl('https://youtu.be/dQw4w9WgXcQ');
+assert.equal(oversizedTranslation.model.status,'ready');
+assert.match(oversizedTranslation.html(),/这是共享的原文字幕。/);
+assert.match(oversizedTranslation.html(),/translation-unavailable/);
 
 const noCaption={...MEDIA_LEARNING_FIXTURE,asset:{...MEDIA_LEARNING_FIXTURE.asset,transcript_available:false,translation_available:false},transcript:null,translations:[],translation:{status:'transcript_unavailable',target_language:'vi',source:null,failure_kind:null}};
 const captionless=createListeningController({importMedia:async()=>noCaption,targetLanguage:()=> 'vi'});

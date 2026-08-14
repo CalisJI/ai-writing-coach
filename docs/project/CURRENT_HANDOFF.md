@@ -1,7 +1,7 @@
 # Current Handoff
 
 **Application/runtime baseline:**
-`5b5807a0986a8563406322f0cca884eb0100902c`
+`113d42afef04c089a469e92de0ff7fa8215deb57`
 
 This is the inherited verified application/runtime baseline, not a requirement
 that `main` HEAD remain identical after docs-only or governance-only commits.
@@ -19,7 +19,9 @@ that `main` HEAD remain identical after docs-only or governance-only commits.
 - R2 Slice 4
 - M1.1 — media object and segment contracts
 - M1.2 — media ingestion and transcript acquisition
+- M1.3 — shared media translation
 - PV-2 / OREN-10 — internal Listening workspace foundation
+- PV-3 / OREN-11 — Listening practice navigation and playback controls
 
 ## Current M1 checkpoint
 
@@ -31,16 +33,21 @@ M1.2 is **CLOSED / APPROVED / merged**. The authenticated import API owns
 provider acquisition, learning-language caption selection, canonical transcript
 identity, and provider-hosted playback.
 
-M1.3 Shared Media Translation is **IN PROGRESS**. It owns the independent
-backend support-language contract and enriches the server-owned import response
-through the exact `learner_translation` capability. Translation remains shared
-Media Learning content. There is no durable media persistence, Listening
-progress/scoring, active Listening, or Shadowing activation.
+M1.3 Shared Media Translation is **CLOSED / APPROVED / merged**. It owns the
+independent backend support-language contract and enriches the server-owned
+import response through the exact `learner_translation` capability.
 
-The PV-2 / OREN-10 internal Listening workspace is already merged. It consumes
-the existing import response for playback, transcript interaction, segment
-selection/replay, and truthful translated/unavailable states. Listening and
-Speaking remain non-public.
+The PV-2 / OREN-10 internal Listening workspace and PV-3 / OREN-11 practice UX
+are merged. Together they consume the import response for provider-hosted
+playback, transcript interaction, stable segment selection, Previous / Next,
+canonical timestamp replay, supported playback speeds, and truthful
+translated/degraded states.
+
+M1.4 Listening MVP integration and completion is **IN PROGRESS**. It is the
+current acceptance checkpoint for one shared EN/ZH passive follow-along flow
+over the reviewed Media Learning backend. There is no durable media
+persistence, Listening progress/scoring, active Listening, or Shadowing
+activation. Listening and Speaking remain non-public.
 
 ## Current runtime truth
 
@@ -54,10 +61,9 @@ Speaking remain non-public.
 
 ## Next checkpoints
 
-- M1 product-development lane: complete review of M1.3 shared media translation.
-  After its reviewed merge, M1.4 Listening MVP integration and completion is
-  next. M1.4 completes the internal MVP over the real shared media backend; it
-  does not create the first Listening screen or make Listening public.
+- M1 product-development lane: complete review of M1.4 Listening MVP
+  integration and acceptance. After its reviewed merge, M1.5 Active Listening
+  is next. M1.4 does not make Listening complete or public.
 - R2 control-plane lane: static activation-readiness gate and operator
   checkpoint. R2 remains IN PROGRESS.
 
