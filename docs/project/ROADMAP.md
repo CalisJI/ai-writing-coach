@@ -11,7 +11,7 @@ require approval and must remain consistent with `PROJECT_STATE.md` and
 | R0 | Product Release Architecture | CLOSED |
 | R1 | Production Staging + Cloudflare + Google OAuth | CLOSED |
 | R2 | AI Capability Control Plane | IN PROGRESS |
-| M1 | Media Learning Foundation (cross-cutting) | PLANNED |
+| M1 | Media Learning Foundation (cross-cutting) | IN PROGRESS |
 | R3 | Writing Evaluation Completion | PLANNED |
 | R4 | Multilingual Writing Language Lens | PLANNED |
 | R5 | Grammar Knowledge System | PLANNED |
@@ -51,8 +51,9 @@ rollback design, and production evidence pass an explicit reviewed gate.
 
 ## M1 — Media Learning Foundation (cross-cutting)
 
-**PLANNED.** M1 establishes one provider-neutral media-content foundation that
-Listening, Speaking Shadowing, Vocabulary / Library, and Grammar can reuse:
+**IN PROGRESS.** M1.1 starts M1 by establishing one provider-neutral
+media-content foundation that Listening, Speaking Shadowing, Vocabulary /
+Library, and Grammar can reuse:
 
 - M1.1 — media object and segment contracts;
 - M1.2 — media ingestion and transcript acquisition;

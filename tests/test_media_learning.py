@@ -222,12 +222,31 @@ def test_contract_has_no_network_ai_or_provider_specific_coupling() -> None:
 
 
 def test_governance_records_the_shared_media_learning_direction() -> None:
+    project_state = (ROOT / "docs/project/PROJECT_STATE.md").read_text(encoding="utf-8")
+    handoff = (ROOT / "docs/project/CURRENT_HANDOFF.md").read_text(encoding="utf-8")
     roadmap = (ROOT / "docs/project/ROADMAP.md").read_text(encoding="utf-8")
     boundaries = (ROOT / "docs/project/DOMAIN_BOUNDARIES.md").read_text(encoding="utf-8")
     decisions = (ROOT / "docs/project/DECISION_LOG.md").read_text(encoding="utf-8")
+    normalized_state = " ".join(project_state.split()).casefold()
+    normalized_handoff = " ".join(handoff.split()).casefold()
 
     for slice_name in ("M1.1", "M1.2", "M1.3", "M1.4", "M1.5", "M1.6"):
         assert slice_name in roadmap
+    assert "| M1 | Media Learning Foundation (cross-cutting) | IN PROGRESS |" in roadmap
+    assert "M1 — Media Learning Foundation: **IN PROGRESS / CROSS-CUTTING**" in project_state
+    assert "m1 is an active cross-cutting development track" in normalized_state
+    assert "one imported media source is represented once" in normalized_state
+    assert "both listening and speaking shadowing" in normalized_state
+    assert "learner progress remains separate" in normalized_handoff
+
+    assert "R2 — AI Capability Control Plane: **IN PROGRESS / HUMAN-GATED ACTIVATION**" in handoff
+    assert "## R2 human gate" in handoff
+    assert "**YES**" in handoff
+    assert "R2 remains **IN PROGRESS**" in project_state
+    assert "m1.2 media ingestion and transcript acquisition" in normalized_handoff
+
+    assert "| Listening | HIDDEN | unavailable | unavailable | no |" in project_state
+    assert "no current learner skill is public" in normalized_state
     assert "R11 remains the Listening completion and public-release-readiness gate" in roadmap
     assert "Media Learning (shared)" in boundaries
     assert "Listening, Speaking Shadowing, Vocabulary / Library, and Grammar" in boundaries
