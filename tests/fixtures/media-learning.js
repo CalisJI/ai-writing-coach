@@ -32,7 +32,10 @@ export const MEDIA_LEARNING_ZH_FIXTURE={
   transcript:{
     asset_id:'asset-fixture-zh',
     source_language:'zh',
-    segments:[{segment_id:'segment-zh-001',order:0,start_ms:0,end_ms:4000,original_text:'这是共享的原文字幕。'}],
+    segments:[
+      {segment_id:'segment-zh-001',order:0,start_ms:0,end_ms:4000,original_text:'这是共享的原文字幕。'},
+      {segment_id:'segment-zh-002',order:1,start_ms:4000,end_ms:8000,original_text:'下一句也使用同一个学习流程。'},
+    ],
   },
   translations:[],
 };
