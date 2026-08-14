@@ -99,6 +99,7 @@ await installLinguisticLens(unavailable,{
 });
 await unavailable.nodes['#posLensToggle'].click();
 assert.match(unavailable.nodes['#posLensStatus'].textContent,/unavailable/i);
+assert.equal(unavailable.nodes['#posLensToggle'].attributes['aria-pressed'],'false');
 assert.doesNotMatch(unavailable.nodes['#learnerTextEvidence'].innerHTML,/pos-token/);
 
 const source=fs.readFileSync(new URL('../static/becoming/screens/review.js',import.meta.url),'utf8');

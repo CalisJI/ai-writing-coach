@@ -270,6 +270,7 @@ export async function installLinguisticLens(root,{
   let enabled=posLensEnabled();
   let annotations=[];
   let loaded=false;
+  let unavailable=false;
 
   const renderText=()=>{
     textNode.innerHTML=highlightedLearnerText(
@@ -285,16 +286,22 @@ export async function installLinguisticLens(root,{
     toggle.setAttribute('aria-pressed',enabled?'true':'false');
     toggle.textContent=enabled?t('review.pos_hide'):t('review.pos_show');
     legend?.classList.toggle('hidden',!(enabled&&loaded&&annotations.length));
-    if(!enabled&&status)status.textContent=t('review.pos_off');
+    if(status){
+      if(unavailable)status.textContent=t('review.pos_unavailable');
+      else if(!enabled)status.textContent=t('review.pos_off');
+    }
   };
 
   async function load(){
     if(!enabled||loaded)return;
     if(!essayId){
-      if(status)status.textContent=t('review.pos_unavailable');
+      enabled=false;
+      unavailable=true;
+      syncUi();
       return;
     }
 
+    unavailable=false;
     setBusy(toggle,true,{label:t('review.pos_loading')});
     if(status)status.textContent=t('review.pos_loading');
 
@@ -312,10 +319,11 @@ export async function installLinguisticLens(root,{
           :t('review.pos_ready');
       }
     }catch(error){
+      enabled=false;
+      unavailable=true;
       loaded=false;
       annotations=[];
       renderText();
-      if(status)status.textContent=t('review.pos_unavailable');
       toast(error.message||t('review.pos_unavailable'));
     }finally{
       setBusy(toggle,false);
