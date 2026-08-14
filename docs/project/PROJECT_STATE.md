@@ -67,7 +67,7 @@ Current learner skill truth:
 | Writing | BETA | available | available | no |
 | Speaking | DEVELOPMENT | unavailable as a complete product | unavailable | no |
 | Reading | DEVELOPMENT | available | available | no |
-| Listening | HIDDEN | unavailable | unavailable | no |
+| Listening | DEVELOPMENT | available | available | no |
 
 The first public product gate requires all four conditions:
 
@@ -111,6 +111,10 @@ outcomes remain separate learner state scoped by user and learning language.
 M1.1 does not make M1 complete. It does not implement ingestion, provider
 adapters, transcription, translation, Listening UI, or Shadowing behavior, and
 it does not make Listening or Speaking public.
+
+The first Listening workspace is available to authenticated internal/admin
+testers. It consumes the shared Media Learning Object API contract, keeps
+Listening non-public, and does not add ingestion, scoring, or learner progress.
 
 ## R2 AI Capability Control Plane
 

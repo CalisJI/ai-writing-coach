@@ -485,7 +485,7 @@ def main() -> None:
         errors.append("chrome i18n can destroy navigation icons instead of updating only the nav label")
     require_contains(errors, skill_registry, [
         'key="writing"', 'key="speaking"', 'key="reading"', 'key="listening"',
-        'SkillReleaseState.PUBLIC', 'SkillReleaseState.DEVELOPMENT', 'SkillReleaseState.HIDDEN',
+        'SkillReleaseState.PUBLIC', 'SkillReleaseState.DEVELOPMENT', 'HIDDEN = "hidden"',
     ], "public skill release registry")
     require_contains(errors, platform_api, [
         '@router.get("/api/platform/skills")', '"policy": "language-wide"',
@@ -493,6 +493,7 @@ def main() -> None:
     require_contains(errors, template, [
         'data-route="write" data-skill="writing"',
         'data-route="read" data-skill="reading"',
+        'data-route="listen" data-skill="listening"',
     ], "skill-aware navigation")
     require_contains(errors, app_js + skill_release, [
         "applySkillNavigation(state.skills", "item.public_available===true",

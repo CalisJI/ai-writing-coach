@@ -80,6 +80,12 @@ export const api={
     headers:JSON_HEADERS,
     body:JSON.stringify({answers}),
   }),
+  importMedia:(payload)=>request('/api/media-learning/import',{
+    method:'POST',
+    headers:JSON_HEADERS,
+    body:JSON.stringify(payload),
+  }),
+  mediaLearningAsset:(id)=>request(`/api/media-learning/assets/${encodeURIComponent(id)}`),
   essays:()=>request('/api/essays'),
   essay:(id)=>request(`/api/essays/${encodeURIComponent(id)}`),
   linguisticAnnotations:(id)=>request(`/api/essays/${encodeURIComponent(id)}/linguistic-annotations`,{

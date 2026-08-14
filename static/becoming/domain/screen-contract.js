@@ -59,6 +59,18 @@ export const SCREEN_CONTRACT={
     accentPolicy:'accent only on primary check action and evidence states',
     fidelityMode:'high',
   },
+  listen:{
+    learnerGoal:'Follow an external video through its original transcript and available meaning, one reusable segment at a time.',
+    dominantIdea:'The video is the hero and the shared transcript is the learning surface.',
+    primaryAction:'Import / Prepare lesson',
+    progressiveDisclosure:'Video → original transcript → meaning → selected segment replay.',
+    evidence:'Canonical timestamped Media Learning Object segments; no listening score',
+    visualHero:'Safe external video player beside the transcript',
+    surfaceHierarchy:'canvas → video hero → transcript learning surface → compact controls',
+    themeBias:'focus-neutral; dark allowed by preference',
+    accentPolicy:'accent only on import, selected segment and replay',
+    fidelityMode:'high',
+  },
   library:{
     learnerGoal:'Retain language worth using again.',
     dominantIdea:'Recall before reveal.',
