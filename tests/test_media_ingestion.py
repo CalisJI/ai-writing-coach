@@ -655,7 +655,7 @@ def test_application_registers_the_agreed_authenticated_import_route() -> None:
     assert matching_routes[0].methods == {"POST"}
 
 
-def test_canonical_state_marks_m12_closed_and_m13_in_progress() -> None:
+def test_canonical_state_marks_m13_closed_and_m14_in_progress() -> None:
     project_state = (ROOT / "docs/project/PROJECT_STATE.md").read_text(encoding="utf-8")
     handoff = (ROOT / "docs/project/CURRENT_HANDOFF.md").read_text(encoding="utf-8")
     roadmap = (ROOT / "docs/project/ROADMAP.md").read_text(encoding="utf-8")
@@ -665,15 +665,19 @@ def test_canonical_state_marks_m12_closed_and_m13_in_progress() -> None:
 
     assert "m1.1 is **closed / approved / merged**" in normalized_state
     assert "m1.2 is **closed / approved / merged**" in normalized_state
-    assert "m1.3 is **in progress**" in normalized_state
+    assert "m1.3 is **closed / approved / merged**" in normalized_state
+    assert "m1.4 is **in progress**" in normalized_state
     assert "m1.1 is **closed / approved / merged**" in normalized_handoff
     assert "m1.2 is **closed / approved / merged**" in normalized_handoff
-    assert "m1.3 shared media translation is **in progress**" in normalized_handoff
+    assert "m1.3 shared media translation is **closed / approved / merged**" in normalized_handoff
+    assert "m1.4 listening mvp integration and completion is **in progress**" in normalized_handoff
     assert "m1.1 — media object and segment contracts: **closed / merged**" in normalized_roadmap
     assert "m1.2 — media ingestion and transcript acquisition: **closed / merged**" in normalized_roadmap
-    assert "m1.3 — shared media translation: **in progress**" in normalized_roadmap
-    assert "m1.4 — listening mvp integration and completion: **planned**" in normalized_roadmap
+    assert "m1.3 — shared media translation: **closed / merged**" in normalized_roadmap
+    assert "m1.4 — listening mvp integration and completion: **in progress**" in normalized_roadmap
+    assert "m1.5 — active listening: **planned**" in normalized_roadmap
     assert "pv-2 / oren-10" in normalized_handoff
+    assert "pv-3 / oren-11" in normalized_handoff
 
     assert "R2 — AI Capability Control Plane: **IN PROGRESS / HUMAN-GATED ACTIVATION**" in handoff
     assert "| Listening | DEVELOPMENT | available | available | no |" in project_state

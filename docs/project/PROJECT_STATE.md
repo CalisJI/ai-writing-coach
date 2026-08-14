@@ -8,7 +8,7 @@ historical narrative.
 - Product: Orena / BECOMING codebase
 - Repository: `CalisJI/ai-writing-coach`
 - Last verified application/runtime baseline:
-  `5b5807a0986a8563406322f0cca884eb0100902c`
+  `113d42afef04c089a469e92de0ff7fa8215deb57`
 
 This SHA identifies the verified application/runtime baseline inherited by this
 governance checkpoint. Documentation-only or governance-only descendant commits
@@ -114,17 +114,23 @@ selection, canonical transcripts, stable content-derived segment identities,
 and provider-hosted playback without durable media persistence, audio download,
 or audio transcription.
 
-The first Listening workspace is available to authenticated internal/admin
-testers through the M1.2 import contract. It provides safe provider playback,
-shared transcript interaction, and segment selection/replay. It renders shared
-translations when present and a truthful unavailable state when absent.
+M1.3 is **CLOSED / APPROVED / merged**. It established one backend
+support-language contract for `vi`, `en`, and `zh` and atomic enrichment of the
+same Media Learning Object through the existing `learner_translation`
+capability, with explicit ready, not-required, transcript-unavailable,
+too-large, and unavailable states.
 
-M1.3 is **IN PROGRESS** as the shared support-language translation checkpoint.
-It adds one backend support-language contract and atomically enriches the same
-Media Learning Object through the existing `learner_translation` capability.
-There is still no durable media or Listening progress persistence, Listening
-scoring, active Listening exercise flow, dictation, comprehension evaluation,
-Shadowing activation, or public Listening release.
+PV-2 / OREN-10 merged the first authenticated internal Listening workspace.
+PV-3 / OREN-11 merged selected-segment navigation, Previous / Next, canonical
+timestamp replay, supported playback rates, and stronger selection visibility.
+
+M1.4 is **IN PROGRESS** as the Listening MVP integration and acceptance
+checkpoint. It verifies that the reviewed M1.1-M1.3 backend and PV-2/PV-3
+workspace form one truthful, internally usable EN/ZH follow-along flow.
+Listening remains **DEVELOPMENT**, internally available, and not public. There
+is still no durable media or Listening progress persistence, Listening scoring,
+active Listening exercise flow, dictation, comprehension evaluation, Shadowing
+activation, or public Listening release.
 
 ## R2 AI Capability Control Plane
 
@@ -188,7 +194,7 @@ Two development tracks are active:
   current technical checkpoint. Production migration/config initialization,
   live provider validation, runtime activation, and rollback execution remain
   human gates.
-- M1 is **IN PROGRESS** as a cross-cutting product-development track. M1.1 and
-  M1.2 are closed and merged, and the internal Listening workspace foundation
-  from PV-2 / OREN-10 is merged. M1.3 shared media translation is the current
-  checkpoint.
+- M1 is **IN PROGRESS** as a cross-cutting product-development track. M1.1,
+  M1.2, and M1.3 are closed and merged. The internal Listening workspace from
+  PV-2 / OREN-10 and its PV-3 / OREN-11 practice controls are merged. M1.4
+  Listening MVP integration and acceptance is the current checkpoint.
