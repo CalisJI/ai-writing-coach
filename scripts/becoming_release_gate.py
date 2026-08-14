@@ -61,6 +61,9 @@ def main() -> None:
         root / "static" / "becoming" / "domain" / "i18n.js",
         root / "static" / "becoming" / "domain" / "screen-contract.js",
         root / "static" / "becoming" / "domain" / "skill-release.js",
+        root / "static" / "becoming" / "domain" / "shadowing-practice.js",
+        root / "static" / "becoming" / "screens" / "listening.js",
+        root / "scripts" / "test_shadowing_practice.mjs",
         root / "static" / "becoming" / "domain" / "rank.js",
         root / "static" / "becoming" / "domain" / "feedback-map.js",
         root / "static" / "becoming" / "screens" / "home.js",
@@ -109,6 +112,8 @@ def main() -> None:
     i18n = read("static/becoming/domain/i18n.js")
     screen_contract = read("static/becoming/domain/screen-contract.js")
     skill_release = read("static/becoming/domain/skill-release.js")
+    shadowing_practice = read("static/becoming/domain/shadowing-practice.js")
+    listening_screen = read("static/becoming/screens/listening.js")
     skill_registry = read("writing_coach/core/skill_registry.py")
     platform_api = read("writing_coach/core/platform_api.py")
     rank_domain = read("static/becoming/domain/rank.js")
@@ -443,6 +448,56 @@ def main() -> None:
         errors.append("POS underline or semantic error emphasis styles missing")
     if "var(--color-important)" not in phase3_css:
         errors.append("error evidence does not reuse the Important semantic design token")
+
+    # M1.6 shared-media Shadowing integration.
+    require_contains(errors, shadowing_practice, [
+        "createShadowingPracticeSession",
+        "selectShadowingPracticeSegment",
+        "recordShadowingPracticeRound",
+        "shadowingPracticeSummary",
+        "asset_id",
+        "current_segment_id",
+    ], "M1.6 Shadowing session domain")
+    for forbidden in [
+        "fetch(",
+        "MediaRecorder",
+        "SpeechRecognition",
+        "pronunciation_evaluator",
+        "speaking_evaluator",
+    ]:
+        if forbidden in shadowing_practice:
+            errors.append(f"M1.6 Shadowing domain must remain local/session-only: {forbidden}")
+    require_contains(errors, listening_screen, [
+        "createShadowingPracticeSession",
+        "selectShadowingPracticeSegment",
+        "recordShadowingPracticeRound",
+        "shadowingPracticeSummary",
+        "shadowingWorkspace",
+        "data-shadow-selected",
+        "data-shadow-round",
+        "shadowingSession",
+        "'shadowing'",
+    ], "M1.6 shared-media Shadowing integration")
+    for forbidden in [
+        "MediaRecorder",
+        "SpeechRecognition",
+        "pronunciation_evaluator",
+        "speaking_evaluator",
+    ]:
+        if forbidden in listening_screen:
+            errors.append(f"M1.6 must not activate recording/evaluation scope: {forbidden}")
+    speaking_contract = re.search(
+        r'SkillCapability\(\s*key="speaking",\s*'
+        r'release_state=SkillReleaseState\.DEVELOPMENT,\s*'
+        r'source_available=False,\s*'
+        r'internal_available=False,\s*\)',
+        skill_registry,
+        re.S,
+    )
+    if not speaking_contract:
+        errors.append(
+            "M1.6 must not promote Speaking source/internal/public availability"
+        )
 
     # Navigation routes should be tactile controls without adding/changing routes.
     for needle in [
