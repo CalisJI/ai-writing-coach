@@ -94,6 +94,45 @@ activeController.setMode('follow');
 assert.match(activeController.html(),/Listen for the first complete idea\./);
 assert.ok(activeController.html().includes(MEDIA_LEARNING_FIXTURE.translations[0].translated_meaning));
 
+const shadowController=createListeningController({
+  importMedia:async()=>MEDIA_LEARNING_FIXTURE,
+  targetLanguage:()=> 'vi',
+});
+await shadowController.importUrl('https://youtu.be/dQw4w9WgXcQ');
+assert.equal(shadowController.model.shadowingSession.asset_id,MEDIA_LEARNING_FIXTURE.asset.asset_id);
+assert.deepEqual(
+  shadowController.model.shadowingSession.segment_ids,
+  MEDIA_LEARNING_FIXTURE.transcript.segments.map(segment=>segment.segment_id),
+);
+assert.match(shadowController.html(),/data-shadow-selected/);
+assert.equal(shadowController.setMode('shadowing'),true);
+assert.equal(shadowController.model.mode,'shadowing');
+assert.match(shadowController.html(),/data-listening-mode="shadowing"/);
+assert.match(shadowController.html(),/data-shadow-round/);
+assert.ok(shadowController.html().includes(MEDIA_LEARNING_FIXTURE.transcript.segments[0].original_text));
+assert.equal(shadowController.recordShadowingRound(),true);
+assert.equal(shadowController.model.shadowingSession.segments['segment-001'].rounds,1);
+assert.equal(shadowController.moveSelection(1),true);
+assert.equal(shadowController.model.selected,'segment-002');
+assert.equal(shadowController.model.shadowingSession.current_segment_id,'segment-002');
+assert.equal(shadowController.recordShadowingRound(),true);
+assert.equal(shadowController.model.shadowingSession.segments['segment-002'].rounds,1);
+assert.doesNotMatch(
+  shadowController.html(),
+  /MediaRecorder|SpeechRecognition|pronunciation_evaluator|speaking_evaluator|accuracy_percent/,
+);
+for(const [locale,label] of [
+  ['en','No recording or pronunciation score is generated in this checkpoint.'],
+  ['vi','Chưa ghi âm và chưa chấm phát âm ở checkpoint này.'],
+  ['zh','不录音，也不生成发音评分。'],
+]){
+  state.supportLanguage=locale;
+  assert.ok(shadowController.html().includes(label));
+}
+state.supportLanguage='vi';
+assert.equal(shadowController.setMode('follow'),true);
+assert.match(shadowController.html(),/data-shadow-selected/);
+
 let delayedResolve;
 const delayedImport=new Promise(resolve=>{delayedResolve=resolve;});
 let mountedHtml='';
@@ -298,7 +337,9 @@ assert.equal(captionless.model.status,'transcript-unavailable');
 assert.equal(captionless.model.payload.translation.status,'transcript_unavailable');
 assert.match(captionless.html(),/listening-state-transcript-unavailable/);
 assert.equal(captionless.model.practiceSession,null);
+assert.equal(captionless.model.shadowingSession,null);
 assert.equal(captionless.setMode('active'),false);
+assert.equal(captionless.setMode('shadowing'),false);
 assert.doesNotMatch(captionless.html(),/data-listening-mode="active"/);
 
 const playbackUnavailable={...MEDIA_LEARNING_FIXTURE,playback:{provider:'youtube',kind:'unavailable',url:''}};
@@ -306,7 +347,9 @@ const noPlayback=createListeningController({importMedia:async()=>playbackUnavail
 await noPlayback.importUrl('https://example.invalid/no-playback');
 assert.equal(noPlayback.model.status,'ready');
 assert.equal(noPlayback.setMode('active'),false);
+assert.equal(noPlayback.setMode('shadowing'),false);
 assert.match(noPlayback.html(),/data-listening-mode="active"[^>]*disabled/);
+assert.match(noPlayback.html(),/data-listening-mode="shadowing"[^>]*disabled/);
 assert.match(noPlayback.html(),/active-listening-playback-unavailable/);
 
 const oversizedCanonical={

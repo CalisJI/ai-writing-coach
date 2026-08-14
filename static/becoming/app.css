@@ -1808,3 +1808,51 @@ html[data-theme="dark"] .global-help-tooltip{
    cached fragment remains briefly in the DOM during an upgrade. */
 .help-tip-popover{display:none!important}
 
+
+
+/* M1.6 shared-media shadowing */
+.listening-shadowing .listening-toolbar small{
+  max-width:52ch;
+}
+
+.shadowing-focus{
+  display:grid;
+  gap:var(--space-4);
+  margin-top:var(--space-5);
+  padding:var(--space-6);
+  border:1px solid var(--color-border-subtle);
+  border-radius:var(--radius-surface);
+  background:var(--color-surface-muted);
+}
+
+.shadowing-source{
+  margin:0;
+  color:var(--color-ink-strong);
+  font-size:clamp(20px,2.4vw,28px);
+  line-height:1.55;
+  font-weight:700;
+}
+
+.shadowing-round-actions{
+  display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+  gap:var(--space-4);
+}
+
+.shadowing-round-count{
+  color:var(--color-ink-muted);
+  font-size:var(--font-size-ui);
+  font-weight:700;
+}
+
+.shadowing-disclaimer{
+  margin:0;
+  color:var(--color-ink-muted);
+  font-size:var(--font-size-meta);
+  line-height:1.6;
+}
+
+.shadowing-summary{
+  margin-top:var(--space-5);
+}

@@ -16,21 +16,33 @@ import {
   selectListeningPracticeSegment,
   setListeningPracticeDraft,
 } from '../domain/listening-practice.js';
+import {
+  createShadowingPracticeSession,
+  recordShadowingPracticeRound,
+  selectShadowingPracticeSegment,
+  shadowingPracticeSummary,
+} from '../domain/shadowing-practice.js';
 
 const COPY={
-  en:{listen:'LISTEN · FOLLOW',title:'HEAR THE IDEA, ONE MOMENT AT A TIME.',lead:'Bring an external video into one shared media lesson. Watch, follow the original words, read the meaning when available, and replay a sentence.',url:'Video URL',placeholder:'https://…',prepare:'Import / Prepare lesson',validating:'Checking the URL…',processing:'Preparing the transcript…',original:'Original transcript',meaning:'Meaning',unavailable:'Meaning is not available yet.',notRequired:'Translation is not required for the selected support language.',translationUnavailable:'Meaning could not be generated right now. Continue with the original transcript.',translationTooLarge:'This lesson is too large for automatic meaning generation. Continue with the original transcript.',transcriptMissing:'This video has no usable transcript.',unsupported:'This video source is not supported.',malformedUrl:'Enter a valid public media URL.',unsupportedProvider:'This media provider is not supported yet.',mediaUnavailable:'This media is private or unavailable.',providerTimeout:'The media provider did not respond in time. Please try again.',providerFailure:'The media provider could not prepare this lesson. Please try again.',unsupportedSourceLanguage:'This media language is not supported yet.',invalidTargetLanguage:'Choose a valid support language.',failed:'The lesson could not be prepared.',previous:'Previous segment',next:'Next segment',replay:'Replay',speed:'Speed',select:'Select a transcript segment to replay it.',shadow:'Shadow this',shared:'The same media and segments can move into Shadowing when Speaking is available.',playback:'Playback is unavailable for this source.'},
-  vi:{listen:'NGHE · THEO DÕI',title:'NGHE TỪNG Ý, THEO TỪNG KHOẢNH KHẮC.',lead:'Đưa video bên ngoài vào một bài học media dùng chung. Xem, theo dõi lời gốc, đọc nghĩa khi có và nghe lại từng câu.',url:'URL video',placeholder:'https://…',prepare:'Nhập / Chuẩn bị bài học',validating:'Đang kiểm tra URL…',processing:'Đang chuẩn bị transcript…',original:'Transcript gốc',meaning:'Nghĩa',unavailable:'Bản dịch nghĩa chưa có.',notRequired:'Không cần bản dịch cho ngôn ngữ hỗ trợ đã chọn.',translationUnavailable:'Hiện chưa thể tạo phần nghĩa. Bạn vẫn có thể tiếp tục với transcript gốc.',translationTooLarge:'Bài học này quá lớn để tự động tạo phần nghĩa. Bạn vẫn có thể tiếp tục với transcript gốc.',transcriptMissing:'Video này không có transcript phù hợp.',unsupported:'Nguồn video này chưa được hỗ trợ.',malformedUrl:'Hãy nhập URL media công khai hợp lệ.',unsupportedProvider:'Nhà cung cấp media này chưa được hỗ trợ.',mediaUnavailable:'Media này đang riêng tư hoặc không khả dụng.',providerTimeout:'Nhà cung cấp media không phản hồi kịp thời. Vui lòng thử lại.',providerFailure:'Nhà cung cấp media không thể chuẩn bị bài học này. Vui lòng thử lại.',unsupportedSourceLanguage:'Ngôn ngữ của media này chưa được hỗ trợ.',invalidTargetLanguage:'Hãy chọn ngôn ngữ hỗ trợ hợp lệ.',failed:'Không thể chuẩn bị bài học.',previous:'Đoạn trước',next:'Đoạn sau',replay:'Nghe lại',speed:'Tốc độ',select:'Chọn một đoạn transcript để nghe lại.',shadow:'Shadow câu này',shared:'Cùng media và segment này có thể chuyển sang Shadowing khi Speaking sẵn sàng.',playback:'Không thể phát nguồn này.'},
-  zh:{listen:'听力 · 跟随',title:'逐句听见意思。',lead:'把外部视频导入一个共享媒体课程。观看视频、跟随原文、在可用时阅读释义，并重听每个句子。',url:'视频网址',placeholder:'https://…',prepare:'导入 / 准备课程',validating:'正在检查网址…',processing:'正在准备字幕…',original:'原文字幕',meaning:'释义',unavailable:'释义暂时不可用。',notRequired:'所选辅助语言不需要翻译。',translationUnavailable:'目前无法生成释义。你仍可继续使用原文字幕。',translationTooLarge:'本课内容过大，当前无法自动生成释义。你仍可继续使用原文字幕。',transcriptMissing:'这个视频没有可用字幕。',unsupported:'暂不支持这个视频来源。',malformedUrl:'请输入有效的公开视频网址。',unsupportedProvider:'暂不支持这个媒体提供方。',mediaUnavailable:'该媒体为私密内容或暂不可用。',providerTimeout:'媒体提供方响应超时，请重试。',providerFailure:'媒体提供方无法准备本课，请重试。',unsupportedSourceLanguage:'暂不支持该媒体语言。',invalidTargetLanguage:'请选择有效的辅助语言。',failed:'无法准备课程。',previous:'上一句',next:'下一句',replay:'重听',speed:'速度',select:'选择一段字幕后重听。',shadow:'跟读这句',shared:'Speaking 可用后，同一媒体和句段可直接进入跟读。',playback:'这个来源暂时无法播放。'},
+  en:{listen:'LISTEN · FOLLOW',title:'HEAR THE IDEA, ONE MOMENT AT A TIME.',lead:'Bring an external video into one shared media lesson. Watch, follow the original words, read the meaning when available, and replay a sentence.',url:'Video URL',placeholder:'https://…',prepare:'Import / Prepare lesson',validating:'Checking the URL…',processing:'Preparing the transcript…',original:'Original transcript',meaning:'Meaning',unavailable:'Meaning is not available yet.',notRequired:'Translation is not required for the selected support language.',translationUnavailable:'Meaning could not be generated right now. Continue with the original transcript.',translationTooLarge:'This lesson is too large for automatic meaning generation. Continue with the original transcript.',transcriptMissing:'This video has no usable transcript.',unsupported:'This video source is not supported.',malformedUrl:'Enter a valid public media URL.',unsupportedProvider:'This media provider is not supported yet.',mediaUnavailable:'This media is private or unavailable.',providerTimeout:'The media provider did not respond in time. Please try again.',providerFailure:'The media provider could not prepare this lesson. Please try again.',unsupportedSourceLanguage:'This media language is not supported yet.',invalidTargetLanguage:'Choose a valid support language.',failed:'The lesson could not be prepared.',previous:'Previous segment',next:'Next segment',replay:'Replay',speed:'Speed',select:'Select a transcript segment to replay it.',shadow:'Shadow this',shared:'Shadowing reuses this same media and segment. No separate import is needed.',playback:'Playback is unavailable for this source.'},
+  vi:{listen:'NGHE · THEO DÕI',title:'NGHE TỪNG Ý, THEO TỪNG KHOẢNH KHẮC.',lead:'Đưa video bên ngoài vào một bài học media dùng chung. Xem, theo dõi lời gốc, đọc nghĩa khi có và nghe lại từng câu.',url:'URL video',placeholder:'https://…',prepare:'Nhập / Chuẩn bị bài học',validating:'Đang kiểm tra URL…',processing:'Đang chuẩn bị transcript…',original:'Transcript gốc',meaning:'Nghĩa',unavailable:'Bản dịch nghĩa chưa có.',notRequired:'Không cần bản dịch cho ngôn ngữ hỗ trợ đã chọn.',translationUnavailable:'Hiện chưa thể tạo phần nghĩa. Bạn vẫn có thể tiếp tục với transcript gốc.',translationTooLarge:'Bài học này quá lớn để tự động tạo phần nghĩa. Bạn vẫn có thể tiếp tục với transcript gốc.',transcriptMissing:'Video này không có transcript phù hợp.',unsupported:'Nguồn video này chưa được hỗ trợ.',malformedUrl:'Hãy nhập URL media công khai hợp lệ.',unsupportedProvider:'Nhà cung cấp media này chưa được hỗ trợ.',mediaUnavailable:'Media này đang riêng tư hoặc không khả dụng.',providerTimeout:'Nhà cung cấp media không phản hồi kịp thời. Vui lòng thử lại.',providerFailure:'Nhà cung cấp media không thể chuẩn bị bài học này. Vui lòng thử lại.',unsupportedSourceLanguage:'Ngôn ngữ của media này chưa được hỗ trợ.',invalidTargetLanguage:'Hãy chọn ngôn ngữ hỗ trợ hợp lệ.',failed:'Không thể chuẩn bị bài học.',previous:'Đoạn trước',next:'Đoạn sau',replay:'Nghe lại',speed:'Tốc độ',select:'Chọn một đoạn transcript để nghe lại.',shadow:'Shadow câu này',shared:'Shadowing dùng lại chính media và đoạn này, không cần nhập lại video.',playback:'Không thể phát nguồn này.'},
+  zh:{listen:'听力 · 跟随',title:'逐句听见意思。',lead:'把外部视频导入一个共享媒体课程。观看视频、跟随原文、在可用时阅读释义，并重听每个句子。',url:'视频网址',placeholder:'https://…',prepare:'导入 / 准备课程',validating:'正在检查网址…',processing:'正在准备字幕…',original:'原文字幕',meaning:'释义',unavailable:'释义暂时不可用。',notRequired:'所选辅助语言不需要翻译。',translationUnavailable:'目前无法生成释义。你仍可继续使用原文字幕。',translationTooLarge:'本课内容过大，当前无法自动生成释义。你仍可继续使用原文字幕。',transcriptMissing:'这个视频没有可用字幕。',unsupported:'暂不支持这个视频来源。',malformedUrl:'请输入有效的公开视频网址。',unsupportedProvider:'暂不支持这个媒体提供方。',mediaUnavailable:'该媒体为私密内容或暂不可用。',providerTimeout:'媒体提供方响应超时，请重试。',providerFailure:'媒体提供方无法准备本课，请重试。',unsupportedSourceLanguage:'暂不支持该媒体语言。',invalidTargetLanguage:'请选择有效的辅助语言。',failed:'无法准备课程。',previous:'上一句',next:'下一句',replay:'重听',speed:'速度',select:'选择一段字幕后重听。',shadow:'跟读这句',shared:'跟读直接复用同一媒体和句段，不需要再次导入视频。',playback:'这个来源暂时无法播放。'},
 };
 const ACTIVE_COPY={
-  en:{follow:'Follow',active:'Active',mode:'Listening mode',activeUnavailable:'Active Listening needs usable provider playback.',practice:'Active Listening',prompt:'Type what you heard',check:'Check answer',reveal:'Reveal answer',retry:'Retry',yourAnswer:'Your answer',textMatch:'Text match',exact:'Exact match',close:'Close match',tryAgain:'Try again',disclaimer:'Text match compares your reconstruction with this transcript. It is not a proficiency score.',progress:'Session practice',practiced:'Practiced',exactCount:'Exact',average:'Average best text match',attempts:'Checked attempts',revealed:'Revealed only',segment:'Segment',answerEmpty:'Type what you heard before checking.',answerTooLarge:'Your reconstruction is too long to check safely.',segmentTooLarge:'This transcript segment is too large to check safely. Follow mode remains available.',meaningUnavailable:'Meaning is currently unavailable. The original transcript remains usable.',meaningTooLarge:'Meaning is unavailable because this lesson is too large for automatic translation.',meaningNotRequired:'Translation is not required for the selected support language.'},
-  vi:{follow:'Theo dõi',active:'Chủ động',mode:'Chế độ nghe',activeUnavailable:'Luyện nghe chủ động cần nguồn phát từ nhà cung cấp khả dụng.',practice:'Luyện nghe chủ động',prompt:'Gõ lại điều bạn nghe được',check:'Kiểm tra',reveal:'Xem đáp án',retry:'Thử lại',yourAnswer:'Câu trả lời của bạn',textMatch:'Độ khớp văn bản',exact:'Khớp chính xác',close:'Gần khớp',tryAgain:'Hãy thử lại',disclaimer:'Độ khớp văn bản so sánh phần bạn nghe được với transcript này. Đây không phải điểm năng lực.',progress:'Luyện tập trong phiên',practiced:'Đã luyện',exactCount:'Chính xác',average:'Độ khớp tốt nhất trung bình',attempts:'Lượt đã kiểm tra',revealed:'Chỉ xem đáp án',segment:'Đoạn',answerEmpty:'Hãy gõ lại điều bạn nghe được trước khi kiểm tra.',answerTooLarge:'Câu trả lời quá dài để kiểm tra an toàn.',segmentTooLarge:'Đoạn transcript này quá dài để kiểm tra an toàn. Chế độ Theo dõi vẫn khả dụng.',meaningUnavailable:'Hiện chưa có phần nghĩa. Transcript gốc vẫn khả dụng.',meaningTooLarge:'Không có phần nghĩa vì bài học quá lớn để dịch tự động.',meaningNotRequired:'Không cần bản dịch cho ngôn ngữ hỗ trợ đã chọn.'},
-  zh:{follow:'跟随',active:'主动练习',mode:'听力模式',activeUnavailable:'主动听力练习需要可用的提供方播放。',practice:'主动听力',prompt:'输入你听到的内容',check:'检查答案',reveal:'显示答案',retry:'重试',yourAnswer:'你的答案',textMatch:'文本匹配度',exact:'完全匹配',close:'接近匹配',tryAgain:'再试一次',disclaimer:'文本匹配只比较你的重构与本段字幕，并不是语言能力分数。',progress:'本次练习',practiced:'已练习',exactCount:'完全匹配',average:'最佳文本匹配平均值',attempts:'已检查次数',revealed:'仅查看答案',segment:'句段',answerEmpty:'请先输入你听到的内容。',answerTooLarge:'你的答案过长，无法安全检查。',segmentTooLarge:'本段字幕过长，无法安全检查。跟随模式仍可使用。',meaningUnavailable:'释义目前不可用，原文字幕仍可使用。',meaningTooLarge:'本课内容过大，无法自动生成释义。',meaningNotRequired:'所选辅助语言不需要翻译。'},
+  en:{follow:'Follow',active:'Active',mode:'Listening mode',activeUnavailable:'Active Listening and Shadowing need usable provider playback.',practice:'Active Listening',prompt:'Type what you heard',check:'Check answer',reveal:'Reveal answer',retry:'Retry',yourAnswer:'Your answer',textMatch:'Text match',exact:'Exact match',close:'Close match',tryAgain:'Try again',disclaimer:'Text match compares your reconstruction with this transcript. It is not a proficiency score.',progress:'Session practice',practiced:'Practiced',exactCount:'Exact',average:'Average best text match',attempts:'Checked attempts',revealed:'Revealed only',segment:'Segment',answerEmpty:'Type what you heard before checking.',answerTooLarge:'Your reconstruction is too long to check safely.',segmentTooLarge:'This transcript segment is too large to check safely. Follow mode remains available.',meaningUnavailable:'Meaning is currently unavailable. The original transcript remains usable.',meaningTooLarge:'Meaning is unavailable because this lesson is too large for automatic translation.',meaningNotRequired:'Translation is not required for the selected support language.'},
+  vi:{follow:'Theo dõi',active:'Chủ động',mode:'Chế độ nghe',activeUnavailable:'Luyện nghe chủ động và Shadowing cần nguồn phát khả dụng.',practice:'Luyện nghe chủ động',prompt:'Gõ lại điều bạn nghe được',check:'Kiểm tra',reveal:'Xem đáp án',retry:'Thử lại',yourAnswer:'Câu trả lời của bạn',textMatch:'Độ khớp văn bản',exact:'Khớp chính xác',close:'Gần khớp',tryAgain:'Hãy thử lại',disclaimer:'Độ khớp văn bản so sánh phần bạn nghe được với transcript này. Đây không phải điểm năng lực.',progress:'Luyện tập trong phiên',practiced:'Đã luyện',exactCount:'Chính xác',average:'Độ khớp tốt nhất trung bình',attempts:'Lượt đã kiểm tra',revealed:'Chỉ xem đáp án',segment:'Đoạn',answerEmpty:'Hãy gõ lại điều bạn nghe được trước khi kiểm tra.',answerTooLarge:'Câu trả lời quá dài để kiểm tra an toàn.',segmentTooLarge:'Đoạn transcript này quá dài để kiểm tra an toàn. Chế độ Theo dõi vẫn khả dụng.',meaningUnavailable:'Hiện chưa có phần nghĩa. Transcript gốc vẫn khả dụng.',meaningTooLarge:'Không có phần nghĩa vì bài học quá lớn để dịch tự động.',meaningNotRequired:'Không cần bản dịch cho ngôn ngữ hỗ trợ đã chọn.'},
+  zh:{follow:'跟随',active:'主动练习',mode:'听力模式',activeUnavailable:'主动听力和跟读练习需要可用的媒体播放。',practice:'主动听力',prompt:'输入你听到的内容',check:'检查答案',reveal:'显示答案',retry:'重试',yourAnswer:'你的答案',textMatch:'文本匹配度',exact:'完全匹配',close:'接近匹配',tryAgain:'再试一次',disclaimer:'文本匹配只比较你的重构与本段字幕，并不是语言能力分数。',progress:'本次练习',practiced:'已练习',exactCount:'完全匹配',average:'最佳文本匹配平均值',attempts:'已检查次数',revealed:'仅查看答案',segment:'句段',answerEmpty:'请先输入你听到的内容。',answerTooLarge:'你的答案过长，无法安全检查。',segmentTooLarge:'本段字幕过长，无法安全检查。跟随模式仍可使用。',meaningUnavailable:'释义目前不可用，原文字幕仍可使用。',meaningTooLarge:'本课内容过大，无法自动生成释义。',meaningNotRequired:'所选辅助语言不需要翻译。'},
+};
+const SHADOW_COPY={
+  en:{mode:'Shadowing',practice:'Shadow this segment',guide:'Listen to the selected segment, repeat it aloud, then mark one completed round.',markRound:'Mark round complete',rounds:'Rounds',progress:'Session shadowing',practiced:'Practiced segments',totalRounds:'Completed rounds',noScore:'Self-guided repetition only. No recording or pronunciation score is generated in this checkpoint.',segment:'Segment'},
+  vi:{mode:'Shadowing',practice:'Shadow đoạn này',guide:'Nghe đoạn đã chọn, lặp lại thành tiếng rồi đánh dấu một lượt đã hoàn thành.',markRound:'Đánh dấu hoàn thành 1 lượt',rounds:'Số lượt',progress:'Shadowing trong phiên',practiced:'Đoạn đã luyện',totalRounds:'Tổng lượt hoàn thành',noScore:'Đây là luyện lặp lại có hướng dẫn. Chưa ghi âm và chưa chấm phát âm ở checkpoint này.',segment:'Đoạn'},
+  zh:{mode:'跟读',practice:'跟读这一句',guide:'先听所选句段，再大声跟读，然后记录一次已完成练习。',markRound:'记录完成一轮',rounds:'轮次',progress:'本次跟读',practiced:'已练句段',totalRounds:'已完成轮次',noScore:'此阶段只进行自主跟读，不录音，也不生成发音评分。',segment:'句段'},
 };
 let listeningViewSequence=0;
 
 const text=()=>COPY[uiLocale()]||COPY.en;
 const activeText=()=>ACTIVE_COPY[uiLocale()]||ACTIVE_COPY.en;
+const shadowText=()=>SHADOW_COPY[uiLocale()]||SHADOW_COPY.en;
 const stamp=ms=>`${Math.floor(ms/60000)}:${String(Math.floor(ms/1000)%60).padStart(2,'0')}`;
 
 export function validMediaUrl(value){
@@ -114,7 +126,7 @@ function followWorkspace(payload,selected,{original,meaning,playbackRate}){
             ${meaning&&!translationNotRequired&&!translationDegraded?(translations.has(segment.segment_id)?`<span>${esc(translations.get(segment.segment_id))}</span>`:`<span class="translation-unavailable">${esc(c.unavailable)}</span>`):''}
           </span>
         </button>
-        ${segment.segment_id===selected?`<div class="listening-segment-actions"><button type="button" class="button button-secondary" disabled title="${esc(c.shared)}">${esc(c.shadow)}</button></div>`:''}
+        ${segment.segment_id===selected?`<div class="listening-segment-actions"><button type="button" class="button button-secondary" data-shadow-selected title="${esc(c.shared)}">${esc(c.shadow)}</button></div>`:''}
       </article>`).join('')}
     </div>
     <p class="listening-shared-note">${esc(c.shared)}</p>
@@ -178,13 +190,50 @@ function activeWorkspace(payload,selected,model){
   </section>`;
 }
 
+function shadowingWorkspace(payload,selected,model){
+  const c=shadowText();
+  const segments=payload.transcript?.segments||[];
+  const segment=segments.find(item=>item.segment_id===selected);
+  const segmentIndex=segments.findIndex(item=>item.segment_id===selected);
+  const translations=new Map((payload.translations||[]).map(item=>[item.segment_id,item.translated_meaning]));
+  const state=model.shadowingSession?.segments?.[selected];
+  const summary=shadowingPracticeSummary(model.shadowingSession);
+  return `<section class="listening-transcript listening-shadowing visual-section-surface" aria-label="${esc(c.practice)}">
+    <div class="listening-toolbar">
+      <div><strong>${esc(c.practice)}</strong><small>${esc(c.guide)}</small></div>
+    </div>
+    ${segmentNavigation(segments,selected,model.playbackRate)}
+    <div class="listening-segments listening-shadowing-segments">
+      ${segments.map((item,index)=>`<article class="listening-segment ${item.segment_id===selected?'selected':''}" data-segment-id="${esc(item.segment_id)}" ${item.segment_id===selected?'aria-current="true"':''}>
+        <button class="listening-segment-main" type="button" data-select-segment="${esc(item.segment_id)}"><time>${stamp(item.start_ms)}</time><span>${esc(c.segment)} ${index+1}</span></button>
+      </article>`).join('')}
+    </div>
+    ${segment?`<div class="shadowing-focus" role="group" aria-label="${esc(c.practice)}">
+      <span class="context-label">${esc(c.segment)} ${segmentIndex+1}</span>
+      <p class="shadowing-source">${esc(segment.original_text)}</p>
+      ${activeMeaning(payload,translations,selected)}
+      <div class="shadowing-round-actions">
+        <button class="button button-primary" type="button" data-shadow-round>${esc(c.markRound)}</button>
+        <span class="shadowing-round-count">${esc(c.rounds)}: ${state?.rounds||0}</span>
+      </div>
+      <p class="shadowing-disclaimer">${esc(c.noScore)}</p>
+    </div>`:''}
+    <div class="active-listening-summary shadowing-summary" role="status"><strong>${esc(c.progress)}</strong>
+      <span>${esc(c.practiced)} ${summary.practiced_segments} / ${summary.total_segments}</span>
+      <span>${esc(c.totalRounds)} ${summary.total_rounds}</span>
+    </div>
+  </section>`;
+}
+
 function workspace(payload,selectedId=null,model={}){
   const c=text();
   const a=activeText();
+  const s=shadowText();
   const segments=payload.transcript?.segments||[];
   const selected=selectedId||segments[0]?.segment_id;
-  const activeAvailable=segments.length>0&&playbackAvailable(payload.playback);
-  const mode=model.mode==='active'&&activeAvailable?'active':'follow';
+  const playbackReady=segments.length>0&&playbackAvailable(payload.playback);
+  const requested=['active','shadowing'].includes(model.mode)?model.mode:'follow';
+  const mode=requested!=='follow'&&playbackReady?requested:'follow';
   return `<div class="listening-workspace" data-listening-mode="${mode}">
     <section class="listening-video visual-hero-surface">
       <div class="listening-video-frame">${mediaPlayer(payload.playback,payload.asset?.title).replace('Playback is unavailable for this source.',c.playback)}</div>
@@ -193,10 +242,11 @@ function workspace(payload,selectedId=null,model={}){
     <div class="listening-learning-column">
       <div class="listening-mode-switch" role="group" aria-label="${esc(a.mode)}">
         <button type="button" class="button ${mode==='follow'?'button-primary':'button-secondary'}" data-listening-mode="follow" aria-pressed="${mode==='follow'}">${esc(a.follow)}</button>
-        <button type="button" class="button ${mode==='active'?'button-primary':'button-secondary'}" data-listening-mode="active" aria-pressed="${mode==='active'}" ${activeAvailable?'':'disabled'}>${esc(a.active)}</button>
+        <button type="button" class="button ${mode==='active'?'button-primary':'button-secondary'}" data-listening-mode="active" aria-pressed="${mode==='active'}" ${playbackReady?'':'disabled'}>${esc(a.active)}</button>
+        <button type="button" class="button ${mode==='shadowing'?'button-primary':'button-secondary'}" data-listening-mode="shadowing" aria-pressed="${mode==='shadowing'}" ${playbackReady?'':'disabled'}>${esc(s.mode)}</button>
       </div>
-      ${activeAvailable?'':`<p class="active-listening-playback-unavailable" role="status">${esc(a.activeUnavailable)}</p>`}
-      ${mode==='active'?activeWorkspace(payload,selected,model):followWorkspace(payload,selected,model)}
+      ${playbackReady?'':`<p class="active-listening-playback-unavailable" role="status">${esc(a.activeUnavailable)}</p>`}
+      ${mode==='active'?activeWorkspace(payload,selected,model):mode==='shadowing'?shadowingWorkspace(payload,selected,model):followWorkspace(payload,selected,model)}
     </div>
   </div>`;
 }
@@ -215,7 +265,7 @@ function listeningPage(model,viewId){
 }
 
 export function createListeningController({importMedia,targetLanguage,onChange=()=>{}}){
-  const model={status:'empty',payload:null,error:null,selected:null,original:true,meaning:true,playbackRate:1,mode:'follow',practiceSession:null,practiceValidation:null};
+  const model={status:'empty',payload:null,error:null,selected:null,original:true,meaning:true,playbackRate:1,mode:'follow',practiceSession:null,shadowingSession:null,practiceValidation:null};
   const viewId=`listening-${++listeningViewSequence}`;
   let importGeneration=0;
   const changed=()=>onChange({...model});
@@ -234,12 +284,17 @@ export function createListeningController({importMedia,targetLanguage,onChange=(
         model.payload=payload;
         model.status=mediaImportState(model.payload);
         model.selected=model.status==='ready'?model.payload.transcript.segments[0].segment_id:null;
+        const segmentIds=model.status==='ready'?model.payload.transcript.segments.map(segment=>segment.segment_id):[];
         model.practiceSession=model.status==='ready'?createListeningPracticeSession({
           asset_id:model.payload.asset.asset_id,
-          segment_ids:model.payload.transcript.segments.map(segment=>segment.segment_id),
+          segment_ids:segmentIds,
+        }):null;
+        model.shadowingSession=model.status==='ready'?createShadowingPracticeSession({
+          asset_id:model.payload.asset.asset_id,
+          segment_ids:segmentIds,
         }):null;
         model.practiceValidation=null;
-        if(model.mode==='active'&&!playbackAvailable(model.payload?.playback))model.mode='follow';
+        if(['active','shadowing'].includes(model.mode)&&!playbackAvailable(model.payload?.playback))model.mode='follow';
       }catch(error){
         if(generation!==importGeneration)return;
         model.error=error;
@@ -251,6 +306,7 @@ export function createListeningController({importMedia,targetLanguage,onChange=(
       if(!model.payload?.transcript?.segments?.some(segment=>segment.segment_id===segmentId))return false;
       model.selected=segmentId;
       if(model.practiceSession)selectListeningPracticeSegment(model.practiceSession,segmentId);
+      if(model.shadowingSession)selectShadowingPracticeSegment(model.shadowingSession,segmentId);
       model.practiceValidation=null;changed();return true;
     },
     moveSelection(offset){
@@ -260,11 +316,13 @@ export function createListeningController({importMedia,targetLanguage,onChange=(
       if(!target)return false;
       model.selected=target.segment_id;
       if(model.practiceSession)selectListeningPracticeSegment(model.practiceSession,target.segment_id);
+      if(model.shadowingSession)selectShadowingPracticeSegment(model.shadowingSession,target.segment_id);
       model.practiceValidation=null;changed();return true;
     },
     setMode(value){
-      if(!['follow','active'].includes(value))return false;
+      if(!['follow','active','shadowing'].includes(value))return false;
       if(value==='active'&&(!model.practiceSession||!playbackAvailable(model.payload?.playback)))return false;
+      if(value==='shadowing'&&(!model.shadowingSession||!playbackAvailable(model.payload?.playback)))return false;
       model.mode=value;model.practiceValidation=null;changed();return true;
     },
     setPracticeDraft(value){
@@ -297,6 +355,12 @@ export function createListeningController({importMedia,targetLanguage,onChange=(
       retryListeningPracticeSegment(model.practiceSession);
       model.practiceValidation=null;changed();return true;
     },
+    recordShadowingRound(){
+      if(!model.shadowingSession)return false;
+      const recorded=recordShadowingPracticeRound(model.shadowingSession);
+      if(recorded)changed();
+      return recorded;
+    },
     toggleOriginal(value){model.original=value;changed();},
     toggleMeaning(value){model.meaning=value;changed();},
     setPlaybackRate(value){
@@ -321,6 +385,8 @@ export async function renderListening(root,{importMedia=api.importMedia,targetLa
     root.querySelector('#toggleOriginal')?.addEventListener('change',event=>controller.toggleOriginal(event.target.checked));
     root.querySelector('#toggleMeaning')?.addEventListener('change',event=>controller.toggleMeaning(event.target.checked));
     root.querySelectorAll('button[data-listening-mode]').forEach(button=>button.addEventListener('click',()=>controller.setMode(button.dataset.listeningMode)));
+    root.querySelector('[data-shadow-selected]')?.addEventListener('click',()=>controller.setMode('shadowing'));
+    root.querySelector('[data-shadow-round]')?.addEventListener('click',()=>controller.recordShadowingRound());
     root.querySelector('#activeListeningAnswer')?.addEventListener('input',event=>controller.setPracticeDraft(event.target.value));
     root.querySelector('#activeListeningForm')?.addEventListener('submit',event=>{
       event.preventDefault();
