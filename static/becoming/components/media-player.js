@@ -19,6 +19,17 @@ function playbackAdapter(playback){
   }
 }
 
+function sendCommand(root,playback,func,args=[]){
+  const adapter=playbackAdapter(playback);
+  const frame=root.querySelector('#listeningPlayer');
+  if(!adapter?.controllable||!frame?.contentWindow?.postMessage)return false;
+  try{
+    if(new URL(frame.src).origin!==adapter.origin)return false;
+  }catch{return false;}
+  frame.contentWindow.postMessage(JSON.stringify({event:'command',func,args}),adapter.origin);
+  return true;
+}
+
 export function mediaPlayer(playback,title){
   const adapter=playbackAdapter(playback);
   if(!adapter){
@@ -28,17 +39,11 @@ export function mediaPlayer(playback,title){
 }
 
 export function replaySegment(root,playback,startMs){
-  const adapter=playbackAdapter(playback);
-  const frame=root.querySelector('#listeningPlayer');
-  if(!adapter?.controllable||!frame?.contentWindow?.postMessage)return false;
-  try{
-    if(new URL(frame.src).origin!==adapter.origin)return false;
-  }catch{return false;}
-  frame.contentWindow?.postMessage(JSON.stringify({
-    event:'command',
-    func:'seekTo',
-    args:[Math.max(0,startMs)/1000,true],
-  }),adapter.origin);
-  frame.contentWindow?.postMessage(JSON.stringify({event:'command',func:'playVideo',args:[]}),adapter.origin);
-  return true;
+  return sendCommand(root,playback,'seekTo',[Math.max(0,startMs)/1000,true])
+    &&sendCommand(root,playback,'playVideo');
+}
+
+export function setPlaybackRate(root,playback,rate){
+  if(![.75,1,1.25].includes(rate))return false;
+  return sendCommand(root,playback,'setPlaybackRate',[rate]);
 }

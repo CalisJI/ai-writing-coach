@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {MEDIA_LEARNING_FIXTURE,MEDIA_LEARNING_ZH_FIXTURE} from '../tests/fixtures/media-learning.js';
 import {api} from '../static/becoming/api.js';
-import {mediaPlayer,replaySegment} from '../static/becoming/components/media-player.js';
+import {mediaPlayer,replaySegment,setPlaybackRate} from '../static/becoming/components/media-player.js';
 import {createListeningController,mediaImportErrorState,renderListening} from '../static/becoming/screens/listening.js';
 import {routeAvailable} from '../static/becoming/domain/skill-release.js';
 
@@ -26,6 +26,11 @@ assert.equal(controller.model.payload.translation.status,'ready');
 assert.equal(controller.model.selected,'segment-001');
 assert.match(controller.html(),/Listen for the first complete idea\./);
 assert.match(controller.html(),/listening-segment selected[^>]*data-segment-id="segment-001"/);
+assert.match(controller.html(),/data-segment-id="segment-001" aria-current="true"/);
+assert.match(controller.html(),/data-previous-segment disabled/);
+assert.doesNotMatch(controller.html(),/data-next-segment disabled/);
+assert.match(controller.html(),/value="0.75"/);
+assert.match(controller.html(),/value="1.25"/);
 assert.match(controller.html(),/<iframe/);
 assert.match(controller.html(),/disabled/);
 
@@ -51,16 +56,28 @@ delayedResolve(MEDIA_LEARNING_FIXTURE);
 await delayed;
 assert.equal(mountedHtml,'<section id="new-route">New route</section>');
 
-controller.select('segment-002');
-assert.equal(controller.model.selected,'segment-002');
-assert.match(controller.html(),/listening-segment selected[^>]*data-segment-id="segment-002"/);
 controller.toggleOriginal(false);
-assert.doesNotMatch(controller.html(),/The same segment can support shadowing later\./);
-controller.toggleOriginal(true);
-assert.match(controller.html(),/The same segment can support shadowing later\./);
 controller.toggleMeaning(false);
+assert.equal(controller.moveSelection(1),true);
+assert.equal(controller.model.selected,'segment-002');
+assert.equal(controller.model.original,false);
+assert.equal(controller.model.meaning,false);
+assert.match(controller.html(),/listening-segment selected[^>]*data-segment-id="segment-002"/);
+assert.match(controller.html(),/data-next-segment disabled/);
+assert.doesNotMatch(controller.html(),/The same segment can support shadowing later\./);
 assert.doesNotMatch(controller.html(),/Cùng đoạn này có thể dùng để luyện nói sau\./);
+assert.equal(controller.moveSelection(1),false);
+assert.equal(controller.model.selected,'segment-002');
+assert.equal(controller.moveSelection(-1),true);
+assert.equal(controller.model.selected,'segment-001');
+assert.equal(controller.moveSelection(-1),false);
+assert.equal(controller.select('missing-segment'),false);
+assert.equal(controller.setPlaybackRate(2),false);
+assert.equal(controller.model.playbackRate,1);
+controller.toggleOriginal(true);
 controller.toggleMeaning(true);
+controller.moveSelection(1);
+assert.match(controller.html(),/The same segment can support shadowing later\./);
 assert.match(controller.html(),/Cùng đoạn này có thể dùng để luyện nói sau\./);
 
 const untranslated=createListeningController({importMedia:async()=>MEDIA_LEARNING_ZH_FIXTURE,targetLanguage:()=> 'vi'});
@@ -69,6 +86,11 @@ assert.equal(untranslated.model.status,'ready');
 assert.equal(untranslated.model.payload.translation.status,'unavailable');
 assert.match(untranslated.html(),/这是共享的原文字幕。/);
 assert.match(untranslated.html(),/translation-unavailable/);
+assert.equal(untranslated.moveSelection(1),true);
+assert.equal(untranslated.model.selected,'segment-zh-002');
+assert.match(untranslated.html(),/下一句也使用同一个学习流程。/);
+assert.match(untranslated.html(),/translation-unavailable/);
+assert.equal(untranslated.moveSelection(-1),true);
 
 const sameLanguage={
   ...MEDIA_LEARNING_FIXTURE,
@@ -167,6 +189,18 @@ assert.equal(messages[0].message.func,'seekTo');
 assert.equal(messages[0].message.args[0],4.2);
 assert.equal(messages[1].message.func,'playVideo');
 assert.equal(replaySegment({querySelector:()=>frame},{provider:'vimeo',kind:'embed',url:'https://player.vimeo.com/video/1'},0),false);
+messages.length=0;
+assert.equal(setPlaybackRate({querySelector:()=>frame},playback,.75),true);
+assert.deepEqual(messages,[{
+  message:{event:'command',func:'setPlaybackRate',args:[.75]},
+  target:'https://www.youtube-nocookie.com',
+}]);
+assert.equal(setPlaybackRate({querySelector:()=>frame},playback,1),true);
+assert.equal(setPlaybackRate({querySelector:()=>frame},playback,1.25),true);
+assert.deepEqual(messages.slice(1).map(item=>item.message.args),[[1],[1.25]]);
+assert.equal(setPlaybackRate({querySelector:()=>frame},playback,2),false);
+assert.equal(setPlaybackRate({querySelector:()=>frame},{provider:'vimeo',kind:'embed',url:'https://player.vimeo.com/video/1'},1),false);
+assert.equal(messages.length,3);
 
 const skills=[{key:'listening',internal_available:true,public_available:false}];
 assert.equal(routeAvailable('listen',skills,{internal:true}),true);
