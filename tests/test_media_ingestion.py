@@ -655,7 +655,7 @@ def test_application_registers_the_agreed_authenticated_import_route() -> None:
     assert matching_routes[0].methods == {"POST"}
 
 
-def test_canonical_state_marks_m15_closed_and_m16_planned() -> None:
+def test_canonical_state_marks_m15_and_m16_closed() -> None:
     project_state = (ROOT / "docs/project/PROJECT_STATE.md").read_text(encoding="utf-8")
     handoff = (ROOT / "docs/project/CURRENT_HANDOFF.md").read_text(encoding="utf-8")
     roadmap = (ROOT / "docs/project/ROADMAP.md").read_text(encoding="utf-8")
@@ -678,7 +678,7 @@ def test_canonical_state_marks_m15_closed_and_m16_planned() -> None:
     assert "m1.3 — shared media translation: **closed / merged**" in normalized_roadmap
     assert "m1.4 — listening mvp integration and acceptance: **closed / merged**" in normalized_roadmap
     assert "m1.5 — active listening: **closed / merged**" in normalized_roadmap
-    assert "m1.6 — shadowing integration: **planned**" in normalized_roadmap
+    assert "m1.6 — shadowing integration: **closed / merged**" in normalized_roadmap
     assert "pv-2 / oren-10" in normalized_handoff
     assert "pv-3 / oren-11" in normalized_handoff
 

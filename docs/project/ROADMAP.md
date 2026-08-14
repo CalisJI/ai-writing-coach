@@ -60,7 +60,7 @@ Library, and Grammar can reuse:
 - M1.3 — shared media translation: **CLOSED / merged**;
 - M1.4 — Listening MVP integration and acceptance: **CLOSED / merged**;
 - M1.5 — active Listening: **CLOSED / merged**;
-- M1.6 — Shadowing integration: **PLANNED**.
+- M1.6 — Shadowing integration: **CLOSED / merged**.
 
 PV-2 / OREN-10 delivered the first internal Listening workspace foundation
 ahead of backend completion. PV-3 / OREN-11 added selected-segment navigation,
@@ -68,8 +68,12 @@ Previous / Next, replay, supported playback speeds, and stronger selection
 visibility. M1.4 closed integration with the reviewed shared Media Learning
 backend and internal passive-MVP acceptance. M1.5 closed the first bounded
 Active Listening transcript-reconstruction checkpoint over the same canonical
-segments. M1.6 Shadowing integration is the next planned checkpoint. These
-checkpoints do not imply Listening completion or public release.
+segments. M1.6 closed the first shared-media Shadowing integration over those
+same canonical assets and segments without recording, ASR, pronunciation
+scoring, durable learner-progress persistence, or a new Speaking route. These
+checkpoints do not imply Listening or Speaking completion or public release.
+Keep the M1 program itself IN PROGRESS until a separate explicit program-close
+review.
 
 M1 permits Listening MVP development before R11 without making Listening
 public. R11 remains the Listening completion and public-release-readiness gate.
