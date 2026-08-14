@@ -41,7 +41,11 @@ from writing_coach.writing_evaluator_contract import (
 from writing_coach.writing_analytics import parse_persisted_error_events
 from auth_support import APP_ENV, AUTH_ENABLED, current_db_path, install_auth, require_admin, AUTH_DB_PATH, configure_auth_repository
 from writing_coach.product.api import router as product_router
+from writing_coach.media_api import configure_media_ingestion, router as media_learning_router
+from writing_coach.media_ingestion import MediaIngestionService
+from writing_coach.media_providers.youtube import YouTubeMediaProviderAdapter
 from writing_coach.core.platform_api import router as platform_router
+from writing_coach.core.language_registry import is_enabled
 from writing_coach.ai.base import AICapabilityError, AIProviderError, AIProviderUnavailable
 from writing_coach.ai.platform import active_ai_label, active_ai_status, generate_structured, install_platform_ai, configure_platform_repository
 from writing_coach.product.service import configure_product_repository
@@ -150,6 +154,13 @@ def init_db() -> None:
 install_auth(app, init_db)
 app.include_router(platform_router)
 app.include_router(product_router)
+configure_media_ingestion(
+    MediaIngestionService(
+        adapters=(YouTubeMediaProviderAdapter(),),
+        source_language_supported=is_enabled,
+    )
+)
+app.include_router(media_learning_router)
 install_platform_ai(app, require_admin)
 configure_becoming_memory(_specialized_learning_repository)
 configure_becoming_outcomes(_specialized_learning_repository)
