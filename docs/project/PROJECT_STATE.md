@@ -67,7 +67,7 @@ Current learner skill truth:
 | Writing | BETA | available | available | no |
 | Speaking | DEVELOPMENT | unavailable as a complete product | unavailable | no |
 | Reading | DEVELOPMENT | available | available | no |
-| Listening | HIDDEN | unavailable | unavailable | no |
+| Listening | DEVELOPMENT | available | available | no |
 
 The first public product gate requires all four conditions:
 
@@ -113,6 +113,11 @@ acquisition checkpoint. It adds the learner API and an isolated first YouTube
 adapter without durable media persistence, audio download, audio transcription,
 translation generation, Listening UI, or Shadowing behavior. It does not make
 Listening or Speaking public.
+
+The first Listening workspace is available to authenticated internal/admin
+testers through the M1.2 import contract. It provides safe provider playback,
+shared transcript interaction, and segment replay without scoring, learner
+progress persistence, Shadowing activation, or public release.
 
 ## R2 AI Capability Control Plane
 

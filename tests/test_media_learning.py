@@ -245,7 +245,7 @@ def test_governance_records_the_shared_media_learning_direction() -> None:
     assert "R2 remains **IN PROGRESS**" in project_state
     assert "m1.2 media ingestion and transcript acquisition" in normalized_handoff
 
-    assert "| Listening | HIDDEN | unavailable | unavailable | no |" in project_state
+    assert "| Listening | DEVELOPMENT | available | available | no |" in project_state
     assert "no current learner skill is public" in normalized_state
     assert "R11 remains the Listening completion and public-release-readiness gate" in roadmap
     assert "Media Learning (shared)" in boundaries

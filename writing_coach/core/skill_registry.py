@@ -73,9 +73,9 @@ _REGISTRY: tuple[SkillCapability, ...] = (
     ),
     SkillCapability(
         key="listening",
-        release_state=SkillReleaseState.HIDDEN,
-        source_available=False,
-        internal_available=False,
+        release_state=SkillReleaseState.DEVELOPMENT,
+        source_available=True,
+        internal_available=True,
     ),
 )
 
