@@ -17,17 +17,20 @@ that `main` HEAD remain identical after docs-only or governance-only commits.
 - R2 Slice 2
 - R2 Slice 3
 - R2 Slice 4
+- M1.1 — media object and segment contracts
 
 ## Current M1 checkpoint
 
-M1.1 is the foundational checkpoint being landed by this slice. It establishes
-one provider-neutral, learner-neutral Media Learning Object whose canonical
-source-language transcript, timestamped segments, and translations are shared
-by Listening and Speaking Shadowing. Learner progress remains separate and
-scoped by user and learning language.
+M1.1 is **CLOSED / APPROVED / merged**. Its provider-neutral, learner-neutral
+Media Learning Object remains the canonical shared content contract. Learner
+progress remains separate and scoped by user and learning language.
 
-M1.1 does not implement ingestion, transcription, translation, Listening UI,
-or Shadowing behavior, and it does not make Listening or Speaking public.
+M1.2 is **IN PROGRESS**. It is the external-media ingestion and public-caption
+acquisition checkpoint, with one authenticated learner API and provider access
+isolated behind an adapter. The first provider target is public YouTube video
+playback and captions. No durable media persistence, audio download, ASR,
+translation generation, Listening UI, or Shadowing implementation is included.
+Listening and Speaking remain non-public.
 
 ## Current runtime truth
 
@@ -41,9 +44,12 @@ or Shadowing behavior, and it does not make Listening or Speaking public.
 
 ## Next checkpoints
 
-- M1 product-development lane: after M1.1 review and merge, M1.2 media
-  ingestion and transcript acquisition under a separate reviewed scope. Do not
-  start M1.2 from this handoff correction.
+- M1 product-development lane: finish review of M1.2 media ingestion and
+  transcript acquisition. After M1.2 is reviewed and merged, M1.3 translation
+  is the next planned checkpoint under a separate scope. M1.3 must establish a
+  shared backend support-language validation contract before activating
+  translation; M1.2 intentionally does not copy frontend-only language
+  constants. Do not start M1.3 from this handoff.
 - R2 control-plane lane: static activation-readiness gate and operator
   checkpoint. R2 remains IN PROGRESS.
 
