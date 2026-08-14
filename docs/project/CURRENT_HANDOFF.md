@@ -1,7 +1,7 @@
 # Current Handoff
 
 **Application/runtime baseline:**
-`113d42afef04c089a469e92de0ff7fa8215deb57`
+`38e023aaea735e81d3d725dfc912702d84fdefbe`
 
 This is the inherited verified application/runtime baseline, not a requirement
 that `main` HEAD remain identical after docs-only or governance-only commits.
@@ -20,6 +20,7 @@ that `main` HEAD remain identical after docs-only or governance-only commits.
 - M1.1 — media object and segment contracts
 - M1.2 — media ingestion and transcript acquisition
 - M1.3 — shared media translation
+- M1.4 — internal passive Listening MVP integration and acceptance
 - PV-2 / OREN-10 — internal Listening workspace foundation
 - PV-3 / OREN-11 — Listening practice navigation and playback controls
 
@@ -43,11 +44,15 @@ playback, transcript interaction, stable segment selection, Previous / Next,
 canonical timestamp replay, supported playback speeds, and truthful
 translated/degraded states.
 
-M1.4 Listening MVP integration and completion is **IN PROGRESS**. It is the
-current acceptance checkpoint for one shared EN/ZH passive follow-along flow
-over the reviewed Media Learning backend. There is no durable media
-persistence, Listening progress/scoring, active Listening, or Shadowing
-activation. Listening and Speaking remain non-public.
+M1.4 Listening MVP integration and acceptance is **CLOSED / APPROVED / merged**.
+It established one shared EN/ZH passive follow-along flow over the reviewed
+Media Learning backend.
+
+M1.5 Active Listening is **IN PROGRESS**. It adds bounded, deterministic
+transcript-reconstruction practice over canonical Media Learning segments with
+browser-session-only practice state. There is no durable media or Listening
+progress persistence, AI dictation grading, or Shadowing activation. Listening
+and Speaking remain non-public.
 
 ## Current runtime truth
 
@@ -61,9 +66,9 @@ activation. Listening and Speaking remain non-public.
 
 ## Next checkpoints
 
-- M1 product-development lane: complete review of M1.4 Listening MVP
-  integration and acceptance. After its reviewed merge, M1.5 Active Listening
-  is next. M1.4 does not make Listening complete or public.
+- M1 product-development lane: complete review of M1.5 Active Listening. After
+  its reviewed merge, M1.6 Shared-media Shadowing integration is next. M1.5
+  does not make Listening complete or public.
 - R2 control-plane lane: static activation-readiness gate and operator
   checkpoint. R2 remains IN PROGRESS.
 

@@ -4,6 +4,7 @@ import {api} from '../static/becoming/api.js';
 import {mediaPlayer,replaySegment,setPlaybackRate} from '../static/becoming/components/media-player.js';
 import {createListeningController,mediaImportErrorState,renderListening} from '../static/becoming/screens/listening.js';
 import {routeAvailable} from '../static/becoming/domain/skill-release.js';
+import {state} from '../static/becoming/store.js';
 
 const calls=[];
 let resolveImport;
@@ -34,6 +35,64 @@ assert.match(controller.html(),/value="0.75"/);
 assert.match(controller.html(),/value="1.25"/);
 assert.match(controller.html(),/<iframe/);
 assert.match(controller.html(),/disabled/);
+
+let activeImports=0;
+const activeController=createListeningController({importMedia:async()=>{activeImports+=1;return MEDIA_LEARNING_FIXTURE;},targetLanguage:()=> 'vi'});
+await activeController.importUrl('https://youtu.be/dQw4w9WgXcQ');
+activeController.toggleOriginal(false);
+activeController.toggleMeaning(false);
+assert.equal(activeController.setMode('active'),true);
+assert.equal(activeController.model.mode,'active');
+assert.match(activeController.html(),/data-listening-mode="active"/);
+assert.match(activeController.html(),/maxlength="2000"/);
+assert.ok(!activeController.html().includes(MEDIA_LEARNING_FIXTURE.transcript.segments[0].original_text));
+assert.ok(!activeController.html().includes(MEDIA_LEARNING_FIXTURE.translations[0].translated_meaning));
+assert.equal(activeController.checkPractice(),false);
+assert.match(activeController.html(),/active-listening-validation/);
+assert.equal(activeController.model.practiceSession.segments['segment-001'].attempts.length,0);
+assert.equal(activeController.setPracticeDraft('x'.repeat(2001)),false);
+assert.equal(activeController.checkPractice(),false);
+assert.equal(activeController.model.practiceSession.segments['segment-001'].attempts.length,0);
+assert.match(activeController.html(),/active-listening-validation/);
+assert.equal(activeController.setPracticeDraft('<script>alert("x")</script> \u4e2d\u6587 \u{1f3a7}'),true);
+assert.match(activeController.html(),/&lt;script&gt;alert\(&quot;x&quot;\)&lt;\/script&gt;/);
+assert.doesNotMatch(activeController.html(),/<script>|<\/script>/);
+activeController.setPracticeDraft('Listen for the first complete idea.');
+assert.equal(activeController.checkPractice(),true);
+assert.match(activeController.html(),/active-listening-text-match/);
+assert.match(activeController.html(),/100%/);
+assert.match(activeController.html(),/Listen for the first complete idea\./);
+assert.ok(activeController.html().includes(MEDIA_LEARNING_FIXTURE.translations[0].translated_meaning));
+for(const [locale,label] of [['en','Type what you heard'],['vi','G\u00f5 l\u1ea1i \u0111i\u1ec1u b\u1ea1n nghe \u0111\u01b0\u1ee3c'],['zh','\u8f93\u5165\u4f60\u542c\u5230\u7684\u5185\u5bb9']]){
+  state.supportLanguage=locale;
+  assert.ok(activeController.html().includes(label));
+}
+state.supportLanguage='vi';
+assert.match(activeController.html(),/not a proficiency score|không phải điểm năng lực|并不是语言能力分数/);
+assert.doesNotMatch(activeController.html(),/CEFR|HSK|Mastered|Fluent|Advanced/);
+assert.equal(activeController.retryPractice(),true);
+assert.equal(activeImports,1);
+assert.doesNotMatch(activeController.html(),/Listen for the first complete idea\.|active-listening-text-match/);
+assert.equal(activeController.model.practiceSession.segments['segment-001'].attempts.length,1);
+assert.equal(activeController.moveSelection(1),true);
+assert.equal(activeController.model.selected,'segment-002');
+assert.equal(activeController.revealPractice(),true);
+assert.match(activeController.html(),/The same segment can support shadowing later\./);
+assert.doesNotMatch(activeController.html(),/active-listening-text-match/);
+assert.equal(activeController.model.practiceSession.segments['segment-002'].attempts.length,0);
+assert.match(activeController.html(),/active-listening-summary/);
+assert.equal(activeController.model.practiceSession.segments['segment-002'].revealed,true);
+assert.equal(activeController.moveSelection(-1),true);
+assert.equal(activeController.model.practiceSession.segments['segment-001'].attempts.length,1);
+assert.equal(activeController.setMode('follow'),true);
+assert.ok(!activeController.html().includes(MEDIA_LEARNING_FIXTURE.transcript.segments[0].original_text));
+assert.ok(!activeController.html().includes(MEDIA_LEARNING_FIXTURE.translations[0].translated_meaning));
+activeController.toggleOriginal(true);
+activeController.toggleMeaning(true);
+activeController.setMode('active');
+activeController.setMode('follow');
+assert.match(activeController.html(),/Listen for the first complete idea\./);
+assert.ok(activeController.html().includes(MEDIA_LEARNING_FIXTURE.translations[0].translated_meaning));
 
 let delayedResolve;
 const delayedImport=new Promise(resolve=>{delayedResolve=resolve;});
@@ -100,11 +159,18 @@ overlapping[1].resolve(MEDIA_LEARNING_ZH_FIXTURE);
 await newerImport;
 assert.equal(raceController.model.payload.asset.asset_id,'asset-fixture-zh');
 assert.equal(raceController.model.selected,'segment-zh-001');
+assert.equal(raceController.setMode('active'),true);
+raceController.setPracticeDraft(MEDIA_LEARNING_ZH_FIXTURE.transcript.segments[0].original_text);
+assert.equal(raceController.checkPractice(),true);
+assert.equal(raceController.model.practiceSession.asset_id,'asset-fixture-zh');
+assert.equal(raceController.model.practiceSession.segments['segment-zh-001'].attempts.length,1);
 overlapping[0].resolve(MEDIA_LEARNING_FIXTURE);
 await olderImport;
 assert.equal(raceController.model.payload.asset.asset_id,'asset-fixture-zh');
 assert.equal(raceController.model.selected,'segment-zh-001');
 assert.equal(raceController.model.status,'ready');
+assert.equal(raceController.model.practiceSession.asset_id,'asset-fixture-zh');
+assert.equal(raceController.model.practiceSession.segments['segment-zh-001'].attempts.length,1);
 
 const importFailure=new Error('The media provider could not complete this request.');
 importFailure.category='provider_failure';
@@ -120,6 +186,10 @@ resetController.select('segment-002');
 resetController.toggleOriginal(false);
 resetController.toggleMeaning(false);
 assert.equal(resetController.setPlaybackRate(.75),true);
+assert.equal(resetController.setMode('active'),true);
+resetController.setPracticeDraft(MEDIA_LEARNING_FIXTURE.transcript.segments[1].original_text);
+assert.equal(resetController.checkPractice(),true);
+assert.equal(resetController.model.practiceSession.segments['segment-002'].attempts.length,1);
 await resetController.importUrl('https://example.invalid/failure');
 assert.equal(resetController.model.status,'error');
 assert.equal(resetController.model.error,importFailure);
@@ -129,6 +199,9 @@ assert.equal(resetController.model.error,null);
 assert.equal(resetController.model.original,false);
 assert.equal(resetController.model.meaning,false);
 assert.equal(resetController.model.playbackRate,.75);
+assert.equal(resetController.model.mode,'active');
+assert.equal(resetController.model.practiceSession.asset_id,'asset-fixture-zh');
+assert.equal(Object.values(resetController.model.practiceSession.segments).flatMap(item=>item.attempts).length,0);
 assert.match(resetController.html(),/value="0.75" selected/);
 
 controller.toggleOriginal(false);
@@ -172,6 +245,14 @@ assert.equal(untranslated.model.selected,'segment-zh-002');
 assert.match(untranslated.html(),/下一句也使用同一个学习流程。/);
 assert.match(untranslated.html(),/translation-status-unavailable/);
 assert.equal(untranslated.moveSelection(-1),true);
+assert.equal(untranslated.setMode('active'),true);
+assert.ok(!untranslated.html().includes(MEDIA_LEARNING_ZH_FIXTURE.transcript.segments[0].original_text));
+untranslated.setPracticeDraft(MEDIA_LEARNING_ZH_FIXTURE.transcript.segments[0].original_text);
+assert.equal(untranslated.checkPractice(),true);
+assert.match(untranslated.html(),/active-listening-text-match/);
+assert.match(untranslated.html(),/100%/);
+assert.ok(untranslated.html().includes(MEDIA_LEARNING_ZH_FIXTURE.transcript.segments[0].original_text));
+assert.match(untranslated.html(),/translation-status-unavailable/);
 
 const sameLanguage={
   ...MEDIA_LEARNING_FIXTURE,
@@ -187,6 +268,10 @@ assert.match(translationNotRequired.html(),/translation-not-required/);
 assert.match(translationNotRequired.html(),/Không cần bản dịch|Translation is not required|不需要翻译/);
 assert.doesNotMatch(translationNotRequired.html(),/translation-unavailable/);
 assert.doesNotMatch(translationNotRequired.html(),/Meaning is not available yet\./);
+assert.equal(translationNotRequired.setMode('active'),true);
+assert.equal(translationNotRequired.revealPractice(),true);
+assert.match(translationNotRequired.html(),/translation-not-required/);
+assert.doesNotMatch(translationNotRequired.html(),/active-listening-text-match/);
 
 const tooLarge={
   ...MEDIA_LEARNING_ZH_FIXTURE,
@@ -200,6 +285,11 @@ assert.match(oversizedTranslation.html(),/translation-status-too_large/);
 assert.match(oversizedTranslation.html(),/quá lớn để tự động tạo phần nghĩa|too large for automatic meaning generation|内容过大/);
 assert.doesNotMatch(oversizedTranslation.html(),/translation-status-unavailable|translation-unavailable/);
 assert.notEqual(oversizedTranslation.html(),untranslated.html());
+assert.equal(oversizedTranslation.setMode('active'),true);
+assert.equal(oversizedTranslation.revealPractice(),true);
+assert.match(oversizedTranslation.html(),/translation-status-too_large/);
+assert.ok(oversizedTranslation.html().includes(MEDIA_LEARNING_ZH_FIXTURE.transcript.segments[0].original_text));
+assert.doesNotMatch(oversizedTranslation.html(),/active-listening-text-match/);
 
 const noCaption={...MEDIA_LEARNING_FIXTURE,asset:{...MEDIA_LEARNING_FIXTURE.asset,transcript_available:false,translation_available:false},transcript:null,translations:[],translation:{status:'transcript_unavailable',target_language:'vi',source:null,failure_kind:null}};
 const captionless=createListeningController({importMedia:async()=>noCaption,targetLanguage:()=> 'vi'});
@@ -207,6 +297,29 @@ await captionless.importUrl('https://youtu.be/dQw4w9WgXcQ');
 assert.equal(captionless.model.status,'transcript-unavailable');
 assert.equal(captionless.model.payload.translation.status,'transcript_unavailable');
 assert.match(captionless.html(),/listening-state-transcript-unavailable/);
+assert.equal(captionless.model.practiceSession,null);
+assert.equal(captionless.setMode('active'),false);
+assert.doesNotMatch(captionless.html(),/data-listening-mode="active"/);
+
+const playbackUnavailable={...MEDIA_LEARNING_FIXTURE,playback:{provider:'youtube',kind:'unavailable',url:''}};
+const noPlayback=createListeningController({importMedia:async()=>playbackUnavailable,targetLanguage:()=> 'vi'});
+await noPlayback.importUrl('https://example.invalid/no-playback');
+assert.equal(noPlayback.model.status,'ready');
+assert.equal(noPlayback.setMode('active'),false);
+assert.match(noPlayback.html(),/data-listening-mode="active"[^>]*disabled/);
+assert.match(noPlayback.html(),/active-listening-playback-unavailable/);
+
+const oversizedCanonical={
+  ...MEDIA_LEARNING_FIXTURE,
+  transcript:{...MEDIA_LEARNING_FIXTURE.transcript,segments:[{...MEDIA_LEARNING_FIXTURE.transcript.segments[0],original_text:'word '.repeat(501)}]},
+  translations:[],
+  translation:{status:'unavailable',target_language:'vi',source:null,failure_kind:'too_large'},
+};
+const noEvaluation=createListeningController({importMedia:async()=>oversizedCanonical,targetLanguage:()=> 'vi'});
+await noEvaluation.importUrl('https://example.invalid/oversized-segment');
+assert.equal(noEvaluation.setMode('active'),true);
+assert.match(noEvaluation.html(),/active-listening-unavailable/);
+assert.doesNotMatch(noEvaluation.html(),/id="activeListeningForm"/);
 
 const acquisitionCases=[
   ['malformed_url','unsupported',/URL media công khai hợp lệ|valid public media URL|有效的公开视频网址/],
