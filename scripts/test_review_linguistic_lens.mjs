@@ -68,8 +68,12 @@ async function enabledLens(language,text,annotations){
     strengths:[],
   });
   await Promise.all([view.nodes['#posLensToggle'].click(),view.nodes['#posLensToggle'].click()]);
-  assert.equal(calls,1,'one Review load must make one linguistic API call');
-  assert.match(view.nodes['#learnerTextEvidence'].innerHTML,/error-mark/);
+  assert.equal(calls,1,'one lens lifecycle must make one linguistic API call');
+  assert.match(
+    view.nodes['#learnerTextEvidence'].innerHTML,
+    new RegExp(`<mark class="evidence-mark error-mark"[^>]*data-feedback-key="error-0"[^>]*><span[^>]*>${annotations[0].fragment}</span></mark>`),
+    'the exact evidence fragment and feedback key must survive POS rendering',
+  );
   assert.match(view.nodes['#learnerTextEvidence'].innerHTML,/pos-token/);
   assert.equal(view.nodes['#posLensToggle'].attributes['aria-pressed'],'true');
   assert.equal(view.nodes['#posLensLegend'].classList.values.has('hidden'),false);
@@ -105,5 +109,6 @@ assert.doesNotMatch(unavailable.nodes['#learnerTextEvidence'].innerHTML,/pos-tok
 const source=fs.readFileSync(new URL('../static/becoming/screens/review.js',import.meta.url),'utf8');
 assert.match(source,/id="posLensToggle"/,'Review must visibly render the lens control');
 assert.equal((source.match(/function installLinguisticLens/g)||[]).length,1,'EN and ZH must share one lens implementation');
+assert.equal((source.match(/^  installLinguisticLens\(root,\{/gm)||[]).length,1,'Review must install the shared lens exactly once per render');
 
 console.log('Review linguistic lens checks passed: 9');

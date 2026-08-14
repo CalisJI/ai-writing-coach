@@ -6,7 +6,7 @@ function normalize(value=''){
 }
 
 function isWordChar(char=''){
-  return /[A-Za-z0-9À-ỹ\u3400-\u4DBF\u4E00-\u9FFF]/u.test(char);
+  return /[A-Za-z0-9À-ỹ]/u.test(char);
 }
 
 function expandLexicalRange(source,start,end){
