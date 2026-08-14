@@ -97,20 +97,22 @@ Conceptually language-scoped learner data remains isolated by:
 
 ## M1 Media Learning Foundation
 
-M1 is an active cross-cutting development track. M1.1 establishes the shared,
-provider-neutral and learner-neutral media-content contract. One imported media
-source is represented once as a reusable Media Learning Object and consumed by
-both Listening and Speaking Shadowing rather than being independently modeled
-inside either skill.
+M1 is an active cross-cutting development track. M1.1 is **CLOSED / APPROVED /
+merged** and establishes the shared, provider-neutral and learner-neutral
+media-content contract. One imported media source is represented once as a
+reusable Media Learning Object and consumed by both Listening and Speaking
+Shadowing rather than being independently modeled inside either skill.
 
 The source-language transcript, stable timestamped segment identities, and
 support-language translations belong to shared media content. Listening
 progress, Shadowing attempts, saved vocabulary, learned segments, and exercise
 outcomes remain separate learner state scoped by user and learning language.
 
-M1.1 does not make M1 complete. It does not implement ingestion, provider
-adapters, transcription, translation, Listening UI, or Shadowing behavior, and
-it does not make Listening or Speaking public.
+M1.2 is **IN PROGRESS** as the external-media ingestion and public-caption
+acquisition checkpoint. It adds the learner API and an isolated first YouTube
+adapter without durable media persistence, audio download, audio transcription,
+translation generation, Listening UI, or Shadowing behavior. It does not make
+Listening or Speaking public.
 
 ## R2 AI Capability Control Plane
 
@@ -175,6 +177,6 @@ Two development tracks are active:
   live provider validation, runtime activation, and rollback execution remain
   human gates.
 - M1 is **IN PROGRESS** as a cross-cutting product-development track. M1.1 is
-  the current foundation checkpoint. After M1.1 is reviewed and merged, the
-  next planned M1 checkpoint is M1.2 media ingestion and transcript acquisition
-  under its own reviewed scope.
+  closed and merged. M1.2 media ingestion and transcript acquisition is the
+  current checkpoint under review. M1.3 translation remains the next planned
+  checkpoint and has not started.

@@ -51,16 +51,16 @@ rollback design, and production evidence pass an explicit reviewed gate.
 
 ## M1 — Media Learning Foundation (cross-cutting)
 
-**IN PROGRESS.** M1.1 starts M1 by establishing one provider-neutral
+**IN PROGRESS.** M1.1 started M1 by establishing one provider-neutral
 media-content foundation that Listening, Speaking Shadowing, Vocabulary /
 Library, and Grammar can reuse:
 
-- M1.1 — media object and segment contracts;
-- M1.2 — media ingestion and transcript acquisition;
-- M1.3 — translation;
-- M1.4 — Listening MVP;
-- M1.5 — active Listening;
-- M1.6 — Shadowing integration.
+- M1.1 — media object and segment contracts: **CLOSED / merged**;
+- M1.2 — media ingestion and transcript acquisition: **IN PROGRESS**;
+- M1.3 — translation: **PLANNED**;
+- M1.4 — Listening MVP: **PLANNED**;
+- M1.5 — active Listening: **PLANNED**;
+- M1.6 — Shadowing integration: **PLANNED**.
 
 M1 permits Listening MVP development before R11 without making Listening
 public. R11 remains the Listening completion and public-release-readiness gate.
