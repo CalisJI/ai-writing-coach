@@ -46,8 +46,10 @@ Listening and Speaking remain non-public.
 
 - M1 product-development lane: finish review of M1.2 media ingestion and
   transcript acquisition. After M1.2 is reviewed and merged, M1.3 translation
-  is the next planned checkpoint under a separate scope. Do not start M1.3 from
-  this handoff.
+  is the next planned checkpoint under a separate scope. M1.3 must establish a
+  shared backend support-language validation contract before activating
+  translation; M1.2 intentionally does not copy frontend-only language
+  constants. Do not start M1.3 from this handoff.
 - R2 control-plane lane: static activation-readiness gate and operator
   checkpoint. R2 remains IN PROGRESS.
 

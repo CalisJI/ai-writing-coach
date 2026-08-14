@@ -98,7 +98,11 @@ class MediaProviderAdapter(Protocol):
 
     def recognizes(self, source_url: str) -> bool: ...
 
-    def acquire(self, source_url: str) -> MediaAcquisition: ...
+    def acquire(
+        self,
+        source_url: str,
+        source_language: str,
+    ) -> MediaAcquisition: ...
 
 
 _LANGUAGE_TAG = re.compile(r"^[A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8})*$")
@@ -122,10 +126,22 @@ class MediaIngestionService:
         self._adapters = tuple(adapters)
         self._source_language_supported = source_language_supported
 
-    def import_media(self, source_url: str, target_language: str) -> MediaAcquisition:
+    def import_media(
+        self,
+        source_url: str,
+        target_language: str,
+        source_language: str,
+    ) -> MediaAcquisition:
         self._validate_source_url(source_url)
         if not isinstance(target_language, str) or not _LANGUAGE_TAG.fullmatch(target_language):
             raise MediaImportError(MediaImportCategory.INVALID_TARGET_LANGUAGE)
+        if (
+            not isinstance(source_language, str)
+            or not _LANGUAGE_TAG.fullmatch(source_language)
+            or not self._source_language_supported(primary_language(source_language))
+        ):
+            raise MediaImportError(MediaImportCategory.UNSUPPORTED_SOURCE_LANGUAGE)
+        expected_source_language = primary_language(source_language)
 
         adapter = next(
             (candidate for candidate in self._adapters if candidate.recognizes(source_url)),
@@ -135,7 +151,7 @@ class MediaIngestionService:
             raise MediaImportError(MediaImportCategory.UNSUPPORTED_PROVIDER)
 
         try:
-            acquisition = adapter.acquire(source_url)
+            acquisition = adapter.acquire(source_url, expected_source_language)
         except ProviderUrlMalformed as exc:
             raise MediaImportError(MediaImportCategory.MALFORMED_URL) from exc
         except ProviderSourceUnavailable as exc:
@@ -151,9 +167,17 @@ class MediaIngestionService:
         except Exception as exc:
             raise MediaImportError(MediaImportCategory.PROVIDER_FAILURE) from exc
 
-        source_language = acquisition.media_object.asset.source_language
-        if source_language.casefold() != "und" and not self._source_language_supported(
-            primary_language(source_language)
+        acquired_source_language = acquisition.media_object.asset.source_language
+        if (
+            acquired_source_language.casefold() != "und"
+            and not self._source_language_supported(
+                primary_language(acquired_source_language)
+            )
+        ):
+            raise MediaImportError(MediaImportCategory.UNSUPPORTED_SOURCE_LANGUAGE)
+        if (
+            acquired_source_language.casefold() != "und"
+            and primary_language(acquired_source_language) != expected_source_language
         ):
             raise MediaImportError(MediaImportCategory.UNSUPPORTED_SOURCE_LANGUAGE)
         return acquisition

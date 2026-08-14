@@ -7,6 +7,7 @@ from typing import Any
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from writing_coach.core.request_context import current_language_code
 from writing_coach.media_ingestion import (
     MediaAcquisition,
     MediaImportCategory,
@@ -62,6 +63,7 @@ def import_media(payload: MediaImportIn) -> dict[str, Any]:
         acquisition = _installed_media_ingestion().import_media(
             payload.source_url,
             payload.target_language,
+            current_language_code(),
         )
     except MediaImportError as exc:
         raise HTTPException(

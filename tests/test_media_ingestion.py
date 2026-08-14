@@ -13,6 +13,8 @@ import auth_support
 import writing_coach.media_api as media_api
 import writing_coach.media_ingestion as media_ingestion
 import writing_coach.media_learning as media_learning
+import writing_coach.media_providers.youtube as youtube_provider
+from writing_coach.core.request_context import LANGUAGE_CODE_CTX
 from writing_coach.media_api import MediaImportIn, serialize_media_acquisition
 from writing_coach.media_ingestion import (
     MediaImportCategory,
@@ -28,6 +30,7 @@ from writing_coach.media_providers.youtube import (
     YouTubeCaptionSnippet,
     YouTubeCaptionTrack,
     YouTubeMediaProviderAdapter,
+    normalize_youtube_transcript,
 )
 
 
@@ -64,10 +67,14 @@ class FakeCaptionClient:
     ) -> None:
         self.track = track
         self.error = error
-        self.calls: list[str] = []
+        self.calls: list[tuple[str, str]] = []
 
-    def fetch_track(self, video_id: str) -> YouTubeCaptionTrack | None:
-        self.calls.append(video_id)
+    def fetch_track(
+        self,
+        video_id: str,
+        source_language: str,
+    ) -> YouTubeCaptionTrack | None:
+        self.calls.append((video_id, source_language))
         if self.error is not None:
             raise self.error
         return self.track
@@ -110,14 +117,14 @@ def _service(
 def test_supported_youtube_urls_share_one_canonical_acquisition(source_url: str) -> None:
     service, metadata, captions = _service()
 
-    acquisition = service.import_media(source_url, "vi")
+    acquisition = service.import_media(source_url, "vi", "en")
 
     assert acquisition.media_object.asset.asset_id == f"youtube:{VIDEO_ID}"
     assert acquisition.media_object.asset.source_url == (
         f"https://www.youtube.com/watch?v={VIDEO_ID}"
     )
     assert metadata.calls == [f"https://www.youtube.com/watch?v={VIDEO_ID}"]
-    assert captions.calls == [VIDEO_ID]
+    assert captions.calls == [(VIDEO_ID, "en")]
 
 
 @pytest.mark.parametrize(
@@ -139,7 +146,7 @@ def test_malformed_and_unsupported_urls_fail_safely(
     service, _metadata, captions = _service()
 
     with pytest.raises(MediaImportError) as caught:
-        service.import_media(source_url, "vi")
+        service.import_media(source_url, "vi", "en")
 
     assert caught.value.category is category
     assert captions.calls == []
@@ -150,7 +157,7 @@ def test_playback_and_transcript_serialize_to_the_agreed_frontend_dto() -> None:
     service, _metadata, _captions = _service()
 
     response = serialize_media_acquisition(
-        service.import_media(f"https://youtu.be/{VIDEO_ID}", "vi")
+        service.import_media(f"https://youtu.be/{VIDEO_ID}", "vi", "en")
     )
 
     assert response["playback"] == {
@@ -172,10 +179,12 @@ def test_playback_and_transcript_serialize_to_the_agreed_frontend_dto() -> None:
         "Second caption",
     ]
     assert [segment["order"] for segment in transcript["segments"]] == [0, 1]
-    assert [segment["segment_id"] for segment in transcript["segments"]] == [
-        f"youtube:{VIDEO_ID}:segment:000000",
-        f"youtube:{VIDEO_ID}:segment:000001",
-    ]
+    segment_ids = [segment["segment_id"] for segment in transcript["segments"]]
+    assert len(segment_ids) == len(set(segment_ids)) == 2
+    assert all(
+        segment_id.startswith(f"youtube:{VIDEO_ID}:segment:")
+        for segment_id in segment_ids
+    )
     assert [(segment["start_ms"], segment["end_ms"]) for segment in transcript["segments"]] == [
         (0, 1250),
         (1500, 2000),
@@ -191,7 +200,7 @@ def test_caption_unavailable_returns_truthful_transcript_null_state() -> None:
     )
 
     response = serialize_media_acquisition(
-        service.import_media(f"https://youtu.be/{VIDEO_ID}", "vi")
+        service.import_media(f"https://youtu.be/{VIDEO_ID}", "vi", "en")
     )
 
     assert response["asset"]["source_language"] == "und"
@@ -216,7 +225,7 @@ def test_provider_failures_use_learner_safe_categories(
     service, _metadata, _captions = _service(caption_error=error)
 
     with pytest.raises(MediaImportError) as caught:
-        service.import_media(f"https://youtu.be/{VIDEO_ID}", "vi")
+        service.import_media(f"https://youtu.be/{VIDEO_ID}", "vi", "en")
 
     assert caught.value.category is category
     assert VIDEO_ID not in caught.value.learner_message
@@ -242,7 +251,7 @@ def test_malformed_provider_captions_fail_the_m1_contract(
     service, _metadata, _captions = _service(track)
 
     with pytest.raises(MediaImportError) as caught:
-        service.import_media(f"https://youtu.be/{VIDEO_ID}", "vi")
+        service.import_media(f"https://youtu.be/{VIDEO_ID}", "vi", "en")
 
     assert caught.value.category is MediaImportCategory.MALFORMED_TRANSCRIPT
 
@@ -264,13 +273,15 @@ def test_english_and_chinese_use_the_same_ingestion_pipeline(
     )
     service, _metadata, captions = _service(track)
 
-    acquisition = service.import_media(f"https://youtu.be/{VIDEO_ID}", "vi")
+    acquisition = service.import_media(
+        f"https://youtu.be/{VIDEO_ID}", "vi", source_language
+    )
 
     assert type(acquisition.media_object) is media_learning.MediaLearningObject
     assert acquisition.media_object.asset.source_language == source_language
     assert acquisition.media_object.transcript is not None
     assert acquisition.media_object.transcript.segments[0].original_text == text
-    assert captions.calls == [VIDEO_ID]
+    assert captions.calls == [(VIDEO_ID, source_language)]
 
 
 def test_unsupported_source_language_fails_at_the_application_boundary() -> None:
@@ -279,7 +290,7 @@ def test_unsupported_source_language_fails_at_the_application_boundary() -> None
     )
 
     with pytest.raises(MediaImportError) as caught:
-        service.import_media(f"https://youtu.be/{VIDEO_ID}", "vi")
+        service.import_media(f"https://youtu.be/{VIDEO_ID}", "vi", "en")
 
     assert caught.value.category is MediaImportCategory.UNSUPPORTED_SOURCE_LANGUAGE
 
@@ -364,35 +375,219 @@ def test_request_dto_accepts_current_support_language_without_starting_translati
     assert payload.target_language == "vi"
 
 
-def test_public_caption_dependency_is_wrapped_without_network_access() -> None:
+@pytest.mark.parametrize(
+    ("source_language", "selected_language", "expected_text"),
+    (
+        ("en", "en", "Manual English"),
+        ("zh", "zh-Hans", "Generated Chinese"),
+    ),
+)
+def test_public_caption_selection_is_language_explicit_and_order_independent(
+    monkeypatch: pytest.MonkeyPatch,
+    source_language: str,
+    selected_language: str,
+    expected_text: str,
+) -> None:
+    class FakeNoTranscriptFound(Exception):
+        pass
+
+    monkeypatch.setattr(youtube_provider, "NoTranscriptFound", FakeNoTranscriptFound)
+
     class FakeSnippet:
-        text = "Provider caption"
         start = 0.25
         duration = 1.5
 
+        def __init__(self, text: str) -> None:
+            self.text = text
+
     class FakeFetchedTranscript:
-        language_code = "zh"
+        def __init__(self, language_code: str, text: str) -> None:
+            self.language_code = language_code
+            self._snippet = FakeSnippet(text)
 
         def __iter__(self):
-            return iter((FakeSnippet(),))
+            return iter((self._snippet,))
 
     class FakeTranscript:
+        def __init__(self, language_code: str, text: str, *, generated: bool) -> None:
+            self.language_code = language_code
+            self.text = text
+            self.is_generated = generated
+
         def fetch(self) -> FakeFetchedTranscript:
-            return FakeFetchedTranscript()
+            return FakeFetchedTranscript(self.language_code, self.text)
+
+    class FakeTranscriptList:
+        def __init__(self) -> None:
+            # Deliberately place unrelated and generated tracks before the preferred
+            # manual English track. Selection must never use iterable position.
+            self.tracks = (
+                FakeTranscript("fr", "Manual French", generated=False),
+                FakeTranscript("zh-Hans", "Generated Chinese", generated=True),
+                FakeTranscript("en", "Generated English", generated=True),
+                FakeTranscript("en", "Manual English", generated=False),
+            )
+            self.selection_calls: list[tuple[str, tuple[str, ...]]] = []
+
+        def __iter__(self):
+            return iter(self.tracks)
+
+        def _find(self, languages: list[str], *, generated: bool) -> FakeTranscript:
+            kind = "generated" if generated else "manual"
+            self.selection_calls.append((kind, tuple(languages)))
+            for track in self.tracks:
+                if track.language_code in languages and track.is_generated is generated:
+                    return track
+            raise FakeNoTranscriptFound()
+
+        def find_manually_created_transcript(
+            self, languages: list[str]
+        ) -> FakeTranscript:
+            return self._find(languages, generated=False)
+
+        def find_generated_transcript(self, languages: list[str]) -> FakeTranscript:
+            return self._find(languages, generated=True)
+
+    transcript_list = FakeTranscriptList()
 
     class FakeTranscriptApi:
-        def list(self, video_id: str) -> tuple[FakeTranscript, ...]:
+        def list(self, video_id: str) -> FakeTranscriptList:
             assert video_id == VIDEO_ID
-            return (FakeTranscript(),)
+            return transcript_list
 
     client = PublicYouTubeCaptionClient(api=FakeTranscriptApi())  # type: ignore[arg-type]
 
-    track = client.fetch_track(VIDEO_ID)
+    track = client.fetch_track(VIDEO_ID, source_language)
 
     assert track == YouTubeCaptionTrack(
-        source_language="zh",
-        snippets=(YouTubeCaptionSnippet("Provider caption", 0.25, 1.5),),
+        source_language=selected_language,
+        snippets=(YouTubeCaptionSnippet(expected_text, 0.25, 1.5),),
     )
+    assert transcript_list.selection_calls[0] == ("manual", (selected_language,))
+    if source_language == "en":
+        assert transcript_list.selection_calls == [("manual", ("en",))]
+    else:
+        assert transcript_list.selection_calls == [
+            ("manual", ("zh-Hans",)),
+            ("generated", ("zh-Hans",)),
+        ]
+
+
+def test_active_learning_language_reaches_the_provider_selection(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    service, _metadata, captions = _service(
+        YouTubeCaptionTrack(
+            "zh",
+            (YouTubeCaptionSnippet("Chinese learning caption", 0.0, 1.0),),
+        )
+    )
+    monkeypatch.setattr(media_api, "_media_ingestion_service", service)
+    token = LANGUAGE_CODE_CTX.set("zh")
+    try:
+        media_api.import_media(
+            MediaImportIn(
+                source_url=f"https://youtu.be/{VIDEO_ID}",
+                target_language="vi",
+            )
+        )
+    finally:
+        LANGUAGE_CODE_CTX.reset(token)
+
+    assert captions.calls == [(VIDEO_ID, "zh")]
+
+
+def test_unrequested_language_tracks_do_not_become_canonical_source_text() -> None:
+    class UnsupportedTranscript:
+        language_code = "fr"
+
+        def fetch(self) -> None:
+            raise AssertionError("An unsupported-language transcript was fetched")
+
+    class UnsupportedOnlyTranscriptList:
+        def __iter__(self):
+            return iter((UnsupportedTranscript(),))
+
+        def find_manually_created_transcript(self, _languages: list[str]) -> None:
+            raise AssertionError("No unsupported track should reach selection")
+
+        def find_generated_transcript(self, _languages: list[str]) -> None:
+            raise AssertionError("No unsupported track should reach selection")
+
+    class FakeTranscriptApi:
+        def list(self, video_id: str) -> UnsupportedOnlyTranscriptList:
+            assert video_id == VIDEO_ID
+            return UnsupportedOnlyTranscriptList()
+
+    client = PublicYouTubeCaptionClient(api=FakeTranscriptApi())  # type: ignore[arg-type]
+
+    assert client.fetch_track(VIDEO_ID, "en") is None
+
+
+def test_segment_identity_is_stable_across_reacquisition_and_earlier_insertion() -> None:
+    base = YouTubeCaptionTrack(
+        "en",
+        (
+            YouTubeCaptionSnippet("First stable caption", 1.0, 0.5),
+            YouTubeCaptionSnippet("Second stable caption", 2.0, 0.5),
+        ),
+    )
+    inserted = YouTubeCaptionTrack(
+        "en",
+        (YouTubeCaptionSnippet("Unrelated earlier caption", 0.0, 0.5), *base.snippets),
+    )
+
+    first = normalize_youtube_transcript(f"youtube:{VIDEO_ID}", base)
+    reacquired = normalize_youtube_transcript(f"youtube:{VIDEO_ID}", base)
+    with_insertion = normalize_youtube_transcript(f"youtube:{VIDEO_ID}", inserted)
+
+    assert [segment.segment_id for segment in first.segments] == [
+        segment.segment_id for segment in reacquired.segments
+    ]
+    original_ids = {
+        segment.original_text: segment.segment_id for segment in first.segments
+    }
+    inserted_ids = {
+        segment.original_text: segment.segment_id for segment in with_insertion.segments
+    }
+    assert inserted_ids["First stable caption"] == original_ids["First stable caption"]
+    assert inserted_ids["Second stable caption"] == original_ids["Second stable caption"]
+
+
+def test_changed_caption_content_changes_identity_and_duplicates_stay_unique() -> None:
+    original = normalize_youtube_transcript(
+        f"youtube:{VIDEO_ID}",
+        YouTubeCaptionTrack(
+            "en", (YouTubeCaptionSnippet("Original caption", 1.0, 0.5),)
+        ),
+    )
+    changed = normalize_youtube_transcript(
+        f"youtube:{VIDEO_ID}",
+        YouTubeCaptionTrack(
+            "en", (YouTubeCaptionSnippet("Changed caption", 1.0, 0.5),)
+        ),
+    )
+    retimed = normalize_youtube_transcript(
+        f"youtube:{VIDEO_ID}",
+        YouTubeCaptionTrack(
+            "en", (YouTubeCaptionSnippet("Original caption", 1.25, 0.5),)
+        ),
+    )
+    duplicates = normalize_youtube_transcript(
+        f"youtube:{VIDEO_ID}",
+        YouTubeCaptionTrack(
+            "en",
+            (
+                YouTubeCaptionSnippet("Repeated caption", 3.0, 0.5),
+                YouTubeCaptionSnippet("Repeated caption", 3.0, 0.5),
+            ),
+        ),
+    )
+
+    assert original.segments[0].segment_id != changed.segments[0].segment_id
+    assert original.segments[0].segment_id != retimed.segments[0].segment_id
+    duplicate_ids = [segment.segment_id for segment in duplicates.segments]
+    assert len(duplicate_ids) == len(set(duplicate_ids)) == 2
 
 
 def test_caption_http_boundary_applies_a_bounded_timeout(

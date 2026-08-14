@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import math
 import re
 from dataclasses import dataclass
@@ -29,6 +30,7 @@ from writing_coach.media_ingestion import (
     ProviderTimedOut,
     ProviderTranscriptMalformed,
     ProviderUrlMalformed,
+    primary_language,
 )
 from writing_coach.media_learning import (
     MediaLearningAsset,
@@ -67,7 +69,11 @@ class YouTubeMetadataClient(Protocol):
 
 
 class YouTubeCaptionClient(Protocol):
-    def fetch_track(self, video_id: str) -> YouTubeCaptionTrack | None: ...
+    def fetch_track(
+        self,
+        video_id: str,
+        source_language: str,
+    ) -> YouTubeCaptionTrack | None: ...
 
 
 class BoundedYouTubeSession(requests.Session):
@@ -127,13 +133,51 @@ class PublicYouTubeCaptionClient:
             http_client=BoundedYouTubeSession(timeout_seconds)
         )
 
-    def fetch_track(self, video_id: str) -> YouTubeCaptionTrack | None:
+    def fetch_track(
+        self,
+        video_id: str,
+        source_language: str,
+    ) -> YouTubeCaptionTrack | None:
         try:
             transcript_list = self._api.list(video_id)
-            available = tuple(transcript_list)
-            if not available:
+            language_candidates = sorted(
+                {
+                    language_code
+                    for transcript in transcript_list
+                    if isinstance(
+                        language_code := getattr(transcript, "language_code", None),
+                        str,
+                    )
+                    and primary_language(language_code) == source_language.casefold()
+                },
+                key=lambda code: (
+                    code.casefold() != source_language.casefold(),
+                    code.casefold(),
+                ),
+            )
+            if not language_candidates:
                 return None
-            fetched = available[0].fetch()
+            try:
+                selected = transcript_list.find_manually_created_transcript(
+                    language_candidates
+                )
+            except NoTranscriptFound:
+                try:
+                    selected = transcript_list.find_generated_transcript(
+                        language_candidates
+                    )
+                except NoTranscriptFound:
+                    return None
+            fetched = selected.fetch()
+            fetched_language = getattr(fetched, "language_code", None)
+            if (
+                not isinstance(fetched_language, str)
+                or primary_language(fetched_language) != source_language.casefold()
+            ):
+                raise ProviderTranscriptMalformed()
+            fetched_snippets = tuple(fetched)
+            if not fetched_snippets:
+                return None
         except (TranscriptsDisabled, NoTranscriptFound):
             return None
         except (VideoUnavailable, VideoUnplayable, AgeRestricted, InvalidVideoId) as exc:
@@ -151,10 +195,10 @@ class PublicYouTubeCaptionClient:
                 start_seconds=getattr(snippet, "start", None),
                 duration_seconds=getattr(snippet, "duration", None),
             )
-            for snippet in fetched
+            for snippet in fetched_snippets
         )
         return YouTubeCaptionTrack(
-            source_language=getattr(fetched, "language_code", None),
+            source_language=fetched_language,
             snippets=snippets,
         )
 
@@ -223,16 +267,24 @@ def normalize_youtube_transcript(
         normalized.append((start_ms, start_ms + duration_ms, provider_order, text))
 
     normalized.sort(key=lambda item: (item[0], item[1], item[2]))
-    segments = tuple(
-        TranscriptSegment(
-            segment_id=f"{asset_id}:segment:{order:06d}",
-            order=order,
-            start_ms=start_ms,
-            end_ms=end_ms,
-            original_text=text,
+    fingerprint_occurrences: dict[str, int] = {}
+    segments_list: list[TranscriptSegment] = []
+    for order, (start_ms, end_ms, _provider_order, text) in enumerate(normalized):
+        fingerprint = hashlib.sha256(
+            f"{start_ms}\0{end_ms}\0{text}".encode("utf-8")
+        ).hexdigest()
+        occurrence = fingerprint_occurrences.get(fingerprint, 0)
+        fingerprint_occurrences[fingerprint] = occurrence + 1
+        segments_list.append(
+            TranscriptSegment(
+                segment_id=f"{asset_id}:segment:{fingerprint}:{occurrence:06d}",
+                order=order,
+                start_ms=start_ms,
+                end_ms=end_ms,
+                original_text=text,
+            )
         )
-        for order, (start_ms, end_ms, _provider_order, text) in enumerate(normalized)
-    )
+    segments = tuple(segments_list)
     try:
         return MediaTranscript(
             asset_id=asset_id,
@@ -268,11 +320,15 @@ class YouTubeMediaProviderAdapter:
     def recognizes(self, source_url: str) -> bool:
         return recognizes_youtube_url(source_url)
 
-    def acquire(self, source_url: str) -> MediaAcquisition:
+    def acquire(
+        self,
+        source_url: str,
+        source_language: str,
+    ) -> MediaAcquisition:
         video_id = parse_youtube_video_id(source_url)
         canonical_url = canonical_youtube_url(video_id)
         title = self._metadata_client.fetch_title(canonical_url)
-        track = self._caption_client.fetch_track(video_id)
+        track = self._caption_client.fetch_track(video_id, source_language)
         asset_id = f"youtube:{video_id}"
 
         transcript = (
