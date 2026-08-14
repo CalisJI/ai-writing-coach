@@ -255,7 +255,7 @@ function posLegend(){
   </div>`;
 }
 
-async function installLinguisticLens(root,{
+export async function installLinguisticLens(root,{
   essayId,
   learnerText,
   errors,
@@ -466,14 +466,14 @@ export async function renderReview(root){
         <p class="review-density-note">${t('review.highlight_note')}</p>
         ${supportNote('lookup_tip',state.profile||{})}
 
-        <div class="linguistic-lens-bar visual-section-surface">
+        <div class="linguistic-lens-bar visual-section-surface" aria-labelledby="posLensTitle">
           <div>
             <div class="section-title-row">
               <span class="context-label">${t('review.pos_kicker')}</span>
               ${helpTip(t('review.pos_help'),t('review.pos_title'))}
             </div>
-            <strong>${t('review.pos_title')}</strong>
-            <small id="posLensStatus">${t('review.pos_off')}</small>
+            <strong id="posLensTitle">${t('review.pos_title')}</strong>
+            <small id="posLensStatus" aria-live="polite">${t('review.pos_off')}</small>
           </div>
           <button id="posLensToggle" class="button button-secondary linguistic-lens-toggle" type="button" aria-pressed="false">${t('review.pos_show')}</button>
         </div>
