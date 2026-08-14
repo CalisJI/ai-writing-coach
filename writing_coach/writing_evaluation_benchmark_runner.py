@@ -8,6 +8,7 @@ from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime, timezone
 import json
+import os
 from pathlib import Path
 import sys
 from typing import Any
@@ -31,6 +32,7 @@ from writing_coach.writing_evaluation_benchmark import (
     validate_evaluator_label,
 )
 from writing_coach.writing_evaluation_benchmark_fixtures import WRITING_BENCHMARK_CASES
+from writing_coach.writing_evaluator_contract import SHARED_RESULT_FIELDS
 
 
 EXIT_SCOPE_PASSED = 0
@@ -64,6 +66,17 @@ _LANGUAGE_POLICY = {
     },
 }
 _REPLAY_ROOT_FIELDS = frozenset({"benchmark_version", "evaluator_label", "results"})
+_NORMALIZED_RESULT_FIELD_TYPES = {
+    "cefr_estimate": str,
+    "summary_vi": str,
+    "strengths_vi": list,
+    "priorities_vi": list,
+    "strength_evidence": list,
+    "errors": list,
+}
+
+if frozenset(_NORMALIZED_RESULT_FIELD_TYPES) != frozenset(SHARED_RESULT_FIELDS):
+    raise RuntimeError("Writing benchmark runner normalized-result fields drifted from the shared contract")
 
 
 def _timestamp_now() -> str:
@@ -100,6 +113,14 @@ def _validate_normalized_result(case_id: str, result: Any) -> Mapping[str, Any]:
         raise BenchmarkRunnerInvalid("every normalized result must be an object")
     if any(dimension not in result for dimension in RUBRIC_DIMENSIONS):
         raise BenchmarkRunnerInvalid("normalized result is missing required rubric dimensions")
+    missing_fields = [field for field in SHARED_RESULT_FIELDS if field not in result]
+    if missing_fields:
+        raise BenchmarkRunnerInvalid("normalized result is missing required shared fields")
+    if any(
+        not isinstance(result[field], expected_type)
+        for field, expected_type in _NORMALIZED_RESULT_FIELD_TYPES.items()
+    ):
+        raise BenchmarkRunnerInvalid("normalized result has an invalid shared-field structure")
     if case_id not in _CORPUS_BY_ID:
         raise BenchmarkRunnerInvalid("result refers to an unknown benchmark case")
     return result
@@ -504,7 +525,14 @@ def write_json_file(path: Path, payload: Mapping[str, Any], *, force: bool) -> N
 
 
 def _ensure_output_available(paths: Sequence[Path | None], *, force: bool) -> None:
-    if not force and any(path is not None and path.exists() for path in paths):
+    destinations = [path for path in paths if path is not None]
+    try:
+        resolved = [os.path.normcase(str(path.expanduser().resolve(strict=False))) for path in destinations]
+    except OSError as exc:
+        raise BenchmarkRunnerInvalid("output destination could not be resolved") from exc
+    if len(resolved) != len(set(resolved)):
+        raise BenchmarkRunnerInvalid("output and capture must resolve to distinct destinations")
+    if not force and any(path.exists() for path in destinations):
         raise BenchmarkRunnerInvalid("output already exists; use --force to overwrite")
 
 

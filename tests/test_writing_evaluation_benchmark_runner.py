@@ -132,6 +132,41 @@ def test_replay_rejects_version_mismatch_unknown_case_and_malformed_result():
         run_replay(malformed)
 
 
+def test_structurally_incomplete_replay_is_input_error_not_quality_failure(tmp_path, capsys):
+    document = _document(case_ids=["en-clean-agreement"])
+    del document["results"]["en-clean-agreement"]["summary_vi"]
+    input_path = _write_document(tmp_path / "incomplete.json", document)
+
+    with pytest.raises(BenchmarkRunnerInvalid, match="required shared fields"):
+        run_replay(document)
+    code = cli_main(["--input", str(input_path)], timestamp=TIMESTAMP)
+    output = capsys.readouterr()
+
+    assert code == EXIT_INPUT_OR_OPERATOR_ERROR
+    failure = json.loads(output.err)
+    assert failure["status"] == "operator_or_input_error"
+    assert "quality_failure" not in output.err
+
+
+@pytest.mark.parametrize(
+    ("field", "invalid_value"),
+    [
+        ("cefr_estimate", []),
+        ("summary_vi", []),
+        ("strengths_vi", "not-a-list"),
+        ("priorities_vi", "not-a-list"),
+        ("strength_evidence", "not-a-list"),
+        ("errors", "not-a-list"),
+    ],
+)
+def test_replay_rejects_invalid_shared_field_structure(field, invalid_value):
+    document = _document(case_ids=["en-clean-agreement"])
+    document["results"]["en-clean-agreement"][field] = invalid_value
+
+    with pytest.raises(BenchmarkRunnerInvalid, match="invalid shared-field structure"):
+        run_replay(document)
+
+
 def test_replay_loader_rejects_duplicate_case_ids(tmp_path):
     path = tmp_path / "duplicate.json"
     path.write_text(
@@ -233,6 +268,71 @@ def test_output_does_not_overwrite_without_force_and_force_is_explicit(tmp_path,
     )
     assert code == EXIT_SCOPE_PASSED
     assert json.loads(output_path.read_text(encoding="utf-8"))["status"] == "passed"
+
+
+@pytest.mark.parametrize("force", [False, True])
+def test_output_capture_collision_fails_before_live_calls_without_mutation(tmp_path, capsys, force):
+    alias_parent = tmp_path / "alias"
+    alias_parent.mkdir()
+    output_path = tmp_path / "artifact.json"
+    capture_alias = alias_parent / ".." / "artifact.json"
+    evaluator = FakeEvaluator()
+    arguments = [
+        "--live",
+        "--acknowledge-provider-cost",
+        "--yes",
+        "--evaluator-label",
+        "fixture:model-v1",
+        "--case",
+        "en-clean-agreement",
+        "--output",
+        str(output_path),
+        "--capture",
+        str(capture_alias),
+    ]
+    if force:
+        arguments.append("--force")
+
+    code = cli_main(arguments, live_evaluator=evaluator, timestamp=TIMESTAMP)
+    output = capsys.readouterr()
+
+    assert code == EXIT_INPUT_OR_OPERATOR_ERROR
+    assert evaluator.calls == []
+    assert not output_path.exists()
+    assert "distinct destinations" in output.err
+
+
+def test_distinct_output_and_capture_paths_receive_intended_live_artifacts(tmp_path, capsys):
+    output_path = tmp_path / "report.json"
+    capture_path = tmp_path / "capture.json"
+    evaluator = FakeEvaluator()
+    code = cli_main(
+        [
+            "--live",
+            "--acknowledge-provider-cost",
+            "--yes",
+            "--evaluator-label",
+            "fixture:model-v1",
+            "--case",
+            "en-clean-agreement",
+            "--output",
+            str(output_path),
+            "--capture",
+            str(capture_path),
+        ],
+        live_evaluator=evaluator,
+        timestamp=TIMESTAMP,
+    )
+    capsys.readouterr()
+
+    report = json.loads(output_path.read_text(encoding="utf-8"))
+    capture = json.loads(capture_path.read_text(encoding="utf-8"))
+    assert code == EXIT_SCOPE_PASSED
+    assert [case.case_id for case in evaluator.calls] == ["en-clean-agreement"]
+    assert report["mode"] == "live"
+    assert report["status"] == "passed"
+    assert set(capture) == {"benchmark_version", "evaluator_label", "results"}
+    assert set(capture["results"]) == {"en-clean-agreement"}
 
 
 class FakeEvaluator:
@@ -348,8 +448,10 @@ def test_live_execution_failure_is_separate_secret_safe_and_never_falls_back(cap
 
 
 def test_live_malformed_result_is_execution_failure_not_quality_failure():
+    incomplete = known_passing_result(benchmark_case("en-clean-agreement"))
+    del incomplete["errors"]
     artifacts = run_live_with_evaluator(
-        lambda _case: {"grammar": 80},
+        lambda _case: incomplete,
         evaluator_label="fixture:model-v1",
         case_ids=["en-clean-agreement"],
         timestamp=TIMESTAMP,
@@ -357,6 +459,7 @@ def test_live_malformed_result_is_execution_failure_not_quality_failure():
     assert artifacts.report["status"] == "execution_failure"
     assert artifacts.report["execution_failures"][0]["failure_kind"] == "malformed_result"
     assert artifacts.report["failed_case_count"] == 0
+    assert artifacts.report["quality_failure_counts"] == {}
 
 
 def test_one_live_evaluator_abstraction_serves_en_and_zh_without_network(monkeypatch):
