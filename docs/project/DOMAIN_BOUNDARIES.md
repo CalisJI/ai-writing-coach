@@ -26,11 +26,28 @@ Subdomains:
 - Listening
 - Grammar
 - Vocabulary / Library
+- Media Learning (shared)
 - Learning Memory / Progress
 
 Shared flows apply to EN and ZH. Language-specific adapters are limited to
 genuine linguistic behavior. Learning data that is conceptually scoped to a
 language remains isolated by user and learning language.
+
+### Shared Media Learning boundary
+
+Media Learning owns reusable media-source metadata, source-language
+transcripts, timestamped segment identity, and support-language translations.
+It serves Listening, Speaking Shadowing, Vocabulary / Library, and Grammar so
+those subdomains do not independently ingest or represent the same external
+media.
+
+Shared media content is provider-neutral and learner-neutral. Listening
+progress, Shadowing attempts, saved vocabulary, learned segments, and exercise
+outcomes remain outside this boundary and stay scoped to the user and learning
+language. Provider adapters, acquisition, AI transcription or translation,
+learner progress, and feature UI are not implied by this foundational boundary.
+Chinese Pinyin may be added later through a language adapter; it is not the
+canonical original transcript.
 
 ## 3. AI Platform
 
