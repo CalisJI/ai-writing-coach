@@ -58,6 +58,7 @@ authority.
 - R0 — Product Release Architecture: **CLOSED**.
 - R1 — Production Staging + Cloudflare + Google OAuth: **CLOSED / PASS**.
 - R2 — AI Capability Control Plane: **IN PROGRESS**.
+- M1 — Media Learning Foundation: **IN PROGRESS / CROSS-CUTTING**.
 
 Current learner skill truth:
 
@@ -93,6 +94,23 @@ tones, measure words, particles, and grammar details.
 Conceptually language-scoped learner data remains isolated by:
 
 `user + learning_language`
+
+## M1 Media Learning Foundation
+
+M1 is an active cross-cutting development track. M1.1 establishes the shared,
+provider-neutral and learner-neutral media-content contract. One imported media
+source is represented once as a reusable Media Learning Object and consumed by
+both Listening and Speaking Shadowing rather than being independently modeled
+inside either skill.
+
+The source-language transcript, stable timestamped segment identities, and
+support-language translations belong to shared media content. Listening
+progress, Shadowing attempts, saved vocabulary, learned segments, and exercise
+outcomes remain separate learner state scoped by user and learning language.
+
+M1.1 does not make M1 complete. It does not implement ingestion, provider
+adapters, transcription, translation, Listening UI, or Shadowing behavior, and
+it does not make Listening or Speaking public.
 
 ## R2 AI Capability Control Plane
 
@@ -148,8 +166,15 @@ Persisted `fallback_policy` is configuration metadata for later activation.
 It is not active learner fallback behavior. There is no provider-to-provider
 fallback and no silent paid-provider failover.
 
-## Current next development area
+## Current next development areas
 
-R2 remains **IN PROGRESS**. Static activation readiness/preflight is the current
-technical checkpoint. Production migration/config initialization, live provider
-validation, runtime activation, and rollback execution remain human gates.
+Two development tracks are active:
+
+- R2 remains **IN PROGRESS**. Static activation readiness/preflight is its
+  current technical checkpoint. Production migration/config initialization,
+  live provider validation, runtime activation, and rollback execution remain
+  human gates.
+- M1 is **IN PROGRESS** as a cross-cutting product-development track. M1.1 is
+  the current foundation checkpoint. After M1.1 is reviewed and merged, the
+  next planned M1 checkpoint is M1.2 media ingestion and transcript acquisition
+  under its own reviewed scope.

@@ -11,6 +11,7 @@ require approval and must remain consistent with `PROJECT_STATE.md` and
 | R0 | Product Release Architecture | CLOSED |
 | R1 | Production Staging + Cloudflare + Google OAuth | CLOSED |
 | R2 | AI Capability Control Plane | IN PROGRESS |
+| M1 | Media Learning Foundation (cross-cutting) | IN PROGRESS |
 | R3 | Writing Evaluation Completion | PLANNED |
 | R4 | Multilingual Writing Language Lens | PLANNED |
 | R5 | Grammar Knowledge System | PLANNED |
@@ -48,6 +49,24 @@ staging smoke evidence. Reopen only for a new concrete failure.
 Do not mark R2 closed until activation, migration/config initialization,
 rollback design, and production evidence pass an explicit reviewed gate.
 
+## M1 — Media Learning Foundation (cross-cutting)
+
+**IN PROGRESS.** M1.1 starts M1 by establishing one provider-neutral
+media-content foundation that Listening, Speaking Shadowing, Vocabulary /
+Library, and Grammar can reuse:
+
+- M1.1 — media object and segment contracts;
+- M1.2 — media ingestion and transcript acquisition;
+- M1.3 — translation;
+- M1.4 — Listening MVP;
+- M1.5 — active Listening;
+- M1.6 — Shadowing integration.
+
+M1 permits Listening MVP development before R11 without making Listening
+public. R11 remains the Listening completion and public-release-readiness gate.
+R9 remains advanced Shadowing completion, not the first point at which shared
+media learning may exist.
+
 ## R3–R7 — Complete the first public learning product
 
 R3 completes Writing evaluation quality and evidence contracts. R4 strengthens
@@ -72,10 +91,12 @@ PUBLIC. Neither skill is public before this gate.
 
 ## R9–R12 — Later product releases and growth
 
-R9 adds advanced Speaking / Shadowing Studio after the first public core is
-stable. R10 completes and separately releases Reading. R11 completes and
-separately releases Listening. R12 focuses on retention and growth without
-weakening learning or multilingual contracts.
+R9 completes advanced Speaking / Shadowing Studio after the first public core
+is stable; shared media foundations and early Shadowing integration may already
+exist through M1. R10 completes and separately releases Reading. R11 completes
+Listening and is its separate public-release-readiness gate, although M1 may
+deliver a non-public Listening MVP earlier. R12 focuses on retention and growth
+without weakening learning or multilingual contracts.
 
 ## Multilingual roadmap principle
 

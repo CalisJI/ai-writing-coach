@@ -199,3 +199,28 @@ review, and domain agents.
 state responsibly, and stop on material contradictions or human gates.
 
 **Supersedes / Superseded by:** None.
+
+## D-014 — Shared Media Learning content
+
+**Status:** Accepted
+
+**Decision:** An imported media source is processed once into one reusable,
+provider-neutral Media Learning Object. Its source-language transcript,
+timestamped segments, and support-language translations are shared learning
+content consumed by both Listening and Speaking Shadowing and reusable by
+Vocabulary / Library and Grammar.
+
+**Reason:** Independent media representations for Listening and Shadowing would
+duplicate acquisition and processing, allow transcript identity to drift, and
+disconnect vocabulary and grammar evidence from the source learners actually
+used.
+
+**Consequences:** Learner progress is not part of shared media content. Listening
+progress, Shadowing attempts, saved vocabulary, learned segments, and exercise
+outcomes remain scoped by user and learning language. M1 may deliver a
+non-public Listening MVP before R11; R11 remains the Listening completion and
+public-release-readiness gate. R9 remains advanced Shadowing completion rather
+than the first authorization for media learning. This decision does not make
+Listening or Speaking public and does not close R2.
+
+**Supersedes / Superseded by:** None.

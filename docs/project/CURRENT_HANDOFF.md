@@ -6,9 +6,10 @@
 This is the inherited verified application/runtime baseline, not a requirement
 that `main` HEAD remain identical after docs-only or governance-only commits.
 
-**Current program:** R2 — AI Capability Control Plane
+**Active programs:**
 
-**Current status:** IN PROGRESS
+- R2 — AI Capability Control Plane: **IN PROGRESS / HUMAN-GATED ACTIVATION**
+- M1 — Media Learning Foundation: **IN PROGRESS / CROSS-CUTTING**
 
 ## Completed
 
@@ -16,6 +17,17 @@ that `main` HEAD remain identical after docs-only or governance-only commits.
 - R2 Slice 2
 - R2 Slice 3
 - R2 Slice 4
+
+## Current M1 checkpoint
+
+M1.1 is the foundational checkpoint being landed by this slice. It establishes
+one provider-neutral, learner-neutral Media Learning Object whose canonical
+source-language transcript, timestamped segments, and translations are shared
+by Listening and Speaking Shadowing. Learner progress remains separate and
+scoped by user and learning language.
+
+M1.1 does not implement ingestion, transcription, translation, Listening UI,
+or Shadowing behavior, and it does not make Listening or Speaking public.
 
 ## Current runtime truth
 
@@ -27,12 +39,15 @@ that `main` HEAD remain identical after docs-only or governance-only commits.
 - Capability runtime activation has not occurred. Rolling back to `LEGACY`
   preserves capability configuration.
 
-## Next technical checkpoint
+## Next checkpoints
 
-Static activation-readiness gate and operator checkpoint. R2 remains IN
-PROGRESS.
+- M1 product-development lane: after M1.1 review and merge, M1.2 media
+  ingestion and transcript acquisition under a separate reviewed scope. Do not
+  start M1.2 from this handoff correction.
+- R2 control-plane lane: static activation-readiness gate and operator
+  checkpoint. R2 remains IN PROGRESS.
 
-## Human gate
+## R2 human gate
 
 **YES**
 
