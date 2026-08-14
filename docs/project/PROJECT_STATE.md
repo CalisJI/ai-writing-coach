@@ -8,7 +8,7 @@ historical narrative.
 - Product: Orena / BECOMING codebase
 - Repository: `CalisJI/ai-writing-coach`
 - Last verified application/runtime baseline:
-  `38e023aaea735e81d3d725dfc912702d84fdefbe`
+  `a246d6593bd58fcbcd0dd5e7c4482021eaa6c506`
 
 This SHA identifies the verified application/runtime baseline inherited by this
 governance checkpoint. Documentation-only or governance-only descendant commits
@@ -133,9 +133,13 @@ transcript-reconstruction practice over canonical Media Learning segments with
 browser-session-only practice state referencing canonical `asset_id` and
 `segment_id`. It did not add durable learner-progress persistence.
 
-M1.6 Shared-media Shadowing integration is **PLANNED** and is the next M1
-checkpoint. Listening remains **DEVELOPMENT**, internally available, and not
-public. Listening completion and public release remain later gates.
+M1.6 Shared-media Shadowing integration is **CLOSED / APPROVED / merged** via
+PR #33. It reuses the same canonical Media Learning `asset_id`, transcript
+segments, translations, and provider-hosted playback inside the existing
+Listening workspace, with browser-session-only Shadowing round state. It did
+not add a Speaking route, microphone capture, ASR, pronunciation scoring,
+durable learner-progress persistence, or public release. Listening and Speaking
+remain non-public.
 
 ## R2 AI Capability Control Plane
 
@@ -199,7 +203,7 @@ Two development tracks are active:
   current technical checkpoint. Production migration/config initialization,
   live provider validation, runtime activation, and rollback execution remain
   human gates.
-- M1 is **IN PROGRESS** as a cross-cutting product-development track. M1.1
-  through M1.5 are closed and merged. The internal Listening workspace from
-  PV-2 / OREN-10 and its PV-3 / OREN-11 controls are merged. M1.6 Shared-media
-  Shadowing integration is the next planned checkpoint.
+- M1 remains **IN PROGRESS** as a cross-cutting product-development track
+  pending an explicit program-level close review. M1.1 through M1.6 are closed
+  and merged. Shared-media Shadowing now reuses the same canonical media object
+  and segments as Listening without promoting Listening or Speaking to PUBLIC.

@@ -26,7 +26,7 @@ def test_canonical_governance_context_is_present_and_discoverable() -> None:
     assert "PostgreSQL is the authoritative runtime." in project_state
 
 
-def test_m15_active_listening_governance_closeout_is_truthful() -> None:
+def test_m16_shared_media_shadowing_governance_closeout_is_truthful() -> None:
     project_state = (ROOT / "docs/project/PROJECT_STATE.md").read_text(encoding="utf-8")
     handoff = (ROOT / "docs/project/CURRENT_HANDOFF.md").read_text(encoding="utf-8")
     roadmap = (ROOT / "docs/project/ROADMAP.md").read_text(encoding="utf-8")
@@ -34,10 +34,12 @@ def test_m15_active_listening_governance_closeout_is_truthful() -> None:
 
     assert "m1.4 is **closed / approved / merged**" in project_state.casefold()
     assert "m1.5 is **closed / approved / merged**" in project_state.casefold()
-    assert "m1.6 shared-media shadowing integration is **planned**" in handoff.casefold()
+    assert "m1.6 shared-media shadowing integration is **closed / approved / merged**" in handoff.casefold()
     assert "m1.5 — active listening: **closed / merged**" in roadmap.casefold()
-    assert "m1.6 — shadowing integration: **planned**" in roadmap.casefold()
+    assert "m1.6 — shadowing integration: **closed / merged**" in roadmap.casefold()
+    assert "m1.6 shared-media shadowing integration is **closed / approved / merged**" in project_state.casefold()
     assert "| listening | development | available | available | no |" in project_state.casefold()
+    assert "| speaking | development | unavailable as a complete product | unavailable | no |" in project_state.casefold()
     assert "r2 — ai capability control plane: **in progress**" in project_state.casefold()
     assert "human-gated" in handoff.casefold()
     assert "r11" in combined and "planned" in combined

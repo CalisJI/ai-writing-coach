@@ -1,7 +1,7 @@
 # Current Handoff
 
 **Application/runtime baseline:**
-`38e023aaea735e81d3d725dfc912702d84fdefbe`
+`a246d6593bd58fcbcd0dd5e7c4482021eaa6c506`
 
 This is the inherited verified application/runtime baseline, not a requirement
 that `main` HEAD remain identical after docs-only or governance-only commits.
@@ -21,6 +21,8 @@ that `main` HEAD remain identical after docs-only or governance-only commits.
 - M1.2 — media ingestion and transcript acquisition
 - M1.3 — shared media translation
 - M1.4 — internal passive Listening MVP integration and acceptance
+- M1.5 — Active Listening transcript reconstruction
+- M1.6 — shared-media Shadowing integration
 - PV-2 / OREN-10 — internal Listening workspace foundation
 - PV-3 / OREN-11 — Listening practice navigation and playback controls
 
@@ -53,8 +55,12 @@ deterministic transcript-reconstruction practice over canonical Media Learning
 segments with browser-session-only practice state. There is no durable media
 or Listening progress persistence or AI dictation grading.
 
-M1.6 Shared-media Shadowing integration is **PLANNED** and is the next M1
-checkpoint. Listening and Speaking remain non-public.
+M1.6 Shared-media Shadowing integration is **CLOSED / APPROVED / merged** via
+PR #33. Shadowing reuses the same canonical Media Learning asset, timestamped
+segments, translations, replay controls, and provider-hosted playback. Its
+round counters are browser-session-only learner state. No Speaking route,
+recording, ASR, pronunciation score, durable progress persistence, or public
+release was added.
 
 ## Current runtime truth
 
@@ -68,9 +74,9 @@ checkpoint. Listening and Speaking remain non-public.
 
 ## Next checkpoints
 
-- M1 product-development lane: M1.5 Active Listening is closed and merged.
-  M1.6 Shared-media Shadowing integration is next and remains PLANNED until
-  implementation begins. Neither checkpoint makes Listening or Speaking public.
+- M1 product-development lane: M1.1 through M1.6 are closed and merged.
+  Keep M1 program status IN PROGRESS until a separate explicit program-level
+  close review. Listening and Speaking remain non-public.
 - R2 control-plane lane: static activation-readiness gate and operator
   checkpoint. R2 remains IN PROGRESS.
 
