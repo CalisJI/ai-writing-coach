@@ -12,6 +12,7 @@ import {renderHome} from './screens/home.js';
 import {renderWrite} from './screens/write.js';
 import {renderReview} from './screens/review.js';
 import {renderReading} from './screens/reading.js';
+import {renderListening} from './screens/listening.js';
 import {renderLibrary} from './screens/library.js';
 import {renderJourney} from './screens/journey.js';
 import {renderProfile} from './screens/profile.js';
@@ -23,9 +24,10 @@ const SCREEN_INDEX={
   write:'02',
   review:'03',
   read:'04',
-  library:'05',
-  journey:'06',
-  profile:'07',
+  listen:'05',
+  library:'06',
+  journey:'07',
+  profile:'08',
   onboarding:'00',
 };
 
@@ -35,6 +37,7 @@ const SCREENS={
   write:renderWrite,
   review:renderReview,
   read:renderReading,
+  listen:renderListening,
   library:renderLibrary,
   journey:renderJourney,
   profile:renderProfile,

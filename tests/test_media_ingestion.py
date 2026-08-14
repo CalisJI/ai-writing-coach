@@ -650,5 +650,5 @@ def test_canonical_state_marks_m11_closed_and_m12_in_progress() -> None:
     assert "m1.3 translation is the next planned checkpoint" in normalized_handoff
 
     assert "R2 — AI Capability Control Plane: **IN PROGRESS / HUMAN-GATED ACTIVATION**" in handoff
-    assert "| Listening | HIDDEN | unavailable | unavailable | no |" in project_state
+    assert "| Listening | DEVELOPMENT | available | available | no |" in project_state
     assert "listening and speaking remain non-public" in normalized_handoff

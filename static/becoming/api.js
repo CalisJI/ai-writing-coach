@@ -7,11 +7,6 @@ async function request(url, options={}){
     ...options,
   });
 
-  if(response.status===401){
-    location.href='/login';
-    throw new Error('Authentication required');
-  }
-
   let payload=null;
   const type=response.headers.get('content-type')||'';
   if(type.includes('application/json')){
@@ -21,8 +16,14 @@ async function request(url, options={}){
   }
 
   if(!response.ok){
+    if(response.status===401)location.href='/login';
     const detail=payload && typeof payload==='object' ? payload.detail : payload;
-    throw new Error(detail || `Request failed (${response.status})`);
+    const structured=detail && typeof detail==='object';
+    const message=structured ? detail.message : detail;
+    const error=new Error(typeof message==='string'&&message ? message : `Request failed (${response.status})`);
+    if(structured&&typeof detail.category==='string')error.category=detail.category;
+    error.status=response.status;
+    throw error;
   }
   return payload;
 }
@@ -79,6 +80,11 @@ export const api={
     method:'POST',
     headers:JSON_HEADERS,
     body:JSON.stringify({answers}),
+  }),
+  importMedia:(payload)=>request('/api/media-learning/import',{
+    method:'POST',
+    headers:JSON_HEADERS,
+    body:JSON.stringify(payload),
   }),
   essays:()=>request('/api/essays'),
   essay:(id)=>request(`/api/essays/${encodeURIComponent(id)}`),

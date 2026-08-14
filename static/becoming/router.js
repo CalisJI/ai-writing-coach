@@ -1,4 +1,4 @@
-const VALID=new Set(['home','write','review','read','library','journey','profile','onboarding']);
+const VALID=new Set(['home','write','review','read','listen','library','journey','profile','onboarding']);
 
 export function currentRoute(){
   const raw=location.hash.replace(/^#\/?/,'').split('?')[0] || 'home';
