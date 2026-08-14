@@ -128,12 +128,14 @@ M1.4 is **CLOSED / APPROVED / merged**. It verified that the reviewed M1.1-M1.3
 backend and PV-2/PV-3 workspace form one truthful, internally usable EN/ZH
 follow-along flow over canonical Media Learning segments.
 
-M1.5 is **IN PROGRESS** as Active Listening over those same canonical Media
-Learning segments. Practice state is browser-session state that references
-canonical `asset_id` and `segment_id`; it does not duplicate transcript content
-or add durable learner-progress persistence. Listening remains
-**DEVELOPMENT**, internally available, and not public. Listening completion,
-Shadowing activation, and public release remain later gates.
+M1.5 is **CLOSED / APPROVED / merged**. It added bounded, deterministic
+transcript-reconstruction practice over canonical Media Learning segments with
+browser-session-only practice state referencing canonical `asset_id` and
+`segment_id`. It did not add durable learner-progress persistence.
+
+M1.6 Shared-media Shadowing integration is **PLANNED** and is the next M1
+checkpoint. Listening remains **DEVELOPMENT**, internally available, and not
+public. Listening completion and public release remain later gates.
 
 ## R2 AI Capability Control Plane
 
@@ -197,7 +199,7 @@ Two development tracks are active:
   current technical checkpoint. Production migration/config initialization,
   live provider validation, runtime activation, and rollback execution remain
   human gates.
-- M1 is **IN PROGRESS** as a cross-cutting product-development track. M1.1,
-  M1.2, M1.3, and M1.4 are closed and merged. The internal Listening workspace
-  from PV-2 / OREN-10 and its PV-3 / OREN-11 controls are merged. M1.5 Active
-  Listening is the current checkpoint.
+- M1 is **IN PROGRESS** as a cross-cutting product-development track. M1.1
+  through M1.5 are closed and merged. The internal Listening workspace from
+  PV-2 / OREN-10 and its PV-3 / OREN-11 controls are merged. M1.6 Shared-media
+  Shadowing integration is the next planned checkpoint.
