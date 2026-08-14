@@ -9,6 +9,10 @@ from enum import Enum
 from typing import Protocol
 from urllib.parse import urlsplit
 
+from writing_coach.core.support_languages import (
+    UnsupportedSupportLanguage,
+    normalize_support_language,
+)
 from writing_coach.media_learning import MediaLearningObject
 
 
@@ -133,7 +137,9 @@ class MediaIngestionService:
         source_language: str,
     ) -> MediaAcquisition:
         self._validate_source_url(source_url)
-        if not isinstance(target_language, str) or not _LANGUAGE_TAG.fullmatch(target_language):
+        try:
+            normalize_support_language(target_language)
+        except UnsupportedSupportLanguage:
             raise MediaImportError(MediaImportCategory.INVALID_TARGET_LANGUAGE)
         if (
             not isinstance(source_language, str)

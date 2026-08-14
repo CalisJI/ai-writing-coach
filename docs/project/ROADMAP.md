@@ -56,11 +56,16 @@ media-content foundation that Listening, Speaking Shadowing, Vocabulary /
 Library, and Grammar can reuse:
 
 - M1.1 — media object and segment contracts: **CLOSED / merged**;
-- M1.2 — media ingestion and transcript acquisition: **IN PROGRESS**;
-- M1.3 — translation: **PLANNED**;
-- M1.4 — Listening MVP: **PLANNED**;
+- M1.2 — media ingestion and transcript acquisition: **CLOSED / merged**;
+- M1.3 — shared media translation: **IN PROGRESS**;
+- M1.4 — Listening MVP integration and completion: **PLANNED**;
 - M1.5 — active Listening: **PLANNED**;
 - M1.6 — Shadowing integration: **PLANNED**.
+
+PV-2 / OREN-10 delivered the first internal Listening workspace foundation
+ahead of backend completion. M1.4 now represents integration with the reviewed
+shared Media Learning backend and internal MVP acceptance, not initial screen
+creation. It does not imply public Listening release.
 
 M1 permits Listening MVP development before R11 without making Listening
 public. R11 remains the Listening completion and public-release-readiness gate.

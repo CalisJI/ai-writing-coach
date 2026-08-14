@@ -32,6 +32,10 @@ from writing_coach.media_providers.youtube import (
     YouTubeMediaProviderAdapter,
     normalize_youtube_transcript,
 )
+from writing_coach.media_translation import (
+    MediaTranslationResult,
+    MediaTranslationStatus,
+)
 
 
 VIDEO_ID = "dQw4w9WgXcQ"
@@ -366,13 +370,16 @@ def test_provider_network_and_product_side_effects_remain_isolated() -> None:
     assert "yt_dlp" not in combined
 
 
-def test_request_dto_accepts_current_support_language_without_starting_translation() -> None:
+@pytest.mark.parametrize("raw_language", (" vi ", " EN ", " Zh "))
+def test_request_dto_normalizes_current_support_languages_without_translation(
+    raw_language: str,
+) -> None:
     payload = MediaImportIn(
         source_url=f"https://youtu.be/{VIDEO_ID}",
-        target_language=" vi ",
+        target_language=raw_language,
     )
 
-    assert payload.target_language == "vi"
+    assert payload.target_language == raw_language.strip().casefold()
 
 
 @pytest.mark.parametrize(
@@ -483,6 +490,21 @@ def test_active_learning_language_reaches_the_provider_selection(
         )
     )
     monkeypatch.setattr(media_api, "_media_ingestion_service", service)
+
+    class NoopTranslationService:
+        @staticmethod
+        def translate(media_object, target_language):
+            return MediaTranslationResult(
+                media_object=media_object,
+                status=MediaTranslationStatus.NOT_REQUIRED,
+                target_language=target_language,
+            )
+
+    monkeypatch.setattr(
+        media_api,
+        "_media_translation_service",
+        NoopTranslationService(),
+    )
     token = LANGUAGE_CODE_CTX.set("zh")
     try:
         media_api.import_media(
@@ -633,7 +655,7 @@ def test_application_registers_the_agreed_authenticated_import_route() -> None:
     assert matching_routes[0].methods == {"POST"}
 
 
-def test_canonical_state_marks_m11_closed_and_m12_in_progress() -> None:
+def test_canonical_state_marks_m12_closed_and_m13_in_progress() -> None:
     project_state = (ROOT / "docs/project/PROJECT_STATE.md").read_text(encoding="utf-8")
     handoff = (ROOT / "docs/project/CURRENT_HANDOFF.md").read_text(encoding="utf-8")
     roadmap = (ROOT / "docs/project/ROADMAP.md").read_text(encoding="utf-8")
@@ -642,12 +664,16 @@ def test_canonical_state_marks_m11_closed_and_m12_in_progress() -> None:
     normalized_roadmap = " ".join(roadmap.split()).casefold()
 
     assert "m1.1 is **closed / approved / merged**" in normalized_state
-    assert "m1.2 is **in progress**" in normalized_state
+    assert "m1.2 is **closed / approved / merged**" in normalized_state
+    assert "m1.3 is **in progress**" in normalized_state
     assert "m1.1 is **closed / approved / merged**" in normalized_handoff
-    assert "m1.2 is **in progress**" in normalized_handoff
+    assert "m1.2 is **closed / approved / merged**" in normalized_handoff
+    assert "m1.3 shared media translation is **in progress**" in normalized_handoff
     assert "m1.1 — media object and segment contracts: **closed / merged**" in normalized_roadmap
-    assert "m1.2 — media ingestion and transcript acquisition: **in progress**" in normalized_roadmap
-    assert "m1.3 translation is the next planned checkpoint" in normalized_handoff
+    assert "m1.2 — media ingestion and transcript acquisition: **closed / merged**" in normalized_roadmap
+    assert "m1.3 — shared media translation: **in progress**" in normalized_roadmap
+    assert "m1.4 — listening mvp integration and completion: **planned**" in normalized_roadmap
+    assert "pv-2 / oren-10" in normalized_handoff
 
     assert "R2 — AI Capability Control Plane: **IN PROGRESS / HUMAN-GATED ACTIVATION**" in handoff
     assert "| Listening | DEVELOPMENT | available | available | no |" in project_state

@@ -24,11 +24,17 @@ export const MEDIA_LEARNING_FIXTURE={
     {segment_id:'segment-001',target_language:'vi',translated_meaning:'Hãy nghe ý hoàn chỉnh đầu tiên.'},
     {segment_id:'segment-002',target_language:'vi',translated_meaning:'Cùng đoạn này có thể dùng để luyện nói sau.'},
   ],
+  translation:{
+    status:'ready',
+    target_language:'vi',
+    source:{capability_key:'learner_translation',provider:'fake',request_count:1},
+    failure_kind:null,
+  },
 };
 
 export const MEDIA_LEARNING_ZH_FIXTURE={
   ...MEDIA_LEARNING_FIXTURE,
-  asset:{...MEDIA_LEARNING_FIXTURE.asset,asset_id:'asset-fixture-zh',source_language:'zh',title:'共享媒体课程'},
+  asset:{...MEDIA_LEARNING_FIXTURE.asset,asset_id:'asset-fixture-zh',source_language:'zh',title:'共享媒体课程',translation_available:false},
   transcript:{
     asset_id:'asset-fixture-zh',
     source_language:'zh',
@@ -38,4 +44,5 @@ export const MEDIA_LEARNING_ZH_FIXTURE={
     ],
   },
   translations:[],
+  translation:{status:'unavailable',target_language:'vi',source:null,failure_kind:'execution_unavailable'},
 };

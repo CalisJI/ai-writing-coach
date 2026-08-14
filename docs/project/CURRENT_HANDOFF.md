@@ -18,6 +18,8 @@ that `main` HEAD remain identical after docs-only or governance-only commits.
 - R2 Slice 3
 - R2 Slice 4
 - M1.1 — media object and segment contracts
+- M1.2 — media ingestion and transcript acquisition
+- PV-2 / OREN-10 — internal Listening workspace foundation
 
 ## Current M1 checkpoint
 
@@ -25,12 +27,20 @@ M1.1 is **CLOSED / APPROVED / merged**. Its provider-neutral, learner-neutral
 Media Learning Object remains the canonical shared content contract. Learner
 progress remains separate and scoped by user and learning language.
 
-M1.2 is **IN PROGRESS**. It is the external-media ingestion and public-caption
-acquisition checkpoint, with one authenticated learner API and provider access
-isolated behind an adapter. The first provider target is public YouTube video
-playback and captions. No durable media persistence, audio download, ASR,
-translation generation, Listening UI, or Shadowing implementation is included.
-Listening and Speaking remain non-public.
+M1.2 is **CLOSED / APPROVED / merged**. The authenticated import API owns
+provider acquisition, learning-language caption selection, canonical transcript
+identity, and provider-hosted playback.
+
+M1.3 Shared Media Translation is **IN PROGRESS**. It owns the independent
+backend support-language contract and enriches the server-owned import response
+through the exact `learner_translation` capability. Translation remains shared
+Media Learning content. There is no durable media persistence, Listening
+progress/scoring, active Listening, or Shadowing activation.
+
+The PV-2 / OREN-10 internal Listening workspace is already merged. It consumes
+the existing import response for playback, transcript interaction, segment
+selection/replay, and truthful translated/unavailable states. Listening and
+Speaking remain non-public.
 
 ## Current runtime truth
 
@@ -44,12 +54,10 @@ Listening and Speaking remain non-public.
 
 ## Next checkpoints
 
-- M1 product-development lane: finish review of M1.2 media ingestion and
-  transcript acquisition. After M1.2 is reviewed and merged, M1.3 translation
-  is the next planned checkpoint under a separate scope. M1.3 must establish a
-  shared backend support-language validation contract before activating
-  translation; M1.2 intentionally does not copy frontend-only language
-  constants. Do not start M1.3 from this handoff.
+- M1 product-development lane: complete review of M1.3 shared media translation.
+  After its reviewed merge, M1.4 Listening MVP integration and completion is
+  next. M1.4 completes the internal MVP over the real shared media backend; it
+  does not create the first Listening screen or make Listening public.
 - R2 control-plane lane: static activation-readiness gate and operator
   checkpoint. R2 remains IN PROGRESS.
 
