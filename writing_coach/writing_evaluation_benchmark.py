@@ -466,6 +466,14 @@ _REPORT_RESULT_FIELDS = (
 ) + RUBRIC_DIMENSIONS
 
 
+def validate_evaluator_label(evaluator_label: str) -> str:
+    """Return a safe operator-facing evaluator identifier or fail closed."""
+
+    if not isinstance(evaluator_label, str) or not _SAFE_EVALUATOR_LABEL.fullmatch(evaluator_label):
+        raise ValueError("evaluator_label must be a harmless identifier")
+    return evaluator_label
+
+
 def build_benchmark_report(
     *,
     timestamp: str,
@@ -478,8 +486,7 @@ def build_benchmark_report(
 
     if not isinstance(timestamp, str) or not timestamp.strip():
         raise ValueError("timestamp is required")
-    if not isinstance(evaluator_label, str) or not _SAFE_EVALUATOR_LABEL.fullmatch(evaluator_label):
-        raise ValueError("evaluator_label must be a harmless identifier")
+    validate_evaluator_label(evaluator_label)
     if evaluation.case_id != case.case_id:
         raise ValueError("evaluation does not belong to the benchmark case")
 
