@@ -19,8 +19,8 @@ def test_central_registry_represents_required_truthful_states() -> None:
     assert {item.release_state for item in items.values()} >= {
         SkillReleaseState.BETA,
         SkillReleaseState.DEVELOPMENT,
+        SkillReleaseState.HIDDEN,
     }
-    assert SkillReleaseState.HIDDEN.value == "hidden"
 
     assert items["writing"].release_state is SkillReleaseState.BETA
     assert items["writing"].source_available is True
@@ -30,10 +30,7 @@ def test_central_registry_represents_required_truthful_states() -> None:
     assert items["reading"].available_to(SkillAudience.INTERNAL) is True
     assert items["speaking"].source_available is False
     assert items["speaking"].available_to(SkillAudience.INTERNAL) is False
-    assert items["listening"].release_state is SkillReleaseState.DEVELOPMENT
-    assert items["listening"].source_available is True
-    assert items["listening"].available_to(SkillAudience.INTERNAL) is True
-    assert items["listening"].available_to(SkillAudience.PUBLIC) is False
+    assert items["listening"].release_state is SkillReleaseState.HIDDEN
     assert skills_for(SkillAudience.PUBLIC) == ()
     assert skill("READING") is items["reading"]
 

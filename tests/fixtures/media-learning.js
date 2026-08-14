@@ -1,7 +1,7 @@
 export const MEDIA_LEARNING_FIXTURE={
   asset:{
     asset_id:'asset-fixture-001',
-    source_url:'https://www.youtube.com/watch?v=fixture001',
+    source_url:'https://www.youtube.com/watch?v=fixture0001',
     source_provider:'youtube',
     source_type:'external-video',
     title:'One shared media lesson',
@@ -11,7 +11,7 @@ export const MEDIA_LEARNING_FIXTURE={
     transcript_available:true,
     translation_available:true,
   },
-  playback:{provider:'youtube',kind:'embed',url:'https://www.youtube.com/embed/fixture001?enablejsapi=1'},
+  playback:{provider:'youtube',kind:'embed',url:'https://www.youtube-nocookie.com/embed/fixture0001'},
   transcript:{
     asset_id:'asset-fixture-001',
     source_language:'en',
