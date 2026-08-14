@@ -22,6 +22,7 @@ resolveImport(MEDIA_LEARNING_FIXTURE);
 await pending;
 assert.deepEqual(states.slice(-2),['validating','ready']);
 assert.equal(controller.model.status,'ready');
+assert.equal(controller.model.payload.translation.status,'ready');
 assert.equal(controller.model.selected,'segment-001');
 assert.match(controller.html(),/Listen for the first complete idea\./);
 assert.match(controller.html(),/listening-segment selected[^>]*data-segment-id="segment-001"/);
@@ -65,13 +66,15 @@ assert.match(controller.html(),/Cùng đoạn này có thể dùng để luyện
 const untranslated=createListeningController({importMedia:async()=>MEDIA_LEARNING_ZH_FIXTURE,targetLanguage:()=> 'vi'});
 await untranslated.importUrl('https://youtu.be/dQw4w9WgXcQ');
 assert.equal(untranslated.model.status,'ready');
+assert.equal(untranslated.model.payload.translation.status,'unavailable');
 assert.match(untranslated.html(),/这是共享的原文字幕。/);
 assert.match(untranslated.html(),/translation-unavailable/);
 
-const noCaption={...MEDIA_LEARNING_FIXTURE,asset:{...MEDIA_LEARNING_FIXTURE.asset,transcript_available:false,translation_available:false},transcript:null,translations:[]};
+const noCaption={...MEDIA_LEARNING_FIXTURE,asset:{...MEDIA_LEARNING_FIXTURE.asset,transcript_available:false,translation_available:false},transcript:null,translations:[],translation:{status:'transcript_unavailable',target_language:'vi',source:null,failure_kind:null}};
 const captionless=createListeningController({importMedia:async()=>noCaption,targetLanguage:()=> 'vi'});
 await captionless.importUrl('https://youtu.be/dQw4w9WgXcQ');
 assert.equal(captionless.model.status,'transcript-unavailable');
+assert.equal(captionless.model.payload.translation.status,'transcript_unavailable');
 assert.match(captionless.html(),/listening-state-transcript-unavailable/);
 
 const categorized=new Error('This media provider is not supported yet.');

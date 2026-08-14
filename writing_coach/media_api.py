@@ -8,6 +8,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from writing_coach.core.request_context import current_language_code
+from writing_coach.core.support_languages import normalize_support_language
 from writing_coach.media_ingestion import (
     MediaAcquisition,
     MediaImportCategory,
@@ -15,10 +16,16 @@ from writing_coach.media_ingestion import (
     MediaIngestionService,
 )
 from writing_coach.media_learning import MediaLearningObject, MediaTranscript
+from writing_coach.media_translation import (
+    MediaTranslationResult,
+    MediaTranslationService,
+    safe_translation_source,
+)
 
 
 router = APIRouter(prefix="/api/media-learning", tags=["media-learning"])
 _media_ingestion_service: MediaIngestionService | None = None
+_media_translation_service: MediaTranslationService | None = None
 
 
 class MediaImportIn(BaseModel):
@@ -30,7 +37,7 @@ class MediaImportIn(BaseModel):
     @field_validator("target_language")
     @classmethod
     def normalize_target_language(cls, value: str) -> str:
-        return value.strip()
+        return normalize_support_language(value)
 
 
 def configure_media_ingestion(service: MediaIngestionService) -> None:
@@ -38,10 +45,21 @@ def configure_media_ingestion(service: MediaIngestionService) -> None:
     _media_ingestion_service = service
 
 
+def configure_media_translation(service: MediaTranslationService) -> None:
+    global _media_translation_service
+    _media_translation_service = service
+
+
 def _installed_media_ingestion() -> MediaIngestionService:
     if _media_ingestion_service is None:
         raise HTTPException(503, "Media Learning ingestion is not installed.")
     return _media_ingestion_service
+
+
+def _installed_media_translation() -> MediaTranslationService:
+    if _media_translation_service is None:
+        raise HTTPException(503, "Media Learning translation is not installed.")
+    return _media_translation_service
 
 
 _STATUS_BY_CATEGORY = {
@@ -73,13 +91,24 @@ def import_media(payload: MediaImportIn) -> dict[str, Any]:
                 "message": exc.learner_message,
             },
         ) from exc
-    return serialize_media_acquisition(acquisition)
+    translation = _installed_media_translation().translate(
+        acquisition.media_object,
+        payload.target_language,
+    )
+    return serialize_media_acquisition(acquisition, translation)
 
 
-def serialize_media_acquisition(acquisition: MediaAcquisition) -> dict[str, Any]:
+def serialize_media_acquisition(
+    acquisition: MediaAcquisition,
+    translation: MediaTranslationResult | None = None,
+) -> dict[str, Any]:
     """Serialize M1.1 objects without changing their domain representation."""
-    media_object = acquisition.media_object
-    return {
+    media_object = (
+        translation.media_object
+        if translation is not None
+        else acquisition.media_object
+    )
+    response = {
         "asset": _serialize_asset(media_object),
         "playback": {
             "provider": acquisition.playback.provider,
@@ -96,6 +125,18 @@ def serialize_media_acquisition(acquisition: MediaAcquisition) -> dict[str, Any]
             for translation in media_object.translations
         ],
     }
+    if translation is not None:
+        response["translation"] = {
+            "status": translation.status.value,
+            "target_language": translation.target_language,
+            "source": safe_translation_source(translation.provenance),
+            "failure_kind": (
+                translation.failure_kind.value
+                if translation.failure_kind is not None
+                else None
+            ),
+        }
+    return response
 
 
 def _serialize_asset(media_object: MediaLearningObject) -> dict[str, Any]:

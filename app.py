@@ -41,9 +41,14 @@ from writing_coach.writing_evaluator_contract import (
 from writing_coach.writing_analytics import parse_persisted_error_events
 from auth_support import APP_ENV, AUTH_ENABLED, current_db_path, install_auth, require_admin, AUTH_DB_PATH, configure_auth_repository
 from writing_coach.product.api import router as product_router
-from writing_coach.media_api import configure_media_ingestion, router as media_learning_router
+from writing_coach.media_api import (
+    configure_media_ingestion,
+    configure_media_translation,
+    router as media_learning_router,
+)
 from writing_coach.media_ingestion import MediaIngestionService
 from writing_coach.media_providers.youtube import YouTubeMediaProviderAdapter
+from writing_coach.media_translation import MediaTranslationService
 from writing_coach.core.platform_api import router as platform_router
 from writing_coach.core.language_registry import is_enabled
 from writing_coach.ai.base import AICapabilityError, AIProviderError, AIProviderUnavailable
@@ -160,6 +165,7 @@ configure_media_ingestion(
         source_language_supported=is_enabled,
     )
 )
+configure_media_translation(MediaTranslationService(generate_structured))
 app.include_router(media_learning_router)
 install_platform_ai(app, require_admin)
 configure_becoming_memory(_specialized_learning_repository)

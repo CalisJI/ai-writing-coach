@@ -108,16 +108,23 @@ support-language translations belong to shared media content. Listening
 progress, Shadowing attempts, saved vocabulary, learned segments, and exercise
 outcomes remain separate learner state scoped by user and learning language.
 
-M1.2 is **IN PROGRESS** as the external-media ingestion and public-caption
-acquisition checkpoint. It adds the learner API and an isolated first YouTube
-adapter without durable media persistence, audio download, audio transcription,
-translation generation, Listening UI, or Shadowing behavior. It does not make
-Listening or Speaking public.
+M1.2 is **CLOSED / APPROVED / merged**. It established the authenticated media
+import API, isolated YouTube adapter, explicit learning-language caption
+selection, canonical transcripts, stable content-derived segment identities,
+and provider-hosted playback without durable media persistence, audio download,
+or audio transcription.
 
 The first Listening workspace is available to authenticated internal/admin
 testers through the M1.2 import contract. It provides safe provider playback,
-shared transcript interaction, and segment replay without scoring, learner
-progress persistence, Shadowing activation, or public release.
+shared transcript interaction, and segment selection/replay. It renders shared
+translations when present and a truthful unavailable state when absent.
+
+M1.3 is **IN PROGRESS** as the shared support-language translation checkpoint.
+It adds one backend support-language contract and atomically enriches the same
+Media Learning Object through the existing `learner_translation` capability.
+There is still no durable media or Listening progress persistence, Listening
+scoring, active Listening exercise flow, dictation, comprehension evaluation,
+Shadowing activation, or public Listening release.
 
 ## R2 AI Capability Control Plane
 
@@ -181,7 +188,7 @@ Two development tracks are active:
   current technical checkpoint. Production migration/config initialization,
   live provider validation, runtime activation, and rollback execution remain
   human gates.
-- M1 is **IN PROGRESS** as a cross-cutting product-development track. M1.1 is
-  closed and merged. M1.2 media ingestion and transcript acquisition is the
-  current checkpoint under review. M1.3 translation remains the next planned
-  checkpoint and has not started.
+- M1 is **IN PROGRESS** as a cross-cutting product-development track. M1.1 and
+  M1.2 are closed and merged, and the internal Listening workspace foundation
+  from PV-2 / OREN-10 is merged. M1.3 shared media translation is the current
+  checkpoint.

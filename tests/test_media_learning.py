@@ -243,7 +243,9 @@ def test_governance_records_the_shared_media_learning_direction() -> None:
     assert "## R2 human gate" in handoff
     assert "**YES**" in handoff
     assert "R2 remains **IN PROGRESS**" in project_state
-    assert "m1.2 media ingestion and transcript acquisition" in normalized_handoff
+    assert "m1.2 is **closed / approved / merged**" in normalized_handoff
+    assert "m1.3 shared media translation is **in progress**" in normalized_handoff
+    assert "pv-2 / oren-10 internal listening workspace" in normalized_handoff
 
     assert "| Listening | DEVELOPMENT | available | available | no |" in project_state
     assert "no current learner skill is public" in normalized_state
