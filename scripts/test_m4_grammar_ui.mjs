@@ -10,6 +10,7 @@ const i18n=read('static/becoming/domain/i18n.js');
 const contract=read('static/becoming/domain/screen-contract.js');
 const screen=read('static/becoming/screens/grammar.js');
 const css=read('static/becoming/grammar.css');
+const learning=read('static/becoming/components/grammar-learning.js');
 
 assert.match(router,/'grammar'/);
 assert.match(app,/renderGrammar/);
@@ -53,4 +54,20 @@ for(const forbidden of ['fetch(','XMLHttpRequest']){
 assert.match(css,/\.grammar-hero/);
 assert.match(css,/\.grammar-module/);
 assert.match(css,/\.grammar-lesson-layout/);
+assert.match(css,/\.grammar-learning-flow/);
+assert.match(css,/\.grammar-sentence-flow/);
+assert.match(css,/\.grammar-timeline/);
+for(const needle of [
+  'renderGrammarLearningModel','bindGrammarLearningInteractions',
+  'grammarLearningCompletion','legacyLessonBody',
+]){
+  assert.equal(screen.includes(needle),true,`Grammar screen missing rich-learning integration: ${needle}`);
+}
+for(const needle of [
+  'GrammarFormula','SemanticSentence','TransformationFlow','WordOrderFlow',
+  'ParticleInsertion','TimelineVisual','ContrastCard','RealLifeScene',
+  'SentenceBuilder','PersonalPractice','RecallPrompt','MemoryHook','SkillTransfer',
+]){
+  assert.equal(learning.includes(needle),true,`Grammar learning renderer missing ${needle}`);
+}
 console.log('M4 Grammar learner UI contract: PASS');

@@ -4,6 +4,8 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from typing import Any
 
+from writing_coach.grammar_learning_model import validate_grammar_learning_model
+
 
 class GrammarKnowledgeInvalid(ValueError):
     pass
@@ -112,7 +114,23 @@ def validate_grammar_knowledge(
                 f"Knowledge '{grammar_id}' source.content_status must be foundation or curated."
             )
 
-        for text in _strings({"quick_reference": quick, "lesson": teaching}):
+        learning_model = entry.get("learning_model")
+        if learning_model is not None:
+            validate_grammar_learning_model(
+                learning_model,
+                grammar_id=grammar_id,
+                kind=str(entry.get("kind") or ""),
+            )
+        if source.get("content_status") == "curated" and learning_model is None:
+            raise GrammarKnowledgeInvalid(
+                f"Curated knowledge '{grammar_id}' requires a validated learning_model."
+            )
+
+        for text in _strings({
+            "quick_reference": quick,
+            "lesson": teaching,
+            "learning_model": learning_model or {},
+        }):
             if any(marker in text for marker in _INTERNAL_MARKERS):
                 raise GrammarKnowledgeInvalid(
                     f"Knowledge '{grammar_id}' leaks internal syllabus metadata."

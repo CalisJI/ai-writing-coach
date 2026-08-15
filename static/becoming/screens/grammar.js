@@ -1,7 +1,13 @@
 import {api} from '../api.js';
-import {go} from '../router.js?v=2.15.12';
+import {go} from '../router.js?v=2.16.0';
 import {supportLanguage} from '../store.js';
 import {esc,errorBlock,loadingBlock,toast,runBusy} from '../components/primitives.js';
+import {
+  hasGrammarLearningModel,
+  renderGrammarLearningModel,
+  bindGrammarLearningInteractions,
+  grammarLearningCompletion,
+} from '../components/grammar-learning.js?v=2.16.0';
 
 const COPY={
   en:{
@@ -23,7 +29,7 @@ const COPY={
     lessonUnavailable:'The generated teaching layer is unavailable right now. The locked curriculum scope is still available.',
     empty:'No curriculum items are available for this language.',
     loading:'Preparing lesson…',saved:'Completion saved.',unsaved:'Marked incomplete.',
-    source:'Lesson source',sourcePrepared:'Prepared learning content',sourceFallback:'Curriculum fallback',activities:'items',
+    source:'Lesson source',sourcePrepared:'Prepared learning content',sourceFallback:'Curriculum fallback',activities:'items',learningActions:'Learning actions',learningEvidence:'Use it before you mark it done',learningEvidenceNote:'Rich lessons require Apply, Recall and Transfer evidence before completion.',
   },
   vi:{
     kicker:'NGỮ PHÁP · GIÁO TRÌNH',
@@ -44,7 +50,7 @@ const COPY={
     lessonUnavailable:'Lớp nội dung được tạo tự động hiện chưa sẵn sàng. Locked curriculum scope vẫn luôn dùng được.',
     empty:'Hiện chưa có curriculum cho ngôn ngữ này.',
     loading:'Đang chuẩn bị bài…',saved:'Đã lưu hoàn thành.',unsaved:'Đã bỏ dấu hoàn thành.',
-    source:'Nguồn lesson',sourcePrepared:'Nội dung học đã chuẩn bị',sourceFallback:'Basic guide từ curriculum',activities:'mục',
+    source:'Nguồn lesson',sourcePrepared:'Nội dung học đã chuẩn bị',sourceFallback:'Basic guide từ curriculum',activities:'mục',learningActions:'Hành động học',learningEvidence:'Dùng được rồi mới đánh dấu hoàn thành',learningEvidenceNote:'Bài học mới yêu cầu bằng chứng Áp dụng, Gợi nhớ và Chuyển giao trước khi hoàn thành.',
   },
   zh:{
     kicker:'语法 · 课程',
@@ -65,7 +71,7 @@ const COPY={
     lessonUnavailable:'生成式教学内容暂时不可用，但锁定的课程范围仍然可用。',
     empty:'当前语言还没有可用课程。',
     loading:'正在准备课程…',saved:'完成记录已保存。',unsaved:'已标记为未完成。',
-    source:'课程来源',sourcePrepared:'已准备的学习内容',sourceFallback:'课程基础指南',activities:'项',
+    source:'课程来源',sourcePrepared:'已准备的学习内容',sourceFallback:'课程基础指南',activities:'项',learningActions:'学习行动',learningEvidence:'真正用过，再标记完成',learningEvidenceNote:'新版课程需要完成“应用、主动回忆、迁移”证据后才能标记完成。',
   },
 };
 
@@ -266,12 +272,36 @@ function practiceBlock(items=[]){
   </section>`;
 }
 
+
+function legacyLessonBody(detail,c){
+  return `<section class="grammar-teach-block">
+      <span class="context-label">${esc(c.objective)}</span>
+      <p class="grammar-explanation">${esc(detail.explanation_vi||detail.objective_vi||'')}</p>
+    </section>
+
+    ${listBlock(c.rules,detail.source==='locked-syllabus-fallback'?[]:detail.rules)}
+    ${listBlock(c.contrasts,detail.contrasts)}
+    ${listBlock(c.exceptions,detail.source==='locked-syllabus-fallback'?[]:detail.exceptions)}
+    ${examplesBlock(detail.examples)}
+    ${listBlock(c.mistakes,detail.mistakes||detail.common_traps)}
+    ${practiceBlock(detail.guided_practice)}
+
+    <section class="grammar-production">
+      <span class="context-label">${esc(c.production)}</span>
+      <h3>${esc(detail.production_task_vi||c.production)}</h3>
+      <p>${esc(c.productionPrompt)}</p>
+      <textarea rows="6" maxlength="1600" data-grammar-production placeholder="${esc(c.productionPlaceholder)}"></textarea>
+      ${detail.writing_tip_vi?`<p class="grammar-writing-tip">${esc(detail.writing_tip_vi)}</p>`:''}
+    </section>`;
+}
+
 function lessonMarkup(detail,payload){
   const c=copy();
   const items=Array.isArray(payload.lessons)?payload.lessons:[];
   const index=items.findIndex(item=>item.id===detail.id);
   const prev=index>0?items[index-1]:null;
   const next=index>=0&&index<items.length-1?items[index+1]:null;
+  const richLearning=hasGrammarLearningModel(detail.learning_model);
 
   return `<article class="grammar-lesson visual-raised-surface" data-grammar-lesson="${esc(detail.id)}">
     <header class="grammar-lesson-head">
@@ -287,32 +317,22 @@ function lessonMarkup(detail,payload){
 
     <div class="grammar-lesson-layout">
       <main class="grammar-teach-column">
-        <section class="grammar-teach-block">
-          <span class="context-label">${esc(c.objective)}</span>
-          <p class="grammar-explanation">${esc(detail.explanation_vi||detail.objective_vi||'')}</p>
-        </section>
-
-        ${listBlock(c.rules,detail.source==='locked-syllabus-fallback'?[]:detail.rules)}
-        ${listBlock(c.contrasts,detail.contrasts)}
-        ${listBlock(c.exceptions,detail.source==='locked-syllabus-fallback'?[]:detail.exceptions)}
-        ${examplesBlock(detail.examples)}
-        ${listBlock(c.mistakes,detail.mistakes||detail.common_traps)}
-        ${practiceBlock(detail.guided_practice)}
-
-        <section class="grammar-production">
-          <span class="context-label">${esc(c.production)}</span>
-          <h3>${esc(detail.production_task_vi||c.production)}</h3>
-          <p>${esc(c.productionPrompt)}</p>
-          <textarea rows="6" maxlength="1600" data-grammar-production placeholder="${esc(c.productionPlaceholder)}"></textarea>
-          ${detail.writing_tip_vi?`<p class="grammar-writing-tip">${esc(detail.writing_tip_vi)}</p>`:''}
-        </section>
+        ${richLearning
+          ?renderGrammarLearningModel(detail.learning_model,{locale:supportLanguage(),targetLanguage:detail.language})
+          :legacyLessonBody(detail,c)}
       </main>
 
       <aside class="grammar-lesson-actions">
-        <span class="context-label">${esc(c.source)}</span>
-        <strong>${esc(sourceLabel(detail.source))}</strong>
-        <p>${esc(c.noMastery)}</p>
-        ${detail.source==='locked-syllabus-fallback'?`<p class="grammar-fallback-note">${esc(c.lessonUnavailable)}</p>`:''}
+        ${richLearning?`
+          <span class="context-label">${esc(c.learningActions)}</span>
+          <strong>${esc(c.learningEvidence)}</strong>
+          <p>${esc(c.learningEvidenceNote)}</p>
+        `:`
+          <span class="context-label">${esc(c.source)}</span>
+          <strong>${esc(sourceLabel(detail.source))}</strong>
+          <p>${esc(c.noMastery)}</p>
+          ${detail.source==='locked-syllabus-fallback'?`<p class="grammar-fallback-note">${esc(c.lessonUnavailable)}</p>`:''}
+        `}
         ${detail.completed
           ?`<button type="button" class="button button-secondary" data-grammar-uncomplete>${esc(c.undo)}</button>`
           :`<button type="button" class="button button-primary" data-grammar-complete>${esc(c.mark)}</button>`}
@@ -374,6 +394,10 @@ export async function renderGrammar(root){
 
     slot.innerHTML=lessonMarkup(detail,payload);
 
+    if(hasGrammarLearningModel(detail.learning_model)){
+      bindGrammarLearningInteractions(slot,{locale:supportLanguage()});
+    }
+
     slot.querySelectorAll('[data-grammar-reveal]').forEach(button=>{
       button.addEventListener('click',()=>{
         const card=button.closest('.grammar-practice-card');
@@ -399,12 +423,21 @@ export async function renderGrammar(root){
     });
 
     slot.querySelector('[data-grammar-complete]')?.addEventListener('click',async event=>{
-      const production=String(slot.querySelector('[data-grammar-production]')?.value||'').trim();
-      const productionEntries=production.split(/\n+/).map(value=>value.trim()).filter(Boolean);
-      if(productionEntries.length<2){
-        toast(c.productionNeeded);
-        slot.querySelector('[data-grammar-production]')?.focus();
-        return;
+      const learningCheck=grammarLearningCompletion(slot,detail.learning_model,{locale:supportLanguage()});
+      if(learningCheck){
+        if(!learningCheck.ready){
+          toast(learningCheck.message);
+          learningCheck.focus?.focus();
+          return;
+        }
+      }else{
+        const production=String(slot.querySelector('[data-grammar-production]')?.value||'').trim();
+        const productionEntries=production.split(/\n+/).map(value=>value.trim()).filter(Boolean);
+        if(productionEntries.length<2){
+          toast(c.productionNeeded);
+          slot.querySelector('[data-grammar-production]')?.focus();
+          return;
+        }
       }
       try{
         await runBusy(event.currentTarget,()=>api.completeGrammar(lessonId),{label:c.loading});
