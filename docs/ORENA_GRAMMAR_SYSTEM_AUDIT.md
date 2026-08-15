@@ -30,6 +30,9 @@
 - DONE — Runtime Grammar lesson AI generation is removed
 - DONE — Completion/uncomplete endpoints exist
 - DONE — Grammar chrome localization exists
+- Current UI route: `#/grammar`.
+- Current Grammar API routes: `/api/library/grammar, /api/library/grammar/{lesson_id}, /api/library/grammar/{lesson_id}/complete, /api/library/grammar/{lesson_id}/reference`.
+- Current renderer functions: `examplesBlock, groupByLevel, groupByModule, kindLabel, lessonMarkup, listBlock, nextIncomplete, overviewMarkup, practiceBlock, progressOf, renderGrammar, sourceLabel`.
 
 ## CURRENT RENDERER GAP
 
@@ -44,7 +47,7 @@
 - DONE — curriculum source of truth exists for 228 lessons.
 - DONE — static KB coverage missing IDs: 0.
 - IN PROGRESS — foundation static content: 269.
-- DONE — curated rich-learning content: 0.
+- PENDING — curated rich-learning content: 0 / 269 items.
 - PENDING — incomplete/placeholder teaching bodies detected: 228.
 - Migration status: `{"PENDING": 269}`.
 
@@ -53,7 +56,7 @@
 - DONE — curriculum source of truth exists for 197 lessons.
 - DONE — static KB coverage missing IDs: 0.
 - IN PROGRESS — foundation static content: 239.
-- DONE — curated rich-learning content: 0.
+- PENDING — curated rich-learning content: 0 / 239 items.
 - PENDING — incomplete/placeholder teaching bodies detected: 197.
 - Migration status: `{"PENDING": 239}`.
 
@@ -79,9 +82,10 @@
 
 ## HARD-CODE / SOURCE SCAN
 
-- Grammar-related source files detected: 230.
-- Files with developer/metadata markers requiring UX review: 2.
-- Files with possible hard-coded grammar IDs: 3.
+- Scan boundary: active repository source; backups/tool caches excluded.
+- Grammar-related source files detected: 92.
+- Files with developer/metadata markers requiring UX review: 1.
+- Files with possible hard-coded grammar IDs: 1.
 - Full file lists and markers are preserved in `docs/ORENA_GRAMMAR_MIGRATION_MAP.json`.
 
 ## PHASE 2 ENTRY GATE

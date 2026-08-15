@@ -54,7 +54,7 @@ VISUAL_RENDERER_MARKERS = {
     "skill_transfer": ("SkillTransfer", "skill-transfer", "skillTransfer"),
 }
 
-SCAN_SUFFIXES = {".py", ".js", ".mjs", ".html", ".md"}
+SCAN_SUFFIXES = {".py", ".js", ".mjs", ".html", ".md", ".json"}
 SCAN_EXCLUDES = {
     "writing_coach/languages/english/grammar_curriculum.json",
     "writing_coach/languages/chinese/grammar_curriculum.json",
@@ -62,7 +62,16 @@ SCAN_EXCLUDES = {
     "writing_coach/languages/chinese/grammar_knowledge.json",
     "docs/ORENA_GRAMMAR_MIGRATION_MAP.json",
     "docs/ORENA_GRAMMAR_SYSTEM_AUDIT.md",
+    "scripts/audit_grammar_learning_system.py",
 }
+SCAN_EXCLUDED_PREFIXES = (
+    ".git/",
+    ".upgrade_backups/",
+    ".pytest_cache/",
+    ".venv/",
+    "node_modules/",
+    "__pycache__/",
+)
 
 def load_json(path: Path) -> Any:
     return json.loads(path.read_text(encoding="utf-8"))
@@ -139,12 +148,27 @@ def recommend_modes(language: str, item: dict[str, Any]) -> list[str]:
         add("formula", "context", "contrast")
     return modes
 
+def _known_grammar_ids() -> list[str]:
+    ids: list[str] = []
+    for language in LANGS:
+        curriculum = load_json(
+            ROOT / "writing_coach" / "languages" / language / "grammar_curriculum.json"
+        )
+        ids.extend(str(item["id"]) for item in curriculum)
+    return sorted(set(ids), key=len, reverse=True)
+
+
 def scan_source() -> dict[str, Any]:
     grammar_hits = []
     developer_primary_flow_markers = []
     hardcoded_ids = []
 
-    grammar_id_pattern = re.compile(r"(?:zh-hsk\d|[abc]\d-[a-z0-9-]{4,})", re.I)
+    known_ids = _known_grammar_ids()
+    id_pattern = re.compile(
+        r"(?<![A-Za-z0-9_-])("
+        + "|".join(re.escape(grammar_id) for grammar_id in known_ids)
+        + r")(?![A-Za-z0-9_-])"
+    )
     developer_terms = (
         "Lesson source",
         "Nguồn lesson",
@@ -161,30 +185,36 @@ def scan_source() -> dict[str, Any]:
         if not path.is_file() or path.suffix.lower() not in SCAN_SUFFIXES:
             continue
         rel = path.relative_to(ROOT).as_posix()
-        if rel in SCAN_EXCLUDES or rel.startswith(".git/"):
+        if (
+            rel in SCAN_EXCLUDES
+            or any(rel.startswith(prefix) for prefix in SCAN_EXCLUDED_PREFIXES)
+        ):
             continue
         try:
-            text = path.read_text(encoding="utf-8")
+            source_text = path.read_text(encoding="utf-8")
         except Exception:
             continue
 
-        low = text.lower()
-        if "grammar" in low or "ngữ pháp" in low or "语法" in text:
+        low = source_text.lower()
+        if "grammar" in low or "ngữ pháp" in low or "语法" in source_text:
             grammar_hits.append(rel)
 
-        found_dev = [term for term in developer_terms if term in text]
+        found_dev = [term for term in developer_terms if term in source_text]
         if found_dev:
             developer_primary_flow_markers.append({"path": rel, "markers": found_dev})
 
-        ids = sorted(set(grammar_id_pattern.findall(text)))
+        ids = sorted(set(id_pattern.findall(source_text)))
         if ids:
-            hardcoded_ids.append({"path": rel, "ids": ids[:20], "count": len(ids)})
+            hardcoded_ids.append({"path": rel, "ids": ids, "count": len(ids)})
 
     return {
+        "scan_boundary": "active repository source; backups/tool caches excluded",
+        "excluded_prefixes": list(SCAN_EXCLUDED_PREFIXES),
         "grammar_related_source_files": sorted(grammar_hits),
         "developer_or_metadata_markers": developer_primary_flow_markers,
         "hardcoded_grammar_id_candidates": hardcoded_ids,
     }
+
 
 def renderer_audit() -> dict[str, Any]:
     path = ROOT / "static" / "becoming" / "screens" / "grammar.js"
@@ -193,8 +223,13 @@ def renderer_audit() -> dict[str, Any]:
     for capability, markers in VISUAL_RENDERER_MARKERS.items():
         supported[capability] = any(marker in text for marker in markers)
 
+    function_names = sorted(set(
+        re.findall(r"(?:export\s+async\s+)?function\s+([A-Za-z_$][\w$]*)\s*\(", text)
+    ))
+
     return {
         "path": path.relative_to(ROOT).as_posix(),
+        "current_renderer_functions": function_names,
         "legacy_linear_blocks": {
             "objective": "c.objective" in text,
             "rules": "detail.rules" in text,
@@ -236,6 +271,12 @@ def architecture_audit() -> dict[str, Any]:
     checks["chrome_i18n"] = "chrome.grammar" in texts["i18n"]
     checks["kb_runtime_ai_guard"] = "runtime_ai" in texts["knowledge_validator"]
     checks["kb_cross_skill_guard"] = "cross_skill" in texts["knowledge_validator"]
+    api_routes = sorted(set(re.findall(
+        r'@app\.(?:get|post|delete|put|patch)\("([^"]*grammar[^"]*)"\)',
+        texts["app_py"],
+    )))
+    checks["current_grammar_api_routes"] = api_routes
+    checks["current_ui_route"] = "#/grammar"
     return checks
 
 def audit_language(language: str, cfg: dict[str, Any]) -> dict[str, Any]:
@@ -451,6 +492,9 @@ def main() -> None:
         status_line("Runtime Grammar lesson AI generation is removed", architecture["runtime_ai_removed"]),
         status_line("Completion/uncomplete endpoints exist", architecture["completion_endpoint"] and architecture["uncomplete_endpoint"]),
         status_line("Grammar chrome localization exists", architecture["chrome_i18n"]),
+        f"- Current UI route: `{architecture['current_ui_route']}`.",
+        f"- Current Grammar API routes: `{', '.join(architecture['current_grammar_api_routes'])}`.",
+        f"- Current renderer functions: `{', '.join(renderer['current_renderer_functions'])}`.",
         "",
         "## CURRENT RENDERER GAP",
         "",
@@ -465,7 +509,7 @@ def main() -> None:
         f"- DONE — curriculum source of truth exists for {en['counts_by_kind'].get('lesson', 0)} lessons.",
         f"- DONE — static KB coverage missing IDs: {len(en['missing_kb_ids'])}.",
         f"- IN PROGRESS — foundation static content: {en['foundation_count']}.",
-        f"- DONE — curated rich-learning content: {en['curated_count']}.",
+        f"- PENDING — curated rich-learning content: {en['curated_count']} / {en['total_items']} items.",
         f"- PENDING — incomplete/placeholder teaching bodies detected: {en['placeholder_or_incomplete_lesson_count']}.",
         f"- Migration status: `{json.dumps(en['migration_counts'], ensure_ascii=False)}`.",
         "",
@@ -474,7 +518,7 @@ def main() -> None:
         f"- DONE — curriculum source of truth exists for {zh['counts_by_kind'].get('lesson', 0)} lessons.",
         f"- DONE — static KB coverage missing IDs: {len(zh['missing_kb_ids'])}.",
         f"- IN PROGRESS — foundation static content: {zh['foundation_count']}.",
-        f"- DONE — curated rich-learning content: {zh['curated_count']}.",
+        f"- PENDING — curated rich-learning content: {zh['curated_count']} / {zh['total_items']} items.",
         f"- PENDING — incomplete/placeholder teaching bodies detected: {zh['placeholder_or_incomplete_lesson_count']}.",
         f"- Migration status: `{json.dumps(zh['migration_counts'], ensure_ascii=False)}`.",
         "",
@@ -500,6 +544,7 @@ def main() -> None:
         "",
         "## HARD-CODE / SOURCE SCAN",
         "",
+        f"- Scan boundary: {source_scan['scan_boundary']}.",
         f"- Grammar-related source files detected: {len(source_scan['grammar_related_source_files'])}.",
         f"- Files with developer/metadata markers requiring UX review: {len(source_scan['developer_or_metadata_markers'])}.",
         f"- Files with possible hard-coded grammar IDs: {len(source_scan['hardcoded_grammar_id_candidates'])}.",
@@ -542,8 +587,19 @@ def main() -> None:
     assert not zh["missing_kb_ids"], zh["missing_kb_ids"][:5]
     assert architecture["runtime_ai_removed"]
     assert architecture["static_kb_endpoint"]
+    assert architecture["current_grammar_api_routes"]
     assert len(migration_rows) == 508
     assert sum(overall_counts.values()) == 508
+    assert overall_counts == {"PENDING": 508}
+    assert not any(
+        row["path"].startswith(".upgrade_backups/")
+        for row in source_scan["developer_or_metadata_markers"]
+        + source_scan["hardcoded_grammar_id_candidates"]
+    )
+    assert all(
+        "scripts/audit_grammar_learning_system.py" != row["path"]
+        for row in source_scan["developer_or_metadata_markers"]
+    )
 
     print("ORENA_GRAMMAR_PHASE1_AUDIT=PASS")
     print(f"EN_LESSONS={en['counts_by_kind'].get('lesson')} EN_ITEMS={en['total_items']}")
