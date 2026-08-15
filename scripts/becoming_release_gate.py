@@ -88,6 +88,13 @@ def main() -> None:
         root / "static" / "becoming" / "screens" / "grammar.js",
         root / "static" / "becoming" / "grammar.css",
         root / "scripts" / "test_m4_grammar_ui.mjs",
+        root / "writing_coach" / "grammar_knowledge.py",
+        root / "writing_coach" / "languages" / "english" / "grammar_knowledge.json",
+        root / "writing_coach" / "languages" / "english" / "grammar_knowledge_base.py",
+        root / "writing_coach" / "languages" / "chinese" / "grammar_knowledge.json",
+        root / "writing_coach" / "languages" / "chinese" / "grammar_knowledge_base.py",
+        root / "scripts" / "audit_static_grammar_knowledge.py",
+        root / "tests" / "test_static_grammar_knowledge.py",
         root / "static" / "becoming" / "screens" / "journey.js",
         root / "static" / "becoming" / "screens" / "profile.js",
         root / "static" / "becoming" / "screens" / "onboarding.js",
@@ -880,14 +887,26 @@ def main() -> None:
         ], "M4 locked grammar lesson prompt")
         require_contains(errors, app, [
             '"curriculum_policy"', '"completion_is_mastery": False',
-            '"guided_practice"', '"production_task_vi"',
-            '"activity_evidence_not_mastery"', "locked-syllabus-fallback",
-        ], "M4 grammar API semantics")
+            '"activity_evidence_not_mastery"', '"static-grammar-kb"',
+            "active_grammar_knowledge_by_id", "api_grammar_reference",
+        ], "M4 static grammar API semantics")
+        for forbidden in [
+            "def generate_grammar_lesson(",
+            "grammar_lesson_generator",
+            "grammar_lesson_prompts",
+        ]:
+            if forbidden in app:
+                errors.append(f"M4.2 runtime Grammar must not generate lessons with AI: {forbidden}")
+        grammar_knowledge_text = read("writing_coach/grammar_knowledge.py")
+        require_contains(errors, grammar_knowledge_text, [
+            "validate_grammar_knowledge", "runtime_ai", "cross_skill",
+            "quick_reference", "content_status",
+        ], "M4.2 static Grammar Knowledge Base contract")
 
         grammar_screen = read("static/becoming/screens/grammar.js")
         grammar_css = read("static/becoming/grammar.css")
         require_contains(errors, api, [
-            "grammarLibrary:", "grammarLesson:", "completeGrammar:", "uncompleteGrammar:",
+            "grammarLibrary:", "grammarLesson:", "grammarReference:", "completeGrammar:", "uncompleteGrammar:",
         ], "M4 Grammar UI API client")
         require_contains(errors, router, ["'grammar'"], "M4 Grammar UI route")
         require_contains(errors, app_js, ["renderGrammar", "grammar:renderGrammar"], "M4 Grammar UI registration")

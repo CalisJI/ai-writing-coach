@@ -15,8 +15,8 @@ from writing_coach.languages.runtime import (
     active_profile,
     active_grammar_by_id,
     active_grammar_course,
+    active_grammar_knowledge_by_id,
     grammar_level_names,
-    grammar_lesson_prompts,
     active_rubric_weights,
     active_score_to_level,
     active_system_prompt,
@@ -1155,122 +1155,56 @@ def api_grammar_library() -> dict[str, Any]:
     }
 
 
-def generate_grammar_lesson(lesson: dict[str, Any]) -> dict[str, Any]:
-    schema = {
-        "type": "object",
-        "properties": {
-            "explanation_vi": {"type": "string"},
-            "rules": {"type": "array", "minItems": 6, "maxItems": 10, "items": {"type": "string"}},
-            "contrasts": {"type": "array", "minItems": 2, "maxItems": 6, "items": {"type": "string"}},
-            "exceptions": {"type": "array", "minItems": 2, "maxItems": 6, "items": {"type": "string"}},
-            "examples": {
-                "type": "array", "minItems": 6, "maxItems": 10,
-                "items": {
-                    "type": "object",
-                    "properties": {
-                        "target": {"type": "string"},
-                        "pinyin": {"type": "string"},
-                        "vi": {"type": "string"},
-                        "note_vi": {"type": "string"},
-                    },
-                    "required": ["target", "pinyin", "vi", "note_vi"],
-                },
-            },
-            "mistakes": {"type": "array", "minItems": 4, "maxItems": 8, "items": {"type": "string"}},
-            "guided_practice": {
-                "type": "array", "minItems": 8, "maxItems": 14,
-                "items": {
-                    "type": "object",
-                    "properties": {
-                        "kind": {"type": "string"},
-                        "prompt": {"type": "string"},
-                        "answer": {"type": "string"},
-                        "why_vi": {"type": "string"},
-                    },
-                    "required": ["kind", "prompt", "answer", "why_vi"],
-                },
-            },
-            "production_task_vi": {"type": "string"},
-            "writing_tip_vi": {"type": "string"},
-        },
-        "required": [
-            "explanation_vi", "rules", "contrasts", "exceptions", "examples",
-            "mistakes", "guided_practice", "production_task_vi", "writing_tip_vi",
-        ],
-    }
-    system, user = grammar_lesson_prompts(lesson)
-    return ai_json(
-        "grammar_lesson_generator",
-        [{"role": "system", "content": system}, {"role": "user", "content": user}],
-        schema,
-        num_predict=3600,
-        temperature=0.1,
-    )
+
+def _static_grammar_detail(lesson_id: str) -> tuple[dict[str, Any], dict[str, Any]]:
+    lesson = active_grammar_by_id().get(lesson_id)
+    if not lesson:
+        raise HTTPException(404, "Grammar lesson not found")
+    knowledge = active_grammar_knowledge_by_id().get(lesson_id)
+    if not knowledge:
+        raise HTTPException(503, "Static grammar content is unavailable for this lesson.")
+    return lesson, knowledge
 
 
-def grammar_builtin_fallback(lesson: dict[str, Any]) -> dict[str, Any]:
-    scope = [str(item) for item in lesson.get("scope", [])]
-    traps = [str(item) for item in lesson.get("common_traps", [])]
-    contrasts = [str(item) for item in lesson.get("contrasts", [])]
-    restrictions = [str(item) for item in lesson.get("restrictions", [])]
+@app.get("/api/library/grammar/{lesson_id}/reference")
+def api_grammar_reference(lesson_id: str) -> dict[str, Any]:
+    lesson, knowledge = _static_grammar_detail(lesson_id)
     return {
-        "explanation_vi": lesson["objective_vi"],
-        "rules": scope,
-        "contrasts": contrasts or ["Đối chiếu với cấu trúc gần nhất trong cùng module trước khi chọn form."],
-        "exceptions": restrictions or ["Giữ đúng scope của cấp hiện tại; không suy rộng từ một ví dụ."],
-        "examples": [],
-        "mistakes": traps,
-        "guided_practice": [
-            {"kind": "recognition", "prompt": f"Nhận diện cấu trúc: {lesson['title']}", "answer": "", "why_vi": "Dùng locked syllabus scope để tự kiểm tra."},
-            {"kind": "correction", "prompt": "Tự tạo một câu có lỗi điển hình rồi sửa lại.", "answer": "", "why_vi": "Tập trung vào common traps của bài."},
-            {"kind": "production", "prompt": "Viết hai câu nguyên bản sử dụng cấu trúc trong hai ngữ cảnh khác nhau.", "answer": "", "why_vi": "Production là bằng chứng luyện tập, không phải mastery."},
-        ],
-        "production_task_vi": "Viết 2-3 câu nguyên bản dùng cấu trúc này trong một ngữ cảnh thật.",
-        "writing_tip_vi": "Sau bài học, chuyển ít nhất một cấu trúc vào Writing thật để tạo bằng chứng transfer.",
+        "grammar_id": lesson_id,
+        "title": lesson["title"],
+        "level": lesson["level"],
+        "kind": lesson["kind"],
+        **dict(knowledge["quick_reference"]),
+        "content_status": knowledge["source"]["content_status"],
+        "source": "static-grammar-kb",
+        "language": active_profile().code,
+        "official_mapping": False,
     }
 
 
 @app.get("/api/library/grammar/{lesson_id}")
 def api_grammar_lesson(lesson_id: str) -> dict[str, Any]:
-    grammar_by_id = active_grammar_by_id()
-    lesson = grammar_by_id.get(lesson_id)
-    if not lesson:
-        raise HTTPException(404, "Grammar lesson not found")
-
-    storage_key = _grammar_storage_key(lesson)
-    cached_lesson = _learning_cache.get_grammar_lesson(storage_key)
-    if cached_lesson:
-        detail = cached_lesson
-        source = "cache"
-    else:
-        try:
-            detail = generate_grammar_lesson(lesson)
-            source = active_ai_label("grammar_lesson_generator")
-            _learning_cache.put_grammar_lesson(
-                storage_key, detail, datetime.now().astimezone().isoformat(timespec="seconds")
-            )
-        except AICapabilityError:
-            detail = grammar_builtin_fallback(lesson)
-            source = "locked-syllabus-fallback"
-        except Exception:
-            detail = grammar_builtin_fallback(lesson)
-            source = "locked-syllabus-fallback"
-
+    lesson, knowledge = _static_grammar_detail(lesson_id)
+    detail = dict(knowledge["lesson"])
     examples = []
     for example in detail.get("examples", []):
         item = dict(example)
-        if "target" not in item:
-            item["target"] = str(item.get("en") or "")
+        item.setdefault("target", str(item.get("en") or ""))
         item.setdefault("pinyin", "")
+        item.setdefault("vi", "")
         item.setdefault("note_vi", "")
         examples.append(item)
     detail["examples"] = examples
 
+    storage_key = _grammar_storage_key(lesson)
     return {
         **lesson,
         **detail,
+        "quick_reference": dict(knowledge["quick_reference"]),
+        "cross_skill": dict(knowledge["cross_skill"]),
+        "content_status": knowledge["source"]["content_status"],
         "completed": _learning_repository.grammar_completed(storage_key),
-        "source": source,
+        "source": "static-grammar-kb",
         "language": active_profile().code,
         "completion_claim": "activity_evidence_not_mastery",
     }

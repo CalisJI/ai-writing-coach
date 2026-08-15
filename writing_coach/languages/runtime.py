@@ -7,6 +7,9 @@ from writing_coach.languages.chinese.grammar_course import (
     GRAMMAR_BY_ID as CHINESE_GRAMMAR_BY_ID,
     GRAMMAR_COURSE as CHINESE_GRAMMAR_COURSE,
 )
+from writing_coach.languages.chinese.grammar_knowledge_base import (
+    GRAMMAR_KNOWLEDGE_BY_ID as CHINESE_GRAMMAR_KNOWLEDGE_BY_ID,
+)
 from writing_coach.languages.chinese.profile import (
     ERROR_CATEGORIES as CHINESE_ERROR_CATEGORIES,
     PROFILE as CHINESE_PROFILE,
@@ -17,6 +20,9 @@ from writing_coach.languages.chinese.profile import (
 from writing_coach.languages.english.grammar_course import (
     GRAMMAR_BY_ID as ENGLISH_GRAMMAR_BY_ID,
     GRAMMAR_COURSE as ENGLISH_GRAMMAR_COURSE,
+)
+from writing_coach.languages.english.grammar_knowledge_base import (
+    GRAMMAR_KNOWLEDGE_BY_ID as ENGLISH_GRAMMAR_KNOWLEDGE_BY_ID,
 )
 from writing_coach.languages.english.profile import (
     ERROR_CATEGORIES as ENGLISH_ERROR_CATEGORIES,
@@ -88,6 +94,10 @@ def active_grammar_course() -> list[dict]:
 
 def active_grammar_by_id() -> dict[str, dict]:
     return CHINESE_GRAMMAR_BY_ID if is_chinese() else ENGLISH_GRAMMAR_BY_ID
+
+
+def active_grammar_knowledge_by_id() -> dict[str, dict]:
+    return CHINESE_GRAMMAR_KNOWLEDGE_BY_ID if is_chinese() else ENGLISH_GRAMMAR_KNOWLEDGE_BY_ID
 
 
 def grammar_level_names() -> dict[str, str]:
