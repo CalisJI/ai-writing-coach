@@ -29,7 +29,8 @@ async function load(file) {
         throw new Error(`Unexpected external module "${specifier}" imported by ${ref.identifier}`);
       }
 
-      const child = path.resolve(path.dirname(ref.identifier), specifier);
+      const cleanSpecifier = specifier.replace(/[?#].*$/, '');
+      const child = path.resolve(path.dirname(ref.identifier), cleanSpecifier);
       return await load(child);
     });
 

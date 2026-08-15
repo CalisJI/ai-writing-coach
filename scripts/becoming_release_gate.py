@@ -891,6 +891,15 @@ def main() -> None:
         ], "M4 Grammar UI API client")
         require_contains(errors, router, ["'grammar'"], "M4 Grammar UI route")
         require_contains(errors, app_js, ["renderGrammar", "grammar:renderGrammar"], "M4 Grammar UI registration")
+        require_contains(errors, app_js, [
+            f"./router.js?v={frontend_version}",
+            f"./domain/screen-contract.js?v={frontend_version}",
+            f"./domain/skill-release.js?v={frontend_version}",
+            f"./screens/grammar.js?v={frontend_version}",
+        ], "M4 route-critical ESM cache busting")
+        require_contains(errors, app, [
+            'Cache-Control": "no-store, max-age=0',
+        ], "BECOMING asset no-store policy")
         require_contains(errors, template, [
             'data-route="grammar"', f"/becoming-assets/grammar.css?v={frontend_version}",
         ], "M4 Grammar UI navigation")
