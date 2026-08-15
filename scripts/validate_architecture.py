@@ -38,10 +38,31 @@ from writing_coach.core.language_registry import all_languages
 langs = {x.code: x for x in all_languages()}
 require("en" in langs and langs["en"].enabled, "English must be enabled")
 require("zh" in langs and langs["zh"].enabled, "Chinese must be enabled in v1.1")
-from writing_coach.languages.chinese.grammar_course import GRAMMAR_COURSE as ZH_GRAMMAR
+from writing_coach.grammar_catalog import GrammarCatalogInvalid, validate_grammar_catalog
+from writing_coach.languages.chinese.grammar_course import (
+    GRAMMAR_BY_ID as ZH_GRAMMAR_BY_ID,
+    GRAMMAR_COURSE as ZH_GRAMMAR,
+)
+from writing_coach.languages.chinese.profile import PROFILE as ZH_PROFILE
+
 zh = langs.get("zh")
 require(zh is not None and all(x in zh.capabilities for x in ("grammar","vocabulary","dictionary","translation","pinyin")), "Chinese library capabilities are incomplete")
-require(len(ZH_GRAMMAR) == 56, "Chinese grammar course must contain 56 lessons")
+try:
+    validate_grammar_catalog(ZH_GRAMMAR, ZH_PROFILE.levels, ZH_GRAMMAR_BY_ID)
+except GrammarCatalogInvalid as exc:
+    errors.append(f"Chinese grammar curriculum is structurally invalid: {exc}")
+require(
+    {item["level"] for item in ZH_GRAMMAR} == set(ZH_PROFILE.levels),
+    "Chinese grammar curriculum must cover every configured HSK level",
+)
+require(
+    all(
+        any(item["level"] == level and item.get("kind") == "review" for item in ZH_GRAMMAR)
+        and any(item["level"] == level and item.get("kind") == "checkpoint" for item in ZH_GRAMMAR)
+        for level in ZH_PROFILE.levels
+    ),
+    "Chinese grammar curriculum must include review and checkpoint items for every configured HSK level",
+)
 
 
 if errors:
