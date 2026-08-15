@@ -1,5 +1,5 @@
 import {api} from '../api.js';
-import {go} from '../router.js';
+import {go} from '../router.js?v=2.15.11';
 import {supportLanguage} from '../store.js';
 import {esc,errorBlock,loadingBlock,toast,runBusy} from '../components/primitives.js';
 

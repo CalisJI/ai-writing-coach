@@ -109,7 +109,7 @@ def becoming_asset(asset_path: str):
     if not candidate.is_file():
         raise HTTPException(404, "Asset not found")
 
-    return FileResponse(candidate, headers={"Cache-Control": "no-cache"})
+    return FileResponse(candidate, headers={"Cache-Control": "no-store, max-age=0"})
 
 
 class EssayIn(BaseModel):
