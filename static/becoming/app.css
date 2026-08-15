@@ -1856,3 +1856,54 @@ html[data-theme="dark"] .global-help-tooltip{
 .shadowing-summary{
   margin-top:var(--space-5);
 }
+
+
+/* M2 Visible Learning Loop - category-aware Writing feedback */
+.feedback-category-legend{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px 14px;
+  margin:14px 0 20px;
+}
+.feedback-category-legend-item{
+  --feedback-category-color:var(--color-attention);
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+  color:var(--color-ink-muted);
+  font-size:var(--font-size-meta);
+  font-weight:700;
+}
+.feedback-category-legend-item i{
+  width:18px;
+  height:3px;
+  border-radius:999px;
+  background:var(--feedback-category-color);
+}
+.feedback-category-grammar,
+.error-category-grammar{--feedback-category-color:var(--color-important)}
+.feedback-category-verb_tense,
+.error-category-verb_tense{--feedback-category-color:var(--color-attention)}
+.feedback-category-vocabulary,
+.error-category-vocabulary{--feedback-category-color:var(--color-informational)}
+.feedback-category-collocation,
+.error-category-collocation{--feedback-category-color:var(--color-accent-600)}
+.feedback-category-naturalness,
+.error-category-naturalness{
+  --feedback-category-color:color-mix(in srgb,var(--color-positive) 58%,var(--color-accent-600));
+}
+.feedback-category-coherence,
+.error-category-coherence{
+  --feedback-category-color:color-mix(in srgb,var(--color-informational) 58%,var(--color-accent-600));
+}
+.evidence-mark.error-mark{
+  background:color-mix(in srgb,var(--feedback-category-color,var(--color-attention)) 10%,transparent);
+  box-shadow:inset 0 -3px 0 var(--feedback-category-color,var(--color-attention));
+  border-radius:3px;
+}
+.evidence-item[class*="feedback-category-"]{
+  border-left-color:var(--feedback-category-color,var(--color-attention));
+}
+.evidence-item[class*="feedback-category-"] .pattern-label{
+  color:var(--feedback-category-color,var(--color-ink-strong));
+}

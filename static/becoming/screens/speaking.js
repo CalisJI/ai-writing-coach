@@ -64,16 +64,22 @@ const asrCopy=()=>ASR_COPY[uiLocale()]||ASR_COPY.en;
 const MATCH_COPY={
   en:{
     match:'Content match',missing:'Try these again',extra:'Extra words heard',
+    strong:'Strong match - move forward',close:'Close - one more pass can help',retry:'Try this line again',
+    sourceCheck:'Source check',previous:'Previous segment',next:'Next segment',
     privacy:'This audio is sent for transcription. Orena does not save this take to your account.',
     disclaimer:'Content match compares recognized text with the source. It is not a pronunciation score.',
   },
   vi:{
     match:'Khớp nội dung',missing:'Hãy thử lại các từ này',extra:'Từ nghe thêm',
+    strong:'Khớp tốt - chuyển sang câu tiếp theo',close:'Gần đạt - thêm một lượt nữa sẽ hữu ích',retry:'Hãy thử lại câu này',
+    sourceCheck:'So với câu gốc',previous:'Đoạn trước',next:'Đoạn tiếp',
     privacy:'Audio được gửi đi để nhận dạng lời nói. Orena không lưu lượt ghi này vào tài khoản của bạn.',
     disclaimer:'Khớp nội dung chỉ so sánh văn bản nhận dạng với câu gốc. Đây chưa phải điểm phát âm.',
   },
   zh:{
     match:'内容匹配',missing:'再试试这些内容',extra:'额外识别内容',
+    strong:'匹配很好，可以继续下一句',close:'已经接近，再练一遍会更稳',retry:'再试一次这一句',
+    sourceCheck:'对照原句',previous:'上一句',next:'下一句',
     privacy:'音频会发送用于语音识别。Orena 不会把这次录音保存到你的账户。',
     disclaimer:'内容匹配只比较识别文本与原句，并不是发音评分。',
   },
@@ -165,7 +171,9 @@ export function createSpeakingController({session,recorder=createLocalAudioRecor
               ${meaning?`<div class="speaking-meaning"><strong>${esc(c.meaning)}</strong><p>${esc(meaning)}</p></div>`:''}
 
               <div class="speaking-playback-controls">
+                <button class="button button-secondary" type="button" data-speaking-previous ${index<=0?'disabled':''}>${esc(matchCopy().previous)}</button>
                 <button class="button button-secondary" type="button" data-speaking-replay>${esc(c.replay)}</button>
+                <button class="button button-secondary" type="button" data-speaking-next ${index<0||index>=segments.length-1?'disabled':''}>${esc(matchCopy().next)}</button>
                 <label>${esc(c.speed)}
                   <select data-speaking-rate>
                     ${[.75,1,1.25].map(rate=>`<option value="${rate}" ${rate===model.playbackRate?'selected':''}>${rate.toFixed(2).replace(/0$/,'')}x</option>`).join('')}
@@ -194,6 +202,17 @@ export function createSpeakingController({session,recorder=createLocalAudioRecor
                   <div class="speaking-content-match-score">
                     <strong>${esc(matchCopy().match)}</strong>
                     <span>${model.evaluation.content_match}%</span>
+                  </div>
+                  <div class="speaking-match-band band-${esc(model.evaluation.result_band)}" data-speaking-match-band="${esc(model.evaluation.result_band)}">
+                    ${esc(
+                      model.evaluation.result_band==='strong'?matchCopy().strong
+                        :model.evaluation.result_band==='close'?matchCopy().close
+                        :matchCopy().retry
+                    )}
+                  </div>
+                  <div class="speaking-reference-alignment">
+                    <strong>${esc(matchCopy().sourceCheck)}</strong>
+                    <p>${model.evaluation.reference_alignment.map(item=>`<span class="speaking-reference-token ${item.matched?'matched':'missing'}">${esc(item.token)}</span>`).join(' ')}</p>
                   </div>
                   ${model.evaluation.missing_tokens.length?`<div class="speaking-feedback-line">
                     <strong>${esc(matchCopy().missing)}</strong>
@@ -226,6 +245,12 @@ export function createSpeakingController({session,recorder=createLocalAudioRecor
       selectSharedMediaSegment(session.learning_language,segmentId);
       changed();
       return true;
+    },
+    selectRelative(offset){
+      const index=ids.indexOf(model.selected);
+      const target=ids[index+offset];
+      if(!target)return false;
+      return this.select(target);
     },
     async startRecording(){
       model.asrStatus='idle';
@@ -318,6 +343,8 @@ export async function renderSpeaking(root,{recorderFactory=createLocalAudioRecor
     root.querySelectorAll('[data-speaking-segment]').forEach(button=>{
       button.addEventListener('click',()=>controller.select(button.dataset.speakingSegment));
     });
+    root.querySelector('[data-speaking-previous]')?.addEventListener('click',()=>controller.selectRelative(-1));
+    root.querySelector('[data-speaking-next]')?.addEventListener('click',()=>controller.selectRelative(1));
     root.querySelector('[data-speaking-record]')?.addEventListener('click',()=>controller.startRecording());
     root.querySelector('[data-speaking-stop]')?.addEventListener('click',()=>controller.stopRecording());
     root.querySelector('[data-speaking-discard]')?.addEventListener('click',()=>controller.discardRecording());

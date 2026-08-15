@@ -26,6 +26,13 @@ function lcsPairs(reference,heard){
   return pairs.reverse();
 }
 
+export function speechContentMatchBand(score){
+  const value=Number(score)||0;
+  if(value>=90)return 'strong';
+  if(value>=70)return 'close';
+  return 'retry';
+}
+
 export function evaluateSpeechTranscript(referenceText,heardText){
   const referenceTokens=speechLearningTokens(referenceText);
   const heardTokens=speechLearningTokens(heardText);
@@ -33,11 +40,21 @@ export function evaluateSpeechTranscript(referenceText,heardText){
   const matchedReference=new Set(pairs.map(([i])=>i));
   const matchedHeard=new Set(pairs.map(([,j])=>j));
   const denominator=referenceTokens.length+heardTokens.length;
+  const contentMatch=denominator?Math.round((2*pairs.length/denominator)*100):0;
   return {
-    content_match:denominator?Math.round((2*pairs.length/denominator)*100):0,
+    content_match:contentMatch,
+    result_band:speechContentMatchBand(contentMatch),
     matched_count:pairs.length,
     reference_count:referenceTokens.length,
     heard_count:heardTokens.length,
+    reference_alignment:referenceTokens.map((token,index)=>({
+      token,
+      matched:matchedReference.has(index),
+    })),
+    heard_alignment:heardTokens.map((token,index)=>({
+      token,
+      matched:matchedHeard.has(index),
+    })),
     missing_tokens:referenceTokens.filter((_,i)=>!matchedReference.has(i)),
     extra_tokens:heardTokens.filter((_,i)=>!matchedHeard.has(i)),
   };

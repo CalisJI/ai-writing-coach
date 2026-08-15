@@ -1,3 +1,4 @@
+import re
 from pathlib import Path
 
 from app import BECOMING_ASSET_ROOT, home, becoming_preview
@@ -20,4 +21,19 @@ def test_becoming_aliases_canonicalize_to_root() -> None:
 def test_oauth_callback_target_and_frontend_version_remain_canonical() -> None:
     auth = (ROOT / "auth_support.py").read_text(encoding="utf-8")
     assert 'RedirectResponse("/", status_code=302)' in auth
-    assert (ROOT / "BECOMING_FRONTEND_VERSION").read_text(encoding="utf-8").strip() == "2.15.7"
+
+    frontend_version = (
+        ROOT / "BECOMING_FRONTEND_VERSION"
+    ).read_text(encoding="utf-8").strip()
+    assert re.fullmatch(r"\d+\.\d+\.\d+", frontend_version)
+
+    template = (
+        ROOT / "templates" / "becoming" / "index.html"
+    ).read_text(encoding="utf-8")
+    asset_versions = set(
+        re.findall(
+            r"/becoming-assets/[^\"']+\?v=(\d+\.\d+\.\d+)",
+            template,
+        )
+    )
+    assert asset_versions == {frontend_version}

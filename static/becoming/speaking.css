@@ -50,3 +50,32 @@
   display:inline-block;margin:.2rem .25rem .2rem 0;padding:.25rem .5rem;
   border-radius:999px;background:var(--surface-soft,rgba(127,127,127,.12));
 }
+
+
+/* M2 Visible Learning Loop - Speaking coaching result */
+.speaking-match-band{
+  margin-top:.8rem;
+  padding:.65rem .8rem;
+  border-left:3px solid var(--color-attention);
+  background:color-mix(in srgb,var(--color-attention) 8%,var(--color-surface));
+  color:var(--color-ink-strong);
+  font-weight:750;
+}
+.speaking-match-band.band-strong{
+  border-left-color:var(--color-positive);
+  background:color-mix(in srgb,var(--color-positive) 9%,var(--color-surface));
+}
+.speaking-match-band.band-close{
+  border-left-color:var(--color-informational);
+  background:color-mix(in srgb,var(--color-informational) 8%,var(--color-surface));
+}
+.speaking-reference-alignment{display:grid;gap:8px;margin-top:1rem}
+.speaking-reference-alignment p{display:flex;flex-wrap:wrap;gap:6px;margin:0}
+.speaking-reference-token{
+  padding:3px 1px;
+  border-bottom:2px solid var(--color-positive);
+}
+.speaking-reference-token.missing{
+  border-bottom-color:var(--color-important);
+  background:color-mix(in srgb,var(--color-important) 9%,transparent);
+}

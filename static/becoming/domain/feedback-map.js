@@ -5,6 +5,37 @@ function normalize(value=''){
   return String(value||'').trim();
 }
 
+export function feedbackCategoryKey(category=''){
+  const key=String(category||'expression')
+    .toLowerCase()
+    .replaceAll('-','_')
+    .replaceAll(' ','_');
+  const aliases={
+    article:'grammar',
+    article_usage:'grammar',
+    subject_verb_agreement:'grammar',
+    word_order:'grammar',
+    sentence_structure:'grammar',
+    verb_form:'verb_tense',
+    tense:'verb_tense',
+    word_choice:'vocabulary',
+    lexical_choice:'vocabulary',
+    precision:'vocabulary',
+    tone:'naturalness',
+    register:'naturalness',
+    expression:'naturalness',
+    organization:'coherence',
+    organisation:'coherence',
+    linking:'coherence',
+    flow:'coherence',
+    task_achievement:'coherence',
+  };
+  const normalized=aliases[key]||key;
+  return new Set([
+    'grammar','verb_tense','vocabulary','collocation','naturalness','coherence',
+  ]).has(normalized)?normalized:'naturalness';
+}
+
 function isWordChar(char=''){
   return /[A-Za-z0-9À-ỹ]/u.test(char);
 }
@@ -65,8 +96,10 @@ function findEvidenceRanges(text,errors=[],strengths=[]){
   const ranges=[];
 
   const candidates=[
-    ...errors.map((item,index)=>({item,index,kind:'error'})),
-    ...strengths.map((item,index)=>({item,index,kind:'strength'})),
+    ...errors.map((item,index)=>({
+      item,index,kind:'error',category:feedbackCategoryKey(item?.category),
+    })),
+    ...strengths.map((item,index)=>({item,index,kind:'strength',category:'strength'})),
   ];
 
   for(const candidate of candidates){
@@ -79,6 +112,7 @@ function findEvidenceRanges(text,errors=[],strengths=[]){
       kind:candidate.kind,
       index:candidate.index,
       key:`${candidate.kind}-${candidate.index}`,
+      category:candidate.category,
     });
   }
 
@@ -168,11 +202,12 @@ export function highlightedLearnerText(text,errors=[],strengths=[],annotations=[
     html+=renderAnnotatedSlice(source,cursor,range.start,pos);
     const cls=range.kind==='strength'
       ?'evidence-mark strength-mark'
-      :'evidence-mark error-mark';
+      :`evidence-mark error-mark error-category-${attr(range.category)}`;
     const label=range.kind==='strength'
       ?t('review.strength_evidence')
       :t('review.error_evidence');
-    html+=`<mark class="${cls}" tabindex="0" data-feedback-key="${range.key}" aria-label="${attr(label)}">${renderAnnotatedSlice(source,range.start,range.end,pos)}</mark>`;
+    const category=range.kind==='error'?range.category:'strength';
+    html+=`<mark class="${cls}" tabindex="0" data-feedback-key="${range.key}" data-feedback-category="${attr(category)}" aria-label="${attr(label)}">${renderAnnotatedSlice(source,range.start,range.end,pos)}</mark>`;
     cursor=range.end;
   }
   html+=renderAnnotatedSlice(source,cursor,source.length,pos);

@@ -133,4 +133,3 @@ def test_environment_example_remains_a_usable_development_configuration() -> Non
     assert "SQLite is retained only for explicit tests" in example
     assert "Production-like staging additionally requires APP_BIND_HOST=127.0.0.1" in example
     assert (root / "VERSION").read_text(encoding="utf-8").strip() == "1.4.0"
-    assert (root / "BECOMING_FRONTEND_VERSION").read_text(encoding="utf-8").strip() == "2.15.7"
