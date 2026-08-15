@@ -6,6 +6,15 @@ from typing import Any
 
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 
+from writing_coach.speech_pronunciation import (
+    SpeechPronunciationConversionFailed,
+    SpeechPronunciationMalformed,
+    SpeechPronunciationPayloadTooLarge,
+    SpeechPronunciationProvider,
+    SpeechPronunciationRequestFailed,
+    SpeechPronunciationTimedOut,
+)
+
 from writing_coach.speech_asr import (
     SpeechAsrMalformed,
     SpeechAsrPayloadTooLarge,
@@ -17,6 +26,7 @@ from writing_coach.speech_asr import (
 
 router = APIRouter(prefix="/api/speech", tags=["speech"])
 _speech_asr_provider: SpeechAsrProvider | None = None
+_speech_pronunciation_provider: SpeechPronunciationProvider | None = None
 
 
 def configure_speech_asr(provider: SpeechAsrProvider | None) -> None:
@@ -24,10 +34,27 @@ def configure_speech_asr(provider: SpeechAsrProvider | None) -> None:
     _speech_asr_provider = provider
 
 
+def configure_speech_pronunciation(provider: SpeechPronunciationProvider | None) -> None:
+    global _speech_pronunciation_provider
+    _speech_pronunciation_provider = provider
+
+
 def _provider() -> SpeechAsrProvider:
     if _speech_asr_provider is None:
         raise HTTPException(503, "Speech ASR is not configured.")
     return _speech_asr_provider
+
+
+def _pronunciation_provider() -> SpeechPronunciationProvider:
+    if _speech_pronunciation_provider is None:
+        raise HTTPException(
+            503,
+            detail={
+                "category": "pronunciation_unconfigured",
+                "message": "Pronunciation assessment is not configured.",
+            },
+        )
+    return _speech_pronunciation_provider
 
 
 _UPLOAD_READ_CHUNK_BYTES = 1024 * 1024
@@ -127,5 +154,130 @@ async def transcribe_speech(
         "words": [
             {"start_ms": x.start_ms, "end_ms": x.end_ms, "word": x.word}
             for x in result.words
+        ],
+    }
+
+_DEFAULT_PRONUNCIATION_MAX_BYTES = 8 * 1024 * 1024
+
+
+async def _read_pronunciation_upload_limited(
+    file: UploadFile,
+    *,
+    max_bytes: int,
+) -> bytes:
+    if max_bytes <= 0:
+        raise SpeechPronunciationPayloadTooLarge()
+    chunks: list[bytes] = []
+    total = 0
+    while True:
+        remaining = max_bytes - total + 1
+        chunk = await file.read(min(_UPLOAD_READ_CHUNK_BYTES, remaining))
+        if not chunk:
+            break
+        total += len(chunk)
+        if total > max_bytes:
+            raise SpeechPronunciationPayloadTooLarge()
+        chunks.append(chunk)
+    return b"".join(chunks)
+
+
+@router.post("/pronunciation")
+async def assess_pronunciation(
+    file: UploadFile = File(...),
+    language: str = Form(default=""),
+    reference_text: str = Form(default=""),
+) -> dict[str, Any]:
+    normalized_language = language.strip().casefold()
+    if normalized_language not in {"en", "zh"}:
+        raise HTTPException(422, "Unsupported pronunciation language.")
+
+    provider = _pronunciation_provider()
+    reference = reference_text.strip()
+    max_reference_chars = int(getattr(provider, "max_reference_chars", 1200))
+    if not reference or len(reference) > max_reference_chars:
+        raise HTTPException(422, "Pronunciation reference text is invalid.")
+
+    max_bytes = int(getattr(provider, "max_bytes", _DEFAULT_PRONUNCIATION_MAX_BYTES))
+    try:
+        data = await _read_pronunciation_upload_limited(file, max_bytes=max_bytes)
+        result = provider.assess_bytes(
+            data,
+            filename=file.filename or "recording.webm",
+            content_type=file.content_type or "application/octet-stream",
+            language=normalized_language,
+            reference_text=reference,
+        )
+    except SpeechPronunciationPayloadTooLarge as exc:
+        raise HTTPException(413, "Audio recording is too large.") from exc
+    except SpeechPronunciationTimedOut as exc:
+        raise HTTPException(
+            504,
+            detail={
+                "category": "pronunciation_timeout",
+                "message": "Pronunciation assessment timed out.",
+            },
+        ) from exc
+    except SpeechPronunciationConversionFailed as exc:
+        raise HTTPException(
+            422,
+            detail={
+                "category": "pronunciation_audio_unsupported",
+                "message": "The recorded audio could not be prepared for pronunciation assessment.",
+            },
+        ) from exc
+    except SpeechPronunciationMalformed as exc:
+        raise HTTPException(
+            502,
+            detail={
+                "category": "pronunciation_provider_malformed",
+                "message": "Pronunciation provider returned an unusable result.",
+            },
+        ) from exc
+    except SpeechPronunciationRequestFailed as exc:
+        provider_status = getattr(exc, "status_code", None)
+        category = {
+            400: "pronunciation_invalid_request",
+            401: "pronunciation_auth",
+            403: "pronunciation_forbidden",
+            429: "pronunciation_rate_limited",
+        }.get(provider_status, "pronunciation_provider_failure")
+        public_message = {
+            "pronunciation_invalid_request": "The pronunciation provider rejected this request.",
+            "pronunciation_auth": "Pronunciation credentials were rejected.",
+            "pronunciation_forbidden": "Pronunciation assessment is not permitted for this resource.",
+            "pronunciation_rate_limited": "Pronunciation assessment rate limit reached. Try again shortly.",
+        }.get(category, "Pronunciation assessment provider failed.")
+        raise HTTPException(
+            502,
+            detail={
+                "category": category,
+                "message": public_message,
+                "provider_status": provider_status,
+            },
+        ) from exc
+
+    return {
+        "provider": result.provider,
+        "locale": result.locale,
+        "recognized_text": result.recognized_text,
+        "pron_score": result.pron_score,
+        "accuracy_score": result.accuracy_score,
+        "fluency_score": result.fluency_score,
+        "completeness_score": result.completeness_score,
+        "prosody_score": result.prosody_score,
+        "words": [
+            {
+                "word": word.word,
+                "accuracy_score": word.accuracy_score,
+                "error_type": word.error_type,
+                "phonemes": [
+                    {
+                        "phoneme": phoneme.phoneme,
+                        "accuracy_score": phoneme.accuracy_score,
+                    }
+                    for phoneme in word.phonemes
+                ],
+            }
+            for word in result.words
         ],
     }

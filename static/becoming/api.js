@@ -95,6 +95,16 @@ export const api={
       body:form,
     });
   },
+  assessPronunciation:(blob,language,referenceText,filename='recording.webm')=>{
+    const form=new FormData();
+    form.append('file',blob,filename);
+    form.append('language',language||'');
+    form.append('reference_text',referenceText||'');
+    return request('/api/speech/pronunciation',{
+      method:'POST',
+      body:form,
+    });
+  },
   essays:()=>request('/api/essays'),
   essay:(id)=>request(`/api/essays/${encodeURIComponent(id)}`),
   linguisticAnnotations:(id)=>request(`/api/essays/${encodeURIComponent(id)}/linguistic-annotations`,{

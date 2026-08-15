@@ -51,9 +51,11 @@ from writing_coach.media_providers.youtube import YouTubeMediaProviderAdapter
 from writing_coach.media_translation import MediaTranslationService
 from writing_coach.speech_api import (
     configure_speech_asr,
+    configure_speech_pronunciation,
     router as speech_router,
 )
 from writing_coach.speech_asr import GroqSpeechAsrProvider
+from writing_coach.speech_pronunciation import AzureSpeechPronunciationProvider
 from writing_coach.core.platform_api import router as platform_router
 from writing_coach.core.language_registry import is_enabled
 from writing_coach.ai.base import AICapabilityError, AIProviderError, AIProviderUnavailable
@@ -195,6 +197,7 @@ configure_media_ingestion(
 configure_media_translation(MediaTranslationService(generate_structured))
 app.include_router(media_learning_router)
 configure_speech_asr(GroqSpeechAsrProvider.from_env())
+configure_speech_pronunciation(AzureSpeechPronunciationProvider.from_env())
 app.include_router(speech_router)
 install_platform_ai(app, require_admin)
 configure_becoming_memory(_specialized_learning_repository)
