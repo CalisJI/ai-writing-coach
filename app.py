@@ -1123,6 +1123,12 @@ def api_improve(payload: ImproveIn) -> dict[str, Any]:
         raise HTTPException(502, "The improvement model returned invalid structured output.") from exc
 
 
+def _grammar_storage_key(lesson: dict[str, Any]) -> str:
+    version = int(lesson.get("content_version") or 1)
+    language = active_profile().code
+    return f"{language}:grammar:v{version}:{lesson['id']}"
+
+
 @app.get("/api/library/grammar")
 def api_grammar_library() -> dict[str, Any]:
     course = active_grammar_course()
@@ -1130,7 +1136,7 @@ def api_grammar_library() -> dict[str, Any]:
     lessons = []
     for item in course:
         row = dict(item)
-        row["completed"] = row["id"] in completed
+        row["completed"] = _grammar_storage_key(row) in completed
         lessons.append(row)
     return {
         "lessons": lessons,
@@ -1144,6 +1150,7 @@ def api_grammar_library() -> dict[str, Any]:
             "official_one_to_one_mapping": False,
             "lesson_scope_is_locked": True,
             "content_version": 2,
+            "storage_namespace": "language+content_version+lesson_id",
         },
     }
 
@@ -1230,7 +1237,8 @@ def api_grammar_lesson(lesson_id: str) -> dict[str, Any]:
     if not lesson:
         raise HTTPException(404, "Grammar lesson not found")
 
-    cached_lesson = _learning_cache.get_grammar_lesson(lesson_id)
+    storage_key = _grammar_storage_key(lesson)
+    cached_lesson = _learning_cache.get_grammar_lesson(storage_key)
     if cached_lesson:
         detail = cached_lesson
         source = "cache"
@@ -1239,7 +1247,7 @@ def api_grammar_lesson(lesson_id: str) -> dict[str, Any]:
             detail = generate_grammar_lesson(lesson)
             source = active_ai_label("grammar_lesson_generator")
             _learning_cache.put_grammar_lesson(
-                lesson_id, detail, datetime.now().astimezone().isoformat(timespec="seconds")
+                storage_key, detail, datetime.now().astimezone().isoformat(timespec="seconds")
             )
         except AICapabilityError:
             detail = grammar_builtin_fallback(lesson)
@@ -1261,7 +1269,7 @@ def api_grammar_lesson(lesson_id: str) -> dict[str, Any]:
     return {
         **lesson,
         **detail,
-        "completed": _learning_repository.grammar_completed(lesson_id),
+        "completed": _learning_repository.grammar_completed(storage_key),
         "source": source,
         "language": active_profile().code,
         "completion_claim": "activity_evidence_not_mastery",
@@ -1270,10 +1278,11 @@ def api_grammar_lesson(lesson_id: str) -> dict[str, Any]:
 
 @app.post("/api/library/grammar/{lesson_id}/complete")
 def api_complete_grammar(lesson_id: str) -> dict[str, Any]:
-    if lesson_id not in active_grammar_by_id():
+    lesson = active_grammar_by_id().get(lesson_id)
+    if not lesson:
         raise HTTPException(404, "Grammar lesson not found")
     now = datetime.now().astimezone().isoformat(timespec="seconds")
-    _learning_repository.set_grammar_completed(lesson_id, now)
+    _learning_repository.set_grammar_completed(_grammar_storage_key(lesson), now)
     return {
         "completed": True,
         "lesson_id": lesson_id,
@@ -1283,7 +1292,10 @@ def api_complete_grammar(lesson_id: str) -> dict[str, Any]:
 
 @app.delete("/api/library/grammar/{lesson_id}/complete")
 def api_uncomplete_grammar(lesson_id: str) -> dict[str, Any]:
-    changed = _learning_repository.unset_grammar_completed(lesson_id)
+    lesson = active_grammar_by_id().get(lesson_id)
+    if not lesson:
+        raise HTTPException(404, "Grammar lesson not found")
+    changed = _learning_repository.unset_grammar_completed(_grammar_storage_key(lesson))
     return {"completed": False, "changed": changed, "lesson_id": lesson_id}
 
 @app.post("/api/translate")

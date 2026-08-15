@@ -14,6 +14,21 @@ for lang,cfg in EXPECT.items():
     assert len(lessons)>=cfg["min_lessons"],(lang,len(lessons))
     assert set(x["level"] for x in lessons)==set(cfg["levels"])
     assert all(len(x["scope"])>=5 for x in lessons)
+    assert all(len(x["module_scope"])>=4 for x in course)
+    generic_prefixes=(
+        "Form and structure:",
+        "Meaning and communicative function of",
+        "Typical sentence position / clause architecture for",
+        "Restrictions, exceptions and register limits",
+    )
+    assert all(
+        not any(
+            str(scope).startswith(prefix)
+            for scope in x["scope"]
+            for prefix in generic_prefixes
+        )
+        for x in course
+    )
     assert all(x["official_mapping"] is False for x in course)
     assert all(x["content_version"]==2 for x in course)
     assert all(x["practice_blueprint"]["production"]>=2 for x in lessons)

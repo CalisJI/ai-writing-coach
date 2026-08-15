@@ -28,3 +28,13 @@ def test_every_level_has_review_and_checkpoint():
         for level in levels:
             assert any(x["level"]==level and x["kind"]=="review" for x in course)
             assert any(x["level"]==level and x["kind"]=="checkpoint" for x in course)
+
+
+def test_curriculum_has_authored_module_boundaries_not_placeholder_scope():
+    generic=("Form and structure:","Meaning and communicative function of","Typical sentence position")
+    for course in (EN,ZH):
+        assert all(len(item["module_scope"]) >= 4 for item in course)
+        assert all(
+            not any(str(scope).startswith(prefix) for scope in item["scope"] for prefix in generic)
+            for item in course
+        )

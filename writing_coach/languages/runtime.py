@@ -114,6 +114,7 @@ def grammar_level_names() -> dict[str, str]:
 def grammar_lesson_prompts(lesson: dict) -> tuple[str, str]:
     language = "Chinese" if is_chinese() else "English"
     scope = "\n".join(f"- {item}" for item in lesson.get("scope", []))
+    module_scope = "\n".join(f"- {item}" for item in lesson.get("module_scope", []))
     contrasts = "\n".join(f"- {item}" for item in lesson.get("contrasts", [])) or "- none specified"
     restrictions = "\n".join(f"- {item}" for item in lesson.get("restrictions", [])) or "- none specified"
     traps = "\n".join(f"- {item}" for item in lesson.get("common_traps", [])) or "- none specified"
@@ -146,7 +147,8 @@ def grammar_lesson_prompts(lesson: dict) -> tuple[str, str]:
         f"TOPIC: {lesson['title']}\n"
         f"OBJECTIVE: {lesson['objective_vi']}\n"
         f"PREREQUISITES: {prerequisites}\n\n"
-        f"LOCKED SYLLABUS SCOPE:\n{scope}\n\n"
+        f"LOCKED MODULE BOUNDARY:\n{module_scope}\n\n"
+        f"LOCKED LESSON SCOPE:\n{scope}\n\n"
         f"CONTRAST TARGETS:\n{contrasts}\n\n"
         f"RESTRICTIONS:\n{restrictions}\n\n"
         f"VIETNAMESE-LEARNER TRAPS:\n{traps}\n\n"

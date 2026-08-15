@@ -869,10 +869,10 @@ def main() -> None:
         grammar_catalog_text = read("writing_coach/grammar_catalog.py")
         runtime_text = read("writing_coach/languages/runtime.py")
         require_contains(errors, grammar_catalog_text, [
-            "_RICH_REQUIRED", "practice_blueprint", "official_mapping", "production",
+            "_RICH_REQUIRED", "module_scope", "practice_blueprint", "official_mapping", "production",
         ], "M4 rich grammar catalog")
         require_contains(errors, runtime_text, [
-            "LOCKED SYLLABUS SCOPE", "PRACTICE BLUEPRINT",
+            "LOCKED MODULE BOUNDARY", "LOCKED LESSON SCOPE", "PRACTICE BLUEPRINT",
             "Do not copy HSK books", "Do not copy Destination",
         ], "M4 locked grammar lesson prompt")
         require_contains(errors, app, [

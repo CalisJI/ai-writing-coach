@@ -7,7 +7,7 @@ class GrammarCatalogInvalid(ValueError):
     pass
 
 _BASE_REQUIRED=("id","order","level","category","title","objective_vi")
-_RICH_REQUIRED=("kind","module","scope","prerequisites","contrasts","restrictions","common_traps","practice_blueprint","completion_policy","reference_basis","official_mapping","content_version")
+_RICH_REQUIRED=("kind","module","module_scope","scope","prerequisites","contrasts","restrictions","common_traps","practice_blueprint","completion_policy","reference_basis","official_mapping","content_version")
 _ALLOWED_KINDS={"lesson","review","checkpoint"}
 
 def _validate_rich(lesson: Mapping[str, Any], lesson_id: str) -> None:
@@ -16,9 +16,11 @@ def _validate_rich(lesson: Mapping[str, Any], lesson_id: str) -> None:
             raise GrammarCatalogInvalid(f"Grammar lesson '{lesson_id}' is missing rich curriculum field '{field}'.")
     if lesson["kind"] not in _ALLOWED_KINDS:
         raise GrammarCatalogInvalid(f"Grammar lesson '{lesson_id}' kind must be lesson, review or checkpoint.")
-    for field in ("scope","prerequisites","contrasts","restrictions","common_traps","reference_basis"):
+    for field in ("module_scope","scope","prerequisites","contrasts","restrictions","common_traps","reference_basis"):
         if not isinstance(lesson[field],list):
             raise GrammarCatalogInvalid(f"Grammar lesson '{lesson_id}' field '{field}' must be a list.")
+    if len(lesson["module_scope"])<4:
+        raise GrammarCatalogInvalid(f"Grammar lesson '{lesson_id}' must define an authored module boundary.")
     if lesson["kind"]=="lesson" and len(lesson["scope"])<5:
         raise GrammarCatalogInvalid(f"Grammar lesson '{lesson_id}' must define at least 5 syllabus scope points.")
     bp=lesson["practice_blueprint"]
