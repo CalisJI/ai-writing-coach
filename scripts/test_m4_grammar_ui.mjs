@@ -16,6 +16,8 @@ assert.match(app,/renderGrammar/);
 assert.match(app,/grammar:renderGrammar/);
 assert.match(api,/grammarLibrary:/);
 assert.match(api,/grammarLesson:/);
+assert.match(api,/grammarReference:/);
+assert.match(api,/looksLikeHtml/);
 assert.match(api,/completeGrammar:/);
 assert.match(api,/uncompleteGrammar:/);
 assert.match(template,/data-route="grammar"/);

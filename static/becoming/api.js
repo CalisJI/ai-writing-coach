@@ -19,7 +19,9 @@ async function request(url, options={}){
     if(response.status===401)location.href='/login';
     const detail=payload && typeof payload==='object' ? payload.detail : payload;
     const structured=detail && typeof detail==='object';
-    const message=structured ? detail.message : detail;
+    const rawMessage=structured ? detail.message : detail;
+    const looksLikeHtml=typeof rawMessage==='string'&&/(<!doctype|<html[\\s>])/i.test(rawMessage);
+    const message=looksLikeHtml ? `Request failed (${response.status}). Please try again.` : rawMessage;
     const error=new Error(typeof message==='string'&&message ? message : `Request failed (${response.status})`);
     if(structured&&typeof detail.category==='string')error.category=detail.category;
     error.status=response.status;
@@ -71,6 +73,7 @@ export const api={
   }),
   grammarLibrary:()=>request('/api/library/grammar'),
   grammarLesson:(id)=>request(`/api/library/grammar/${encodeURIComponent(id)}`),
+  grammarReference:(id)=>request(`/api/library/grammar/${encodeURIComponent(id)}/reference`),
   completeGrammar:(id)=>request(`/api/library/grammar/${encodeURIComponent(id)}/complete`,{method:'POST'}),
   uncompleteGrammar:(id)=>request(`/api/library/grammar/${encodeURIComponent(id)}/complete`,{method:'DELETE'}),
   readingSessions:(limit=8)=>request(`/api/reading/sessions?limit=${encodeURIComponent(limit)}`),
