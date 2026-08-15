@@ -28,13 +28,22 @@ for(const needle of [
   'api.grammarLesson(',
   'api.completeGrammar(',
   'api.uncompleteGrammar(',
-  'module_scope',
   'guided_practice',
+  'data-grammar-practice-input',
   'data-grammar-production',
   'data-grammar-reveal',
+  'productionEntries',
+  'sourceLabel',
   'activity',
 ]){
   assert.equal(screen.includes(needle),true,`Grammar UI missing ${needle}`);
+}
+for(const internalLeak of [
+  'listBlock(c.targetScope,detail.scope)',
+  'detail.module_scope',
+  'detail.restrictions',
+]){
+  assert.equal(screen.includes(internalLeak),false,`Grammar UI leaks internal syllabus metadata: ${internalLeak}`);
 }
 for(const forbidden of ['fetch(','XMLHttpRequest']){
   assert.equal(screen.includes(forbidden),false,`Grammar UI bypassed shared API client: ${forbidden}`);

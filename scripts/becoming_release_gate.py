@@ -898,8 +898,12 @@ def main() -> None:
         require_contains(errors, screen_contract, ["grammar:{", "Continue curriculum"], "M4 Grammar screen contract")
         require_contains(errors, grammar_screen, [
             "api.grammarLibrary()", "api.grammarLesson(", "api.completeGrammar(", "api.uncompleteGrammar(",
-            "module_scope", "guided_practice", "data-grammar-production", "data-grammar-reveal",
+            "guided_practice", "data-grammar-practice-input", "data-grammar-production", "data-grammar-reveal",
+            "productionEntries", "sourceLabel",
         ], "M4 Grammar learner-facing screen")
+        for internal_leak in ["listBlock(c.targetScope,detail.scope)", "detail.module_scope", "detail.restrictions"]:
+            if internal_leak in grammar_screen:
+                errors.append(f"M4 Grammar UI leaks internal syllabus metadata: {internal_leak}")
         for forbidden in ["fetch(", "XMLHttpRequest"]:
             if forbidden in grammar_screen:
                 errors.append(f"M4 Grammar UI bypasses shared API client: {forbidden}")

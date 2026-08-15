@@ -13,16 +13,17 @@ const COPY={
     objective:'Learning objective',moduleBoundary:'Module boundary',targetScope:'Lesson target',
     rules:'Rules',contrasts:'Contrasts',exceptions:'Restrictions & exceptions',examples:'Examples',
     mistakes:'Common mistakes',guided:'Guided practice',production:'Production',
+    attempt:'Your answer',attemptPlaceholder:'Type your answer before checking…',attemptFirst:'Try the question first, then reveal the answer.',
     reveal:'Reveal answer',hide:'Hide answer',mark:'Mark activity complete',undo:'Mark incomplete',
     writeTransfer:'Use this in Writing',prev:'Previous',nextLesson:'Next',
     noMastery:'Completion records study activity only. It is not a CEFR/HSK mastery claim.',
-    productionPrompt:'Write at least two original uses of the target in different contexts before marking the lesson complete.',
-    productionPlaceholder:'Write your own examples here…',
-    productionNeeded:'Write your own production examples first.',
+    productionPrompt:'Write at least two original uses of the target in different contexts. Put one example on each line.',
+    productionPlaceholder:'Example 1…\nExample 2…',
+    productionNeeded:'Write at least two original examples, one per line, before completing the lesson.',
     lessonUnavailable:'The generated teaching layer is unavailable right now. The locked curriculum scope is still available.',
     empty:'No curriculum items are available for this language.',
     loading:'Preparing lesson…',saved:'Completion saved.',unsaved:'Marked incomplete.',
-    source:'Lesson source',activities:'items',
+    source:'Lesson source',sourcePrepared:'Prepared learning content',sourceFallback:'Curriculum fallback',activities:'items',
   },
   vi:{
     kicker:'NGỮ PHÁP · GIÁO TRÌNH',
@@ -33,16 +34,17 @@ const COPY={
     objective:'Mục tiêu học',moduleBoundary:'Phạm vi module',targetScope:'Target của bài',
     rules:'Quy tắc',contrasts:'Cấu trúc cần phân biệt',exceptions:'Giới hạn & ngoại lệ',examples:'Ví dụ',
     mistakes:'Lỗi thường gặp',guided:'Bài luyện có hướng dẫn',production:'Tự sản xuất',
+    attempt:'Câu trả lời của bạn',attemptPlaceholder:'Hãy tự trả lời trước khi xem đáp án…',attemptFirst:'Hãy thử trả lời trước, sau đó mới xem đáp án.',
     reveal:'Xem đáp án',hide:'Ẩn đáp án',mark:'Hoàn thành hoạt động',undo:'Đánh dấu chưa hoàn thành',
     writeTransfer:'Dùng cấu trúc này trong Writing',prev:'Bài trước',nextLesson:'Bài tiếp',
     noMastery:'Dấu hoàn thành chỉ ghi nhận hoạt động học. Đây không phải tuyên bố đã đạt CEFR/HSK.',
-    productionPrompt:'Hãy tự viết ít nhất hai câu dùng target này trong hai ngữ cảnh khác nhau trước khi hoàn thành bài.',
-    productionPlaceholder:'Viết ví dụ của bạn ở đây…',
-    productionNeeded:'Hãy tự viết ví dụ trước khi đánh dấu hoàn thành.',
+    productionPrompt:'Hãy tự viết ít nhất hai câu dùng target này trong hai ngữ cảnh khác nhau. Mỗi câu viết trên một dòng.',
+    productionPlaceholder:'Ví dụ 1…\nVí dụ 2…',
+    productionNeeded:'Hãy viết ít nhất hai ví dụ nguyên bản, mỗi ví dụ một dòng, trước khi hoàn thành bài.',
     lessonUnavailable:'Lớp nội dung được tạo tự động hiện chưa sẵn sàng. Locked curriculum scope vẫn luôn dùng được.',
     empty:'Hiện chưa có curriculum cho ngôn ngữ này.',
     loading:'Đang chuẩn bị bài…',saved:'Đã lưu hoàn thành.',unsaved:'Đã bỏ dấu hoàn thành.',
-    source:'Nguồn lesson',activities:'mục',
+    source:'Nguồn lesson',sourcePrepared:'Nội dung học đã chuẩn bị',sourceFallback:'Basic guide từ curriculum',activities:'mục',
   },
   zh:{
     kicker:'语法 · 课程',
@@ -53,20 +55,26 @@ const COPY={
     objective:'学习目标',moduleBoundary:'模块边界',targetScope:'本课目标',
     rules:'规则',contrasts:'需要区分',exceptions:'限制与例外',examples:'例句',
     mistakes:'常见错误',guided:'引导练习',production:'自主产出',
+    attempt:'你的答案',attemptPlaceholder:'先自己作答，再查看答案…',attemptFirst:'请先尝试作答，再查看答案。',
     reveal:'查看答案',hide:'隐藏答案',mark:'完成本次学习',undo:'标记为未完成',
     writeTransfer:'在 Writing 中使用',prev:'上一课',nextLesson:'下一课',
     noMastery:'完成记录只表示学习活动，不代表 CEFR/HSK 已掌握。',
-    productionPrompt:'完成课程前，请至少自己写两个在不同语境中使用本课目标的例子。',
-    productionPlaceholder:'在这里写自己的例子…',
-    productionNeeded:'请先写自己的例子。',
+    productionPrompt:'请至少自己写两个在不同语境中使用本课目标的例子，每个例子单独一行。',
+    productionPlaceholder:'例子 1…\n例子 2…',
+    productionNeeded:'完成课程前，请至少写两个原创例子，每行一个。',
     lessonUnavailable:'生成式教学内容暂时不可用，但锁定的课程范围仍然可用。',
     empty:'当前语言还没有可用课程。',
     loading:'正在准备课程…',saved:'完成记录已保存。',unsaved:'已标记为未完成。',
-    source:'课程来源',activities:'项',
+    source:'课程来源',sourcePrepared:'已准备的学习内容',sourceFallback:'课程基础指南',activities:'项',
   },
 };
 
 const copy=()=>COPY[supportLanguage()]||COPY.vi;
+
+function sourceLabel(source=''){
+  const c=copy();
+  return source==='locked-syllabus-fallback'?c.sourceFallback:c.sourcePrepared;
+}
 
 function kindLabel(kind){
   const c=copy();
@@ -241,6 +249,10 @@ function practiceBlock(items=[]){
         <article class="grammar-practice-card">
           <span class="grammar-practice-index">${String(index+1).padStart(2,'0')} · ${esc(item.kind||'practice')}</span>
           <p>${esc(item.prompt||'')}</p>
+          <label class="grammar-practice-attempt">
+            <span>${esc(c.attempt)}</span>
+            <textarea rows="3" maxlength="700" data-grammar-practice-input placeholder="${esc(c.attemptPlaceholder)}"></textarea>
+          </label>
           ${(item.answer||item.why_vi)?`
             <button type="button" class="button button-secondary grammar-reveal" data-grammar-reveal>${esc(c.reveal)}</button>
             <div class="grammar-answer hidden" data-grammar-answer>
@@ -280,11 +292,9 @@ function lessonMarkup(detail,payload){
           <p class="grammar-explanation">${esc(detail.explanation_vi||detail.objective_vi||'')}</p>
         </section>
 
-        ${listBlock(c.targetScope,detail.scope)}
-        ${listBlock(c.moduleBoundary,detail.module_scope)}
-        ${listBlock(c.rules,detail.rules)}
+        ${listBlock(c.rules,detail.source==='locked-syllabus-fallback'?[]:detail.rules)}
         ${listBlock(c.contrasts,detail.contrasts)}
-        ${listBlock(c.exceptions,detail.exceptions||detail.restrictions)}
+        ${listBlock(c.exceptions,detail.source==='locked-syllabus-fallback'?[]:detail.exceptions)}
         ${examplesBlock(detail.examples)}
         ${listBlock(c.mistakes,detail.mistakes||detail.common_traps)}
         ${practiceBlock(detail.guided_practice)}
@@ -300,7 +310,7 @@ function lessonMarkup(detail,payload){
 
       <aside class="grammar-lesson-actions">
         <span class="context-label">${esc(c.source)}</span>
-        <strong>${esc(detail.source||'curriculum')}</strong>
+        <strong>${esc(sourceLabel(detail.source))}</strong>
         <p>${esc(c.noMastery)}</p>
         ${detail.source==='locked-syllabus-fallback'?`<p class="grammar-fallback-note">${esc(c.lessonUnavailable)}</p>`:''}
         ${detail.completed
@@ -366,7 +376,15 @@ export async function renderGrammar(root){
 
     slot.querySelectorAll('[data-grammar-reveal]').forEach(button=>{
       button.addEventListener('click',()=>{
-        const answer=button.parentElement?.querySelector('[data-grammar-answer]');
+        const card=button.closest('.grammar-practice-card');
+        const input=card?.querySelector('[data-grammar-practice-input]');
+        const attempt=String(input?.value||'').trim();
+        if(!attempt){
+          toast(c.attemptFirst);
+          input?.focus();
+          return;
+        }
+        const answer=card?.querySelector('[data-grammar-answer]');
         if(!answer)return;
         const nowHidden=answer.classList.toggle('hidden');
         button.textContent=nowHidden?c.reveal:c.hide;
@@ -382,7 +400,8 @@ export async function renderGrammar(root){
 
     slot.querySelector('[data-grammar-complete]')?.addEventListener('click',async event=>{
       const production=String(slot.querySelector('[data-grammar-production]')?.value||'').trim();
-      if(!production){
+      const productionEntries=production.split(/\n+/).map(value=>value.trim()).filter(Boolean);
+      if(productionEntries.length<2){
         toast(c.productionNeeded);
         slot.querySelector('[data-grammar-production]')?.focus();
         return;
