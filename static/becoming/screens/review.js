@@ -3,7 +3,7 @@ import {state,saveDraft} from '../store.js';
 import {go} from '../router.js';
 import {metricsFrom,reviewInsight,benchmarkLabel,changedSegments} from '../domain/feedback.js';
 import {guidanceMode,guidanceLabel,feedbackBudget} from '../domain/adaptive.js';
-import {highlightedLearnerText,bindEvidenceLinks,sentenceContext} from '../domain/feedback-map.js';
+import {highlightedLearnerText,bindEvidenceLinks,sentenceContext,feedbackCategoryKey} from '../domain/feedback-map.js';
 import {esc,errorBlock,loadingBlock,metricRows,showDialog,toast,helpTip,runBusy,spinner,setBusy} from '../components/primitives.js';
 import {supportCopy,supportNote,categoryReason,categoryRule,nativeLanguage} from '../domain/support.js';
 import {openDictionary} from '../components/dictionary.js';
@@ -11,6 +11,18 @@ import {t,uiLocale,categoryLabel} from '../domain/i18n.js';
 
 function patternName(item={}){
   return categoryLabel(item.category||'expression');
+}
+
+function feedbackCategoryLegend(errors=[]){
+  const categories=[
+    ...new Set((errors||[]).map(item=>feedbackCategoryKey(item?.category))),
+  ];
+  if(!categories.length)return '';
+  return `<div class="feedback-category-legend" aria-label="${esc(t('review.feedback_aria'))}">
+    ${categories.map(category=>`<span class="feedback-category-legend-item feedback-category-${esc(category)}">
+      <i aria-hidden="true"></i><span>${esc(categoryLabel(category))}</span>
+    </span>`).join('')}
+  </div>`;
 }
 
 function diffMarkup(before='',after='',language='en'){
@@ -106,7 +118,8 @@ function evidenceItems(errors=[],{
     const rule=feedbackRule(item);
     const lookupLabel=state.language==='zh'?`Pinyin · ${t('review.lookup')}`:t('review.lookup');
 
-    return `<article class="evidence-item contextual" tabindex="0" data-feedback-key="error-${index}">
+    const category=feedbackCategoryKey(item.category);
+    return `<article class="evidence-item contextual feedback-category-${esc(category)}" tabindex="0" data-feedback-key="error-${index}" data-feedback-category="${esc(category)}">
       <div class="evidence-item-head">
         <span class="pattern-label">${esc(patternName(item))}</span>
         ${helpTip(supportCopy('current_focus_tip',state.profile||{}),t('common.current_focus'))}
@@ -478,6 +491,7 @@ export async function renderReview(root){
         <h2 id="workHeading" style="font-size:28px;margin:8px 0 12px">${t('review.work_title')}</h2>
         <p class="review-density-note">${t('review.highlight_note')}</p>
         ${supportNote('lookup_tip',state.profile||{})}
+        ${feedbackCategoryLegend(errors.slice(0,budget.visibleEvidence))}
 
         <div id="posLens" class="linguistic-lens-bar visual-section-surface" data-state="off" aria-labelledby="posLensTitle">
           <span class="linguistic-lens-mark" aria-hidden="true">Aa</span>

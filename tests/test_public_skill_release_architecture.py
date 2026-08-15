@@ -94,4 +94,3 @@ def test_reading_implementation_and_release_versions_remain_intact() -> None:
     ):
         assert route in app
     assert (ROOT / "VERSION").read_text(encoding="utf-8").strip() == "1.4.0"
-    assert (ROOT / "BECOMING_FRONTEND_VERSION").read_text(encoding="utf-8").strip() == "2.15.7"

@@ -132,7 +132,10 @@ function followWorkspace(payload,selected,{original,meaning,playbackRate}){
             ${meaning&&!translationNotRequired&&!translationDegraded?(translations.has(segment.segment_id)?`<span class="listening-meaning-inline"><small>${esc(c.meaning)}</small><span>${esc(translations.get(segment.segment_id))}</span></span>`:`<span class="translation-unavailable listening-meaning-inline"><small>${esc(c.meaning)}</small><span>${esc(c.unavailable)}</span></span>`):''}
           </span>
         </button>
-        ${segment.segment_id===selected?`<div class="listening-segment-actions"><button type="button" class="button button-secondary" data-shadow-selected title="${esc(c.shared)}">${esc(c.shadow)}</button></div>`:''}
+        ${segment.segment_id===selected?`<div class="listening-segment-actions">
+          <button type="button" class="button button-secondary" data-shadow-selected title="${esc(c.shared)}">${esc(c.shadow)}</button>
+          <button type="button" class="button button-primary" data-open-speaking title="${esc(c.shared)}">${esc(shadowText().openSpeaking)}</button>
+        </div>`:''}
       </article>`).join('')}
     </div>
     <p class="listening-shared-note">${esc(c.shared)}</p>
