@@ -156,7 +156,9 @@ def grammar_lesson_prompts(lesson: dict) -> tuple[str, str]:
         "Build a complete teaching unit, not a short note. Include reusable rules, meaningful contrasts, "
         "real restrictions/exceptions, varied original examples, common mistakes, graded guided practice "
         "(recognition -> controlled -> contrast -> correction/transformation), and an original production task. "
-        "Every answer explanation must teach why the answer works. Stay inside the locked scope."
+        "The LOCKED MODULE BOUNDARY is context only; the LOCKED LESSON SCOPE is the authoritative teaching target. "
+        "Do not teach sibling module topics unless the lesson scope names them as a contrast or prerequisite. "
+        "Every answer explanation must teach why the answer works. Stay inside the locked lesson scope."
     )
     return system, user
 

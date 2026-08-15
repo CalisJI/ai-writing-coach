@@ -38,3 +38,16 @@ def test_curriculum_has_authored_module_boundaries_not_placeholder_scope():
             not any(str(scope).startswith(prefix) for scope in item["scope"] for prefix in generic)
             for item in course
         )
+
+
+def test_each_lesson_scope_is_narrower_than_its_module_boundary():
+    for course in (EN, ZH):
+        by_id = {item["id"]: item for item in course}
+        for item in course:
+            if item["kind"] != "lesson":
+                continue
+            assert any(item["title"] in str(scope) for scope in item["scope"])
+            assert not any(scope in item["module_scope"] for scope in item["scope"])
+            assert any("Production evidence:" in str(scope) for scope in item["scope"])
+            for prerequisite in item["prerequisites"]:
+                assert prerequisite in by_id

@@ -23,6 +23,10 @@ def _validate_rich(lesson: Mapping[str, Any], lesson_id: str) -> None:
         raise GrammarCatalogInvalid(f"Grammar lesson '{lesson_id}' must define an authored module boundary.")
     if lesson["kind"]=="lesson" and len(lesson["scope"])<5:
         raise GrammarCatalogInvalid(f"Grammar lesson '{lesson_id}' must define at least 5 syllabus scope points.")
+    if lesson["kind"]=="lesson" and not any(lesson["title"] in str(item) for item in lesson["scope"]):
+        raise GrammarCatalogInvalid(f"Grammar lesson '{lesson_id}' scope must name its authoritative target.")
+    if lesson["kind"]=="lesson" and any(item in lesson["module_scope"] for item in lesson["scope"]):
+        raise GrammarCatalogInvalid(f"Grammar lesson '{lesson_id}' scope must stay distinct from its module boundary.")
     bp=lesson["practice_blueprint"]
     if not isinstance(bp,Mapping):
         raise GrammarCatalogInvalid(f"Grammar lesson '{lesson_id}' practice_blueprint must be a mapping.")

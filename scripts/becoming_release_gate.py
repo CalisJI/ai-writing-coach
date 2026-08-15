@@ -872,7 +872,7 @@ def main() -> None:
             "_RICH_REQUIRED", "module_scope", "practice_blueprint", "official_mapping", "production",
         ], "M4 rich grammar catalog")
         require_contains(errors, runtime_text, [
-            "LOCKED MODULE BOUNDARY", "LOCKED LESSON SCOPE", "PRACTICE BLUEPRINT",
+            "LOCKED MODULE BOUNDARY", "LOCKED LESSON SCOPE", "context only", "authoritative teaching target", "PRACTICE BLUEPRINT",
             "Do not copy HSK books", "Do not copy Destination",
         ], "M4 locked grammar lesson prompt")
         require_contains(errors, app, [
