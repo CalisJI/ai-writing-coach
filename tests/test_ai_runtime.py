@@ -334,10 +334,11 @@ def test_workloads_pass_product_wide_explicit_capabilities() -> None:
         and isinstance(node.args[0], ast.Constant)
     }
     assert ai_json_capabilities == {
-        "writing_improver", "learner_dictionary", "grammar_lesson_generator", "learner_translation"
+        "writing_improver", "learner_dictionary", "learner_translation"
     }
+    assert "grammar_lesson_generator" not in ai_json_capabilities
     assert values | ai_json_capabilities | {"reading_generator", "writing_linguistic"} == {
         "writing_evaluator", "writing_linguistic", "reading_generator",
         "writing_task_generator", "writing_improver", "learner_dictionary",
-        "learner_translation", "grammar_lesson_generator",
+        "learner_translation",
     }
