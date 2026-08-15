@@ -112,39 +112,51 @@ def grammar_level_names() -> dict[str, str]:
 
 
 def grammar_lesson_prompts(lesson: dict) -> tuple[str, str]:
+    language = "Chinese" if is_chinese() else "English"
+    scope = "\n".join(f"- {item}" for item in lesson.get("scope", []))
+    contrasts = "\n".join(f"- {item}" for item in lesson.get("contrasts", [])) or "- none specified"
+    restrictions = "\n".join(f"- {item}" for item in lesson.get("restrictions", [])) or "- none specified"
+    traps = "\n".join(f"- {item}" for item in lesson.get("common_traps", [])) or "- none specified"
+    prerequisites = ", ".join(lesson.get("prerequisites", [])) or "none"
+    blueprint = lesson.get("practice_blueprint", {})
+
     if is_chinese():
         system = (
-            "You write concise original Chinese grammar lessons for Vietnamese learners. "
-            "The lesson must match the requested internal HSK learning band and objective. "
-            "Explain primarily in Vietnamese. Chinese examples must use natural Simplified Chinese "
-            "and include accurate pinyin plus Vietnamese meaning. "
-            "Do not claim this is an official HSK lesson or copy a textbook. "
-            "Focus on practical writing and common Vietnamese-learner mistakes."
+            "You create substantial original Chinese grammar lessons for Vietnamese learners. "
+            "The supplied Orena syllabus scope is authoritative. Do not introduce grammar from a later band. "
+            "Explain in Vietnamese. Chinese examples use natural Simplified Chinese, accurate tone-mark pinyin, "
+            "and Vietnamese meaning. Explain form, function, word order, scope, contrasts, restrictions and register. "
+            "Do not copy HSK books, commercial textbooks, websites, or official test items. "
+            "Do not claim Orena lesson boundaries are official HSK mappings."
         )
-        user = (
-            f"LEARNING BAND: {lesson['level']}\n"
-            f"TOPIC: {lesson['title']}\n"
-            f"OBJECTIVE: {lesson['objective_vi']}\n"
-            "Create a short teachable lesson with reusable rules, natural Chinese examples, "
-            "common mistakes, and one writing tip."
+    else:
+        system = (
+            "You create substantial original English grammar lessons for Vietnamese learners. "
+            "The supplied Orena syllabus scope is authoritative. Do not introduce grammar from a later CEFR band. "
+            "Explain in Vietnamese while English examples remain in English. Explain form, meaning, use, contrasts, "
+            "restrictions, exceptions and register. Do not copy Destination, commercial textbooks, websites or tests. "
+            "Do not claim Orena lesson boundaries are official CEFR mappings."
         )
-        return system, user
 
-    system = (
-        "You write concise original English grammar lessons for Vietnamese learners. "
-        "The lesson must match the requested CEFR level and objective. "
-        "Explain in Vietnamese using Latin alphabet. English examples stay in English. "
-        "Do not copy a textbook or website. Focus on practical writing."
-    )
     user = (
+        f"LANGUAGE: {language}\n"
         f"LEVEL: {lesson['level']}\n"
+        f"ITEM KIND: {lesson.get('kind','lesson')}\n"
+        f"MODULE: {lesson.get('module','')}\n"
         f"TOPIC: {lesson['title']}\n"
         f"OBJECTIVE: {lesson['objective_vi']}\n"
-        "Create a short teachable lesson with reusable rules, natural examples, "
-        "common mistakes, and one writing tip."
+        f"PREREQUISITES: {prerequisites}\n\n"
+        f"LOCKED SYLLABUS SCOPE:\n{scope}\n\n"
+        f"CONTRAST TARGETS:\n{contrasts}\n\n"
+        f"RESTRICTIONS:\n{restrictions}\n\n"
+        f"VIETNAMESE-LEARNER TRAPS:\n{traps}\n\n"
+        f"PRACTICE BLUEPRINT: {blueprint}\n\n"
+        "Build a complete teaching unit, not a short note. Include reusable rules, meaningful contrasts, "
+        "real restrictions/exceptions, varied original examples, common mistakes, graded guided practice "
+        "(recognition -> controlled -> contrast -> correction/transformation), and an original production task. "
+        "Every answer explanation must teach why the answer works. Stay inside the locked scope."
     )
     return system, user
-
 
 ENGLISH_TASK_GUIDANCE = {
     "opinion": "an opinion essay that requires a clear position, reasons and at least one concrete example",

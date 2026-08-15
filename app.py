@@ -1127,20 +1127,24 @@ def api_improve(payload: ImproveIn) -> dict[str, Any]:
 def api_grammar_library() -> dict[str, Any]:
     course = active_grammar_course()
     completed = _learning_repository.completed_grammar_ids()
-
     lessons = []
     for item in course:
         row = dict(item)
         row["completed"] = row["id"] in completed
         lessons.append(row)
-
     return {
         "lessons": lessons,
         "total": len(lessons),
-        "completed": len(completed),
+        "completed": sum(1 for row in lessons if row["completed"]),
         "levels": list(active_levels()),
         "level_names": grammar_level_names(),
         "language": active_profile().code,
+        "curriculum_policy": {
+            "completion_is_mastery": False,
+            "official_one_to_one_mapping": False,
+            "lesson_scope_is_locked": True,
+            "content_version": 2,
+        },
     }
 
 
@@ -1149,50 +1153,74 @@ def generate_grammar_lesson(lesson: dict[str, Any]) -> dict[str, Any]:
         "type": "object",
         "properties": {
             "explanation_vi": {"type": "string"},
-            "rules": {
-                "type": "array",
-                "minItems": 3,
-                "maxItems": 6,
-                "items": {"type": "string"},
-            },
+            "rules": {"type": "array", "minItems": 6, "maxItems": 10, "items": {"type": "string"}},
+            "contrasts": {"type": "array", "minItems": 2, "maxItems": 6, "items": {"type": "string"}},
+            "exceptions": {"type": "array", "minItems": 2, "maxItems": 6, "items": {"type": "string"}},
             "examples": {
-                "type": "array",
-                "minItems": 3,
-                "maxItems": 5,
+                "type": "array", "minItems": 6, "maxItems": 10,
                 "items": {
                     "type": "object",
                     "properties": {
                         "target": {"type": "string"},
                         "pinyin": {"type": "string"},
                         "vi": {"type": "string"},
+                        "note_vi": {"type": "string"},
                     },
-                    "required": ["target", "pinyin", "vi"],
+                    "required": ["target", "pinyin", "vi", "note_vi"],
                 },
             },
-            "mistakes": {
-                "type": "array",
-                "minItems": 2,
-                "maxItems": 5,
-                "items": {"type": "string"},
+            "mistakes": {"type": "array", "minItems": 4, "maxItems": 8, "items": {"type": "string"}},
+            "guided_practice": {
+                "type": "array", "minItems": 8, "maxItems": 14,
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "kind": {"type": "string"},
+                        "prompt": {"type": "string"},
+                        "answer": {"type": "string"},
+                        "why_vi": {"type": "string"},
+                    },
+                    "required": ["kind", "prompt", "answer", "why_vi"],
+                },
             },
+            "production_task_vi": {"type": "string"},
             "writing_tip_vi": {"type": "string"},
         },
         "required": [
-            "explanation_vi", "rules", "examples", "mistakes", "writing_tip_vi"
+            "explanation_vi", "rules", "contrasts", "exceptions", "examples",
+            "mistakes", "guided_practice", "production_task_vi", "writing_tip_vi",
         ],
     }
-
     system, user = grammar_lesson_prompts(lesson)
     return ai_json(
         "grammar_lesson_generator",
-        [
-            {"role": "system", "content": system},
-            {"role": "user", "content": user},
-        ],
+        [{"role": "system", "content": system}, {"role": "user", "content": user}],
         schema,
-        num_predict=1400,
+        num_predict=3600,
         temperature=0.1,
     )
+
+
+def grammar_builtin_fallback(lesson: dict[str, Any]) -> dict[str, Any]:
+    scope = [str(item) for item in lesson.get("scope", [])]
+    traps = [str(item) for item in lesson.get("common_traps", [])]
+    contrasts = [str(item) for item in lesson.get("contrasts", [])]
+    restrictions = [str(item) for item in lesson.get("restrictions", [])]
+    return {
+        "explanation_vi": lesson["objective_vi"],
+        "rules": scope,
+        "contrasts": contrasts or ["Đối chiếu với cấu trúc gần nhất trong cùng module trước khi chọn form."],
+        "exceptions": restrictions or ["Giữ đúng scope của cấp hiện tại; không suy rộng từ một ví dụ."],
+        "examples": [],
+        "mistakes": traps,
+        "guided_practice": [
+            {"kind": "recognition", "prompt": f"Nhận diện cấu trúc: {lesson['title']}", "answer": "", "why_vi": "Dùng locked syllabus scope để tự kiểm tra."},
+            {"kind": "correction", "prompt": "Tự tạo một câu có lỗi điển hình rồi sửa lại.", "answer": "", "why_vi": "Tập trung vào common traps của bài."},
+            {"kind": "production", "prompt": "Viết hai câu nguyên bản sử dụng cấu trúc trong hai ngữ cảnh khác nhau.", "answer": "", "why_vi": "Production là bằng chứng luyện tập, không phải mastery."},
+        ],
+        "production_task_vi": "Viết 2-3 câu nguyên bản dùng cấu trúc này trong một ngữ cảnh thật.",
+        "writing_tip_vi": "Sau bài học, chuyển ít nhất một cấu trúc vào Writing thật để tạo bằng chứng transfer.",
+    }
 
 
 @app.get("/api/library/grammar/{lesson_id}")
@@ -1203,7 +1231,6 @@ def api_grammar_lesson(lesson_id: str) -> dict[str, Any]:
         raise HTTPException(404, "Grammar lesson not found")
 
     cached_lesson = _learning_cache.get_grammar_lesson(lesson_id)
-
     if cached_lesson:
         detail = cached_lesson
         source = "cache"
@@ -1212,105 +1239,32 @@ def api_grammar_lesson(lesson_id: str) -> dict[str, Any]:
             detail = generate_grammar_lesson(lesson)
             source = active_ai_label("grammar_lesson_generator")
             _learning_cache.put_grammar_lesson(
-                lesson_id,
-                detail,
-                datetime.now().astimezone().isoformat(timespec="seconds"),
+                lesson_id, detail, datetime.now().astimezone().isoformat(timespec="seconds")
             )
         except AICapabilityError:
-            raise
+            detail = grammar_builtin_fallback(lesson)
+            source = "locked-syllabus-fallback"
         except Exception:
-            if is_chinese():
-                detail = {
-                    "explanation_vi": (
-                        lesson["objective_vi"]
-                        + " Đây là nội dung dự phòng khi AI Coach chưa sẵn sàng."
-                    ),
-                    "rules": [
-                        "Nhận diện vị trí của cấu trúc trong một câu hoàn chỉnh.",
-                        "So sánh câu đúng với cách dịch từng chữ từ tiếng Việt.",
-                        "Tự viết ít nhất hai câu mới trước khi chuyển bài.",
-                    ],
-                    "examples": [
-                        {
-                            "target": "请用这个语法点写一个完整的句子。",
-                            "pinyin": "Qǐng yòng zhège yǔfǎ diǎn xiě yí ge wánzhěng de jùzi.",
-                            "vi": "Hãy dùng điểm ngữ pháp này để viết một câu hoàn chỉnh.",
-                        },
-                        {
-                            "target": "先看结构，再看句子的意思。",
-                            "pinyin": "Xiān kàn jiégòu, zài kàn jùzi de yìsi.",
-                            "vi": "Trước tiên xem cấu trúc, sau đó xem nghĩa của câu.",
-                        },
-                        {
-                            "target": "写完以后，再检查词序。",
-                            "pinyin": "Xiě wán yǐhòu, zài jiǎnchá cíxù.",
-                            "vi": "Sau khi viết xong, kiểm tra lại trật tự từ.",
-                        },
-                    ],
-                    "mistakes": [
-                        "Không dịch nguyên trật tự tiếng Việt sang tiếng Trung.",
-                        "Không dùng cấu trúc nâng cao khi chưa chắc chức năng và vị trí của nó.",
-                    ],
-                    "writing_tip_vi": (
-                        "Sau bài học, hãy dùng cấu trúc này trong một đoạn tiếng Trung ngắn."
-                    ),
-                }
-            else:
-                detail = {
-                    "explanation_vi": (
-                        lesson["objective_vi"]
-                        + " Hãy chú ý cách cấu trúc này hoạt động trong câu hoàn chỉnh và trong ngữ cảnh writing."
-                    ),
-                    "rules": [
-                        "Đọc ví dụ và nhận diện cấu trúc chính.",
-                        "So sánh câu đúng với lỗi thường gặp.",
-                        "Tự viết ít nhất hai câu trước khi chuyển bài.",
-                    ],
-                    "examples": [
-                        {
-                            "target": "Create your own example for this grammar point.",
-                            "pinyin": "",
-                            "vi": "Tự tạo một ví dụ cho điểm ngữ pháp này.",
-                        },
-                        {
-                            "target": "Use the pattern in a complete sentence.",
-                            "pinyin": "",
-                            "vi": "Dùng cấu trúc trong một câu hoàn chỉnh.",
-                        },
-                        {
-                            "target": "Review the sentence for accuracy and meaning.",
-                            "pinyin": "",
-                            "vi": "Kiểm tra lại độ chính xác và ý nghĩa của câu.",
-                        },
-                    ],
-                    "mistakes": [
-                        "Không học công thức tách rời khỏi câu hoàn chỉnh.",
-                        "Không cố dùng cấu trúc nâng cao khi chưa hiểu nghĩa.",
-                    ],
-                    "writing_tip_vi": (
-                        "Sau khi học, hãy dùng cấu trúc này trong một đoạn writing ngắn."
-                    ),
-                }
-            source = "built-in-fallback"
+            detail = grammar_builtin_fallback(lesson)
+            source = "locked-syllabus-fallback"
 
-    # Backward compatibility for English lesson caches generated before v1.1.
     examples = []
     for example in detail.get("examples", []):
         item = dict(example)
         if "target" not in item:
             item["target"] = str(item.get("en") or "")
         item.setdefault("pinyin", "")
+        item.setdefault("note_vi", "")
         examples.append(item)
     detail["examples"] = examples
-
-    done = _learning_repository.grammar_completed(lesson_id)
 
     return {
         **lesson,
         **detail,
-        "completed": done,
+        "completed": _learning_repository.grammar_completed(lesson_id),
         "source": source,
         "language": active_profile().code,
+        "completion_claim": "activity_evidence_not_mastery",
     }
 
 
@@ -1318,21 +1272,19 @@ def api_grammar_lesson(lesson_id: str) -> dict[str, Any]:
 def api_complete_grammar(lesson_id: str) -> dict[str, Any]:
     if lesson_id not in active_grammar_by_id():
         raise HTTPException(404, "Grammar lesson not found")
-
     now = datetime.now().astimezone().isoformat(timespec="seconds")
     _learning_repository.set_grammar_completed(lesson_id, now)
-    return {"completed": True, "lesson_id": lesson_id}
+    return {
+        "completed": True,
+        "lesson_id": lesson_id,
+        "claim": "activity_evidence_not_mastery",
+    }
 
 
 @app.delete("/api/library/grammar/{lesson_id}/complete")
 def api_uncomplete_grammar(lesson_id: str) -> dict[str, Any]:
     changed = _learning_repository.unset_grammar_completed(lesson_id)
-    return {
-        "completed": False,
-        "changed": changed,
-        "lesson_id": lesson_id,
-    }
-
+    return {"completed": False, "changed": changed, "lesson_id": lesson_id}
 
 @app.post("/api/translate")
 def api_translate(payload: TranslateIn) -> dict[str, Any]:
