@@ -396,7 +396,12 @@ class YouTubeMediaProviderAdapter:
         video_id = parse_youtube_video_id(source_url)
         canonical_url = canonical_youtube_url(video_id)
         title = self._metadata_client.fetch_title(canonical_url)
-        track = self._caption_client.fetch_track(video_id, source_language)
+        native_caption_error: ProviderTimedOut | ProviderRequestFailed | None = None
+        try:
+            track = self._caption_client.fetch_track(video_id, source_language)
+        except (ProviderTimedOut, ProviderRequestFailed) as exc:
+            track = None
+            native_caption_error = exc
         asset_id = f"youtube:{video_id}"
 
         transcript = None
@@ -416,8 +421,11 @@ class YouTubeMediaProviderAdapter:
             if fallback_track is not None:
                 transcript = normalize_youtube_transcript(asset_id, fallback_track)
 
-        if transcript is None and native_malformed:
-            raise ProviderTranscriptMalformed()
+        if transcript is None:
+            if native_malformed:
+                raise ProviderTranscriptMalformed()
+            if native_caption_error is not None:
+                raise native_caption_error
         source_language = transcript.source_language if transcript is not None else "und"
         asset = MediaLearningAsset(
             asset_id=asset_id,

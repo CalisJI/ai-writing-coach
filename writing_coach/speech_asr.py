@@ -101,6 +101,10 @@ class GroqSpeechAsrProvider:
     def model(self) -> str:
         return self._model
 
+    @property
+    def max_bytes(self) -> int:
+        return self._max_bytes
+
     @classmethod
     def from_env(cls) -> "GroqSpeechAsrProvider | None":
         api_key = os.getenv("GROQ_API_KEY", "").strip()

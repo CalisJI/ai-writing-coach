@@ -206,7 +206,7 @@ export function createLocalAudioRecorder({
       processingPipeline=await buildRnnoisePipeline(rawStream,{AudioContextCtor});
       if(processingPipeline){
         recordingStream=processingPipeline.stream;
-        processingMode='rnnoise';
+        processingMode=processingPipeline.mode;
       }else{
         recordingStream=rawStream;
         processingMode='native-fallback';

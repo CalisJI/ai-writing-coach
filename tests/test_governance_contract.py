@@ -41,6 +41,9 @@ def test_m16_shared_media_shadowing_governance_closeout_is_truthful() -> None:
     assert "| listening | development | available | available | no |" in project_state.casefold()
     assert "| speaking | development | available | available | no |" in project_state.casefold()
     assert "r6 — speaking core: **in progress / internal**" in project_state.casefold()
+    assert "/api/speech/transcribe" in handoff
+    assert "groq asr" in project_state.casefold()
+    assert "not pronunciation" in project_state.casefold()
     assert "| r6 | speaking core | in progress |" in roadmap.casefold()
     assert "r2 — ai capability control plane: **in progress**" in project_state.casefold()
     assert "human-gated" in handoff.casefold()

@@ -72,10 +72,17 @@ release was added.
   not fall back to `active_selection()`.
 - Capability runtime activation has not occurred. Rolling back to `LEGACY`
   preserves capability configuration.
-- Speaking Core is now available to the internal audience while remaining
-  DEVELOPMENT and non-public. It reuses the language-scoped shared media session
-  and keeps microphone recordings local to the current browser tab; no audio is
-  uploaded, persisted, transcribed, or scored.
+- Speaking Core is available to the internal audience while remaining
+  DEVELOPMENT and non-public. It reuses the language-scoped shared media
+  session and records microphone audio locally with RNNoise enhancement when
+  supported. After stop, the take may be sent transiently through the
+  authenticated `/api/speech/transcribe` boundary to the configured Groq ASR
+  provider; Orena does not persist the audio to the learner account.
+- Returned ASR text may be compared deterministically with the source segment
+  for content-match plus missing/extra token feedback. This is transcript
+  comparison only, not a pronunciation, fluency, or proficiency score.
+- The R2 `speech_asr` capability remains reserved/unactivated; this R6 internal
+  checkpoint uses a direct bounded provider adapter outside R2 activation.
 
 ## Next checkpoints
 
@@ -83,9 +90,10 @@ release was added.
   Keep M1 program status IN PROGRESS until a separate explicit program-level
   close review. Listening and Speaking remain non-public.
 - R6 product-development lane: internal Speaking Core is IN PROGRESS with
-  product-visible shared-media shadowing and local record/playback. ASR,
-  pronunciation scoring, Speaking evaluation, durable progress, and PUBLIC
-  promotion remain later gates.
+  shared-media shadowing, RNNoise-enhanced local record/playback, Groq ASR
+  transcription, and deterministic transcript content-match feedback.
+  Pronunciation scoring, full Speaking evaluation, durable progress, R2
+  `speech_asr` activation, and PUBLIC promotion remain later gates.
 - R2 control-plane lane: static activation-readiness gate and operator
   checkpoint. R2 remains IN PROGRESS.
 

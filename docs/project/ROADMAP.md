@@ -85,10 +85,12 @@ media learning may exist.
 R3 completes Writing evaluation quality and evidence contracts. R4 strengthens
 the shared multilingual Writing contract with language-specific lenses only
 where linguistically necessary. R5 establishes the Grammar knowledge system.
-R6 Speaking Core is now **IN PROGRESS / INTERNAL** with shared-media practice
-and browser-local record/playback; this bounded internal core may advance ahead
-of R3-R5 closeout because it does not depend on their implementation. R7 later
-adds Speaking evaluation.
+R6 Speaking Core is **IN PROGRESS / INTERNAL** with shared-media practice,
+RNNoise-enhanced local record/playback, Groq ASR transcription, and
+deterministic transcript content-match feedback. This bounded internal core
+may advance ahead of R3-R5 closeout because it does not depend on their
+implementation. R7 later adds pronunciation/full Speaking evaluation and
+durable scoring contracts.
 
 These stages must preserve one shared product flow for EN and ZH rather than
 forking independent language products.

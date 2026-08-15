@@ -59,18 +59,52 @@ def test_real_runtime_readiness_connectivity_failure():
     with pytest.raises(RuntimeError,match='PostgreSQL runtime unavailable'):
         runtime_module._verify_runtime_readiness(Engine())
 
-def test_real_runtime_readiness_success_and_mismatch(monkeypatch):
-    class Connection:
-        def __enter__(self): return self
-        def __exit__(self,*args): return False
-    class Engine:
-        def connect(self): return Connection()
-    monkeypatch.setattr(runtime_module.ScriptDirectory,'from_config',lambda cfg:type('S',(),{'get_current_head':lambda self:'head-123'})())
-    monkeypatch.setattr(runtime_module.MigrationContext,'configure',lambda conn:type('C',(),{'get_current_revision':lambda self:'head-123'})())
-    assert runtime_module._verify_runtime_readiness(Engine()) is None
-    monkeypatch.setattr(runtime_module.MigrationContext,'configure',lambda conn:type('C',(),{'get_current_revision':lambda self:'old-456'})())
+def test_real_runtime_readiness_success_mismatch_and_empty_bootstrap(monkeypatch):
+    engine = object()
+    monkeypatch.setattr(
+        runtime_module.ScriptDirectory,
+        'from_config',
+        lambda cfg:type('S',(),{'get_current_head':lambda self:'head-123'})(),
+    )
+
+    monkeypatch.setattr(
+        runtime_module,
+        '_read_runtime_state',
+        lambda value: ('head-123', {'alembic_version', 'users'}),
+    )
+    assert runtime_module._verify_runtime_readiness(engine) is None
+
+    monkeypatch.setattr(
+        runtime_module,
+        '_read_runtime_state',
+        lambda value: ('old-456', {'alembic_version', 'users'}),
+    )
     with pytest.raises(RuntimeError,match='expected head-123, actual old-456'):
-        runtime_module._verify_runtime_readiness(Engine())
+        runtime_module._verify_runtime_readiness(engine)
+
+    states = iter([
+        (None, set()),
+        ('head-123', {'alembic_version', 'users'}),
+    ])
+    bootstrap_calls = []
+    monkeypatch.setattr(runtime_module, '_read_runtime_state', lambda value: next(states))
+    monkeypatch.setattr(
+        runtime_module,
+        '_bootstrap_empty_runtime',
+        lambda: bootstrap_calls.append('upgrade'),
+    )
+    assert runtime_module._verify_runtime_readiness(engine) is None
+    assert bootstrap_calls == ['upgrade']
+
+    monkeypatch.setattr(
+        runtime_module,
+        '_read_runtime_state',
+        lambda value: (None, {'users'}),
+    )
+    bootstrap_calls.clear()
+    with pytest.raises(RuntimeError,match='expected head-123, actual None'):
+        runtime_module._verify_runtime_readiness(engine)
+    assert bootstrap_calls == []
 
 @pytest.mark.parametrize('url',[None,'sqlite:///wrong.db','postgresql://missing-psycopg'])
 def test_runtime_url_missing_or_invalid_fails_before_engine(tmp_path,monkeypatch,url):

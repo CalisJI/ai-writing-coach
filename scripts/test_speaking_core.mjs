@@ -6,10 +6,18 @@ import {
   selectSharedMediaSegment,
   setSharedMediaSession,
 } from '../static/becoming/domain/shared-media-session.js';
-import {
+globalThis.AudioWorkletNode ??= class AudioWorkletNode {
+  constructor(){
+    this.port={postMessage(){}};
+  }
+  connect(){return this;}
+  disconnect(){}
+};
+
+const {
   createLocalAudioRecorder,
   localAudioRecordingSupported,
-} from '../static/becoming/components/audio-recorder.js';
+}=await import('../static/becoming/components/audio-recorder.js');
 
 const payload={
   asset:{asset_id:'asset-en'},
@@ -70,8 +78,8 @@ assert.equal(localAudioRecordingSupported({mediaDevices,Recorder:FakeRecorder}),
 const speechMediaDevices={
   async getUserMedia(constraints){
     assert.equal(constraints?.audio?.echoCancellation?.ideal,true);
-    assert.equal(constraints?.audio?.noiseSuppression?.ideal,true);
-    assert.equal(constraints?.audio?.autoGainControl?.ideal,true);
+    assert.equal(constraints?.audio?.noiseSuppression?.ideal,false);
+    assert.equal(constraints?.audio?.autoGainControl?.ideal,false);
     assert.equal(constraints?.audio?.channelCount?.ideal,1);
     // Reuse the legacy fake stream while validating the new recorder contract.
     return mediaDevices.getUserMedia({audio:true});
@@ -96,12 +104,21 @@ const speakingSource=readFileSync(
   new URL('../static/becoming/screens/speaking.js',import.meta.url),
   'utf8',
 );
+const apiSource=readFileSync(
+  new URL('../static/becoming/api.js',import.meta.url),
+  'utf8',
+);
 for(const forbidden of ['fetch(','FormData','XMLHttpRequest','pronunciation_evaluator','speaking_evaluator','accuracy_percent']){
-  assert.equal(speakingSource.includes(forbidden),false,`forbidden Speaking Core coupling: ${forbidden}`);
+  assert.equal(speakingSource.includes(forbidden),false,`forbidden direct Speaking Core coupling: ${forbidden}`);
 }
 assert.match(speakingSource,/data-speaking-record/);
 assert.match(speakingSource,/data-speaking-stop/);
 assert.match(speakingSource,/audio controls/);
 assert.match(speakingSource,/getSharedMediaSession/);
+assert.match(speakingSource,/transcribe=api\.transcribeSpeech/);
+assert.match(speakingSource,/await transcribe\(/);
+assert.match(apiSource,/transcribeSpeech:/);
+assert.match(apiSource,/\/api\/speech\/transcribe/);
+assert.match(apiSource,/new FormData\(\)/);
 
-console.log('Speaking Core local media/recording: PASS');
+console.log('Speaking Core media/recording + ASR boundary: PASS');

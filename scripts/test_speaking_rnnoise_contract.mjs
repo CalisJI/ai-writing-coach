@@ -10,7 +10,8 @@ assert.match(recorder,/loadRnnoise,RnnoiseWorkletNode/);
 assert.match(recorder,/sampleRate:48000/);
 assert.match(recorder,/audioWorklet\.addModule/);
 assert.match(recorder,/createMediaStreamDestination/);
-assert.match(recorder,/processingMode='rnnoise'/);
+assert.match(recorder,/mode:'rnnoise-enhanced'/);
+assert.match(recorder,/processingMode=processingPipeline\.mode/);
 assert.match(recorder,/processing_mode:processingMode/);
 
 console.log('Speaking RNNoise denoiser source contract: PASS');

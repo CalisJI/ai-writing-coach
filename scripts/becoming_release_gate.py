@@ -67,8 +67,14 @@ def main() -> None:
         root / "static" / "becoming" / "screens" / "listening.js",
         root / "static" / "becoming" / "screens" / "speaking.js",
         root / "static" / "becoming" / "speaking.css",
+        root / "writing_coach" / "speech_api.py",
+        root / "writing_coach" / "speech_asr.py",
         root / "scripts" / "test_shadowing_practice.mjs",
         root / "scripts" / "test_speaking_core.mjs",
+        root / "scripts" / "test_speaking_groq_flow.mjs",
+        root / "scripts" / "test_speaking_rnnoise_contract.mjs",
+        root / "scripts" / "test_speaking_voice_enhancement_contract.mjs",
+        root / "scripts" / "test_speech_api_bounds.py",
         root / "static" / "becoming" / "domain" / "rank.js",
         root / "static" / "becoming" / "domain" / "feedback-map.js",
         root / "static" / "becoming" / "screens" / "home.js",
@@ -123,6 +129,8 @@ def main() -> None:
     listening_screen = read("static/becoming/screens/listening.js")
     speaking_screen = read("static/becoming/screens/speaking.js")
     speaking_css = read("static/becoming/speaking.css")
+    speech_api = read("writing_coach/speech_api.py")
+    speech_asr = read("writing_coach/speech_asr.py")
     skill_registry = read("writing_coach/core/skill_registry.py")
     platform_api = read("writing_coach/core/platform_api.py")
     rank_domain = read("static/becoming/domain/rank.js")
@@ -508,7 +516,9 @@ def main() -> None:
             "Speaking Core must remain DEVELOPMENT + internal-only, not PUBLIC"
         )
 
-    # Product-visible internal Speaking Core: shared media + local browser recording only.
+    # Product-visible internal Speaking Core: shared media + browser recording +
+    # authenticated ASR boundary. Audio remains non-persistent and content-match
+    # feedback must not be represented as pronunciation/proficiency scoring.
     require_contains(errors, shared_media_session, [
         "setSharedMediaSession", "getSharedMediaSession",
         "selectSharedMediaSegment", "learning_language",
@@ -519,21 +529,39 @@ def main() -> None:
 
     require_contains(errors, audio_recorder, [
         "getUserMedia", "MediaRecorder", "createObjectURL",
-        "revokeObjectURL", "cleanup",
-    ], "local audio recorder")
+        "revokeObjectURL", "cleanup", "processingMode=processingPipeline.mode",
+        "mode:'rnnoise-enhanced'",
+    ], "local enhanced audio recorder")
     require_contains(errors, speaking_screen, [
         "getSharedMediaSession", "createLocalAudioRecorder",
         "data-speaking-record", "data-speaking-stop",
         "data-speaking-discard", "data-speaking-replay",
         "audio controls", "go('listen')",
+        "transcribe=api.transcribeSpeech", "await transcribe(",
+        "data-speaking-asr-result", "data-speaking-content-match",
     ], "internal Speaking Core")
+    require_contains(errors, api, [
+        "transcribeSpeech:", "/api/speech/transcribe", "new FormData()",
+    ], "Speaking API client boundary")
+    require_contains(errors, speech_api, [
+        'router = APIRouter(prefix="/api/speech"',
+        'router.post("/transcribe")',
+        "async def _read_upload_limited",
+        "data = await _read_upload_limited(file, max_bytes=max_bytes)",
+    ], "bounded authenticated speech API")
+    require_contains(errors, speech_asr, [
+        'provider_id = "groq"', "def max_bytes(self) -> int:",
+        "whisper-large-v3-turbo",
+    ], "Groq speech ASR adapter")
     for forbidden in [
         "fetch(", "FormData", "XMLHttpRequest",
         "SpeechRecognition", "pronunciation_evaluator",
         "speaking_evaluator", "accuracy_percent",
     ]:
         if forbidden in speaking_screen or forbidden in audio_recorder:
-            errors.append(f"Speaking Core must not upload/evaluate audio yet: {forbidden}")
+            errors.append(
+                f"Speaking screen/recorder bypasses API boundary or claims unsupported scoring: {forbidden}"
+            )
     require_contains(errors, template, [
         'data-route="speak" data-skill="speaking" hidden',
         "/becoming-assets/speaking.css?v=2.15.7",

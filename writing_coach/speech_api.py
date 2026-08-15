@@ -30,6 +30,27 @@ def _provider() -> SpeechAsrProvider:
     return _speech_asr_provider
 
 
+_UPLOAD_READ_CHUNK_BYTES = 1024 * 1024
+_DEFAULT_ASR_MAX_BYTES = 24 * 1024 * 1024
+
+
+async def _read_upload_limited(file: UploadFile, *, max_bytes: int) -> bytes:
+    if max_bytes <= 0:
+        raise SpeechAsrPayloadTooLarge()
+    chunks: list[bytes] = []
+    total = 0
+    while True:
+        remaining = max_bytes - total + 1
+        chunk = await file.read(min(_UPLOAD_READ_CHUNK_BYTES, remaining))
+        if not chunk:
+            break
+        total += len(chunk)
+        if total > max_bytes:
+            raise SpeechAsrPayloadTooLarge()
+        chunks.append(chunk)
+    return b"".join(chunks)
+
+
 @router.get("/status")
 def speech_status() -> dict[str, Any]:
     provider = _speech_asr_provider
@@ -51,9 +72,11 @@ async def transcribe_speech(
     if normalized_language is not None and normalized_language not in {"en", "zh"}:
         raise HTTPException(422, "Unsupported speech language.")
 
-    data = await file.read()
+    provider = _provider()
+    max_bytes = int(getattr(provider, "max_bytes", _DEFAULT_ASR_MAX_BYTES))
     try:
-        result = _provider().transcribe_bytes(
+        data = await _read_upload_limited(file, max_bytes=max_bytes)
+        result = provider.transcribe_bytes(
             data,
             filename=file.filename or "recording.webm",
             content_type=file.content_type or "application/octet-stream",

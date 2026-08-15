@@ -98,11 +98,7 @@ def clean_caption_units(
             selected.append(max(candidates, key=lambda item: (_score(item.text, source_language), len(item.text), -item.provider_order)))
         else:
             selected.extend(group)
-    deduped: list[CaptionUnit] = []
-    for item in selected:
-        if deduped and item.text.casefold() == deduped[-1].text.casefold() and abs(item.start_seconds - deduped[-1].start_seconds) <= parallel_start_tolerance_seconds:
-            if len(item.text) > len(deduped[-1].text):
-                deduped[-1] = item
-            continue
-        deduped.append(item)
-    return tuple(deduped)
+    # Preserve duplicate valid captions. Canonical transcript identity owns
+    # duplicate disambiguation via occurrence suffixes; cleanup must not collapse
+    # provider segments that can represent separate caption events.
+    return tuple(selected)
