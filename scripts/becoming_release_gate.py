@@ -852,6 +852,35 @@ def main() -> None:
         if "conn.execute(" in app or "import sqlite3" in app:
             errors.append("v1.3.2 learning core boundary regression: app.py still owns SQLite SQL")
 
+    # M4 full grammar curriculum foundation: audited coverage, locked syllabus,
+    # graded practice, review/checkpoints, and explicit non-mastery semantics.
+    grammar_required = [
+        root / "writing_coach" / "languages" / "english" / "grammar_curriculum.json",
+        root / "writing_coach" / "languages" / "english" / "grammar_curriculum.py",
+        root / "writing_coach" / "languages" / "chinese" / "grammar_curriculum.json",
+        root / "writing_coach" / "languages" / "chinese" / "grammar_curriculum.py",
+        root / "scripts" / "audit_full_grammar_curriculum.py",
+        root / "tests" / "test_full_grammar_curriculum.py",
+    ]
+    for path in grammar_required:
+        if not path.exists():
+            errors.append(f"M4 full grammar curriculum missing: {path.relative_to(root)}")
+    if all(path.exists() for path in grammar_required):
+        grammar_catalog_text = read("writing_coach/grammar_catalog.py")
+        runtime_text = read("writing_coach/languages/runtime.py")
+        require_contains(errors, grammar_catalog_text, [
+            "_RICH_REQUIRED", "module_scope", "practice_blueprint", "official_mapping", "production",
+        ], "M4 rich grammar catalog")
+        require_contains(errors, runtime_text, [
+            "LOCKED MODULE BOUNDARY", "LOCKED LESSON SCOPE", "context only", "authoritative teaching target", "PRACTICE BLUEPRINT",
+            "Do not copy HSK books", "Do not copy Destination",
+        ], "M4 locked grammar lesson prompt")
+        require_contains(errors, app, [
+            '"curriculum_policy"', '"completion_is_mastery": False',
+            '"guided_practice"', '"production_task_vi"',
+            '"activity_evidence_not_mastery"', "locked-syllabus-fallback",
+        ], "M4 grammar API semantics")
+
     # Version/cache consistency.
     # INC-009: browser modules must be validated as an ESM graph.
     node = shutil.which("node")

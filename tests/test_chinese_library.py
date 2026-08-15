@@ -15,9 +15,20 @@ def test_chinese_library_profile_capabilities():
 
 
 def test_chinese_course_shape():
-    assert len(GRAMMAR_COURSE) == 56
-    assert len(GRAMMAR_BY_ID) == 56
-    assert [x["order"] for x in GRAMMAR_COURSE] == list(range(1, 57))
+    # The curriculum is intentionally expandable. Test durable structural
+    # invariants instead of pinning the historical 56-item catalog size.
+    assert len(GRAMMAR_COURSE) == len(GRAMMAR_BY_ID)
+    assert len(GRAMMAR_COURSE) >= 200
+    assert [x["order"] for x in GRAMMAR_COURSE] == list(
+        range(1, len(GRAMMAR_COURSE) + 1)
+    )
+    assert {x["level"] for x in GRAMMAR_COURSE} == set(PROFILE.levels)
+    assert {x["kind"] for x in GRAMMAR_COURSE} <= {
+        "lesson",
+        "review",
+        "checkpoint",
+    }
+    assert all(GRAMMAR_BY_ID[item["id"]] == item for item in GRAMMAR_COURSE)
 
 
 def test_runtime_selects_chinese_course():
