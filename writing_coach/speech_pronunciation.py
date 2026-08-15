@@ -59,6 +59,7 @@ class PronunciationWord:
 @dataclass(frozen=True)
 class SpeechPronunciationResult:
     provider: str
+    score_kind: str
     locale: str
     recognized_text: str
     pron_score: float | None
@@ -168,6 +169,7 @@ class AzureSpeechPronunciationProvider:
         *,
         en_locale: str = "en-US",
         zh_locale: str = "zh-CN",
+        enable_prosody: bool = False,
         timeout_seconds: float = 30.0,
         max_bytes: int = 8 * 1024 * 1024,
         max_reference_chars: int = 1200,
@@ -185,6 +187,7 @@ class AzureSpeechPronunciationProvider:
         self._region = normalized_region
         self._en_locale = str(en_locale or "en-US").strip() or "en-US"
         self._zh_locale = str(zh_locale or "zh-CN").strip() or "zh-CN"
+        self._enable_prosody = bool(enable_prosody)
         self._timeout_seconds = float(timeout_seconds)
         self._max_bytes = int(max_bytes)
         self._max_reference_chars = int(max_reference_chars)
@@ -210,6 +213,9 @@ class AzureSpeechPronunciationProvider:
             region,
             en_locale=os.getenv("AZURE_PRONUNCIATION_EN_LOCALE", "en-US"),
             zh_locale=os.getenv("AZURE_PRONUNCIATION_ZH_LOCALE", "zh-CN"),
+            enable_prosody=os.getenv(
+                "AZURE_PRONUNCIATION_ENABLE_PROSODY", "false"
+            ).strip().casefold() in {"1", "true", "yes", "on"},
             timeout_seconds=float(os.getenv("AZURE_PRONUNCIATION_TIMEOUT_SECONDS", "30")),
             max_bytes=int(os.getenv("AZURE_PRONUNCIATION_MAX_BYTES", str(8 * 1024 * 1024))),
             max_reference_chars=int(os.getenv("AZURE_PRONUNCIATION_MAX_REFERENCE_CHARS", "1200")),
@@ -254,7 +260,7 @@ class AzureSpeechPronunciationProvider:
             "Dimension": "Comprehensive",
             "EnableMiscue": True,
         }
-        if locale.casefold() == "en-us":
+        if locale.casefold() == "en-us" and self._enable_prosody:
             config["EnableProsodyAssessment"] = True
 
         pronunciation_header = base64.b64encode(
@@ -267,7 +273,7 @@ class AzureSpeechPronunciationProvider:
             "Accept": "application/json",
             "Pronunciation-Assessment": pronunciation_header,
         }
-        if locale.casefold() == "en-us":
+        if locale.casefold() == "en-us" and self._enable_prosody:
             headers["EnableProsodyAssessment"] = "True"
 
         try:
@@ -385,6 +391,7 @@ class AzureSpeechPronunciationProvider:
 
         return SpeechPronunciationResult(
             provider=self.provider_id,
+            score_kind="provider",
             locale=locale,
             recognized_text=recognized_text,
             pron_score=pron_score,
@@ -394,3 +401,101 @@ class AzureSpeechPronunciationProvider:
             prosody_score=prosody_score,
             words=tuple(words),
         )
+
+class DemoPronunciationProvider:
+    provider_id = "demo-synthetic"
+
+    def __init__(
+        self,
+        *,
+        max_bytes: int = 8 * 1024 * 1024,
+        max_reference_chars: int = 1200,
+    ) -> None:
+        self._max_bytes = int(max_bytes)
+        self._max_reference_chars = int(max_reference_chars)
+
+    @property
+    def max_bytes(self) -> int:
+        return self._max_bytes
+
+    @property
+    def max_reference_chars(self) -> int:
+        return self._max_reference_chars
+
+    def assess_bytes(
+        self,
+        audio_bytes: bytes,
+        *,
+        filename: str,
+        content_type: str,
+        language: str,
+        reference_text: str,
+    ) -> SpeechPronunciationResult:
+        del filename, content_type
+        if not audio_bytes:
+            raise SpeechPronunciationMalformed()
+        if len(audio_bytes) > self._max_bytes:
+            raise SpeechPronunciationPayloadTooLarge()
+
+        reference = str(reference_text or "").strip()
+        if not reference or len(reference) > self._max_reference_chars:
+            raise SpeechPronunciationMalformed()
+        if language not in {"en", "zh"}:
+            raise SpeechPronunciationMalformed()
+
+        if language == "zh":
+            tokens = re.findall(r"[\u3400-\u9fff]", reference)
+            locale = "zh-CN"
+        else:
+            tokens = re.findall(r"[A-Za-z]+(?:['-][A-Za-z]+)*", reference)
+            locale = "en-US"
+
+        words: list[PronunciationWord] = []
+        for index, token in enumerate(tokens[:16]):
+            # Deterministic display-only variation; not acoustic scoring.
+            score = float(62 + ((sum(ord(ch) for ch in token) + index * 11) % 34))
+            words.append(
+                PronunciationWord(
+                    word=token,
+                    accuracy_score=score,
+                    error_type="SyntheticDemo",
+                    phonemes=(),
+                )
+            )
+
+        return SpeechPronunciationResult(
+            provider=self.provider_id,
+            score_kind="synthetic_demo",
+            locale=locale,
+            recognized_text=reference,
+            pron_score=76.0,
+            accuracy_score=74.0,
+            fluency_score=78.0,
+            completeness_score=100.0,
+            prosody_score=None,
+            words=tuple(words),
+        )
+
+
+def build_speech_pronunciation_provider() -> SpeechPronunciationProvider | None:
+    app_env = os.getenv("APP_ENV", "development").strip().casefold()
+    configured = os.getenv("PRONUNCIATION_PROVIDER", "").strip().casefold()
+    mode = configured or ("demo" if app_env in {"development", "test"} else "none")
+
+    if mode in {"", "none", "off", "disabled"}:
+        return None
+    if mode in {"demo", "synthetic", "demo-synthetic"}:
+        # Fail closed: synthetic scores are never served in production.
+        if app_env not in {"development", "test"}:
+            return None
+        return DemoPronunciationProvider(
+            max_bytes=int(
+                os.getenv("DEMO_PRONUNCIATION_MAX_BYTES", str(8 * 1024 * 1024))
+            ),
+            max_reference_chars=int(
+                os.getenv("DEMO_PRONUNCIATION_MAX_REFERENCE_CHARS", "1200")
+            ),
+        )
+    if mode == "azure":
+        return AzureSpeechPronunciationProvider.from_env()
+    raise ValueError(f"Unsupported PRONUNCIATION_PROVIDER: {mode}")

@@ -544,7 +544,7 @@ def main() -> None:
         "transcribe=api.transcribeSpeech", "await transcribe(",
         "pronunciationAssess=api.assessPronunciation", "await pronunciationAssess(",
         "data-speaking-asr-result", "data-speaking-content-match",
-        "data-speaking-pronunciation",
+        "data-speaking-pronunciation", "data-score-kind", "synthetic_demo",
     ], "internal Speaking Core")
     require_contains(errors, api, [
         "transcribeSpeech:", "/api/speech/transcribe", "new FormData()",
@@ -566,6 +566,7 @@ def main() -> None:
     require_contains(errors, speech_pronunciation, [
         'provider_id = "azure-speech"', "AZURE_SPEECH_KEY", "AZURE_SPEECH_REGION",
         "Pronunciation-Assessment", "pcm_s16le", "zh-CN", "en-US",
+        "DemoPronunciationProvider", "synthetic_demo", "PRONUNCIATION_PROVIDER",
     ], "Azure pronunciation assessment adapter")
     for forbidden in [
         "fetch(", "FormData", "XMLHttpRequest",

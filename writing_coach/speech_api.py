@@ -258,6 +258,7 @@ async def assess_pronunciation(
 
     return {
         "provider": result.provider,
+        "score_kind": result.score_kind,
         "locale": result.locale,
         "recognized_text": result.recognized_text,
         "pron_score": result.pron_score,

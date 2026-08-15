@@ -92,7 +92,8 @@ const PRON_COPY={
     prosody:'Prosody',focus:'Words to focus on',phonemes:'Sounds',
     unavailable:'Pronunciation scoring is not configured on this environment.',
     failed:'Pronunciation assessment is temporarily unavailable. Your recording and content match still work.',
-    disclaimer:'These are provider-backed scores for this recorded segment, not a global proficiency score.',
+    demo:'DEMO score — UI testing only. Your pronunciation quality is not being judged.',
+    disclaimer:'Provider-backed scores apply only to this recorded segment, not global proficiency.',
   },
   vi:{
     assess:'Chấm phát âm',busy:'Đang chấm phát âm...',title:'Phát âm',
@@ -100,7 +101,8 @@ const PRON_COPY={
     prosody:'Ngữ điệu',focus:'Từ cần tập trung',phonemes:'Âm',
     unavailable:'Môi trường này chưa cấu hình dịch vụ chấm phát âm.',
     failed:'Tạm thời chưa chấm được phát âm. Lượt ghi và khớp nội dung vẫn hoạt động.',
-    disclaimer:'Đây là điểm từ nhà cung cấp cho riêng đoạn ghi này, không phải điểm năng lực tổng quát.',
+    demo:'Điểm DEMO — chỉ để test giao diện. Chất lượng phát âm của bạn chưa được chấm.',
+    disclaimer:'Điểm từ provider chỉ áp dụng cho đoạn ghi này, không phải năng lực tổng quát.',
   },
   zh:{
     assess:'评估发音',busy:'正在评估发音…',title:'发音',
@@ -108,7 +110,8 @@ const PRON_COPY={
     prosody:'韵律',focus:'需要重点练习的词',phonemes:'音素',
     unavailable:'当前环境尚未配置发音评分服务。',
     failed:'暂时无法完成发音评估。录音和内容匹配仍可继续使用。',
-    disclaimer:'这些是针对本次录音片段的服务商评分，不是整体语言能力分数。',
+    demo:'DEMO 分数——仅用于界面测试，并未真正评估你的发音质量。',
+    disclaimer:'服务商评分仅针对本次录音片段，不代表整体语言能力。',
   },
 };
 const pronCopy=()=>PRON_COPY[uiLocale()]||PRON_COPY.en;
@@ -140,7 +143,9 @@ function pronunciationMarkup(model){
       ||String(word.error_type||'None').toLowerCase()!=='none')
     .slice(0,6);
 
-  return `<section class="speaking-pronunciation" data-speaking-pronunciation>
+  const synthetic=result.score_kind==='synthetic_demo';
+  return `<section class="speaking-pronunciation ${synthetic?'is-synthetic':''}" data-speaking-pronunciation data-score-kind="${esc(result.score_kind||'provider')}">
+    ${synthetic?`<p class="speaking-pronunciation-demo" role="note">${esc(c.demo)}</p>`:''}
     <div class="speaking-pronunciation-head">
       <div><strong>${esc(c.title)}</strong><small>${esc(result.provider||'')} · ${esc(result.locale||'')}</small></div>
     </div>

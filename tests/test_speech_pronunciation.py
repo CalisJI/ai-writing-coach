@@ -6,6 +6,8 @@ import json
 import pytest
 
 from writing_coach.speech_pronunciation import (
+    DemoPronunciationProvider,
+    build_speech_pronunciation_provider,
     AzureSpeechPronunciationProvider,
     SpeechPronunciationMalformed,
 )
@@ -30,11 +32,12 @@ class FakeSession:
         return FakeResponse(self.payload)
 
 
-def make_provider(payload):
+def make_provider(payload, *, enable_prosody=False):
     session = FakeSession(payload)
     provider = AzureSpeechPronunciationProvider(
         "secret",
         "eastus",
+        enable_prosody=enable_prosody,
         session=session,
         normalizer=lambda data, **_: b"RIFFxxxxWAVE" + data,
     )
@@ -59,7 +62,7 @@ def test_direct_rest_shape_and_en_us_prosody():
             }],
         }],
     }
-    provider, session = make_provider(payload)
+    provider, session = make_provider(payload, enable_prosody=True)
     result = provider.assess_bytes(
         b"webm",
         filename="take.webm",
@@ -130,3 +133,52 @@ def test_reference_is_bounded():
             language="en",
             reference_text="x" * 1201,
         )
+
+
+def test_demo_provider_returns_explicit_synthetic_provenance():
+    provider = DemoPronunciationProvider()
+    result = provider.assess_bytes(
+        b"fake-audio",
+        filename="take.webm",
+        content_type="audio/webm",
+        language="en",
+        reference_text="Good morning.",
+    )
+    assert result.provider == "demo-synthetic"
+    assert result.score_kind == "synthetic_demo"
+    assert all(word.error_type == "SyntheticDemo" for word in result.words)
+
+
+def test_demo_provider_is_development_only(monkeypatch):
+    monkeypatch.setenv("APP_ENV", "development")
+    monkeypatch.delenv("PRONUNCIATION_PROVIDER", raising=False)
+    assert isinstance(build_speech_pronunciation_provider(), DemoPronunciationProvider)
+
+    monkeypatch.setenv("APP_ENV", "production")
+    monkeypatch.setenv("PRONUNCIATION_PROVIDER", "demo")
+    assert build_speech_pronunciation_provider() is None
+
+
+def test_azure_prosody_is_off_by_default():
+    payload = {
+        "NBest": [{
+            "Display": "Good morning.",
+            "AccuracyScore": 91,
+            "FluencyScore": 82,
+            "CompletenessScore": 100,
+            "PronScore": 90,
+        }],
+    }
+    provider, session = make_provider(payload)
+    result = provider.assess_bytes(
+        b"webm",
+        filename="take.webm",
+        content_type="audio/webm",
+        language="en",
+        reference_text="Good morning.",
+    )
+    assert result.score_kind == "provider"
+    _, call = session.calls[0]
+    assert "EnableProsodyAssessment" not in call["headers"]
+    config = json.loads(base64.b64decode(call["headers"]["Pronunciation-Assessment"]))
+    assert "EnableProsodyAssessment" not in config

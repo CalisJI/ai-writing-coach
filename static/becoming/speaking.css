@@ -100,3 +100,5 @@
 .speaking-pronunciation-phonemes i{padding:3px 7px;border-radius:999px;background:color-mix(in srgb,var(--color-important) 8%,var(--color-surface));color:var(--color-ink);font-style:normal;font-size:var(--font-size-meta)}
 .speaking-pronunciation-disclaimer{margin:0;color:var(--color-ink-muted);font-size:var(--font-size-meta);line-height:1.55}
 .speaking-pronunciation-error{color:var(--color-important)}
+.speaking-pronunciation-demo{margin:0;padding:10px 12px;border-radius:var(--radius-object);background:var(--color-surface-muted);color:var(--color-important);font-weight:700;font-size:var(--font-size-meta)}
+.speaking-pronunciation.is-synthetic .speaking-pronunciation-metrics{opacity:.78}
