@@ -39,7 +39,9 @@ def test_m16_shared_media_shadowing_governance_closeout_is_truthful() -> None:
     assert "m1.6 — shadowing integration: **closed / merged**" in roadmap.casefold()
     assert "m1.6 shared-media shadowing integration is **closed / approved / merged**" in project_state.casefold()
     assert "| listening | development | available | available | no |" in project_state.casefold()
-    assert "| speaking | development | unavailable as a complete product | unavailable | no |" in project_state.casefold()
+    assert "| speaking | development | available | available | no |" in project_state.casefold()
+    assert "r6 — speaking core: **in progress / internal**" in project_state.casefold()
+    assert "| r6 | speaking core | in progress |" in roadmap.casefold()
     assert "r2 — ai capability control plane: **in progress**" in project_state.casefold()
     assert "human-gated" in handoff.casefold()
     assert "r11" in combined and "planned" in combined

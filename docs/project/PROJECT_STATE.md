@@ -59,13 +59,14 @@ authority.
 - R1 — Production Staging + Cloudflare + Google OAuth: **CLOSED / PASS**.
 - R2 — AI Capability Control Plane: **IN PROGRESS**.
 - M1 — Media Learning Foundation: **IN PROGRESS / CROSS-CUTTING**.
+- R6 — Speaking Core: **IN PROGRESS / INTERNAL**.
 
 Current learner skill truth:
 
 | Skill | Release state | Source | Internal | Public |
 | --- | --- | --- | --- | --- |
 | Writing | BETA | available | available | no |
-| Speaking | DEVELOPMENT | unavailable as a complete product | unavailable | no |
+| Speaking | DEVELOPMENT | available | available | no |
 | Reading | DEVELOPMENT | available | available | no |
 | Listening | DEVELOPMENT | available | available | no |
 
@@ -141,6 +142,18 @@ not add a Speaking route, microphone capture, ASR, pronunciation scoring,
 durable learner-progress persistence, or public release. Listening and Speaking
 remain non-public.
 
+## R6 Speaking Core
+
+R6 is **IN PROGRESS / INTERNAL**. The first product-visible Speaking Core reuses
+the current language-scoped shared Media Learning session from Listening and
+adds browser-local microphone recording plus immediate playback of the learner's
+own take. Recording data stays in the current browser tab and is not uploaded,
+persisted, or scored.
+
+Speaking remains **DEVELOPMENT** and non-public. This internal checkpoint does
+not activate `speech_asr`, `pronunciation_evaluator`, or `speaking_evaluator`,
+and it does not claim pronunciation or proficiency scores.
+
 ## R2 AI Capability Control Plane
 
 - Slice 1: **CLOSED / APPROVED / merged**.
@@ -197,7 +210,7 @@ fallback and no silent paid-provider failover.
 
 ## Current next development areas
 
-Two development tracks are active:
+Three development tracks are active:
 
 - R2 remains **IN PROGRESS**. Static activation readiness/preflight is its
   current technical checkpoint. Production migration/config initialization,
@@ -205,5 +218,8 @@ Two development tracks are active:
   human gates.
 - M1 remains **IN PROGRESS** as a cross-cutting product-development track
   pending an explicit program-level close review. M1.1 through M1.6 are closed
-  and merged. Shared-media Shadowing now reuses the same canonical media object
-  and segments as Listening without promoting Listening or Speaking to PUBLIC.
+  and merged. Shared-media Shadowing reuses the same canonical media object and
+  segments as Listening.
+- R6 is **IN PROGRESS / INTERNAL**. Speaking Core now provides a visible internal
+  route for shared-media shadowing plus local record/playback. ASR, pronunciation
+  scoring, durable Speaking progress, and public release remain later gates.

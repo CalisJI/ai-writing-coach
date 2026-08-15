@@ -10,6 +10,7 @@ that `main` HEAD remain identical after docs-only or governance-only commits.
 
 - R2 — AI Capability Control Plane: **IN PROGRESS / HUMAN-GATED ACTIVATION**
 - M1 — Media Learning Foundation: **IN PROGRESS / CROSS-CUTTING**
+- R6 — Speaking Core: **IN PROGRESS / INTERNAL**
 
 ## Completed
 
@@ -71,12 +72,20 @@ release was added.
   not fall back to `active_selection()`.
 - Capability runtime activation has not occurred. Rolling back to `LEGACY`
   preserves capability configuration.
+- Speaking Core is now available to the internal audience while remaining
+  DEVELOPMENT and non-public. It reuses the language-scoped shared media session
+  and keeps microphone recordings local to the current browser tab; no audio is
+  uploaded, persisted, transcribed, or scored.
 
 ## Next checkpoints
 
 - M1 product-development lane: M1.1 through M1.6 are closed and merged.
   Keep M1 program status IN PROGRESS until a separate explicit program-level
   close review. Listening and Speaking remain non-public.
+- R6 product-development lane: internal Speaking Core is IN PROGRESS with
+  product-visible shared-media shadowing and local record/playback. ASR,
+  pronunciation scoring, Speaking evaluation, durable progress, and PUBLIC
+  promotion remain later gates.
 - R2 control-plane lane: static activation-readiness gate and operator
   checkpoint. R2 remains IN PROGRESS.
 

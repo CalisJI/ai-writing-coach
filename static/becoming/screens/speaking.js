@@ -1,0 +1,342 @@
+import {go} from '../router.js';
+import {api} from '../api.js';
+import {state} from '../store.js';
+import {esc} from '../components/primitives.js';
+import {createLocalAudioRecorder} from '../components/audio-recorder.js';
+import {mediaPlayer,replaySegment,setPlaybackRate as setMediaPlaybackRate} from '../components/media-player.js';
+import {uiLocale} from '../domain/i18n.js';
+import {transcriptTokens} from '../domain/transcript-tokens.js';
+import {getSharedMediaSession,selectSharedMediaSegment} from '../domain/shared-media-session.js';
+import {evaluateSpeechTranscript} from '../domain/speaking-evaluation.js';
+
+const COPY={
+  en:{
+    kicker:'SPEAK · SHADOW',title:'HEAR IT. SAY IT. HEAR YOURSELF.',
+    lead:'Use the same media lesson from Listening. Record one local practice take, play it back, and repeat without creating a second media import.',
+    emptyTitle:'Choose a media lesson first.',emptyBody:'Import a video in Listening. Speaking reuses that exact media object and its canonical segments.',
+    openListening:'Open Listening',backListening:'Back to Listening',segment:'Segment',meaning:'Meaning',
+    replay:'Replay source',speed:'Speed',record:'Record my voice',stop:'Stop recording',discard:'Discard take',
+    yourTake:'Your latest take',attempts:'Local takes',recording:'Recording… speak the selected segment aloud.',
+    ready:'Your take is ready. Play it back and compare it with the source.',unsupported:'This browser cannot record audio here.',
+    micError:'Microphone access is unavailable. Check browser permission and try again.',
+    emptyRecording:'No usable audio was captured. Try another take.',
+    privacy:'This take stays in this browser tab. It is not uploaded or saved to your account.',
+    noScore:'Speaking Core is internal and self-guided for now. No ASR, pronunciation score, or speaking evaluation is generated.',
+    source:'Source line',
+  },
+  vi:{
+    kicker:'NÓI · SHADOW',title:'NGHE. NÓI THEO. NGHE LẠI GIỌNG MÌNH.',
+    lead:'Dùng lại đúng bài media từ Listening. Ghi một lượt luyện cục bộ, nghe lại và lặp lại mà không cần import media lần hai.',
+    emptyTitle:'Hãy chọn một bài media trước.',emptyBody:'Import video trong Listening. Speaking sẽ dùng lại đúng media object và các đoạn canonical đó.',
+    openListening:'Mở Listening',backListening:'Quay lại Listening',segment:'Đoạn',meaning:'Nghĩa',
+    replay:'Nghe lại câu gốc',speed:'Tốc độ',record:'Ghi giọng của tôi',stop:'Dừng ghi âm',discard:'Xóa lượt ghi',
+    yourTake:'Lượt ghi gần nhất',attempts:'Lượt ghi cục bộ',recording:'Đang ghi… hãy nói theo đoạn đã chọn.',
+    ready:'Lượt ghi đã sẵn sàng. Hãy nghe lại và so sánh với câu gốc.',unsupported:'Trình duyệt này chưa hỗ trợ ghi âm tại đây.',
+    micError:'Không truy cập được microphone. Hãy kiểm tra quyền của trình duyệt rồi thử lại.',
+    emptyRecording:'Không thu được audio phù hợp. Hãy thử lại.',
+    privacy:'Lượt ghi chỉ tồn tại trong tab trình duyệt này. Audio không được upload hay lưu vào tài khoản.',
+    noScore:'Speaking Core hiện là bản internal tự luyện. Chưa có ASR, điểm phát âm hoặc chấm Speaking.',
+    source:'Câu gốc',
+  },
+  zh:{
+    kicker:'口语 · 跟读',title:'先听，再说，再听自己的声音。',
+    lead:'直接复用 Listening 中的同一媒体课程。录制一次本地练习、回放并重复，不需要再次导入媒体。',
+    emptyTitle:'请先选择一个媒体课程。',emptyBody:'先在 Listening 中导入视频。Speaking 会复用同一个媒体对象与标准句段。',
+    openListening:'打开 Listening',backListening:'返回 Listening',segment:'句段',meaning:'释义',
+    replay:'重听原句',speed:'速度',record:'录下我的声音',stop:'停止录音',discard:'删除本次录音',
+    yourTake:'最近一次录音',attempts:'本地录音次数',recording:'正在录音… 请大声跟读当前句段。',
+    ready:'录音已准备好。回放并与原句比较。',unsupported:'当前浏览器无法在这里录音。',
+    micError:'无法使用麦克风。请检查浏览器权限后重试。',
+    emptyRecording:'没有录到可用音频，请再试一次。',
+    privacy:'本次录音只保留在当前浏览器标签页，不会上传或保存到账户。',
+    noScore:'Speaking Core 目前是内部自主练习，不运行 ASR，也不生成发音分数或口语评估。',
+    source:'原句',
+  },
+};
+
+const copy=()=>COPY[uiLocale()]||COPY.en;
+const ASR_COPY={
+  en:{busy:'Transcribing your take...',result:'What Orena heard',failed:'Could not transcribe this take. You can still play it back and retry.'},
+  vi:{busy:'Đang nhận dạng lượt nói...',result:'Orena nghe được',failed:'Chưa thể nhận dạng lượt nói này. Bạn vẫn có thể nghe lại và thử lại.'},
+  zh:{busy:'正在识别这次录音…',result:'Orena 听到的内容',failed:'暂时无法识别这次录音。你仍然可以回放并重试。'},
+};
+const asrCopy=()=>ASR_COPY[uiLocale()]||ASR_COPY.en;
+const MATCH_COPY={
+  en:{
+    match:'Content match',missing:'Try these again',extra:'Extra words heard',
+    privacy:'This audio is sent for transcription. Orena does not save this take to your account.',
+    disclaimer:'Content match compares recognized text with the source. It is not a pronunciation score.',
+  },
+  vi:{
+    match:'Khớp nội dung',missing:'Hãy thử lại các từ này',extra:'Từ nghe thêm',
+    privacy:'Audio được gửi đi để nhận dạng lời nói. Orena không lưu lượt ghi này vào tài khoản của bạn.',
+    disclaimer:'Khớp nội dung chỉ so sánh văn bản nhận dạng với câu gốc. Đây chưa phải điểm phát âm.',
+  },
+  zh:{
+    match:'内容匹配',missing:'再试试这些内容',extra:'额外识别内容',
+    privacy:'音频会发送用于语音识别。Orena 不会把这次录音保存到你的账户。',
+    disclaimer:'内容匹配只比较识别文本与原句，并不是发音评分。',
+  },
+};
+const matchCopy=()=>MATCH_COPY[uiLocale()]||MATCH_COPY.en;
+const stamp=ms=>`${Math.floor(ms/60000)}:${String(Math.floor(ms/1000)%60).padStart(2,'0')}`;
+const transcriptTokenMarkup=value=>transcriptTokens(value).map(token=>token.word
+  ?`<span class="transcript-token">${esc(token.text)}</span>`
+  :esc(token.text)).join('');
+
+function translationFor(payload,segmentId){
+  return (payload?.translations||[]).find(item=>item.segment_id===segmentId)?.translated_meaning||'';
+}
+
+function emptyPage(){
+  const c=copy();
+  return `<section class="page speaking-page speaking-empty">
+    <header class="speaking-header">
+      <span class="editorial-kicker">${esc(c.kicker)}</span>
+      <h1 class="editorial-title">${esc(c.emptyTitle)}</h1>
+      <p class="editorial-lead">${esc(c.emptyBody)}</p>
+    </header>
+    <div class="speaking-empty-card visual-section-surface">
+      <button class="button button-primary" type="button" data-speaking-open-listening>${esc(c.openListening)}</button>
+    </div>
+  </section>`;
+}
+
+export function createSpeakingController({session,recorder=createLocalAudioRecorder(),transcribe=api.transcribeSpeech,onChange=()=>{}}={}){
+  const payload=session?.payload||null;
+  const segments=payload?.transcript?.segments||[];
+  const ids=segments.map(segment=>segment.segment_id);
+  const initial=ids.includes(session?.selected_segment_id)?session.selected_segment_id:ids[0]||null;
+  const model={
+    selected:initial,
+    playbackRate:1,
+    attempts:Object.fromEntries(ids.map(id=>[id,0])),
+    asrStatus:'idle',
+    asrTranscript:'',
+    asrWords:[],
+    asrError:'',
+    asrErrorMessage:'',
+    evaluation:null,
+  };
+  const changed=()=>onChange({...model});
+
+  return {
+    model,
+    recorder,
+    html(){
+      const c=copy();
+      const segment=segments.find(item=>item.segment_id===model.selected);
+      const index=segments.findIndex(item=>item.segment_id===model.selected);
+      const recording=recorder.snapshot();
+      const meaning=translationFor(payload,model.selected);
+      const statusText=recording.status==='recording'?c.recording
+        :recording.status==='ready'?c.ready
+        :recording.error==='microphone_unavailable'?c.micError
+        :recording.error==='recording_empty'||recording.error==='recording_failed'?c.emptyRecording
+        :recording.status==='unsupported'?c.unsupported:'';
+
+      return `<section class="page speaking-page" data-speaking-core>
+        <header class="speaking-header">
+          <span class="editorial-kicker">${esc(c.kicker)}</span>
+          <h1 class="editorial-title">${esc(c.title)}</h1>
+          <p class="editorial-lead">${esc(c.lead)}</p>
+        </header>
+
+        <div class="speaking-workspace">
+          <section class="speaking-video visual-hero-surface">
+            <div class="speaking-video-frame">${mediaPlayer(payload.playback,payload.asset?.title)}</div>
+            <div class="speaking-media-caption">
+              <span>${esc(payload.asset?.source_provider||'media')}</span>
+              <h2>${esc(payload.asset?.title||'Media lesson')}</h2>
+              <button class="button button-secondary" type="button" data-speaking-back-listening>${esc(c.backListening)}</button>
+            </div>
+          </section>
+
+          <section class="speaking-practice visual-section-surface">
+            <div class="speaking-segment-list" aria-label="${esc(c.segment)}">
+              ${segments.map((item,i)=>`<button type="button" class="speaking-segment-chip ${item.segment_id===model.selected?'active':''}" data-speaking-segment="${esc(item.segment_id)}" aria-pressed="${item.segment_id===model.selected}">
+                <time>${stamp(item.start_ms)}</time><span>${esc(c.segment)} ${i+1}</span>
+              </button>`).join('')}
+            </div>
+
+            ${segment?`<div class="speaking-focus">
+              <span class="context-label">${esc(c.source)} · ${esc(c.segment)} ${index+1}</span>
+              <p class="speaking-source" aria-label="${esc(segment.original_text)}">${transcriptTokenMarkup(segment.original_text)}</p>
+              ${meaning?`<div class="speaking-meaning"><strong>${esc(c.meaning)}</strong><p>${esc(meaning)}</p></div>`:''}
+
+              <div class="speaking-playback-controls">
+                <button class="button button-secondary" type="button" data-speaking-replay>${esc(c.replay)}</button>
+                <label>${esc(c.speed)}
+                  <select data-speaking-rate>
+                    ${[.75,1,1.25].map(rate=>`<option value="${rate}" ${rate===model.playbackRate?'selected':''}>${rate.toFixed(2).replace(/0$/,'')}x</option>`).join('')}
+                  </select>
+                </label>
+              </div>
+
+              <div class="speaking-recorder ${recording.status==='recording'?'is-recording':''}">
+                <div class="speaking-recorder-actions">
+                  <button class="button button-primary" type="button" data-speaking-record ${recording.status==='recording'||!recording.supported?'disabled':''}>${esc(c.record)}</button>
+                  <button class="button button-secondary" type="button" data-speaking-stop ${recording.status==='recording'?'':'disabled'}>${esc(c.stop)}</button>
+                  <button class="button button-secondary" type="button" data-speaking-discard ${recording.url?'':'disabled'}>${esc(c.discard)}</button>
+                  <span class="speaking-attempt-count">${esc(c.attempts)}: ${model.attempts[model.selected]||0}</span>
+                </div>
+                ${statusText?`<p class="speaking-recorder-status" role="status">${esc(statusText)}</p>`:''}
+                ${recording.url?`<div class="speaking-own-voice">
+                  <strong>${esc(c.yourTake)}</strong>
+                  <audio controls preload="metadata" src="${esc(recording.url)}"></audio>
+                </div>`:''}
+                ${model.asrStatus==='loading'?`<p class="speaking-recorder-status" role="status">${esc(asrCopy().busy)}</p>`:''}
+                ${model.asrTranscript?`<div class="speaking-asr-result" data-speaking-asr-result>
+                  <strong>${esc(asrCopy().result)}</strong>
+                  <p>${transcriptTokenMarkup(model.asrTranscript)}</p>
+                </div>`:''}
+                ${model.evaluation?`<div class="speaking-content-match" data-speaking-content-match>
+                  <div class="speaking-content-match-score">
+                    <strong>${esc(matchCopy().match)}</strong>
+                    <span>${model.evaluation.content_match}%</span>
+                  </div>
+                  ${model.evaluation.missing_tokens.length?`<div class="speaking-feedback-line">
+                    <strong>${esc(matchCopy().missing)}</strong>
+                    <p>${model.evaluation.missing_tokens.map(token=>`<span class="speaking-feedback-token">${esc(token)}</span>`).join(' ')}</p>
+                  </div>`:''}
+                  ${model.evaluation.extra_tokens.length?`<div class="speaking-feedback-line">
+                    <strong>${esc(matchCopy().extra)}</strong>
+                    <p>${model.evaluation.extra_tokens.map(token=>`<span class="speaking-feedback-token">${esc(token)}</span>`).join(' ')}</p>
+                  </div>`:''}
+                </div>`:''}
+                ${model.asrError?`<p class="speaking-recorder-status speaking-asr-error" role="alert">${esc(model.asrErrorMessage||asrCopy().failed)} <small>${esc(model.asrError)}</small></p>`:''}
+                <p class="speaking-privacy">${esc(matchCopy().privacy)}</p>
+                <p class="speaking-no-score">${esc(matchCopy().disclaimer)}</p>
+              </div>
+            </div>`:''}
+          </section>
+        </div>
+      </section>`;
+    },
+    select(segmentId){
+      if(!ids.includes(segmentId))return false;
+      if(recorder.snapshot().status==='recording')return false;
+      recorder.discard();
+      model.selected=segmentId;
+      model.asrStatus='idle';
+      model.asrTranscript='';
+      model.asrWords=[];
+      model.asrError='';
+      model.evaluation=null;
+      selectSharedMediaSegment(session.learning_language,segmentId);
+      changed();
+      return true;
+    },
+    async startRecording(){
+      model.asrStatus='idle';
+      model.asrTranscript='';
+      model.asrWords=[];
+      model.asrError='';
+      model.evaluation=null;
+      const started=await recorder.start();
+      changed();
+      return started;
+    },
+    async stopRecording(){
+      const result=await recorder.stop();
+      if(!result||!model.selected){
+        changed();
+        return false;
+      }
+
+      model.attempts[model.selected]=(model.attempts[model.selected]||0)+1;
+      model.asrStatus='loading';
+      model.asrTranscript='';
+      model.asrWords=[];
+      model.asrError='';
+      model.evaluation=null;
+      changed();
+
+      try{
+        const mime=result.mime_type||'audio/webm';
+        const extension=mime.includes('ogg')?'ogg':mime.includes('mp4')?'m4a':'webm';
+        const response=await transcribe(
+          result.blob,
+          session.learning_language,
+          `speaking-take.${extension}`,
+        );
+        model.asrTranscript=typeof response?.text==='string'?response.text.trim():'';
+        model.asrWords=Array.isArray(response?.words)?response.words:[];
+        model.asrStatus='ready';
+        if(model.asrTranscript){
+          const selectedSegment=segments.find(item=>item.segment_id===model.selected);
+          model.evaluation=evaluateSpeechTranscript(selectedSegment?.original_text||'',model.asrTranscript);
+        }else{
+          model.asrError='empty_transcript';
+          model.evaluation=null;
+        }
+      }catch(error){
+        model.asrStatus='error';
+        model.asrError=error?.category||String(error?.status||'speech_asr_failed');
+        model.asrErrorMessage=typeof error?.message==='string'?error.message:'';
+      }
+      changed();
+      return true;
+    },
+    discardRecording(){
+      const discarded=recorder.discard();
+      if(discarded){
+        model.asrStatus='idle';
+        model.asrTranscript='';
+        model.asrWords=[];
+        model.asrError='';
+        model.evaluation=null;
+        changed();
+      }
+      return discarded;
+    },
+    setPlaybackRate(value){
+      if(![.75,1,1.25].includes(value))return false;
+      model.playbackRate=value;
+      return true;
+    },
+    cleanup(){recorder.cleanup();},
+  };
+}
+
+export async function renderSpeaking(root,{recorderFactory=createLocalAudioRecorder}={}){
+  const session=getSharedMediaSession(state.language);
+  if(!session){
+    root.innerHTML=emptyPage();
+    root.querySelector('[data-speaking-open-listening]')?.addEventListener('click',()=>go('listen'));
+    return null;
+  }
+
+  let mounted=false;
+  let controller;
+  const render=()=>{
+    if(mounted&&!root.querySelector('[data-speaking-core]'))return;
+    root.innerHTML=controller.html();
+    mounted=true;
+
+    root.querySelector('[data-speaking-back-listening]')?.addEventListener('click',()=>go('listen'));
+    root.querySelectorAll('[data-speaking-segment]').forEach(button=>{
+      button.addEventListener('click',()=>controller.select(button.dataset.speakingSegment));
+    });
+    root.querySelector('[data-speaking-record]')?.addEventListener('click',()=>controller.startRecording());
+    root.querySelector('[data-speaking-stop]')?.addEventListener('click',()=>controller.stopRecording());
+    root.querySelector('[data-speaking-discard]')?.addEventListener('click',()=>controller.discardRecording());
+    root.querySelector('[data-speaking-replay]')?.addEventListener('click',()=>{
+      const segment=session.payload.transcript.segments.find(item=>item.segment_id===controller.model.selected);
+      if(segment)replaySegment(root,session.payload.playback,segment.start_ms,segment.end_ms,controller.model.playbackRate);
+    });
+    root.querySelector('[data-speaking-rate]')?.addEventListener('change',event=>{
+      const rate=Number(event.target.value);
+      if(setMediaPlaybackRate(root,session.payload.playback,rate))controller.setPlaybackRate(rate);
+      else event.target.value=String(controller.model.playbackRate);
+    });
+    if(controller.model.playbackRate!==1){
+      root.querySelector('#listeningPlayer')?.addEventListener('load',()=>setMediaPlaybackRate(root,session.payload.playback,controller.model.playbackRate),{once:true});
+    }
+  };
+
+  controller=createSpeakingController({session,recorder:recorderFactory(),onChange:render});
+  root._cleanupScreen=()=>controller.cleanup();
+  render();
+  return controller;
+}

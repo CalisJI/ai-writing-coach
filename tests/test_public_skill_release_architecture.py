@@ -28,8 +28,10 @@ def test_central_registry_represents_required_truthful_states() -> None:
     assert items["writing"].available_to(SkillAudience.INTERNAL) is True
     assert items["reading"].available_to(SkillAudience.PUBLIC) is False
     assert items["reading"].available_to(SkillAudience.INTERNAL) is True
-    assert items["speaking"].source_available is False
-    assert items["speaking"].available_to(SkillAudience.INTERNAL) is False
+    assert items["speaking"].release_state is SkillReleaseState.DEVELOPMENT
+    assert items["speaking"].source_available is True
+    assert items["speaking"].available_to(SkillAudience.INTERNAL) is True
+    assert items["speaking"].available_to(SkillAudience.PUBLIC) is False
     assert items["listening"].release_state is SkillReleaseState.DEVELOPMENT
     assert items["listening"].source_available is True
     assert items["listening"].available_to(SkillAudience.INTERNAL) is True
@@ -62,6 +64,7 @@ def test_navigation_consumes_shared_skill_contract() -> None:
     assert 'data-route="write" data-skill="writing" hidden' in template
     assert 'data-route="read" data-skill="reading" hidden' in template
     assert 'data-route="listen" data-skill="listening" hidden' in template
+    assert 'data-route="speak" data-skill="speaking" hidden' in template
     for supporting_route in ("home", "library", "journey", "profile"):
         assert f'data-route="{supporting_route}" data-skill=' not in template
     assert "applySkillNavigation(state.skills" in app
@@ -74,6 +77,7 @@ def test_navigation_consumes_shared_skill_contract() -> None:
     assert "review:'writing'" in navigation
     assert "read:'reading'" in navigation
     assert "listen:'listening'" in navigation
+    assert "speak:'speaking'" in navigation
     for supporting_route in ("home", "library", "journey", "profile", "onboarding"):
         assert f"{supporting_route}:" not in navigation
 

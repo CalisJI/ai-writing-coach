@@ -49,6 +49,11 @@ from writing_coach.media_api import (
 from writing_coach.media_ingestion import MediaIngestionService
 from writing_coach.media_providers.youtube import YouTubeMediaProviderAdapter
 from writing_coach.media_translation import MediaTranslationService
+from writing_coach.speech_api import (
+    configure_speech_asr,
+    router as speech_router,
+)
+from writing_coach.speech_asr import GroqSpeechAsrProvider
 from writing_coach.core.platform_api import router as platform_router
 from writing_coach.core.language_registry import is_enabled
 from writing_coach.ai.base import AICapabilityError, AIProviderError, AIProviderUnavailable
@@ -139,10 +144,32 @@ class SaveWordIn(BaseModel):
     definition: str = Field(default="", max_length=1200)
     translation_vi: str = Field(default="", max_length=1200)
 
-_persistence_runtime = build_runtime(auth_db=AUTH_DB_PATH, platform_db=Path(os.getenv("PLATFORM_DB", ROOT / "data" / "platform.db")), product_db=Path(os.getenv("PRODUCT_DB", ROOT / "data" / "product.db")), learning_path=lambda: current_db_path(DB_PATH))
+_persistence_runtime = build_runtime(
+    auth_db=AUTH_DB_PATH,
+    platform_db=Path(os.getenv("PLATFORM_DB", ROOT / "data" / "platform.db")),
+    product_db=Path(os.getenv("PRODUCT_DB", ROOT / "data" / "product.db")),
+    learning_path=lambda: current_db_path(DB_PATH),
+    backend=os.getenv("PERSISTENCE_BACKEND", "postgresql"),
+)
 configure_auth_repository(_persistence_runtime.auth_repository)
 configure_platform_repository(_persistence_runtime.platform_repository)
 configure_product_repository(_persistence_runtime.product_repository)
+
+# PostgreSQL is the application runtime. In auth-disabled local development the
+# request scope still uses the stable user key "legacy"; seed that scope once so
+# learner data can be written without depending on a historical SQLite import.
+if _persistence_runtime.backend == "postgresql" and not AUTH_ENABLED:
+    if _persistence_runtime.auth_repository.get_user("legacy") is None:
+        _persistence_runtime.auth_repository.upsert_user(
+            {
+                "sub": "legacy",
+                "email": "local@localhost.invalid",
+                "name": "Local developer",
+                "picture": "",
+            },
+            set(),
+        )
+
 _learning_repository = _persistence_runtime.learning_repository
 _learning_cache = SQLiteLearningCacheRepository(lambda: SQLiteLearningRepository(lambda: current_db_path(DB_PATH).with_name("learning_cache.db")).connect())
 _specialized_learning_repository = _persistence_runtime.specialized_learning_repository
@@ -167,6 +194,8 @@ configure_media_ingestion(
 )
 configure_media_translation(MediaTranslationService(generate_structured))
 app.include_router(media_learning_router)
+configure_speech_asr(GroqSpeechAsrProvider.from_env())
+app.include_router(speech_router)
 install_platform_ai(app, require_admin)
 configure_becoming_memory(_specialized_learning_repository)
 configure_becoming_outcomes(_specialized_learning_repository)

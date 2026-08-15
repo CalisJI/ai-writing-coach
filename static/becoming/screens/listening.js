@@ -1,8 +1,10 @@
 import {api} from '../api.js';
-import {supportLanguage} from '../store.js';
+import {go} from '../router.js';
+import {state,supportLanguage} from '../store.js';
 import {esc} from '../components/primitives.js';
 import {mediaPlayer,playbackAvailable,replaySegment,setPlaybackRate as setMediaPlaybackRate} from '../components/media-player.js';
 import {uiLocale} from '../domain/i18n.js';
+import {transcriptTokens} from '../domain/transcript-tokens.js';
 import {
   MAX_LISTENING_EVALUATION_UNITS,
   MAX_LISTENING_RECONSTRUCTION_CHARS,
@@ -22,6 +24,7 @@ import {
   selectShadowingPracticeSegment,
   shadowingPracticeSummary,
 } from '../domain/shadowing-practice.js';
+import {getSharedMediaSession,selectSharedMediaSegment,setSharedMediaSession} from '../domain/shared-media-session.js';
 
 const COPY={
   en:{listen:'LISTEN · FOLLOW',title:'HEAR THE IDEA, ONE MOMENT AT A TIME.',lead:'Bring an external video into one shared media lesson. Watch, follow the original words, read the meaning when available, and replay a sentence.',url:'Video URL',placeholder:'https://…',prepare:'Import / Prepare lesson',validating:'Checking the URL…',processing:'Preparing the transcript…',original:'Original transcript',meaning:'Meaning',unavailable:'Meaning is not available yet.',notRequired:'Translation is not required for the selected support language.',translationUnavailable:'Meaning could not be generated right now. Continue with the original transcript.',translationTooLarge:'This lesson is too large for automatic meaning generation. Continue with the original transcript.',transcriptMissing:'This video has no usable transcript.',unsupported:'This video source is not supported.',malformedUrl:'Enter a valid public media URL.',unsupportedProvider:'This media provider is not supported yet.',mediaUnavailable:'This media is private or unavailable.',providerTimeout:'The media provider did not respond in time. Please try again.',providerFailure:'The media provider could not prepare this lesson. Please try again.',unsupportedSourceLanguage:'This media language is not supported yet.',invalidTargetLanguage:'Choose a valid support language.',failed:'The lesson could not be prepared.',previous:'Previous segment',next:'Next segment',replay:'Replay',speed:'Speed',select:'Select a transcript segment to replay it.',shadow:'Shadow this',shared:'Shadowing reuses this same media and segment. No separate import is needed.',playback:'Playback is unavailable for this source.'},
@@ -34,9 +37,9 @@ const ACTIVE_COPY={
   zh:{follow:'跟随',active:'主动练习',mode:'听力模式',activeUnavailable:'主动听力和跟读练习需要可用的媒体播放。',practice:'主动听力',prompt:'输入你听到的内容',check:'检查答案',reveal:'显示答案',retry:'重试',yourAnswer:'你的答案',textMatch:'文本匹配度',exact:'完全匹配',close:'接近匹配',tryAgain:'再试一次',disclaimer:'文本匹配只比较你的重构与本段字幕，并不是语言能力分数。',progress:'本次练习',practiced:'已练习',exactCount:'完全匹配',average:'最佳文本匹配平均值',attempts:'已检查次数',revealed:'仅查看答案',segment:'句段',answerEmpty:'请先输入你听到的内容。',answerTooLarge:'你的答案过长，无法安全检查。',segmentTooLarge:'本段字幕过长，无法安全检查。跟随模式仍可使用。',meaningUnavailable:'释义目前不可用，原文字幕仍可使用。',meaningTooLarge:'本课内容过大，无法自动生成释义。',meaningNotRequired:'所选辅助语言不需要翻译。'},
 };
 const SHADOW_COPY={
-  en:{mode:'Shadowing',practice:'Shadow this segment',guide:'Listen to the selected segment, repeat it aloud, then mark one completed round.',markRound:'Mark round complete',rounds:'Rounds',progress:'Session shadowing',practiced:'Practiced segments',totalRounds:'Completed rounds',noScore:'Self-guided repetition only. No recording or pronunciation score is generated in this checkpoint.',segment:'Segment'},
-  vi:{mode:'Shadowing',practice:'Shadow đoạn này',guide:'Nghe đoạn đã chọn, lặp lại thành tiếng rồi đánh dấu một lượt đã hoàn thành.',markRound:'Đánh dấu hoàn thành 1 lượt',rounds:'Số lượt',progress:'Shadowing trong phiên',practiced:'Đoạn đã luyện',totalRounds:'Tổng lượt hoàn thành',noScore:'Đây là luyện lặp lại có hướng dẫn. Chưa ghi âm và chưa chấm phát âm ở checkpoint này.',segment:'Đoạn'},
-  zh:{mode:'跟读',practice:'跟读这一句',guide:'先听所选句段，再大声跟读，然后记录一次已完成练习。',markRound:'记录完成一轮',rounds:'轮次',progress:'本次跟读',practiced:'已练句段',totalRounds:'已完成轮次',noScore:'此阶段只进行自主跟读，不录音，也不生成发音评分。',segment:'句段'},
+  en:{mode:'Shadowing',practice:'Shadow this segment',guide:'Listen to the selected segment, repeat it aloud, then mark one completed round.',markRound:'Mark round complete',rounds:'Rounds',progress:'Session shadowing',practiced:'Practiced segments',totalRounds:'Completed rounds',noScore:'Self-guided repetition here does not record or score pronunciation. Open Speaking Core when you want to record and replay your voice.',openSpeaking:'Open Speaking Core',segment:'Segment'},
+  vi:{mode:'Shadowing',practice:'Shadow đoạn này',guide:'Nghe đoạn đã chọn, lặp lại thành tiếng rồi đánh dấu một lượt đã hoàn thành.',markRound:'Đánh dấu hoàn thành 1 lượt',rounds:'Số lượt',progress:'Shadowing trong phiên',practiced:'Đoạn đã luyện',totalRounds:'Tổng lượt hoàn thành',noScore:'Phần Shadowing này không ghi âm hay chấm phát âm. Mở Speaking Core khi bạn muốn ghi và nghe lại giọng của mình.',openSpeaking:'Mở Speaking Core',segment:'Đoạn'},
+  zh:{mode:'跟读',practice:'跟读这一句',guide:'先听所选句段，再大声跟读，然后记录一次已完成练习。',markRound:'记录完成一轮',rounds:'轮次',progress:'本次跟读',practiced:'已练句段',totalRounds:'已完成轮次',noScore:'这里的跟读模式不录音，也不生成发音评分。需要录制并回放自己的声音时，请打开 Speaking Core。',openSpeaking:'打开 Speaking Core',segment:'句段'},
 };
 let listeningViewSequence=0;
 
@@ -44,6 +47,9 @@ const text=()=>COPY[uiLocale()]||COPY.en;
 const activeText=()=>ACTIVE_COPY[uiLocale()]||ACTIVE_COPY.en;
 const shadowText=()=>SHADOW_COPY[uiLocale()]||SHADOW_COPY.en;
 const stamp=ms=>`${Math.floor(ms/60000)}:${String(Math.floor(ms/1000)%60).padStart(2,'0')}`;
+const transcriptTokenMarkup=value=>transcriptTokens(value).map(token=>token.word
+  ?`<span class="transcript-token">${esc(token.text)}</span>`
+  :esc(token.text)).join('');
 
 export function validMediaUrl(value){
   try{return ['http:','https:'].includes(new URL(value).protocol);}catch{return false;}
@@ -122,8 +128,8 @@ function followWorkspace(payload,selected,{original,meaning,playbackRate}){
         <button class="listening-segment-main" type="button" data-select-segment="${esc(segment.segment_id)}">
           <time>${stamp(segment.start_ms)}</time>
           <span class="listening-segment-copy">
-            ${original?`<strong>${esc(segment.original_text)}</strong>`:''}
-            ${meaning&&!translationNotRequired&&!translationDegraded?(translations.has(segment.segment_id)?`<span>${esc(translations.get(segment.segment_id))}</span>`:`<span class="translation-unavailable">${esc(c.unavailable)}</span>`):''}
+            ${original?`<strong class="listening-token-line" aria-label="${esc(segment.original_text)}">${transcriptTokenMarkup(segment.original_text)}</strong>`:''}
+            ${meaning&&!translationNotRequired&&!translationDegraded?(translations.has(segment.segment_id)?`<span class="listening-meaning-inline"><small>${esc(c.meaning)}</small><span>${esc(translations.get(segment.segment_id))}</span></span>`:`<span class="translation-unavailable listening-meaning-inline"><small>${esc(c.meaning)}</small><span>${esc(c.unavailable)}</span></span>`):''}
           </span>
         </button>
         ${segment.segment_id===selected?`<div class="listening-segment-actions"><button type="button" class="button button-secondary" data-shadow-selected title="${esc(c.shared)}">${esc(c.shadow)}</button></div>`:''}
@@ -176,7 +182,7 @@ function activeWorkspace(payload,selected,model){
     </form>`:`<p class="active-listening-unavailable" role="status">${esc(c.segmentTooLarge)}</p>`}
     ${visible?`<div class="active-listening-result" role="status">
       ${lastAttempt?`<p><strong>${esc(c.yourAnswer)}</strong> ${esc(lastAttempt.answer)}</p><p class="active-listening-text-match"><strong>${esc(c.textMatch)}</strong> ${result.accuracy_percent}% · ${esc(quality)}</p>`:''}
-      <p><strong>${esc(text().original)}</strong> ${esc(segment.original_text)}</p>
+      <p class="active-listening-source" aria-label="${esc(segment.original_text)}"><strong>${esc(text().original)}</strong> <span>${transcriptTokenMarkup(segment.original_text)}</span></p>
       ${activeMeaning(payload,translations,selected)}
       <p class="active-listening-disclaimer">${esc(c.disclaimer)}</p>
     </div>`:''}
@@ -210,10 +216,11 @@ function shadowingWorkspace(payload,selected,model){
     </div>
     ${segment?`<div class="shadowing-focus" role="group" aria-label="${esc(c.practice)}">
       <span class="context-label">${esc(c.segment)} ${segmentIndex+1}</span>
-      <p class="shadowing-source">${esc(segment.original_text)}</p>
+      <p class="shadowing-source" aria-label="${esc(segment.original_text)}">${transcriptTokenMarkup(segment.original_text)}</p>
       ${activeMeaning(payload,translations,selected)}
       <div class="shadowing-round-actions">
         <button class="button button-primary" type="button" data-shadow-round>${esc(c.markRound)}</button>
+        <button class="button button-secondary" type="button" data-open-speaking>${esc(c.openSpeaking)}</button>
         <span class="shadowing-round-count">${esc(c.rounds)}: ${state?.rounds||0}</span>
       </div>
       <p class="shadowing-disclaimer">${esc(c.noScore)}</p>
@@ -264,7 +271,7 @@ function listeningPage(model,viewId){
   </section>`;
 }
 
-export function createListeningController({importMedia,targetLanguage,onChange=()=>{}}){
+export function createListeningController({importMedia,targetLanguage,onChange=()=>{},onMediaReady=()=>{},onSelection=()=>{}}){
   const model={status:'empty',payload:null,error:null,selected:null,original:true,meaning:true,playbackRate:1,mode:'follow',practiceSession:null,shadowingSession:null,practiceValidation:null};
   const viewId=`listening-${++listeningViewSequence}`;
   let importGeneration=0;
@@ -295,6 +302,7 @@ export function createListeningController({importMedia,targetLanguage,onChange=(
         }):null;
         model.practiceValidation=null;
         if(['active','shadowing'].includes(model.mode)&&!playbackAvailable(model.payload?.playback))model.mode='follow';
+        if(model.status==='ready')onMediaReady(model.payload,model.selected);
       }catch(error){
         if(generation!==importGeneration)return;
         model.error=error;
@@ -307,7 +315,7 @@ export function createListeningController({importMedia,targetLanguage,onChange=(
       model.selected=segmentId;
       if(model.practiceSession)selectListeningPracticeSegment(model.practiceSession,segmentId);
       if(model.shadowingSession)selectShadowingPracticeSegment(model.shadowingSession,segmentId);
-      model.practiceValidation=null;changed();return true;
+      model.practiceValidation=null;onSelection(segmentId);changed();return true;
     },
     moveSelection(offset){
       const segments=model.payload?.transcript?.segments||[];
@@ -317,7 +325,25 @@ export function createListeningController({importMedia,targetLanguage,onChange=(
       model.selected=target.segment_id;
       if(model.practiceSession)selectListeningPracticeSegment(model.practiceSession,target.segment_id);
       if(model.shadowingSession)selectShadowingPracticeSegment(model.shadowingSession,target.segment_id);
-      model.practiceValidation=null;changed();return true;
+      model.practiceValidation=null;onSelection(target.segment_id);changed();return true;
+    },
+    restore(payload,selectedId=null){
+      if(mediaImportState(payload)!=='ready')return false;
+      model.payload=payload;
+      model.status='ready';
+      const ids=payload.transcript.segments.map(segment=>segment.segment_id);
+      model.selected=ids.includes(selectedId)?selectedId:ids[0]||null;
+      model.practiceSession=createListeningPracticeSession({asset_id:payload.asset.asset_id,segment_ids:ids});
+      model.shadowingSession=createShadowingPracticeSession({asset_id:payload.asset.asset_id,segment_ids:ids});
+      if(model.selected){
+        selectListeningPracticeSegment(model.practiceSession,model.selected);
+        selectShadowingPracticeSegment(model.shadowingSession,model.selected);
+      }
+      model.practiceValidation=null;
+      if(['active','shadowing'].includes(model.mode)&&!playbackAvailable(payload.playback))model.mode='follow';
+      onMediaReady(payload,model.selected);
+      changed();
+      return true;
     },
     setMode(value){
       if(!['follow','active','shadowing'].includes(value))return false;
@@ -387,6 +413,7 @@ export async function renderListening(root,{importMedia=api.importMedia,targetLa
     root.querySelectorAll('button[data-listening-mode]').forEach(button=>button.addEventListener('click',()=>controller.setMode(button.dataset.listeningMode)));
     root.querySelector('[data-shadow-selected]')?.addEventListener('click',()=>controller.setMode('shadowing'));
     root.querySelector('[data-shadow-round]')?.addEventListener('click',()=>controller.recordShadowingRound());
+    root.querySelector('[data-open-speaking]')?.addEventListener('click',()=>go('speak'));
     root.querySelector('#activeListeningAnswer')?.addEventListener('input',event=>controller.setPracticeDraft(event.target.value));
     root.querySelector('#activeListeningForm')?.addEventListener('submit',event=>{
       event.preventDefault();
@@ -401,7 +428,7 @@ export async function renderListening(root,{importMedia=api.importMedia,targetLa
     root.querySelector('[data-replay-current]')?.addEventListener('click',()=>{
       const payload=controller.model.payload;
       const segment=payload.transcript.segments.find(item=>item.segment_id===controller.model.selected);
-      if(segment)replaySegment(root,payload.playback,segment.start_ms);
+      if(segment)replaySegment(root,payload.playback,segment.start_ms,segment.end_ms,controller.model.playbackRate);
     });
     root.querySelector('#listeningPlaybackRate')?.addEventListener('change',event=>{
       const rate=Number(event.target.value);
@@ -417,7 +444,15 @@ export async function renderListening(root,{importMedia=api.importMedia,targetLa
       visibleSelection=controller.model.selected;
     }
   };
-  controller=createListeningController({importMedia,targetLanguage,onChange:render});
-  render();
+  controller=createListeningController({
+    importMedia,
+    targetLanguage,
+    onChange:render,
+    onMediaReady:(payload,selected_segment_id)=>setSharedMediaSession({learning_language:state.language,payload,selected_segment_id}),
+    onSelection:segmentId=>selectSharedMediaSegment(state.language,segmentId),
+  });
+  const shared=getSharedMediaSession(state.language);
+  if(shared)controller.restore(shared.payload,shared.selected_segment_id);
+  else render();
   return controller;
 }

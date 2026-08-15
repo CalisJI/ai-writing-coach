@@ -122,9 +122,9 @@ assert.doesNotMatch(
   /MediaRecorder|SpeechRecognition|pronunciation_evaluator|speaking_evaluator|accuracy_percent/,
 );
 for(const [locale,label] of [
-  ['en','No recording or pronunciation score is generated in this checkpoint.'],
-  ['vi','Chưa ghi âm và chưa chấm phát âm ở checkpoint này.'],
-  ['zh','不录音，也不生成发音评分。'],
+  ['en','does not record or score pronunciation. Open Speaking Core'],
+  ['vi','không ghi âm hay chấm phát âm. Mở Speaking Core'],
+  ['zh','不录音，也不生成发音评分。需要录制并回放自己的声音时，请打开 Speaking Core。'],
 ]){
   state.supportLanguage=locale;
   assert.ok(shadowController.html().includes(label));

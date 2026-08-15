@@ -4,21 +4,37 @@ import re
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def test_compose_keeps_runtime_and_shadow_selection_separate() -> None:
+def test_compose_is_postgresql_first_and_keeps_shadow_separate() -> None:
     compose = (ROOT / "compose.yaml").read_text(encoding="utf-8")
     service = compose.split("  writing-coach:", 1)[1].split("\n  postgres:", 1)[0]
-    assert "PERSISTENCE_BACKEND: ${PERSISTENCE_BACKEND:-sqlite}" in service
-    assert "POSTGRES_RUNTIME_URL: ${POSTGRES_RUNTIME_URL:-}" in service
+    postgres = compose.split("\n  postgres:", 1)[1].split("\n  cloudflared:", 1)[0]
+    assert "PERSISTENCE_BACKEND: ${PERSISTENCE_BACKEND:-postgresql}" in service
+    assert "POSTGRES_RUNTIME_URL: ${POSTGRES_RUNTIME_URL:-postgresql+psycopg://becoming:becoming-local-dev@postgres:5432/becoming}" in service
     assert "POSTGRES_SHADOW_URL: ${POSTGRES_SHADOW_URL:-}" in service
     assert "POSTGRES_RUNTIME_URL: ${POSTGRES_SHADOW_URL" not in compose
+    assert "depends_on:" in service and "condition: service_healthy" in service
+    assert 'profiles: ["postgres"]' not in postgres
 
 
-def test_environment_template_is_explicitly_developer_only() -> None:
+def test_environment_template_is_postgresql_first() -> None:
     template = (ROOT / ".env.example").read_text(encoding="utf-8")
     values = dict(line.split("=", 1) for line in template.splitlines() if line and not line.startswith("#") and "=" in line)
-    assert values["PERSISTENCE_BACKEND"] == "sqlite"
-    assert values["POSTGRES_RUNTIME_URL"] == ""
+    assert values["PERSISTENCE_BACKEND"] == "postgresql"
+    assert values["POSTGRES_RUNTIME_URL"] == "postgresql+psycopg://becoming:becoming-local-dev@postgres:5432/becoming"
     assert values["POSTGRES_SHADOW_URL"] == ""
+
+
+def test_local_postgresql_runtime_bootstraps_legacy_scope_user() -> None:
+    source = (ROOT / "app.py").read_text(encoding="utf-8")
+    assert '_persistence_runtime.backend == "postgresql" and not AUTH_ENABLED' in source
+    assert '_persistence_runtime.auth_repository.get_user("legacy")' in source
+    assert '"sub": "legacy"' in source
+
+
+
+def test_application_entrypoint_is_postgresql_first() -> None:
+    source = (ROOT / "app.py").read_text(encoding="utf-8")
+    assert 'backend=os.getenv("PERSISTENCE_BACKEND", "postgresql")' in source
 
 
 def test_runbook_is_non_destructive_and_preserves_rollback_checkpoint() -> None:

@@ -22,6 +22,12 @@ from youtube_transcript_api._errors import (
     YouTubeTranscriptApiException,
 )
 
+from writing_coach.media_providers.supadata import (
+    SupadataTranscriptClient,
+    SupadataTranscriptMalformed,
+    SupadataTranscriptRequestFailed,
+    SupadataTranscriptTimedOut,
+)
 from writing_coach.media_ingestion import (
     MediaAcquisition,
     MediaPlayback,
@@ -32,6 +38,7 @@ from writing_coach.media_ingestion import (
     ProviderUrlMalformed,
     primary_language,
 )
+from writing_coach.media_transcript_quality import CaptionUnit, clean_caption_units
 from writing_coach.media_learning import (
     MediaLearningAsset,
     MediaLearningContractError,
@@ -255,11 +262,26 @@ def normalize_youtube_transcript(
     if track.source_language != track.source_language.strip() or not track.snippets:
         raise ProviderTranscriptMalformed()
 
+    cleaned_snippets = clean_caption_units(
+        tuple(
+            CaptionUnit(
+                text=str(snippet.text or ""),
+                start_seconds=snippet.start_seconds,
+                duration_seconds=snippet.duration_seconds,
+                provider_order=provider_order,
+            )
+            for provider_order, snippet in enumerate(track.snippets)
+        ),
+        source_language=track.source_language,
+    )
+    if not cleaned_snippets:
+        raise ProviderTranscriptMalformed()
+
     normalized: list[tuple[int, int, int, str]] = []
-    for provider_order, snippet in enumerate(track.snippets):
+    for provider_order, snippet in enumerate(cleaned_snippets):
         start = _finite_number(snippet.start_seconds)
         duration = _finite_number(snippet.duration_seconds)
-        text = " ".join(str(snippet.text or "").split())
+        text = snippet.text
         if start < 0 or duration <= 0 or not text:
             raise ProviderTranscriptMalformed()
         start_ms = round(start * 1000)
@@ -313,9 +335,55 @@ class YouTubeMediaProviderAdapter:
         self,
         metadata_client: YouTubeMetadataClient | None = None,
         caption_client: YouTubeCaptionClient | None = None,
+        fallback_transcript_client: SupadataTranscriptClient | None = None,
     ) -> None:
         self._metadata_client = metadata_client or RequestsYouTubeMetadataClient()
         self._caption_client = caption_client or PublicYouTubeCaptionClient()
+        self._fallback_transcript_client = (
+            fallback_transcript_client
+            if fallback_transcript_client is not None
+            else SupadataTranscriptClient.from_env()
+        )
+
+    def _fallback_track(
+        self,
+        canonical_source_url: str,
+        source_language: str,
+        *,
+        mode: str,
+    ) -> YouTubeCaptionTrack | None:
+        client = self._fallback_transcript_client
+        if client is None:
+            return None
+        try:
+            result = client.fetch(
+                canonical_source_url,
+                source_language,
+                mode=mode,
+            )
+        except SupadataTranscriptTimedOut as exc:
+            raise ProviderTimedOut() from exc
+        except SupadataTranscriptMalformed as exc:
+            raise ProviderTranscriptMalformed() from exc
+        except SupadataTranscriptRequestFailed as exc:
+            raise ProviderRequestFailed() from exc
+
+        if result is None:
+            return None
+        snippets = tuple(
+            YouTubeCaptionSnippet(
+                text=chunk.text,
+                start_seconds=chunk.offset_ms / 1000,
+                duration_seconds=chunk.duration_ms / 1000,
+            )
+            for chunk in result.chunks
+        )
+        if not snippets:
+            return None
+        return YouTubeCaptionTrack(
+            source_language=result.language,
+            snippets=snippets,
+        )
 
     def recognizes(self, source_url: str) -> bool:
         return recognizes_youtube_url(source_url)
@@ -331,11 +399,25 @@ class YouTubeMediaProviderAdapter:
         track = self._caption_client.fetch_track(video_id, source_language)
         asset_id = f"youtube:{video_id}"
 
-        transcript = (
-            normalize_youtube_transcript(asset_id, track)
-            if track is not None
-            else None
-        )
+        transcript = None
+        native_malformed = False
+        if track is not None:
+            try:
+                transcript = normalize_youtube_transcript(asset_id, track)
+            except ProviderTranscriptMalformed:
+                native_malformed = True
+
+        if transcript is None:
+            fallback_track = self._fallback_track(
+                canonical_url,
+                source_language,
+                mode="generate" if native_malformed else "auto",
+            )
+            if fallback_track is not None:
+                transcript = normalize_youtube_transcript(asset_id, fallback_track)
+
+        if transcript is None and native_malformed:
+            raise ProviderTranscriptMalformed()
         source_language = transcript.source_language if transcript is not None else "und"
         asset = MediaLearningAsset(
             asset_id=asset_id,
