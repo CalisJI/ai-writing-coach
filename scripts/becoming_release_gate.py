@@ -564,7 +564,7 @@ def main() -> None:
             )
     require_contains(errors, template, [
         'data-route="speak" data-skill="speaking" hidden',
-        "/becoming-assets/speaking.css?v=2.15.8",
+        f"/becoming-assets/speaking.css?v={frontend_version}",
     ], "Speaking internal navigation")
     require_contains(errors, router, ["'speak'"], "Speaking route")
     require_contains(errors, skill_release, ["speak:'speaking'"], "Speaking release route")
