@@ -27,7 +27,9 @@ operational state.
 - There is no reverse sync from PostgreSQL to SQLite.
 - There is no silent SQLite fallback from PostgreSQL runtime failure.
 - There is no startup auto-import.
-- There is no startup automatic Alembic migration.
+- A genuinely empty PostgreSQL runtime may bootstrap automatically to the
+  current Alembic head. Any non-empty database with a missing or mismatched
+  revision fails closed; existing runtime databases are never auto-upgraded.
 - Persistent volumes are never cleanup targets. Normal development and
   operations must never use `docker compose down -v`.
 - Governance work must not mutate production runtime data.
@@ -59,13 +61,14 @@ authority.
 - R1 — Production Staging + Cloudflare + Google OAuth: **CLOSED / PASS**.
 - R2 — AI Capability Control Plane: **IN PROGRESS**.
 - M1 — Media Learning Foundation: **IN PROGRESS / CROSS-CUTTING**.
+- R6 — Speaking Core: **IN PROGRESS / INTERNAL**.
 
 Current learner skill truth:
 
 | Skill | Release state | Source | Internal | Public |
 | --- | --- | --- | --- | --- |
 | Writing | BETA | available | available | no |
-| Speaking | DEVELOPMENT | unavailable as a complete product | unavailable | no |
+| Speaking | DEVELOPMENT | available | available | no |
 | Reading | DEVELOPMENT | available | available | no |
 | Listening | DEVELOPMENT | available | available | no |
 
@@ -141,6 +144,21 @@ not add a Speaking route, microphone capture, ASR, pronunciation scoring,
 durable learner-progress persistence, or public release. Listening and Speaking
 remain non-public.
 
+## R6 Speaking Core
+
+R6 is **IN PROGRESS / INTERNAL**. Speaking Core reuses the current
+language-scoped shared Media Learning session from Listening and adds local
+microphone recording, RNNoise-based voice enhancement when available, and
+immediate playback of the learner's take. When configured, the stopped take
+is sent transiently through the authenticated speech API to Groq ASR. Orena
+does not persist the audio take to the learner account.
+
+The recognized transcript is compared deterministically with the selected
+source segment to show content-match plus missing/extra token feedback. This
+is not pronunciation, fluency, or proficiency scoring. Speaking remains
+**DEVELOPMENT** and non-public. R2 `speech_asr` control-plane activation,
+`pronunciation_evaluator`, and `speaking_evaluator` remain later gates.
+
 ## R2 AI Capability Control Plane
 
 - Slice 1: **CLOSED / APPROVED / merged**.
@@ -181,9 +199,13 @@ Deterministic capability:
 
 - `reading_evaluator`
 
+Reserved in the R2 control plane and not activated:
+
+- `speech_asr` — R6 currently uses a direct internal Groq ASR adapter outside
+  control-plane activation.
+
 Reserved and unimplemented:
 
-- `speech_asr`
 - `pronunciation_evaluator`
 - `speaking_evaluator`
 
@@ -197,7 +219,7 @@ fallback and no silent paid-provider failover.
 
 ## Current next development areas
 
-Two development tracks are active:
+Three development tracks are active:
 
 - R2 remains **IN PROGRESS**. Static activation readiness/preflight is its
   current technical checkpoint. Production migration/config initialization,
@@ -205,5 +227,10 @@ Two development tracks are active:
   human gates.
 - M1 remains **IN PROGRESS** as a cross-cutting product-development track
   pending an explicit program-level close review. M1.1 through M1.6 are closed
-  and merged. Shared-media Shadowing now reuses the same canonical media object
-  and segments as Listening without promoting Listening or Speaking to PUBLIC.
+  and merged. Shared-media Shadowing reuses the same canonical media object and
+  segments as Listening.
+- R6 is **IN PROGRESS / INTERNAL**. Speaking Core provides shared-media
+  shadowing, enhanced local record/playback, Groq ASR transcription, and
+  deterministic content-match feedback. Pronunciation scoring, full Speaking
+  evaluation, durable progress, R2 `speech_asr` activation, and public release
+  remain later gates.

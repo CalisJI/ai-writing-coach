@@ -71,6 +71,18 @@ export const SCREEN_CONTRACT={
     accentPolicy:'accent only on import, selected segment and replay',
     fidelityMode:'high',
   },
+  speak:{
+    learnerGoal:'Reuse one canonical media segment to practice speaking aloud and hear one local take back.',
+    dominantIdea:'The source segment and the learner’s own voice are the two primary learning objects.',
+    primaryAction:'Record my voice',
+    progressiveDisclosure:'Source playback → selected segment → local recording → self-comparison.',
+    evidence:'Canonical Media Learning segment plus browser-tab-only recording attempts; no proficiency score',
+    visualHero:'Shared media source beside the learner voice recorder',
+    surfaceHierarchy:'canvas → source video hero → speaking focus surface → local recorder',
+    themeBias:'focus-neutral; dark allowed by preference',
+    accentPolicy:'accent only on the active segment and primary record action',
+    fidelityMode:'high',
+  },
   library:{
     learnerGoal:'Retain language worth using again.',
     dominantIdea:'Recall before reveal.',

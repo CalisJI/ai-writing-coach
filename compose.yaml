@@ -23,8 +23,8 @@ services:
       USER_DATA_ROOT: /data/users
       PLATFORM_DB: /data/platform.db
       PRODUCT_DB: /data/product.db
-      PERSISTENCE_BACKEND: ${PERSISTENCE_BACKEND:-sqlite}
-      POSTGRES_RUNTIME_URL: ${POSTGRES_RUNTIME_URL:-}
+      PERSISTENCE_BACKEND: ${PERSISTENCE_BACKEND:-postgresql}
+      POSTGRES_RUNTIME_URL: ${POSTGRES_RUNTIME_URL:-postgresql+psycopg://becoming:becoming-local-dev@postgres:5432/becoming}
       POSTGRES_SHADOW_URL: ${POSTGRES_SHADOW_URL:-}
       PLATFORM_ADMIN_EMAILS: ${PLATFORM_ADMIN_EMAILS:-}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
@@ -34,6 +34,17 @@ services:
       DEEPSEEK_BASE_URL: ${DEEPSEEK_BASE_URL:-https://api.deepseek.com}
       DEEPSEEK_MODELS: ${DEEPSEEK_MODELS:-deepseek-v4-flash,deepseek-v4-pro}
       CLOUD_AI_TIMEOUT: ${CLOUD_AI_TIMEOUT:-180}
+      SUPADATA_API_KEY: ${SUPADATA_API_KEY:-}
+      SUPADATA_REQUEST_TIMEOUT_SECONDS: ${SUPADATA_REQUEST_TIMEOUT_SECONDS:-20}
+      SUPADATA_MAX_WAIT_SECONDS: ${SUPADATA_MAX_WAIT_SECONDS:-150}
+      SUPADATA_POLL_INTERVAL_SECONDS: ${SUPADATA_POLL_INTERVAL_SECONDS:-1}
+      GROQ_API_KEY: ${GROQ_API_KEY:-}
+      GROQ_ASR_MODEL: ${GROQ_ASR_MODEL:-whisper-large-v3-turbo}
+      GROQ_ASR_TIMEOUT_SECONDS: ${GROQ_ASR_TIMEOUT_SECONDS:-120}
+      GROQ_ASR_MAX_BYTES: ${GROQ_ASR_MAX_BYTES:-25165824}
+    depends_on:
+      postgres:
+        condition: service_healthy
     volumes:
       - writing_data:/data
       - ./app.py:/app/app.py:ro
@@ -51,7 +62,6 @@ services:
   postgres:
     image: postgres:17-alpine
     restart: unless-stopped
-    profiles: ["postgres"]
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-becoming}
       POSTGRES_USER: ${POSTGRES_USER:-becoming}

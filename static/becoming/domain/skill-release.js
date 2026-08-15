@@ -3,6 +3,7 @@ const SKILL_BY_ROUTE=Object.freeze({
   review:'writing',
   read:'reading',
   listen:'listening',
+  speak:'speaking',
 });
 
 function byKey(skills=[]){

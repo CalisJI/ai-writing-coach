@@ -32,6 +32,10 @@ from writing_coach.media_providers.youtube import (
     YouTubeMediaProviderAdapter,
     normalize_youtube_transcript,
 )
+from writing_coach.media_providers.supadata import (
+    SupadataTranscript,
+    SupadataTranscriptChunk,
+)
 from writing_coach.media_translation import (
     MediaTranslationResult,
     MediaTranslationStatus,
@@ -44,6 +48,8 @@ ROOT = Path(__file__).resolve().parents[1]
 
 @pytest.fixture(autouse=True)
 def no_live_provider_network(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("SUPADATA_API_KEY", raising=False)
+
     def fail_network(*_args: object, **_kwargs: object) -> None:
         raise AssertionError("M1.2 unit tests must not access the network")
 
@@ -212,6 +218,54 @@ def test_caption_unavailable_returns_truthful_transcript_null_state() -> None:
     assert response["asset"]["translation_available"] is False
     assert response["transcript"] is None
     assert response["translations"] == []
+
+
+
+class FakeFallbackTranscriptClient:
+    def __init__(self) -> None:
+        self.calls: list[tuple[str, str, str]] = []
+
+    def fetch(
+        self,
+        source_url: str,
+        preferred_language: str,
+        *,
+        mode: str = "auto",
+    ) -> SupadataTranscript:
+        self.calls.append((source_url, preferred_language, mode))
+        return SupadataTranscript(
+            language=preferred_language,
+            chunks=(
+                SupadataTranscriptChunk(
+                    text="Recovered caption",
+                    offset_ms=0,
+                    duration_ms=1200,
+                    language=preferred_language,
+                ),
+            ),
+        )
+
+
+@pytest.mark.parametrize("native_error", (ProviderTimedOut(), ProviderRequestFailed()))
+def test_recoverable_native_caption_failure_uses_supadata(native_error: Exception) -> None:
+    metadata = FakeMetadataClient()
+    captions = FakeCaptionClient(None, error=native_error)
+    fallback = FakeFallbackTranscriptClient()
+    adapter = YouTubeMediaProviderAdapter(
+        metadata_client=metadata,
+        caption_client=captions,
+        fallback_transcript_client=fallback,
+    )
+
+    acquisition = adapter.acquire(f"https://youtu.be/{VIDEO_ID}", "en")
+
+    transcript = acquisition.media_object.transcript
+    assert transcript is not None
+    assert transcript.segments[0].original_text == "Recovered caption"
+    assert fallback.calls == [
+        (f"https://www.youtube.com/watch?v={VIDEO_ID}", "en", "auto")
+    ]
+
 
 
 @pytest.mark.parametrize(

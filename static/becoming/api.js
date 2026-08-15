@@ -86,6 +86,15 @@ export const api={
     headers:JSON_HEADERS,
     body:JSON.stringify(payload),
   }),
+  transcribeSpeech:(blob,language,filename='recording.webm')=>{
+    const form=new FormData();
+    form.append('file',blob,filename);
+    if(language)form.append('language',language);
+    return request('/api/speech/transcribe',{
+      method:'POST',
+      body:form,
+    });
+  },
   essays:()=>request('/api/essays'),
   essay:(id)=>request(`/api/essays/${encodeURIComponent(id)}`),
   linguisticAnnotations:(id)=>request(`/api/essays/${encodeURIComponent(id)}/linguistic-annotations`,{

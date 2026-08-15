@@ -15,4 +15,6 @@ jobs:
       - run: pip install -r requirements.txt pytest
       - run: python scripts/validate_architecture.py
       - run: python -m pytest -q test_app.py tests
+        env:
+          PERSISTENCE_BACKEND: sqlite
       - run: docker build -t ai-writing-coach:test .

@@ -10,6 +10,7 @@ that `main` HEAD remain identical after docs-only or governance-only commits.
 
 - R2 — AI Capability Control Plane: **IN PROGRESS / HUMAN-GATED ACTIVATION**
 - M1 — Media Learning Foundation: **IN PROGRESS / CROSS-CUTTING**
+- R6 — Speaking Core: **IN PROGRESS / INTERNAL**
 
 ## Completed
 
@@ -71,12 +72,28 @@ release was added.
   not fall back to `active_selection()`.
 - Capability runtime activation has not occurred. Rolling back to `LEGACY`
   preserves capability configuration.
+- Speaking Core is available to the internal audience while remaining
+  DEVELOPMENT and non-public. It reuses the language-scoped shared media
+  session and records microphone audio locally with RNNoise enhancement when
+  supported. After stop, the take may be sent transiently through the
+  authenticated `/api/speech/transcribe` boundary to the configured Groq ASR
+  provider; Orena does not persist the audio to the learner account.
+- Returned ASR text may be compared deterministically with the source segment
+  for content-match plus missing/extra token feedback. This is transcript
+  comparison only, not a pronunciation, fluency, or proficiency score.
+- The R2 `speech_asr` capability remains reserved/unactivated; this R6 internal
+  checkpoint uses a direct bounded provider adapter outside R2 activation.
 
 ## Next checkpoints
 
 - M1 product-development lane: M1.1 through M1.6 are closed and merged.
   Keep M1 program status IN PROGRESS until a separate explicit program-level
   close review. Listening and Speaking remain non-public.
+- R6 product-development lane: internal Speaking Core is IN PROGRESS with
+  shared-media shadowing, RNNoise-enhanced local record/playback, Groq ASR
+  transcription, and deterministic transcript content-match feedback.
+  Pronunciation scoring, full Speaking evaluation, durable progress, R2
+  `speech_asr` activation, and PUBLIC promotion remain later gates.
 - R2 control-plane lane: static activation-readiness gate and operator
   checkpoint. R2 remains IN PROGRESS.
 

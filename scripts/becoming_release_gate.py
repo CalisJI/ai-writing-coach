@@ -62,8 +62,19 @@ def main() -> None:
         root / "static" / "becoming" / "domain" / "screen-contract.js",
         root / "static" / "becoming" / "domain" / "skill-release.js",
         root / "static" / "becoming" / "domain" / "shadowing-practice.js",
+        root / "static" / "becoming" / "domain" / "shared-media-session.js",
+        root / "static" / "becoming" / "components" / "audio-recorder.js",
         root / "static" / "becoming" / "screens" / "listening.js",
+        root / "static" / "becoming" / "screens" / "speaking.js",
+        root / "static" / "becoming" / "speaking.css",
+        root / "writing_coach" / "speech_api.py",
+        root / "writing_coach" / "speech_asr.py",
         root / "scripts" / "test_shadowing_practice.mjs",
+        root / "scripts" / "test_speaking_core.mjs",
+        root / "scripts" / "test_speaking_groq_flow.mjs",
+        root / "scripts" / "test_speaking_rnnoise_contract.mjs",
+        root / "scripts" / "test_speaking_voice_enhancement_contract.mjs",
+        root / "scripts" / "test_speech_api_bounds.py",
         root / "static" / "becoming" / "domain" / "rank.js",
         root / "static" / "becoming" / "domain" / "feedback-map.js",
         root / "static" / "becoming" / "screens" / "home.js",
@@ -113,7 +124,13 @@ def main() -> None:
     screen_contract = read("static/becoming/domain/screen-contract.js")
     skill_release = read("static/becoming/domain/skill-release.js")
     shadowing_practice = read("static/becoming/domain/shadowing-practice.js")
+    shared_media_session = read("static/becoming/domain/shared-media-session.js")
+    audio_recorder = read("static/becoming/components/audio-recorder.js")
     listening_screen = read("static/becoming/screens/listening.js")
+    speaking_screen = read("static/becoming/screens/speaking.js")
+    speaking_css = read("static/becoming/speaking.css")
+    speech_api = read("writing_coach/speech_api.py")
+    speech_asr = read("writing_coach/speech_asr.py")
     skill_registry = read("writing_coach/core/skill_registry.py")
     platform_api = read("writing_coach/core/platform_api.py")
     rank_domain = read("static/becoming/domain/rank.js")
@@ -489,15 +506,72 @@ def main() -> None:
     speaking_contract = re.search(
         r'SkillCapability\(\s*key="speaking",\s*'
         r'release_state=SkillReleaseState\.DEVELOPMENT,\s*'
-        r'source_available=False,\s*'
-        r'internal_available=False,\s*\)',
+        r'source_available=True,\s*'
+        r'internal_available=True,\s*\)',
         skill_registry,
         re.S,
     )
     if not speaking_contract:
         errors.append(
-            "M1.6 must not promote Speaking source/internal/public availability"
+            "Speaking Core must remain DEVELOPMENT + internal-only, not PUBLIC"
         )
+
+    # Product-visible internal Speaking Core: shared media + browser recording +
+    # authenticated ASR boundary. Audio remains non-persistent and content-match
+    # feedback must not be represented as pronunciation/proficiency scoring.
+    require_contains(errors, shared_media_session, [
+        "setSharedMediaSession", "getSharedMediaSession",
+        "selectSharedMediaSegment", "learning_language",
+    ], "shared media session bridge")
+    for forbidden in ["fetch(", "localStorage", "sessionStorage"]:
+        if forbidden in shared_media_session:
+            errors.append(f"shared media session must remain memory-only: {forbidden}")
+
+    require_contains(errors, audio_recorder, [
+        "getUserMedia", "MediaRecorder", "createObjectURL",
+        "revokeObjectURL", "cleanup", "processingMode=processingPipeline.mode",
+        "mode:'rnnoise-enhanced'",
+    ], "local enhanced audio recorder")
+    require_contains(errors, speaking_screen, [
+        "getSharedMediaSession", "createLocalAudioRecorder",
+        "data-speaking-record", "data-speaking-stop",
+        "data-speaking-discard", "data-speaking-replay",
+        "audio controls", "go('listen')",
+        "transcribe=api.transcribeSpeech", "await transcribe(",
+        "data-speaking-asr-result", "data-speaking-content-match",
+    ], "internal Speaking Core")
+    require_contains(errors, api, [
+        "transcribeSpeech:", "/api/speech/transcribe", "new FormData()",
+    ], "Speaking API client boundary")
+    require_contains(errors, speech_api, [
+        'router = APIRouter(prefix="/api/speech"',
+        'router.post("/transcribe")',
+        "async def _read_upload_limited",
+        "data = await _read_upload_limited(file, max_bytes=max_bytes)",
+    ], "bounded authenticated speech API")
+    require_contains(errors, speech_asr, [
+        'provider_id = "groq"', "def max_bytes(self) -> int:",
+        "whisper-large-v3-turbo",
+    ], "Groq speech ASR adapter")
+    for forbidden in [
+        "fetch(", "FormData", "XMLHttpRequest",
+        "SpeechRecognition", "pronunciation_evaluator",
+        "speaking_evaluator", "accuracy_percent",
+    ]:
+        if forbidden in speaking_screen or forbidden in audio_recorder:
+            errors.append(
+                f"Speaking screen/recorder bypasses API boundary or claims unsupported scoring: {forbidden}"
+            )
+    require_contains(errors, template, [
+        'data-route="speak" data-skill="speaking" hidden',
+        "/becoming-assets/speaking.css?v=2.15.7",
+    ], "Speaking internal navigation")
+    require_contains(errors, router, ["'speak'"], "Speaking route")
+    require_contains(errors, skill_release, ["speak:'speaking'"], "Speaking release route")
+    require_contains(errors, app_js, ["renderSpeaking", "speak:renderSpeaking"], "Speaking app registration")
+    require_contains(errors, screen_contract, ["speak:{", "Record my voice"], "Speaking screen contract")
+    if ".speaking-workspace" not in speaking_css or ".speaking-recorder" not in speaking_css:
+        errors.append("Speaking Core product-visible layout styles missing")
 
     # Navigation routes should be tactile controls without adding/changing routes.
     for needle in [
@@ -705,8 +779,24 @@ def main() -> None:
         "_valid_runtime_url(raw_runtime_url)", 'APP_BIND_HOST", "")).strip() == "127.0.0.1"',
         'CLOUDFLARE_TUNNEL_TOKEN", "")).strip()',
     ], "v1.4 secret-safe public staging validator")
-    if 'profiles: ["postgres"]' not in compose:
-        errors.append("v1.3 no-cutover guard: PostgreSQL compose service is not opt-in")
+    # v1.4 PostgreSQL-first runtime contract. D-001/D-002 supersede the
+    # historical pre-cutover rule that required PostgreSQL to be opt-in.
+    writing_service = compose.split("  writing-coach:", 1)[1].split("\n  postgres:", 1)[0]
+    postgres_service = compose.split("\n  postgres:", 1)[1].split("\n  cloudflared:", 1)[0]
+    if "PERSISTENCE_BACKEND: ${PERSISTENCE_BACKEND:-postgresql}" not in writing_service:
+        errors.append("v1.4 PostgreSQL-first guard: writing-coach default backend is not PostgreSQL")
+    if "POSTGRES_RUNTIME_URL: ${POSTGRES_RUNTIME_URL:-postgresql+psycopg://" not in writing_service:
+        errors.append("v1.4 PostgreSQL-first guard: local runtime URL default is missing")
+    if "POSTGRES_SHADOW_URL: ${POSTGRES_SHADOW_URL:-}" not in writing_service:
+        errors.append("v1.4 PostgreSQL-first guard: shadow URL separation is missing")
+    if "POSTGRES_RUNTIME_URL: ${POSTGRES_SHADOW_URL" in compose:
+        errors.append("v1.4 PostgreSQL-first guard: shadow URL must never select runtime")
+    if "depends_on:" not in writing_service or "condition: service_healthy" not in writing_service:
+        errors.append("v1.4 PostgreSQL-first guard: writing-coach does not wait for healthy PostgreSQL")
+    if 'profiles: ["postgres"]' in postgres_service:
+        errors.append("v1.4 PostgreSQL-first guard: PostgreSQL service must not be opt-in")
+    if 'backend=os.getenv("PERSISTENCE_BACKEND", "postgresql")' not in app:
+        errors.append("v1.4 PostgreSQL-first guard: application entrypoint can silently default to SQLite")
 
     # Repository boundaries remain storage-neutral while the central runtime owns
     # the selected SQLite or PostgreSQL implementations.

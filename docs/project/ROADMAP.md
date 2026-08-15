@@ -15,7 +15,7 @@ require approval and must remain consistent with `PROJECT_STATE.md` and
 | R3 | Writing Evaluation Completion | PLANNED |
 | R4 | Multilingual Writing Language Lens | PLANNED |
 | R5 | Grammar Knowledge System | PLANNED |
-| R6 | Speaking Core | PLANNED |
+| R6 | Speaking Core | IN PROGRESS |
 | R7 | Speaking Evaluation Completion | PLANNED |
 | R8 | Public Product Gate: Writing + Speaking EN/ZH | PLANNED |
 | R9 | Speaking Advanced / Shadowing Studio | PLANNED |
@@ -85,7 +85,12 @@ media learning may exist.
 R3 completes Writing evaluation quality and evidence contracts. R4 strengthens
 the shared multilingual Writing contract with language-specific lenses only
 where linguistically necessary. R5 establishes the Grammar knowledge system.
-R6 builds Speaking Core. R7 completes Speaking evaluation.
+R6 Speaking Core is **IN PROGRESS / INTERNAL** with shared-media practice,
+RNNoise-enhanced local record/playback, Groq ASR transcription, and
+deterministic transcript content-match feedback. This bounded internal core
+may advance ahead of R3-R5 closeout because it does not depend on their
+implementation. R7 later adds pronunciation/full Speaking evaluation and
+durable scoring contracts.
 
 These stages must preserve one shared product flow for EN and ZH rather than
 forking independent language products.

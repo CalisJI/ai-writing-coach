@@ -124,9 +124,13 @@ def test_environment_example_remains_a_usable_development_configuration() -> Non
     assert resolved.app_env == "development"
     assert resolved.public_base_url == "http://127.0.0.1:8000"
     assert values["APP_BIND_HOST"] == "0.0.0.0"
-    assert values["PERSISTENCE_BACKEND"] == "sqlite"
+    assert values["PERSISTENCE_BACKEND"] == "postgresql"
+    assert values["POSTGRES_RUNTIME_URL"] == (
+        "postgresql+psycopg://becoming:becoming-local-dev@postgres:5432/becoming"
+    )
     example = (root / ".env.example").read_text(encoding="utf-8")
-    assert "SQLite is NOT authoritative" in example
-    assert "Production-like staging requires PERSISTENCE_BACKEND=postgresql" in example
+    assert "PostgreSQL by default in local development" in example
+    assert "SQLite is retained only for explicit tests" in example
+    assert "Production-like staging additionally requires APP_BIND_HOST=127.0.0.1" in example
     assert (root / "VERSION").read_text(encoding="utf-8").strip() == "1.4.0"
     assert (root / "BECOMING_FRONTEND_VERSION").read_text(encoding="utf-8").strip() == "2.15.7"

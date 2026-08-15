@@ -13,6 +13,7 @@ import {renderWrite} from './screens/write.js';
 import {renderReview} from './screens/review.js';
 import {renderReading} from './screens/reading.js';
 import {renderListening} from './screens/listening.js';
+import {renderSpeaking} from './screens/speaking.js';
 import {renderLibrary} from './screens/library.js';
 import {renderJourney} from './screens/journey.js';
 import {renderProfile} from './screens/profile.js';
@@ -25,6 +26,7 @@ const SCREEN_INDEX={
   review:'03',
   read:'04',
   listen:'05',
+  speak:'06',
   library:'06',
   journey:'07',
   profile:'08',
@@ -38,6 +40,7 @@ const SCREENS={
   review:renderReview,
   read:renderReading,
   listen:renderListening,
+  speak:renderSpeaking,
   library:renderLibrary,
   journey:renderJourney,
   profile:renderProfile,
@@ -161,6 +164,10 @@ async function changeLanguage(language){
 }
 
 async function renderCurrent(){
+  if(typeof root._cleanupScreen==='function'){
+    root._cleanupScreen();
+    delete root._cleanupScreen;
+  }
   if(typeof root._cleanupReviewSheet==='function'){
     root._cleanupReviewSheet();
     delete root._cleanupReviewSheet;
