@@ -85,6 +85,89 @@ const MATCH_COPY={
   },
 };
 const matchCopy=()=>MATCH_COPY[uiLocale()]||MATCH_COPY.en;
+const PRON_COPY={
+  en:{
+    assess:'Assess pronunciation',busy:'Assessing pronunciation...',title:'Pronunciation',
+    overall:'Pronunciation',accuracy:'Accuracy',fluency:'Fluency',completeness:'Completeness',
+    prosody:'Prosody',focus:'Words to focus on',phonemes:'Sounds',
+    unavailable:'Pronunciation scoring is not configured on this environment.',
+    failed:'Pronunciation assessment is temporarily unavailable. Your recording and content match still work.',
+    demo:'DEMO score — UI testing only. Your pronunciation quality is not being judged.',
+    disclaimer:'Provider-backed scores apply only to this recorded segment, not global proficiency.',
+  },
+  vi:{
+    assess:'Chấm phát âm',busy:'Đang chấm phát âm...',title:'Phát âm',
+    overall:'Tổng quan',accuracy:'Độ chính xác',fluency:'Độ trôi chảy',completeness:'Độ đầy đủ',
+    prosody:'Ngữ điệu',focus:'Từ cần tập trung',phonemes:'Âm',
+    unavailable:'Môi trường này chưa cấu hình dịch vụ chấm phát âm.',
+    failed:'Tạm thời chưa chấm được phát âm. Lượt ghi và khớp nội dung vẫn hoạt động.',
+    demo:'Điểm DEMO — chỉ để test giao diện. Chất lượng phát âm của bạn chưa được chấm.',
+    disclaimer:'Điểm từ provider chỉ áp dụng cho đoạn ghi này, không phải năng lực tổng quát.',
+  },
+  zh:{
+    assess:'评估发音',busy:'正在评估发音…',title:'发音',
+    overall:'发音总分',accuracy:'准确度',fluency:'流利度',completeness:'完整度',
+    prosody:'韵律',focus:'需要重点练习的词',phonemes:'音素',
+    unavailable:'当前环境尚未配置发音评分服务。',
+    failed:'暂时无法完成发音评估。录音和内容匹配仍可继续使用。',
+    demo:'DEMO 分数——仅用于界面测试，并未真正评估你的发音质量。',
+    disclaimer:'服务商评分仅针对本次录音片段，不代表整体语言能力。',
+  },
+};
+const pronCopy=()=>PRON_COPY[uiLocale()]||PRON_COPY.en;
+
+function pronunciationMarkup(model){
+  const c=pronCopy();
+  if(model.pronunciationStatus==='loading'){
+    return `<p class="speaking-recorder-status" data-speaking-pronunciation-status role="status">${esc(c.busy)}</p>`;
+  }
+  if(model.pronunciationStatus==='unavailable'){
+    return `<p class="speaking-recorder-status speaking-pronunciation-unavailable" data-speaking-pronunciation-status role="status">${esc(c.unavailable)}</p>`;
+  }
+  if(model.pronunciationStatus==='error'){
+    return `<p class="speaking-recorder-status speaking-pronunciation-error" data-speaking-pronunciation-status role="alert">${esc(model.pronunciationErrorMessage||c.failed)}</p>`;
+  }
+  const result=model.pronunciation;
+  if(!result)return '';
+
+  const metrics=[
+    [c.overall,result.pron_score],
+    [c.accuracy,result.accuracy_score],
+    [c.fluency,result.fluency_score],
+    [c.completeness,result.completeness_score],
+    [c.prosody,result.prosody_score],
+  ].filter(([,value])=>typeof value==='number');
+
+  const weakWords=(Array.isArray(result.words)?result.words:[])
+    .filter(word=>(typeof word.accuracy_score==='number'&&word.accuracy_score<80)
+      ||String(word.error_type||'None').toLowerCase()!=='none')
+    .slice(0,6);
+
+  const synthetic=result.score_kind==='synthetic_demo';
+  return `<section class="speaking-pronunciation ${synthetic?'is-synthetic':''}" data-speaking-pronunciation data-score-kind="${esc(result.score_kind||'provider')}">
+    ${synthetic?`<p class="speaking-pronunciation-demo" role="note">${esc(c.demo)}</p>`:''}
+    <div class="speaking-pronunciation-head">
+      <div><strong>${esc(c.title)}</strong><small>${esc(result.provider||'')} · ${esc(result.locale||'')}</small></div>
+    </div>
+    <div class="speaking-pronunciation-metrics">
+      ${metrics.map(([label,value])=>`<div><span>${esc(label)}</span><strong>${Math.round(value)}</strong></div>`).join('')}
+    </div>
+    ${weakWords.length?`<div class="speaking-pronunciation-focus">
+      <strong>${esc(c.focus)}</strong>
+      ${weakWords.map(word=>{
+        const weakPhonemes=(Array.isArray(word.phonemes)?word.phonemes:[])
+          .filter(item=>typeof item.accuracy_score==='number'&&item.accuracy_score<70)
+          .slice(0,6);
+        return `<div class="speaking-pronunciation-word">
+          <span><b>${esc(word.word||'')}</b>${typeof word.accuracy_score==='number'?` <small>${Math.round(word.accuracy_score)}</small>`:''}</span>
+          ${weakPhonemes.length?`<span class="speaking-pronunciation-phonemes"><small>${esc(c.phonemes)}</small> ${weakPhonemes.map(item=>`<i>${esc(item.phoneme)} ${Math.round(item.accuracy_score)}</i>`).join(' ')}</span>`:''}
+        </div>`;
+      }).join('')}
+    </div>`:''}
+    <p class="speaking-pronunciation-disclaimer">${esc(c.disclaimer)}</p>
+  </section>`;
+}
+
 const stamp=ms=>`${Math.floor(ms/60000)}:${String(Math.floor(ms/1000)%60).padStart(2,'0')}`;
 const transcriptTokenMarkup=value=>transcriptTokens(value).map(token=>token.word
   ?`<span class="transcript-token">${esc(token.text)}</span>`
@@ -108,7 +191,7 @@ function emptyPage(){
   </section>`;
 }
 
-export function createSpeakingController({session,recorder=createLocalAudioRecorder(),transcribe=api.transcribeSpeech,onChange=()=>{}}={}){
+export function createSpeakingController({session,recorder=createLocalAudioRecorder(),transcribe=api.transcribeSpeech,pronunciationAssess=api.assessPronunciation,onChange=()=>{}}={}){
   const payload=session?.payload||null;
   const segments=payload?.transcript?.segments||[];
   const ids=segments.map(segment=>segment.segment_id);
@@ -123,7 +206,12 @@ export function createSpeakingController({session,recorder=createLocalAudioRecor
     asrError:'',
     asrErrorMessage:'',
     evaluation:null,
+    pronunciationStatus:'idle',
+    pronunciation:null,
+    pronunciationError:'',
+    pronunciationErrorMessage:'',
   };
+  let pronunciationGeneration=0;
   const changed=()=>onChange({...model});
 
   return {
@@ -186,6 +274,7 @@ export function createSpeakingController({session,recorder=createLocalAudioRecor
                   <button class="button button-primary" type="button" data-speaking-record ${recording.status==='recording'||!recording.supported?'disabled':''}>${esc(c.record)}</button>
                   <button class="button button-secondary" type="button" data-speaking-stop ${recording.status==='recording'?'':'disabled'}>${esc(c.stop)}</button>
                   <button class="button button-secondary" type="button" data-speaking-discard ${recording.url?'':'disabled'}>${esc(c.discard)}</button>
+                  <button class="button button-secondary" type="button" data-speaking-pronunciation-action ${recording.blob&&model.pronunciationStatus!=='loading'?'':'disabled'}>${esc(pronCopy().assess)}</button>
                   <span class="speaking-attempt-count">${esc(c.attempts)}: ${model.attempts[model.selected]||0}</span>
                 </div>
                 ${statusText?`<p class="speaking-recorder-status" role="status">${esc(statusText)}</p>`:''}
@@ -223,6 +312,7 @@ export function createSpeakingController({session,recorder=createLocalAudioRecor
                     <p>${model.evaluation.extra_tokens.map(token=>`<span class="speaking-feedback-token">${esc(token)}</span>`).join(' ')}</p>
                   </div>`:''}
                 </div>`:''}
+                ${pronunciationMarkup(model)}
                 ${model.asrError?`<p class="speaking-recorder-status speaking-asr-error" role="alert">${esc(model.asrErrorMessage||asrCopy().failed)} <small>${esc(model.asrError)}</small></p>`:''}
                 <p class="speaking-privacy">${esc(matchCopy().privacy)}</p>
                 <p class="speaking-no-score">${esc(matchCopy().disclaimer)}</p>
@@ -236,6 +326,11 @@ export function createSpeakingController({session,recorder=createLocalAudioRecor
       if(!ids.includes(segmentId))return false;
       if(recorder.snapshot().status==='recording')return false;
       recorder.discard();
+      pronunciationGeneration++;
+      model.pronunciationStatus='idle';
+      model.pronunciation=null;
+      model.pronunciationError='';
+      model.pronunciationErrorMessage='';
       model.selected=segmentId;
       model.asrStatus='idle';
       model.asrTranscript='';
@@ -253,6 +348,11 @@ export function createSpeakingController({session,recorder=createLocalAudioRecor
       return this.select(target);
     },
     async startRecording(){
+      pronunciationGeneration++;
+      model.pronunciationStatus='idle';
+      model.pronunciation=null;
+      model.pronunciationError='';
+      model.pronunciationErrorMessage='';
       model.asrStatus='idle';
       model.asrTranscript='';
       model.asrWords=[];
@@ -303,9 +403,47 @@ export function createSpeakingController({session,recorder=createLocalAudioRecor
       changed();
       return true;
     },
+    async assessPronunciation(){
+      const recording=recorder.snapshot();
+      const selectedSegment=segments.find(item=>item.segment_id===model.selected);
+      if(!recording.blob||!selectedSegment||model.pronunciationStatus==='loading')return false;
+
+      const generation=++pronunciationGeneration;
+      model.pronunciationStatus='loading';
+      model.pronunciation=null;
+      model.pronunciationError='';
+      model.pronunciationErrorMessage='';
+      changed();
+
+      const mime=recording.mime_type||'audio/webm';
+      const extension=mime.includes('ogg')?'ogg':mime.includes('mp4')?'m4a':'webm';
+      try{
+        const response=await pronunciationAssess(
+          recording.blob,
+          session.learning_language,
+          selectedSegment.original_text||'',
+          `speaking-take.${extension}`,
+        );
+        if(generation!==pronunciationGeneration)return false;
+        model.pronunciation=response;
+        model.pronunciationStatus='ready';
+      }catch(error){
+        if(generation!==pronunciationGeneration)return false;
+        model.pronunciationStatus=error?.category==='pronunciation_unconfigured'?'unavailable':'error';
+        model.pronunciationError=error?.category||String(error?.status||'pronunciation_failed');
+        model.pronunciationErrorMessage=typeof error?.message==='string'?error.message:'';
+      }
+      changed();
+      return model.pronunciationStatus==='ready';
+    },
     discardRecording(){
       const discarded=recorder.discard();
       if(discarded){
+        pronunciationGeneration++;
+        model.pronunciationStatus='idle';
+        model.pronunciation=null;
+        model.pronunciationError='';
+        model.pronunciationErrorMessage='';
         model.asrStatus='idle';
         model.asrTranscript='';
         model.asrWords=[];
@@ -348,6 +486,7 @@ export async function renderSpeaking(root,{recorderFactory=createLocalAudioRecor
     root.querySelector('[data-speaking-record]')?.addEventListener('click',()=>controller.startRecording());
     root.querySelector('[data-speaking-stop]')?.addEventListener('click',()=>controller.stopRecording());
     root.querySelector('[data-speaking-discard]')?.addEventListener('click',()=>controller.discardRecording());
+    root.querySelector('[data-speaking-pronunciation-action]')?.addEventListener('click',()=>controller.assessPronunciation());
     root.querySelector('[data-speaking-replay]')?.addEventListener('click',()=>{
       const segment=session.payload.transcript.segments.find(item=>item.segment_id===controller.model.selected);
       if(segment)replaySegment(root,session.payload.playback,segment.start_ms,segment.end_ms,controller.model.playbackRate);

@@ -13,6 +13,8 @@ for needle in (
     "if total > max_bytes:",
     "raise SpeechAsrPayloadTooLarge()",
     "data = await _read_upload_limited(file, max_bytes=max_bytes)",
+    "async def _read_pronunciation_upload_limited",
+    "data = await _read_pronunciation_upload_limited(file, max_bytes=max_bytes)",
 ):
     assert needle in source, needle
 

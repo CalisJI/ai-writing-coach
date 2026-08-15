@@ -69,6 +69,9 @@ def main() -> None:
         root / "static" / "becoming" / "speaking.css",
         root / "writing_coach" / "speech_api.py",
         root / "writing_coach" / "speech_asr.py",
+        root / "writing_coach" / "speech_pronunciation.py",
+        root / "tests" / "test_speech_pronunciation.py",
+        root / "scripts" / "test_m3_pronunciation_contract.mjs",
         root / "scripts" / "test_shadowing_practice.mjs",
         root / "scripts" / "test_speaking_core.mjs",
         root / "scripts" / "test_speaking_groq_flow.mjs",
@@ -131,6 +134,7 @@ def main() -> None:
     speaking_css = read("static/becoming/speaking.css")
     speech_api = read("writing_coach/speech_api.py")
     speech_asr = read("writing_coach/speech_asr.py")
+    speech_pronunciation = read("writing_coach/speech_pronunciation.py")
     skill_registry = read("writing_coach/core/skill_registry.py")
     platform_api = read("writing_coach/core/platform_api.py")
     rank_domain = read("static/becoming/domain/rank.js")
@@ -517,8 +521,8 @@ def main() -> None:
         )
 
     # Product-visible internal Speaking Core: shared media + browser recording +
-    # authenticated ASR boundary. Audio remains non-persistent and content-match
-    # feedback must not be represented as pronunciation/proficiency scoring.
+    # authenticated ASR and provider-backed pronunciation boundaries. Audio remains
+    # non-persistent; pronunciation scores are per-take evidence, not proficiency.
     require_contains(errors, shared_media_session, [
         "setSharedMediaSession", "getSharedMediaSession",
         "selectSharedMediaSegment", "learning_language",
@@ -538,21 +542,32 @@ def main() -> None:
         "data-speaking-discard", "data-speaking-replay",
         "audio controls", "go('listen')",
         "transcribe=api.transcribeSpeech", "await transcribe(",
+        "pronunciationAssess=api.assessPronunciation", "await pronunciationAssess(",
         "data-speaking-asr-result", "data-speaking-content-match",
+        "data-speaking-pronunciation", "data-score-kind", "synthetic_demo",
     ], "internal Speaking Core")
     require_contains(errors, api, [
         "transcribeSpeech:", "/api/speech/transcribe", "new FormData()",
+        "assessPronunciation:", "/api/speech/pronunciation",
     ], "Speaking API client boundary")
     require_contains(errors, speech_api, [
         'router = APIRouter(prefix="/api/speech"',
         'router.post("/transcribe")',
+        'router.post("/pronunciation")',
+        "configure_speech_pronunciation",
         "async def _read_upload_limited",
+        "async def _read_pronunciation_upload_limited",
         "data = await _read_upload_limited(file, max_bytes=max_bytes)",
     ], "bounded authenticated speech API")
     require_contains(errors, speech_asr, [
         'provider_id = "groq"', "def max_bytes(self) -> int:",
         "whisper-large-v3-turbo",
     ], "Groq speech ASR adapter")
+    require_contains(errors, speech_pronunciation, [
+        'provider_id = "azure-speech"', "AZURE_SPEECH_KEY", "AZURE_SPEECH_REGION",
+        "Pronunciation-Assessment", "pcm_s16le", "zh-CN", "en-US",
+        "DemoPronunciationProvider", "synthetic_demo", "PRONUNCIATION_PROVIDER",
+    ], "Azure pronunciation assessment adapter")
     for forbidden in [
         "fetch(", "FormData", "XMLHttpRequest",
         "SpeechRecognition", "pronunciation_evaluator",
