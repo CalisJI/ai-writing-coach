@@ -95,6 +95,18 @@ export const SCREEN_CONTRACT={
     accentPolicy:'accent only on active recall action/selected semantic state',
     fidelityMode:'high',
   },
+  grammar:{
+    learnerGoal:'Learn one grammar target inside a complete curriculum, practice it, and transfer it into real writing.',
+    dominantIdea:'One connected roadmap from level to module to lesson, not a flat grammar-card library.',
+    primaryAction:'Continue curriculum / complete production practice',
+    progressiveDisclosure:'Progress → level → module → target lesson → guided practice → production → review/checkpoint.',
+    evidence:'Versioned curriculum activity completion; never presented as CEFR/HSK mastery.',
+    visualHero:'Curriculum progress beside the next useful lesson',
+    surfaceHierarchy:'canvas → curriculum hero → level roadmap → module map → teaching surface → production action',
+    themeBias:'light-first with dark parity',
+    accentPolicy:'accent only on progress, current lesson and primary practice action',
+    fidelityMode:'high',
+  },
   journey:{
     learnerGoal:'See how writing changes over time without turning progress into a KPI wall.',
     dominantIdea:'Progress is evidence of change.',

@@ -69,6 +69,10 @@ export const api={
   deleteLibraryVocabulary:(word)=>request(`/api/library/vocabulary/${encodeURIComponent(word)}`,{
     method:'DELETE',
   }),
+  grammarLibrary:()=>request('/api/library/grammar'),
+  grammarLesson:(id)=>request(`/api/library/grammar/${encodeURIComponent(id)}`),
+  completeGrammar:(id)=>request(`/api/library/grammar/${encodeURIComponent(id)}/complete`,{method:'POST'}),
+  uncompleteGrammar:(id)=>request(`/api/library/grammar/${encodeURIComponent(id)}/complete`,{method:'DELETE'}),
   readingSessions:(limit=8)=>request(`/api/reading/sessions?limit=${encodeURIComponent(limit)}`),
   readingSession:(id)=>request(`/api/reading/session/${encodeURIComponent(id)}`),
   createReadingSession:(payload)=>request('/api/reading/session',{

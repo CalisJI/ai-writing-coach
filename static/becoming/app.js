@@ -15,6 +15,7 @@ import {renderReading} from './screens/reading.js';
 import {renderListening} from './screens/listening.js';
 import {renderSpeaking} from './screens/speaking.js';
 import {renderLibrary} from './screens/library.js';
+import {renderGrammar} from './screens/grammar.js';
 import {renderJourney} from './screens/journey.js';
 import {renderProfile} from './screens/profile.js';
 
@@ -28,6 +29,7 @@ const SCREEN_INDEX={
   listen:'05',
   speak:'06',
   library:'06',
+  grammar:'06G',
   journey:'07',
   profile:'08',
   onboarding:'00',
@@ -42,6 +44,7 @@ const SCREENS={
   listen:renderListening,
   speak:renderSpeaking,
   library:renderLibrary,
+  grammar:renderGrammar,
   journey:renderJourney,
   profile:renderProfile,
 };
