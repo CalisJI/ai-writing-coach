@@ -85,6 +85,9 @@ def main() -> None:
         root / "static" / "becoming" / "screens" / "review.js",
         root / "static" / "becoming" / "screens" / "reading.js",
         root / "static" / "becoming" / "screens" / "library.js",
+        root / "static" / "becoming" / "screens" / "grammar.js",
+        root / "static" / "becoming" / "grammar.css",
+        root / "scripts" / "test_m4_grammar_ui.mjs",
         root / "static" / "becoming" / "screens" / "journey.js",
         root / "static" / "becoming" / "screens" / "profile.js",
         root / "static" / "becoming" / "screens" / "onboarding.js",
@@ -880,6 +883,33 @@ def main() -> None:
             '"guided_practice"', '"production_task_vi"',
             '"activity_evidence_not_mastery"', "locked-syllabus-fallback",
         ], "M4 grammar API semantics")
+
+        grammar_screen = read("static/becoming/screens/grammar.js")
+        grammar_css = read("static/becoming/grammar.css")
+        require_contains(errors, api, [
+            "grammarLibrary:", "grammarLesson:", "completeGrammar:", "uncompleteGrammar:",
+        ], "M4 Grammar UI API client")
+        require_contains(errors, router, ["'grammar'"], "M4 Grammar UI route")
+        require_contains(errors, app_js, ["renderGrammar", "grammar:renderGrammar"], "M4 Grammar UI registration")
+        require_contains(errors, template, [
+            'data-route="grammar"', f"/becoming-assets/grammar.css?v={frontend_version}",
+        ], "M4 Grammar UI navigation")
+        require_contains(errors, i18n, ["chrome.grammar"], "M4 Grammar UI chrome localization")
+        require_contains(errors, screen_contract, ["grammar:{", "Continue curriculum"], "M4 Grammar screen contract")
+        require_contains(errors, grammar_screen, [
+            "api.grammarLibrary()", "api.grammarLesson(", "api.completeGrammar(", "api.uncompleteGrammar(",
+            "guided_practice", "data-grammar-practice-input", "data-grammar-production", "data-grammar-reveal",
+            "productionEntries", "sourceLabel",
+        ], "M4 Grammar learner-facing screen")
+        for internal_leak in ["listBlock(c.targetScope,detail.scope)", "detail.module_scope", "detail.restrictions"]:
+            if internal_leak in grammar_screen:
+                errors.append(f"M4 Grammar UI leaks internal syllabus metadata: {internal_leak}")
+        for forbidden in ["fetch(", "XMLHttpRequest"]:
+            if forbidden in grammar_screen:
+                errors.append(f"M4 Grammar UI bypasses shared API client: {forbidden}")
+        require_contains(errors, grammar_css, [
+            ".grammar-hero", ".grammar-module", ".grammar-lesson-layout", ".grammar-production",
+        ], "M4 Grammar learner-facing styles")
 
     # Version/cache consistency.
     # INC-009: browser modules must be validated as an ESM graph.
