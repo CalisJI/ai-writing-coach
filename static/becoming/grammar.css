@@ -413,3 +413,291 @@
     overflow-wrap:anywhere;
   }
 }
+
+/* ORENA Grammar Mobile Hardening — M4.3 Phase 3B
+   One shared responsive lesson contract for every target language.
+   Core lesson content must recompose; it must not be hidden behind horizontal scroll. */
+@media(max-width:640px){
+  .main-content[data-screen-contract="grammar"]{
+    min-width:0;
+    max-width:100%;
+    overflow-x:clip;
+  }
+
+  .main-content[data-screen-contract="grammar"] .grammar-page,
+  .main-content[data-screen-contract="grammar"] .grammar-lesson-slot,
+  .main-content[data-screen-contract="grammar"] .grammar-lesson,
+  .main-content[data-screen-contract="grammar"] .grammar-lesson-layout,
+  .main-content[data-screen-contract="grammar"] .grammar-teach-column,
+  .main-content[data-screen-contract="grammar"] .grammar-learning-shell,
+  .main-content[data-screen-contract="grammar"] .grammar-learning-primary-pattern,
+  .main-content[data-screen-contract="grammar"] .grammar-learning-blocks,
+  .main-content[data-screen-contract="grammar"] .grammar-learning-block{
+    box-sizing:border-box;
+    width:100%;
+    min-width:0;
+    max-width:100%;
+  }
+
+  .main-content[data-screen-contract="grammar"] .grammar-lesson{
+    padding:14px;
+    border-radius:var(--radius-surface);
+  }
+
+  .main-content[data-screen-contract="grammar"] .grammar-lesson-head{
+    width:100%;
+    min-width:0;
+    max-width:100%;
+    gap:12px;
+    padding-bottom:16px;
+  }
+
+  .main-content[data-screen-contract="grammar"] .grammar-lesson-head>div{
+    width:100%;
+    min-width:0;
+    max-width:100%;
+  }
+
+  .main-content[data-screen-contract="grammar"] .grammar-lesson-head h2{
+    max-width:100%;
+    font-size:clamp(28px,8vw,38px);
+    line-height:1.02;
+    overflow-wrap:anywhere;
+  }
+
+  .main-content[data-screen-contract="grammar"] .grammar-lesson-head p,
+  .main-content[data-screen-contract="grammar"] .grammar-completion-chip{
+    max-width:100%;
+    overflow-wrap:anywhere;
+  }
+
+  .main-content[data-screen-contract="grammar"] .grammar-lesson-layout{
+    grid-template-columns:minmax(0,1fr);
+    gap:20px;
+    padding-top:18px;
+  }
+
+  .main-content[data-screen-contract="grammar"] .grammar-learning-shell{
+    gap:14px;
+    overflow:visible;
+  }
+
+  .main-content[data-screen-contract="grammar"] .grammar-learning-hook,
+  .main-content[data-screen-contract="grammar"] .grammar-learning-meaning,
+  .main-content[data-screen-contract="grammar"] .grammar-learning-use-when,
+  .main-content[data-screen-contract="grammar"] .grammar-learning-block-head{
+    box-sizing:border-box;
+    width:100%;
+    min-width:0;
+    max-width:100%;
+  }
+
+  .main-content[data-screen-contract="grammar"] .grammar-learning-hook{
+    padding:12px 13px;
+  }
+
+  .main-content[data-screen-contract="grammar"] .grammar-learning-stage{
+    width:fit-content;
+    max-width:100%;
+    overflow-wrap:anywhere;
+  }
+
+  .main-content[data-screen-contract="grammar"] .grammar-visual-canvas{
+    box-sizing:border-box;
+    width:100%;
+    min-width:0;
+    max-width:100%;
+    padding:12px;
+    overflow:hidden;
+  }
+
+  .main-content[data-screen-contract="grammar"] .grammar-formula-line{
+    display:grid;
+    grid-template-columns:minmax(0,1fr);
+    justify-items:stretch;
+    align-items:stretch;
+    gap:8px;
+    width:100%;
+    min-width:0;
+    max-width:100%;
+    padding:0;
+  }
+
+  .main-content[data-screen-contract="grammar"] .grammar-formula-part{
+    box-sizing:border-box;
+    display:grid;
+    grid-template-columns:minmax(0,1fr);
+    width:100%;
+    min-width:0;
+    max-width:100%;
+    padding:12px 13px;
+  }
+
+  .main-content[data-screen-contract="grammar"] .grammar-formula-part b,
+  .main-content[data-screen-contract="grammar"] .grammar-formula-part small{
+    display:block;
+    min-width:0;
+    max-width:100%;
+    overflow-wrap:anywhere;
+    white-space:normal;
+  }
+
+  .main-content[data-screen-contract="grammar"] .grammar-formula-join{
+    justify-self:center;
+    align-self:center;
+    font-size:18px;
+    line-height:1;
+  }
+
+  .main-content[data-screen-contract="grammar"] .grammar-sentence-flow{
+    display:grid;
+    grid-template-columns:minmax(0,1fr);
+    justify-items:stretch;
+    width:100%;
+    min-width:0;
+    max-width:100%;
+    gap:8px;
+  }
+
+  .main-content[data-screen-contract="grammar"] .grammar-sentence-segment{
+    box-sizing:border-box;
+    width:100%;
+    min-width:0;
+    max-width:100%;
+  }
+
+  .main-content[data-screen-contract="grammar"] .grammar-sentence-segment b,
+  .main-content[data-screen-contract="grammar"] .grammar-sentence-segment small,
+  .main-content[data-screen-contract="grammar"] .grammar-sentence-segment em{
+    min-width:0;
+    max-width:100%;
+    overflow-wrap:anywhere;
+  }
+
+  .main-content[data-screen-contract="grammar"] .grammar-transformation{
+    display:grid;
+    grid-template-columns:minmax(0,1fr);
+    width:100%;
+    min-width:0;
+    max-width:100%;
+    gap:10px;
+  }
+
+  .main-content[data-screen-contract="grammar"] .grammar-transform-state{
+    box-sizing:border-box;
+    width:100%;
+    min-width:0;
+    max-width:100%;
+  }
+
+  .main-content[data-screen-contract="grammar"] .grammar-transform-arrow{
+    justify-self:center;
+  }
+
+  .main-content[data-screen-contract="grammar"] .grammar-transform-steps{
+    grid-column:1;
+    max-width:100%;
+    padding-left:22px;
+  }
+
+  .main-content[data-screen-contract="grammar"] .grammar-contrast-grid,
+  .main-content[data-screen-contract="grammar"] .grammar-skill-transfer,
+  .main-content[data-screen-contract="grammar"] .grammar-match-grid,
+  .main-content[data-screen-contract="grammar"] .grammar-exception{
+    grid-template-columns:minmax(0,1fr);
+    width:100%;
+    min-width:0;
+    max-width:100%;
+  }
+
+  .main-content[data-screen-contract="grammar"] .grammar-contrast-item,
+  .main-content[data-screen-contract="grammar"] .grammar-skill-transfer article,
+  .main-content[data-screen-contract="grammar"] .grammar-exception>div,
+  .main-content[data-screen-contract="grammar"] .grammar-mistake-row,
+  .main-content[data-screen-contract="grammar"] .grammar-micro-practice,
+  .main-content[data-screen-contract="grammar"] .grammar-learning-prompt,
+  .main-content[data-screen-contract="grammar"] .grammar-sentence-builder,
+  .main-content[data-screen-contract="grammar"] .grammar-sentence-builder fieldset{
+    box-sizing:border-box;
+    width:100%;
+    min-width:0;
+    max-width:100%;
+  }
+
+  .main-content[data-screen-contract="grammar"] .grammar-mistake-row{
+    grid-template-columns:26px minmax(0,1fr);
+    padding:13px;
+  }
+
+  .main-content[data-screen-contract="grammar"] .grammar-mistake-row>div,
+  .main-content[data-screen-contract="grammar"] .grammar-mistake-why{
+    min-width:0;
+    max-width:100%;
+  }
+
+  .main-content[data-screen-contract="grammar"] .grammar-builder-options,
+  .main-content[data-screen-contract="grammar"] .grammar-micro-options,
+  .main-content[data-screen-contract="grammar"] .grammar-reorder-tokens{
+    display:grid;
+    grid-template-columns:minmax(0,1fr);
+    width:100%;
+    min-width:0;
+    max-width:100%;
+  }
+
+  .main-content[data-screen-contract="grammar"] .grammar-builder-options button,
+  .main-content[data-screen-contract="grammar"] .grammar-micro-options button,
+  .main-content[data-screen-contract="grammar"] .grammar-reorder-tokens button{
+    box-sizing:border-box;
+    width:100%;
+    min-width:0;
+    max-width:100%;
+    white-space:normal;
+    overflow-wrap:anywhere;
+  }
+
+  .main-content[data-screen-contract="grammar"] .grammar-learning-prompt textarea,
+  .main-content[data-screen-contract="grammar"] .grammar-micro-practice textarea,
+  .main-content[data-screen-contract="grammar"] .grammar-skill-transfer textarea,
+  .main-content[data-screen-contract="grammar"] .grammar-match-row select{
+    box-sizing:border-box;
+    width:100%;
+    min-width:0;
+    max-width:100%;
+  }
+
+  .main-content[data-screen-contract="grammar"] .grammar-lesson-actions{
+    box-sizing:border-box;
+    position:static;
+    width:100%;
+    min-width:0;
+    max-width:100%;
+    padding:16px;
+  }
+
+  .main-content[data-screen-contract="grammar"] .grammar-lesson-actions .button{
+    box-sizing:border-box;
+    width:100%;
+    min-width:0;
+    max-width:100%;
+    white-space:normal;
+  }
+}
+
+@media(max-width:430px){
+  .main-content[data-screen-contract="grammar"] .grammar-lesson{
+    padding:11px;
+  }
+
+  .main-content[data-screen-contract="grammar"] .grammar-visual-canvas{
+    padding:10px;
+  }
+
+  .main-content[data-screen-contract="grammar"] .grammar-formula-part{
+    padding:11px 12px;
+  }
+
+  .main-content[data-screen-contract="grammar"] .grammar-learning-hook h3{
+    font-size:clamp(18px,5.6vw,22px);
+  }
+}

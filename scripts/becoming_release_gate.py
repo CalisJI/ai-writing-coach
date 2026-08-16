@@ -722,7 +722,7 @@ def main() -> None:
         root / "docs/ORENA_GRAMMAR_PHASE3_ENGLISH_REPRESENTATIVES.md"
     ).read_text(encoding="utf-8")
     require_contains(errors, phase3_doc, [
-        "IMPLEMENTED / UNIVERSAL HARDENING APPLIED / VISUAL RECHECK PENDING",
+        "IMPLEMENTED / UNIVERSAL + MOBILE HARDENING APPLIED / VISUAL RECHECK PENDING",
         "a1-be-am-is-are",
         "a2-present-perfect-vs-past-simple",
         "b1-passive-voice-present-and-past",
@@ -774,6 +774,49 @@ def main() -> None:
         "AgreementMap",
         "InflectionTable",
     ], "Universal Grammar renderer contract")
+
+    phase3b_mobile_doc = read(
+        "docs/ORENA_GRAMMAR_PHASE3B_MOBILE_HARDENING.md"
+    )
+    require_contains(errors, phase3b_mobile_doc, [
+        "IMPLEMENTED / VISUAL RECHECK PENDING",
+        "320px", "360px", "375px", "390px", "414px", "430px",
+        "MASS MIGRATION REMAINS BLOCKED",
+        "shared by block type/capability",
+    ], "Grammar Phase 3B mobile hardening contract")
+
+    phase3b_marker = "/* ORENA Grammar Mobile Hardening — M4.3 Phase 3B"
+    if phase3b_marker not in grammar_css:
+        errors.append("Grammar Phase 3B mobile CSS marker missing")
+    else:
+        phase3b_css = grammar_css.split(phase3b_marker, 1)[1]
+        for needle in [
+            "@media(max-width:640px)",
+            '.main-content[data-screen-contract="grammar"]',
+            ".grammar-lesson",
+            ".grammar-visual-canvas",
+            ".grammar-formula-line",
+            ".grammar-formula-part",
+            ".grammar-sentence-flow",
+            ".grammar-transformation",
+            ".grammar-lesson-actions",
+            "grid-template-columns:minmax(0,1fr)",
+            "max-width:100%",
+            "min-width:0",
+        ]:
+            if needle not in phase3b_css:
+                errors.append(
+                    f"Grammar Phase 3B mobile layout contract missing: {needle}"
+                )
+        for forbidden in [
+            "overflow-x:auto",
+            "min-width:max-content",
+            "white-space:nowrap",
+        ]:
+            if forbidden in phase3b_css:
+                errors.append(
+                    f"Grammar Phase 3B core lesson can force horizontal layout: {forbidden}"
+                )
 
     # Navigation routes should be tactile controls without adding/changing routes.
     for needle in [

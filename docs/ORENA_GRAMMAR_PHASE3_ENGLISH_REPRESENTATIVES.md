@@ -1,6 +1,6 @@
 # Orena Grammar M4.3 Phase 3 — English Representatives
 
-Status: **IMPLEMENTED / UNIVERSAL HARDENING APPLIED / VISUAL RECHECK PENDING**
+Status: **IMPLEMENTED / UNIVERSAL + MOBILE HARDENING APPLIED / VISUAL RECHECK PENDING**
 
 Phase 3 intentionally curates only three English lessons. It is a representative
 quality gate, not a mass migration.
@@ -71,3 +71,17 @@ English screenshot QA must be repeated after this change.
 
 Phase 3 remains **VISUAL RECHECK PENDING**. This branch must not be merged and the
 508-item migration must not start until the representative visual gate passes.
+
+
+## Phase 3B mobile hardening
+
+Real screenshot QA after Phase 3A showed that the universal Formula component could
+still overflow at mobile-like widths above 430px. Phase 3B therefore moves the
+shared lesson/mobile composition breakpoint to 640px and constrains the complete
+rich-learning frame hierarchy rather than hiding overflow.
+
+This is a shared block/capability layout rule, not an English-specific patch.
+
+Phase 3 is still **VISUAL RECHECK PENDING**. The three English representatives must
+pass desktop/mobile review before this template may be rolled out to the remaining
+grammar content and other supported languages.
