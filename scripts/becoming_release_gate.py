@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import re
 import shutil
 import subprocess
@@ -662,6 +663,60 @@ def main() -> None:
     for forbidden in ["min-width:max-content", ".grammar-learning-flow{grid-template-columns:repeat(4,minmax(110px,1fr));overflow-x:auto}"]:
         if forbidden in grammar_css:
             errors.append(f"Grammar core content can force horizontal scrolling: {forbidden}")
+
+    # M4.3 Phase 3 — representative English quality gate.
+    phase3_targets = {
+        "a1-be-am-is-are",
+        "a2-present-perfect-vs-past-simple",
+        "b1-passive-voice-present-and-past",
+    }
+    english_grammar_knowledge = json.loads(
+        (root / "writing_coach/languages/english/grammar_knowledge.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    phase3_curated = {
+        item["id"]
+        for item in english_grammar_knowledge
+        if item.get("source", {}).get("content_status") == "curated"
+    }
+    if phase3_curated != phase3_targets:
+        errors.append(
+            "Grammar Phase 3 must keep exactly three representative English "
+            f"curated IDs before mass migration: {sorted(phase3_curated)}"
+        )
+    phase3_by_id = {item["id"]: item for item in english_grammar_knowledge}
+    for grammar_id in sorted(phase3_targets):
+        model = phase3_by_id.get(grammar_id, {}).get("learning_model")
+        if not isinstance(model, dict) or model.get("schema_version") != 1:
+            errors.append(
+                f"Grammar Phase 3 representative missing learning_model: {grammar_id}"
+            )
+            continue
+        block_types = {
+            block.get("type")
+            for block in model.get("blocks", [])
+            if isinstance(block, dict)
+        }
+        for required_type in {
+            "scene", "common_mistake", "personal_practice",
+            "recall", "memory_hook", "skill_transfer",
+        }:
+            if required_type not in block_types:
+                errors.append(
+                    f"Grammar Phase 3 {grammar_id} missing block: {required_type}"
+                )
+    phase3_doc = (
+        root / "docs/ORENA_GRAMMAR_PHASE3_ENGLISH_REPRESENTATIVES.md"
+    ).read_text(encoding="utf-8")
+    require_contains(errors, phase3_doc, [
+        "IMPLEMENTED / VISUAL APPROVAL PENDING",
+        "a1-be-am-is-are",
+        "a2-present-perfect-vs-past-simple",
+        "b1-passive-voice-present-and-past",
+        "full 508-item migration remains BLOCKED",
+        "Phase 3 cannot be marked APPROVED until screenshot QA is completed",
+    ], "Grammar Phase 3 representative hard gate")
 
     # Navigation routes should be tactile controls without adding/changing routes.
     for needle in [
