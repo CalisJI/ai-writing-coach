@@ -818,6 +818,29 @@ def main() -> None:
                     f"Grammar Phase 3B core lesson can force horizontal layout: {forbidden}"
                 )
 
+    phase3b1_marker = (
+        "/* ORENA Grammar Mobile Viewport Containment — M4.3 Phase 3B.1"
+    )
+    if phase3b1_marker not in grammar_css:
+        errors.append("Grammar Phase 3B.1 viewport containment marker missing")
+    else:
+        phase3b1_css = grammar_css.split(phase3b1_marker, 1)[1]
+        for needle in [
+            'body:has(.main-content[data-screen-contract="grammar"])',
+            ".app-shell",
+            ".app-workspace",
+            '.main-content[data-screen-contract="grammar"]',
+            "max-width:100vw",
+            "overflow-x:hidden",
+            "contain:inline-size",
+            "overflow-wrap:anywhere",
+            "white-space:normal",
+        ]:
+            if needle not in phase3b1_css:
+                errors.append(
+                    f"Grammar Phase 3B.1 viewport contract missing: {needle}"
+                )
+
     # Navigation routes should be tactile controls without adding/changing routes.
     for needle in [
         ".primary-nav a{",

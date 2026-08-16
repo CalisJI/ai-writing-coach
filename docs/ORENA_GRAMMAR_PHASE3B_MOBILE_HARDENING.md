@@ -69,3 +69,23 @@ Before Phase 3 can be approved:
    across all supported target languages.
 
 Phase 3B remains **VISUAL RECHECK PENDING** until those screenshots are reviewed.
+
+
+## Phase 3B.1 — viewport containment correction
+
+The first Phase 3B screenshot recheck confirmed that Formula/Semantic components
+were recomposing vertically, but the complete lesson still measured wider than the
+visible mobile viewport. The same right-edge clipping affected Formula text,
+Common Mistake WHY text, exception content, Listening transfer content and the
+learning-action button. This proved the remaining defect was the ancestor inline
+size chain, not an individual Grammar block.
+
+Phase 3B.1 therefore constrains:
+
+`app shell → workspace → main content → grammar page → lesson → teaching column → rich block`
+
+at mobile widths. Text-bearing descendants may not increase the intrinsic width of
+that chain. Rich cards use inline-size containment and learner text wraps normally.
+
+Visual approval is still pending. The correction must be rechecked at 390px and the
+previously failing 520px viewport before A2/B1 screenshot QA continues.

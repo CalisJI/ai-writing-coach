@@ -47,7 +47,7 @@ assert.match(zhHtml,/role-particle/);
 
 const screen=readFileSync(new URL('../static/becoming/screens/grammar.js',import.meta.url),'utf8');
 const css=readFileSync(new URL('../static/becoming/grammar.css',import.meta.url),'utf8');
-for(const needle of ['grammar-learning.js?v=2.17.1','renderGrammarLearningModel','grammarLearningCompletion','legacyLessonBody']){
+for(const needle of ['grammar-learning.js?v=2.17.2','renderGrammarLearningModel','grammarLearningCompletion','legacyLessonBody']){
   assert.equal(screen.includes(needle),true,`Missing ${needle}`);
 }
 assert.equal(css.includes('min-width:max-content'),false);
