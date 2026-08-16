@@ -24,12 +24,16 @@ and result. Role text remains visible beside color/border cues.
 
 ## Structured mistakes and exceptions
 
-Every curated lesson requires at least one `common_mistake` block with:
+A curated lesson must preserve structured common mistakes when the corresponding
+legacy lesson contains mistake content.
+
+Each `common_mistake` block uses:
 
 **incorrect → WHY → correct**
 
-The optional context explains when the error happens. `exception` is a separate
-structured block with rule, exception, WHY, and optional context.
+Lessons without a real mistake target are not required to invent one. The optional
+context explains when the error happens. `exception` is a separate structured block
+with rule, exception, WHY, and optional context.
 
 ## Micro-practice interaction contract
 
