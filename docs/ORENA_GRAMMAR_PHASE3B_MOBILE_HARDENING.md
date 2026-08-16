@@ -89,3 +89,11 @@ that chain. Rich cards use inline-size containment and learner text wraps normal
 
 Visual approval is still pending. The correction must be rechecked at 390px and the
 previously failing 520px viewport before A2/B1 screenshot QA continues.
+## Full rollout reuse
+
+The accepted mobile template is now reused by the complete English + Chinese
+structural rollout. Core lesson content keeps the no-horizontal-scroll contract;
+the Level roadmap remains a navigation-only horizontal surface.
+
+The earlier lesson-by-lesson structural migration hold is superseded by the
+authorized 508-entry rollout. Broad mobile/desktop QA remains required.

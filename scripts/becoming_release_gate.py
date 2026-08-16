@@ -855,6 +855,64 @@ def main() -> None:
                     f"Grammar Phase 3B.1 viewport contract missing: {needle}"
                 )
 
+    full_rollout_doc = read("docs/ORENA_GRAMMAR_FULL_EN_ZH_ROLLOUT.md")
+    require_contains(errors, full_rollout_doc, [
+        "STRUCTURAL ROLLOUT COMPLETE / BROAD QA PENDING",
+        "269 / 269",
+        "239 / 239",
+        "508 / 508",
+        "Runtime AI: **0**",
+        "source-adapted-v1",
+        "FULL STRUCTURAL ROLLOUT IS COMPLETE",
+    ], "Universal Grammar full EN/ZH rollout contract")
+
+    chinese_grammar_knowledge = json.loads(
+        (root / "writing_coach/languages/chinese/grammar_knowledge.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    full_rollout_sets = {
+        "en": english_grammar_knowledge,
+        "zh": chinese_grammar_knowledge,
+    }
+    expected_full_counts = {"en": 269, "zh": 239}
+    full_rollout_total = 0
+    for language_code, items in full_rollout_sets.items():
+        if len(items) != expected_full_counts[language_code]:
+            errors.append(
+                f"Universal Grammar {language_code} coverage changed: {len(items)}"
+            )
+        for item in items:
+            grammar_id = item.get("id", "<missing>")
+            model = item.get("learning_model")
+            if not isinstance(model, dict) or model.get("schema_version") != 2:
+                errors.append(
+                    f"Universal Grammar full rollout missing schema-v2 model: "
+                    f"{language_code}:{grammar_id}"
+                )
+                continue
+            if model.get("language_policy", {}).get("target_language") != language_code:
+                errors.append(
+                    f"Universal Grammar target-language mismatch: "
+                    f"{language_code}:{grammar_id}"
+                )
+            if item.get("source", {}).get("runtime_ai") is not False:
+                errors.append(
+                    f"Universal Grammar runtime AI must stay disabled: "
+                    f"{language_code}:{grammar_id}"
+                )
+            if not item.get("source", {}).get("universal_model_status"):
+                errors.append(
+                    f"Universal Grammar migration marker missing: "
+                    f"{language_code}:{grammar_id}"
+                )
+            full_rollout_total += 1
+    if full_rollout_total != 508:
+        errors.append(
+            f"Universal Grammar full rollout must cover 508 entries, got "
+            f"{full_rollout_total}"
+        )
+
     # Navigation routes should be tactile controls without adding/changing routes.
     for needle in [
         ".primary-nav a{",

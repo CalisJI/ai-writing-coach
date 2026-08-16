@@ -85,3 +85,15 @@ This is a shared block/capability layout rule, not an English-specific patch.
 Phase 3 is still **VISUAL RECHECK PENDING**. The three English representatives must
 pass desktop/mobile review before this template may be rolled out to the remaining
 grammar content and other supported languages.
+## Full English + Chinese rollout authorization
+
+After the Universal/mobile template reached the accepted state, the user explicitly
+authorized a single large rollout instead of continuing lesson-by-lesson migration.
+
+Structural rollout now covers all 269 English + 239 Chinese entries. The original
+three English representatives remain the human-reviewed reference set; the other
+505 entries remain foundation content with `source-adapted-v1` models.
+
+This supersedes the earlier incremental structural-migration hold. Broad QA remains
+required, while individual editorial curation stays a separate content-quality
+track.
