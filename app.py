@@ -1202,6 +1202,7 @@ def api_grammar_lesson(lesson_id: str) -> dict[str, Any]:
         **detail,
         "quick_reference": dict(knowledge["quick_reference"]),
         "cross_skill": dict(knowledge["cross_skill"]),
+        "learning_model": dict(knowledge.get("learning_model") or {}),
         "content_status": knowledge["source"]["content_status"],
         "completed": _learning_repository.grammar_completed(storage_key),
         "source": "static-grammar-kb",

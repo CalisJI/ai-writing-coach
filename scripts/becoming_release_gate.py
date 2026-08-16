@@ -87,8 +87,13 @@ def main() -> None:
         root / "static" / "becoming" / "screens" / "library.js",
         root / "static" / "becoming" / "screens" / "grammar.js",
         root / "static" / "becoming" / "grammar.css",
+        root / "static" / "becoming" / "components" / "grammar-learning.js",
         root / "scripts" / "test_m4_grammar_ui.mjs",
+        root / "scripts" / "test_m4_grammar_learning_renderer.mjs",
         root / "writing_coach" / "grammar_knowledge.py",
+        root / "writing_coach" / "grammar_learning_model.py",
+        root / "tests" / "test_grammar_learning_model.py",
+        root / "docs" / "ORENA_GRAMMAR_LEARNING_MODEL_V1.md",
         root / "writing_coach" / "languages" / "english" / "grammar_knowledge.json",
         root / "writing_coach" / "languages" / "english" / "grammar_knowledge_base.py",
         root / "writing_coach" / "languages" / "chinese" / "grammar_knowledge.json",
@@ -597,6 +602,66 @@ def main() -> None:
     require_contains(errors, screen_contract, ["speak:{", "Record my voice"], "Speaking screen contract")
     if ".speaking-workspace" not in speaking_css or ".speaking-recorder" not in speaking_css:
         errors.append("Speaking Core product-visible layout styles missing")
+
+    # Orena Phase 2 Grammar Learning Model foundation.
+    grammar_learning_component = read("static/becoming/components/grammar-learning.js")
+    grammar_learning_model = read("writing_coach/grammar_learning_model.py")
+    grammar_knowledge_contract = read("writing_coach/grammar_knowledge.py")
+    grammar_screen = read("static/becoming/screens/grammar.js")
+    grammar_css = read("static/becoming/grammar.css")
+    grammar_learning_doc = read("docs/ORENA_GRAMMAR_LEARNING_MODEL_V1.md")
+
+    require_contains(errors, grammar_learning_model, [
+        "CANONICAL_FLOW", '"notice"', '"understand"', '"connect"', '"compare"',
+        '"apply"', '"recall"', '"transfer"', "ALLOWED_BLOCK_TYPES",
+        "validate_grammar_learning_model", "APPLY, RECALL and TRANSFER",
+        "SEMANTIC_ROLES", "INTERACTION_TYPES", '"common_mistake"', '"exception"',
+    ], "Grammar learning-model contract")
+    require_contains(errors, grammar_knowledge_contract, [
+        "validate_grammar_learning_model", 'source.get("content_status") == "curated"',
+        "requires a validated learning_model", "legacy lesson.mistakes",
+        "legacy lesson.exceptions",
+    ], "Grammar curated-content gate")
+    require_contains(errors, app, [
+        '"learning_model": dict(knowledge.get("learning_model") or {})',
+        '"source": "static-grammar-kb"',
+    ], "Grammar static rich-content API")
+    require_contains(errors, grammar_learning_component, [
+        "GrammarFormula", "SemanticSentence", "TransformationFlow", "WordOrderFlow",
+        "ParticleInsertion", "TimelineVisual", "ContrastCard", "RealLifeScene",
+        "SentenceBuilder", "CommonMistake", "GrammarException", "MicroPractice",
+        "PersonalPractice", "RecallPrompt", "MemoryHook", "SkillTransfer",
+        "grammarLearningCompletion", "data-learning-evidence-stage", "data-interaction-type", "flowLabel",
+    ], "Grammar reusable learning renderer")
+    require_contains(errors, grammar_screen, [
+        f"../components/grammar-learning.js?v={frontend_version}",
+        "hasGrammarLearningModel(detail.learning_model)",
+        "renderGrammarLearningModel(detail.learning_model",
+        "legacyLessonBody(detail,c)",
+        "grammarLearningCompletion(slot,detail.learning_model",
+    ], "Grammar rich/legacy rollout boundary")
+    require_contains(errors, grammar_css, [
+        ".grammar-learning-flow", ".grammar-formula", ".grammar-sentence-flow",
+        ".grammar-timeline", ".grammar-memory-hook", ".grammar-skill-transfer",
+        "var(--color-informational)", "var(--color-attention)",
+        "var(--color-important)", "var(--color-positive)",
+    ], "Grammar visual-memory foundation")
+    require_contains(errors, grammar_learning_doc, [
+        "FOUNDATION / NOT YET VISUALLY APPROVED",
+        "NOTICE → UNDERSTAND → CONNECT → COMPARE → APPLY → RECALL → TRANSFER",
+        "Semantic role contract", "Micro-practice interaction contract",
+        "incorrect → WHY → correct", "No horizontal scrolling",
+        "No full 508-item migration",
+    ], "Grammar Phase 2 hard gate")
+    for forbidden in ["fetch(", "XMLHttpRequest", "/api/chat", "OLLAMA_URL"]:
+        if forbidden in grammar_learning_component or forbidden in grammar_learning_model:
+            errors.append(f"Grammar learning foundation bypasses static/shared runtime boundary: {forbidden}")
+    for forbidden in ["<small>BEFORE</small>", "<small>AFTER</small>", 'aria-label="Grammar learning flow"']:
+        if forbidden in grammar_learning_component:
+            errors.append(f"Grammar rich renderer hard-codes learner chrome: {forbidden}")
+    for forbidden in ["min-width:max-content", ".grammar-learning-flow{grid-template-columns:repeat(4,minmax(110px,1fr));overflow-x:auto}"]:
+        if forbidden in grammar_css:
+            errors.append(f"Grammar core content can force horizontal scrolling: {forbidden}")
 
     # Navigation routes should be tactile controls without adding/changing routes.
     for needle in [
