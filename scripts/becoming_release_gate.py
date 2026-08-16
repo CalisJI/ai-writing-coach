@@ -615,10 +615,12 @@ def main() -> None:
         "CANONICAL_FLOW", '"notice"', '"understand"', '"connect"', '"compare"',
         '"apply"', '"recall"', '"transfer"', "ALLOWED_BLOCK_TYPES",
         "validate_grammar_learning_model", "APPLY, RECALL and TRANSFER",
+        "SEMANTIC_ROLES", "INTERACTION_TYPES", '"common_mistake"', '"exception"',
     ], "Grammar learning-model contract")
     require_contains(errors, grammar_knowledge_contract, [
         "validate_grammar_learning_model", 'source.get("content_status") == "curated"',
-        "requires a validated learning_model",
+        "requires a validated learning_model", "legacy lesson.mistakes",
+        "legacy lesson.exceptions",
     ], "Grammar curated-content gate")
     require_contains(errors, app, [
         '"learning_model": dict(knowledge.get("learning_model") or {})',
@@ -627,8 +629,9 @@ def main() -> None:
     require_contains(errors, grammar_learning_component, [
         "GrammarFormula", "SemanticSentence", "TransformationFlow", "WordOrderFlow",
         "ParticleInsertion", "TimelineVisual", "ContrastCard", "RealLifeScene",
-        "SentenceBuilder", "PersonalPractice", "RecallPrompt", "MemoryHook",
-        "SkillTransfer", "grammarLearningCompletion", "data-learning-evidence-stage",
+        "SentenceBuilder", "CommonMistake", "GrammarException", "MicroPractice",
+        "PersonalPractice", "RecallPrompt", "MemoryHook", "SkillTransfer",
+        "grammarLearningCompletion", "data-learning-evidence-stage", "data-interaction-type", "flowLabel",
     ], "Grammar reusable learning renderer")
     require_contains(errors, grammar_screen, [
         f"../components/grammar-learning.js?v={frontend_version}",
@@ -646,11 +649,19 @@ def main() -> None:
     require_contains(errors, grammar_learning_doc, [
         "FOUNDATION / NOT YET VISUALLY APPROVED",
         "NOTICE → UNDERSTAND → CONNECT → COMPARE → APPLY → RECALL → TRANSFER",
+        "Semantic role contract", "Micro-practice interaction contract",
+        "incorrect → WHY → correct", "No horizontal scrolling",
         "No full 508-item migration",
     ], "Grammar Phase 2 hard gate")
     for forbidden in ["fetch(", "XMLHttpRequest", "/api/chat", "OLLAMA_URL"]:
         if forbidden in grammar_learning_component or forbidden in grammar_learning_model:
             errors.append(f"Grammar learning foundation bypasses static/shared runtime boundary: {forbidden}")
+    for forbidden in ["<small>BEFORE</small>", "<small>AFTER</small>", 'aria-label="Grammar learning flow"']:
+        if forbidden in grammar_learning_component:
+            errors.append(f"Grammar rich renderer hard-codes learner chrome: {forbidden}")
+    for forbidden in ["min-width:max-content", ".grammar-learning-flow{grid-template-columns:repeat(4,minmax(110px,1fr));overflow-x:auto}"]:
+        if forbidden in grammar_css:
+            errors.append(f"Grammar core content can force horizontal scrolling: {forbidden}")
 
     # Navigation routes should be tactile controls without adding/changing routes.
     for needle in [

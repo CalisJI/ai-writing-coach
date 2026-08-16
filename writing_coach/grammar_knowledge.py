@@ -125,6 +125,22 @@ def validate_grammar_knowledge(
             raise GrammarKnowledgeInvalid(
                 f"Curated knowledge '{grammar_id}' requires a validated learning_model."
             )
+        if source.get("content_status") == "curated" and learning_model is not None:
+            learning_types = {
+                str(block.get("type") or "")
+                for block in learning_model.get("blocks", [])
+                if isinstance(block, Mapping)
+            }
+            if teaching.get("mistakes") and "common_mistake" not in learning_types:
+                raise GrammarKnowledgeInvalid(
+                    f"Curated knowledge '{grammar_id}' has legacy lesson.mistakes "
+                    "but no common_mistake block."
+                )
+            if teaching.get("exceptions") and "exception" not in learning_types:
+                raise GrammarKnowledgeInvalid(
+                    f"Curated knowledge '{grammar_id}' has legacy lesson.exceptions "
+                    "but no exception block."
+                )
 
         for text in _strings({
             "quick_reference": quick,

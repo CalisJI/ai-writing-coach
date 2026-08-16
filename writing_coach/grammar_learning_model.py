@@ -10,11 +10,22 @@ class GrammarLearningModelInvalid(ValueError):
 
 SCHEMA_VERSION = 1
 CANONICAL_FLOW = ("notice", "understand", "connect", "compare", "apply", "recall", "transfer")
+SEMANTIC_ROLES = frozenset({
+    "subject", "verb", "object", "noun", "modifier", "article", "determiner",
+    "auxiliary", "preposition", "particle", "time", "location", "complement",
+    "classifier", "negation", "marker", "changed", "error", "exception",
+    "connector", "topic", "comment", "result",
+})
+INTERACTION_TYPES = frozenset({
+    "choose", "reorder", "fill", "match", "transform", "compare",
+    "classify", "identify", "build", "speak", "write",
+})
 ALLOWED_STAGES = frozenset(CANONICAL_FLOW)
 ALLOWED_BLOCK_TYPES = frozenset({
     "formula", "semantic_sentence", "transformation", "position", "insertion",
-    "timeline", "contrast", "scene", "sentence_builder", "micro_practice",
-    "personal_practice", "recall", "memory_hook", "skill_transfer",
+    "timeline", "contrast", "scene", "sentence_builder", "common_mistake",
+    "exception", "micro_practice", "personal_practice", "recall",
+    "memory_hook", "skill_transfer",
 })
 EVIDENCE_BLOCK_TYPES = frozenset({"micro_practice", "personal_practice", "recall", "skill_transfer"})
 LOCALIZED_KEYS = frozenset({"en", "vi", "zh", "default"})
@@ -60,22 +71,26 @@ def _optional_text(value: Any, path: str) -> None:
         _text(value, path)
 
 
+def _role(value: Any, path: str) -> None:
+    if value not in SEMANTIC_ROLES:
+        raise GrammarLearningModelInvalid(
+            f"{path} must be one of {sorted(SEMANTIC_ROLES)}."
+        )
+
+
 def _validate_parts(payload: Mapping[str, Any], path: str) -> None:
     for i, raw in enumerate(_list(payload.get("parts"), f"{path}.parts", 2)):
         item = _mapping(raw, f"{path}.parts[{i}]")
         _text(item.get("text"), f"{path}.parts[{i}].text")
+        _role(item.get("role"), f"{path}.parts[{i}].role")
         _optional_text(item.get("label"), f"{path}.parts[{i}].label")
-        role = item.get("role")
-        if role is not None and (not isinstance(role, str) or not role.strip()):
-            raise GrammarLearningModelInvalid(f"{path}.parts[{i}].role must be non-empty.")
 
 
 def _validate_segments(payload: Mapping[str, Any], path: str) -> None:
     for i, raw in enumerate(_list(payload.get("segments"), f"{path}.segments", 2)):
         item = _mapping(raw, f"{path}.segments[{i}]")
         _text(item.get("text"), f"{path}.segments[{i}].text")
-        if not isinstance(item.get("role"), str) or not item["role"].strip():
-            raise GrammarLearningModelInvalid(f"{path}.segments[{i}].role is required.")
+        _role(item.get("role"), f"{path}.segments[{i}].role")
         for field in ("label", "pinyin", "meaning"):
             _optional_text(item.get(field), f"{path}.segments[{i}].{field}")
         if item.get("inserted") is not None and not isinstance(item["inserted"], bool):
@@ -133,6 +148,49 @@ def _validate_prompt(payload: Mapping[str, Any], path: str) -> None:
         _optional_text(payload.get(field), f"{path}.{field}")
 
 
+def _validate_common_mistake(payload: Mapping[str, Any], path: str) -> None:
+    _text(payload.get("incorrect"), f"{path}.incorrect")
+    _text(payload.get("why"), f"{path}.why")
+    _text(payload.get("correct"), f"{path}.correct")
+    _optional_text(payload.get("context"), f"{path}.context")
+
+
+def _validate_exception(payload: Mapping[str, Any], path: str) -> None:
+    _text(payload.get("rule"), f"{path}.rule")
+    _text(payload.get("exception"), f"{path}.exception")
+    _text(payload.get("why"), f"{path}.why")
+    _optional_text(payload.get("context"), f"{path}.context")
+
+
+def _validate_micro_practice(payload: Mapping[str, Any], path: str) -> None:
+    interaction = payload.get("interaction")
+    if interaction not in INTERACTION_TYPES:
+        raise GrammarLearningModelInvalid(
+            f"{path}.interaction must be one of {sorted(INTERACTION_TYPES)}."
+        )
+    _text(payload.get("prompt"), f"{path}.prompt")
+    _optional_text(payload.get("placeholder"), f"{path}.placeholder")
+    _optional_text(payload.get("explanation"), f"{path}.explanation")
+
+    if interaction in {"choose", "compare", "classify", "identify"}:
+        for i, option in enumerate(_list(payload.get("options"), f"{path}.options", 2)):
+            _text(option, f"{path}.options[{i}]")
+        _text(payload.get("answer"), f"{path}.answer")
+    elif interaction in {"reorder", "build"}:
+        for i, token in enumerate(_list(payload.get("tokens"), f"{path}.tokens", 2)):
+            _text(token, f"{path}.tokens[{i}]")
+        _text(payload.get("answer"), f"{path}.answer")
+    elif interaction == "match":
+        for i, raw in enumerate(_list(payload.get("pairs"), f"{path}.pairs", 2)):
+            pair = _mapping(raw, f"{path}.pairs[{i}]")
+            _text(pair.get("left"), f"{path}.pairs[{i}].left")
+            _text(pair.get("right"), f"{path}.pairs[{i}].right")
+    elif interaction in {"fill", "transform"}:
+        _text(payload.get("answer"), f"{path}.answer")
+    elif interaction in {"speak", "write"}:
+        _optional_text(payload.get("answer"), f"{path}.answer")
+
+
 def _validate_memory(payload: Mapping[str, Any], path: str) -> None:
     _text(payload.get("cue"), f"{path}.cue")
     _text(payload.get("remember"), f"{path}.remember")
@@ -164,7 +222,13 @@ def _validate_payload(block_type: str, payload: Mapping[str, Any], path: str) ->
         _validate_scene(payload, path)
     elif block_type == "sentence_builder":
         _validate_builder(payload, path)
-    elif block_type in {"micro_practice", "personal_practice", "recall"}:
+    elif block_type == "common_mistake":
+        _validate_common_mistake(payload, path)
+    elif block_type == "exception":
+        _validate_exception(payload, path)
+    elif block_type == "micro_practice":
+        _validate_micro_practice(payload, path)
+    elif block_type in {"personal_practice", "recall"}:
         _validate_prompt(payload, path)
     elif block_type == "memory_hook":
         _validate_memory(payload, path)

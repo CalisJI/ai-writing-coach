@@ -1,5 +1,5 @@
 import {api} from '../api.js';
-import {go} from '../router.js?v=2.16.0';
+import {go} from '../router.js?v=2.16.1';
 import {supportLanguage} from '../store.js';
 import {esc,errorBlock,loadingBlock,toast,runBusy} from '../components/primitives.js';
 import {
@@ -7,7 +7,7 @@ import {
   renderGrammarLearningModel,
   bindGrammarLearningInteractions,
   grammarLearningCompletion,
-} from '../components/grammar-learning.js?v=2.16.0';
+} from '../components/grammar-learning.js?v=2.16.1';
 
 const COPY={
   en:{
