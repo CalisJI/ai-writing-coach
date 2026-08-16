@@ -1,0 +1,2821 @@
+{
+  "summary": {
+    "unclassified_lessons": 53,
+    "cluster_count": 11
+  },
+  "clusters": [
+    {
+      "cluster_id": "ZH-U001",
+      "level": "HSK1",
+      "category": "基础句型",
+      "module": "基础句型",
+      "lesson_count": 2,
+      "lesson_ids": [
+        "zh-hsk1-12-t-h-i-gi-nguy-n-v-tr",
+        "zh-hsk1-20-n-i-danh-t"
+      ],
+      "samples": [
+        {
+          "id": "zh-hsk1-12-t-h-i-gi-nguy-n-v-tr",
+          "title": "Từ để hỏi giữ nguyên vị trí",
+          "level": "HSK1",
+          "category": "",
+          "top_candidate_scores": [
+            {
+              "family": "questions_ma_ne_wh",
+              "score": 6.0
+            },
+            {
+              "family": "aspect_le",
+              "score": 3.0
+            }
+          ],
+          "metadata": [
+            {
+              "path": "id",
+              "text": "zh-hsk1-12-t-h-i-gi-nguy-n-v-tr"
+            },
+            {
+              "path": "title",
+              "text": "Từ để hỏi giữ nguyên vị trí"
+            },
+            {
+              "path": "curriculum.id",
+              "text": "zh-hsk1-12-t-h-i-gi-nguy-n-v-tr"
+            },
+            {
+              "path": "curriculum.module",
+              "text": "基础句型"
+            },
+            {
+              "path": "curriculum.category",
+              "text": "基础句型"
+            },
+            {
+              "path": "curriculum.title",
+              "text": "Từ để hỏi giữ nguyên vị trí"
+            },
+            {
+              "path": "curriculum.objective_vi",
+              "text": "Hiểu chức năng, vị trí, phạm vi và sắc thái của Từ để hỏi giữ nguyên vị trí; dùng đúng trong câu/đoạn phù hợp HSK1."
+            }
+          ]
+        },
+        {
+          "id": "zh-hsk1-20-n-i-danh-t",
+          "title": "和 nối danh từ",
+          "level": "HSK1",
+          "category": "",
+          "top_candidate_scores": [
+            {
+              "family": "adverbs_degree_frequency",
+              "score": 6.0
+            },
+            {
+              "family": "aspect_le",
+              "score": 3.0
+            }
+          ],
+          "metadata": [
+            {
+              "path": "id",
+              "text": "zh-hsk1-20-n-i-danh-t"
+            },
+            {
+              "path": "title",
+              "text": "和 nối danh từ"
+            },
+            {
+              "path": "curriculum.id",
+              "text": "zh-hsk1-20-n-i-danh-t"
+            },
+            {
+              "path": "curriculum.module",
+              "text": "基础句型"
+            },
+            {
+              "path": "curriculum.category",
+              "text": "基础句型"
+            },
+            {
+              "path": "curriculum.title",
+              "text": "和 nối danh từ"
+            },
+            {
+              "path": "curriculum.objective_vi",
+              "text": "Hiểu chức năng, vị trí, phạm vi và sắc thái của 和 nối danh từ; dùng đúng trong câu/đoạn phù hợp HSK1."
+            }
+          ]
+        }
+      ],
+      "status": "REVIEW_REQUIRED"
+    },
+    {
+      "cluster_id": "ZH-U002",
+      "level": "HSK2",
+      "category": "体与补语",
+      "module": "体与补语",
+      "lesson_count": 3,
+      "lesson_ids": [
+        "zh-hsk2-8-b-ng-m-c",
+        "zh-hsk2-12-b-ng-th-i-l-ng-introduction",
+        "zh-hsk2-13-b-ng-ng-l-ng-introduction"
+      ],
+      "samples": [
+        {
+          "id": "zh-hsk2-8-b-ng-m-c",
+          "title": "得: bổ ngữ mức độ",
+          "level": "HSK2",
+          "category": "",
+          "top_candidate_scores": [
+            {
+              "family": "de_complement",
+              "score": 75.8
+            },
+            {
+              "family": "degree_complements",
+              "score": 75.8
+            },
+            {
+              "family": "modal_verbs",
+              "score": 75.8
+            },
+            {
+              "family": "comparison_change",
+              "score": 6.0
+            },
+            {
+              "family": "aspect_le",
+              "score": 3.0
+            }
+          ],
+          "metadata": [
+            {
+              "path": "id",
+              "text": "zh-hsk2-8-b-ng-m-c"
+            },
+            {
+              "path": "title",
+              "text": "得: bổ ngữ mức độ"
+            },
+            {
+              "path": "curriculum.id",
+              "text": "zh-hsk2-8-b-ng-m-c"
+            },
+            {
+              "path": "curriculum.module",
+              "text": "体与补语"
+            },
+            {
+              "path": "curriculum.category",
+              "text": "体与补语"
+            },
+            {
+              "path": "curriculum.title",
+              "text": "得: bổ ngữ mức độ"
+            },
+            {
+              "path": "curriculum.objective_vi",
+              "text": "Hiểu chức năng, vị trí, phạm vi và sắc thái của 得: bổ ngữ mức độ; dùng đúng trong câu/đoạn phù hợp HSK2."
+            }
+          ]
+        },
+        {
+          "id": "zh-hsk2-12-b-ng-th-i-l-ng-introduction",
+          "title": "Bổ ngữ thời lượng: introduction",
+          "level": "HSK2",
+          "category": "",
+          "top_candidate_scores": [
+            {
+              "family": "aspect_le",
+              "score": 3.0
+            },
+            {
+              "family": "separable_verbs",
+              "score": 3.0
+            }
+          ],
+          "metadata": [
+            {
+              "path": "id",
+              "text": "zh-hsk2-12-b-ng-th-i-l-ng-introduction"
+            },
+            {
+              "path": "title",
+              "text": "Bổ ngữ thời lượng: introduction"
+            },
+            {
+              "path": "curriculum.id",
+              "text": "zh-hsk2-12-b-ng-th-i-l-ng-introduction"
+            },
+            {
+              "path": "curriculum.module",
+              "text": "体与补语"
+            },
+            {
+              "path": "curriculum.category",
+              "text": "体与补语"
+            },
+            {
+              "path": "curriculum.title",
+              "text": "Bổ ngữ thời lượng: introduction"
+            },
+            {
+              "path": "curriculum.objective_vi",
+              "text": "Hiểu chức năng, vị trí, phạm vi và sắc thái của Bổ ngữ thời lượng: introduction; dùng đúng trong câu/đoạn phù hợp HSK2."
+            }
+          ]
+        },
+        {
+          "id": "zh-hsk2-13-b-ng-ng-l-ng-introduction",
+          "title": "Bổ ngữ động lượng: introduction",
+          "level": "HSK2",
+          "category": "",
+          "top_candidate_scores": [
+            {
+              "family": "aspect_le",
+              "score": 3.0
+            }
+          ],
+          "metadata": [
+            {
+              "path": "id",
+              "text": "zh-hsk2-13-b-ng-ng-l-ng-introduction"
+            },
+            {
+              "path": "title",
+              "text": "Bổ ngữ động lượng: introduction"
+            },
+            {
+              "path": "curriculum.id",
+              "text": "zh-hsk2-13-b-ng-ng-l-ng-introduction"
+            },
+            {
+              "path": "curriculum.module",
+              "text": "体与补语"
+            },
+            {
+              "path": "curriculum.category",
+              "text": "体与补语"
+            },
+            {
+              "path": "curriculum.title",
+              "text": "Bổ ngữ động lượng: introduction"
+            },
+            {
+              "path": "curriculum.objective_vi",
+              "text": "Hiểu chức năng, vị trí, phạm vi và sắc thái của Bổ ngữ động lượng: introduction; dùng đúng trong câu/đoạn phù hợp HSK2."
+            }
+          ]
+        }
+      ],
+      "status": "REVIEW_REQUIRED"
+    },
+    {
+      "cluster_id": "ZH-U003",
+      "level": "HSK2",
+      "category": "复句与副词",
+      "module": "复句与副词",
+      "lesson_count": 3,
+      "lesson_ids": [
+        "zh-hsk2-4-topic",
+        "zh-hsk2-5-topic",
+        "zh-hsk2-11-topic"
+      ],
+      "samples": [
+        {
+          "id": "zh-hsk2-4-topic",
+          "title": "只要...就...",
+          "level": "HSK2",
+          "category": "",
+          "top_candidate_scores": [
+            {
+              "family": "focus_emphasis",
+              "score": 75.8
+            },
+            {
+              "family": "modal_verbs",
+              "score": 75.8
+            },
+            {
+              "family": "conjunctions_connectives",
+              "score": 69.0
+            },
+            {
+              "family": "adverbs_degree_frequency",
+              "score": 20.0
+            },
+            {
+              "family": "complex_clauses",
+              "score": 20.0
+            }
+          ],
+          "metadata": [
+            {
+              "path": "id",
+              "text": "zh-hsk2-4-topic"
+            },
+            {
+              "path": "title",
+              "text": "只要...就..."
+            },
+            {
+              "path": "curriculum.id",
+              "text": "zh-hsk2-4-topic"
+            },
+            {
+              "path": "curriculum.module",
+              "text": "复句与副词"
+            },
+            {
+              "path": "curriculum.category",
+              "text": "复句与副词"
+            },
+            {
+              "path": "curriculum.title",
+              "text": "只要...就..."
+            },
+            {
+              "path": "curriculum.objective_vi",
+              "text": "Hiểu chức năng, vị trí, phạm vi và sắc thái của 只要...就...; dùng đúng trong câu/đoạn phù hợp HSK2."
+            }
+          ]
+        },
+        {
+          "id": "zh-hsk2-5-topic",
+          "title": "只有...才...",
+          "level": "HSK2",
+          "category": "",
+          "top_candidate_scores": [
+            {
+              "family": "focus_emphasis",
+              "score": 78.8
+            },
+            {
+              "family": "existential_you",
+              "score": 75.8
+            },
+            {
+              "family": "adverbs_degree_frequency",
+              "score": 20.0
+            },
+            {
+              "family": "complex_clauses",
+              "score": 20.0
+            },
+            {
+              "family": "aspect_le",
+              "score": 3.0
+            }
+          ],
+          "metadata": [
+            {
+              "path": "id",
+              "text": "zh-hsk2-5-topic"
+            },
+            {
+              "path": "title",
+              "text": "只有...才..."
+            },
+            {
+              "path": "curriculum.id",
+              "text": "zh-hsk2-5-topic"
+            },
+            {
+              "path": "curriculum.module",
+              "text": "复句与副词"
+            },
+            {
+              "path": "curriculum.category",
+              "text": "复句与副词"
+            },
+            {
+              "path": "curriculum.title",
+              "text": "只有...才..."
+            },
+            {
+              "path": "curriculum.objective_vi",
+              "text": "Hiểu chức năng, vị trí, phạm vi và sắc thái của 只有...才...; dùng đúng trong câu/đoạn phù hợp HSK2."
+            }
+          ]
+        },
+        {
+          "id": "zh-hsk2-11-topic",
+          "title": "一边...一边...",
+          "level": "HSK2",
+          "category": "",
+          "top_candidate_scores": [
+            {
+              "family": "adverbs_degree_frequency",
+              "score": 20.0
+            },
+            {
+              "family": "complex_clauses",
+              "score": 20.0
+            },
+            {
+              "family": "aspect_le",
+              "score": 6.0
+            }
+          ],
+          "metadata": [
+            {
+              "path": "id",
+              "text": "zh-hsk2-11-topic"
+            },
+            {
+              "path": "title",
+              "text": "一边...一边..."
+            },
+            {
+              "path": "curriculum.id",
+              "text": "zh-hsk2-11-topic"
+            },
+            {
+              "path": "curriculum.module",
+              "text": "复句与副词"
+            },
+            {
+              "path": "curriculum.category",
+              "text": "复句与副词"
+            },
+            {
+              "path": "curriculum.title",
+              "text": "一边...一边..."
+            },
+            {
+              "path": "curriculum.objective_vi",
+              "text": "Hiểu chức năng, vị trí, phạm vi và sắc thái của 一边...一边...; dùng đúng trong câu/đoạn phù hợp HSK2."
+            }
+          ]
+        }
+      ],
+      "status": "REVIEW_REQUIRED"
+    },
+    {
+      "cluster_id": "ZH-U004",
+      "level": "HSK3",
+      "category": "复句与话题",
+      "module": "复句与话题",
+      "lesson_count": 2,
+      "lesson_ids": [
+        "zh-hsk3-6-topic",
+        "zh-hsk3-11-nh-n-m-nh"
+      ],
+      "samples": [
+        {
+          "id": "zh-hsk3-6-topic",
+          "title": "由于...因此...",
+          "level": "HSK3",
+          "category": "",
+          "top_candidate_scores": [
+            {
+              "family": "complex_clauses",
+              "score": 20.0
+            },
+            {
+              "family": "topic_comment",
+              "score": 20.0
+            },
+            {
+              "family": "aspect_le",
+              "score": 6.0
+            },
+            {
+              "family": "prepositions_coverbs",
+              "score": 6.0
+            }
+          ],
+          "metadata": [
+            {
+              "path": "id",
+              "text": "zh-hsk3-6-topic"
+            },
+            {
+              "path": "title",
+              "text": "由于...因此..."
+            },
+            {
+              "path": "curriculum.id",
+              "text": "zh-hsk3-6-topic"
+            },
+            {
+              "path": "curriculum.module",
+              "text": "复句与话题"
+            },
+            {
+              "path": "curriculum.category",
+              "text": "复句与话题"
+            },
+            {
+              "path": "curriculum.title",
+              "text": "由于...因此..."
+            },
+            {
+              "path": "curriculum.objective_vi",
+              "text": "Hiểu chức năng, vị trí, phạm vi và sắc thái của 由于...因此...; dùng đúng trong câu/đoạn phù hợp HSK3."
+            }
+          ]
+        },
+        {
+          "id": "zh-hsk3-11-nh-n-m-nh",
+          "title": "是...的 nhấn mạnh",
+          "level": "HSK3",
+          "category": "",
+          "top_candidate_scores": [
+            {
+              "family": "copula_shi",
+              "score": 75.8
+            },
+            {
+              "family": "de_modifier",
+              "score": 75.8
+            },
+            {
+              "family": "focus_emphasis",
+              "score": 75.8
+            },
+            {
+              "family": "shi_de_construction",
+              "score": 75.8
+            },
+            {
+              "family": "complex_clauses",
+              "score": 20.0
+            }
+          ],
+          "metadata": [
+            {
+              "path": "id",
+              "text": "zh-hsk3-11-nh-n-m-nh"
+            },
+            {
+              "path": "title",
+              "text": "是...的 nhấn mạnh"
+            },
+            {
+              "path": "curriculum.id",
+              "text": "zh-hsk3-11-nh-n-m-nh"
+            },
+            {
+              "path": "curriculum.module",
+              "text": "复句与话题"
+            },
+            {
+              "path": "curriculum.category",
+              "text": "复句与话题"
+            },
+            {
+              "path": "curriculum.title",
+              "text": "是...的 nhấn mạnh"
+            },
+            {
+              "path": "curriculum.objective_vi",
+              "text": "Hiểu chức năng, vị trí, phạm vi và sắc thái của 是...的 nhấn mạnh; dùng đúng trong câu/đoạn phù hợp HSK3."
+            }
+          ]
+        }
+      ],
+      "status": "REVIEW_REQUIRED"
+    },
+    {
+      "cluster_id": "ZH-U005",
+      "level": "HSK3",
+      "category": "把被与补语",
+      "module": "把被与补语",
+      "lesson_count": 4,
+      "lesson_ids": [
+        "zh-hsk3-5-v-i-chi-u",
+        "zh-hsk3-8-b-ng-th-i-l-ng",
+        "zh-hsk3-9-b-ng-ng-l-ng",
+        "zh-hsk3-10-ngh-a-m-r-ng"
+      ],
+      "samples": [
+        {
+          "id": "zh-hsk3-5-v-i-chi-u",
+          "title": "把 và 被 đối chiếu",
+          "level": "HSK3",
+          "category": "",
+          "top_candidate_scores": [
+            {
+              "family": "bei_passive",
+              "score": 98.8
+            },
+            {
+              "family": "ba_construction",
+              "score": 95.8
+            },
+            {
+              "family": "aspect_le",
+              "score": 3.0
+            }
+          ],
+          "metadata": [
+            {
+              "path": "id",
+              "text": "zh-hsk3-5-v-i-chi-u"
+            },
+            {
+              "path": "title",
+              "text": "把 và 被 đối chiếu"
+            },
+            {
+              "path": "curriculum.id",
+              "text": "zh-hsk3-5-v-i-chi-u"
+            },
+            {
+              "path": "curriculum.module",
+              "text": "把被与补语"
+            },
+            {
+              "path": "curriculum.category",
+              "text": "把被与补语"
+            },
+            {
+              "path": "curriculum.title",
+              "text": "把 và 被 đối chiếu"
+            },
+            {
+              "path": "curriculum.objective_vi",
+              "text": "Hiểu chức năng, vị trí, phạm vi và sắc thái của 把 và 被 đối chiếu; dùng đúng trong câu/đoạn phù hợp HSK3."
+            }
+          ]
+        },
+        {
+          "id": "zh-hsk3-8-b-ng-th-i-l-ng",
+          "title": "Bổ ngữ thời lượng",
+          "level": "HSK3",
+          "category": "",
+          "top_candidate_scores": [
+            {
+              "family": "ba_construction",
+              "score": 20.0
+            },
+            {
+              "family": "bei_passive",
+              "score": 20.0
+            },
+            {
+              "family": "aspect_le",
+              "score": 3.0
+            },
+            {
+              "family": "potential_complements",
+              "score": 3.0
+            }
+          ],
+          "metadata": [
+            {
+              "path": "id",
+              "text": "zh-hsk3-8-b-ng-th-i-l-ng"
+            },
+            {
+              "path": "title",
+              "text": "Bổ ngữ thời lượng"
+            },
+            {
+              "path": "curriculum.id",
+              "text": "zh-hsk3-8-b-ng-th-i-l-ng"
+            },
+            {
+              "path": "curriculum.module",
+              "text": "把被与补语"
+            },
+            {
+              "path": "curriculum.category",
+              "text": "把被与补语"
+            },
+            {
+              "path": "curriculum.title",
+              "text": "Bổ ngữ thời lượng"
+            },
+            {
+              "path": "curriculum.objective_vi",
+              "text": "Hiểu chức năng, vị trí, phạm vi và sắc thái của Bổ ngữ thời lượng; dùng đúng trong câu/đoạn phù hợp HSK3."
+            }
+          ]
+        },
+        {
+          "id": "zh-hsk3-9-b-ng-ng-l-ng",
+          "title": "Bổ ngữ động lượng",
+          "level": "HSK3",
+          "category": "",
+          "top_candidate_scores": [
+            {
+              "family": "ba_construction",
+              "score": 20.0
+            },
+            {
+              "family": "bei_passive",
+              "score": 20.0
+            },
+            {
+              "family": "aspect_le",
+              "score": 3.0
+            }
+          ],
+          "metadata": [
+            {
+              "path": "id",
+              "text": "zh-hsk3-9-b-ng-ng-l-ng"
+            },
+            {
+              "path": "title",
+              "text": "Bổ ngữ động lượng"
+            },
+            {
+              "path": "curriculum.id",
+              "text": "zh-hsk3-9-b-ng-ng-l-ng"
+            },
+            {
+              "path": "curriculum.module",
+              "text": "把被与补语"
+            },
+            {
+              "path": "curriculum.category",
+              "text": "把被与补语"
+            },
+            {
+              "path": "curriculum.title",
+              "text": "Bổ ngữ động lượng"
+            },
+            {
+              "path": "curriculum.objective_vi",
+              "text": "Hiểu chức năng, vị trí, phạm vi và sắc thái của Bổ ngữ động lượng; dùng đúng trong câu/đoạn phù hợp HSK3."
+            }
+          ]
+        },
+        {
+          "id": "zh-hsk3-10-ngh-a-m-r-ng",
+          "title": "趋向补语 nghĩa mở rộng",
+          "level": "HSK3",
+          "category": "",
+          "top_candidate_scores": [
+            {
+              "family": "directional_complements",
+              "score": 75.8
+            },
+            {
+              "family": "prepositions_coverbs",
+              "score": 75.8
+            },
+            {
+              "family": "ba_construction",
+              "score": 20.0
+            },
+            {
+              "family": "bei_passive",
+              "score": 20.0
+            },
+            {
+              "family": "aspect_le",
+              "score": 3.0
+            }
+          ],
+          "metadata": [
+            {
+              "path": "id",
+              "text": "zh-hsk3-10-ngh-a-m-r-ng"
+            },
+            {
+              "path": "title",
+              "text": "趋向补语 nghĩa mở rộng"
+            },
+            {
+              "path": "curriculum.id",
+              "text": "zh-hsk3-10-ngh-a-m-r-ng"
+            },
+            {
+              "path": "curriculum.module",
+              "text": "把被与补语"
+            },
+            {
+              "path": "curriculum.category",
+              "text": "把被与补语"
+            },
+            {
+              "path": "curriculum.title",
+              "text": "趋向补语 nghĩa mở rộng"
+            },
+            {
+              "path": "curriculum.objective_vi",
+              "text": "Hiểu chức năng, vị trí, phạm vi và sắc thái của 趋向补语 nghĩa mở rộng; dùng đúng trong câu/đoạn phù hợp HSK3."
+            }
+          ]
+        }
+      ],
+      "status": "REVIEW_REQUIRED"
+    },
+    {
+      "cluster_id": "ZH-U006",
+      "level": "HSK4",
+      "category": "复杂句式",
+      "module": "复杂句式",
+      "lesson_count": 7,
+      "lesson_ids": [
+        "zh-hsk4-6-topic",
+        "zh-hsk4-7-topic",
+        "zh-hsk4-8-topic",
+        "zh-hsk4-9-topic",
+        "zh-hsk4-12-topic",
+        "zh-hsk4-14-topic",
+        "zh-hsk4-15-v-introduction"
+      ],
+      "samples": [
+        {
+          "id": "zh-hsk4-6-topic",
+          "title": "除非...否则...",
+          "level": "HSK4",
+          "category": "",
+          "top_candidate_scores": [
+            {
+              "family": "aspect_le",
+              "score": 3.0
+            },
+            {
+              "family": "conjunctions_connectives",
+              "score": 3.0
+            },
+            {
+              "family": "focus_emphasis",
+              "score": 3.0
+            }
+          ],
+          "metadata": [
+            {
+              "path": "id",
+              "text": "zh-hsk4-6-topic"
+            },
+            {
+              "path": "title",
+              "text": "除非...否则..."
+            },
+            {
+              "path": "curriculum.id",
+              "text": "zh-hsk4-6-topic"
+            },
+            {
+              "path": "curriculum.module",
+              "text": "复杂句式"
+            },
+            {
+              "path": "curriculum.category",
+              "text": "复杂句式"
+            },
+            {
+              "path": "curriculum.title",
+              "text": "除非...否则..."
+            },
+            {
+              "path": "curriculum.objective_vi",
+              "text": "Hiểu chức năng, vị trí, phạm vi và sắc thái của 除非...否则...; dùng đúng trong câu/đoạn phù hợp HSK4."
+            }
+          ]
+        },
+        {
+          "id": "zh-hsk4-7-topic",
+          "title": "不管/无论...都...",
+          "level": "HSK4",
+          "category": "",
+          "top_candidate_scores": [
+            {
+              "family": "adverbs_degree_frequency",
+              "score": 75.8
+            },
+            {
+              "family": "negation_bu_mei",
+              "score": 75.8
+            },
+            {
+              "family": "conjunctions_connectives",
+              "score": 66.0
+            },
+            {
+              "family": "aspect_le",
+              "score": 3.0
+            }
+          ],
+          "metadata": [
+            {
+              "path": "id",
+              "text": "zh-hsk4-7-topic"
+            },
+            {
+              "path": "title",
+              "text": "不管/无论...都..."
+            },
+            {
+              "path": "curriculum.id",
+              "text": "zh-hsk4-7-topic"
+            },
+            {
+              "path": "curriculum.module",
+              "text": "复杂句式"
+            },
+            {
+              "path": "curriculum.category",
+              "text": "复杂句式"
+            },
+            {
+              "path": "curriculum.title",
+              "text": "不管/无论...都..."
+            },
+            {
+              "path": "curriculum.objective_vi",
+              "text": "Hiểu chức năng, vị trí, phạm vi và sắc thái của 不管/无论...都...; dùng đúng trong câu/đoạn phù hợp HSK4."
+            }
+          ]
+        },
+        {
+          "id": "zh-hsk4-8-topic",
+          "title": "哪怕/即便...也...",
+          "level": "HSK4",
+          "category": "",
+          "top_candidate_scores": [
+            {
+              "family": "adverbs_degree_frequency",
+              "score": 78.8
+            },
+            {
+              "family": "questions_ma_ne_wh",
+              "score": 75.8
+            },
+            {
+              "family": "aspect_le",
+              "score": 3.0
+            },
+            {
+              "family": "conjunctions_connectives",
+              "score": 3.0
+            },
+            {
+              "family": "negation_bu_mei",
+              "score": 3.0
+            }
+          ],
+          "metadata": [
+            {
+              "path": "id",
+              "text": "zh-hsk4-8-topic"
+            },
+            {
+              "path": "title",
+              "text": "哪怕/即便...也..."
+            },
+            {
+              "path": "curriculum.id",
+              "text": "zh-hsk4-8-topic"
+            },
+            {
+              "path": "curriculum.module",
+              "text": "复杂句式"
+            },
+            {
+              "path": "curriculum.category",
+              "text": "复杂句式"
+            },
+            {
+              "path": "curriculum.title",
+              "text": "哪怕/即便...也..."
+            },
+            {
+              "path": "curriculum.objective_vi",
+              "text": "Hiểu chức năng, vị trí, phạm vi và sắc thái của 哪怕/即便...也...; dùng đúng trong câu/đoạn phù hợp HSK4."
+            }
+          ]
+        },
+        {
+          "id": "zh-hsk4-9-topic",
+          "title": "之所以...是因为...",
+          "level": "HSK4",
+          "category": "",
+          "top_candidate_scores": [
+            {
+              "family": "copula_shi",
+              "score": 75.8
+            },
+            {
+              "family": "prepositions_coverbs",
+              "score": 75.8
+            },
+            {
+              "family": "adverbs_degree_frequency",
+              "score": 3.0
+            },
+            {
+              "family": "aspect_le",
+              "score": 3.0
+            },
+            {
+              "family": "conjunctions_connectives",
+              "score": 3.0
+            }
+          ],
+          "metadata": [
+            {
+              "path": "id",
+              "text": "zh-hsk4-9-topic"
+            },
+            {
+              "path": "title",
+              "text": "之所以...是因为..."
+            },
+            {
+              "path": "curriculum.id",
+              "text": "zh-hsk4-9-topic"
+            },
+            {
+              "path": "curriculum.module",
+              "text": "复杂句式"
+            },
+            {
+              "path": "curriculum.category",
+              "text": "复杂句式"
+            },
+            {
+              "path": "curriculum.title",
+              "text": "之所以...是因为..."
+            },
+            {
+              "path": "curriculum.objective_vi",
+              "text": "Hiểu chức năng, vị trí, phạm vi và sắc thái của 之所以...是因为...; dùng đúng trong câu/đoạn phù hợp HSK4."
+            }
+          ]
+        },
+        {
+          "id": "zh-hsk4-12-topic",
+          "title": "按照/根据...",
+          "level": "HSK4",
+          "category": "",
+          "top_candidate_scores": [
+            {
+              "family": "aspect_guo",
+              "score": 3.0
+            },
+            {
+              "family": "aspect_le",
+              "score": 3.0
+            }
+          ],
+          "metadata": [
+            {
+              "path": "id",
+              "text": "zh-hsk4-12-topic"
+            },
+            {
+              "path": "title",
+              "text": "按照/根据..."
+            },
+            {
+              "path": "curriculum.id",
+              "text": "zh-hsk4-12-topic"
+            },
+            {
+              "path": "curriculum.module",
+              "text": "复杂句式"
+            },
+            {
+              "path": "curriculum.category",
+              "text": "复杂句式"
+            },
+            {
+              "path": "curriculum.title",
+              "text": "按照/根据..."
+            },
+            {
+              "path": "curriculum.objective_vi",
+              "text": "Hiểu chức năng, vị trí, phạm vi và sắc thái của 按照/根据...; dùng đúng trong câu/đoạn phù hợp HSK4."
+            }
+          ]
+        },
+        {
+          "id": "zh-hsk4-14-topic",
+          "title": "由...组成 / 由...负责",
+          "level": "HSK4",
+          "category": "",
+          "top_candidate_scores": [
+            {
+              "family": "prepositions_coverbs",
+              "score": 6.0
+            },
+            {
+              "family": "aspect_le",
+              "score": 3.0
+            }
+          ],
+          "metadata": [
+            {
+              "path": "id",
+              "text": "zh-hsk4-14-topic"
+            },
+            {
+              "path": "title",
+              "text": "由...组成 / 由...负责"
+            },
+            {
+              "path": "curriculum.id",
+              "text": "zh-hsk4-14-topic"
+            },
+            {
+              "path": "curriculum.module",
+              "text": "复杂句式"
+            },
+            {
+              "path": "curriculum.category",
+              "text": "复杂句式"
+            },
+            {
+              "path": "curriculum.title",
+              "text": "由...组成 / 由...负责"
+            },
+            {
+              "path": "curriculum.objective_vi",
+              "text": "Hiểu chức năng, vị trí, phạm vi và sắc thái của 由...组成 / 由...负责; dùng đúng trong câu/đoạn phù hợp HSK4."
+            }
+          ]
+        },
+        {
+          "id": "zh-hsk4-15-v-introduction",
+          "title": "所 + V: introduction",
+          "level": "HSK4",
+          "category": "",
+          "top_candidate_scores": [
+            {
+              "family": "aspect_le",
+              "score": 3.0
+            }
+          ],
+          "metadata": [
+            {
+              "path": "id",
+              "text": "zh-hsk4-15-v-introduction"
+            },
+            {
+              "path": "title",
+              "text": "所 + V: introduction"
+            },
+            {
+              "path": "curriculum.id",
+              "text": "zh-hsk4-15-v-introduction"
+            },
+            {
+              "path": "curriculum.module",
+              "text": "复杂句式"
+            },
+            {
+              "path": "curriculum.category",
+              "text": "复杂句式"
+            },
+            {
+              "path": "curriculum.title",
+              "text": "所 + V: introduction"
+            },
+            {
+              "path": "curriculum.objective_vi",
+              "text": "Hiểu chức năng, vị trí, phạm vi và sắc thái của 所 + V: introduction; dùng đúng trong câu/đoạn phù hợp HSK4."
+            }
+          ]
+        }
+      ],
+      "status": "REVIEW_REQUIRED"
+    },
+    {
+      "cluster_id": "ZH-U007",
+      "level": "HSK4",
+      "category": "衔接与书面表达",
+      "module": "衔接与书面表达",
+      "lesson_count": 3,
+      "lesson_ids": [
+        "zh-hsk4-4-topic-105",
+        "zh-hsk4-7-topic-109",
+        "zh-hsk4-12-topic-115"
+      ],
+      "samples": [
+        {
+          "id": "zh-hsk4-4-topic-105",
+          "title": "然而/不过/可是",
+          "level": "HSK4",
+          "category": "",
+          "top_candidate_scores": [
+            {
+              "family": "aspect_guo",
+              "score": 75.8
+            },
+            {
+              "family": "copula_shi",
+              "score": 75.8
+            },
+            {
+              "family": "negation_bu_mei",
+              "score": 75.8
+            },
+            {
+              "family": "discourse_connectivity",
+              "score": 20.0
+            },
+            {
+              "family": "adverbs_degree_frequency",
+              "score": 3.0
+            }
+          ],
+          "metadata": [
+            {
+              "path": "id",
+              "text": "zh-hsk4-4-topic-105"
+            },
+            {
+              "path": "title",
+              "text": "然而/不过/可是"
+            },
+            {
+              "path": "curriculum.id",
+              "text": "zh-hsk4-4-topic-105"
+            },
+            {
+              "path": "curriculum.module",
+              "text": "衔接与书面表达"
+            },
+            {
+              "path": "curriculum.category",
+              "text": "衔接与书面表达"
+            },
+            {
+              "path": "curriculum.title",
+              "text": "然而/不过/可是"
+            },
+            {
+              "path": "curriculum.objective_vi",
+              "text": "Hiểu chức năng, vị trí, phạm vi và sắc thái của 然而/不过/可是; dùng đúng trong câu/đoạn phù hợp HSK4."
+            }
+          ]
+        },
+        {
+          "id": "zh-hsk4-7-topic-109",
+          "title": "宁可...也不...",
+          "level": "HSK4",
+          "category": "",
+          "top_candidate_scores": [
+            {
+              "family": "adverbs_degree_frequency",
+              "score": 78.8
+            },
+            {
+              "family": "negation_bu_mei",
+              "score": 75.8
+            },
+            {
+              "family": "discourse_connectivity",
+              "score": 20.0
+            },
+            {
+              "family": "aspect_le",
+              "score": 3.0
+            }
+          ],
+          "metadata": [
+            {
+              "path": "id",
+              "text": "zh-hsk4-7-topic-109"
+            },
+            {
+              "path": "title",
+              "text": "宁可...也不..."
+            },
+            {
+              "path": "curriculum.id",
+              "text": "zh-hsk4-7-topic-109"
+            },
+            {
+              "path": "curriculum.module",
+              "text": "衔接与书面表达"
+            },
+            {
+              "path": "curriculum.category",
+              "text": "衔接与书面表达"
+            },
+            {
+              "path": "curriculum.title",
+              "text": "宁可...也不..."
+            },
+            {
+              "path": "curriculum.objective_vi",
+              "text": "Hiểu chức năng, vị trí, phạm vi và sắc thái của 宁可...也不...; dùng đúng trong câu/đoạn phù hợp HSK4."
+            }
+          ]
+        },
+        {
+          "id": "zh-hsk4-12-topic-115",
+          "title": "来得及/来不及",
+          "level": "HSK4",
+          "category": "",
+          "top_candidate_scores": [
+            {
+              "family": "de_complement",
+              "score": 75.8
+            },
+            {
+              "family": "modal_verbs",
+              "score": 75.8
+            },
+            {
+              "family": "negation_bu_mei",
+              "score": 75.8
+            },
+            {
+              "family": "discourse_connectivity",
+              "score": 20.0
+            },
+            {
+              "family": "directional_complements",
+              "score": 6.0
+            }
+          ],
+          "metadata": [
+            {
+              "path": "id",
+              "text": "zh-hsk4-12-topic-115"
+            },
+            {
+              "path": "title",
+              "text": "来得及/来不及"
+            },
+            {
+              "path": "curriculum.id",
+              "text": "zh-hsk4-12-topic-115"
+            },
+            {
+              "path": "curriculum.module",
+              "text": "衔接与书面表达"
+            },
+            {
+              "path": "curriculum.category",
+              "text": "衔接与书面表达"
+            },
+            {
+              "path": "curriculum.title",
+              "text": "来得及/来不及"
+            },
+            {
+              "path": "curriculum.objective_vi",
+              "text": "Hiểu chức năng, vị trí, phạm vi và sắc thái của 来得及/来不及; dùng đúng trong câu/đoạn phù hợp HSK4."
+            }
+          ]
+        }
+      ],
+      "status": "REVIEW_REQUIRED"
+    },
+    {
+      "cluster_id": "ZH-U008",
+      "level": "HSK5",
+      "category": "高级复句",
+      "module": "高级复句",
+      "lesson_count": 6,
+      "lesson_ids": [
+        "zh-hsk5-1-topic",
+        "zh-hsk5-2-topic",
+        "zh-hsk5-3-topic",
+        "zh-hsk5-4-topic",
+        "zh-hsk5-6-topic",
+        "zh-hsk5-10-topic"
+      ],
+      "samples": [
+        {
+          "id": "zh-hsk5-1-topic",
+          "title": "不是...而是...",
+          "level": "HSK5",
+          "category": "",
+          "top_candidate_scores": [
+            {
+              "family": "copula_shi",
+              "score": 75.8
+            },
+            {
+              "family": "negation_bu_mei",
+              "score": 75.8
+            },
+            {
+              "family": "complex_clauses",
+              "score": 20.0
+            },
+            {
+              "family": "aspect_le",
+              "score": 3.0
+            }
+          ],
+          "metadata": [
+            {
+              "path": "id",
+              "text": "zh-hsk5-1-topic"
+            },
+            {
+              "path": "title",
+              "text": "不是...而是..."
+            },
+            {
+              "path": "curriculum.id",
+              "text": "zh-hsk5-1-topic"
+            },
+            {
+              "path": "curriculum.module",
+              "text": "高级复句"
+            },
+            {
+              "path": "curriculum.category",
+              "text": "高级复句"
+            },
+            {
+              "path": "curriculum.title",
+              "text": "不是...而是..."
+            },
+            {
+              "path": "curriculum.objective_vi",
+              "text": "Hiểu chức năng, vị trí, phạm vi và sắc thái của 不是...而是...; dùng đúng trong câu/đoạn phù hợp HSK5."
+            }
+          ]
+        },
+        {
+          "id": "zh-hsk5-2-topic",
+          "title": "并非/并不是",
+          "level": "HSK5",
+          "category": "",
+          "top_candidate_scores": [
+            {
+              "family": "copula_shi",
+              "score": 75.8
+            },
+            {
+              "family": "negation_bu_mei",
+              "score": 75.8
+            },
+            {
+              "family": "complex_clauses",
+              "score": 20.0
+            },
+            {
+              "family": "aspect_le",
+              "score": 3.0
+            }
+          ],
+          "metadata": [
+            {
+              "path": "id",
+              "text": "zh-hsk5-2-topic"
+            },
+            {
+              "path": "title",
+              "text": "并非/并不是"
+            },
+            {
+              "path": "curriculum.id",
+              "text": "zh-hsk5-2-topic"
+            },
+            {
+              "path": "curriculum.module",
+              "text": "高级复句"
+            },
+            {
+              "path": "curriculum.category",
+              "text": "高级复句"
+            },
+            {
+              "path": "curriculum.title",
+              "text": "并非/并不是"
+            },
+            {
+              "path": "curriculum.objective_vi",
+              "text": "Hiểu chức năng, vị trí, phạm vi và sắc thái của 并非/并不是; dùng đúng trong câu/đoạn phù hợp HSK5."
+            }
+          ]
+        },
+        {
+          "id": "zh-hsk5-3-topic",
+          "title": "未必/不见得",
+          "level": "HSK5",
+          "category": "",
+          "top_candidate_scores": [
+            {
+              "family": "de_complement",
+              "score": 75.8
+            },
+            {
+              "family": "modal_verbs",
+              "score": 75.8
+            },
+            {
+              "family": "negation_bu_mei",
+              "score": 75.8
+            },
+            {
+              "family": "result_complements",
+              "score": 75.8
+            },
+            {
+              "family": "complex_clauses",
+              "score": 20.0
+            }
+          ],
+          "metadata": [
+            {
+              "path": "id",
+              "text": "zh-hsk5-3-topic"
+            },
+            {
+              "path": "title",
+              "text": "未必/不见得"
+            },
+            {
+              "path": "curriculum.id",
+              "text": "zh-hsk5-3-topic"
+            },
+            {
+              "path": "curriculum.module",
+              "text": "高级复句"
+            },
+            {
+              "path": "curriculum.category",
+              "text": "高级复句"
+            },
+            {
+              "path": "curriculum.title",
+              "text": "未必/不见得"
+            },
+            {
+              "path": "curriculum.objective_vi",
+              "text": "Hiểu chức năng, vị trí, phạm vi và sắc thái của 未必/不见得; dùng đúng trong câu/đoạn phù hợp HSK5."
+            }
+          ]
+        },
+        {
+          "id": "zh-hsk5-4-topic",
+          "title": "难免/免不了",
+          "level": "HSK5",
+          "category": "",
+          "top_candidate_scores": [
+            {
+              "family": "aspect_le",
+              "score": 78.8
+            },
+            {
+              "family": "negation_bu_mei",
+              "score": 75.8
+            },
+            {
+              "family": "potential_complements",
+              "score": 75.8
+            },
+            {
+              "family": "complex_clauses",
+              "score": 20.0
+            },
+            {
+              "family": "de_complement",
+              "score": 3.0
+            }
+          ],
+          "metadata": [
+            {
+              "path": "id",
+              "text": "zh-hsk5-4-topic"
+            },
+            {
+              "path": "title",
+              "text": "难免/免不了"
+            },
+            {
+              "path": "curriculum.id",
+              "text": "zh-hsk5-4-topic"
+            },
+            {
+              "path": "curriculum.module",
+              "text": "高级复句"
+            },
+            {
+              "path": "curriculum.category",
+              "text": "高级复句"
+            },
+            {
+              "path": "curriculum.title",
+              "text": "难免/免不了"
+            },
+            {
+              "path": "curriculum.objective_vi",
+              "text": "Hiểu chức năng, vị trí, phạm vi và sắc thái của 难免/免不了; dùng đúng trong câu/đoạn phù hợp HSK5."
+            }
+          ]
+        },
+        {
+          "id": "zh-hsk5-6-topic",
+          "title": "务必/切勿/不得",
+          "level": "HSK5",
+          "category": "",
+          "top_candidate_scores": [
+            {
+              "family": "de_complement",
+              "score": 75.8
+            },
+            {
+              "family": "modal_verbs",
+              "score": 75.8
+            },
+            {
+              "family": "negation_bu_mei",
+              "score": 75.8
+            },
+            {
+              "family": "complex_clauses",
+              "score": 20.0
+            },
+            {
+              "family": "aspect_le",
+              "score": 3.0
+            }
+          ],
+          "metadata": [
+            {
+              "path": "id",
+              "text": "zh-hsk5-6-topic"
+            },
+            {
+              "path": "title",
+              "text": "务必/切勿/不得"
+            },
+            {
+              "path": "curriculum.id",
+              "text": "zh-hsk5-6-topic"
+            },
+            {
+              "path": "curriculum.module",
+              "text": "高级复句"
+            },
+            {
+              "path": "curriculum.category",
+              "text": "高级复句"
+            },
+            {
+              "path": "curriculum.title",
+              "text": "务必/切勿/不得"
+            },
+            {
+              "path": "curriculum.objective_vi",
+              "text": "Hiểu chức năng, vị trí, phạm vi và sắc thái của 务必/切勿/不得; dùng đúng trong câu/đoạn phù hợp HSK5."
+            }
+          ]
+        },
+        {
+          "id": "zh-hsk5-10-topic",
+          "title": "无非/不过是",
+          "level": "HSK5",
+          "category": "",
+          "top_candidate_scores": [
+            {
+              "family": "aspect_guo",
+              "score": 75.8
+            },
+            {
+              "family": "copula_shi",
+              "score": 75.8
+            },
+            {
+              "family": "negation_bu_mei",
+              "score": 75.8
+            },
+            {
+              "family": "complex_clauses",
+              "score": 20.0
+            },
+            {
+              "family": "aspect_le",
+              "score": 3.0
+            }
+          ],
+          "metadata": [
+            {
+              "path": "id",
+              "text": "zh-hsk5-10-topic"
+            },
+            {
+              "path": "title",
+              "text": "无非/不过是"
+            },
+            {
+              "path": "curriculum.id",
+              "text": "zh-hsk5-10-topic"
+            },
+            {
+              "path": "curriculum.module",
+              "text": "高级复句"
+            },
+            {
+              "path": "curriculum.category",
+              "text": "高级复句"
+            },
+            {
+              "path": "curriculum.title",
+              "text": "无非/不过是"
+            },
+            {
+              "path": "curriculum.objective_vi",
+              "text": "Hiểu chức năng, vị trí, phạm vi và sắc thái của 无非/不过是; dùng đúng trong câu/đoạn phù hợp HSK5."
+            }
+          ]
+        }
+      ],
+      "status": "REVIEW_REQUIRED"
+    },
+    {
+      "cluster_id": "ZH-U009",
+      "level": "HSK6",
+      "category": "把被使令",
+      "module": "把被使令",
+      "lesson_count": 5,
+      "lesson_ids": [
+        "zh-hsk6-3-agent-source",
+        "zh-hsk6-5-topic",
+        "zh-hsk6-6-topic",
+        "zh-hsk6-7-topic-172",
+        "zh-hsk6-8-topic"
+      ],
+      "samples": [
+        {
+          "id": "zh-hsk6-3-agent-source",
+          "title": "由 + agent/source",
+          "level": "HSK6",
+          "category": "",
+          "top_candidate_scores": [
+            {
+              "family": "bei_passive",
+              "score": 23.0
+            },
+            {
+              "family": "ba_construction",
+              "score": 20.0
+            },
+            {
+              "family": "aspect_le",
+              "score": 3.0
+            }
+          ],
+          "metadata": [
+            {
+              "path": "id",
+              "text": "zh-hsk6-3-agent-source"
+            },
+            {
+              "path": "title",
+              "text": "由 + agent/source"
+            },
+            {
+              "path": "curriculum.id",
+              "text": "zh-hsk6-3-agent-source"
+            },
+            {
+              "path": "curriculum.module",
+              "text": "把被使令"
+            },
+            {
+              "path": "curriculum.category",
+              "text": "把被使令"
+            },
+            {
+              "path": "curriculum.title",
+              "text": "由 + agent/source"
+            },
+            {
+              "path": "curriculum.objective_vi",
+              "text": "Hiểu chức năng, vị trí, phạm vi và sắc thái của 由 + agent/source; dùng đúng trong câu/đoạn phù hợp HSK6."
+            }
+          ]
+        },
+        {
+          "id": "zh-hsk6-5-topic",
+          "title": "使/令/让/促使",
+          "level": "HSK6",
+          "category": "",
+          "top_candidate_scores": [
+            {
+              "family": "ba_construction",
+              "score": 20.0
+            },
+            {
+              "family": "bei_passive",
+              "score": 20.0
+            },
+            {
+              "family": "aspect_le",
+              "score": 3.0
+            },
+            {
+              "family": "prepositions_coverbs",
+              "score": 3.0
+            }
+          ],
+          "metadata": [
+            {
+              "path": "id",
+              "text": "zh-hsk6-5-topic"
+            },
+            {
+              "path": "title",
+              "text": "使/令/让/促使"
+            },
+            {
+              "path": "curriculum.id",
+              "text": "zh-hsk6-5-topic"
+            },
+            {
+              "path": "curriculum.module",
+              "text": "把被使令"
+            },
+            {
+              "path": "curriculum.category",
+              "text": "把被使令"
+            },
+            {
+              "path": "curriculum.title",
+              "text": "使/令/让/促使"
+            },
+            {
+              "path": "curriculum.objective_vi",
+              "text": "Hiểu chức năng, vị trí, phạm vi và sắc thái của 使/令/让/促使; dùng đúng trong câu/đoạn phù hợp HSK6."
+            }
+          ]
+        },
+        {
+          "id": "zh-hsk6-6-topic",
+          "title": "导致/致使",
+          "level": "HSK6",
+          "category": "",
+          "top_candidate_scores": [
+            {
+              "family": "ba_construction",
+              "score": 20.0
+            },
+            {
+              "family": "bei_passive",
+              "score": 20.0
+            },
+            {
+              "family": "aspect_le",
+              "score": 3.0
+            }
+          ],
+          "metadata": [
+            {
+              "path": "id",
+              "text": "zh-hsk6-6-topic"
+            },
+            {
+              "path": "title",
+              "text": "导致/致使"
+            },
+            {
+              "path": "curriculum.id",
+              "text": "zh-hsk6-6-topic"
+            },
+            {
+              "path": "curriculum.module",
+              "text": "把被使令"
+            },
+            {
+              "path": "curriculum.category",
+              "text": "把被使令"
+            },
+            {
+              "path": "curriculum.title",
+              "text": "导致/致使"
+            },
+            {
+              "path": "curriculum.objective_vi",
+              "text": "Hiểu chức năng, vị trí, phạm vi và sắc thái của 导致/致使; dùng đúng trong câu/đoạn phù hợp HSK6."
+            }
+          ]
+        },
+        {
+          "id": "zh-hsk6-7-topic-172",
+          "title": "以致/以至于",
+          "level": "HSK6",
+          "category": "",
+          "top_candidate_scores": [
+            {
+              "family": "ba_construction",
+              "score": 20.0
+            },
+            {
+              "family": "bei_passive",
+              "score": 20.0
+            },
+            {
+              "family": "aspect_le",
+              "score": 3.0
+            }
+          ],
+          "metadata": [
+            {
+              "path": "id",
+              "text": "zh-hsk6-7-topic-172"
+            },
+            {
+              "path": "title",
+              "text": "以致/以至于"
+            },
+            {
+              "path": "curriculum.id",
+              "text": "zh-hsk6-7-topic-172"
+            },
+            {
+              "path": "curriculum.module",
+              "text": "把被使令"
+            },
+            {
+              "path": "curriculum.category",
+              "text": "把被使令"
+            },
+            {
+              "path": "curriculum.title",
+              "text": "以致/以至于"
+            },
+            {
+              "path": "curriculum.objective_vi",
+              "text": "Hiểu chức năng, vị trí, phạm vi và sắc thái của 以致/以至于; dùng đúng trong câu/đoạn phù hợp HSK6."
+            }
+          ]
+        },
+        {
+          "id": "zh-hsk6-8-topic",
+          "title": "以便/以免/以期",
+          "level": "HSK6",
+          "category": "",
+          "top_candidate_scores": [
+            {
+              "family": "ba_construction",
+              "score": 20.0
+            },
+            {
+              "family": "bei_passive",
+              "score": 20.0
+            },
+            {
+              "family": "aspect_le",
+              "score": 3.0
+            }
+          ],
+          "metadata": [
+            {
+              "path": "id",
+              "text": "zh-hsk6-8-topic"
+            },
+            {
+              "path": "title",
+              "text": "以便/以免/以期"
+            },
+            {
+              "path": "curriculum.id",
+              "text": "zh-hsk6-8-topic"
+            },
+            {
+              "path": "curriculum.module",
+              "text": "把被使令"
+            },
+            {
+              "path": "curriculum.category",
+              "text": "把被使令"
+            },
+            {
+              "path": "curriculum.title",
+              "text": "以便/以免/以期"
+            },
+            {
+              "path": "curriculum.objective_vi",
+              "text": "Hiểu chức năng, vị trí, phạm vi và sắc thái của 以便/以免/以期; dùng đúng trong câu/đoạn phù hợp HSK6."
+            }
+          ]
+        }
+      ],
+      "status": "REVIEW_REQUIRED"
+    },
+    {
+      "cluster_id": "ZH-U010",
+      "level": "HSK6",
+      "category": "范围与语气",
+      "module": "范围与语气",
+      "lesson_count": 3,
+      "lesson_ids": [
+        "zh-hsk6-1-t-ng-t-c-n-ng-cao",
+        "zh-hsk6-2-topic",
+        "zh-hsk6-3-topic"
+      ],
+      "samples": [
+        {
+          "id": "zh-hsk6-1-t-ng-t-c-n-ng-cao",
+          "title": "了/过/着 tương tác nâng cao",
+          "level": "HSK6",
+          "category": "",
+          "top_candidate_scores": [
+            {
+              "family": "aspect_le",
+              "score": 78.8
+            },
+            {
+              "family": "aspect_guo",
+              "score": 75.8
+            },
+            {
+              "family": "aspect_zhe",
+              "score": 75.8
+            }
+          ],
+          "metadata": [
+            {
+              "path": "id",
+              "text": "zh-hsk6-1-t-ng-t-c-n-ng-cao"
+            },
+            {
+              "path": "title",
+              "text": "了/过/着 tương tác nâng cao"
+            },
+            {
+              "path": "curriculum.id",
+              "text": "zh-hsk6-1-t-ng-t-c-n-ng-cao"
+            },
+            {
+              "path": "curriculum.module",
+              "text": "范围与语气"
+            },
+            {
+              "path": "curriculum.category",
+              "text": "范围与语气"
+            },
+            {
+              "path": "curriculum.title",
+              "text": "了/过/着 tương tác nâng cao"
+            },
+            {
+              "path": "curriculum.objective_vi",
+              "text": "Hiểu chức năng, vị trí, phạm vi và sắc thái của 了/过/着 tương tác nâng cao; dùng đúng trong câu/đoạn phù hợp HSK6."
+            }
+          ]
+        },
+        {
+          "id": "zh-hsk6-2-topic",
+          "title": "恐怕/大概/显然/据说",
+          "level": "HSK6",
+          "category": "",
+          "top_candidate_scores": [
+            {
+              "family": "aspect_le",
+              "score": 6.0
+            },
+            {
+              "family": "aspect_guo",
+              "score": 3.0
+            },
+            {
+              "family": "aspect_zhe",
+              "score": 3.0
+            }
+          ],
+          "metadata": [
+            {
+              "path": "id",
+              "text": "zh-hsk6-2-topic"
+            },
+            {
+              "path": "title",
+              "text": "恐怕/大概/显然/据说"
+            },
+            {
+              "path": "curriculum.id",
+              "text": "zh-hsk6-2-topic"
+            },
+            {
+              "path": "curriculum.module",
+              "text": "范围与语气"
+            },
+            {
+              "path": "curriculum.category",
+              "text": "范围与语气"
+            },
+            {
+              "path": "curriculum.title",
+              "text": "恐怕/大概/显然/据说"
+            },
+            {
+              "path": "curriculum.objective_vi",
+              "text": "Hiểu chức năng, vị trí, phạm vi và sắc thái của 恐怕/大概/显然/据说; dùng đúng trong câu/đoạn phù hợp HSK6."
+            }
+          ]
+        },
+        {
+          "id": "zh-hsk6-3-topic",
+          "title": "并不/未必/不都/都不",
+          "level": "HSK6",
+          "category": "",
+          "top_candidate_scores": [
+            {
+              "family": "adverbs_degree_frequency",
+              "score": 75.8
+            },
+            {
+              "family": "negation_bu_mei",
+              "score": 75.8
+            },
+            {
+              "family": "aspect_le",
+              "score": 3.0
+            }
+          ],
+          "metadata": [
+            {
+              "path": "id",
+              "text": "zh-hsk6-3-topic"
+            },
+            {
+              "path": "title",
+              "text": "并不/未必/不都/都不"
+            },
+            {
+              "path": "curriculum.id",
+              "text": "zh-hsk6-3-topic"
+            },
+            {
+              "path": "curriculum.module",
+              "text": "范围与语气"
+            },
+            {
+              "path": "curriculum.category",
+              "text": "范围与语气"
+            },
+            {
+              "path": "curriculum.title",
+              "text": "并不/未必/不都/都不"
+            },
+            {
+              "path": "curriculum.objective_vi",
+              "text": "Hiểu chức năng, vị trí, phạm vi và sắc thái của 并不/未必/不都/都不; dùng đúng trong câu/đoạn phù hợp HSK6."
+            }
+          ]
+        }
+      ],
+      "status": "REVIEW_REQUIRED"
+    },
+    {
+      "cluster_id": "ZH-U011",
+      "level": "HSK6",
+      "category": "高级复句与书面语",
+      "module": "高级复句与书面语",
+      "lesson_count": 15,
+      "lesson_ids": [
+        "zh-hsk6-2-topic-175",
+        "zh-hsk6-3-n-ng-cao",
+        "zh-hsk6-4-patterns",
+        "zh-hsk6-5-patterns",
+        "zh-hsk6-7-topic-181",
+        "zh-hsk6-9-topic",
+        "zh-hsk6-10-complex-complements",
+        "zh-hsk6-11-long-sentence-parsing",
+        "zh-hsk6-13-compression-and-expansion",
+        "zh-hsk6-15-approximation-and-limitation",
+        "zh-hsk6-17-reference-chains",
+        "zh-hsk6-21-vietnamese-transfer-errors",
+        "zh-hsk6-22-punctuation-and-clause-grammar",
+        "zh-hsk6-23-summary-and-reformulation-structures",
+        "zh-hsk6-24-argument-qualification"
+      ],
+      "samples": [
+        {
+          "id": "zh-hsk6-2-topic-175",
+          "title": "只要/只有/除非/倘若/假如/一旦",
+          "level": "HSK6",
+          "category": "",
+          "top_candidate_scores": [
+            {
+              "family": "existential_you",
+              "score": 75.8
+            },
+            {
+              "family": "modal_verbs",
+              "score": 75.8
+            },
+            {
+              "family": "complex_clauses",
+              "score": 20.0
+            },
+            {
+              "family": "register_pragmatics",
+              "score": 20.0
+            },
+            {
+              "family": "aspect_le",
+              "score": 3.0
+            }
+          ],
+          "metadata": [
+            {
+              "path": "id",
+              "text": "zh-hsk6-2-topic-175"
+            },
+            {
+              "path": "title",
+              "text": "只要/只有/除非/倘若/假如/一旦"
+            },
+            {
+              "path": "curriculum.id",
+              "text": "zh-hsk6-2-topic-175"
+            },
+            {
+              "path": "curriculum.module",
+              "text": "高级复句与书面语"
+            },
+            {
+              "path": "curriculum.category",
+              "text": "高级复句与书面语"
+            },
+            {
+              "path": "curriculum.title",
+              "text": "只要/只有/除非/倘若/假如/一旦"
+            },
+            {
+              "path": "curriculum.objective_vi",
+              "text": "Hiểu chức năng, vị trí, phạm vi và sắc thái của 只要/只有/除非/倘若/假如/一旦; dùng đúng trong câu/đoạn phù hợp HSK6."
+            }
+          ]
+        },
+        {
+          "id": "zh-hsk6-3-n-ng-cao",
+          "title": "所字结构 nâng cao",
+          "level": "HSK6",
+          "category": "",
+          "top_candidate_scores": [
+            {
+              "family": "complex_clauses",
+              "score": 20.0
+            },
+            {
+              "family": "register_pragmatics",
+              "score": 20.0
+            },
+            {
+              "family": "aspect_le",
+              "score": 3.0
+            },
+            {
+              "family": "existential_you",
+              "score": 3.0
+            },
+            {
+              "family": "modal_verbs",
+              "score": 3.0
+            }
+          ],
+          "metadata": [
+            {
+              "path": "id",
+              "text": "zh-hsk6-3-n-ng-cao"
+            },
+            {
+              "path": "title",
+              "text": "所字结构 nâng cao"
+            },
+            {
+              "path": "curriculum.id",
+              "text": "zh-hsk6-3-n-ng-cao"
+            },
+            {
+              "path": "curriculum.module",
+              "text": "高级复句与书面语"
+            },
+            {
+              "path": "curriculum.category",
+              "text": "高级复句与书面语"
+            },
+            {
+              "path": "curriculum.title",
+              "text": "所字结构 nâng cao"
+            },
+            {
+              "path": "curriculum.objective_vi",
+              "text": "Hiểu chức năng, vị trí, phạm vi và sắc thái của 所字结构 nâng cao; dùng đúng trong câu/đoạn phù hợp HSK6."
+            }
+          ]
+        },
+        {
+          "id": "zh-hsk6-4-patterns",
+          "title": "者 patterns",
+          "level": "HSK6",
+          "category": "",
+          "top_candidate_scores": [
+            {
+              "family": "complex_clauses",
+              "score": 20.0
+            },
+            {
+              "family": "register_pragmatics",
+              "score": 20.0
+            },
+            {
+              "family": "aspect_le",
+              "score": 3.0
+            }
+          ],
+          "metadata": [
+            {
+              "path": "id",
+              "text": "zh-hsk6-4-patterns"
+            },
+            {
+              "path": "title",
+              "text": "者 patterns"
+            },
+            {
+              "path": "curriculum.id",
+              "text": "zh-hsk6-4-patterns"
+            },
+            {
+              "path": "curriculum.module",
+              "text": "高级复句与书面语"
+            },
+            {
+              "path": "curriculum.category",
+              "text": "高级复句与书面语"
+            },
+            {
+              "path": "curriculum.title",
+              "text": "者 patterns"
+            },
+            {
+              "path": "curriculum.objective_vi",
+              "text": "Hiểu chức năng, vị trí, phạm vi và sắc thái của 者 patterns; dùng đúng trong câu/đoạn phù hợp HSK6."
+            }
+          ]
+        },
+        {
+          "id": "zh-hsk6-5-patterns",
+          "title": "之 patterns",
+          "level": "HSK6",
+          "category": "",
+          "top_candidate_scores": [
+            {
+              "family": "complex_clauses",
+              "score": 20.0
+            },
+            {
+              "family": "register_pragmatics",
+              "score": 20.0
+            },
+            {
+              "family": "aspect_le",
+              "score": 3.0
+            }
+          ],
+          "metadata": [
+            {
+              "path": "id",
+              "text": "zh-hsk6-5-patterns"
+            },
+            {
+              "path": "title",
+              "text": "之 patterns"
+            },
+            {
+              "path": "curriculum.id",
+              "text": "zh-hsk6-5-patterns"
+            },
+            {
+              "path": "curriculum.module",
+              "text": "高级复句与书面语"
+            },
+            {
+              "path": "curriculum.category",
+              "text": "高级复句与书面语"
+            },
+            {
+              "path": "curriculum.title",
+              "text": "之 patterns"
+            },
+            {
+              "path": "curriculum.objective_vi",
+              "text": "Hiểu chức năng, vị trí, phạm vi và sắc thái của 之 patterns; dùng đúng trong câu/đoạn phù hợp HSK6."
+            }
+          ]
+        },
+        {
+          "id": "zh-hsk6-7-topic-181",
+          "title": "就...而言 / 从...来看",
+          "level": "HSK6",
+          "category": "",
+          "top_candidate_scores": [
+            {
+              "family": "prepositions_coverbs",
+              "score": 78.8
+            },
+            {
+              "family": "focus_emphasis",
+              "score": 75.8
+            },
+            {
+              "family": "complex_clauses",
+              "score": 20.0
+            },
+            {
+              "family": "register_pragmatics",
+              "score": 20.0
+            },
+            {
+              "family": "aspect_le",
+              "score": 3.0
+            }
+          ],
+          "metadata": [
+            {
+              "path": "id",
+              "text": "zh-hsk6-7-topic-181"
+            },
+            {
+              "path": "title",
+              "text": "就...而言 / 从...来看"
+            },
+            {
+              "path": "curriculum.id",
+              "text": "zh-hsk6-7-topic-181"
+            },
+            {
+              "path": "curriculum.module",
+              "text": "高级复句与书面语"
+            },
+            {
+              "path": "curriculum.category",
+              "text": "高级复句与书面语"
+            },
+            {
+              "path": "curriculum.title",
+              "text": "就...而言 / 从...来看"
+            },
+            {
+              "path": "curriculum.objective_vi",
+              "text": "Hiểu chức năng, vị trí, phạm vi và sắc thái của 就...而言 / 从...来看; dùng đúng trong câu/đoạn phù hợp HSK6."
+            }
+          ]
+        },
+        {
+          "id": "zh-hsk6-9-topic",
+          "title": "同位语和插入语",
+          "level": "HSK6",
+          "category": "",
+          "top_candidate_scores": [
+            {
+              "family": "complex_clauses",
+              "score": 20.0
+            },
+            {
+              "family": "register_pragmatics",
+              "score": 20.0
+            },
+            {
+              "family": "prepositions_coverbs",
+              "score": 6.0
+            },
+            {
+              "family": "aspect_le",
+              "score": 3.0
+            }
+          ],
+          "metadata": [
+            {
+              "path": "id",
+              "text": "zh-hsk6-9-topic"
+            },
+            {
+              "path": "title",
+              "text": "同位语和插入语"
+            },
+            {
+              "path": "curriculum.id",
+              "text": "zh-hsk6-9-topic"
+            },
+            {
+              "path": "curriculum.module",
+              "text": "高级复句与书面语"
+            },
+            {
+              "path": "curriculum.category",
+              "text": "高级复句与书面语"
+            },
+            {
+              "path": "curriculum.title",
+              "text": "同位语和插入语"
+            },
+            {
+              "path": "curriculum.objective_vi",
+              "text": "Hiểu chức năng, vị trí, phạm vi và sắc thái của 同位语和插入语; dùng đúng trong câu/đoạn phù hợp HSK6."
+            }
+          ]
+        },
+        {
+          "id": "zh-hsk6-10-complex-complements",
+          "title": "Complex complements",
+          "level": "HSK6",
+          "category": "",
+          "top_candidate_scores": [
+            {
+              "family": "complex_clauses",
+              "score": 20.0
+            },
+            {
+              "family": "register_pragmatics",
+              "score": 20.0
+            },
+            {
+              "family": "aspect_le",
+              "score": 3.0
+            }
+          ],
+          "metadata": [
+            {
+              "path": "id",
+              "text": "zh-hsk6-10-complex-complements"
+            },
+            {
+              "path": "title",
+              "text": "Complex complements"
+            },
+            {
+              "path": "curriculum.id",
+              "text": "zh-hsk6-10-complex-complements"
+            },
+            {
+              "path": "curriculum.module",
+              "text": "高级复句与书面语"
+            },
+            {
+              "path": "curriculum.category",
+              "text": "高级复句与书面语"
+            },
+            {
+              "path": "curriculum.title",
+              "text": "Complex complements"
+            },
+            {
+              "path": "curriculum.objective_vi",
+              "text": "Hiểu chức năng, vị trí, phạm vi và sắc thái của Complex complements; dùng đúng trong câu/đoạn phù hợp HSK6."
+            }
+          ]
+        },
+        {
+          "id": "zh-hsk6-11-long-sentence-parsing",
+          "title": "Long sentence parsing",
+          "level": "HSK6",
+          "category": "",
+          "top_candidate_scores": [
+            {
+              "family": "complex_clauses",
+              "score": 20.0
+            },
+            {
+              "family": "register_pragmatics",
+              "score": 20.0
+            },
+            {
+              "family": "aspect_le",
+              "score": 3.0
+            }
+          ],
+          "metadata": [
+            {
+              "path": "id",
+              "text": "zh-hsk6-11-long-sentence-parsing"
+            },
+            {
+              "path": "title",
+              "text": "Long sentence parsing"
+            },
+            {
+              "path": "curriculum.id",
+              "text": "zh-hsk6-11-long-sentence-parsing"
+            },
+            {
+              "path": "curriculum.module",
+              "text": "高级复句与书面语"
+            },
+            {
+              "path": "curriculum.category",
+              "text": "高级复句与书面语"
+            },
+            {
+              "path": "curriculum.title",
+              "text": "Long sentence parsing"
+            },
+            {
+              "path": "curriculum.objective_vi",
+              "text": "Hiểu chức năng, vị trí, phạm vi và sắc thái của Long sentence parsing; dùng đúng trong câu/đoạn phù hợp HSK6."
+            }
+          ]
+        },
+        {
+          "id": "zh-hsk6-13-compression-and-expansion",
+          "title": "Compression and expansion",
+          "level": "HSK6",
+          "category": "",
+          "top_candidate_scores": [
+            {
+              "family": "register_pragmatics",
+              "score": 23.0
+            },
+            {
+              "family": "complex_clauses",
+              "score": 20.0
+            },
+            {
+              "family": "aspect_le",
+              "score": 3.0
+            }
+          ],
+          "metadata": [
+            {
+              "path": "id",
+              "text": "zh-hsk6-13-compression-and-expansion"
+            },
+            {
+              "path": "title",
+              "text": "Compression and expansion"
+            },
+            {
+              "path": "curriculum.id",
+              "text": "zh-hsk6-13-compression-and-expansion"
+            },
+            {
+              "path": "curriculum.module",
+              "text": "高级复句与书面语"
+            },
+            {
+              "path": "curriculum.category",
+              "text": "高级复句与书面语"
+            },
+            {
+              "path": "curriculum.title",
+              "text": "Compression and expansion"
+            },
+            {
+              "path": "curriculum.objective_vi",
+              "text": "Hiểu chức năng, vị trí, phạm vi và sắc thái của Compression and expansion; dùng đúng trong câu/đoạn phù hợp HSK6."
+            }
+          ]
+        },
+        {
+          "id": "zh-hsk6-15-approximation-and-limitation",
+          "title": "Approximation and limitation",
+          "level": "HSK6",
+          "category": "",
+          "top_candidate_scores": [
+            {
+              "family": "register_pragmatics",
+              "score": 23.0
+            },
+            {
+              "family": "complex_clauses",
+              "score": 20.0
+            },
+            {
+              "family": "aspect_le",
+              "score": 3.0
+            }
+          ],
+          "metadata": [
+            {
+              "path": "id",
+              "text": "zh-hsk6-15-approximation-and-limitation"
+            },
+            {
+              "path": "title",
+              "text": "Approximation and limitation"
+            },
+            {
+              "path": "curriculum.id",
+              "text": "zh-hsk6-15-approximation-and-limitation"
+            },
+            {
+              "path": "curriculum.module",
+              "text": "高级复句与书面语"
+            },
+            {
+              "path": "curriculum.category",
+              "text": "高级复句与书面语"
+            },
+            {
+              "path": "curriculum.title",
+              "text": "Approximation and limitation"
+            },
+            {
+              "path": "curriculum.objective_vi",
+              "text": "Hiểu chức năng, vị trí, phạm vi và sắc thái của Approximation and limitation; dùng đúng trong câu/đoạn phù hợp HSK6."
+            }
+          ]
+        },
+        {
+          "id": "zh-hsk6-17-reference-chains",
+          "title": "Reference chains",
+          "level": "HSK6",
+          "category": "",
+          "top_candidate_scores": [
+            {
+              "family": "complex_clauses",
+              "score": 20.0
+            },
+            {
+              "family": "register_pragmatics",
+              "score": 20.0
+            },
+            {
+              "family": "aspect_le",
+              "score": 3.0
+            },
+            {
+              "family": "discourse_connectivity",
+              "score": 3.0
+            }
+          ],
+          "metadata": [
+            {
+              "path": "id",
+              "text": "zh-hsk6-17-reference-chains"
+            },
+            {
+              "path": "title",
+              "text": "Reference chains"
+            },
+            {
+              "path": "curriculum.id",
+              "text": "zh-hsk6-17-reference-chains"
+            },
+            {
+              "path": "curriculum.module",
+              "text": "高级复句与书面语"
+            },
+            {
+              "path": "curriculum.category",
+              "text": "高级复句与书面语"
+            },
+            {
+              "path": "curriculum.title",
+              "text": "Reference chains"
+            },
+            {
+              "path": "curriculum.objective_vi",
+              "text": "Hiểu chức năng, vị trí, phạm vi và sắc thái của Reference chains; dùng đúng trong câu/đoạn phù hợp HSK6."
+            }
+          ]
+        },
+        {
+          "id": "zh-hsk6-21-vietnamese-transfer-errors",
+          "title": "Vietnamese transfer errors",
+          "level": "HSK6",
+          "category": "",
+          "top_candidate_scores": [
+            {
+              "family": "register_pragmatics",
+              "score": 23.0
+            },
+            {
+              "family": "complex_clauses",
+              "score": 20.0
+            },
+            {
+              "family": "aspect_le",
+              "score": 3.0
+            }
+          ],
+          "metadata": [
+            {
+              "path": "id",
+              "text": "zh-hsk6-21-vietnamese-transfer-errors"
+            },
+            {
+              "path": "title",
+              "text": "Vietnamese transfer errors"
+            },
+            {
+              "path": "curriculum.id",
+              "text": "zh-hsk6-21-vietnamese-transfer-errors"
+            },
+            {
+              "path": "curriculum.module",
+              "text": "高级复句与书面语"
+            },
+            {
+              "path": "curriculum.category",
+              "text": "高级复句与书面语"
+            },
+            {
+              "path": "curriculum.title",
+              "text": "Vietnamese transfer errors"
+            },
+            {
+              "path": "curriculum.objective_vi",
+              "text": "Hiểu chức năng, vị trí, phạm vi và sắc thái của Vietnamese transfer errors; dùng đúng trong câu/đoạn phù hợp HSK6."
+            }
+          ]
+        }
+      ],
+      "status": "REVIEW_REQUIRED"
+    }
+  ]
+}

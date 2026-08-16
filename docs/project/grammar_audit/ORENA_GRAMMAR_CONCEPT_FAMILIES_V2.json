@@ -1,0 +1,788 @@
+{
+  "summary": {
+    "classification_version": 2,
+    "total_lessons": 508,
+    "english": {
+      "lessons": 269,
+      "families": {
+        "adjectives_adverbs": 8,
+        "adverbial_clauses": 4,
+        "articles_determiners": 10,
+        "basic_word_order": 1,
+        "be_existential": 5,
+        "comparison": 111,
+        "conditionals": 12,
+        "discourse_register": 5,
+        "future_forms": 12,
+        "gerund_infinitive": 8,
+        "modals": 19,
+        "nouns_countability": 5,
+        "participles": 2,
+        "passive_voice": 8,
+        "past_continuous": 1,
+        "past_simple": 5,
+        "present_continuous": 2,
+        "present_perfect": 3,
+        "present_perfect_continuous": 1,
+        "present_simple": 6,
+        "pronouns_possessives": 7,
+        "questions_negation": 10,
+        "relative_clauses": 6,
+        "reported_speech": 2,
+        "review_checkpoint": 16
+      },
+      "unclassified": 0
+    },
+    "chinese": {
+      "lessons": 239,
+      "direct_resolved": 185,
+      "cluster_resolved": 1,
+      "resolved_total": 186,
+      "unclassified": 53,
+      "families": {
+        "adverbs_degree_frequency": 11,
+        "aspect_guo": 2,
+        "aspect_le": 3,
+        "aspect_zhe": 3,
+        "ba_construction": 5,
+        "bei_passive": 4,
+        "classifiers_measure_words": 2,
+        "comparison_bi": 2,
+        "comparison_change": 2,
+        "comparison_yiyang": 1,
+        "complex_clauses": 8,
+        "copula_shi": 4,
+        "core_word_order": 1,
+        "de_modifier": 4,
+        "degree_complements": 1,
+        "demonstratives": 1,
+        "directional_complements": 3,
+        "discourse_connectivity": 3,
+        "double_object": 1,
+        "existential_you": 1,
+        "focus_emphasis": 7,
+        "location_zai": 1,
+        "modal_verbs": 2,
+        "negation_bu_mei": 6,
+        "numbers_dates_quantities": 1,
+        "pivotal_sentences": 1,
+        "potential_complements": 1,
+        "prepositions_coverbs": 13,
+        "progressive_zai_zhengzai": 1,
+        "pronouns": 1,
+        "questions_ma_ne_wh": 4,
+        "reduplication": 1,
+        "register_pragmatics": 36,
+        "result_complements": 1,
+        "review_checkpoint": 43,
+        "sentence_final_particles": 1,
+        "separable_verbs": 1,
+        "time_expressions": 1,
+        "topic_comment": 2
+      },
+      "unresolved_cluster_count": 11
+    },
+    "batches": {
+      "total": 170,
+      "ready": 164,
+      "blocked": 6
+    },
+    "hard_gates": {
+      "generic_mass_fill": "BLOCKED",
+      "unclassified_auto_fill": "FORBIDDEN",
+      "content_authoring_requires_family": true,
+      "candidate_gap_auto_add": "FORBIDDEN"
+    }
+  },
+  "zh_rules": {
+    "core_word_order": [
+      "语序",
+      "word order",
+      "trật tự từ",
+      "主谓宾",
+      "svo",
+      "subject verb object",
+      "句子顺序"
+    ],
+    "topic_comment": [
+      "话题",
+      "topic-comment",
+      "topic comment",
+      "chủ đề-vị ngữ",
+      "chủ đề - vị ngữ",
+      "主题述题",
+      "topic structure"
+    ],
+    "copula_shi": [
+      "是",
+      "shì",
+      "copula",
+      "động từ 是",
+      "câu chữ 是"
+    ],
+    "existential_you": [
+      "有",
+      "yǒu",
+      "existential 有",
+      "động từ 有",
+      "có / không có",
+      "possession with 有"
+    ],
+    "location_zai": [
+      "在",
+      "zài",
+      "location with 在",
+      "địa điểm với 在",
+      "ở đâu với 在"
+    ],
+    "negation_bu_mei": [
+      "不",
+      "没",
+      "没有",
+      "bù",
+      "méi",
+      "phủ định",
+      "negation",
+      "不 vs 没",
+      "不和没"
+    ],
+    "questions_ma_ne_wh": [
+      "吗",
+      "呢",
+      "疑问",
+      "question",
+      "câu hỏi",
+      "疑问词",
+      "什么",
+      "谁",
+      "哪",
+      "哪里",
+      "哪儿",
+      "怎么",
+      "为什么",
+      "几",
+      "多少"
+    ],
+    "affirmative_negative_questions": [
+      "正反问",
+      "a-not-a",
+      "a不a",
+      "是不是",
+      "有没有",
+      "能不能"
+    ],
+    "time_expressions": [
+      "时间词",
+      "time expression",
+      "thời gian",
+      "日期",
+      "星期",
+      "几点",
+      "年 月 日",
+      "date and time"
+    ],
+    "time_place_order": [
+      "时间地点",
+      "time placement",
+      "place placement",
+      "when where",
+      "thời gian.*địa điểm",
+      "时间.*地点",
+      "地点.*时间"
+    ],
+    "pronouns": [
+      "代词",
+      "pronoun",
+      "đại từ",
+      "我你他",
+      "我们",
+      "他们",
+      "自己"
+    ],
+    "demonstratives": [
+      "指示代词",
+      "demonstrative",
+      "这",
+      "那",
+      "这些",
+      "那些"
+    ],
+    "numbers_dates_quantities": [
+      "数字",
+      "number",
+      "số đếm",
+      "序数",
+      "ordinal",
+      "两 vs 二",
+      "几 vs 多少"
+    ],
+    "classifiers_measure_words": [
+      "量词",
+      "classifier",
+      "measure word",
+      "lượng từ",
+      "个",
+      "本",
+      "张",
+      "杯",
+      "件",
+      "条"
+    ],
+    "de_modifier": [
+      "的",
+      "structural particle 的",
+      "trợ từ 的",
+      "định ngữ",
+      "定语",
+      "modifier with 的"
+    ],
+    "di_adverbial": [
+      "地",
+      "structural particle 地",
+      "trợ từ 地",
+      "状语",
+      "adverbial 地"
+    ],
+    "de_complement": [
+      "得",
+      "structural particle 得",
+      "trợ từ 得",
+      "补语标记",
+      "得 complement"
+    ],
+    "de_di_de_contrast": [
+      "的 地 得",
+      "的/地/得",
+      "的地得",
+      "phân biệt 的 地 得"
+    ],
+    "aspect_le": [
+      "了",
+      "le aspect",
+      "perfective",
+      "completed action",
+      "hoàn thành",
+      "trợ từ động thái 了",
+      "动态助词了"
+    ],
+    "sentence_final_le": [
+      "句末了",
+      "sentence-final 了",
+      "change of state",
+      "tình huống mới",
+      "变化了",
+      "new situation"
+    ],
+    "aspect_guo": [
+      "过",
+      "guò",
+      "experiential aspect",
+      "trải nghiệm",
+      "经历"
+    ],
+    "aspect_zhe": [
+      "着",
+      "zhe",
+      "durative aspect",
+      "trạng thái tiếp diễn",
+      "持续状态"
+    ],
+    "progressive_zai_zhengzai": [
+      "正在",
+      "正",
+      "在 + verb",
+      "progressive",
+      "đang",
+      "动作进行"
+    ],
+    "comparison_bi": [
+      "比",
+      "bǐ",
+      "comparison with 比",
+      "so sánh với 比",
+      "a比b"
+    ],
+    "comparison_meiyou": [
+      "没有.*那么",
+      "没有.*这么",
+      "a没有b",
+      "less than with 没有",
+      "so sánh 没有"
+    ],
+    "comparison_yiyang": [
+      "一样",
+      "跟.*一样",
+      "和.*一样",
+      "same as",
+      "giống như"
+    ],
+    "comparison_change": [
+      "越来越",
+      "越.*越",
+      "越...越...",
+      "càng ngày càng",
+      "the more"
+    ],
+    "adverbs_degree_frequency": [
+      "副词",
+      "adverb",
+      "phó từ",
+      "很",
+      "太",
+      "非常",
+      "最",
+      "更",
+      "也",
+      "都",
+      "还",
+      "又",
+      "再",
+      "常常",
+      "经常",
+      "总是"
+    ],
+    "modal_verbs": [
+      "能愿动词",
+      "modal verb",
+      "động từ năng nguyện",
+      "会",
+      "能",
+      "可以",
+      "应该",
+      "得",
+      "必须",
+      "要",
+      "想",
+      "愿意",
+      "可能"
+    ],
+    "prepositions_coverbs": [
+      "介词",
+      "coverb",
+      "giới từ",
+      "给",
+      "跟",
+      "对",
+      "向",
+      "从",
+      "离",
+      "为",
+      "为了",
+      "关于"
+    ],
+    "conjunctions_connectives": [
+      "连词",
+      "关联词",
+      "connective",
+      "conjunction",
+      "liên từ",
+      "因为.*所以",
+      "虽然.*但是",
+      "如果.*就",
+      "只要.*就",
+      "不但.*而且",
+      "既然.*就",
+      "无论.*都",
+      "即使.*也"
+    ],
+    "result_complements": [
+      "结果补语",
+      "result complement",
+      "bổ ngữ kết quả",
+      "完",
+      "好",
+      "懂",
+      "见",
+      "到",
+      "住",
+      "错",
+      "开"
+    ],
+    "directional_complements": [
+      "趋向补语",
+      "directional complement",
+      "bổ ngữ xu hướng",
+      "上来",
+      "下去",
+      "进来",
+      "出去",
+      "回来",
+      "过去",
+      "起来"
+    ],
+    "degree_complements": [
+      "程度补语",
+      "degree complement",
+      "bổ ngữ mức độ",
+      "得很",
+      "极了"
+    ],
+    "potential_complements": [
+      "可能补语",
+      "potential complement",
+      "bổ ngữ khả năng",
+      "得了",
+      "不了",
+      "得懂",
+      "不懂",
+      "得完",
+      "不完"
+    ],
+    "quantity_complements": [
+      "数量补语",
+      "quantity complement",
+      "bổ ngữ số lượng",
+      "时量补语",
+      "动量补语",
+      "duration complement",
+      "frequency complement"
+    ],
+    "ba_construction": [
+      "把",
+      "bǎ",
+      "把字句",
+      "câu chữ 把",
+      "ba construction"
+    ],
+    "bei_passive": [
+      "被",
+      "bèi",
+      "被字句",
+      "câu bị động",
+      "passive"
+    ],
+    "shi_de_construction": [
+      "是...的",
+      "是…的",
+      "shi de",
+      "cấu trúc 是 的",
+      "强调.*是.*的"
+    ],
+    "serial_verbs": [
+      "连动句",
+      "serial verb",
+      "câu liên động",
+      "连动结构"
+    ],
+    "pivotal_sentences": [
+      "兼语句",
+      "pivotal",
+      "kiêm ngữ",
+      "请.*他",
+      "让.*他",
+      "叫.*他"
+    ],
+    "double_object": [
+      "双宾语",
+      "double object",
+      "hai tân ngữ",
+      "给我一本",
+      "告诉我"
+    ],
+    "existential_constructions": [
+      "存现句",
+      "existential construction",
+      "câu tồn hiện",
+      "有.*人",
+      "来了.*人",
+      "放着"
+    ],
+    "reduplication": [
+      "重叠",
+      "reduplication",
+      "lặp động từ",
+      "看看",
+      "想想",
+      "试试",
+      "aabb",
+      "abab",
+      "aa"
+    ],
+    "separable_verbs": [
+      "离合词",
+      "separable verb",
+      "động từ ly hợp",
+      "睡觉",
+      "见面",
+      "帮忙"
+    ],
+    "verb_object_patterns": [
+      "动宾",
+      "verb-object",
+      "verb object",
+      "động-tân",
+      "搭配"
+    ],
+    "sentence_final_particles": [
+      "语气词",
+      "sentence-final particle",
+      "trợ từ ngữ khí",
+      "吧",
+      "啊",
+      "呀",
+      "嘛",
+      "啦",
+      "呗"
+    ],
+    "focus_emphasis": [
+      "强调",
+      "focus",
+      "emphasis",
+      "nhấn mạnh",
+      "连.*都",
+      "就是",
+      "才",
+      "就"
+    ],
+    "complex_clauses": [
+      "复句",
+      "complex sentence",
+      "câu phức",
+      "从句",
+      "clause relationship"
+    ],
+    "discourse_connectivity": [
+      "语篇",
+      "篇章",
+      "discourse",
+      "liên kết diễn ngôn",
+      "衔接",
+      "连贯"
+    ],
+    "register_pragmatics": [
+      "语体",
+      "register",
+      "书面语",
+      "口语",
+      "formal",
+      "informal",
+      "礼貌",
+      "politeness",
+      "pragmatic",
+      "语用"
+    ],
+    "review_checkpoint": [
+      "复习",
+      "review",
+      "checkpoint",
+      "revision",
+      "ôn tập",
+      "综合练习"
+    ]
+  },
+  "zh_family_modes": {
+    "core_word_order": "word_order",
+    "topic_comment": "word_order",
+    "questions_ma_ne_wh": "word_order",
+    "affirmative_negative_questions": "word_order",
+    "time_place_order": "word_order",
+    "comparison_bi": "word_order",
+    "comparison_meiyou": "word_order",
+    "comparison_yiyang": "word_order",
+    "prepositions_coverbs": "word_order",
+    "serial_verbs": "word_order",
+    "pivotal_sentences": "word_order",
+    "double_object": "word_order",
+    "existential_constructions": "word_order",
+    "verb_object_patterns": "word_order",
+    "aspect_le": "aspect",
+    "sentence_final_le": "aspect",
+    "aspect_guo": "aspect",
+    "aspect_zhe": "aspect",
+    "progressive_zai_zhengzai": "aspect",
+    "result_complements": "transformation",
+    "directional_complements": "transformation",
+    "degree_complements": "transformation",
+    "potential_complements": "transformation",
+    "quantity_complements": "transformation",
+    "ba_construction": "transformation",
+    "bei_passive": "transformation",
+    "shi_de_construction": "transformation",
+    "reduplication": "morphology",
+    "conjunctions_connectives": "discourse",
+    "sentence_final_particles": "discourse",
+    "focus_emphasis": "discourse",
+    "complex_clauses": "discourse",
+    "discourse_connectivity": "discourse",
+    "register_pragmatics": "discourse",
+    "review_checkpoint": "review",
+    "copula_shi": "form_choice",
+    "existential_you": "form_choice",
+    "location_zai": "form_choice",
+    "de_modifier": "form_choice",
+    "pronouns": "form_choice",
+    "demonstratives": "form_choice",
+    "classifiers_measure_words": "form_choice",
+    "numbers_dates_quantities": "form_choice",
+    "negation_bu_mei": "form_choice",
+    "adverbs_degree_frequency": "form_choice",
+    "time_expressions": "form_choice",
+    "modal_verbs": "form_choice",
+    "comparison_change": "form_choice",
+    "separable_verbs": "form_choice"
+  },
+  "mode_requirements": {
+    "word_order": {
+      "visuals": [
+        "word_order",
+        "semantic_sentence",
+        "sentence_builder"
+      ],
+      "practice": [
+        "reorder",
+        "identify",
+        "build",
+        "production"
+      ]
+    },
+    "form_choice": {
+      "visuals": [
+        "formula",
+        "contrast",
+        "scene"
+      ],
+      "practice": [
+        "choose",
+        "fill",
+        "correct",
+        "production"
+      ]
+    },
+    "aspect": {
+      "visuals": [
+        "timeline",
+        "transformation",
+        "contrast",
+        "scene"
+      ],
+      "practice": [
+        "choose",
+        "contrast-decision",
+        "transform",
+        "production"
+      ]
+    },
+    "transformation": {
+      "visuals": [
+        "transformation",
+        "semantic_sentence",
+        "contrast"
+      ],
+      "practice": [
+        "transform",
+        "correct",
+        "build",
+        "production"
+      ]
+    },
+    "morphology": {
+      "visuals": [
+        "inflection_table",
+        "transformation",
+        "contrast"
+      ],
+      "practice": [
+        "fill",
+        "classify",
+        "transform",
+        "production"
+      ]
+    },
+    "discourse": {
+      "visuals": [
+        "scene",
+        "contrast",
+        "semantic_sentence"
+      ],
+      "practice": [
+        "compare",
+        "classify",
+        "rewrite",
+        "production"
+      ]
+    },
+    "review": {
+      "visuals": [
+        "contrast",
+        "mixed-representation",
+        "recap"
+      ],
+      "practice": [
+        "recognition",
+        "distinction",
+        "correction",
+        "production"
+      ]
+    }
+  },
+  "family_counts": {
+    "en": {
+      "adjectives_adverbs": 8,
+      "adverbial_clauses": 4,
+      "articles_determiners": 10,
+      "basic_word_order": 1,
+      "be_existential": 5,
+      "comparison": 111,
+      "conditionals": 12,
+      "discourse_register": 5,
+      "future_forms": 12,
+      "gerund_infinitive": 8,
+      "modals": 19,
+      "nouns_countability": 5,
+      "participles": 2,
+      "passive_voice": 8,
+      "past_continuous": 1,
+      "past_simple": 5,
+      "present_continuous": 2,
+      "present_perfect": 3,
+      "present_perfect_continuous": 1,
+      "present_simple": 6,
+      "pronouns_possessives": 7,
+      "questions_negation": 10,
+      "relative_clauses": 6,
+      "reported_speech": 2,
+      "review_checkpoint": 16
+    },
+    "zh": {
+      "adverbs_degree_frequency": 11,
+      "aspect_guo": 2,
+      "aspect_le": 3,
+      "aspect_zhe": 3,
+      "ba_construction": 5,
+      "bei_passive": 4,
+      "classifiers_measure_words": 2,
+      "comparison_bi": 2,
+      "comparison_change": 2,
+      "comparison_yiyang": 1,
+      "complex_clauses": 8,
+      "copula_shi": 4,
+      "core_word_order": 1,
+      "de_modifier": 4,
+      "degree_complements": 1,
+      "demonstratives": 1,
+      "directional_complements": 3,
+      "discourse_connectivity": 3,
+      "double_object": 1,
+      "existential_you": 1,
+      "focus_emphasis": 7,
+      "location_zai": 1,
+      "modal_verbs": 2,
+      "negation_bu_mei": 6,
+      "numbers_dates_quantities": 1,
+      "pivotal_sentences": 1,
+      "potential_complements": 1,
+      "prepositions_coverbs": 13,
+      "progressive_zai_zhengzai": 1,
+      "pronouns": 1,
+      "questions_ma_ne_wh": 4,
+      "reduplication": 1,
+      "register_pragmatics": 36,
+      "result_complements": 1,
+      "review_checkpoint": 43,
+      "sentence_final_particles": 1,
+      "separable_verbs": 1,
+      "time_expressions": 1,
+      "topic_comment": 2
+    }
+  }
+}

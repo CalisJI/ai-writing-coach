@@ -1,0 +1,5352 @@
+{
+  "map_version": 1,
+  "source_audit_status": {
+    "phase_1_audit": "COMPLETE",
+    "phase_2_placeholder_detection": "COMPLETE",
+    "full_content_migration": "BLOCKED_UNTIL_AUDIT_REVIEW"
+  },
+  "languages": {
+    "zh": {
+      "directory": "chinese",
+      "total": 239,
+      "levels": {
+        "HSK1": 25,
+        "HSK2": 29,
+        "HSK3": 29,
+        "HSK4": 34,
+        "HSK5": 39,
+        "HSK6": 46,
+        "HSK7-9": 37
+      },
+      "categories": {
+        "<unspecified>": 239
+      },
+      "families": {
+        "unclassified": 148,
+        "shi": 3,
+        "you_existential": 1,
+        "zai_location": 3,
+        "de_di_de": 3,
+        "review_checkpoint": 23,
+        "negation_bu_mei": 4,
+        "questions": 1,
+        "aspect_le": 3,
+        "modal_verbs": 2,
+        "aspect_guo": 1,
+        "aspect_zhe": 1,
+        "comparison_bi": 1,
+        "comparison_meiyou_yiyang": 4,
+        "directional_complements": 3,
+        "connectives_complex": 6,
+        "ba_construction": 4,
+        "prepositions_coverbs": 3,
+        "core_word_order": 3,
+        "reduplication": 1,
+        "bei_passive": 3,
+        "degree_complements": 1,
+        "potential_complements": 1,
+        "advanced_discourse": 15,
+        "sentence_final_particles": 1
+      }
+    },
+    "en": {
+      "directory": "english",
+      "total": 269,
+      "levels": {
+        "A1": 30,
+        "A2": 38,
+        "B1": 59,
+        "B2": 60,
+        "C1": 45,
+        "C2": 37
+      },
+      "categories": {
+        "<unspecified>": 269
+      },
+      "families": {
+        "basic_word_order": 1,
+        "be_existential": 5,
+        "pronouns_possessives": 7,
+        "comparison": 111,
+        "review_checkpoint": 16,
+        "nouns_countability": 5,
+        "articles_determiners": 10,
+        "present_simple": 6,
+        "adjectives_adverbs": 8,
+        "present_continuous": 2,
+        "questions_negation": 10,
+        "past_simple": 5,
+        "past_continuous": 1,
+        "future_forms": 12,
+        "present_perfect": 3,
+        "modals": 19,
+        "gerund_infinitive": 8,
+        "relative_clauses": 6,
+        "conditionals": 12,
+        "present_perfect_continuous": 1,
+        "passive_voice": 8,
+        "adverbial_clauses": 4,
+        "reported_speech": 2,
+        "participles": 2,
+        "discourse_register": 5
+      }
+    }
+  },
+  "family_counts": {
+    "zh": {
+      "unclassified": 148,
+      "shi": 3,
+      "you_existential": 1,
+      "zai_location": 3,
+      "de_di_de": 3,
+      "review_checkpoint": 23,
+      "negation_bu_mei": 4,
+      "questions": 1,
+      "aspect_le": 3,
+      "modal_verbs": 2,
+      "aspect_guo": 1,
+      "aspect_zhe": 1,
+      "comparison_bi": 1,
+      "comparison_meiyou_yiyang": 4,
+      "directional_complements": 3,
+      "connectives_complex": 6,
+      "ba_construction": 4,
+      "prepositions_coverbs": 3,
+      "core_word_order": 3,
+      "reduplication": 1,
+      "bei_passive": 3,
+      "degree_complements": 1,
+      "potential_complements": 1,
+      "advanced_discourse": 15,
+      "sentence_final_particles": 1
+    },
+    "en": {
+      "basic_word_order": 1,
+      "be_existential": 5,
+      "pronouns_possessives": 7,
+      "comparison": 111,
+      "review_checkpoint": 16,
+      "nouns_countability": 5,
+      "articles_determiners": 10,
+      "present_simple": 6,
+      "adjectives_adverbs": 8,
+      "present_continuous": 2,
+      "questions_negation": 10,
+      "past_simple": 5,
+      "past_continuous": 1,
+      "future_forms": 12,
+      "present_perfect": 3,
+      "modals": 19,
+      "gerund_infinitive": 8,
+      "relative_clauses": 6,
+      "conditionals": 12,
+      "present_perfect_continuous": 1,
+      "passive_voice": 8,
+      "adverbial_clauses": 4,
+      "reported_speech": 2,
+      "participles": 2,
+      "discourse_register": 5
+    }
+  },
+  "unclassified": {
+    "zh": [
+      "zh-hsk1-1-svo-c-b-n",
+      "zh-hsk1-12-t-h-i-gi-nguy-n-v-tr",
+      "zh-hsk1-13-c-u-h-i-ch-nh-ph-n",
+      "zh-hsk1-14-v-c-u-t-nh-t",
+      "zh-hsk1-17-th-i-gian-v-ng-y-gi",
+      "zh-hsk1-19-v-tr-c-b-n",
+      "zh-hsk1-20-n-i-danh-t",
+      "zh-hsk1-6-i-t-nh-n-x-ng",
+      "zh-hsk1-7-topic",
+      "zh-hsk1-8-s-v-l-ng-t-c-b-n",
+      "zh-hsk1-9-vs",
+      "zh-hsk1-progress-check",
+      "zh-hsk2-10-topic",
+      "zh-hsk2-11-ng-t-ly-h-p",
+      "zh-hsk2-11-topic",
+      "zh-hsk2-12-b-ng-th-i-l-ng-introduction",
+      "zh-hsk2-13-b-ng-ng-l-ng-introduction",
+      "zh-hsk2-4-topic",
+      "zh-hsk2-5-topic",
+      "zh-hsk2-6-topic-47",
+      "zh-hsk2-7-topic-48",
+      "zh-hsk2-8-vs",
+      "zh-hsk2-9-b-ng-k-t-qu",
+      "zh-hsk2-9-vs",
+      "zh-hsk2-progress-check",
+      "zh-hsk3-1-n-n-t-ng",
+      "zh-hsk3-2-topic",
+      "zh-hsk3-3-topic-69",
+      "zh-hsk3-4-n-n-t-ng",
+      "zh-hsk3-4-topic",
+      "zh-hsk3-5-topic",
+      "zh-hsk3-6-b-ng-xu-h-ng-k-p",
+      "zh-hsk3-6-topic",
+      "zh-hsk3-7-b-ng-kh-n-ng",
+      "zh-hsk3-8-b-ng-th-i-l-ng",
+      "zh-hsk3-8-topic",
+      "zh-hsk3-9-b-ng-ng-l-ng",
+      "zh-hsk3-progress-check",
+      "zh-hsk4-1-v-v",
+      "zh-hsk4-10-topic",
+      "zh-hsk4-11-topic",
+      "zh-hsk4-12-topic",
+      "zh-hsk4-12-topic-115",
+      "zh-hsk4-13-ordering",
+      "zh-hsk4-13-topic",
+      "zh-hsk4-14-topic",
+      "zh-hsk4-15-v-introduction",
+      "zh-hsk4-2-topic",
+      "zh-hsk4-3-topic",
+      "zh-hsk4-3-topic-104",
+      "zh-hsk4-4-topic",
+      "zh-hsk4-4-topic-105",
+      "zh-hsk4-5-topic-106",
+      "zh-hsk4-6-topic",
+      "zh-hsk4-6-topic-108",
+      "zh-hsk4-7-topic",
+      "zh-hsk4-7-topic-109",
+      "zh-hsk4-8-topic",
+      "zh-hsk4-8-topic-110",
+      "zh-hsk4-progress-check",
+      "zh-hsk5-1-ki-m-ng",
+      "zh-hsk5-1-topic",
+      "zh-hsk5-10-topic",
+      "zh-hsk5-10-topic-148",
+      "zh-hsk5-11-n-ng-cao",
+      "zh-hsk5-11-topic",
+      "zh-hsk5-12-n-ng-cao",
+      "zh-hsk5-12-topic",
+      "zh-hsk5-13-n-ng-cao",
+      "zh-hsk5-13-reference",
+      "zh-hsk5-14-n-ng-cao",
+      "zh-hsk5-14-n-ng-cao-153",
+      "zh-hsk5-15-n-ng-cao",
+      "zh-hsk5-15-tendencies",
+      "zh-hsk5-16-n-ng-cao",
+      "zh-hsk5-17-introduction",
+      "zh-hsk5-2-topic",
+      "zh-hsk5-3-approximate-quantities",
+      "zh-hsk5-3-topic",
+      "zh-hsk5-4-topic-141",
+      "zh-hsk5-5-scope",
+      "zh-hsk5-5-topic",
+      "zh-hsk5-6-topic",
+      "zh-hsk5-7-topic",
+      "zh-hsk5-7-topic-145",
+      "zh-hsk5-8-topic",
+      "zh-hsk5-8-topic-146",
+      "zh-hsk5-9-topic",
+      "zh-hsk5-9-topic-147",
+      "zh-hsk5-progress-check",
+      "zh-hsk6-1-topic",
+      "zh-hsk6-10-complex-complements",
+      "zh-hsk6-11-long-sentence-parsing",
+      "zh-hsk6-12-parallel-structure-in-formal-prose",
+      "zh-hsk6-13-compression-and-expansion",
+      "zh-hsk6-14-formal-comparison",
+      "zh-hsk6-15-approximation-and-limitation",
+      "zh-hsk6-17-reference-chains",
+      "zh-hsk6-2-topic",
+      "zh-hsk6-2-topic-175",
+      "zh-hsk6-20-register-control",
+      "zh-hsk6-21-vietnamese-transfer-errors",
+      "zh-hsk6-22-punctuation-and-clause-grammar",
+      "zh-hsk6-23-summary-and-reformulation-structures",
+      "zh-hsk6-24-argument-qualification",
+      "zh-hsk6-3-agent-source",
+      "zh-hsk6-3-n-ng-cao",
+      "zh-hsk6-3-topic",
+      "zh-hsk6-4-patterns",
+      "zh-hsk6-4-scope",
+      "zh-hsk6-4-topic",
+      "zh-hsk6-5-patterns",
+      "zh-hsk6-5-topic",
+      "zh-hsk6-6-rhetorical-questions",
+      "zh-hsk6-6-topic",
+      "zh-hsk6-6-topic-180",
+      "zh-hsk6-7-topic",
+      "zh-hsk6-7-topic-172",
+      "zh-hsk6-8-contrast",
+      "zh-hsk6-8-topic",
+      "zh-hsk6-9-topic",
+      "zh-hsk6-progress-check",
+      "zh-hsk79-1-advanced-written-aspect-and-viewpoint",
+      "zh-hsk79-10-conditional-rhetoric",
+      "zh-hsk79-11-cause-vs-evidence-distinction",
+      "zh-hsk79-12-reformulation-and-qualification",
+      "zh-hsk79-13-comparison-and-analogy",
+      "zh-hsk79-14-productive-four-character-grammar-patterns",
+      "zh-hsk79-16-information-structure-and-emphasis",
+      "zh-hsk79-17-ellipsis-and-recoverability",
+      "zh-hsk79-18-academic-definition-and-classification",
+      "zh-hsk79-19-argument-concession-counterclaim",
+      "zh-hsk79-20-reporting-and-attribution",
+      "zh-hsk79-21-legal-administrative-register-patterns",
+      "zh-hsk79-22-literary-descriptive-syntax",
+      "zh-hsk79-23-translation-sensitive-grammar",
+      "zh-hsk79-24-precision-editing-of-long-modifiers",
+      "zh-hsk79-25-ambiguity-diagnosis",
+      "zh-hsk79-26-style-transformation",
+      "zh-hsk79-27-parallelism-and-cadence",
+      "zh-hsk79-28-advanced-connector-economy",
+      "zh-hsk79-3-negative-raising-and-scope",
+      "zh-hsk79-4-dense-nominal-structures",
+      "zh-hsk79-5-in-modern-formal-prose",
+      "zh-hsk79-7-complex-topic-chains",
+      "zh-hsk79-8-long-sentence-architecture",
+      "zh-hsk79-9-concessive-rhetoric",
+      "zh-hsk79-progress-check"
+    ]
+  },
+  "multi_family_matches": {
+    "zh": [
+      {
+        "id": "zh-hsk1-11-v",
+        "primary": "questions",
+        "also_matches": [
+          "sentence_final_particles"
+        ]
+      },
+      {
+        "id": "zh-hsk1-15-topic",
+        "primary": "zai_location",
+        "also_matches": [
+          "questions",
+          "sentence_final_particles"
+        ]
+      },
+      {
+        "id": "zh-hsk3-3-topic",
+        "primary": "zai_location",
+        "also_matches": [
+          "ba_construction",
+          "prepositions_coverbs"
+        ]
+      },
+      {
+        "id": "zh-hsk3-5-v-i-chi-u",
+        "primary": "ba_construction",
+        "also_matches": [
+          "bei_passive"
+        ]
+      },
+      {
+        "id": "zh-hsk3-10-topic",
+        "primary": "comparison_meiyou_yiyang",
+        "also_matches": [
+          "prepositions_coverbs"
+        ]
+      },
+      {
+        "id": "zh-hsk3-11-nh-n-m-nh",
+        "primary": "shi",
+        "also_matches": [
+          "de_di_de",
+          "shi_de_construction"
+        ]
+      },
+      {
+        "id": "zh-hsk5-review-1-143",
+        "primary": "advanced_discourse",
+        "also_matches": [
+          "review_checkpoint"
+        ]
+      },
+      {
+        "id": "zh-hsk5-6-focus-v-i",
+        "primary": "shi",
+        "also_matches": [
+          "de_di_de",
+          "shi_de_construction"
+        ]
+      },
+      {
+        "id": "zh-hsk5-review-2-149",
+        "primary": "advanced_discourse",
+        "also_matches": [
+          "review_checkpoint"
+        ]
+      },
+      {
+        "id": "zh-hsk5-review-3-155",
+        "primary": "advanced_discourse",
+        "also_matches": [
+          "review_checkpoint"
+        ]
+      },
+      {
+        "id": "zh-hsk6-1-t-ng-t-c-n-ng-cao",
+        "primary": "aspect_le",
+        "also_matches": [
+          "aspect_guo",
+          "aspect_zhe"
+        ]
+      },
+      {
+        "id": "zh-hsk6-review-1-179",
+        "primary": "advanced_discourse",
+        "also_matches": [
+          "review_checkpoint"
+        ]
+      },
+      {
+        "id": "zh-hsk6-review-2-185",
+        "primary": "advanced_discourse",
+        "also_matches": [
+          "review_checkpoint"
+        ]
+      },
+      {
+        "id": "zh-hsk6-review-3-191",
+        "primary": "advanced_discourse",
+        "also_matches": [
+          "review_checkpoint"
+        ]
+      },
+      {
+        "id": "zh-hsk6-review-4-197",
+        "primary": "advanced_discourse",
+        "also_matches": [
+          "review_checkpoint"
+        ]
+      },
+      {
+        "id": "zh-hsk79-review-1-208",
+        "primary": "advanced_discourse",
+        "also_matches": [
+          "review_checkpoint"
+        ]
+      },
+      {
+        "id": "zh-hsk79-review-2-214",
+        "primary": "advanced_discourse",
+        "also_matches": [
+          "review_checkpoint"
+        ]
+      },
+      {
+        "id": "zh-hsk79-review-3-220",
+        "primary": "advanced_discourse",
+        "also_matches": [
+          "review_checkpoint"
+        ]
+      },
+      {
+        "id": "zh-hsk79-review-4-226",
+        "primary": "advanced_discourse",
+        "also_matches": [
+          "review_checkpoint"
+        ]
+      },
+      {
+        "id": "zh-hsk79-review-5-232",
+        "primary": "advanced_discourse",
+        "also_matches": [
+          "review_checkpoint"
+        ]
+      },
+      {
+        "id": "zh-hsk79-review-6-238",
+        "primary": "advanced_discourse",
+        "also_matches": [
+          "review_checkpoint"
+        ]
+      }
+    ],
+    "en": [
+      {
+        "id": "a1-complete-sentences-and-basic-word-order",
+        "primary": "basic_word_order",
+        "also_matches": [
+          "comparison"
+        ]
+      },
+      {
+        "id": "a1-be-am-is-are",
+        "primary": "be_existential",
+        "also_matches": [
+          "comparison"
+        ]
+      },
+      {
+        "id": "a1-subject-and-object-pronouns",
+        "primary": "pronouns_possessives",
+        "also_matches": [
+          "comparison"
+        ]
+      },
+      {
+        "id": "a1-possessive-adjectives-pronouns-and-possessive-s",
+        "primary": "pronouns_possessives",
+        "also_matches": [
+          "adjectives_adverbs",
+          "comparison"
+        ]
+      },
+      {
+        "id": "a1-singular-and-plural-nouns",
+        "primary": "nouns_countability",
+        "also_matches": [
+          "comparison"
+        ]
+      },
+      {
+        "id": "a1-articles-a-an-the",
+        "primary": "articles_determiners",
+        "also_matches": [
+          "comparison"
+        ]
+      },
+      {
+        "id": "a1-this-that-these-those",
+        "primary": "articles_determiners",
+        "also_matches": [
+          "comparison"
+        ]
+      },
+      {
+        "id": "a1-there-is-there-are",
+        "primary": "be_existential",
+        "also_matches": [
+          "comparison"
+        ]
+      },
+      {
+        "id": "a1-present-simple",
+        "primary": "present_simple",
+        "also_matches": [
+          "comparison"
+        ]
+      },
+      {
+        "id": "a1-adverbs-of-frequency",
+        "primary": "adjectives_adverbs",
+        "also_matches": [
+          "comparison"
+        ]
+      },
+      {
+        "id": "a1-present-continuous",
+        "primary": "present_continuous",
+        "also_matches": [
+          "comparison"
+        ]
+      },
+      {
+        "id": "a1-present-simple-vs-present-continuous",
+        "primary": "present_simple",
+        "also_matches": [
+          "present_continuous",
+          "comparison"
+        ]
+      },
+      {
+        "id": "a1-be-questions-and-short-answers",
+        "primary": "be_existential",
+        "also_matches": [
+          "questions_negation",
+          "comparison"
+        ]
+      },
+      {
+        "id": "a1-do-does-questions",
+        "primary": "questions_negation",
+        "also_matches": [
+          "comparison"
+        ]
+      },
+      {
+        "id": "a1-wh-questions",
+        "primary": "questions_negation",
+        "also_matches": [
+          "comparison"
+        ]
+      },
+      {
+        "id": "a1-countable-and-uncountable-nouns",
+        "primary": "nouns_countability",
+        "also_matches": [
+          "comparison"
+        ]
+      },
+      {
+        "id": "a1-some-any",
+        "primary": "articles_determiners",
+        "also_matches": [
+          "comparison"
+        ]
+      },
+      {
+        "id": "a1-review-questions-and-quantity-1",
+        "primary": "questions_negation",
+        "also_matches": [
+          "review_checkpoint"
+        ]
+      },
+      {
+        "id": "a1-basic-prepositions-of-place",
+        "primary": "comparison",
+        "also_matches": [
+          "prepositions"
+        ]
+      },
+      {
+        "id": "a1-basic-prepositions-of-time",
+        "primary": "comparison",
+        "also_matches": [
+          "prepositions"
+        ]
+      },
+      {
+        "id": "a2-past-simple-be",
+        "primary": "be_existential",
+        "also_matches": [
+          "past_simple",
+          "comparison"
+        ]
+      },
+      {
+        "id": "a2-past-simple-regular-verbs",
+        "primary": "past_simple",
+        "also_matches": [
+          "comparison"
+        ]
+      },
+      {
+        "id": "a2-past-simple-irregular-verbs",
+        "primary": "past_simple",
+        "also_matches": [
+          "comparison"
+        ]
+      },
+      {
+        "id": "a2-past-continuous",
+        "primary": "past_continuous",
+        "also_matches": [
+          "comparison"
+        ]
+      },
+      {
+        "id": "a2-past-simple-vs-past-continuous",
+        "primary": "past_simple",
+        "also_matches": [
+          "past_continuous",
+          "comparison"
+        ]
+      },
+      {
+        "id": "a2-review-past-and-future-1",
+        "primary": "future_forms",
+        "also_matches": [
+          "comparison",
+          "review_checkpoint"
+        ]
+      },
+      {
+        "id": "a2-present-perfect-introduction",
+        "primary": "present_perfect",
+        "also_matches": [
+          "comparison"
+        ]
+      },
+      {
+        "id": "a2-present-perfect-vs-past-simple",
+        "primary": "present_simple",
+        "also_matches": [
+          "past_simple",
+          "present_perfect",
+          "comparison"
+        ]
+      },
+      {
+        "id": "a2-going-to",
+        "primary": "future_forms",
+        "also_matches": [
+          "comparison"
+        ]
+      },
+      {
+        "id": "a2-will-and-won-t",
+        "primary": "future_forms",
+        "also_matches": [
+          "comparison"
+        ]
+      },
+      {
+        "id": "a2-present-continuous-for-future-arrangements",
+        "primary": "present_continuous",
+        "also_matches": [
+          "future_forms",
+          "comparison"
+        ]
+      },
+      {
+        "id": "a2-review-past-and-future-2",
+        "primary": "future_forms",
+        "also_matches": [
+          "comparison",
+          "review_checkpoint"
+        ]
+      },
+      {
+        "id": "a2-present-simple-for-schedules",
+        "primary": "present_simple",
+        "also_matches": [
+          "comparison"
+        ]
+      },
+      {
+        "id": "a2-too-enough",
+        "primary": "adjectives_adverbs",
+        "also_matches": [
+          "comparison"
+        ]
+      },
+      {
+        "id": "a2-adjectives-vs-adverbs",
+        "primary": "adjectives_adverbs",
+        "also_matches": [
+          "comparison"
+        ]
+      },
+      {
+        "id": "a2-review-comparison-and-degree-1",
+        "primary": "comparison",
+        "also_matches": [
+          "review_checkpoint"
+        ]
+      },
+      {
+        "id": "a2-adverbs-of-manner-and-degree",
+        "primary": "adjectives_adverbs",
+        "also_matches": [
+          "comparison"
+        ]
+      },
+      {
+        "id": "a2-can-could-be-able-to-basics",
+        "primary": "be_existential",
+        "also_matches": [
+          "modals",
+          "comparison"
+        ]
+      },
+      {
+        "id": "a2-must-have-to",
+        "primary": "modals",
+        "also_matches": [
+          "comparison"
+        ]
+      },
+      {
+        "id": "a2-should-ought-to",
+        "primary": "modals",
+        "also_matches": [
+          "comparison"
+        ]
+      },
+      {
+        "id": "a2-may-might-could-possibility",
+        "primary": "modals",
+        "also_matches": [
+          "comparison"
+        ]
+      },
+      {
+        "id": "a2-gerunds-after-preference-verbs",
+        "primary": "gerund_infinitive",
+        "also_matches": [
+          "comparison"
+        ]
+      },
+      {
+        "id": "a2-review-modals-and-verb-patterns-1",
+        "primary": "modals",
+        "also_matches": [
+          "review_checkpoint"
+        ]
+      },
+      {
+        "id": "a2-infinitive-after-want-plan-need",
+        "primary": "gerund_infinitive",
+        "also_matches": [
+          "comparison"
+        ]
+      },
+      {
+        "id": "a2-infinitive-of-purpose",
+        "primary": "gerund_infinitive",
+        "also_matches": [
+          "comparison"
+        ]
+      },
+      {
+        "id": "a2-who-which-that-relative-clauses",
+        "primary": "relative_clauses",
+        "also_matches": [
+          "comparison"
+        ]
+      },
+      {
+        "id": "a2-object-relative-pronoun-omission",
+        "primary": "pronouns_possessives",
+        "also_matches": [
+          "comparison"
+        ]
+      },
+      {
+        "id": "a2-zero-conditional",
+        "primary": "conditionals",
+        "also_matches": [
+          "comparison"
+        ]
+      },
+      {
+        "id": "a2-first-conditional",
+        "primary": "conditionals",
+        "also_matches": [
+          "comparison"
+        ]
+      },
+      {
+        "id": "a2-unless-introduction",
+        "primary": "conditionals",
+        "also_matches": [
+          "comparison"
+        ]
+      },
+      {
+        "id": "a2-some-any-no-every-compounds",
+        "primary": "articles_determiners",
+        "also_matches": [
+          "comparison"
+        ]
+      },
+      {
+        "id": "b1-present-simple-vs-continuous-extended",
+        "primary": "present_simple",
+        "also_matches": [
+          "comparison"
+        ]
+      },
+      {
+        "id": "b1-present-perfect-simple",
+        "primary": "present_simple",
+        "also_matches": [
+          "present_perfect",
+          "comparison"
+        ]
+      },
+      {
+        "id": "b1-present-perfect-continuous",
+        "primary": "present_perfect_continuous",
+        "also_matches": [
+          "comparison"
+        ]
+      },
+      {
+        "id": "b1-present-perfect-simple-vs-continuous",
+        "primary": "present_perfect",
+        "also_matches": [
+          "comparison"
+        ]
+      },
+      {
+        "id": "b1-past-simple-vs-present-perfect",
+        "primary": "past_simple",
+        "also_matches": [
+          "present_perfect",
+          "comparison"
+        ]
+      },
+      {
+        "id": "b1-review-tense-and-aspect-system-1",
+        "primary": "comparison",
+        "also_matches": [
+          "review_checkpoint"
+        ]
+      },
+      {
+        "id": "b1-past-perfect-simple",
+        "primary": "past_simple",
+        "also_matches": [
+          "past_perfect",
+          "comparison"
+        ]
+      },
+      {
+        "id": "b1-review-tense-and-aspect-system-2",
+        "primary": "comparison",
+        "also_matches": [
+          "review_checkpoint"
+        ]
+      },
+      {
+        "id": "b1-future-forms-in-context",
+        "primary": "future_forms",
+        "also_matches": [
+          "comparison"
+        ]
+      },
+      {
+        "id": "b1-future-continuous",
+        "primary": "future_forms",
+        "also_matches": [
+          "comparison"
+        ]
+      },
+      {
+        "id": "b1-future-perfect-introduction",
+        "primary": "future_forms",
+        "also_matches": [
+          "comparison"
+        ]
+      },
+      {
+        "id": "b1-future-time-clauses",
+        "primary": "future_forms",
+        "also_matches": [
+          "adverbial_clauses",
+          "comparison"
+        ]
+      },
+      {
+        "id": "b1-passive-voice-present-and-past",
+        "primary": "passive_voice",
+        "also_matches": [
+          "comparison"
+        ]
+      },
+      {
+        "id": "b1-passive-with-modals",
+        "primary": "modals",
+        "also_matches": [
+          "passive_voice",
+          "comparison"
+        ]
+      },
+      {
+        "id": "b1-present-perfect-passive",
+        "primary": "present_perfect",
+        "also_matches": [
+          "passive_voice",
+          "comparison"
+        ]
+      },
+      {
+        "id": "b1-obligation-must-have-to-need-to",
+        "primary": "modals",
+        "also_matches": [
+          "comparison"
+        ]
+      },
+      {
+        "id": "b1-review-voice-modality-and-questions-1",
+        "primary": "questions_negation",
+        "also_matches": [
+          "modals",
+          "review_checkpoint"
+        ]
+      },
+      {
+        "id": "b1-advice-should-ought-to-had-better",
+        "primary": "modals",
+        "also_matches": [
+          "comparison"
+        ]
+      },
+      {
+        "id": "b1-deduction-must-might-can-t",
+        "primary": "modals",
+        "also_matches": [
+          "comparison"
+        ]
+      },
+      {
+        "id": "b1-past-modals-should-could-might-have",
+        "primary": "modals",
+        "also_matches": [
+          "comparison"
+        ]
+      },
+      {
+        "id": "b1-question-tags",
+        "primary": "questions_negation",
+        "also_matches": [
+          "comparison"
+        ]
+      },
+      {
+        "id": "b1-review-voice-modality-and-questions-2",
+        "primary": "questions_negation",
+        "also_matches": [
+          "modals",
+          "review_checkpoint"
+        ]
+      },
+      {
+        "id": "b1-indirect-questions",
+        "primary": "questions_negation",
+        "also_matches": [
+          "comparison"
+        ]
+      },
+      {
+        "id": "b1-subject-questions-and-object-questions",
+        "primary": "questions_negation",
+        "also_matches": [
+          "comparison"
+        ]
+      },
+      {
+        "id": "b1-zero-first-second-conditionals",
+        "primary": "conditionals",
+        "also_matches": [
+          "comparison"
+        ]
+      },
+      {
+        "id": "b1-third-conditional",
+        "primary": "conditionals",
+        "also_matches": [
+          "comparison"
+        ]
+      },
+      {
+        "id": "b1-mixed-conditional-introduction",
+        "primary": "conditionals",
+        "also_matches": [
+          "comparison"
+        ]
+      },
+      {
+        "id": "b1-reported-questions",
+        "primary": "questions_negation",
+        "also_matches": [
+          "comparison"
+        ]
+      },
+      {
+        "id": "b1-defining-relative-clauses",
+        "primary": "relative_clauses",
+        "also_matches": [
+          "comparison"
+        ]
+      },
+      {
+        "id": "b1-non-defining-relative-clauses",
+        "primary": "relative_clauses",
+        "also_matches": [
+          "comparison"
+        ]
+      },
+      {
+        "id": "b1-relative-pronouns-and-prepositions",
+        "primary": "pronouns_possessives",
+        "also_matches": [
+          "comparison",
+          "prepositions"
+        ]
+      },
+      {
+        "id": "b1-gerund-vs-infinitive-common-patterns",
+        "primary": "gerund_infinitive",
+        "also_matches": [
+          "comparison"
+        ]
+      },
+      {
+        "id": "b1-causative-have-get",
+        "primary": "comparison",
+        "also_matches": [
+          "causatives"
+        ]
+      },
+      {
+        "id": "b1-wish-if-only-present",
+        "primary": "conditionals",
+        "also_matches": [
+          "comparison"
+        ]
+      },
+      {
+        "id": "b1-wish-if-only-past",
+        "primary": "conditionals",
+        "also_matches": [
+          "comparison"
+        ]
+      },
+      {
+        "id": "b1-although-despite-however",
+        "primary": "adverbial_clauses",
+        "also_matches": [
+          "comparison"
+        ]
+      },
+      {
+        "id": "b1-articles-beyond-basics",
+        "primary": "articles_determiners",
+        "also_matches": [
+          "comparison"
+        ]
+      },
+      {
+        "id": "b1-generic-reference-and-zero-article",
+        "primary": "articles_determiners",
+        "also_matches": [
+          "comparison"
+        ]
+      },
+      {
+        "id": "b1-review-determiners-and-reference-1",
+        "primary": "articles_determiners",
+        "also_matches": [
+          "review_checkpoint"
+        ]
+      },
+      {
+        "id": "b1-reflexive-pronouns-and-each-other",
+        "primary": "pronouns_possessives",
+        "also_matches": [
+          "comparison"
+        ]
+      },
+      {
+        "id": "b1-so-such-too-enough",
+        "primary": "adjectives_adverbs",
+        "also_matches": [
+          "comparison"
+        ]
+      },
+      {
+        "id": "b2-perfect-aspect-in-discourse",
+        "primary": "comparison",
+        "also_matches": [
+          "discourse_register"
+        ]
+      },
+      {
+        "id": "b2-future-continuous",
+        "primary": "future_forms",
+        "also_matches": [
+          "comparison"
+        ]
+      },
+      {
+        "id": "b2-future-perfect",
+        "primary": "future_forms",
+        "also_matches": [
+          "comparison"
+        ]
+      },
+      {
+        "id": "b2-review-advanced-aspect-and-future-1",
+        "primary": "future_forms",
+        "also_matches": [
+          "comparison",
+          "review_checkpoint"
+        ]
+      },
+      {
+        "id": "b2-future-perfect-continuous",
+        "primary": "future_forms",
+        "also_matches": [
+          "comparison"
+        ]
+      },
+      {
+        "id": "b2-future-in-the-past",
+        "primary": "articles_determiners",
+        "also_matches": [
+          "future_forms",
+          "comparison"
+        ]
+      },
+      {
+        "id": "b2-full-conditional-system",
+        "primary": "conditionals",
+        "also_matches": [
+          "comparison"
+        ]
+      },
+      {
+        "id": "b2-mixed-conditionals",
+        "primary": "conditionals",
+        "also_matches": [
+          "comparison"
+        ]
+      },
+      {
+        "id": "b2-conditional-inversion-introduction",
+        "primary": "conditionals",
+        "also_matches": [
+          "comparison",
+          "inversion_emphasis"
+        ]
+      },
+      {
+        "id": "b2-modal-certainty-and-probability",
+        "primary": "modals",
+        "also_matches": [
+          "comparison"
+        ]
+      },
+      {
+        "id": "b2-review-conditionals-and-modality-1",
+        "primary": "modals",
+        "also_matches": [
+          "conditionals",
+          "review_checkpoint"
+        ]
+      },
+      {
+        "id": "b2-modal-perfect-criticism-and-regret",
+        "primary": "modals",
+        "also_matches": [
+          "comparison"
+        ]
+      },
+      {
+        "id": "b2-needn-t-have-vs-didn-t-need-to",
+        "primary": "modals",
+        "also_matches": [
+          "comparison"
+        ]
+      },
+      {
+        "id": "b2-review-conditionals-and-modality-2",
+        "primary": "modals",
+        "also_matches": [
+          "conditionals",
+          "review_checkpoint"
+        ]
+      },
+      {
+        "id": "b2-advanced-passive-forms",
+        "primary": "passive_voice",
+        "also_matches": [
+          "comparison"
+        ]
+      },
+      {
+        "id": "b2-modal-perfect-passive",
+        "primary": "modals",
+        "also_matches": [
+          "passive_voice",
+          "comparison"
+        ]
+      },
+      {
+        "id": "b2-two-object-passive",
+        "primary": "passive_voice",
+        "also_matches": [
+          "comparison"
+        ]
+      },
+      {
+        "id": "b2-causative-have-get-extended",
+        "primary": "comparison",
+        "also_matches": [
+          "causatives"
+        ]
+      },
+      {
+        "id": "b2-impersonal-passive",
+        "primary": "passive_voice",
+        "also_matches": [
+          "comparison"
+        ]
+      },
+      {
+        "id": "b2-reporting-passive",
+        "primary": "passive_voice",
+        "also_matches": [
+          "comparison"
+        ]
+      },
+      {
+        "id": "b2-reported-speech-tense-choice",
+        "primary": "reported_speech",
+        "also_matches": [
+          "comparison"
+        ]
+      },
+      {
+        "id": "b2-reporting-verbs-and-patterns",
+        "primary": "reported_speech",
+        "also_matches": [
+          "comparison"
+        ]
+      },
+      {
+        "id": "b2-advanced-relative-clauses",
+        "primary": "relative_clauses",
+        "also_matches": [
+          "comparison"
+        ]
+      },
+      {
+        "id": "b2-preposition-relative-pronoun",
+        "primary": "pronouns_possessives",
+        "also_matches": [
+          "comparison",
+          "prepositions"
+        ]
+      },
+      {
+        "id": "b2-quantifier-relative-pronoun",
+        "primary": "pronouns_possessives",
+        "also_matches": [
+          "comparison"
+        ]
+      },
+      {
+        "id": "b2-reduced-relative-clauses",
+        "primary": "relative_clauses",
+        "also_matches": [
+          "comparison"
+        ]
+      },
+      {
+        "id": "b2-participle-clauses",
+        "primary": "participles",
+        "also_matches": [
+          "comparison"
+        ]
+      },
+      {
+        "id": "b2-perfect-participle-clauses",
+        "primary": "participles",
+        "also_matches": [
+          "comparison"
+        ]
+      },
+      {
+        "id": "b2-infinitive-clauses",
+        "primary": "gerund_infinitive",
+        "also_matches": [
+          "comparison"
+        ]
+      },
+      {
+        "id": "b2-gerund-clauses",
+        "primary": "gerund_infinitive",
+        "also_matches": [
+          "comparison"
+        ]
+      },
+      {
+        "id": "b2-gerund-infinitive-meaning-contrasts",
+        "primary": "gerund_infinitive",
+        "also_matches": [
+          "comparison"
+        ]
+      },
+      {
+        "id": "b2-negative-adverbial-inversion",
+        "primary": "adjectives_adverbs",
+        "also_matches": [
+          "questions_negation",
+          "comparison",
+          "inversion_emphasis"
+        ]
+      },
+      {
+        "id": "b2-only-phrase-inversion",
+        "primary": "comparison",
+        "also_matches": [
+          "inversion_emphasis"
+        ]
+      },
+      {
+        "id": "b2-cleft-sentences",
+        "primary": "comparison",
+        "also_matches": [
+          "inversion_emphasis"
+        ]
+      },
+      {
+        "id": "b2-pseudo-cleft-sentences",
+        "primary": "comparison",
+        "also_matches": [
+          "inversion_emphasis"
+        ]
+      },
+      {
+        "id": "b2-review-emphasis-and-information-structure-1",
+        "primary": "comparison",
+        "also_matches": [
+          "inversion_emphasis",
+          "discourse_register",
+          "review_checkpoint"
+        ]
+      },
+      {
+        "id": "b2-fronting-for-emphasis",
+        "primary": "comparison",
+        "also_matches": [
+          "inversion_emphasis"
+        ]
+      },
+      {
+        "id": "b2-advanced-articles-and-determiners",
+        "primary": "articles_determiners",
+        "also_matches": [
+          "comparison"
+        ]
+      },
+      {
+        "id": "b2-reference-and-substitution",
+        "primary": "comparison",
+        "also_matches": [
+          "ellipsis_substitution"
+        ]
+      },
+      {
+        "id": "b2-ellipsis",
+        "primary": "comparison",
+        "also_matches": [
+          "ellipsis_substitution"
+        ]
+      },
+      {
+        "id": "b2-review-reference-and-register-1",
+        "primary": "discourse_register",
+        "also_matches": [
+          "review_checkpoint"
+        ]
+      },
+      {
+        "id": "b2-complex-noun-phrases",
+        "primary": "nouns_countability",
+        "also_matches": [
+          "comparison"
+        ]
+      },
+      {
+        "id": "b2-dependent-prepositions",
+        "primary": "comparison",
+        "also_matches": [
+          "prepositions"
+        ]
+      },
+      {
+        "id": "b2-concession-patterns",
+        "primary": "adverbial_clauses",
+        "also_matches": [
+          "comparison"
+        ]
+      },
+      {
+        "id": "b2-formal-vs-informal-grammar-choices",
+        "primary": "comparison",
+        "also_matches": [
+          "discourse_register"
+        ]
+      },
+      {
+        "id": "b2-review-reference-and-register-2",
+        "primary": "discourse_register",
+        "also_matches": [
+          "review_checkpoint"
+        ]
+      },
+      {
+        "id": "c1-future-in-the-past-systems",
+        "primary": "articles_determiners",
+        "also_matches": [
+          "future_forms",
+          "comparison"
+        ]
+      },
+      {
+        "id": "c1-advanced-epistemic-modality",
+        "primary": "modals",
+        "also_matches": [
+          "comparison"
+        ]
+      },
+      {
+        "id": "c1-deontic-and-dynamic-modality",
+        "primary": "modals",
+        "also_matches": [
+          "comparison"
+        ]
+      },
+      {
+        "id": "c1-hedging-with-modal-and-lexical-devices",
+        "primary": "modals",
+        "also_matches": [
+          "comparison",
+          "discourse_register"
+        ]
+      },
+      {
+        "id": "c1-negative-adverbial-inversion",
+        "primary": "adjectives_adverbs",
+        "also_matches": [
+          "questions_negation",
+          "comparison",
+          "inversion_emphasis"
+        ]
+      },
+      {
+        "id": "c1-conditional-inversion",
+        "primary": "conditionals",
+        "also_matches": [
+          "comparison",
+          "inversion_emphasis"
+        ]
+      },
+      {
+        "id": "c1-so-such-inversion",
+        "primary": "adjectives_adverbs",
+        "also_matches": [
+          "comparison",
+          "inversion_emphasis"
+        ]
+      },
+      {
+        "id": "c1-fronting-and-topicalisation",
+        "primary": "comparison",
+        "also_matches": [
+          "inversion_emphasis"
+        ]
+      },
+      {
+        "id": "c1-it-clefts",
+        "primary": "comparison",
+        "also_matches": [
+          "inversion_emphasis"
+        ]
+      },
+      {
+        "id": "c1-wh-clefts-and-reversed-clefts",
+        "primary": "comparison",
+        "also_matches": [
+          "inversion_emphasis"
+        ]
+      },
+      {
+        "id": "c1-existential-there-with-complex-noun-phrases",
+        "primary": "nouns_countability",
+        "also_matches": [
+          "comparison"
+        ]
+      },
+      {
+        "id": "c1-complex-noun-phrase-architecture",
+        "primary": "nouns_countability",
+        "also_matches": [
+          "comparison"
+        ]
+      },
+      {
+        "id": "c1-reporting-passives",
+        "primary": "passive_voice",
+        "also_matches": [
+          "comparison"
+        ]
+      },
+      {
+        "id": "c1-perfect-infinitives-in-reporting",
+        "primary": "gerund_infinitive",
+        "also_matches": [
+          "comparison"
+        ]
+      },
+      {
+        "id": "c1-review-formal-grammar-1",
+        "primary": "discourse_register",
+        "also_matches": [
+          "review_checkpoint"
+        ]
+      },
+      {
+        "id": "c1-fused-relative-clauses",
+        "primary": "relative_clauses",
+        "also_matches": [
+          "comparison"
+        ]
+      },
+      {
+        "id": "c1-perfect-and-passive-non-finites",
+        "primary": "passive_voice",
+        "also_matches": [
+          "comparison"
+        ]
+      },
+      {
+        "id": "c1-review-formal-grammar-2",
+        "primary": "discourse_register",
+        "also_matches": [
+          "review_checkpoint"
+        ]
+      },
+      {
+        "id": "c1-advanced-concession",
+        "primary": "adverbial_clauses",
+        "also_matches": [
+          "comparison"
+        ]
+      },
+      {
+        "id": "c1-ellipsis-and-substitution",
+        "primary": "comparison",
+        "also_matches": [
+          "ellipsis_substitution"
+        ]
+      },
+      {
+        "id": "c1-discourse-reference",
+        "primary": "comparison",
+        "also_matches": [
+          "discourse_register"
+        ]
+      },
+      {
+        "id": "c1-hedging-academic-claims",
+        "primary": "comparison",
+        "also_matches": [
+          "discourse_register"
+        ]
+      },
+      {
+        "id": "c1-register-driven-grammar",
+        "primary": "comparison",
+        "also_matches": [
+          "discourse_register"
+        ]
+      },
+      {
+        "id": "c1-sentence-rhythm-end-weight-and-end-focus",
+        "primary": "comparison",
+        "also_matches": [
+          "discourse_register"
+        ]
+      },
+      {
+        "id": "c2-layered-modality-and-authorial-voice",
+        "primary": "modals",
+        "also_matches": [
+          "comparison"
+        ]
+      },
+      {
+        "id": "c2-negation-and-quantifier-scope",
+        "primary": "questions_negation",
+        "also_matches": [
+          "comparison"
+        ]
+      },
+      {
+        "id": "c2-only-focus-scope",
+        "primary": "comparison",
+        "also_matches": [
+          "discourse_register"
+        ]
+      },
+      {
+        "id": "c2-advanced-concession-and-counterargument",
+        "primary": "adverbial_clauses",
+        "also_matches": [
+          "comparison"
+        ]
+      },
+      {
+        "id": "c2-cross-sentence-ellipsis",
+        "primary": "comparison",
+        "also_matches": [
+          "ellipsis_substitution"
+        ]
+      },
+      {
+        "id": "c2-discourse-substitution-chains",
+        "primary": "comparison",
+        "also_matches": [
+          "ellipsis_substitution",
+          "discourse_register"
+        ]
+      },
+      {
+        "id": "c2-register-driven-syntax",
+        "primary": "comparison",
+        "also_matches": [
+          "discourse_register"
+        ]
+      },
+      {
+        "id": "c2-review-discourse-and-register-1",
+        "primary": "discourse_register",
+        "also_matches": [
+          "review_checkpoint"
+        ]
+      },
+      {
+        "id": "c2-metadiscourse-grammar",
+        "primary": "comparison",
+        "also_matches": [
+          "discourse_register"
+        ]
+      },
+      {
+        "id": "c2-active-passive-style-transformation",
+        "primary": "passive_voice",
+        "also_matches": [
+          "comparison"
+        ]
+      },
+      {
+        "id": "c2-fronting-clefting-transformation",
+        "primary": "comparison",
+        "also_matches": [
+          "inversion_emphasis"
+        ]
+      }
+    ]
+  },
+  "total_lessons": 508,
+  "unique_language_lesson_ids": 508,
+  "authoring_batches": [
+    {
+      "batch_id": "G001",
+      "language": "en",
+      "level": "A1",
+      "family": "adjectives_adverbs",
+      "lesson_count": 1,
+      "lesson_ids": [
+        "a1-adverbs-of-frequency"
+      ],
+      "required_visual_mode": "form_choice",
+      "required_visuals": [
+        "formula",
+        "contrast",
+        "scene"
+      ],
+      "required_practice_modes": [
+        "choose",
+        "fill",
+        "correct",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G002",
+      "language": "en",
+      "level": "A1",
+      "family": "articles_determiners",
+      "lesson_count": 3,
+      "lesson_ids": [
+        "a1-articles-a-an-the",
+        "a1-this-that-these-those",
+        "a1-some-any"
+      ],
+      "required_visual_mode": "form_choice",
+      "required_visuals": [
+        "formula",
+        "contrast",
+        "scene"
+      ],
+      "required_practice_modes": [
+        "choose",
+        "fill",
+        "correct",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G003",
+      "language": "en",
+      "level": "A1",
+      "family": "basic_word_order",
+      "lesson_count": 1,
+      "lesson_ids": [
+        "a1-complete-sentences-and-basic-word-order"
+      ],
+      "required_visual_mode": "word_order",
+      "required_visuals": [
+        "word_order",
+        "semantic_sentence",
+        "transformation"
+      ],
+      "required_practice_modes": [
+        "reorder",
+        "identify",
+        "build",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G004",
+      "language": "en",
+      "level": "A1",
+      "family": "be_existential",
+      "lesson_count": 3,
+      "lesson_ids": [
+        "a1-be-am-is-are",
+        "a1-there-is-there-are",
+        "a1-be-questions-and-short-answers"
+      ],
+      "required_visual_mode": "form_choice",
+      "required_visuals": [
+        "formula",
+        "contrast",
+        "scene"
+      ],
+      "required_practice_modes": [
+        "choose",
+        "fill",
+        "correct",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G005",
+      "language": "en",
+      "level": "A1",
+      "family": "comparison",
+      "lesson_count": 9,
+      "lesson_ids": [
+        "a1-have-and-have-got",
+        "a1-basic-imperatives-and-let-s",
+        "a1-third-person-s-and-spelling",
+        "a1-stative-verbs-introduction",
+        "a1-much-many-a-lot-of",
+        "a1-basic-prepositions-of-place",
+        "a1-basic-prepositions-of-time",
+        "a1-and-but-or-because-so",
+        "a1-progress-check"
+      ],
+      "required_visual_mode": "form_choice",
+      "required_visuals": [
+        "formula",
+        "contrast",
+        "scene"
+      ],
+      "required_practice_modes": [
+        "choose",
+        "fill",
+        "correct",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G006",
+      "language": "en",
+      "level": "A1",
+      "family": "nouns_countability",
+      "lesson_count": 2,
+      "lesson_ids": [
+        "a1-singular-and-plural-nouns",
+        "a1-countable-and-uncountable-nouns"
+      ],
+      "required_visual_mode": "morphology",
+      "required_visuals": [
+        "inflection_table",
+        "transformation",
+        "contrast"
+      ],
+      "required_practice_modes": [
+        "fill",
+        "transform",
+        "classify",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G007",
+      "language": "en",
+      "level": "A1",
+      "family": "present_continuous",
+      "lesson_count": 1,
+      "lesson_ids": [
+        "a1-present-continuous"
+      ],
+      "required_visual_mode": "tense_aspect",
+      "required_visuals": [
+        "timeline",
+        "contrast",
+        "scene"
+      ],
+      "required_practice_modes": [
+        "choose",
+        "fill",
+        "contrast-decision",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G008",
+      "language": "en",
+      "level": "A1",
+      "family": "present_simple",
+      "lesson_count": 2,
+      "lesson_ids": [
+        "a1-present-simple",
+        "a1-present-simple-vs-present-continuous"
+      ],
+      "required_visual_mode": "tense_aspect",
+      "required_visuals": [
+        "timeline",
+        "contrast",
+        "scene"
+      ],
+      "required_practice_modes": [
+        "choose",
+        "fill",
+        "contrast-decision",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G009",
+      "language": "en",
+      "level": "A1",
+      "family": "pronouns_possessives",
+      "lesson_count": 2,
+      "lesson_ids": [
+        "a1-subject-and-object-pronouns",
+        "a1-possessive-adjectives-pronouns-and-possessive-s"
+      ],
+      "required_visual_mode": "form_choice",
+      "required_visuals": [
+        "formula",
+        "contrast",
+        "scene"
+      ],
+      "required_practice_modes": [
+        "choose",
+        "fill",
+        "correct",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G010",
+      "language": "en",
+      "level": "A1",
+      "family": "questions_negation",
+      "lesson_count": 3,
+      "lesson_ids": [
+        "a1-do-does-questions",
+        "a1-wh-questions",
+        "a1-review-questions-and-quantity-1"
+      ],
+      "required_visual_mode": "transformation",
+      "required_visuals": [
+        "transformation",
+        "semantic_sentence",
+        "contrast"
+      ],
+      "required_practice_modes": [
+        "transform",
+        "correct",
+        "build",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G011",
+      "language": "en",
+      "level": "A1",
+      "family": "review_checkpoint",
+      "lesson_count": 3,
+      "lesson_ids": [
+        "a1-review-sentence-foundations-1",
+        "a1-review-sentence-foundations-2",
+        "a1-review-present-time-1"
+      ],
+      "required_visual_mode": "review",
+      "required_visuals": [
+        "contrast",
+        "recap",
+        "mixed-representation"
+      ],
+      "required_practice_modes": [
+        "recognition",
+        "distinction",
+        "correction",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G012",
+      "language": "en",
+      "level": "A2",
+      "family": "adjectives_adverbs",
+      "lesson_count": 3,
+      "lesson_ids": [
+        "a2-too-enough",
+        "a2-adjectives-vs-adverbs",
+        "a2-adverbs-of-manner-and-degree"
+      ],
+      "required_visual_mode": "form_choice",
+      "required_visuals": [
+        "formula",
+        "contrast",
+        "scene"
+      ],
+      "required_practice_modes": [
+        "choose",
+        "fill",
+        "correct",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G013",
+      "language": "en",
+      "level": "A2",
+      "family": "articles_determiners",
+      "lesson_count": 1,
+      "lesson_ids": [
+        "a2-some-any-no-every-compounds"
+      ],
+      "required_visual_mode": "form_choice",
+      "required_visuals": [
+        "formula",
+        "contrast",
+        "scene"
+      ],
+      "required_practice_modes": [
+        "choose",
+        "fill",
+        "correct",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G014",
+      "language": "en",
+      "level": "A2",
+      "family": "be_existential",
+      "lesson_count": 2,
+      "lesson_ids": [
+        "a2-past-simple-be",
+        "a2-can-could-be-able-to-basics"
+      ],
+      "required_visual_mode": "form_choice",
+      "required_visuals": [
+        "formula",
+        "contrast",
+        "scene"
+      ],
+      "required_practice_modes": [
+        "choose",
+        "fill",
+        "correct",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G015",
+      "language": "en",
+      "level": "A2",
+      "family": "comparison",
+      "lesson_count": 7,
+      "lesson_ids": [
+        "a2-comparatives",
+        "a2-superlatives",
+        "a2-as-as",
+        "a2-review-comparison-and-degree-1",
+        "a2-a-few-few-and-a-little-little",
+        "a2-basic-indirect-objects",
+        "a2-progress-check"
+      ],
+      "required_visual_mode": "form_choice",
+      "required_visuals": [
+        "formula",
+        "contrast",
+        "scene"
+      ],
+      "required_practice_modes": [
+        "choose",
+        "fill",
+        "correct",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G016",
+      "language": "en",
+      "level": "A2",
+      "family": "conditionals",
+      "lesson_count": 3,
+      "lesson_ids": [
+        "a2-zero-conditional",
+        "a2-first-conditional",
+        "a2-unless-introduction"
+      ],
+      "required_visual_mode": "form_choice",
+      "required_visuals": [
+        "formula",
+        "contrast",
+        "scene"
+      ],
+      "required_practice_modes": [
+        "choose",
+        "fill",
+        "correct",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G017",
+      "language": "en",
+      "level": "A2",
+      "family": "future_forms",
+      "lesson_count": 4,
+      "lesson_ids": [
+        "a2-review-past-and-future-1",
+        "a2-going-to",
+        "a2-will-and-won-t",
+        "a2-review-past-and-future-2"
+      ],
+      "required_visual_mode": "tense_aspect",
+      "required_visuals": [
+        "timeline",
+        "contrast",
+        "scene"
+      ],
+      "required_practice_modes": [
+        "choose",
+        "fill",
+        "contrast-decision",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G018",
+      "language": "en",
+      "level": "A2",
+      "family": "gerund_infinitive",
+      "lesson_count": 3,
+      "lesson_ids": [
+        "a2-gerunds-after-preference-verbs",
+        "a2-infinitive-after-want-plan-need",
+        "a2-infinitive-of-purpose"
+      ],
+      "required_visual_mode": "form_choice",
+      "required_visuals": [
+        "formula",
+        "contrast",
+        "scene"
+      ],
+      "required_practice_modes": [
+        "choose",
+        "fill",
+        "correct",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G019",
+      "language": "en",
+      "level": "A2",
+      "family": "modals",
+      "lesson_count": 4,
+      "lesson_ids": [
+        "a2-must-have-to",
+        "a2-should-ought-to",
+        "a2-may-might-could-possibility",
+        "a2-review-modals-and-verb-patterns-1"
+      ],
+      "required_visual_mode": "form_choice",
+      "required_visuals": [
+        "formula",
+        "contrast",
+        "scene"
+      ],
+      "required_practice_modes": [
+        "choose",
+        "fill",
+        "correct",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G020",
+      "language": "en",
+      "level": "A2",
+      "family": "past_continuous",
+      "lesson_count": 1,
+      "lesson_ids": [
+        "a2-past-continuous"
+      ],
+      "required_visual_mode": "tense_aspect",
+      "required_visuals": [
+        "timeline",
+        "contrast",
+        "scene"
+      ],
+      "required_practice_modes": [
+        "choose",
+        "fill",
+        "contrast-decision",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G021",
+      "language": "en",
+      "level": "A2",
+      "family": "past_simple",
+      "lesson_count": 3,
+      "lesson_ids": [
+        "a2-past-simple-regular-verbs",
+        "a2-past-simple-irregular-verbs",
+        "a2-past-simple-vs-past-continuous"
+      ],
+      "required_visual_mode": "tense_aspect",
+      "required_visuals": [
+        "timeline",
+        "contrast",
+        "scene"
+      ],
+      "required_practice_modes": [
+        "choose",
+        "fill",
+        "contrast-decision",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G022",
+      "language": "en",
+      "level": "A2",
+      "family": "present_continuous",
+      "lesson_count": 1,
+      "lesson_ids": [
+        "a2-present-continuous-for-future-arrangements"
+      ],
+      "required_visual_mode": "tense_aspect",
+      "required_visuals": [
+        "timeline",
+        "contrast",
+        "scene"
+      ],
+      "required_practice_modes": [
+        "choose",
+        "fill",
+        "contrast-decision",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G023",
+      "language": "en",
+      "level": "A2",
+      "family": "present_perfect",
+      "lesson_count": 1,
+      "lesson_ids": [
+        "a2-present-perfect-introduction"
+      ],
+      "required_visual_mode": "tense_aspect",
+      "required_visuals": [
+        "timeline",
+        "contrast",
+        "scene"
+      ],
+      "required_practice_modes": [
+        "choose",
+        "fill",
+        "contrast-decision",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G024",
+      "language": "en",
+      "level": "A2",
+      "family": "present_simple",
+      "lesson_count": 2,
+      "lesson_ids": [
+        "a2-present-perfect-vs-past-simple",
+        "a2-present-simple-for-schedules"
+      ],
+      "required_visual_mode": "tense_aspect",
+      "required_visuals": [
+        "timeline",
+        "contrast",
+        "scene"
+      ],
+      "required_practice_modes": [
+        "choose",
+        "fill",
+        "contrast-decision",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G025",
+      "language": "en",
+      "level": "A2",
+      "family": "pronouns_possessives",
+      "lesson_count": 1,
+      "lesson_ids": [
+        "a2-object-relative-pronoun-omission"
+      ],
+      "required_visual_mode": "form_choice",
+      "required_visuals": [
+        "formula",
+        "contrast",
+        "scene"
+      ],
+      "required_practice_modes": [
+        "choose",
+        "fill",
+        "correct",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G026",
+      "language": "en",
+      "level": "A2",
+      "family": "relative_clauses",
+      "lesson_count": 1,
+      "lesson_ids": [
+        "a2-who-which-that-relative-clauses"
+      ],
+      "required_visual_mode": "form_choice",
+      "required_visuals": [
+        "formula",
+        "contrast",
+        "scene"
+      ],
+      "required_practice_modes": [
+        "choose",
+        "fill",
+        "correct",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G027",
+      "language": "en",
+      "level": "A2",
+      "family": "review_checkpoint",
+      "lesson_count": 1,
+      "lesson_ids": [
+        "a2-review-clauses-and-reference-1"
+      ],
+      "required_visual_mode": "review",
+      "required_visuals": [
+        "contrast",
+        "recap",
+        "mixed-representation"
+      ],
+      "required_practice_modes": [
+        "recognition",
+        "distinction",
+        "correction",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G028",
+      "language": "en",
+      "level": "B1",
+      "family": "adjectives_adverbs",
+      "lesson_count": 1,
+      "lesson_ids": [
+        "b1-so-such-too-enough"
+      ],
+      "required_visual_mode": "form_choice",
+      "required_visuals": [
+        "formula",
+        "contrast",
+        "scene"
+      ],
+      "required_practice_modes": [
+        "choose",
+        "fill",
+        "correct",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G029",
+      "language": "en",
+      "level": "B1",
+      "family": "adverbial_clauses",
+      "lesson_count": 1,
+      "lesson_ids": [
+        "b1-although-despite-however"
+      ],
+      "required_visual_mode": "form_choice",
+      "required_visuals": [
+        "formula",
+        "contrast",
+        "scene"
+      ],
+      "required_practice_modes": [
+        "choose",
+        "fill",
+        "correct",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G030",
+      "language": "en",
+      "level": "B1",
+      "family": "articles_determiners",
+      "lesson_count": 3,
+      "lesson_ids": [
+        "b1-articles-beyond-basics",
+        "b1-generic-reference-and-zero-article",
+        "b1-review-determiners-and-reference-1"
+      ],
+      "required_visual_mode": "form_choice",
+      "required_visuals": [
+        "formula",
+        "contrast",
+        "scene"
+      ],
+      "required_practice_modes": [
+        "choose",
+        "fill",
+        "correct",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G031",
+      "language": "en",
+      "level": "B1",
+      "family": "comparison",
+      "lesson_count": 18,
+      "lesson_ids": [
+        "b1-review-tense-and-aspect-system-1",
+        "b1-past-perfect-continuous",
+        "b1-past-narrative-tense-system",
+        "b1-used-to",
+        "b1-would-for-past-habits",
+        "b1-review-tense-and-aspect-system-2",
+        "b1-ability-across-time",
+        "b1-prohibition-and-lack-of-necessity",
+        "b1-reported-statements",
+        "b1-reported-commands-and-requests",
+        "b1-verb-pattern-meaning-changes-introduction",
+        "b1-causative-have-get",
+        "b1-reason-result-connectors",
+        "b1-quantifiers-and-distributives",
+        "b1-both-either-neither",
+        "b1-one-ones",
+        "b1-comparative-patterns-and-intensifiers",
+        "b1-progress-check"
+      ],
+      "required_visual_mode": "form_choice",
+      "required_visuals": [
+        "formula",
+        "contrast",
+        "scene"
+      ],
+      "required_practice_modes": [
+        "choose",
+        "fill",
+        "correct",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G032",
+      "language": "en",
+      "level": "B1",
+      "family": "conditionals",
+      "lesson_count": 5,
+      "lesson_ids": [
+        "b1-zero-first-second-conditionals",
+        "b1-third-conditional",
+        "b1-mixed-conditional-introduction",
+        "b1-wish-if-only-present",
+        "b1-wish-if-only-past"
+      ],
+      "required_visual_mode": "form_choice",
+      "required_visuals": [
+        "formula",
+        "contrast",
+        "scene"
+      ],
+      "required_practice_modes": [
+        "choose",
+        "fill",
+        "correct",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G033",
+      "language": "en",
+      "level": "B1",
+      "family": "future_forms",
+      "lesson_count": 4,
+      "lesson_ids": [
+        "b1-future-forms-in-context",
+        "b1-future-continuous",
+        "b1-future-perfect-introduction",
+        "b1-future-time-clauses"
+      ],
+      "required_visual_mode": "tense_aspect",
+      "required_visuals": [
+        "timeline",
+        "contrast",
+        "scene"
+      ],
+      "required_practice_modes": [
+        "choose",
+        "fill",
+        "contrast-decision",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G034",
+      "language": "en",
+      "level": "B1",
+      "family": "gerund_infinitive",
+      "lesson_count": 1,
+      "lesson_ids": [
+        "b1-gerund-vs-infinitive-common-patterns"
+      ],
+      "required_visual_mode": "form_choice",
+      "required_visuals": [
+        "formula",
+        "contrast",
+        "scene"
+      ],
+      "required_practice_modes": [
+        "choose",
+        "fill",
+        "correct",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G035",
+      "language": "en",
+      "level": "B1",
+      "family": "modals",
+      "lesson_count": 5,
+      "lesson_ids": [
+        "b1-passive-with-modals",
+        "b1-obligation-must-have-to-need-to",
+        "b1-advice-should-ought-to-had-better",
+        "b1-deduction-must-might-can-t",
+        "b1-past-modals-should-could-might-have"
+      ],
+      "required_visual_mode": "form_choice",
+      "required_visuals": [
+        "formula",
+        "contrast",
+        "scene"
+      ],
+      "required_practice_modes": [
+        "choose",
+        "fill",
+        "correct",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G036",
+      "language": "en",
+      "level": "B1",
+      "family": "passive_voice",
+      "lesson_count": 1,
+      "lesson_ids": [
+        "b1-passive-voice-present-and-past"
+      ],
+      "required_visual_mode": "transformation",
+      "required_visuals": [
+        "transformation",
+        "semantic_sentence",
+        "contrast"
+      ],
+      "required_practice_modes": [
+        "transform",
+        "correct",
+        "build",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G037",
+      "language": "en",
+      "level": "B1",
+      "family": "past_simple",
+      "lesson_count": 2,
+      "lesson_ids": [
+        "b1-past-simple-vs-present-perfect",
+        "b1-past-perfect-simple"
+      ],
+      "required_visual_mode": "tense_aspect",
+      "required_visuals": [
+        "timeline",
+        "contrast",
+        "scene"
+      ],
+      "required_practice_modes": [
+        "choose",
+        "fill",
+        "contrast-decision",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G038",
+      "language": "en",
+      "level": "B1",
+      "family": "present_perfect",
+      "lesson_count": 2,
+      "lesson_ids": [
+        "b1-present-perfect-simple-vs-continuous",
+        "b1-present-perfect-passive"
+      ],
+      "required_visual_mode": "tense_aspect",
+      "required_visuals": [
+        "timeline",
+        "contrast",
+        "scene"
+      ],
+      "required_practice_modes": [
+        "choose",
+        "fill",
+        "contrast-decision",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G039",
+      "language": "en",
+      "level": "B1",
+      "family": "present_perfect_continuous",
+      "lesson_count": 1,
+      "lesson_ids": [
+        "b1-present-perfect-continuous"
+      ],
+      "required_visual_mode": "tense_aspect",
+      "required_visuals": [
+        "timeline",
+        "contrast",
+        "scene"
+      ],
+      "required_practice_modes": [
+        "choose",
+        "fill",
+        "contrast-decision",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G040",
+      "language": "en",
+      "level": "B1",
+      "family": "present_simple",
+      "lesson_count": 2,
+      "lesson_ids": [
+        "b1-present-simple-vs-continuous-extended",
+        "b1-present-perfect-simple"
+      ],
+      "required_visual_mode": "tense_aspect",
+      "required_visuals": [
+        "timeline",
+        "contrast",
+        "scene"
+      ],
+      "required_practice_modes": [
+        "choose",
+        "fill",
+        "contrast-decision",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G041",
+      "language": "en",
+      "level": "B1",
+      "family": "pronouns_possessives",
+      "lesson_count": 2,
+      "lesson_ids": [
+        "b1-relative-pronouns-and-prepositions",
+        "b1-reflexive-pronouns-and-each-other"
+      ],
+      "required_visual_mode": "form_choice",
+      "required_visuals": [
+        "formula",
+        "contrast",
+        "scene"
+      ],
+      "required_practice_modes": [
+        "choose",
+        "fill",
+        "correct",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G042",
+      "language": "en",
+      "level": "B1",
+      "family": "questions_negation",
+      "lesson_count": 6,
+      "lesson_ids": [
+        "b1-review-voice-modality-and-questions-1",
+        "b1-question-tags",
+        "b1-review-voice-modality-and-questions-2",
+        "b1-indirect-questions",
+        "b1-subject-questions-and-object-questions",
+        "b1-reported-questions"
+      ],
+      "required_visual_mode": "transformation",
+      "required_visuals": [
+        "transformation",
+        "semantic_sentence",
+        "contrast"
+      ],
+      "required_practice_modes": [
+        "transform",
+        "correct",
+        "build",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G043",
+      "language": "en",
+      "level": "B1",
+      "family": "relative_clauses",
+      "lesson_count": 2,
+      "lesson_ids": [
+        "b1-defining-relative-clauses",
+        "b1-non-defining-relative-clauses"
+      ],
+      "required_visual_mode": "form_choice",
+      "required_visuals": [
+        "formula",
+        "contrast",
+        "scene"
+      ],
+      "required_practice_modes": [
+        "choose",
+        "fill",
+        "correct",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G044",
+      "language": "en",
+      "level": "B1",
+      "family": "review_checkpoint",
+      "lesson_count": 3,
+      "lesson_ids": [
+        "b1-review-complex-sentences-1",
+        "b1-review-complex-sentences-2",
+        "b1-review-complex-sentences-3"
+      ],
+      "required_visual_mode": "review",
+      "required_visuals": [
+        "contrast",
+        "recap",
+        "mixed-representation"
+      ],
+      "required_practice_modes": [
+        "recognition",
+        "distinction",
+        "correction",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G045",
+      "language": "en",
+      "level": "B2",
+      "family": "adjectives_adverbs",
+      "lesson_count": 1,
+      "lesson_ids": [
+        "b2-negative-adverbial-inversion"
+      ],
+      "required_visual_mode": "form_choice",
+      "required_visuals": [
+        "formula",
+        "contrast",
+        "scene"
+      ],
+      "required_practice_modes": [
+        "choose",
+        "fill",
+        "correct",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G046",
+      "language": "en",
+      "level": "B2",
+      "family": "adverbial_clauses",
+      "lesson_count": 1,
+      "lesson_ids": [
+        "b2-concession-patterns"
+      ],
+      "required_visual_mode": "form_choice",
+      "required_visuals": [
+        "formula",
+        "contrast",
+        "scene"
+      ],
+      "required_practice_modes": [
+        "choose",
+        "fill",
+        "correct",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G047",
+      "language": "en",
+      "level": "B2",
+      "family": "articles_determiners",
+      "lesson_count": 2,
+      "lesson_ids": [
+        "b2-future-in-the-past",
+        "b2-advanced-articles-and-determiners"
+      ],
+      "required_visual_mode": "form_choice",
+      "required_visuals": [
+        "formula",
+        "contrast",
+        "scene"
+      ],
+      "required_practice_modes": [
+        "choose",
+        "fill",
+        "correct",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G048",
+      "language": "en",
+      "level": "B2",
+      "family": "comparison",
+      "lesson_count": 23,
+      "lesson_ids": [
+        "b2-present-aspect-and-viewpoint",
+        "b2-past-aspect-and-narrative-viewpoint",
+        "b2-perfect-aspect-in-discourse",
+        "b2-in-case-provided-as-long-as",
+        "b2-past-deduction",
+        "b2-would-rather-would-prefer-prefer",
+        "b2-it-s-time-past-form",
+        "b2-causative-have-get-extended",
+        "b2-only-phrase-inversion",
+        "b2-no-sooner-hardly-scarcely",
+        "b2-cleft-sentences",
+        "b2-pseudo-cleft-sentences",
+        "b2-review-emphasis-and-information-structure-1",
+        "b2-fronting-for-emphasis",
+        "b2-emphatic-do",
+        "b2-complex-quantifiers",
+        "b2-reference-and-substitution",
+        "b2-ellipsis",
+        "b2-nominal-clauses",
+        "b2-dependent-prepositions",
+        "b2-formal-vs-informal-grammar-choices",
+        "b2-punctuation-with-complex-clauses",
+        "b2-progress-check"
+      ],
+      "required_visual_mode": "form_choice",
+      "required_visuals": [
+        "formula",
+        "contrast",
+        "scene"
+      ],
+      "required_practice_modes": [
+        "choose",
+        "fill",
+        "correct",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G049",
+      "language": "en",
+      "level": "B2",
+      "family": "conditionals",
+      "lesson_count": 3,
+      "lesson_ids": [
+        "b2-full-conditional-system",
+        "b2-mixed-conditionals",
+        "b2-conditional-inversion-introduction"
+      ],
+      "required_visual_mode": "form_choice",
+      "required_visuals": [
+        "formula",
+        "contrast",
+        "scene"
+      ],
+      "required_practice_modes": [
+        "choose",
+        "fill",
+        "correct",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G050",
+      "language": "en",
+      "level": "B2",
+      "family": "discourse_register",
+      "lesson_count": 2,
+      "lesson_ids": [
+        "b2-review-reference-and-register-1",
+        "b2-review-reference-and-register-2"
+      ],
+      "required_visual_mode": "discourse",
+      "required_visuals": [
+        "scene",
+        "contrast",
+        "semantic_sentence"
+      ],
+      "required_practice_modes": [
+        "compare",
+        "classify",
+        "rewrite",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G051",
+      "language": "en",
+      "level": "B2",
+      "family": "future_forms",
+      "lesson_count": 4,
+      "lesson_ids": [
+        "b2-future-continuous",
+        "b2-future-perfect",
+        "b2-review-advanced-aspect-and-future-1",
+        "b2-future-perfect-continuous"
+      ],
+      "required_visual_mode": "tense_aspect",
+      "required_visuals": [
+        "timeline",
+        "contrast",
+        "scene"
+      ],
+      "required_practice_modes": [
+        "choose",
+        "fill",
+        "contrast-decision",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G052",
+      "language": "en",
+      "level": "B2",
+      "family": "gerund_infinitive",
+      "lesson_count": 3,
+      "lesson_ids": [
+        "b2-infinitive-clauses",
+        "b2-gerund-clauses",
+        "b2-gerund-infinitive-meaning-contrasts"
+      ],
+      "required_visual_mode": "form_choice",
+      "required_visuals": [
+        "formula",
+        "contrast",
+        "scene"
+      ],
+      "required_practice_modes": [
+        "choose",
+        "fill",
+        "correct",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G053",
+      "language": "en",
+      "level": "B2",
+      "family": "modals",
+      "lesson_count": 6,
+      "lesson_ids": [
+        "b2-modal-certainty-and-probability",
+        "b2-review-conditionals-and-modality-1",
+        "b2-modal-perfect-criticism-and-regret",
+        "b2-needn-t-have-vs-didn-t-need-to",
+        "b2-review-conditionals-and-modality-2",
+        "b2-modal-perfect-passive"
+      ],
+      "required_visual_mode": "form_choice",
+      "required_visuals": [
+        "formula",
+        "contrast",
+        "scene"
+      ],
+      "required_practice_modes": [
+        "choose",
+        "fill",
+        "correct",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G054",
+      "language": "en",
+      "level": "B2",
+      "family": "nouns_countability",
+      "lesson_count": 1,
+      "lesson_ids": [
+        "b2-complex-noun-phrases"
+      ],
+      "required_visual_mode": "morphology",
+      "required_visuals": [
+        "inflection_table",
+        "transformation",
+        "contrast"
+      ],
+      "required_practice_modes": [
+        "fill",
+        "transform",
+        "classify",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G055",
+      "language": "en",
+      "level": "B2",
+      "family": "participles",
+      "lesson_count": 2,
+      "lesson_ids": [
+        "b2-participle-clauses",
+        "b2-perfect-participle-clauses"
+      ],
+      "required_visual_mode": "form_choice",
+      "required_visuals": [
+        "formula",
+        "contrast",
+        "scene"
+      ],
+      "required_practice_modes": [
+        "choose",
+        "fill",
+        "correct",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G056",
+      "language": "en",
+      "level": "B2",
+      "family": "passive_voice",
+      "lesson_count": 4,
+      "lesson_ids": [
+        "b2-advanced-passive-forms",
+        "b2-two-object-passive",
+        "b2-impersonal-passive",
+        "b2-reporting-passive"
+      ],
+      "required_visual_mode": "transformation",
+      "required_visuals": [
+        "transformation",
+        "semantic_sentence",
+        "contrast"
+      ],
+      "required_practice_modes": [
+        "transform",
+        "correct",
+        "build",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G057",
+      "language": "en",
+      "level": "B2",
+      "family": "pronouns_possessives",
+      "lesson_count": 2,
+      "lesson_ids": [
+        "b2-preposition-relative-pronoun",
+        "b2-quantifier-relative-pronoun"
+      ],
+      "required_visual_mode": "form_choice",
+      "required_visuals": [
+        "formula",
+        "contrast",
+        "scene"
+      ],
+      "required_practice_modes": [
+        "choose",
+        "fill",
+        "correct",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G058",
+      "language": "en",
+      "level": "B2",
+      "family": "relative_clauses",
+      "lesson_count": 2,
+      "lesson_ids": [
+        "b2-advanced-relative-clauses",
+        "b2-reduced-relative-clauses"
+      ],
+      "required_visual_mode": "form_choice",
+      "required_visuals": [
+        "formula",
+        "contrast",
+        "scene"
+      ],
+      "required_practice_modes": [
+        "choose",
+        "fill",
+        "correct",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G059",
+      "language": "en",
+      "level": "B2",
+      "family": "reported_speech",
+      "lesson_count": 2,
+      "lesson_ids": [
+        "b2-reported-speech-tense-choice",
+        "b2-reporting-verbs-and-patterns"
+      ],
+      "required_visual_mode": "transformation",
+      "required_visuals": [
+        "transformation",
+        "semantic_sentence",
+        "contrast"
+      ],
+      "required_practice_modes": [
+        "transform",
+        "correct",
+        "build",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G060",
+      "language": "en",
+      "level": "B2",
+      "family": "review_checkpoint",
+      "lesson_count": 2,
+      "lesson_ids": [
+        "b2-review-voice-and-reporting-1",
+        "b2-review-relative-and-non-finite-clauses-1"
+      ],
+      "required_visual_mode": "review",
+      "required_visuals": [
+        "contrast",
+        "recap",
+        "mixed-representation"
+      ],
+      "required_practice_modes": [
+        "recognition",
+        "distinction",
+        "correction",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G061",
+      "language": "en",
+      "level": "C1",
+      "family": "adjectives_adverbs",
+      "lesson_count": 2,
+      "lesson_ids": [
+        "c1-negative-adverbial-inversion",
+        "c1-so-such-inversion"
+      ],
+      "required_visual_mode": "form_choice",
+      "required_visuals": [
+        "formula",
+        "contrast",
+        "scene"
+      ],
+      "required_practice_modes": [
+        "choose",
+        "fill",
+        "correct",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G062",
+      "language": "en",
+      "level": "C1",
+      "family": "adverbial_clauses",
+      "lesson_count": 1,
+      "lesson_ids": [
+        "c1-advanced-concession"
+      ],
+      "required_visual_mode": "form_choice",
+      "required_visuals": [
+        "formula",
+        "contrast",
+        "scene"
+      ],
+      "required_practice_modes": [
+        "choose",
+        "fill",
+        "correct",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G063",
+      "language": "en",
+      "level": "C1",
+      "family": "articles_determiners",
+      "lesson_count": 1,
+      "lesson_ids": [
+        "c1-future-in-the-past-systems"
+      ],
+      "required_visual_mode": "form_choice",
+      "required_visuals": [
+        "formula",
+        "contrast",
+        "scene"
+      ],
+      "required_practice_modes": [
+        "choose",
+        "fill",
+        "correct",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G064",
+      "language": "en",
+      "level": "C1",
+      "family": "comparison",
+      "lesson_count": 25,
+      "lesson_ids": [
+        "c1-advanced-simple-vs-continuous-aspect",
+        "c1-advanced-perfect-aspect",
+        "c1-lexical-aspect-and-meaning-shifts",
+        "c1-historic-present-and-narrative-shifts",
+        "c1-boosting-and-controlled-certainty",
+        "c1-fronting-and-topicalisation",
+        "c1-it-clefts",
+        "c1-wh-clefts-and-reversed-clefts",
+        "c1-extraposition-with-anticipatory-it",
+        "c1-nominalisation",
+        "c1-mandative-subjunctive",
+        "c1-were-subjunctive",
+        "c1-advanced-relative-structures",
+        "c1-advanced-non-finite-clauses",
+        "c1-cause-result-purpose-relations",
+        "c1-ellipsis-and-substitution",
+        "c1-discourse-reference",
+        "c1-parallelism-and-coordination",
+        "c1-hedging-academic-claims",
+        "c1-qualification-and-limitation",
+        "c1-register-driven-grammar",
+        "c1-academic-definitions-and-classifications",
+        "c1-sentence-rhythm-end-weight-and-end-focus",
+        "c1-old-to-new-information-flow",
+        "c1-progress-check"
+      ],
+      "required_visual_mode": "form_choice",
+      "required_visuals": [
+        "formula",
+        "contrast",
+        "scene"
+      ],
+      "required_practice_modes": [
+        "choose",
+        "fill",
+        "correct",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G065",
+      "language": "en",
+      "level": "C1",
+      "family": "conditionals",
+      "lesson_count": 1,
+      "lesson_ids": [
+        "c1-conditional-inversion"
+      ],
+      "required_visual_mode": "form_choice",
+      "required_visuals": [
+        "formula",
+        "contrast",
+        "scene"
+      ],
+      "required_practice_modes": [
+        "choose",
+        "fill",
+        "correct",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G066",
+      "language": "en",
+      "level": "C1",
+      "family": "discourse_register",
+      "lesson_count": 2,
+      "lesson_ids": [
+        "c1-review-formal-grammar-1",
+        "c1-review-formal-grammar-2"
+      ],
+      "required_visual_mode": "discourse",
+      "required_visuals": [
+        "scene",
+        "contrast",
+        "semantic_sentence"
+      ],
+      "required_practice_modes": [
+        "compare",
+        "classify",
+        "rewrite",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G067",
+      "language": "en",
+      "level": "C1",
+      "family": "gerund_infinitive",
+      "lesson_count": 1,
+      "lesson_ids": [
+        "c1-perfect-infinitives-in-reporting"
+      ],
+      "required_visual_mode": "form_choice",
+      "required_visuals": [
+        "formula",
+        "contrast",
+        "scene"
+      ],
+      "required_practice_modes": [
+        "choose",
+        "fill",
+        "correct",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G068",
+      "language": "en",
+      "level": "C1",
+      "family": "modals",
+      "lesson_count": 3,
+      "lesson_ids": [
+        "c1-advanced-epistemic-modality",
+        "c1-deontic-and-dynamic-modality",
+        "c1-hedging-with-modal-and-lexical-devices"
+      ],
+      "required_visual_mode": "form_choice",
+      "required_visuals": [
+        "formula",
+        "contrast",
+        "scene"
+      ],
+      "required_practice_modes": [
+        "choose",
+        "fill",
+        "correct",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G069",
+      "language": "en",
+      "level": "C1",
+      "family": "nouns_countability",
+      "lesson_count": 2,
+      "lesson_ids": [
+        "c1-existential-there-with-complex-noun-phrases",
+        "c1-complex-noun-phrase-architecture"
+      ],
+      "required_visual_mode": "morphology",
+      "required_visuals": [
+        "inflection_table",
+        "transformation",
+        "contrast"
+      ],
+      "required_practice_modes": [
+        "fill",
+        "transform",
+        "classify",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G070",
+      "language": "en",
+      "level": "C1",
+      "family": "passive_voice",
+      "lesson_count": 2,
+      "lesson_ids": [
+        "c1-reporting-passives",
+        "c1-perfect-and-passive-non-finites"
+      ],
+      "required_visual_mode": "transformation",
+      "required_visuals": [
+        "transformation",
+        "semantic_sentence",
+        "contrast"
+      ],
+      "required_practice_modes": [
+        "transform",
+        "correct",
+        "build",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G071",
+      "language": "en",
+      "level": "C1",
+      "family": "relative_clauses",
+      "lesson_count": 1,
+      "lesson_ids": [
+        "c1-fused-relative-clauses"
+      ],
+      "required_visual_mode": "form_choice",
+      "required_visuals": [
+        "formula",
+        "contrast",
+        "scene"
+      ],
+      "required_practice_modes": [
+        "choose",
+        "fill",
+        "correct",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G072",
+      "language": "en",
+      "level": "C1",
+      "family": "review_checkpoint",
+      "lesson_count": 4,
+      "lesson_ids": [
+        "c1-review-viewpoint-and-stance-1",
+        "c1-review-marked-structures-1",
+        "c1-review-cohesion-and-academic-style-1",
+        "c1-review-cohesion-and-academic-style-2"
+      ],
+      "required_visual_mode": "review",
+      "required_visuals": [
+        "contrast",
+        "recap",
+        "mixed-representation"
+      ],
+      "required_practice_modes": [
+        "recognition",
+        "distinction",
+        "correction",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G073",
+      "language": "en",
+      "level": "C2",
+      "family": "adverbial_clauses",
+      "lesson_count": 1,
+      "lesson_ids": [
+        "c2-advanced-concession-and-counterargument"
+      ],
+      "required_visual_mode": "form_choice",
+      "required_visuals": [
+        "formula",
+        "contrast",
+        "scene"
+      ],
+      "required_practice_modes": [
+        "choose",
+        "fill",
+        "correct",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G074",
+      "language": "en",
+      "level": "C2",
+      "family": "comparison",
+      "lesson_count": 29,
+      "lesson_ids": [
+        "c2-advanced-tense-aspect-viewpoint-shifts",
+        "c2-counterfactual-compression",
+        "c2-only-focus-scope",
+        "c2-ambiguity-from-modifier-attachment",
+        "c2-reference-ambiguity",
+        "c2-deep-clause-embedding",
+        "c2-fused-and-nominal-relatives",
+        "c2-advanced-apposition",
+        "c2-parenthetical-grammar",
+        "c2-heavy-constituent-shift",
+        "c2-advanced-extraposition",
+        "c2-marked-comparison-structures",
+        "c2-advanced-complement-alternation",
+        "c2-advanced-reporting-and-distancing",
+        "c2-cross-sentence-ellipsis",
+        "c2-discourse-substitution-chains",
+        "c2-register-driven-syntax",
+        "c2-academic-vs-business-vs-conversational-grammar",
+        "c2-lexico-grammar-and-colligation",
+        "c2-metadiscourse-grammar",
+        "c2-syntactic-variety-without-meaning-drift",
+        "c2-finite-non-finite-transformation",
+        "c2-verbal-nominal-transformation",
+        "c2-fronting-clefting-transformation",
+        "c2-advanced-punctuation-as-syntax",
+        "c2-redundancy-reduction",
+        "c2-grammar-based-ambiguity-repair",
+        "c2-information-packaging-in-long-sentences",
+        "c2-progress-check"
+      ],
+      "required_visual_mode": "form_choice",
+      "required_visuals": [
+        "formula",
+        "contrast",
+        "scene"
+      ],
+      "required_practice_modes": [
+        "choose",
+        "fill",
+        "correct",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G075",
+      "language": "en",
+      "level": "C2",
+      "family": "discourse_register",
+      "lesson_count": 1,
+      "lesson_ids": [
+        "c2-review-discourse-and-register-1"
+      ],
+      "required_visual_mode": "discourse",
+      "required_visuals": [
+        "scene",
+        "contrast",
+        "semantic_sentence"
+      ],
+      "required_practice_modes": [
+        "compare",
+        "classify",
+        "rewrite",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G076",
+      "language": "en",
+      "level": "C2",
+      "family": "modals",
+      "lesson_count": 1,
+      "lesson_ids": [
+        "c2-layered-modality-and-authorial-voice"
+      ],
+      "required_visual_mode": "form_choice",
+      "required_visuals": [
+        "formula",
+        "contrast",
+        "scene"
+      ],
+      "required_practice_modes": [
+        "choose",
+        "fill",
+        "correct",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G077",
+      "language": "en",
+      "level": "C2",
+      "family": "passive_voice",
+      "lesson_count": 1,
+      "lesson_ids": [
+        "c2-active-passive-style-transformation"
+      ],
+      "required_visual_mode": "transformation",
+      "required_visuals": [
+        "transformation",
+        "semantic_sentence",
+        "contrast"
+      ],
+      "required_practice_modes": [
+        "transform",
+        "correct",
+        "build",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G078",
+      "language": "en",
+      "level": "C2",
+      "family": "questions_negation",
+      "lesson_count": 1,
+      "lesson_ids": [
+        "c2-negation-and-quantifier-scope"
+      ],
+      "required_visual_mode": "transformation",
+      "required_visuals": [
+        "transformation",
+        "semantic_sentence",
+        "contrast"
+      ],
+      "required_practice_modes": [
+        "transform",
+        "correct",
+        "build",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G079",
+      "language": "en",
+      "level": "C2",
+      "family": "review_checkpoint",
+      "lesson_count": 3,
+      "lesson_ids": [
+        "c2-review-meaning-and-scope-1",
+        "c2-review-complex-syntax-1",
+        "c2-review-precision-editing-1"
+      ],
+      "required_visual_mode": "review",
+      "required_visuals": [
+        "contrast",
+        "recap",
+        "mixed-representation"
+      ],
+      "required_practice_modes": [
+        "recognition",
+        "distinction",
+        "correction",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G080",
+      "language": "zh",
+      "level": "HSK1",
+      "family": "aspect_le",
+      "lesson_count": 1,
+      "lesson_ids": [
+        "zh-hsk1-16-ho-n-th-nh-c-b-n"
+      ],
+      "required_visual_mode": "tense_aspect",
+      "required_visuals": [
+        "timeline",
+        "contrast",
+        "scene"
+      ],
+      "required_practice_modes": [
+        "choose",
+        "fill",
+        "contrast-decision",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G081",
+      "language": "zh",
+      "level": "HSK1",
+      "family": "de_di_de",
+      "lesson_count": 1,
+      "lesson_ids": [
+        "zh-hsk1-5-s-h-u-v-b-ngh-a"
+      ],
+      "required_visual_mode": "form_choice",
+      "required_visuals": [
+        "formula",
+        "contrast",
+        "scene"
+      ],
+      "required_practice_modes": [
+        "choose",
+        "fill",
+        "correct",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G082",
+      "language": "zh",
+      "level": "HSK1",
+      "family": "modal_verbs",
+      "lesson_count": 1,
+      "lesson_ids": [
+        "zh-hsk1-18-c-b-n"
+      ],
+      "required_visual_mode": "form_choice",
+      "required_visuals": [
+        "formula",
+        "contrast",
+        "scene"
+      ],
+      "required_practice_modes": [
+        "choose",
+        "fill",
+        "correct",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G083",
+      "language": "zh",
+      "level": "HSK1",
+      "family": "negation_bu_mei",
+      "lesson_count": 1,
+      "lesson_ids": [
+        "zh-hsk1-10-v"
+      ],
+      "required_visual_mode": "form_choice",
+      "required_visuals": [
+        "formula",
+        "contrast",
+        "scene"
+      ],
+      "required_practice_modes": [
+        "choose",
+        "fill",
+        "correct",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G084",
+      "language": "zh",
+      "level": "HSK1",
+      "family": "questions",
+      "lesson_count": 1,
+      "lesson_ids": [
+        "zh-hsk1-11-v"
+      ],
+      "required_visual_mode": "word_order",
+      "required_visuals": [
+        "word_order",
+        "semantic_sentence",
+        "transformation"
+      ],
+      "required_practice_modes": [
+        "reorder",
+        "identify",
+        "build",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G085",
+      "language": "zh",
+      "level": "HSK1",
+      "family": "review_checkpoint",
+      "lesson_count": 4,
+      "lesson_ids": [
+        "zh-hsk1-review-1-6",
+        "zh-hsk1-review-2-12",
+        "zh-hsk1-review-3-18",
+        "zh-hsk1-review-4-24"
+      ],
+      "required_visual_mode": "review",
+      "required_visuals": [
+        "contrast",
+        "recap",
+        "mixed-representation"
+      ],
+      "required_practice_modes": [
+        "recognition",
+        "distinction",
+        "correction",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G086",
+      "language": "zh",
+      "level": "HSK1",
+      "family": "shi",
+      "lesson_count": 1,
+      "lesson_ids": [
+        "zh-hsk1-2-c-u-nh-danh"
+      ],
+      "required_visual_mode": "form_choice",
+      "required_visuals": [
+        "formula",
+        "contrast",
+        "scene"
+      ],
+      "required_practice_modes": [
+        "choose",
+        "fill",
+        "correct",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G087",
+      "language": "zh",
+      "level": "HSK1",
+      "family": "unclassified",
+      "lesson_count": 12,
+      "lesson_ids": [
+        "zh-hsk1-1-svo-c-b-n",
+        "zh-hsk1-6-i-t-nh-n-x-ng",
+        "zh-hsk1-7-topic",
+        "zh-hsk1-8-s-v-l-ng-t-c-b-n",
+        "zh-hsk1-9-vs",
+        "zh-hsk1-12-t-h-i-gi-nguy-n-v-tr",
+        "zh-hsk1-13-c-u-h-i-ch-nh-ph-n",
+        "zh-hsk1-14-v-c-u-t-nh-t",
+        "zh-hsk1-17-th-i-gian-v-ng-y-gi",
+        "zh-hsk1-19-v-tr-c-b-n",
+        "zh-hsk1-20-n-i-danh-t",
+        "zh-hsk1-progress-check"
+      ],
+      "required_visual_mode": "word_order",
+      "required_visuals": [
+        "word_order",
+        "semantic_sentence",
+        "transformation"
+      ],
+      "required_practice_modes": [
+        "reorder",
+        "identify",
+        "build",
+        "production"
+      ],
+      "status": "BLOCKED"
+    },
+    {
+      "batch_id": "G088",
+      "language": "zh",
+      "level": "HSK1",
+      "family": "you_existential",
+      "lesson_count": 1,
+      "lesson_ids": [
+        "zh-hsk1-3-s-h-u-v-t-n-t-i"
+      ],
+      "required_visual_mode": "form_choice",
+      "required_visuals": [
+        "formula",
+        "contrast",
+        "scene"
+      ],
+      "required_practice_modes": [
+        "choose",
+        "fill",
+        "correct",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G089",
+      "language": "zh",
+      "level": "HSK1",
+      "family": "zai_location",
+      "lesson_count": 2,
+      "lesson_ids": [
+        "zh-hsk1-4-v-tr",
+        "zh-hsk1-15-topic"
+      ],
+      "required_visual_mode": "form_choice",
+      "required_visuals": [
+        "formula",
+        "contrast",
+        "scene"
+      ],
+      "required_practice_modes": [
+        "choose",
+        "fill",
+        "correct",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G090",
+      "language": "zh",
+      "level": "HSK2",
+      "family": "aspect_guo",
+      "lesson_count": 1,
+      "lesson_ids": [
+        "zh-hsk2-1-kinh-nghi-m"
+      ],
+      "required_visual_mode": "tense_aspect",
+      "required_visuals": [
+        "timeline",
+        "contrast",
+        "scene"
+      ],
+      "required_practice_modes": [
+        "choose",
+        "fill",
+        "contrast-decision",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G091",
+      "language": "zh",
+      "level": "HSK2",
+      "family": "aspect_le",
+      "lesson_count": 1,
+      "lesson_ids": [
+        "zh-hsk2-3-cu-i-c-u-thay-i-tr-ng-th-i"
+      ],
+      "required_visual_mode": "tense_aspect",
+      "required_visuals": [
+        "timeline",
+        "contrast",
+        "scene"
+      ],
+      "required_practice_modes": [
+        "choose",
+        "fill",
+        "contrast-decision",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G092",
+      "language": "zh",
+      "level": "HSK2",
+      "family": "aspect_zhe",
+      "lesson_count": 1,
+      "lesson_ids": [
+        "zh-hsk2-2-tr-ng-th-i-duy-tr"
+      ],
+      "required_visual_mode": "tense_aspect",
+      "required_visuals": [
+        "timeline",
+        "contrast",
+        "scene"
+      ],
+      "required_practice_modes": [
+        "choose",
+        "fill",
+        "contrast-decision",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G093",
+      "language": "zh",
+      "level": "HSK2",
+      "family": "comparison_bi",
+      "lesson_count": 1,
+      "lesson_ids": [
+        "zh-hsk2-4-so-s-nh"
+      ],
+      "required_visual_mode": "word_order",
+      "required_visuals": [
+        "word_order",
+        "semantic_sentence",
+        "transformation"
+      ],
+      "required_practice_modes": [
+        "reorder",
+        "identify",
+        "build",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G094",
+      "language": "zh",
+      "level": "HSK2",
+      "family": "comparison_meiyou_yiyang",
+      "lesson_count": 2,
+      "lesson_ids": [
+        "zh-hsk2-6-topic",
+        "zh-hsk2-7-topic"
+      ],
+      "required_visual_mode": "word_order",
+      "required_visuals": [
+        "word_order",
+        "semantic_sentence",
+        "transformation"
+      ],
+      "required_practice_modes": [
+        "reorder",
+        "identify",
+        "build",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G095",
+      "language": "zh",
+      "level": "HSK2",
+      "family": "connectives_complex",
+      "lesson_count": 3,
+      "lesson_ids": [
+        "zh-hsk2-1-topic",
+        "zh-hsk2-2-topic",
+        "zh-hsk2-3-topic"
+      ],
+      "required_visual_mode": "discourse",
+      "required_visuals": [
+        "scene",
+        "contrast",
+        "semantic_sentence"
+      ],
+      "required_practice_modes": [
+        "compare",
+        "classify",
+        "rewrite",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G096",
+      "language": "zh",
+      "level": "HSK2",
+      "family": "de_di_de",
+      "lesson_count": 1,
+      "lesson_ids": [
+        "zh-hsk2-8-b-ng-m-c"
+      ],
+      "required_visual_mode": "form_choice",
+      "required_visuals": [
+        "formula",
+        "contrast",
+        "scene"
+      ],
+      "required_practice_modes": [
+        "choose",
+        "fill",
+        "correct",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G097",
+      "language": "zh",
+      "level": "HSK2",
+      "family": "directional_complements",
+      "lesson_count": 1,
+      "lesson_ids": [
+        "zh-hsk2-10-b-ng-xu-h-ng-n"
+      ],
+      "required_visual_mode": "transformation",
+      "required_visuals": [
+        "transformation",
+        "semantic_sentence",
+        "contrast"
+      ],
+      "required_practice_modes": [
+        "transform",
+        "correct",
+        "build",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G098",
+      "language": "zh",
+      "level": "HSK2",
+      "family": "negation_bu_mei",
+      "lesson_count": 1,
+      "lesson_ids": [
+        "zh-hsk2-5-so-s-nh-ph-nh"
+      ],
+      "required_visual_mode": "form_choice",
+      "required_visuals": [
+        "formula",
+        "contrast",
+        "scene"
+      ],
+      "required_practice_modes": [
+        "choose",
+        "fill",
+        "correct",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G099",
+      "language": "zh",
+      "level": "HSK2",
+      "family": "review_checkpoint",
+      "lesson_count": 4,
+      "lesson_ids": [
+        "zh-hsk2-review-1-31",
+        "zh-hsk2-review-2-37",
+        "zh-hsk2-review-1-46",
+        "zh-hsk2-review-2-52"
+      ],
+      "required_visual_mode": "review",
+      "required_visuals": [
+        "contrast",
+        "recap",
+        "mixed-representation"
+      ],
+      "required_practice_modes": [
+        "recognition",
+        "distinction",
+        "correction",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G100",
+      "language": "zh",
+      "level": "HSK2",
+      "family": "unclassified",
+      "lesson_count": 13,
+      "lesson_ids": [
+        "zh-hsk2-9-b-ng-k-t-qu",
+        "zh-hsk2-11-ng-t-ly-h-p",
+        "zh-hsk2-12-b-ng-th-i-l-ng-introduction",
+        "zh-hsk2-13-b-ng-ng-l-ng-introduction",
+        "zh-hsk2-4-topic",
+        "zh-hsk2-5-topic",
+        "zh-hsk2-6-topic-47",
+        "zh-hsk2-7-topic-48",
+        "zh-hsk2-8-vs",
+        "zh-hsk2-9-vs",
+        "zh-hsk2-10-topic",
+        "zh-hsk2-11-topic",
+        "zh-hsk2-progress-check"
+      ],
+      "required_visual_mode": "word_order",
+      "required_visuals": [
+        "word_order",
+        "semantic_sentence",
+        "transformation"
+      ],
+      "required_practice_modes": [
+        "reorder",
+        "identify",
+        "build",
+        "production"
+      ],
+      "status": "BLOCKED"
+    },
+    {
+      "batch_id": "G101",
+      "language": "zh",
+      "level": "HSK3",
+      "family": "ba_construction",
+      "lesson_count": 2,
+      "lesson_ids": [
+        "zh-hsk3-2-b-ng-k-t-qu",
+        "zh-hsk3-5-v-i-chi-u"
+      ],
+      "required_visual_mode": "transformation",
+      "required_visuals": [
+        "transformation",
+        "semantic_sentence",
+        "contrast"
+      ],
+      "required_practice_modes": [
+        "transform",
+        "correct",
+        "build",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G102",
+      "language": "zh",
+      "level": "HSK3",
+      "family": "comparison_meiyou_yiyang",
+      "lesson_count": 1,
+      "lesson_ids": [
+        "zh-hsk3-10-topic"
+      ],
+      "required_visual_mode": "word_order",
+      "required_visuals": [
+        "word_order",
+        "semantic_sentence",
+        "transformation"
+      ],
+      "required_practice_modes": [
+        "reorder",
+        "identify",
+        "build",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G103",
+      "language": "zh",
+      "level": "HSK3",
+      "family": "connectives_complex",
+      "lesson_count": 1,
+      "lesson_ids": [
+        "zh-hsk3-1-topic"
+      ],
+      "required_visual_mode": "discourse",
+      "required_visuals": [
+        "scene",
+        "contrast",
+        "semantic_sentence"
+      ],
+      "required_practice_modes": [
+        "compare",
+        "classify",
+        "rewrite",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G104",
+      "language": "zh",
+      "level": "HSK3",
+      "family": "core_word_order",
+      "lesson_count": 1,
+      "lesson_ids": [
+        "zh-hsk3-12-topic-comment-introduction"
+      ],
+      "required_visual_mode": "word_order",
+      "required_visuals": [
+        "word_order",
+        "semantic_sentence",
+        "transformation"
+      ],
+      "required_practice_modes": [
+        "reorder",
+        "identify",
+        "build",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G105",
+      "language": "zh",
+      "level": "HSK3",
+      "family": "de_di_de",
+      "lesson_count": 1,
+      "lesson_ids": [
+        "zh-hsk3-13-nh-ng-d-i-v-i"
+      ],
+      "required_visual_mode": "form_choice",
+      "required_visuals": [
+        "formula",
+        "contrast",
+        "scene"
+      ],
+      "required_practice_modes": [
+        "choose",
+        "fill",
+        "correct",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G106",
+      "language": "zh",
+      "level": "HSK3",
+      "family": "directional_complements",
+      "lesson_count": 1,
+      "lesson_ids": [
+        "zh-hsk3-10-ngh-a-m-r-ng"
+      ],
+      "required_visual_mode": "transformation",
+      "required_visuals": [
+        "transformation",
+        "semantic_sentence",
+        "contrast"
+      ],
+      "required_practice_modes": [
+        "transform",
+        "correct",
+        "build",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G107",
+      "language": "zh",
+      "level": "HSK3",
+      "family": "prepositions_coverbs",
+      "lesson_count": 2,
+      "lesson_ids": [
+        "zh-hsk3-7-topic",
+        "zh-hsk3-9-topic"
+      ],
+      "required_visual_mode": "word_order",
+      "required_visuals": [
+        "word_order",
+        "semantic_sentence",
+        "transformation"
+      ],
+      "required_practice_modes": [
+        "reorder",
+        "identify",
+        "build",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G108",
+      "language": "zh",
+      "level": "HSK3",
+      "family": "reduplication",
+      "lesson_count": 1,
+      "lesson_ids": [
+        "zh-hsk3-14-reduplication-ng-t-t-nh-t"
+      ],
+      "required_visual_mode": "morphology",
+      "required_visuals": [
+        "inflection_table",
+        "transformation",
+        "contrast"
+      ],
+      "required_practice_modes": [
+        "fill",
+        "transform",
+        "classify",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G109",
+      "language": "zh",
+      "level": "HSK3",
+      "family": "review_checkpoint",
+      "lesson_count": 4,
+      "lesson_ids": [
+        "zh-hsk3-review-1-60",
+        "zh-hsk3-review-2-66",
+        "zh-hsk3-review-1-72",
+        "zh-hsk3-review-2-78"
+      ],
+      "required_visual_mode": "review",
+      "required_visuals": [
+        "contrast",
+        "recap",
+        "mixed-representation"
+      ],
+      "required_practice_modes": [
+        "recognition",
+        "distinction",
+        "correction",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G110",
+      "language": "zh",
+      "level": "HSK3",
+      "family": "shi",
+      "lesson_count": 1,
+      "lesson_ids": [
+        "zh-hsk3-11-nh-n-m-nh"
+      ],
+      "required_visual_mode": "form_choice",
+      "required_visuals": [
+        "formula",
+        "contrast",
+        "scene"
+      ],
+      "required_practice_modes": [
+        "choose",
+        "fill",
+        "correct",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G111",
+      "language": "zh",
+      "level": "HSK3",
+      "family": "unclassified",
+      "lesson_count": 13,
+      "lesson_ids": [
+        "zh-hsk3-1-n-n-t-ng",
+        "zh-hsk3-4-n-n-t-ng",
+        "zh-hsk3-6-b-ng-xu-h-ng-k-p",
+        "zh-hsk3-7-b-ng-kh-n-ng",
+        "zh-hsk3-8-b-ng-th-i-l-ng",
+        "zh-hsk3-9-b-ng-ng-l-ng",
+        "zh-hsk3-2-topic",
+        "zh-hsk3-3-topic-69",
+        "zh-hsk3-4-topic",
+        "zh-hsk3-5-topic",
+        "zh-hsk3-6-topic",
+        "zh-hsk3-8-topic",
+        "zh-hsk3-progress-check"
+      ],
+      "required_visual_mode": "word_order",
+      "required_visuals": [
+        "word_order",
+        "semantic_sentence",
+        "transformation"
+      ],
+      "required_practice_modes": [
+        "reorder",
+        "identify",
+        "build",
+        "production"
+      ],
+      "status": "BLOCKED"
+    },
+    {
+      "batch_id": "G112",
+      "language": "zh",
+      "level": "HSK3",
+      "family": "zai_location",
+      "lesson_count": 1,
+      "lesson_ids": [
+        "zh-hsk3-3-topic"
+      ],
+      "required_visual_mode": "form_choice",
+      "required_visuals": [
+        "formula",
+        "contrast",
+        "scene"
+      ],
+      "required_practice_modes": [
+        "choose",
+        "fill",
+        "correct",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G113",
+      "language": "zh",
+      "level": "HSK4",
+      "family": "ba_construction",
+      "lesson_count": 1,
+      "lesson_ids": [
+        "zh-hsk4-1-v-i-c-u-tr-c-ph-c"
+      ],
+      "required_visual_mode": "transformation",
+      "required_visuals": [
+        "transformation",
+        "semantic_sentence",
+        "contrast"
+      ],
+      "required_practice_modes": [
+        "transform",
+        "correct",
+        "build",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G114",
+      "language": "zh",
+      "level": "HSK4",
+      "family": "bei_passive",
+      "lesson_count": 1,
+      "lesson_ids": [
+        "zh-hsk4-2-n-ng-cao"
+      ],
+      "required_visual_mode": "transformation",
+      "required_visuals": [
+        "transformation",
+        "semantic_sentence",
+        "contrast"
+      ],
+      "required_practice_modes": [
+        "transform",
+        "correct",
+        "build",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G115",
+      "language": "zh",
+      "level": "HSK4",
+      "family": "comparison_meiyou_yiyang",
+      "lesson_count": 1,
+      "lesson_ids": [
+        "zh-hsk4-9-topic-111"
+      ],
+      "required_visual_mode": "word_order",
+      "required_visuals": [
+        "word_order",
+        "semantic_sentence",
+        "transformation"
+      ],
+      "required_practice_modes": [
+        "reorder",
+        "identify",
+        "build",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G116",
+      "language": "zh",
+      "level": "HSK4",
+      "family": "connectives_complex",
+      "lesson_count": 2,
+      "lesson_ids": [
+        "zh-hsk4-5-topic",
+        "zh-hsk4-9-topic"
+      ],
+      "required_visual_mode": "discourse",
+      "required_visuals": [
+        "scene",
+        "contrast",
+        "semantic_sentence"
+      ],
+      "required_practice_modes": [
+        "compare",
+        "classify",
+        "rewrite",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G117",
+      "language": "zh",
+      "level": "HSK4",
+      "family": "degree_complements",
+      "lesson_count": 1,
+      "lesson_ids": [
+        "zh-hsk4-10-n-ng-cao"
+      ],
+      "required_visual_mode": "transformation",
+      "required_visuals": [
+        "transformation",
+        "semantic_sentence",
+        "contrast"
+      ],
+      "required_practice_modes": [
+        "transform",
+        "correct",
+        "build",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G118",
+      "language": "zh",
+      "level": "HSK4",
+      "family": "directional_complements",
+      "lesson_count": 1,
+      "lesson_ids": [
+        "zh-hsk4-11-ngh-a-m-r-ng"
+      ],
+      "required_visual_mode": "transformation",
+      "required_visuals": [
+        "transformation",
+        "semantic_sentence",
+        "contrast"
+      ],
+      "required_practice_modes": [
+        "transform",
+        "correct",
+        "build",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G119",
+      "language": "zh",
+      "level": "HSK4",
+      "family": "review_checkpoint",
+      "lesson_count": 5,
+      "lesson_ids": [
+        "zh-hsk4-review-1-89",
+        "zh-hsk4-review-2-95",
+        "zh-hsk4-review-3-101",
+        "zh-hsk4-review-1-107",
+        "zh-hsk4-review-2-113"
+      ],
+      "required_visual_mode": "review",
+      "required_visuals": [
+        "contrast",
+        "recap",
+        "mixed-representation"
+      ],
+      "required_practice_modes": [
+        "recognition",
+        "distinction",
+        "correction",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G120",
+      "language": "zh",
+      "level": "HSK4",
+      "family": "unclassified",
+      "lesson_count": 22,
+      "lesson_ids": [
+        "zh-hsk4-3-topic",
+        "zh-hsk4-4-topic",
+        "zh-hsk4-6-topic",
+        "zh-hsk4-7-topic",
+        "zh-hsk4-8-topic",
+        "zh-hsk4-10-topic",
+        "zh-hsk4-11-topic",
+        "zh-hsk4-12-topic",
+        "zh-hsk4-13-topic",
+        "zh-hsk4-14-topic",
+        "zh-hsk4-15-v-introduction",
+        "zh-hsk4-1-v-v",
+        "zh-hsk4-2-topic",
+        "zh-hsk4-3-topic-104",
+        "zh-hsk4-4-topic-105",
+        "zh-hsk4-5-topic-106",
+        "zh-hsk4-6-topic-108",
+        "zh-hsk4-7-topic-109",
+        "zh-hsk4-8-topic-110",
+        "zh-hsk4-12-topic-115",
+        "zh-hsk4-13-ordering",
+        "zh-hsk4-progress-check"
+      ],
+      "required_visual_mode": "word_order",
+      "required_visuals": [
+        "word_order",
+        "semantic_sentence",
+        "transformation"
+      ],
+      "required_practice_modes": [
+        "reorder",
+        "identify",
+        "build",
+        "production"
+      ],
+      "status": "BLOCKED"
+    },
+    {
+      "batch_id": "G121",
+      "language": "zh",
+      "level": "HSK5",
+      "family": "advanced_discourse",
+      "lesson_count": 3,
+      "lesson_ids": [
+        "zh-hsk5-review-1-143",
+        "zh-hsk5-review-2-149",
+        "zh-hsk5-review-3-155"
+      ],
+      "required_visual_mode": "discourse",
+      "required_visuals": [
+        "scene",
+        "contrast",
+        "semantic_sentence"
+      ],
+      "required_practice_modes": [
+        "compare",
+        "classify",
+        "rewrite",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G122",
+      "language": "zh",
+      "level": "HSK5",
+      "family": "core_word_order",
+      "lesson_count": 1,
+      "lesson_ids": [
+        "zh-hsk5-2-topic-139"
+      ],
+      "required_visual_mode": "word_order",
+      "required_visuals": [
+        "word_order",
+        "semantic_sentence",
+        "transformation"
+      ],
+      "required_practice_modes": [
+        "reorder",
+        "identify",
+        "build",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G123",
+      "language": "zh",
+      "level": "HSK5",
+      "family": "potential_complements",
+      "lesson_count": 1,
+      "lesson_ids": [
+        "zh-hsk5-4-topic"
+      ],
+      "required_visual_mode": "transformation",
+      "required_visuals": [
+        "transformation",
+        "semantic_sentence",
+        "contrast"
+      ],
+      "required_practice_modes": [
+        "transform",
+        "correct",
+        "build",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G124",
+      "language": "zh",
+      "level": "HSK5",
+      "family": "review_checkpoint",
+      "lesson_count": 3,
+      "lesson_ids": [
+        "zh-hsk5-review-1-123",
+        "zh-hsk5-review-2-129",
+        "zh-hsk5-review-3-135"
+      ],
+      "required_visual_mode": "review",
+      "required_visuals": [
+        "contrast",
+        "recap",
+        "mixed-representation"
+      ],
+      "required_practice_modes": [
+        "recognition",
+        "distinction",
+        "correction",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G125",
+      "language": "zh",
+      "level": "HSK5",
+      "family": "shi",
+      "lesson_count": 1,
+      "lesson_ids": [
+        "zh-hsk5-6-focus-v-i"
+      ],
+      "required_visual_mode": "form_choice",
+      "required_visuals": [
+        "formula",
+        "contrast",
+        "scene"
+      ],
+      "required_practice_modes": [
+        "choose",
+        "fill",
+        "correct",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G126",
+      "language": "zh",
+      "level": "HSK5",
+      "family": "unclassified",
+      "lesson_count": 30,
+      "lesson_ids": [
+        "zh-hsk5-1-topic",
+        "zh-hsk5-2-topic",
+        "zh-hsk5-3-topic",
+        "zh-hsk5-5-topic",
+        "zh-hsk5-6-topic",
+        "zh-hsk5-7-topic",
+        "zh-hsk5-8-topic",
+        "zh-hsk5-9-topic",
+        "zh-hsk5-10-topic",
+        "zh-hsk5-11-n-ng-cao",
+        "zh-hsk5-12-n-ng-cao",
+        "zh-hsk5-13-n-ng-cao",
+        "zh-hsk5-14-n-ng-cao",
+        "zh-hsk5-15-n-ng-cao",
+        "zh-hsk5-16-n-ng-cao",
+        "zh-hsk5-17-introduction",
+        "zh-hsk5-1-ki-m-ng",
+        "zh-hsk5-3-approximate-quantities",
+        "zh-hsk5-4-topic-141",
+        "zh-hsk5-5-scope",
+        "zh-hsk5-7-topic-145",
+        "zh-hsk5-8-topic-146",
+        "zh-hsk5-9-topic-147",
+        "zh-hsk5-10-topic-148",
+        "zh-hsk5-11-topic",
+        "zh-hsk5-12-topic",
+        "zh-hsk5-13-reference",
+        "zh-hsk5-14-n-ng-cao-153",
+        "zh-hsk5-15-tendencies",
+        "zh-hsk5-progress-check"
+      ],
+      "required_visual_mode": "word_order",
+      "required_visuals": [
+        "word_order",
+        "semantic_sentence",
+        "transformation"
+      ],
+      "required_practice_modes": [
+        "reorder",
+        "identify",
+        "build",
+        "production"
+      ],
+      "status": "BLOCKED"
+    },
+    {
+      "batch_id": "G127",
+      "language": "zh",
+      "level": "HSK6",
+      "family": "advanced_discourse",
+      "lesson_count": 5,
+      "lesson_ids": [
+        "zh-hsk6-review-1-179",
+        "zh-hsk6-review-2-185",
+        "zh-hsk6-review-3-191",
+        "zh-hsk6-16-discourse-connectors-by-relation",
+        "zh-hsk6-review-4-197"
+      ],
+      "required_visual_mode": "discourse",
+      "required_visuals": [
+        "scene",
+        "contrast",
+        "semantic_sentence"
+      ],
+      "required_practice_modes": [
+        "compare",
+        "classify",
+        "rewrite",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G128",
+      "language": "zh",
+      "level": "HSK6",
+      "family": "aspect_le",
+      "lesson_count": 1,
+      "lesson_ids": [
+        "zh-hsk6-1-t-ng-t-c-n-ng-cao"
+      ],
+      "required_visual_mode": "tense_aspect",
+      "required_visuals": [
+        "timeline",
+        "contrast",
+        "scene"
+      ],
+      "required_practice_modes": [
+        "choose",
+        "fill",
+        "contrast-decision",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G129",
+      "language": "zh",
+      "level": "HSK6",
+      "family": "ba_construction",
+      "lesson_count": 1,
+      "lesson_ids": [
+        "zh-hsk6-1-complex-constructions"
+      ],
+      "required_visual_mode": "transformation",
+      "required_visuals": [
+        "transformation",
+        "semantic_sentence",
+        "contrast"
+      ],
+      "required_practice_modes": [
+        "transform",
+        "correct",
+        "build",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G130",
+      "language": "zh",
+      "level": "HSK6",
+      "family": "bei_passive",
+      "lesson_count": 1,
+      "lesson_ids": [
+        "zh-hsk6-2-complex-constructions"
+      ],
+      "required_visual_mode": "transformation",
+      "required_visuals": [
+        "transformation",
+        "semantic_sentence",
+        "contrast"
+      ],
+      "required_practice_modes": [
+        "transform",
+        "correct",
+        "build",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G131",
+      "language": "zh",
+      "level": "HSK6",
+      "family": "core_word_order",
+      "lesson_count": 1,
+      "lesson_ids": [
+        "zh-hsk6-18-topic-comment-in-formal-writing"
+      ],
+      "required_visual_mode": "word_order",
+      "required_visuals": [
+        "word_order",
+        "semantic_sentence",
+        "transformation"
+      ],
+      "required_practice_modes": [
+        "reorder",
+        "identify",
+        "build",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G132",
+      "language": "zh",
+      "level": "HSK6",
+      "family": "negation_bu_mei",
+      "lesson_count": 1,
+      "lesson_ids": [
+        "zh-hsk6-5-double-negation"
+      ],
+      "required_visual_mode": "form_choice",
+      "required_visuals": [
+        "formula",
+        "contrast",
+        "scene"
+      ],
+      "required_practice_modes": [
+        "choose",
+        "fill",
+        "correct",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G133",
+      "language": "zh",
+      "level": "HSK6",
+      "family": "prepositions_coverbs",
+      "lesson_count": 1,
+      "lesson_ids": [
+        "zh-hsk6-7-topic-181"
+      ],
+      "required_visual_mode": "word_order",
+      "required_visuals": [
+        "word_order",
+        "semantic_sentence",
+        "transformation"
+      ],
+      "required_practice_modes": [
+        "reorder",
+        "identify",
+        "build",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G134",
+      "language": "zh",
+      "level": "HSK6",
+      "family": "review_checkpoint",
+      "lesson_count": 2,
+      "lesson_ids": [
+        "zh-hsk6-review-1-162",
+        "zh-hsk6-review-1-170"
+      ],
+      "required_visual_mode": "review",
+      "required_visuals": [
+        "contrast",
+        "recap",
+        "mixed-representation"
+      ],
+      "required_practice_modes": [
+        "recognition",
+        "distinction",
+        "correction",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G135",
+      "language": "zh",
+      "level": "HSK6",
+      "family": "sentence_final_particles",
+      "lesson_count": 1,
+      "lesson_ids": [
+        "zh-hsk6-19-sentence-final-particles-in-advanced-use"
+      ],
+      "required_visual_mode": "discourse",
+      "required_visuals": [
+        "scene",
+        "contrast",
+        "semantic_sentence"
+      ],
+      "required_practice_modes": [
+        "compare",
+        "classify",
+        "rewrite",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G136",
+      "language": "zh",
+      "level": "HSK6",
+      "family": "unclassified",
+      "lesson_count": 32,
+      "lesson_ids": [
+        "zh-hsk6-2-topic",
+        "zh-hsk6-3-topic",
+        "zh-hsk6-4-scope",
+        "zh-hsk6-6-rhetorical-questions",
+        "zh-hsk6-7-topic",
+        "zh-hsk6-3-agent-source",
+        "zh-hsk6-4-topic",
+        "zh-hsk6-5-topic",
+        "zh-hsk6-6-topic",
+        "zh-hsk6-7-topic-172",
+        "zh-hsk6-8-topic",
+        "zh-hsk6-1-topic",
+        "zh-hsk6-2-topic-175",
+        "zh-hsk6-3-n-ng-cao",
+        "zh-hsk6-4-patterns",
+        "zh-hsk6-5-patterns",
+        "zh-hsk6-6-topic-180",
+        "zh-hsk6-8-contrast",
+        "zh-hsk6-9-topic",
+        "zh-hsk6-10-complex-complements",
+        "zh-hsk6-11-long-sentence-parsing",
+        "zh-hsk6-12-parallel-structure-in-formal-prose",
+        "zh-hsk6-13-compression-and-expansion",
+        "zh-hsk6-14-formal-comparison",
+        "zh-hsk6-15-approximation-and-limitation",
+        "zh-hsk6-17-reference-chains",
+        "zh-hsk6-20-register-control",
+        "zh-hsk6-21-vietnamese-transfer-errors",
+        "zh-hsk6-22-punctuation-and-clause-grammar",
+        "zh-hsk6-23-summary-and-reformulation-structures",
+        "zh-hsk6-24-argument-qualification",
+        "zh-hsk6-progress-check"
+      ],
+      "required_visual_mode": "word_order",
+      "required_visuals": [
+        "word_order",
+        "semantic_sentence",
+        "transformation"
+      ],
+      "required_practice_modes": [
+        "reorder",
+        "identify",
+        "build",
+        "production"
+      ],
+      "status": "BLOCKED"
+    },
+    {
+      "batch_id": "G137",
+      "language": "zh",
+      "level": "HSK7-9",
+      "family": "advanced_discourse",
+      "lesson_count": 7,
+      "lesson_ids": [
+        "zh-hsk79-review-1-208",
+        "zh-hsk79-review-2-214",
+        "zh-hsk79-review-3-220",
+        "zh-hsk79-review-4-226",
+        "zh-hsk79-review-5-232",
+        "zh-hsk79-29-metadiscourse-grammar",
+        "zh-hsk79-review-6-238"
+      ],
+      "required_visual_mode": "discourse",
+      "required_visuals": [
+        "scene",
+        "contrast",
+        "semantic_sentence"
+      ],
+      "required_practice_modes": [
+        "compare",
+        "classify",
+        "rewrite",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G138",
+      "language": "zh",
+      "level": "HSK7-9",
+      "family": "bei_passive",
+      "lesson_count": 1,
+      "lesson_ids": [
+        "zh-hsk79-6-advanced-passive-causative-alternation"
+      ],
+      "required_visual_mode": "transformation",
+      "required_visuals": [
+        "transformation",
+        "semantic_sentence",
+        "contrast"
+      ],
+      "required_practice_modes": [
+        "transform",
+        "correct",
+        "build",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G139",
+      "language": "zh",
+      "level": "HSK7-9",
+      "family": "modal_verbs",
+      "lesson_count": 1,
+      "lesson_ids": [
+        "zh-hsk79-2-advanced-modality-and-stance"
+      ],
+      "required_visual_mode": "form_choice",
+      "required_visuals": [
+        "formula",
+        "contrast",
+        "scene"
+      ],
+      "required_practice_modes": [
+        "choose",
+        "fill",
+        "correct",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G140",
+      "language": "zh",
+      "level": "HSK7-9",
+      "family": "negation_bu_mei",
+      "lesson_count": 1,
+      "lesson_ids": [
+        "zh-hsk79-15-rhetorical-questions-and-negation"
+      ],
+      "required_visual_mode": "form_choice",
+      "required_visuals": [
+        "formula",
+        "contrast",
+        "scene"
+      ],
+      "required_practice_modes": [
+        "choose",
+        "fill",
+        "correct",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G141",
+      "language": "zh",
+      "level": "HSK7-9",
+      "family": "review_checkpoint",
+      "lesson_count": 1,
+      "lesson_ids": [
+        "zh-hsk79-30-high-level-integrated-grammar-review"
+      ],
+      "required_visual_mode": "review",
+      "required_visuals": [
+        "contrast",
+        "recap",
+        "mixed-representation"
+      ],
+      "required_practice_modes": [
+        "recognition",
+        "distinction",
+        "correction",
+        "production"
+      ],
+      "status": "READY_FOR_CONTENT_AUTHORING"
+    },
+    {
+      "batch_id": "G142",
+      "language": "zh",
+      "level": "HSK7-9",
+      "family": "unclassified",
+      "lesson_count": 26,
+      "lesson_ids": [
+        "zh-hsk79-1-advanced-written-aspect-and-viewpoint",
+        "zh-hsk79-3-negative-raising-and-scope",
+        "zh-hsk79-4-dense-nominal-structures",
+        "zh-hsk79-5-in-modern-formal-prose",
+        "zh-hsk79-7-complex-topic-chains",
+        "zh-hsk79-8-long-sentence-architecture",
+        "zh-hsk79-9-concessive-rhetoric",
+        "zh-hsk79-10-conditional-rhetoric",
+        "zh-hsk79-11-cause-vs-evidence-distinction",
+        "zh-hsk79-12-reformulation-and-qualification",
+        "zh-hsk79-13-comparison-and-analogy",
+        "zh-hsk79-14-productive-four-character-grammar-patterns",
+        "zh-hsk79-16-information-structure-and-emphasis",
+        "zh-hsk79-17-ellipsis-and-recoverability",
+        "zh-hsk79-18-academic-definition-and-classification",
+        "zh-hsk79-19-argument-concession-counterclaim",
+        "zh-hsk79-20-reporting-and-attribution",
+        "zh-hsk79-21-legal-administrative-register-patterns",
+        "zh-hsk79-22-literary-descriptive-syntax",
+        "zh-hsk79-23-translation-sensitive-grammar",
+        "zh-hsk79-24-precision-editing-of-long-modifiers",
+        "zh-hsk79-25-ambiguity-diagnosis",
+        "zh-hsk79-26-style-transformation",
+        "zh-hsk79-27-parallelism-and-cadence",
+        "zh-hsk79-28-advanced-connector-economy",
+        "zh-hsk79-progress-check"
+      ],
+      "required_visual_mode": "word_order",
+      "required_visuals": [
+        "word_order",
+        "semantic_sentence",
+        "transformation"
+      ],
+      "required_practice_modes": [
+        "reorder",
+        "identify",
+        "build",
+        "production"
+      ],
+      "status": "BLOCKED"
+    }
+  ],
+  "hard_gate": {
+    "no_generic_mass_fill": true,
+    "no_fake_completeness": true,
+    "unknown_families_must_be_resolved_before_done": true,
+    "curriculum_gap_signals_require_review": true
+  }
+}
