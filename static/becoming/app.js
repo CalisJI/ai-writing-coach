@@ -1,12 +1,11 @@
 import {api} from './api.js';
 import {state,saveProfile,activateLanguage,setSupportLanguage,supportLanguage} from './store.js';
-import {currentRoute,go,syncNav} from './router.js?v=2.16.1';
-import {configFor} from './language.js';
+import {currentRoute,go,syncNav} from './router.js?v=2.17.0';
 import {closeDialog,toast,setBusy,installTooltipLayer} from './components/primitives.js';
 import {installTheme,applyPalette,activePalette,storedPalette} from './theme.js';
 import {t,applyChromeI18n,uiHtmlLang} from './domain/i18n.js';
-import {screenContract} from './domain/screen-contract.js?v=2.16.1';
-import {applySkillNavigation,routeAvailable} from './domain/skill-release.js?v=2.16.1';
+import {screenContract} from './domain/screen-contract.js?v=2.17.0';
+import {applySkillNavigation,routeAvailable} from './domain/skill-release.js?v=2.17.0';
 import {renderOnboarding} from './screens/onboarding.js';
 import {renderHome} from './screens/home.js';
 import {renderWrite} from './screens/write.js';
@@ -15,7 +14,7 @@ import {renderReading} from './screens/reading.js';
 import {renderListening} from './screens/listening.js';
 import {renderSpeaking} from './screens/speaking.js';
 import {renderLibrary} from './screens/library.js';
-import {renderGrammar} from './screens/grammar.js?v=2.16.1';
+import {renderGrammar} from './screens/grammar.js?v=2.17.0';
 import {renderJourney} from './screens/journey.js';
 import {renderProfile} from './screens/profile.js';
 
@@ -74,11 +73,16 @@ function renderAccount(){
   }
 }
 
+function languageDisplayName(code){
+  const item=(state.languages||[]).find(candidate=>candidate.code===code);
+  return item?.native_name||item?.name||String(code||'').toUpperCase();
+}
+
 function renderLanguages(){
   const select=document.getElementById('languageSelect');
   const enabled=(state.languages||[]).filter(item=>item.enabled);
   select.innerHTML=enabled.map(item=>{
-    const label=item.code==='zh'?'中文':'English';
+    const label=item.native_name||item.name||String(item.code||'').toUpperCase();
     return `<option value="${item.code}" ${item.code===state.language?'selected':''}>${label}</option>`;
   }).join('');
   select.disabled=enabled.length<2;
@@ -149,7 +153,7 @@ async function changeLanguage(language){
   renderLanguages();
 
   const profile=await loadProfileForActiveLanguage({allowLegacyMigration:false});
-  toast(t('toast.learning_space',{space:configFor(language).name}));
+  toast(t('toast.learning_space',{space:languageDisplayName(language)}));
 
   if(!profile){
     go('onboarding');

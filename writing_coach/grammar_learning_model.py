@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from collections.abc import Mapping, Sequence
 from typing import Any
 
@@ -8,28 +9,46 @@ class GrammarLearningModelInvalid(ValueError):
     pass
 
 
-SCHEMA_VERSION = 1
-CANONICAL_FLOW = ("notice", "understand", "connect", "compare", "apply", "recall", "transfer")
+SCHEMA_VERSION = 2
+LEGACY_SCHEMA_VERSION = 1
+LEGACY_FLOW = ("notice", "understand", "connect", "compare", "apply", "recall", "transfer")
+CANONICAL_FLOW = (
+    "notice",
+    "understand",
+    "pattern",
+    "context",
+    "compare",
+    "apply",
+    "recall",
+    "transfer",
+)
 SEMANTIC_ROLES = frozenset({
-    "subject", "verb", "object", "noun", "modifier", "article", "determiner",
-    "auxiliary", "preposition", "particle", "time", "location", "complement",
-    "classifier", "negation", "marker", "changed", "error", "exception",
-    "connector", "topic", "comment", "result",
+    "subject", "verb", "object", "noun", "pronoun", "adjective", "adverb",
+    "modifier", "article", "determiner", "auxiliary", "preposition",
+    "particle", "conjunction", "time", "location", "complement", "classifier",
+    "negation", "marker", "changed", "error", "exception", "connector", "topic",
+    "comment", "result", "case", "gender", "agreement", "stem", "ending",
+    "honorific", "register",
 })
 INTERACTION_TYPES = frozenset({
     "choose", "reorder", "fill", "match", "transform", "compare",
     "classify", "identify", "build", "speak", "write",
 })
-ALLOWED_STAGES = frozenset(CANONICAL_FLOW)
+ALLOWED_STAGES = frozenset((*LEGACY_FLOW, *CANONICAL_FLOW))
 ALLOWED_BLOCK_TYPES = frozenset({
-    "formula", "semantic_sentence", "transformation", "position", "insertion",
-    "timeline", "contrast", "scene", "sentence_builder", "common_mistake",
-    "exception", "micro_practice", "personal_practice", "recall",
-    "memory_hook", "skill_transfer",
+    "formula", "semantic_sentence", "transformation",
+    "position", "word_order", "insertion", "particle_position",
+    "timeline", "contrast", "scene", "sentence_builder",
+    "agreement_map", "inflection_table",
+    "common_mistake", "exception", "micro_practice",
+    "personal_practice", "recall", "memory_hook", "skill_transfer",
 })
-EVIDENCE_BLOCK_TYPES = frozenset({"micro_practice", "personal_practice", "recall", "skill_transfer"})
-LOCALIZED_KEYS = frozenset({"en", "vi", "zh", "default"})
+EVIDENCE_BLOCK_TYPES = frozenset({
+    "micro_practice", "personal_practice", "recall", "skill_transfer"
+})
 SKILLS = frozenset({"writing", "speaking", "reading", "listening"})
+LOCALE_KEY_RE = re.compile(r"^(?:default|[a-z]{2,3}(?:-[A-Za-z0-9]{2,8})*)$")
+CAPABILITY_RE = re.compile(r"^[a-z][a-z0-9]*(?:[-_][a-z0-9]+)*$")
 
 
 def _is_list(value: Any) -> bool:
@@ -50,16 +69,24 @@ def _list(value: Any, path: str, minimum: int = 0) -> Sequence[Any]:
     return value
 
 
+def _locale_key(value: Any, path: str) -> str:
+    if not isinstance(value, str) or not LOCALE_KEY_RE.fullmatch(value):
+        raise GrammarLearningModelInvalid(
+            f"{path} must be 'default' or a BCP47-like language key."
+        )
+    return value
+
+
 def _text(value: Any, path: str) -> None:
     if isinstance(value, str):
         if not value.strip():
             raise GrammarLearningModelInvalid(f"{path} must not be blank.")
         return
     if isinstance(value, Mapping):
-        if not value or not set(value).issubset(LOCALIZED_KEYS):
-            raise GrammarLearningModelInvalid(
-                f"{path} localized keys must be a subset of {sorted(LOCALIZED_KEYS)}."
-            )
+        if not value:
+            raise GrammarLearningModelInvalid(f"{path} localized text must not be empty.")
+        for key in value:
+            _locale_key(key, f"{path} locale key")
         if not any(isinstance(item, str) and item.strip() for item in value.values()):
             raise GrammarLearningModelInvalid(f"{path} needs non-empty localized text.")
         return
@@ -78,12 +105,20 @@ def _role(value: Any, path: str) -> None:
         )
 
 
+def _validate_reading_aid(item: Mapping[str, Any], path: str) -> None:
+    # `pinyin` remains accepted only as a migration alias. Shared UI/rendering
+    # uses generic reading-aid terminology and never branches on Chinese.
+    for field in ("reading_aid", "transliteration", "pronunciation_guide", "pinyin"):
+        _optional_text(item.get(field), f"{path}.{field}")
+
+
 def _validate_parts(payload: Mapping[str, Any], path: str) -> None:
     for i, raw in enumerate(_list(payload.get("parts"), f"{path}.parts", 2)):
         item = _mapping(raw, f"{path}.parts[{i}]")
         _text(item.get("text"), f"{path}.parts[{i}].text")
         _role(item.get("role"), f"{path}.parts[{i}].role")
         _optional_text(item.get("label"), f"{path}.parts[{i}].label")
+        _validate_reading_aid(item, f"{path}.parts[{i}]")
 
 
 def _validate_segments(payload: Mapping[str, Any], path: str) -> None:
@@ -91,10 +126,13 @@ def _validate_segments(payload: Mapping[str, Any], path: str) -> None:
         item = _mapping(raw, f"{path}.segments[{i}]")
         _text(item.get("text"), f"{path}.segments[{i}].text")
         _role(item.get("role"), f"{path}.segments[{i}].role")
-        for field in ("label", "pinyin", "meaning"):
+        for field in ("label", "meaning"):
             _optional_text(item.get(field), f"{path}.segments[{i}].{field}")
+        _validate_reading_aid(item, f"{path}.segments[{i}]")
         if item.get("inserted") is not None and not isinstance(item["inserted"], bool):
-            raise GrammarLearningModelInvalid(f"{path}.segments[{i}].inserted must be bool.")
+            raise GrammarLearningModelInvalid(
+                f"{path}.segments[{i}].inserted must be bool."
+            )
 
 
 def _validate_transformation(payload: Mapping[str, Any], path: str) -> None:
@@ -121,8 +159,9 @@ def _validate_contrast(payload: Mapping[str, Any], path: str) -> None:
         item = _mapping(raw, f"{path}.items[{i}]")
         _text(item.get("label"), f"{path}.items[{i}].label")
         _text(item.get("text"), f"{path}.items[{i}].text")
-        for field in ("note", "pinyin", "meaning"):
+        for field in ("note", "meaning"):
             _optional_text(item.get(field), f"{path}.items[{i}].{field}")
+        _validate_reading_aid(item, f"{path}.items[{i}]")
 
 
 def _validate_scene(payload: Mapping[str, Any], path: str) -> None:
@@ -130,16 +169,32 @@ def _validate_scene(payload: Mapping[str, Any], path: str) -> None:
     for i, raw in enumerate(_list(payload.get("lines"), f"{path}.lines", 1)):
         item = _mapping(raw, f"{path}.lines[{i}]")
         _text(item.get("text"), f"{path}.lines[{i}].text")
-        for field in ("speaker", "pinyin", "meaning"):
+        for field in ("speaker", "meaning"):
             _optional_text(item.get(field), f"{path}.lines[{i}].{field}")
+        _validate_reading_aid(item, f"{path}.lines[{i}]")
 
 
 def _validate_builder(payload: Mapping[str, Any], path: str) -> None:
     for i, raw in enumerate(_list(payload.get("slots"), f"{path}.slots", 2)):
         slot = _mapping(raw, f"{path}.slots[{i}]")
         _text(slot.get("label"), f"{path}.slots[{i}].label")
-        for j, option in enumerate(_list(slot.get("options"), f"{path}.slots[{i}].options", 1)):
+        for j, option in enumerate(
+            _list(slot.get("options"), f"{path}.slots[{i}].options", 1)
+        ):
             _text(option, f"{path}.slots[{i}].options[{j}]")
+
+
+def _validate_inflection_table(payload: Mapping[str, Any], path: str) -> None:
+    headers = _list(payload.get("headers", []), f"{path}.headers")
+    for i, header in enumerate(headers):
+        _text(header, f"{path}.headers[{i}]")
+    rows = _list(payload.get("rows"), f"{path}.rows", 1)
+    for i, raw in enumerate(rows):
+        row = _mapping(raw, f"{path}.rows[{i}]")
+        _text(row.get("label"), f"{path}.rows[{i}].label")
+        cells = _list(row.get("cells"), f"{path}.rows[{i}].cells", 1)
+        for j, cell in enumerate(cells):
+            _text(cell, f"{path}.rows[{i}].cells[{j}]")
 
 
 def _validate_prompt(payload: Mapping[str, Any], path: str) -> None:
@@ -210,7 +265,10 @@ def _validate_transfer(payload: Mapping[str, Any], path: str) -> None:
 def _validate_payload(block_type: str, payload: Mapping[str, Any], path: str) -> None:
     if block_type == "formula":
         _validate_parts(payload, path)
-    elif block_type in {"semantic_sentence", "position", "insertion"}:
+    elif block_type in {
+        "semantic_sentence", "position", "word_order",
+        "insertion", "particle_position", "agreement_map",
+    }:
         _validate_segments(payload, path)
     elif block_type == "transformation":
         _validate_transformation(payload, path)
@@ -222,6 +280,8 @@ def _validate_payload(block_type: str, payload: Mapping[str, Any], path: str) ->
         _validate_scene(payload, path)
     elif block_type == "sentence_builder":
         _validate_builder(payload, path)
+    elif block_type == "inflection_table":
+        _validate_inflection_table(payload, path)
     elif block_type == "common_mistake":
         _validate_common_mistake(payload, path)
     elif block_type == "exception":
@@ -236,6 +296,30 @@ def _validate_payload(block_type: str, payload: Mapping[str, Any], path: str) ->
         _validate_transfer(payload, path)
 
 
+def _validate_language_policy(model: Mapping[str, Any]) -> None:
+    policy = _mapping(model.get("language_policy"), "learning_model.language_policy")
+    _locale_key(policy.get("target_language"), "learning_model.language_policy.target_language")
+    for field in ("explanation_languages", "translation_languages"):
+        values = _list(policy.get(field), f"learning_model.language_policy.{field}", 1)
+        for i, value in enumerate(values):
+            _locale_key(value, f"learning_model.language_policy.{field}[{i}]")
+
+
+def _validate_capabilities(model: Mapping[str, Any]) -> None:
+    capabilities = _list(model.get("capabilities"), "learning_model.capabilities", 1)
+    seen: set[str] = set()
+    for i, raw in enumerate(capabilities):
+        if not isinstance(raw, str) or not CAPABILITY_RE.fullmatch(raw):
+            raise GrammarLearningModelInvalid(
+                f"learning_model.capabilities[{i}] must be a normalized capability id."
+            )
+        if raw in seen:
+            raise GrammarLearningModelInvalid(
+                f"learning_model.capabilities repeats '{raw}'."
+            )
+        seen.add(raw)
+
+
 def validate_grammar_learning_model(
     model: Mapping[str, Any],
     *,
@@ -246,24 +330,37 @@ def validate_grammar_learning_model(
         raise GrammarLearningModelInvalid(
             f"Knowledge '{grammar_id}' learning_model must be a mapping."
         )
-    if model.get("schema_version") != SCHEMA_VERSION:
+
+    version = model.get("schema_version")
+    if version not in {LEGACY_SCHEMA_VERSION, SCHEMA_VERSION}:
         raise GrammarLearningModelInvalid(
-            f"Knowledge '{grammar_id}' learning_model.schema_version must be {SCHEMA_VERSION}."
+            f"Knowledge '{grammar_id}' learning_model.schema_version must be "
+            f"{LEGACY_SCHEMA_VERSION} or {SCHEMA_VERSION}."
         )
 
+    canonical_flow = LEGACY_FLOW if version == LEGACY_SCHEMA_VERSION else CANONICAL_FLOW
+    if version == SCHEMA_VERSION:
+        _validate_language_policy(model)
+        _validate_capabilities(model)
+
     flow = list(_list(model.get("flow"), "learning_model.flow", 1))
-    if any(stage not in ALLOWED_STAGES for stage in flow):
+    if any(stage not in set(canonical_flow) for stage in flow):
         raise GrammarLearningModelInvalid(f"Knowledge '{grammar_id}' has unsupported stage.")
     if len(set(flow)) != len(flow):
         raise GrammarLearningModelInvalid(f"Knowledge '{grammar_id}' repeats stages.")
-    if flow != [stage for stage in CANONICAL_FLOW if stage in flow]:
+    if flow != [stage for stage in canonical_flow if stage in flow]:
         raise GrammarLearningModelInvalid(
             f"Knowledge '{grammar_id}' flow must preserve canonical order."
         )
-    if kind == "lesson" and tuple(flow) != CANONICAL_FLOW:
+    if kind == "lesson" and tuple(flow) != canonical_flow:
+        required_label = (
+            "NOTICE → UNDERSTAND → CONNECT → COMPARE → APPLY → RECALL → TRANSFER"
+            if version == LEGACY_SCHEMA_VERSION
+            else "NOTICE → UNDERSTAND → SEE THE PATTERN → SEE IT IN CONTEXT → "
+                 "COMPARE → APPLY → RECALL → TRANSFER"
+        )
         raise GrammarLearningModelInvalid(
-            f"Lesson '{grammar_id}' must use NOTICE → UNDERSTAND → CONNECT → "
-            "COMPARE → APPLY → RECALL → TRANSFER."
+            f"Lesson '{grammar_id}' must use {required_label}."
         )
 
     hook = _mapping(model.get("hook"), "learning_model.hook")
@@ -273,7 +370,9 @@ def validate_grammar_learning_model(
     meaning = _mapping(model.get("meaning"), "learning_model.meaning")
     _text(meaning.get("summary"), "learning_model.meaning.summary")
     _text(meaning.get("mental_model"), "learning_model.meaning.mental_model")
-    for i, item in enumerate(_list(meaning.get("use_when"), "learning_model.meaning.use_when", 1)):
+    for i, item in enumerate(
+        _list(meaning.get("use_when"), "learning_model.meaning.use_when", 1)
+    ):
         _text(item, f"learning_model.meaning.use_when[{i}]")
 
     blocks = _list(model.get("blocks"), "learning_model.blocks", 1)

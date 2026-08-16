@@ -1,6 +1,6 @@
 # Orena Grammar M4.3 Phase 3 — English Representatives
 
-Status: **IMPLEMENTED / VISUAL APPROVAL PENDING**
+Status: **IMPLEMENTED / UNIVERSAL HARDENING APPLIED / VISUAL RECHECK PENDING**
 
 Phase 3 intentionally curates only three English lessons. It is a representative
 quality gate, not a mass migration.
@@ -60,3 +60,14 @@ active recall, and transfer to Writing/Speaking/Reading/Listening. A1 must not
 overload; A2 must make viewpoint/time visible; B1 must show information-focus nuance.
 
 **Phase 3 cannot be marked APPROVED until screenshot QA is completed.**
+
+## Phase 3A universal hardening
+
+The representative English content now uses Grammar Learning Model schema v2 and
+the universal language-context contract.
+
+The renderer separates target, interface, explanation and translation languages.
+English screenshot QA must be repeated after this change.
+
+Phase 3 remains **VISUAL RECHECK PENDING**. This branch must not be merged and the
+508-item migration must not start until the representative visual gate passes.

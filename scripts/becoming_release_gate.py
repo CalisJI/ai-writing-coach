@@ -688,7 +688,7 @@ def main() -> None:
     phase3_by_id = {item["id"]: item for item in english_grammar_knowledge}
     for grammar_id in sorted(phase3_targets):
         model = phase3_by_id.get(grammar_id, {}).get("learning_model")
-        if not isinstance(model, dict) or model.get("schema_version") != 1:
+        if not isinstance(model, dict) or model.get("schema_version") != 2:
             errors.append(
                 f"Grammar Phase 3 representative missing learning_model: {grammar_id}"
             )
@@ -706,17 +706,74 @@ def main() -> None:
                 errors.append(
                     f"Grammar Phase 3 {grammar_id} missing block: {required_type}"
                 )
+    for grammar_id in sorted(phase3_targets):
+        model = phase3_by_id.get(grammar_id, {}).get("learning_model") or {}
+        policy = model.get("language_policy") or {}
+        if policy.get("target_language") != "en":
+            errors.append(
+                f"Grammar Phase 3 {grammar_id} target-language policy is not English"
+            )
+        if not model.get("capabilities"):
+            errors.append(
+                f"Grammar Phase 3 {grammar_id} has no visualization capabilities"
+            )
+
     phase3_doc = (
         root / "docs/ORENA_GRAMMAR_PHASE3_ENGLISH_REPRESENTATIVES.md"
     ).read_text(encoding="utf-8")
     require_contains(errors, phase3_doc, [
-        "IMPLEMENTED / VISUAL APPROVAL PENDING",
+        "IMPLEMENTED / UNIVERSAL HARDENING APPLIED / VISUAL RECHECK PENDING",
         "a1-be-am-is-are",
         "a2-present-perfect-vs-past-simple",
         "b1-passive-voice-present-and-past",
         "full 508-item migration remains BLOCKED",
         "Phase 3 cannot be marked APPROVED until screenshot QA is completed",
     ], "Grammar Phase 3 representative hard gate")
+
+    universal_grammar_doc = read("docs/ORENA_GRAMMAR_UNIVERSAL_ARCHITECTURE.md")
+    require_contains(errors, universal_grammar_doc, [
+        "PHASE 3A IMPLEMENTED / VISUAL RECHECK PENDING",
+        "target language",
+        "interface language",
+        "explanation language",
+        "translation language",
+        "Future languages",
+        "Mass migration",
+    ], "Universal Grammar architecture contract")
+
+    grammar_runtime = read("writing_coach/languages/runtime.py")
+    for forbidden in [
+        "CHINESE_GRAMMAR_COURSE",
+        "ENGLISH_GRAMMAR_COURSE",
+        "CHINESE_GRAMMAR_KNOWLEDGE_BY_ID",
+        "ENGLISH_GRAMMAR_KNOWLEDGE_BY_ID",
+    ]:
+        if forbidden in grammar_runtime:
+            errors.append(
+                f"Universal Grammar runtime still hard-codes language selection: {forbidden}"
+            )
+
+    grammar_component = read("static/becoming/components/grammar-learning.js")
+    for forbidden in [
+        "targetLanguage==='zh'",
+        'targetLanguage === "zh"',
+        "hidePinyin",
+        "showPinyin",
+    ]:
+        if forbidden in grammar_component:
+            errors.append(
+                f"Universal Grammar shared renderer hard-codes language behavior: {forbidden}"
+            )
+    require_contains(errors, grammar_component, [
+        "grammarLanguageContext",
+        "interfaceLanguage",
+        "explanationLanguage",
+        "translationLanguage",
+        "targetLanguage",
+        "data-reading-aid-toggle",
+        "AgreementMap",
+        "InflectionTable",
+    ], "Universal Grammar renderer contract")
 
     # Navigation routes should be tactile controls without adding/changing routes.
     for needle in [

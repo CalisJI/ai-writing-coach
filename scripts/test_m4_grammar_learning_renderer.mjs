@@ -42,12 +42,12 @@ zh.blocks[1]={id:'insert',type:'insertion',stage:'connect',title:{vi:'Vị trí'
 ]}};
 const zhHtml=renderGrammarLearningModel(zh,{locale:'vi',targetLanguage:'zh'});
 assert.match(zhHtml,/grammar-particle-insertion/);
-assert.match(zhHtml,/data-pinyin-toggle/);
+assert.match(zhHtml,/data-reading-aid-toggle/);
 assert.match(zhHtml,/role-particle/);
 
 const screen=readFileSync(new URL('../static/becoming/screens/grammar.js',import.meta.url),'utf8');
 const css=readFileSync(new URL('../static/becoming/grammar.css',import.meta.url),'utf8');
-for(const needle of ['grammar-learning.js?v=2.16.1','renderGrammarLearningModel','grammarLearningCompletion','legacyLessonBody']){
+for(const needle of ['grammar-learning.js?v=2.17.0','renderGrammarLearningModel','grammarLearningCompletion','legacyLessonBody']){
   assert.equal(screen.includes(needle),true,`Missing ${needle}`);
 }
 assert.equal(css.includes('min-width:max-content'),false);

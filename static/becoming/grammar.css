@@ -172,3 +172,244 @@
 .grammar-reorder-result{display:grid;gap:5px;min-height:54px;padding:12px 14px;border:1px dashed var(--color-border-strong);border-radius:var(--radius-object)}.grammar-reorder-result small{color:var(--color-ink-muted);font-size:var(--font-size-meta);font-weight:800;text-transform:uppercase}
 .grammar-match-grid{display:grid;gap:10px}.grammar-match-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:var(--space-3);align-items:center}
 @media(max-width:820px){.grammar-exception{grid-template-columns:1fr}.grammar-exception-arrow{transform:rotate(90deg);justify-self:center}.grammar-match-row{grid-template-columns:1fr}}
+/* ORENA Universal Grammar Hardening — M4.3 Phase 3A
+   Shared across target languages. Mobile core content must never rely on horizontal scroll. */
+.grammar-learning-shell,
+.grammar-learning-primary-pattern,
+.grammar-learning-blocks,
+.grammar-learning-block,
+.grammar-visual-canvas,
+.grammar-formula-line,
+.grammar-sentence-flow,
+.grammar-transformation,
+.grammar-contrast-grid,
+.grammar-scene,
+.grammar-sentence-builder,
+.grammar-common-mistake,
+.grammar-exception,
+.grammar-micro-practice,
+.grammar-skill-transfer{
+  box-sizing:border-box;
+  min-width:0;
+  max-width:100%;
+}
+.grammar-learning-shell{
+  overflow-x:clip;
+}
+.grammar-learning-primary-pattern .grammar-learning-block{
+  border-top:0;
+  padding-top:var(--space-5);
+}
+.grammar-learning-use-when{
+  display:grid;
+  gap:10px;
+  max-width:var(--layout-reading-max);
+  padding:14px 16px;
+  border-left:3px solid var(--color-accent-600);
+  background:color-mix(in srgb,var(--color-accent-100) 24%,transparent);
+}
+.grammar-learning-use-when>span{
+  color:var(--color-accent-600);
+  font-size:var(--font-size-meta);
+  font-weight:800;
+  letter-spacing:.07em;
+  text-transform:uppercase;
+}
+.grammar-learning-use-when ul{
+  display:grid;
+  gap:6px;
+  margin:0;
+  padding-left:20px;
+}
+.grammar-reading-aid{
+  display:block;
+  color:var(--color-ink-muted);
+  font-size:var(--font-size-meta);
+  line-height:1.45;
+}
+.is-reading-aid-hidden [data-grammar-reading-aid]{
+  display:none!important;
+}
+.grammar-agreement-map .grammar-sentence-flow{
+  align-items:stretch;
+}
+.grammar-inflection-table{
+  display:grid;
+  gap:var(--space-3);
+}
+.grammar-inflection-table article{
+  display:grid;
+  gap:10px;
+  padding:14px 16px;
+  border:1px solid var(--color-border-subtle);
+  border-radius:var(--radius-object);
+  background:var(--color-surface);
+}
+.grammar-inflection-table article>div{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(120px,1fr));
+  gap:8px;
+}
+.grammar-inflection-table article span{
+  display:grid;
+  gap:3px;
+  min-width:0;
+  padding:10px;
+  border-radius:var(--radius-control);
+  background:var(--color-surface-muted);
+}
+.grammar-inflection-table article small{
+  color:var(--color-ink-muted);
+}
+.grammar-learning-block-head h3,
+.grammar-learning-block-head p,
+.grammar-learning-hook h3,
+.grammar-learning-meaning h3,
+.grammar-learning-meaning p,
+.grammar-formula-part b,
+.grammar-sentence-segment b,
+.grammar-transform-state strong,
+.grammar-contrast-item strong,
+.grammar-scene-line strong{
+  overflow-wrap:anywhere;
+}
+
+@media(max-width:600px){
+  .grammar-learning-shell{
+    gap:16px;
+  }
+  .grammar-learning-flow{
+    display:none;
+  }
+  .grammar-learning-hook{
+    gap:7px;
+    padding:13px 15px;
+    border-radius:var(--radius-surface);
+    background:color-mix(in srgb,var(--color-accent-100) 34%,var(--color-surface));
+  }
+  .grammar-learning-hook::before{
+    width:3px;
+  }
+  .grammar-learning-hook h3{
+    max-width:none;
+    font-size:clamp(18px,5.4vw,22px);
+    line-height:1.2;
+  }
+  .grammar-learning-meaning{
+    gap:8px;
+    max-width:none;
+    padding-left:13px;
+  }
+  .grammar-learning-meaning h3{
+    font-size:clamp(20px,5.8vw,24px);
+  }
+  .grammar-learning-meaning p{
+    margin:0;
+    line-height:1.55;
+  }
+  .grammar-learning-primary-pattern .grammar-learning-block{
+    padding-top:10px;
+  }
+  .grammar-learning-block{
+    gap:14px;
+    padding:22px 0;
+  }
+  .grammar-learning-block-head{
+    gap:4px;
+  }
+  .grammar-learning-block-head h3{
+    font-size:clamp(20px,5.6vw,24px);
+  }
+  .grammar-visual-canvas{
+    width:100%;
+    max-width:100%;
+    padding:13px;
+    overflow:clip;
+  }
+  .grammar-learning-use-when{
+    padding:12px 13px;
+  }
+}
+
+@media(max-width:430px){
+  .grammar-formula-line{
+    display:grid;
+    grid-template-columns:minmax(0,1fr);
+    justify-items:stretch;
+    gap:8px;
+    width:100%;
+    padding:0;
+  }
+  .grammar-formula-part{
+    width:100%;
+    min-width:0;
+    max-width:100%;
+    padding:13px 14px;
+  }
+  .grammar-formula-join{
+    justify-self:center;
+    transform:rotate(90deg);
+    font-size:18px;
+    line-height:1;
+  }
+  .grammar-sentence-flow{
+    display:grid;
+    grid-template-columns:minmax(0,1fr);
+    justify-items:stretch;
+    width:100%;
+  }
+  .grammar-sentence-segment{
+    width:100%;
+    min-width:0;
+    max-width:100%;
+    box-sizing:border-box;
+  }
+  .grammar-transformation{
+    display:grid;
+    grid-template-columns:minmax(0,1fr);
+    gap:10px;
+  }
+  .grammar-transform-arrow{
+    justify-self:center;
+    transform:rotate(90deg);
+  }
+  .grammar-transform-state{
+    width:100%;
+    min-width:0;
+    box-sizing:border-box;
+  }
+  .grammar-transform-steps{
+    grid-column:1;
+  }
+  .grammar-contrast-grid,
+  .grammar-skill-transfer,
+  .grammar-match-grid{
+    grid-template-columns:minmax(0,1fr);
+  }
+  .grammar-scene-line{
+    grid-template-columns:minmax(0,1fr);
+  }
+  .grammar-sentence-builder fieldset,
+  .grammar-micro-practice,
+  .grammar-learning-prompt,
+  .grammar-common-mistake,
+  .grammar-exception{
+    min-width:0;
+    max-width:100%;
+  }
+  .grammar-builder-options,
+  .grammar-micro-options,
+  .grammar-reorder-tokens{
+    display:flex;
+    flex-wrap:wrap;
+    min-width:0;
+  }
+  .grammar-builder-options button,
+  .grammar-micro-options button,
+  .grammar-reorder-tokens button{
+    flex:1 1 120px;
+    min-width:0;
+    white-space:normal;
+    overflow-wrap:anywhere;
+  }
+}

@@ -66,7 +66,7 @@ for(const needle of [
 for(const needle of [
   'GrammarFormula','SemanticSentence','TransformationFlow','WordOrderFlow',
   'ParticleInsertion','TimelineVisual','ContrastCard','RealLifeScene',
-  'SentenceBuilder','CommonMistake','GrammarException','MicroPractice',
+  'SentenceBuilder','AgreementMap','InflectionTable','CommonMistake','GrammarException','MicroPractice',
   'PersonalPractice','RecallPrompt','MemoryHook','SkillTransfer',
 ]){
   assert.equal(learning.includes(needle),true,`Grammar learning renderer missing ${needle}`);

@@ -24,6 +24,11 @@ function validSupportLanguage(value=''){
   return ['vi','en','zh'].includes(String(value))?String(value):'';
 }
 
+function normalizeTargetLanguage(value='en'){
+  const code=String(value||'').trim().toLowerCase();
+  return /^[a-z]{2,3}(?:-[a-z0-9]{2,8})*$/.test(code)?code:'en';
+}
+
 function draftDefaults(language='en'){
   return {
     mode:'free',
@@ -39,7 +44,7 @@ function draftDefaults(language='en'){
 }
 
 function draftKey(language='en'){
-  return `${DRAFT_PREFIX}.${language==='zh'?'zh':'en'}`;
+  return `${DRAFT_PREFIX}.${normalizeTargetLanguage(language)}`;
 }
 
 function inferLegacyDraftLanguage(draft={}){
@@ -126,7 +131,7 @@ export function resetDraft(defaults={}){
 }
 
 export function activateLanguage(language,{allowLegacyMigration=false}={}){
-  state.language=language==='zh'?'zh':'en';
+  state.language=normalizeTargetLanguage(language);
   state.draft=loadDraft(state.language,{allowLegacyMigration});
   clearLanguageDerivedState();
   return state.draft;

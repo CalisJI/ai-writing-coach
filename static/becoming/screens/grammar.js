@@ -1,5 +1,5 @@
 import {api} from '../api.js';
-import {go} from '../router.js?v=2.16.1';
+import {go} from '../router.js?v=2.17.0';
 import {supportLanguage} from '../store.js';
 import {esc,errorBlock,loadingBlock,toast,runBusy} from '../components/primitives.js';
 import {
@@ -7,7 +7,9 @@ import {
   renderGrammarLearningModel,
   bindGrammarLearningInteractions,
   grammarLearningCompletion,
-} from '../components/grammar-learning.js?v=2.16.1';
+  localizedText,
+  grammarLanguageContext,
+} from '../components/grammar-learning.js?v=2.17.0';
 
 const COPY={
   en:{
@@ -76,6 +78,13 @@ const COPY={
 };
 
 const copy=()=>COPY[supportLanguage()]||COPY.vi;
+const grammarContext=detail=>grammarLanguageContext({
+  interfaceLanguage:supportLanguage(),
+  explanationLanguage:supportLanguage(),
+  translationLanguage:supportLanguage(),
+  targetLanguage:detail?.language||'en',
+});
+const legacyObjective=detail=>supportLanguage()==='vi'?String(detail?.objective_vi||''):'';
 
 function sourceLabel(source=''){
   const c=copy();
@@ -148,7 +157,7 @@ function overviewMarkup(payload){
         ${next?`
           <span class="context-label">${esc(next.level)} · ${esc(kindLabel(next.kind))}</span>
           <h2>${esc(next.title)}</h2>
-          <p>${esc(next.objective_vi||'')}</p>
+          <p>${esc(supportLanguage()==='vi'?(next.objective_vi||''):'')}</p>
           <button class="button button-primary" type="button" data-grammar-open="${esc(next.id)}">${esc(c.next)}</button>
         `:`
           <span class="context-label">${esc(c.progress)}</span>
@@ -302,13 +311,17 @@ function lessonMarkup(detail,payload){
   const prev=index>0?items[index-1]:null;
   const next=index>=0&&index<items.length-1?items[index+1]:null;
   const richLearning=hasGrammarLearningModel(detail.learning_model);
+  const languageContext=grammarContext(detail);
+  const objective=richLearning
+    ?localizedText(detail.learning_model?.meaning?.summary,languageContext.explanationLanguage)
+    :legacyObjective(detail);
 
   return `<article class="grammar-lesson visual-raised-surface" data-grammar-lesson="${esc(detail.id)}">
     <header class="grammar-lesson-head">
       <div>
         <span class="editorial-kicker">${esc(detail.level)} · ${esc(kindLabel(detail.kind))}</span>
         <h2>${esc(detail.title)}</h2>
-        <p>${esc(detail.objective_vi||'')}</p>
+        <p>${esc(objective)}</p>
       </div>
       <span class="grammar-completion-chip ${detail.completed?'is-complete':''}">
         ${detail.completed?'✓ '+esc(c.complete):esc(detail.category||detail.module||'Grammar')}
@@ -318,7 +331,7 @@ function lessonMarkup(detail,payload){
     <div class="grammar-lesson-layout">
       <main class="grammar-teach-column">
         ${richLearning
-          ?renderGrammarLearningModel(detail.learning_model,{locale:supportLanguage(),targetLanguage:detail.language})
+          ?renderGrammarLearningModel(detail.learning_model,languageContext)
           :legacyLessonBody(detail,c)}
       </main>
 
@@ -395,7 +408,7 @@ export async function renderGrammar(root){
     slot.innerHTML=lessonMarkup(detail,payload);
 
     if(hasGrammarLearningModel(detail.learning_model)){
-      bindGrammarLearningInteractions(slot,{locale:supportLanguage()});
+      bindGrammarLearningInteractions(slot,languageContext);
     }
 
     slot.querySelectorAll('[data-grammar-reveal]').forEach(button=>{
@@ -423,7 +436,7 @@ export async function renderGrammar(root){
     });
 
     slot.querySelector('[data-grammar-complete]')?.addEventListener('click',async event=>{
-      const learningCheck=grammarLearningCompletion(slot,detail.learning_model,{locale:supportLanguage()});
+      const learningCheck=grammarLearningCompletion(slot,detail.learning_model,languageContext);
       if(learningCheck){
         if(!learningCheck.ready){
           toast(learningCheck.message);
