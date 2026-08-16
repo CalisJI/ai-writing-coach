@@ -789,7 +789,14 @@ def main() -> None:
     if phase3b_marker not in grammar_css:
         errors.append("Grammar Phase 3B mobile CSS marker missing")
     else:
-        phase3b_css = grammar_css.split(phase3b_marker, 1)[1]
+        phase3b_start = grammar_css.index(phase3b_marker)
+        phase3b_next_marker = (
+            "/* ORENA Grammar Mobile Viewport Containment — M4.3 Phase 3B.1"
+        )
+        phase3b_end = grammar_css.find(phase3b_next_marker, phase3b_start)
+        phase3b_css = grammar_css[
+            phase3b_start : phase3b_end if phase3b_end > phase3b_start else None
+        ]
         for needle in [
             "@media(max-width:640px)",
             '.main-content[data-screen-contract="grammar"]',
@@ -824,7 +831,14 @@ def main() -> None:
     if phase3b1_marker not in grammar_css:
         errors.append("Grammar Phase 3B.1 viewport containment marker missing")
     else:
-        phase3b1_css = grammar_css.split(phase3b1_marker, 1)[1]
+        phase3b1_start = grammar_css.index(phase3b1_marker)
+        phase3b1_next_marker = (
+            "/* ORENA Grammar Roadmap Typography — M4.3 Phase 3B.2"
+        )
+        phase3b1_end = grammar_css.find(phase3b1_next_marker, phase3b1_start)
+        phase3b1_css = grammar_css[
+            phase3b1_start : phase3b1_end if phase3b1_end > phase3b1_start else None
+        ]
         for needle in [
             'body:has(.main-content[data-screen-contract="grammar"])',
             ".app-shell",

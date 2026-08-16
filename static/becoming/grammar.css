@@ -820,3 +820,99 @@
     padding-inline:10px;
   }
 }
+
+/* ORENA Grammar Roadmap Typography — M4.3 Phase 3B.2
+   Level/progress pills are navigation metadata, not prose.
+   Keep level codes and numeric progress atomic and visually calm. */
+.grammar-level-rail{
+  scrollbar-width:thin;
+  overscroll-behavior-inline:contain;
+  scroll-snap-type:x proximity;
+}
+
+.grammar-level-pill{
+  flex:0 0 132px;
+  min-width:132px;
+  width:132px;
+  grid-template-columns:minmax(0,1fr);
+  align-content:center;
+  justify-items:start;
+  gap:5px;
+  padding:14px 15px;
+  scroll-snap-align:start;
+}
+
+.grammar-level-pill>strong{
+  display:block;
+  min-width:0;
+  max-width:100%;
+  font-family:var(--font-display-latin);
+  font-size:22px;
+  font-weight:800;
+  line-height:1;
+  letter-spacing:-.025em;
+  white-space:nowrap;
+  overflow-wrap:normal;
+}
+
+.grammar-level-pill>span{
+  display:block;
+  min-width:0;
+  max-width:100%;
+  color:var(--color-ink-muted);
+  font-family:var(--font-ui-latin);
+  font-size:12px;
+  font-weight:700;
+  line-height:1.2;
+  letter-spacing:.01em;
+  font-variant-numeric:tabular-nums;
+  white-space:nowrap;
+  overflow-wrap:normal;
+}
+
+.grammar-level-pill>i{
+  grid-column:1;
+  width:100%;
+  margin-top:7px;
+}
+
+html[lang^="zh"] .grammar-level-pill>strong{
+  font-family:var(--font-cjk);
+  letter-spacing:0;
+}
+
+@media(max-width:640px){
+  .grammar-roadmap{
+    overflow:hidden;
+  }
+
+  .grammar-level-rail{
+    display:grid;
+    grid-auto-flow:column;
+    grid-auto-columns:108px;
+    justify-content:start;
+    gap:10px;
+    width:100%;
+    min-width:0;
+    max-width:100%;
+    overflow-x:auto;
+    padding:2px 2px 8px;
+  }
+
+  .grammar-level-pill{
+    box-sizing:border-box;
+    flex:none;
+    width:108px;
+    min-width:108px;
+    max-width:108px;
+    padding:13px 12px;
+  }
+
+  .grammar-level-pill>strong{
+    font-size:20px;
+  }
+
+  .grammar-level-pill>span{
+    font-size:11px;
+  }
+}

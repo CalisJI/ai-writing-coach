@@ -7,7 +7,10 @@ const css=readFileSync(
 const marker='/* ORENA Grammar Mobile Hardening — M4.3 Phase 3B';
 assert.equal(css.includes(marker),true,'Phase 3B mobile CSS marker missing');
 
-const phase=css.slice(css.indexOf(marker));
+const phaseStart=css.indexOf(marker);
+const nextMarker='/* ORENA Grammar Mobile Viewport Containment — M4.3 Phase 3B.1';
+const phaseEnd=css.indexOf(nextMarker,phaseStart);
+const phase=css.slice(phaseStart,phaseEnd>phaseStart?phaseEnd:css.length);
 for(const needle of [
   '@media(max-width:640px)',
   '.main-content[data-screen-contract="grammar"]',

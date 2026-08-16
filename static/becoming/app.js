@@ -1,11 +1,11 @@
 import {api} from './api.js';
 import {state,saveProfile,activateLanguage,setSupportLanguage,supportLanguage} from './store.js';
-import {currentRoute,go,syncNav} from './router.js?v=2.17.2';
+import {currentRoute,go,syncNav} from './router.js?v=2.17.3';
 import {closeDialog,toast,setBusy,installTooltipLayer} from './components/primitives.js';
 import {installTheme,applyPalette,activePalette,storedPalette} from './theme.js';
 import {t,applyChromeI18n,uiHtmlLang} from './domain/i18n.js';
-import {screenContract} from './domain/screen-contract.js?v=2.17.2';
-import {applySkillNavigation,routeAvailable} from './domain/skill-release.js?v=2.17.2';
+import {screenContract} from './domain/screen-contract.js?v=2.17.3';
+import {applySkillNavigation,routeAvailable} from './domain/skill-release.js?v=2.17.3';
 import {renderOnboarding} from './screens/onboarding.js';
 import {renderHome} from './screens/home.js';
 import {renderWrite} from './screens/write.js';
@@ -14,7 +14,7 @@ import {renderReading} from './screens/reading.js';
 import {renderListening} from './screens/listening.js';
 import {renderSpeaking} from './screens/speaking.js';
 import {renderLibrary} from './screens/library.js';
-import {renderGrammar} from './screens/grammar.js?v=2.17.2';
+import {renderGrammar} from './screens/grammar.js?v=2.17.3';
 import {renderJourney} from './screens/journey.js';
 import {renderProfile} from './screens/profile.js';
 
