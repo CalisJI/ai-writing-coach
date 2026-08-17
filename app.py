@@ -13,6 +13,7 @@ from writing_coach.languages.runtime import (
     active_error_categories,
     active_levels,
     active_profile,
+    active_grammar_language_code,
     active_grammar_by_id,
     active_grammar_course,
     active_grammar_knowledge_by_id,
@@ -1125,7 +1126,7 @@ def api_improve(payload: ImproveIn) -> dict[str, Any]:
 
 def _grammar_storage_key(lesson: dict[str, Any]) -> str:
     version = int(lesson.get("content_version") or 1)
-    language = active_profile().code
+    language = active_grammar_language_code()
     return f"{language}:grammar:v{version}:{lesson['id']}"
 
 
@@ -1142,9 +1143,9 @@ def api_grammar_library() -> dict[str, Any]:
         "lessons": lessons,
         "total": len(lessons),
         "completed": sum(1 for row in lessons if row["completed"]),
-        "levels": list(active_levels()),
+        "levels": list(grammar_level_names()),
         "level_names": grammar_level_names(),
-        "language": active_profile().code,
+        "language": active_grammar_language_code(),
         "curriculum_policy": {
             "completion_is_mastery": False,
             "official_one_to_one_mapping": False,
@@ -1177,7 +1178,7 @@ def api_grammar_reference(lesson_id: str) -> dict[str, Any]:
         **dict(knowledge["quick_reference"]),
         "content_status": knowledge["source"]["content_status"],
         "source": "static-grammar-kb",
-        "language": active_profile().code,
+        "language": active_grammar_language_code(),
         "official_mapping": False,
     }
 
@@ -1206,7 +1207,7 @@ def api_grammar_lesson(lesson_id: str) -> dict[str, Any]:
         "content_status": knowledge["source"]["content_status"],
         "completed": _learning_repository.grammar_completed(storage_key),
         "source": "static-grammar-kb",
-        "language": active_profile().code,
+        "language": active_grammar_language_code(),
         "completion_claim": "activity_evidence_not_mastery",
     }
 

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import re
 import shutil
 import subprocess
@@ -662,6 +663,255 @@ def main() -> None:
     for forbidden in ["min-width:max-content", ".grammar-learning-flow{grid-template-columns:repeat(4,minmax(110px,1fr));overflow-x:auto}"]:
         if forbidden in grammar_css:
             errors.append(f"Grammar core content can force horizontal scrolling: {forbidden}")
+
+    # M4.3 Phase 3 — representative English quality gate.
+    phase3_targets = {
+        "a1-be-am-is-are",
+        "a2-present-perfect-vs-past-simple",
+        "b1-passive-voice-present-and-past",
+    }
+    english_grammar_knowledge = json.loads(
+        (root / "writing_coach/languages/english/grammar_knowledge.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    phase3_curated = {
+        item["id"]
+        for item in english_grammar_knowledge
+        if item.get("source", {}).get("content_status") == "curated"
+    }
+    if phase3_curated != phase3_targets:
+        errors.append(
+            "Grammar Phase 3 must keep exactly three representative English "
+            f"curated IDs before mass migration: {sorted(phase3_curated)}"
+        )
+    phase3_by_id = {item["id"]: item for item in english_grammar_knowledge}
+    for grammar_id in sorted(phase3_targets):
+        model = phase3_by_id.get(grammar_id, {}).get("learning_model")
+        if not isinstance(model, dict) or model.get("schema_version") != 2:
+            errors.append(
+                f"Grammar Phase 3 representative missing learning_model: {grammar_id}"
+            )
+            continue
+        block_types = {
+            block.get("type")
+            for block in model.get("blocks", [])
+            if isinstance(block, dict)
+        }
+        for required_type in {
+            "scene", "common_mistake", "personal_practice",
+            "recall", "memory_hook", "skill_transfer",
+        }:
+            if required_type not in block_types:
+                errors.append(
+                    f"Grammar Phase 3 {grammar_id} missing block: {required_type}"
+                )
+    for grammar_id in sorted(phase3_targets):
+        model = phase3_by_id.get(grammar_id, {}).get("learning_model") or {}
+        policy = model.get("language_policy") or {}
+        if policy.get("target_language") != "en":
+            errors.append(
+                f"Grammar Phase 3 {grammar_id} target-language policy is not English"
+            )
+        if not model.get("capabilities"):
+            errors.append(
+                f"Grammar Phase 3 {grammar_id} has no visualization capabilities"
+            )
+
+    phase3_doc = (
+        root / "docs/ORENA_GRAMMAR_PHASE3_ENGLISH_REPRESENTATIVES.md"
+    ).read_text(encoding="utf-8")
+    require_contains(errors, phase3_doc, [
+        "IMPLEMENTED / UNIVERSAL + MOBILE HARDENING APPLIED / VISUAL RECHECK PENDING",
+        "a1-be-am-is-are",
+        "a2-present-perfect-vs-past-simple",
+        "b1-passive-voice-present-and-past",
+        "full 508-item migration remains BLOCKED",
+        "Phase 3 cannot be marked APPROVED until screenshot QA is completed",
+    ], "Grammar Phase 3 representative hard gate")
+
+    universal_grammar_doc = read("docs/ORENA_GRAMMAR_UNIVERSAL_ARCHITECTURE.md")
+    require_contains(errors, universal_grammar_doc, [
+        "PHASE 3A IMPLEMENTED / VISUAL RECHECK PENDING",
+        "target language",
+        "interface language",
+        "explanation language",
+        "translation language",
+        "Future languages",
+        "Mass migration",
+    ], "Universal Grammar architecture contract")
+
+    grammar_runtime = read("writing_coach/languages/runtime.py")
+    for forbidden in [
+        "CHINESE_GRAMMAR_COURSE",
+        "ENGLISH_GRAMMAR_COURSE",
+        "CHINESE_GRAMMAR_KNOWLEDGE_BY_ID",
+        "ENGLISH_GRAMMAR_KNOWLEDGE_BY_ID",
+    ]:
+        if forbidden in grammar_runtime:
+            errors.append(
+                f"Universal Grammar runtime still hard-codes language selection: {forbidden}"
+            )
+
+    grammar_component = read("static/becoming/components/grammar-learning.js")
+    for forbidden in [
+        "targetLanguage==='zh'",
+        'targetLanguage === "zh"',
+        "hidePinyin",
+        "showPinyin",
+    ]:
+        if forbidden in grammar_component:
+            errors.append(
+                f"Universal Grammar shared renderer hard-codes language behavior: {forbidden}"
+            )
+    require_contains(errors, grammar_component, [
+        "grammarLanguageContext",
+        "interfaceLanguage",
+        "explanationLanguage",
+        "translationLanguage",
+        "targetLanguage",
+        "data-reading-aid-toggle",
+        "AgreementMap",
+        "InflectionTable",
+    ], "Universal Grammar renderer contract")
+
+    phase3b_mobile_doc = read(
+        "docs/ORENA_GRAMMAR_PHASE3B_MOBILE_HARDENING.md"
+    )
+    require_contains(errors, phase3b_mobile_doc, [
+        "IMPLEMENTED / VISUAL RECHECK PENDING",
+        "320px", "360px", "375px", "390px", "414px", "430px",
+        "MASS MIGRATION REMAINS BLOCKED",
+        "shared by block type/capability",
+    ], "Grammar Phase 3B mobile hardening contract")
+
+    phase3b_marker = "/* ORENA Grammar Mobile Hardening — M4.3 Phase 3B"
+    if phase3b_marker not in grammar_css:
+        errors.append("Grammar Phase 3B mobile CSS marker missing")
+    else:
+        phase3b_start = grammar_css.index(phase3b_marker)
+        phase3b_next_marker = (
+            "/* ORENA Grammar Mobile Viewport Containment — M4.3 Phase 3B.1"
+        )
+        phase3b_end = grammar_css.find(phase3b_next_marker, phase3b_start)
+        phase3b_css = grammar_css[
+            phase3b_start : phase3b_end if phase3b_end > phase3b_start else None
+        ]
+        for needle in [
+            "@media(max-width:640px)",
+            '.main-content[data-screen-contract="grammar"]',
+            ".grammar-lesson",
+            ".grammar-visual-canvas",
+            ".grammar-formula-line",
+            ".grammar-formula-part",
+            ".grammar-sentence-flow",
+            ".grammar-transformation",
+            ".grammar-lesson-actions",
+            "grid-template-columns:minmax(0,1fr)",
+            "max-width:100%",
+            "min-width:0",
+        ]:
+            if needle not in phase3b_css:
+                errors.append(
+                    f"Grammar Phase 3B mobile layout contract missing: {needle}"
+                )
+        for forbidden in [
+            "overflow-x:auto",
+            "min-width:max-content",
+            "white-space:nowrap",
+        ]:
+            if forbidden in phase3b_css:
+                errors.append(
+                    f"Grammar Phase 3B core lesson can force horizontal layout: {forbidden}"
+                )
+
+    phase3b1_marker = (
+        "/* ORENA Grammar Mobile Viewport Containment — M4.3 Phase 3B.1"
+    )
+    if phase3b1_marker not in grammar_css:
+        errors.append("Grammar Phase 3B.1 viewport containment marker missing")
+    else:
+        phase3b1_start = grammar_css.index(phase3b1_marker)
+        phase3b1_next_marker = (
+            "/* ORENA Grammar Roadmap Typography — M4.3 Phase 3B.2"
+        )
+        phase3b1_end = grammar_css.find(phase3b1_next_marker, phase3b1_start)
+        phase3b1_css = grammar_css[
+            phase3b1_start : phase3b1_end if phase3b1_end > phase3b1_start else None
+        ]
+        for needle in [
+            'body:has(.main-content[data-screen-contract="grammar"])',
+            ".app-shell",
+            ".app-workspace",
+            '.main-content[data-screen-contract="grammar"]',
+            "max-width:100vw",
+            "overflow-x:hidden",
+            "contain:inline-size",
+            "overflow-wrap:anywhere",
+            "white-space:normal",
+        ]:
+            if needle not in phase3b1_css:
+                errors.append(
+                    f"Grammar Phase 3B.1 viewport contract missing: {needle}"
+                )
+
+    full_rollout_doc = read("docs/ORENA_GRAMMAR_FULL_EN_ZH_ROLLOUT.md")
+    require_contains(errors, full_rollout_doc, [
+        "STRUCTURAL ROLLOUT COMPLETE / BROAD QA PENDING",
+        "269 / 269",
+        "239 / 239",
+        "508 / 508",
+        "Runtime AI: **0**",
+        "source-adapted-v1",
+        "FULL STRUCTURAL ROLLOUT IS COMPLETE",
+    ], "Universal Grammar full EN/ZH rollout contract")
+
+    chinese_grammar_knowledge = json.loads(
+        (root / "writing_coach/languages/chinese/grammar_knowledge.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    full_rollout_sets = {
+        "en": english_grammar_knowledge,
+        "zh": chinese_grammar_knowledge,
+    }
+    expected_full_counts = {"en": 269, "zh": 239}
+    full_rollout_total = 0
+    for language_code, items in full_rollout_sets.items():
+        if len(items) != expected_full_counts[language_code]:
+            errors.append(
+                f"Universal Grammar {language_code} coverage changed: {len(items)}"
+            )
+        for item in items:
+            grammar_id = item.get("id", "<missing>")
+            model = item.get("learning_model")
+            if not isinstance(model, dict) or model.get("schema_version") != 2:
+                errors.append(
+                    f"Universal Grammar full rollout missing schema-v2 model: "
+                    f"{language_code}:{grammar_id}"
+                )
+                continue
+            if model.get("language_policy", {}).get("target_language") != language_code:
+                errors.append(
+                    f"Universal Grammar target-language mismatch: "
+                    f"{language_code}:{grammar_id}"
+                )
+            if item.get("source", {}).get("runtime_ai") is not False:
+                errors.append(
+                    f"Universal Grammar runtime AI must stay disabled: "
+                    f"{language_code}:{grammar_id}"
+                )
+            if not item.get("source", {}).get("universal_model_status"):
+                errors.append(
+                    f"Universal Grammar migration marker missing: "
+                    f"{language_code}:{grammar_id}"
+                )
+            full_rollout_total += 1
+    if full_rollout_total != 508:
+        errors.append(
+            f"Universal Grammar full rollout must cover 508 entries, got "
+            f"{full_rollout_total}"
+        )
 
     # Navigation routes should be tactile controls without adding/changing routes.
     for needle in [

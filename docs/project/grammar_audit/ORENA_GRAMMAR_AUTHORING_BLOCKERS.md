@@ -1,0 +1,1549 @@
+# Orena Grammar Concept-Specific Authoring Blockers
+
+Status: **BLOCKED — KB NOT MODIFIED**
+
+- Total lessons evaluated: **508**
+- Blocked lessons: **508**
+- Duplicate whole-core groups: **0**
+
+## Blocker counts
+
+| Reason | Lessons |
+|---|---:|
+| `actual_rule_or_relationship_missing` | 508 |
+| `need_at_least_two_source_examples` | 508 |
+| `structured_common_mistake_with_why_and_correct_missing` | 508 |
+| `pattern_evidence_too_weak` | 230 |
+| `concept_requires_contrast_but_source_has_none` | 6 |
+
+## Blocked lessons
+
+- `en:a1-adverbs-of-frequency` — Adverbs of frequency
+  - family: `adjectives_adverbs`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:a1-and-but-or-because-so` — And/but/or/because/so
+  - family: `comparison`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:a1-articles-a-an-the` — Articles a/an/the
+  - family: `articles_determiners`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:a1-basic-imperatives-and-let-s` — Basic imperatives and let's
+  - family: `comparison`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `en:a1-basic-prepositions-of-place` — Basic prepositions of place
+  - family: `comparison`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `en:a1-basic-prepositions-of-time` — Basic prepositions of time
+  - family: `comparison`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `en:a1-be-am-is-are` — Be: am/is/are
+  - family: `be_existential`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:a1-be-questions-and-short-answers` — Be questions and short answers
+  - family: `be_existential`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:a1-complete-sentences-and-basic-word-order` — Complete sentences and basic word order
+  - family: `basic_word_order`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:a1-countable-and-uncountable-nouns` — Countable and uncountable nouns
+  - family: `nouns_countability`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `en:a1-do-does-questions` — Do/does questions
+  - family: `questions_negation`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:a1-have-and-have-got` — Have and have got
+  - family: `comparison`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `en:a1-much-many-a-lot-of` — Much/many/a lot of
+  - family: `comparison`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:a1-possessive-adjectives-pronouns-and-possessive-s` — Possessive adjectives, pronouns and possessive 's
+  - family: `pronouns_possessives`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:a1-present-continuous` — Present continuous
+  - family: `present_continuous`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `en:a1-present-simple` — Present simple
+  - family: `present_simple`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `en:a1-present-simple-vs-present-continuous` — Present simple vs present continuous
+  - family: `present_simple`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:a1-progress-check` — A1 Progress Check
+  - family: `comparison`
+  - reasons: `actual_rule_or_relationship_missing, concept_requires_contrast_but_source_has_none, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `en:a1-review-present-time-1` — A1 · Present time · Review 1
+  - family: `review_checkpoint`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:a1-review-questions-and-quantity-1` — A1 · Questions and quantity · Review 1
+  - family: `questions_negation`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:a1-review-sentence-foundations-1` — A1 · Sentence foundations · Review 1
+  - family: `review_checkpoint`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:a1-review-sentence-foundations-2` — A1 · Sentence foundations · Review 2
+  - family: `review_checkpoint`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:a1-singular-and-plural-nouns` — Singular and plural nouns
+  - family: `nouns_countability`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `en:a1-some-any` — Some/any
+  - family: `articles_determiners`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:a1-stative-verbs-introduction` — Stative verbs: introduction
+  - family: `comparison`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:a1-subject-and-object-pronouns` — Subject and object pronouns
+  - family: `pronouns_possessives`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:a1-there-is-there-are` — There is/there are
+  - family: `be_existential`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:a1-third-person-s-and-spelling` — Third-person -s and spelling
+  - family: `comparison`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `en:a1-this-that-these-those` — This/that/these/those
+  - family: `articles_determiners`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:a1-wh-questions` — Wh-questions
+  - family: `questions_negation`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `en:a2-a-few-few-and-a-little-little` — A few/few and a little/little
+  - family: `comparison`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:a2-adjectives-vs-adverbs` — Adjectives vs adverbs
+  - family: `adjectives_adverbs`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:a2-adverbs-of-manner-and-degree` — Adverbs of manner and degree
+  - family: `adjectives_adverbs`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:a2-as-as` — As...as
+  - family: `comparison`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:a2-basic-indirect-objects` — Basic indirect objects
+  - family: `comparison`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:a2-can-could-be-able-to-basics` — Can/could/be able to basics
+  - family: `be_existential`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:a2-comparatives` — Comparatives
+  - family: `comparison`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `en:a2-first-conditional` — First conditional
+  - family: `conditionals`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `en:a2-gerunds-after-preference-verbs` — Gerunds after preference verbs
+  - family: `gerund_infinitive`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:a2-going-to` — Going to
+  - family: `future_forms`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `en:a2-infinitive-after-want-plan-need` — Infinitive after want/plan/need
+  - family: `gerund_infinitive`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:a2-infinitive-of-purpose` — Infinitive of purpose
+  - family: `gerund_infinitive`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `en:a2-may-might-could-possibility` — May/might/could possibility
+  - family: `modals`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:a2-must-have-to` — Must/have to
+  - family: `modals`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:a2-object-relative-pronoun-omission` — Object relative pronoun omission
+  - family: `pronouns_possessives`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:a2-past-continuous` — Past continuous
+  - family: `past_continuous`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `en:a2-past-simple-be` — Past simple: be
+  - family: `be_existential`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `en:a2-past-simple-irregular-verbs` — Past simple: irregular verbs
+  - family: `past_simple`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:a2-past-simple-regular-verbs` — Past simple: regular verbs
+  - family: `past_simple`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:a2-past-simple-vs-past-continuous` — Past simple vs past continuous
+  - family: `past_simple`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:a2-present-continuous-for-future-arrangements` — Present continuous for future arrangements
+  - family: `present_continuous`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:a2-present-perfect-introduction` — Present perfect: introduction
+  - family: `present_perfect`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `en:a2-present-perfect-vs-past-simple` — Present perfect vs past simple
+  - family: `present_simple`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:a2-present-simple-for-schedules` — Present simple for schedules
+  - family: `present_simple`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `en:a2-progress-check` — A2 Progress Check
+  - family: `comparison`
+  - reasons: `actual_rule_or_relationship_missing, concept_requires_contrast_but_source_has_none, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `en:a2-review-clauses-and-reference-1` — A2 · Clauses and reference · Review 1
+  - family: `review_checkpoint`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:a2-review-comparison-and-degree-1` — A2 · Comparison and degree · Review 1
+  - family: `comparison`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:a2-review-modals-and-verb-patterns-1` — A2 · Modals and verb patterns · Review 1
+  - family: `modals`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:a2-review-past-and-future-1` — A2 · Past and future · Review 1
+  - family: `future_forms`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:a2-review-past-and-future-2` — A2 · Past and future · Review 2
+  - family: `future_forms`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:a2-should-ought-to` — Should/ought to
+  - family: `modals`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:a2-some-any-no-every-compounds` — Some/any/no/every compounds
+  - family: `articles_determiners`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:a2-superlatives` — Superlatives
+  - family: `comparison`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `en:a2-too-enough` — Too/enough
+  - family: `adjectives_adverbs`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:a2-unless-introduction` — Unless: introduction
+  - family: `conditionals`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `en:a2-who-which-that-relative-clauses` — Who/which/that relative clauses
+  - family: `relative_clauses`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:a2-will-and-won-t` — Will and won't
+  - family: `future_forms`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `en:a2-zero-conditional` — Zero conditional
+  - family: `conditionals`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `en:b1-ability-across-time` — Ability across time
+  - family: `comparison`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `en:b1-advice-should-ought-to-had-better` — Advice: should/ought to/had better
+  - family: `modals`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:b1-although-despite-however` — Although/despite/however
+  - family: `adverbial_clauses`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:b1-articles-beyond-basics` — Articles beyond basics
+  - family: `articles_determiners`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `en:b1-both-either-neither` — Both/either/neither
+  - family: `comparison`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:b1-causative-have-get` — Causative have/get
+  - family: `comparison`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:b1-comparative-patterns-and-intensifiers` — Comparative patterns and intensifiers
+  - family: `comparison`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:b1-deduction-must-might-can-t` — Deduction: must/might/can't
+  - family: `modals`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:b1-defining-relative-clauses` — Defining relative clauses
+  - family: `relative_clauses`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:b1-future-continuous` — Future continuous
+  - family: `future_forms`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `en:b1-future-forms-in-context` — Future forms in context
+  - family: `future_forms`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `en:b1-future-perfect-introduction` — Future perfect: introduction
+  - family: `future_forms`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `en:b1-future-time-clauses` — Future time clauses
+  - family: `future_forms`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:b1-generic-reference-and-zero-article` — Generic reference and zero article
+  - family: `articles_determiners`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:b1-gerund-vs-infinitive-common-patterns` — Gerund vs infinitive: common patterns
+  - family: `gerund_infinitive`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:b1-indirect-questions` — Indirect questions
+  - family: `questions_negation`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `en:b1-mixed-conditional-introduction` — Mixed conditional: introduction
+  - family: `conditionals`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `en:b1-non-defining-relative-clauses` — Non-defining relative clauses
+  - family: `relative_clauses`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:b1-obligation-must-have-to-need-to` — Obligation: must/have to/need to
+  - family: `modals`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:b1-one-ones` — One/ones
+  - family: `comparison`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:b1-passive-voice-present-and-past` — Passive voice: present and past
+  - family: `passive_voice`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:b1-passive-with-modals` — Passive with modals
+  - family: `modals`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `en:b1-past-modals-should-could-might-have` — Past modals: should/could/might have
+  - family: `modals`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:b1-past-narrative-tense-system` — Past narrative tense system
+  - family: `comparison`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `en:b1-past-perfect-continuous` — Past perfect continuous
+  - family: `comparison`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `en:b1-past-perfect-simple` — Past perfect simple
+  - family: `past_simple`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `en:b1-past-simple-vs-present-perfect` — Past simple vs present perfect
+  - family: `past_simple`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:b1-present-perfect-continuous` — Present perfect continuous
+  - family: `present_perfect_continuous`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `en:b1-present-perfect-passive` — Present perfect passive
+  - family: `present_perfect`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `en:b1-present-perfect-simple` — Present perfect simple
+  - family: `present_simple`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `en:b1-present-perfect-simple-vs-continuous` — Present perfect simple vs continuous
+  - family: `present_perfect`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:b1-present-simple-vs-continuous-extended` — Present simple vs continuous: extended
+  - family: `present_simple`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:b1-progress-check` — B1 Progress Check
+  - family: `comparison`
+  - reasons: `actual_rule_or_relationship_missing, concept_requires_contrast_but_source_has_none, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `en:b1-prohibition-and-lack-of-necessity` — Prohibition and lack of necessity
+  - family: `comparison`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:b1-quantifiers-and-distributives` — Quantifiers and distributives
+  - family: `comparison`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:b1-question-tags` — Question tags
+  - family: `questions_negation`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `en:b1-reason-result-connectors` — Reason/result connectors
+  - family: `comparison`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:b1-reflexive-pronouns-and-each-other` — Reflexive pronouns and each other
+  - family: `pronouns_possessives`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:b1-relative-pronouns-and-prepositions` — Relative pronouns and prepositions
+  - family: `pronouns_possessives`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `en:b1-reported-commands-and-requests` — Reported commands and requests
+  - family: `comparison`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `en:b1-reported-questions` — Reported questions
+  - family: `questions_negation`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `en:b1-reported-statements` — Reported statements
+  - family: `comparison`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `en:b1-review-complex-sentences-1` — B1 · Complex sentences · Review 1
+  - family: `review_checkpoint`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:b1-review-complex-sentences-2` — B1 · Complex sentences · Review 2
+  - family: `review_checkpoint`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:b1-review-complex-sentences-3` — B1 · Complex sentences · Review 3
+  - family: `review_checkpoint`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:b1-review-determiners-and-reference-1` — B1 · Determiners and reference · Review 1
+  - family: `articles_determiners`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:b1-review-tense-and-aspect-system-1` — B1 · Tense and aspect system · Review 1
+  - family: `comparison`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:b1-review-tense-and-aspect-system-2` — B1 · Tense and aspect system · Review 2
+  - family: `comparison`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:b1-review-voice-modality-and-questions-1` — B1 · Voice, modality and questions · Review 1
+  - family: `questions_negation`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:b1-review-voice-modality-and-questions-2` — B1 · Voice, modality and questions · Review 2
+  - family: `questions_negation`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:b1-so-such-too-enough` — So/such/too/enough
+  - family: `adjectives_adverbs`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:b1-subject-questions-and-object-questions` — Subject questions and object questions
+  - family: `questions_negation`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:b1-third-conditional` — Third conditional
+  - family: `conditionals`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `en:b1-used-to` — Used to
+  - family: `comparison`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `en:b1-verb-pattern-meaning-changes-introduction` — Verb pattern meaning changes: introduction
+  - family: `comparison`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:b1-wish-if-only-past` — Wish/if only: past
+  - family: `conditionals`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:b1-wish-if-only-present` — Wish/if only: present
+  - family: `conditionals`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:b1-would-for-past-habits` — Would for past habits
+  - family: `comparison`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `en:b1-zero-first-second-conditionals` — Zero/first/second conditionals
+  - family: `conditionals`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:b2-advanced-articles-and-determiners` — Advanced articles and determiners
+  - family: `articles_determiners`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `en:b2-advanced-passive-forms` — Advanced passive forms
+  - family: `passive_voice`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `en:b2-advanced-relative-clauses` — Advanced relative clauses
+  - family: `relative_clauses`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:b2-causative-have-get-extended` — Causative have/get: extended
+  - family: `comparison`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:b2-cleft-sentences` — Cleft sentences
+  - family: `comparison`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `en:b2-complex-noun-phrases` — Complex noun phrases
+  - family: `nouns_countability`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `en:b2-complex-quantifiers` — Complex quantifiers
+  - family: `comparison`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:b2-concession-patterns` — Concession patterns
+  - family: `adverbial_clauses`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `en:b2-conditional-inversion-introduction` — Conditional inversion: introduction
+  - family: `conditionals`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `en:b2-dependent-prepositions` — Dependent prepositions
+  - family: `comparison`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `en:b2-ellipsis` — Ellipsis
+  - family: `comparison`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `en:b2-emphatic-do` — Emphatic do
+  - family: `comparison`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `en:b2-formal-vs-informal-grammar-choices` — Formal vs informal grammar choices
+  - family: `comparison`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:b2-fronting-for-emphasis` — Fronting for emphasis
+  - family: `comparison`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `en:b2-full-conditional-system` — Full conditional system
+  - family: `conditionals`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `en:b2-future-continuous` — Future continuous
+  - family: `future_forms`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `en:b2-future-in-the-past` — Future in the past
+  - family: `articles_determiners`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `en:b2-future-perfect` — Future perfect
+  - family: `future_forms`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `en:b2-future-perfect-continuous` — Future perfect continuous
+  - family: `future_forms`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `en:b2-gerund-clauses` — Gerund clauses
+  - family: `gerund_infinitive`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:b2-gerund-infinitive-meaning-contrasts` — Gerund/infinitive meaning contrasts
+  - family: `gerund_infinitive`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:b2-impersonal-passive` — Impersonal passive
+  - family: `passive_voice`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `en:b2-in-case-provided-as-long-as` — In case/provided/as long as
+  - family: `comparison`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:b2-infinitive-clauses` — Infinitive clauses
+  - family: `gerund_infinitive`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:b2-it-s-time-past-form` — It's time + past form
+  - family: `comparison`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:b2-mixed-conditionals` — Mixed conditionals
+  - family: `conditionals`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `en:b2-modal-certainty-and-probability` — Modal certainty and probability
+  - family: `modals`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `en:b2-modal-perfect-criticism-and-regret` — Modal perfect criticism and regret
+  - family: `modals`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:b2-modal-perfect-passive` — Modal perfect passive
+  - family: `modals`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `en:b2-needn-t-have-vs-didn-t-need-to` — Needn't have vs didn't need to
+  - family: `modals`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:b2-negative-adverbial-inversion` — Negative adverbial inversion
+  - family: `adjectives_adverbs`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:b2-no-sooner-hardly-scarcely` — No sooner/hardly/scarcely
+  - family: `comparison`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:b2-nominal-clauses` — Nominal clauses
+  - family: `comparison`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:b2-only-phrase-inversion` — Only-phrase inversion
+  - family: `comparison`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `en:b2-participle-clauses` — Participle clauses
+  - family: `participles`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:b2-past-aspect-and-narrative-viewpoint` — Past aspect and narrative viewpoint
+  - family: `comparison`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:b2-past-deduction` — Past deduction
+  - family: `comparison`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `en:b2-perfect-aspect-in-discourse` — Perfect aspect in discourse
+  - family: `comparison`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `en:b2-perfect-participle-clauses` — Perfect participle clauses
+  - family: `participles`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:b2-preposition-relative-pronoun` — Preposition + relative pronoun
+  - family: `pronouns_possessives`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:b2-present-aspect-and-viewpoint` — Present aspect and viewpoint
+  - family: `comparison`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `en:b2-progress-check` — B2 Progress Check
+  - family: `comparison`
+  - reasons: `actual_rule_or_relationship_missing, concept_requires_contrast_but_source_has_none, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `en:b2-pseudo-cleft-sentences` — Pseudo-cleft sentences
+  - family: `comparison`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `en:b2-punctuation-with-complex-clauses` — Punctuation with complex clauses
+  - family: `comparison`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:b2-quantifier-relative-pronoun` — Quantifier + relative pronoun
+  - family: `pronouns_possessives`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:b2-reduced-relative-clauses` — Reduced relative clauses
+  - family: `relative_clauses`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:b2-reference-and-substitution` — Reference and substitution
+  - family: `comparison`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `en:b2-reported-speech-tense-choice` — Reported speech: tense choice
+  - family: `reported_speech`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `en:b2-reporting-passive` — Reporting passive
+  - family: `passive_voice`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `en:b2-reporting-verbs-and-patterns` — Reporting verbs and patterns
+  - family: `reported_speech`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:b2-review-advanced-aspect-and-future-1` — B2 · Advanced aspect and future · Review 1
+  - family: `future_forms`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:b2-review-conditionals-and-modality-1` — B2 · Conditionals and modality · Review 1
+  - family: `modals`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:b2-review-conditionals-and-modality-2` — B2 · Conditionals and modality · Review 2
+  - family: `modals`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:b2-review-emphasis-and-information-structure-1` — B2 · Emphasis and information structure · Review 1
+  - family: `comparison`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:b2-review-reference-and-register-1` — B2 · Reference and register · Review 1
+  - family: `discourse_register`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:b2-review-reference-and-register-2` — B2 · Reference and register · Review 2
+  - family: `discourse_register`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:b2-review-relative-and-non-finite-clauses-1` — B2 · Relative and non-finite clauses · Review 1
+  - family: `review_checkpoint`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:b2-review-voice-and-reporting-1` — B2 · Voice and reporting · Review 1
+  - family: `review_checkpoint`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:b2-two-object-passive` — Two-object passive
+  - family: `passive_voice`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:b2-would-rather-would-prefer-prefer` — Would rather/would prefer/prefer
+  - family: `comparison`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:c1-academic-definitions-and-classifications` — Academic definitions and classifications
+  - family: `comparison`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:c1-advanced-concession` — Advanced concession
+  - family: `adverbial_clauses`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `en:c1-advanced-epistemic-modality` — Advanced epistemic modality
+  - family: `modals`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `en:c1-advanced-non-finite-clauses` — Advanced non-finite clauses
+  - family: `comparison`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:c1-advanced-perfect-aspect` — Advanced perfect aspect
+  - family: `comparison`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `en:c1-advanced-relative-structures` — Advanced relative structures
+  - family: `comparison`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `en:c1-advanced-simple-vs-continuous-aspect` — Advanced simple vs continuous aspect
+  - family: `comparison`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:c1-boosting-and-controlled-certainty` — Boosting and controlled certainty
+  - family: `comparison`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `en:c1-cause-result-purpose-relations` — Cause/result/purpose relations
+  - family: `comparison`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:c1-complex-noun-phrase-architecture` — Complex noun phrase architecture
+  - family: `nouns_countability`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `en:c1-conditional-inversion` — Conditional inversion
+  - family: `conditionals`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `en:c1-deontic-and-dynamic-modality` — Deontic and dynamic modality
+  - family: `modals`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `en:c1-discourse-reference` — Discourse reference
+  - family: `comparison`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `en:c1-ellipsis-and-substitution` — Ellipsis and substitution
+  - family: `comparison`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `en:c1-existential-there-with-complex-noun-phrases` — Existential there with complex noun phrases
+  - family: `nouns_countability`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:c1-extraposition-with-anticipatory-it` — Extraposition with anticipatory it
+  - family: `comparison`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `en:c1-fronting-and-topicalisation` — Fronting and topicalisation
+  - family: `comparison`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `en:c1-fused-relative-clauses` — Fused relative clauses
+  - family: `relative_clauses`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:c1-future-in-the-past-systems` — Future-in-the-past systems
+  - family: `articles_determiners`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `en:c1-hedging-academic-claims` — Hedging academic claims
+  - family: `comparison`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `en:c1-hedging-with-modal-and-lexical-devices` — Hedging with modal and lexical devices
+  - family: `modals`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:c1-historic-present-and-narrative-shifts` — Historic present and narrative shifts
+  - family: `comparison`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:c1-it-clefts` — It-clefts
+  - family: `comparison`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `en:c1-lexical-aspect-and-meaning-shifts` — Lexical aspect and meaning shifts
+  - family: `comparison`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:c1-mandative-subjunctive` — Mandative subjunctive
+  - family: `comparison`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `en:c1-negative-adverbial-inversion` — Negative adverbial inversion
+  - family: `adjectives_adverbs`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:c1-nominalisation` — Nominalisation
+  - family: `comparison`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `en:c1-old-to-new-information-flow` — Old-to-new information flow
+  - family: `comparison`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `en:c1-parallelism-and-coordination` — Parallelism and coordination
+  - family: `comparison`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `en:c1-perfect-and-passive-non-finites` — Perfect and passive non-finites
+  - family: `passive_voice`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `en:c1-perfect-infinitives-in-reporting` — Perfect infinitives in reporting
+  - family: `gerund_infinitive`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `en:c1-progress-check` — C1 Progress Check
+  - family: `comparison`
+  - reasons: `actual_rule_or_relationship_missing, concept_requires_contrast_but_source_has_none, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `en:c1-qualification-and-limitation` — Qualification and limitation
+  - family: `comparison`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:c1-register-driven-grammar` — Register-driven grammar
+  - family: `comparison`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `en:c1-reporting-passives` — Reporting passives
+  - family: `passive_voice`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `en:c1-review-cohesion-and-academic-style-1` — C1 · Cohesion and academic style · Review 1
+  - family: `review_checkpoint`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:c1-review-cohesion-and-academic-style-2` — C1 · Cohesion and academic style · Review 2
+  - family: `review_checkpoint`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:c1-review-formal-grammar-1` — C1 · Formal grammar · Review 1
+  - family: `discourse_register`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:c1-review-formal-grammar-2` — C1 · Formal grammar · Review 2
+  - family: `discourse_register`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:c1-review-marked-structures-1` — C1 · Marked structures · Review 1
+  - family: `review_checkpoint`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:c1-review-viewpoint-and-stance-1` — C1 · Viewpoint and stance · Review 1
+  - family: `review_checkpoint`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:c1-sentence-rhythm-end-weight-and-end-focus` — Sentence rhythm, end-weight and end-focus
+  - family: `comparison`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:c1-so-such-inversion` — So/such inversion
+  - family: `adjectives_adverbs`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:c1-were-subjunctive` — Were-subjunctive
+  - family: `comparison`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `en:c1-wh-clefts-and-reversed-clefts` — Wh-clefts and reversed clefts
+  - family: `comparison`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `en:c2-academic-vs-business-vs-conversational-grammar` — Academic vs business vs conversational grammar
+  - family: `comparison`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:c2-active-passive-style-transformation` — Active/passive style transformation
+  - family: `passive_voice`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:c2-advanced-apposition` — Advanced apposition
+  - family: `comparison`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `en:c2-advanced-complement-alternation` — Advanced complement alternation
+  - family: `comparison`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `en:c2-advanced-concession-and-counterargument` — Advanced concession and counterargument
+  - family: `adverbial_clauses`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `en:c2-advanced-extraposition` — Advanced extraposition
+  - family: `comparison`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `en:c2-advanced-punctuation-as-syntax` — Advanced punctuation as syntax
+  - family: `comparison`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `en:c2-advanced-reporting-and-distancing` — Advanced reporting and distancing
+  - family: `comparison`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `en:c2-advanced-tense-aspect-viewpoint-shifts` — Advanced tense/aspect viewpoint shifts
+  - family: `comparison`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:c2-ambiguity-from-modifier-attachment` — Ambiguity from modifier attachment
+  - family: `comparison`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:c2-counterfactual-compression` — Counterfactual compression
+  - family: `comparison`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `en:c2-cross-sentence-ellipsis` — Cross-sentence ellipsis
+  - family: `comparison`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `en:c2-deep-clause-embedding` — Deep clause embedding
+  - family: `comparison`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:c2-discourse-substitution-chains` — Discourse substitution chains
+  - family: `comparison`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `en:c2-finite-non-finite-transformation` — Finite/non-finite transformation
+  - family: `comparison`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:c2-fronting-clefting-transformation` — Fronting/clefting transformation
+  - family: `comparison`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:c2-fused-and-nominal-relatives` — Fused and nominal relatives
+  - family: `comparison`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `en:c2-grammar-based-ambiguity-repair` — Grammar-based ambiguity repair
+  - family: `comparison`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `en:c2-heavy-constituent-shift` — Heavy constituent shift
+  - family: `comparison`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:c2-information-packaging-in-long-sentences` — Information packaging in long sentences
+  - family: `comparison`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:c2-layered-modality-and-authorial-voice` — Layered modality and authorial voice
+  - family: `modals`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:c2-lexico-grammar-and-colligation` — Lexico-grammar and colligation
+  - family: `comparison`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `en:c2-marked-comparison-structures` — Marked comparison structures
+  - family: `comparison`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `en:c2-metadiscourse-grammar` — Metadiscourse grammar
+  - family: `comparison`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `en:c2-negation-and-quantifier-scope` — Negation and quantifier scope
+  - family: `questions_negation`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:c2-only-focus-scope` — Only/focus scope
+  - family: `comparison`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:c2-parenthetical-grammar` — Parenthetical grammar
+  - family: `comparison`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `en:c2-progress-check` — C2 Progress Check
+  - family: `comparison`
+  - reasons: `actual_rule_or_relationship_missing, concept_requires_contrast_but_source_has_none, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `en:c2-redundancy-reduction` — Redundancy reduction
+  - family: `comparison`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `en:c2-reference-ambiguity` — Reference ambiguity
+  - family: `comparison`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `en:c2-register-driven-syntax` — Register-driven syntax
+  - family: `comparison`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `en:c2-review-complex-syntax-1` — C2 · Complex syntax · Review 1
+  - family: `review_checkpoint`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:c2-review-discourse-and-register-1` — C2 · Discourse and register · Review 1
+  - family: `discourse_register`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:c2-review-meaning-and-scope-1` — C2 · Meaning and scope · Review 1
+  - family: `review_checkpoint`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:c2-review-precision-editing-1` — C2 · Precision editing · Review 1
+  - family: `review_checkpoint`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:c2-syntactic-variety-without-meaning-drift` — Syntactic variety without meaning drift
+  - family: `comparison`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `en:c2-verbal-nominal-transformation` — Verbal/nominal transformation
+  - family: `comparison`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk1-1-svo-c-b-n` — SVO cơ bản
+  - family: `core_word_order`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk1-10-v` — 不 và 没
+  - family: `negation_bu_mei`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk1-11-v` — 吗 và 呢
+  - family: `questions_ma_ne_wh`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk1-12-t-h-i-gi-nguy-n-v-tr` — Từ để hỏi giữ nguyên vị trí
+  - family: `questions_ma_ne_wh`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk1-13-c-u-h-i-ch-nh-ph-n` — Câu hỏi chính-phản
+  - family: `questions_ma_ne_wh`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk1-14-v-c-u-t-nh-t` — 很 và câu tính từ
+  - family: `adverbs_degree_frequency`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk1-15-topic` — 在/正在...呢
+  - family: `progressive_zai_zhengzai`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk1-16-ho-n-th-nh-c-b-n` — 了: hoàn thành cơ bản
+  - family: `aspect_le`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk1-17-th-i-gian-v-ng-y-gi` — Thời gian và ngày giờ
+  - family: `time_expressions`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk1-18-c-b-n` — 会/能/可以 cơ bản
+  - family: `modal_verbs`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk1-19-v-tr-c-b-n` — 也/都 vị trí cơ bản
+  - family: `adverbs_degree_frequency`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk1-2-c-u-nh-danh` — 是: câu định danh
+  - family: `copula_shi`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk1-20-n-i-danh-t` — 和 nối danh từ
+  - family: `coordination_conjunctions`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk1-3-s-h-u-v-t-n-t-i` — 有: sở hữu và tồn tại
+  - family: `existential_you`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk1-4-v-tr` — 在: vị trí
+  - family: `location_zai`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk1-5-s-h-u-v-b-ngh-a` — 的: sở hữu và bổ nghĩa
+  - family: `de_modifier`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk1-6-i-t-nh-n-x-ng` — Đại từ nhân xưng
+  - family: `pronouns`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk1-7-topic` — 这/那/哪
+  - family: `demonstratives`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk1-8-s-v-l-ng-t-c-b-n` — Số và lượng từ cơ bản
+  - family: `classifiers_measure_words`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk1-9-vs` — 两 vs 二
+  - family: `numbers_dates_quantities`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk1-progress-check` — HSK1 Progress Check
+  - family: `review_checkpoint`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk1-review-1-6` — HSK1 · 基础句型 · Review 1
+  - family: `review_checkpoint`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk1-review-2-12` — HSK1 · 基础句型 · Review 2
+  - family: `review_checkpoint`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk1-review-3-18` — HSK1 · 基础句型 · Review 3
+  - family: `review_checkpoint`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk1-review-4-24` — HSK1 · 基础句型 · Review 4
+  - family: `review_checkpoint`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk2-1-kinh-nghi-m` — 过: kinh nghiệm
+  - family: `aspect_guo`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk2-1-topic` — 因为...所以...
+  - family: `prepositions_coverbs`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk2-10-b-ng-xu-h-ng-n` — Bổ ngữ xu hướng đơn 来/去
+  - family: `directional_complements`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk2-10-topic` — 除了...以外...
+  - family: `aspect_le`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk2-11-ng-t-ly-h-p` — Động từ ly hợp
+  - family: `separable_verbs`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk2-11-topic` — 一边...一边...
+  - family: `conjunctions_connectives`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk2-12-b-ng-th-i-l-ng-introduction` — Bổ ngữ thời lượng: introduction
+  - family: `quantity_complements`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk2-13-b-ng-ng-l-ng-introduction` — Bổ ngữ động lượng: introduction
+  - family: `quantity_complements`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk2-2-topic` — 虽然...但是...
+  - family: `copula_shi`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk2-2-tr-ng-th-i-duy-tr` — 着: trạng thái duy trì
+  - family: `aspect_zhe`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk2-3-cu-i-c-u-thay-i-tr-ng-th-i` — 了 cuối câu: thay đổi trạng thái
+  - family: `aspect_le`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk2-3-topic` — 如果...就...
+  - family: `focus_emphasis`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk2-4-so-s-nh` — 比: so sánh
+  - family: `comparison_bi`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk2-4-topic` — 只要...就...
+  - family: `conjunctions_connectives`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk2-5-so-s-nh-ph-nh` — 没有: so sánh phủ định
+  - family: `negation_bu_mei`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk2-5-topic` — 只有...才...
+  - family: `conjunctions_connectives`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk2-6-topic` — 越来越
+  - family: `comparison_change`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk2-6-topic-47` — 一...就...
+  - family: `focus_emphasis`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk2-7-topic` — 越...越...
+  - family: `comparison_change`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk2-7-topic-48` — 先...再/然后...
+  - family: `adverbs_degree_frequency`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk2-8-b-ng-m-c` — 得: bổ ngữ mức độ
+  - family: `degree_complements`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk2-8-vs` — 又 vs 再
+  - family: `adverbs_degree_frequency`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk2-9-b-ng-k-t-qu` — Bổ ngữ kết quả 完/好/到/见
+  - family: `result_complements`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk2-9-vs` — 就 vs 才
+  - family: `focus_emphasis`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk2-progress-check` — HSK2 Progress Check
+  - family: `review_checkpoint`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk2-review-1-31` — HSK2 · 体与补语 · Review 1
+  - family: `review_checkpoint`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk2-review-1-46` — HSK2 · 复句与副词 · Review 1
+  - family: `review_checkpoint`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk2-review-2-37` — HSK2 · 体与补语 · Review 2
+  - family: `review_checkpoint`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk2-review-2-52` — HSK2 · 复句与副词 · Review 2
+  - family: `review_checkpoint`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk3-1-n-n-t-ng` — 把字句: nền tảng
+  - family: `ba_construction`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk3-1-topic` — 不但...而且...
+  - family: `negation_bu_mei`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk3-10-ngh-a-m-r-ng` — 趋向补语 nghĩa mở rộng
+  - family: `directional_complements`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk3-10-topic` — 跟/和...一样
+  - family: `comparison_yiyang`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk3-11-nh-n-m-nh` — 是...的 nhấn mạnh
+  - family: `shi_de_construction`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk3-12-topic-comment-introduction` — Topic-comment introduction
+  - family: `topic_comment`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk3-13-nh-ng-d-i-v-i` — Định ngữ dài với 的
+  - family: `de_modifier`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk3-14-reduplication-ng-t-t-nh-t` — Reduplication động từ/tính từ
+  - family: `reduplication`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk3-2-b-ng-k-t-qu` — 把 + bổ ngữ kết quả
+  - family: `ba_construction`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk3-2-topic` — 既...又...
+  - family: `adverbs_degree_frequency`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk3-3-topic` — 把 + 在/给/成
+  - family: `ba_construction`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk3-3-topic-69` — 即使...也...
+  - family: `adverbs_degree_frequency`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk3-4-n-n-t-ng` — 被字句: nền tảng
+  - family: `bei_passive`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk3-4-topic` — 无论...都...
+  - family: `adverbs_degree_frequency`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk3-5-topic` — 为了
+  - family: `prepositions_coverbs`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk3-5-v-i-chi-u` — 把 và 被 đối chiếu
+  - family: `ba_bei_contrast`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk3-6-b-ng-xu-h-ng-k-p` — Bổ ngữ xu hướng kép
+  - family: `directional_complements`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk3-6-topic` — 由于...因此...
+  - family: `conjunctions_connectives`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk3-7-b-ng-kh-n-ng` — Bổ ngữ khả năng
+  - family: `potential_complements`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk3-7-topic` — 从...起
+  - family: `prepositions_coverbs`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk3-8-b-ng-th-i-l-ng` — Bổ ngữ thời lượng
+  - family: `quantity_complements`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk3-8-topic` — 自从...以来
+  - family: `prepositions_coverbs`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk3-9-b-ng-ng-l-ng` — Bổ ngữ động lượng
+  - family: `quantity_complements`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk3-9-topic` — 对...来说
+  - family: `prepositions_coverbs`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk3-progress-check` — HSK3 Progress Check
+  - family: `review_checkpoint`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk3-review-1-60` — HSK3 · 把被与补语 · Review 1
+  - family: `review_checkpoint`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk3-review-1-72` — HSK3 · 复句与话题 · Review 1
+  - family: `review_checkpoint`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk3-review-2-66` — HSK3 · 把被与补语 · Review 2
+  - family: `review_checkpoint`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk3-review-2-78` — HSK3 · 复句与话题 · Review 2
+  - family: `review_checkpoint`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk4-1-v-i-c-u-tr-c-ph-c` — 把 với cấu trúc phức
+  - family: `ba_construction`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk4-1-v-v` — V着V着...
+  - family: `aspect_zhe`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk4-10-n-ng-cao` — 程度补语 nâng cao
+  - family: `degree_complements`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk4-10-topic` — 随着...
+  - family: `aspect_zhe`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk4-11-ngh-a-m-r-ng` — 起来/下来/下去 nghĩa mở rộng
+  - family: `directional_complements`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk4-11-topic` — 通过...
+  - family: `aspect_guo`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk4-12-topic` — 按照/根据...
+  - family: `prepositions_coverbs`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk4-12-topic-115` — 来得及/来不及
+  - family: `potential_complements`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk4-13-ordering` — 长定语 ordering
+  - family: `de_modifier`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk4-13-topic` — 对于/关于...
+  - family: `prepositions_coverbs`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk4-14-topic` — 由...组成 / 由...负责
+  - family: `prepositions_coverbs`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk4-15-v-introduction` — 所 + V: introduction
+  - family: `nominalization_suo`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk4-2-n-ng-cao` — 被 nâng cao
+  - family: `bei_passive`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk4-2-topic` — 一方面...另一方面...
+  - family: `discourse_connectivity`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk4-3-topic` — 连...都/也...
+  - family: `adverbs_degree_frequency`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk4-3-topic-104` — 首先/其次/此外/最后
+  - family: `adverbs_degree_frequency`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk4-4-topic` — 与其...不如...
+  - family: `negation_bu_mei`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk4-4-topic-105` — 然而/不过/可是
+  - family: `discourse_connectivity`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk4-5-topic` — 既然...就...
+  - family: `focus_emphasis`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk4-5-topic-106` — 因此/因而/于是
+  - family: `copula_shi`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk4-6-topic` — 除非...否则...
+  - family: `conjunctions_connectives`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk4-6-topic-108` — 不仅...还/也...
+  - family: `adverbs_degree_frequency`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk4-7-topic` — 不管/无论...都...
+  - family: `conjunctions_connectives`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk4-7-topic-109` — 宁可...也不...
+  - family: `conjunctions_connectives`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk4-8-topic` — 哪怕/即便...也...
+  - family: `conjunctions_connectives`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk4-8-topic-110` — 再...也...
+  - family: `adverbs_degree_frequency`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk4-9-topic` — 之所以...是因为...
+  - family: `conjunctions_connectives`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk4-9-topic-111` — 越是...越...
+  - family: `copula_shi`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk4-progress-check` — HSK4 Progress Check
+  - family: `review_checkpoint`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk4-review-1-107` — HSK4 · 衔接与书面表达 · Review 1
+  - family: `review_checkpoint`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk4-review-1-89` — HSK4 · 复杂句式 · Review 1
+  - family: `review_checkpoint`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk4-review-2-113` — HSK4 · 衔接与书面表达 · Review 2
+  - family: `review_checkpoint`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk4-review-2-95` — HSK4 · 复杂句式 · Review 2
+  - family: `review_checkpoint`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk4-review-3-101` — HSK4 · 复杂句式 · Review 3
+  - family: `review_checkpoint`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk5-1-ki-m-ng` — 使/令/让 + kiêm ngữ
+  - family: `pivotal_sentences`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk5-1-topic` — 不是...而是...
+  - family: `conjunctions_connectives`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk5-10-topic` — 无非/不过是
+  - family: `limitation_focus`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk5-10-topic-148` — 之中/之内/之上/之下
+  - family: `register_pragmatics`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk5-11-n-ng-cao` — 并列复句 nâng cao
+  - family: `complex_clauses`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk5-11-topic` — 以...为...
+  - family: `prepositions_coverbs`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk5-12-n-ng-cao` — 递进复句 nâng cao
+  - family: `complex_clauses`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk5-12-topic` — 话题链与省略
+  - family: `topic_comment`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk5-13-n-ng-cao` — 转折复句 nâng cao
+  - family: `complex_clauses`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk5-13-reference` — 其/该/此/上述 reference
+  - family: `register_pragmatics`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk5-14-n-ng-cao` — 因果复句 nâng cao
+  - family: `complex_clauses`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk5-14-n-ng-cao-153` — 长定语 nâng cao
+  - family: `de_modifier`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk5-15-n-ng-cao` — 条件复句 nâng cao
+  - family: `classifiers_measure_words`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk5-15-tendencies` — 名词化 tendencies
+  - family: `register_pragmatics`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk5-16-n-ng-cao` — 假设复句 nâng cao
+  - family: `complex_clauses`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk5-17-introduction` — 紧缩复句 introduction
+  - family: `complex_clauses`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk5-2-topic` — 并非/并不是
+  - family: `advanced_negation`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk5-2-topic-139` — 双宾语
+  - family: `double_object`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk5-3-approximate-quantities` — Approximate quantities
+  - family: `register_pragmatics`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk5-3-topic` — 未必/不见得
+  - family: `epistemic_modality`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk5-4-topic` — 难免/免不了
+  - family: `epistemic_modality`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk5-4-topic-141` — 倍数和比例
+  - family: `comparison_bi`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk5-5-scope` — 仅/只/光/单 scope
+  - family: `register_pragmatics`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk5-5-topic` — 不妨/何不
+  - family: `negation_bu_mei`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk5-6-focus-v-i` — Focus với 是...的/连...都
+  - family: `focus_emphasis`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk5-6-topic` — 务必/切勿/不得
+  - family: `deontic_modality`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk5-7-topic` — 以便/以免
+  - family: `complex_clauses`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk5-7-topic-145` — 同位与解释
+  - family: `register_pragmatics`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk5-8-topic` — 从而/进而
+  - family: `prepositions_coverbs`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk5-8-topic-146` — 鉴于/基于/针对
+  - family: `prepositions_coverbs`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk5-9-topic` — 尽管/固然
+  - family: `complex_clauses`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk5-9-topic-147` — 关于/对于/随着
+  - family: `prepositions_coverbs`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk5-progress-check` — HSK5 Progress Check
+  - family: `review_checkpoint`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk5-review-1-123` — HSK5 · 高级复句 · Review 1
+  - family: `review_checkpoint`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk5-review-1-143` — HSK5 · 书面语法 · Review 1
+  - family: `review_checkpoint`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk5-review-2-129` — HSK5 · 高级复句 · Review 2
+  - family: `review_checkpoint`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk5-review-2-149` — HSK5 · 书面语法 · Review 2
+  - family: `review_checkpoint`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk5-review-3-135` — HSK5 · 高级复句 · Review 3
+  - family: `review_checkpoint`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk5-review-3-155` — HSK5 · 书面语法 · Review 3
+  - family: `review_checkpoint`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk6-1-complex-constructions` — Complex 把 constructions
+  - family: `ba_construction`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk6-1-t-ng-t-c-n-ng-cao` — 了/过/着 tương tác nâng cao
+  - family: `aspect_interaction`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk6-1-topic` — 尽管/固然/即使/哪怕/纵然
+  - family: `questions_ma_ne_wh`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk6-10-complex-complements` — Complex complements
+  - family: `advanced_complements`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk6-11-long-sentence-parsing` — Long sentence parsing
+  - family: `complex_clause_analysis`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk6-12-parallel-structure-in-formal-prose` — Parallel structure in formal prose
+  - family: `register_pragmatics`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk6-13-compression-and-expansion` — Compression and expansion
+  - family: `sentence_transformation`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk6-14-formal-comparison` — Formal comparison
+  - family: `register_pragmatics`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk6-15-approximation-and-limitation` — Approximation and limitation
+  - family: `quantification_limitation`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk6-16-discourse-connectors-by-relation` — Discourse connectors by relation
+  - family: `discourse_connectivity`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk6-17-reference-chains` — Reference chains
+  - family: `discourse_reference`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk6-18-topic-comment-in-formal-writing` — Topic-comment in formal writing
+  - family: `register_pragmatics`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk6-19-sentence-final-particles-in-advanced-use` — Sentence-final particles in advanced use
+  - family: `sentence_final_particles`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk6-2-complex-constructions` — Complex 被 constructions
+  - family: `bei_passive`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk6-2-topic` — 恐怕/大概/显然/据说
+  - family: `epistemic_modality`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk6-2-topic-175` — 只要/只有/除非/倘若/假如/一旦
+  - family: `conjunctions_connectives`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk6-20-register-control` — Register control
+  - family: `register_pragmatics`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk6-21-vietnamese-transfer-errors` — Vietnamese transfer errors
+  - family: `transfer_error_review`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk6-22-punctuation-and-clause-grammar` — Punctuation and clause grammar
+  - family: `punctuation_clause_linking`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk6-23-summary-and-reformulation-structures` — Summary and reformulation structures
+  - family: `discourse_reformulation`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk6-24-argument-qualification` — Argument qualification
+  - family: `discourse_qualification`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk6-3-agent-source` — 由 + agent/source
+  - family: `prepositions_coverbs`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk6-3-n-ng-cao` — 所字结构 nâng cao
+  - family: `nominalization_suo`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk6-3-topic` — 并不/未必/不都/都不
+  - family: `negation_scope`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk6-4-patterns` — 者 patterns
+  - family: `nominalization_zhe`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk6-4-scope` — 只/仅/就/才/连/甚至 scope
+  - family: `focus_emphasis`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk6-4-topic` — 为...所...
+  - family: `prepositions_coverbs`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk6-5-double-negation` — Double negation
+  - family: `negation_bu_mei`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk6-5-patterns` — 之 patterns
+  - family: `nominalization_zhi`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk6-5-topic` — 使/令/让/促使
+  - family: `causative_constructions`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk6-6-rhetorical-questions` — 难道/岂/何尝 rhetorical questions
+  - family: `questions_ma_ne_wh`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk6-6-topic` — 导致/致使
+  - family: `causative_constructions`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk6-6-topic-180` — 以...为...
+  - family: `prepositions_coverbs`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk6-7-topic` — 不得不/不能不/未尝不/无不
+  - family: `modal_verbs`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk6-7-topic-172` — 以致/以至于
+  - family: `conjunctions_connectives`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk6-7-topic-181` — 就...而言 / 从...来看
+  - family: `discourse_frame`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk6-8-contrast` — 至于 / 关于 / 对于 contrast
+  - family: `prepositions_coverbs`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk6-8-topic` — 以便/以免/以期
+  - family: `conjunctions_connectives`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk6-9-topic` — 同位语和插入语
+  - family: `apposition_parentheticals`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk6-progress-check` — HSK6 Progress Check
+  - family: `review_checkpoint`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk6-review-1-162` — HSK6 · 范围与语气 · Review 1
+  - family: `review_checkpoint`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk6-review-1-170` — HSK6 · 把被使令 · Review 1
+  - family: `review_checkpoint`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk6-review-1-179` — HSK6 · 高级复句与书面语 · Review 1
+  - family: `review_checkpoint`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk6-review-2-185` — HSK6 · 高级复句与书面语 · Review 2
+  - family: `review_checkpoint`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk6-review-3-191` — HSK6 · 高级复句与书面语 · Review 3
+  - family: `review_checkpoint`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk6-review-4-197` — HSK6 · 高级复句与书面语 · Review 4
+  - family: `review_checkpoint`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk79-1-advanced-written-aspect-and-viewpoint` — Advanced written aspect and viewpoint
+  - family: `register_pragmatics`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk79-10-conditional-rhetoric` — Conditional rhetoric
+  - family: `register_pragmatics`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk79-11-cause-vs-evidence-distinction` — Cause vs evidence distinction
+  - family: `register_pragmatics`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk79-12-reformulation-and-qualification` — Reformulation and qualification
+  - family: `register_pragmatics`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk79-13-comparison-and-analogy` — Comparison and analogy
+  - family: `register_pragmatics`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk79-14-productive-four-character-grammar-patterns` — Productive four-character grammar patterns
+  - family: `register_pragmatics`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk79-15-rhetorical-questions-and-negation` — Rhetorical questions and negation
+  - family: `register_pragmatics`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk79-16-information-structure-and-emphasis` — Information structure and emphasis
+  - family: `focus_emphasis`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk79-17-ellipsis-and-recoverability` — Ellipsis and recoverability
+  - family: `register_pragmatics`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk79-18-academic-definition-and-classification` — Academic definition and classification
+  - family: `register_pragmatics`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk79-19-argument-concession-counterclaim` — Argument concession-counterclaim
+  - family: `register_pragmatics`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk79-2-advanced-modality-and-stance` — Advanced modality and stance
+  - family: `register_pragmatics`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk79-20-reporting-and-attribution` — Reporting and attribution
+  - family: `register_pragmatics`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk79-21-legal-administrative-register-patterns` — Legal/administrative register patterns
+  - family: `register_pragmatics`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk79-22-literary-descriptive-syntax` — Literary descriptive syntax
+  - family: `register_pragmatics`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk79-23-translation-sensitive-grammar` — Translation-sensitive grammar
+  - family: `register_pragmatics`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk79-24-precision-editing-of-long-modifiers` — Precision editing of long modifiers
+  - family: `register_pragmatics`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk79-25-ambiguity-diagnosis` — Ambiguity diagnosis
+  - family: `register_pragmatics`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk79-26-style-transformation` — Style transformation
+  - family: `register_pragmatics`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk79-27-parallelism-and-cadence` — Parallelism and cadence
+  - family: `register_pragmatics`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk79-28-advanced-connector-economy` — Advanced connector economy
+  - family: `register_pragmatics`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk79-29-metadiscourse-grammar` — Metadiscourse grammar
+  - family: `discourse_connectivity`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk79-3-negative-raising-and-scope` — Negative raising and scope
+  - family: `register_pragmatics`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk79-30-high-level-integrated-grammar-review` — High-level integrated grammar review
+  - family: `review_checkpoint`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk79-4-dense-nominal-structures` — Dense nominal structures
+  - family: `register_pragmatics`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk79-5-in-modern-formal-prose` — 于/以/为/所/者/之 in modern formal prose
+  - family: `register_pragmatics`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk79-6-advanced-passive-causative-alternation` — Advanced passive/causative alternation
+  - family: `bei_passive`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk79-7-complex-topic-chains` — Complex topic chains
+  - family: `register_pragmatics`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk79-8-long-sentence-architecture` — Long sentence architecture
+  - family: `register_pragmatics`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk79-9-concessive-rhetoric` — Concessive rhetoric
+  - family: `register_pragmatics`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk79-progress-check` — HSK7-9 Progress Check
+  - family: `review_checkpoint`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk79-review-1-208` — HSK7-9 · 高阶书面语法 · Review 1
+  - family: `review_checkpoint`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk79-review-2-214` — HSK7-9 · 高阶书面语法 · Review 2
+  - family: `review_checkpoint`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk79-review-3-220` — HSK7-9 · 高阶书面语法 · Review 3
+  - family: `review_checkpoint`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk79-review-4-226` — HSK7-9 · 高阶书面语法 · Review 4
+  - family: `review_checkpoint`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk79-review-5-232` — HSK7-9 · 高阶书面语法 · Review 5
+  - family: `review_checkpoint`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+- `zh:zh-hsk79-review-6-238` — HSK7-9 · 高阶书面语法 · Review 6
+  - family: `review_checkpoint`
+  - reasons: `actual_rule_or_relationship_missing, need_at_least_two_source_examples, pattern_evidence_too_weak, structured_common_mistake_with_why_and_correct_missing`
+
+## Gate
+
+The compiler intentionally refused to write partially fabricated lesson bodies.
+The next content pass must supply the missing concept-specific evidence in the Static KB/curriculum source.

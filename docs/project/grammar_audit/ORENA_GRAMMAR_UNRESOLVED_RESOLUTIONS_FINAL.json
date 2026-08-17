@@ -1,0 +1,539 @@
+{
+  "summary": {
+    "resolved_lessons": 53,
+    "unresolved_lessons": 0,
+    "status": "COMPLETE"
+  },
+  "resolutions": [
+    {
+      "id": "zh-hsk1-12-t-h-i-gi-nguy-n-v-tr",
+      "title": "Từ để hỏi giữ nguyên vị trí",
+      "level": "HSK1",
+      "family": "questions_ma_ne_wh",
+      "mode": "word_order",
+      "confidence": "high",
+      "reason": "Từ để hỏi giữ nguyên vị trí: Chinese WH-question word-order mechanism.",
+      "status": "RESOLVED"
+    },
+    {
+      "id": "zh-hsk1-20-n-i-danh-t",
+      "title": "和 nối danh từ",
+      "level": "HSK1",
+      "family": "coordination_conjunctions",
+      "mode": "form_choice",
+      "confidence": "high",
+      "reason": "和 nối danh từ: nominal coordination, not aspect/adverb.",
+      "status": "RESOLVED"
+    },
+    {
+      "id": "zh-hsk2-11-topic",
+      "title": "一边...一边...",
+      "level": "HSK2",
+      "family": "conjunctions_connectives",
+      "mode": "discourse",
+      "confidence": "high",
+      "reason": "一边...一边... links simultaneous parallel actions.",
+      "status": "RESOLVED"
+    },
+    {
+      "id": "zh-hsk2-12-b-ng-th-i-l-ng-introduction",
+      "title": "Bổ ngữ thời lượng: introduction",
+      "level": "HSK2",
+      "family": "quantity_complements",
+      "mode": "transformation",
+      "confidence": "high",
+      "reason": "Bổ ngữ thời lượng is the duration/quantity-complement mechanism.",
+      "status": "RESOLVED"
+    },
+    {
+      "id": "zh-hsk2-13-b-ng-ng-l-ng-introduction",
+      "title": "Bổ ngữ động lượng: introduction",
+      "level": "HSK2",
+      "family": "quantity_complements",
+      "mode": "transformation",
+      "confidence": "high",
+      "reason": "Bổ ngữ động lượng is the verbal-frequency/quantity-complement mechanism.",
+      "status": "RESOLVED"
+    },
+    {
+      "id": "zh-hsk2-4-topic",
+      "title": "只要...就...",
+      "level": "HSK2",
+      "family": "conjunctions_connectives",
+      "mode": "discourse",
+      "confidence": "high",
+      "reason": "只要...就... is a paired conditional connective construction.",
+      "status": "RESOLVED"
+    },
+    {
+      "id": "zh-hsk2-5-topic",
+      "title": "只有...才...",
+      "level": "HSK2",
+      "family": "conjunctions_connectives",
+      "mode": "discourse",
+      "confidence": "high",
+      "reason": "只有...才... is a restrictive conditional connective construction.",
+      "status": "RESOLVED"
+    },
+    {
+      "id": "zh-hsk2-8-b-ng-m-c",
+      "title": "得: bổ ngữ mức độ",
+      "level": "HSK2",
+      "family": "degree_complements",
+      "mode": "transformation",
+      "confidence": "high",
+      "reason": "得: bổ ngữ mức độ explicitly names the degree-complement mechanism.",
+      "status": "RESOLVED"
+    },
+    {
+      "id": "zh-hsk3-10-ngh-a-m-r-ng",
+      "title": "趋向补语 nghĩa mở rộng",
+      "level": "HSK3",
+      "family": "directional_complements",
+      "mode": "transformation",
+      "confidence": "high",
+      "reason": "趋向补语 nghĩa mở rộng explicitly extends directional complements.",
+      "status": "RESOLVED"
+    },
+    {
+      "id": "zh-hsk3-11-nh-n-m-nh",
+      "title": "是...的 nhấn mạnh",
+      "level": "HSK3",
+      "family": "shi_de_construction",
+      "mode": "transformation",
+      "confidence": "high",
+      "reason": "是...的 nhấn mạnh explicitly names the 是...的 focus construction.",
+      "status": "RESOLVED"
+    },
+    {
+      "id": "zh-hsk3-5-v-i-chi-u",
+      "title": "把 và 被 đối chiếu",
+      "level": "HSK3",
+      "family": "ba_bei_contrast",
+      "mode": "transformation",
+      "confidence": "high",
+      "reason": "把 và 被 đối chiếu is a dedicated contrast between disposal and passive constructions.",
+      "status": "RESOLVED"
+    },
+    {
+      "id": "zh-hsk3-6-topic",
+      "title": "由于...因此...",
+      "level": "HSK3",
+      "family": "conjunctions_connectives",
+      "mode": "discourse",
+      "confidence": "high",
+      "reason": "由于...因此... is an explicit cause-result connective pair.",
+      "status": "RESOLVED"
+    },
+    {
+      "id": "zh-hsk3-8-b-ng-th-i-l-ng",
+      "title": "Bổ ngữ thời lượng",
+      "level": "HSK3",
+      "family": "quantity_complements",
+      "mode": "transformation",
+      "confidence": "high",
+      "reason": "Bổ ngữ thời lượng is a duration complement.",
+      "status": "RESOLVED"
+    },
+    {
+      "id": "zh-hsk3-9-b-ng-ng-l-ng",
+      "title": "Bổ ngữ động lượng",
+      "level": "HSK3",
+      "family": "quantity_complements",
+      "mode": "transformation",
+      "confidence": "high",
+      "reason": "Bổ ngữ động lượng is a verbal-frequency complement.",
+      "status": "RESOLVED"
+    },
+    {
+      "id": "zh-hsk4-12-topic",
+      "title": "按照/根据...",
+      "level": "HSK4",
+      "family": "prepositions_coverbs",
+      "mode": "word_order",
+      "confidence": "high",
+      "reason": "按照/根据... are prepositional/coverb framing expressions.",
+      "status": "RESOLVED"
+    },
+    {
+      "id": "zh-hsk4-12-topic-115",
+      "title": "来得及/来不及",
+      "level": "HSK4",
+      "family": "potential_complements",
+      "mode": "transformation",
+      "confidence": "high",
+      "reason": "来得及/来不及 is a potential-complement pattern expressing feasibility in time.",
+      "status": "RESOLVED"
+    },
+    {
+      "id": "zh-hsk4-14-topic",
+      "title": "由...组成 / 由...负责",
+      "level": "HSK4",
+      "family": "prepositions_coverbs",
+      "mode": "word_order",
+      "confidence": "high",
+      "reason": "由...组成 / 由...负责 uses 由 as a source/agent prepositional frame.",
+      "status": "RESOLVED"
+    },
+    {
+      "id": "zh-hsk4-15-v-introduction",
+      "title": "所 + V: introduction",
+      "level": "HSK4",
+      "family": "nominalization_suo",
+      "mode": "transformation",
+      "confidence": "high",
+      "reason": "所 + V introduction is the 所 nominalization/relative-like structure.",
+      "status": "RESOLVED"
+    },
+    {
+      "id": "zh-hsk4-4-topic-105",
+      "title": "然而/不过/可是",
+      "level": "HSK4",
+      "family": "discourse_connectivity",
+      "mode": "discourse",
+      "confidence": "high",
+      "reason": "然而/不过/可是 are contrastive discourse connectors.",
+      "status": "RESOLVED"
+    },
+    {
+      "id": "zh-hsk4-6-topic",
+      "title": "除非...否则...",
+      "level": "HSK4",
+      "family": "conjunctions_connectives",
+      "mode": "discourse",
+      "confidence": "high",
+      "reason": "除非...否则... is an unless/otherwise conditional connective pair.",
+      "status": "RESOLVED"
+    },
+    {
+      "id": "zh-hsk4-7-topic",
+      "title": "不管/无论...都...",
+      "level": "HSK4",
+      "family": "conjunctions_connectives",
+      "mode": "discourse",
+      "confidence": "high",
+      "reason": "不管/无论...都... is a concessive/generalizing connective construction.",
+      "status": "RESOLVED"
+    },
+    {
+      "id": "zh-hsk4-7-topic-109",
+      "title": "宁可...也不...",
+      "level": "HSK4",
+      "family": "conjunctions_connectives",
+      "mode": "discourse",
+      "confidence": "high",
+      "reason": "宁可...也不... is a paired preference/contrast construction.",
+      "status": "RESOLVED"
+    },
+    {
+      "id": "zh-hsk4-8-topic",
+      "title": "哪怕/即便...也...",
+      "level": "HSK4",
+      "family": "conjunctions_connectives",
+      "mode": "discourse",
+      "confidence": "high",
+      "reason": "哪怕/即便...也... is a concessive connective construction.",
+      "status": "RESOLVED"
+    },
+    {
+      "id": "zh-hsk4-9-topic",
+      "title": "之所以...是因为...",
+      "level": "HSK4",
+      "family": "conjunctions_connectives",
+      "mode": "discourse",
+      "confidence": "high",
+      "reason": "之所以...是因为... encodes an explicit reason/explanation relation.",
+      "status": "RESOLVED"
+    },
+    {
+      "id": "zh-hsk5-1-topic",
+      "title": "不是...而是...",
+      "level": "HSK5",
+      "family": "conjunctions_connectives",
+      "mode": "discourse",
+      "confidence": "high",
+      "reason": "不是...而是... is a corrective contrast construction.",
+      "status": "RESOLVED"
+    },
+    {
+      "id": "zh-hsk5-10-topic",
+      "title": "无非/不过是",
+      "level": "HSK5",
+      "family": "limitation_focus",
+      "mode": "discourse",
+      "confidence": "high",
+      "reason": "无非/不过是 restrict or downscale the proposition's scope/interpretation.",
+      "status": "RESOLVED"
+    },
+    {
+      "id": "zh-hsk5-2-topic",
+      "title": "并非/并不是",
+      "level": "HSK5",
+      "family": "advanced_negation",
+      "mode": "form_choice",
+      "confidence": "high",
+      "reason": "并非/并不是 is advanced propositional negation.",
+      "status": "RESOLVED"
+    },
+    {
+      "id": "zh-hsk5-3-topic",
+      "title": "未必/不见得",
+      "level": "HSK5",
+      "family": "epistemic_modality",
+      "mode": "discourse",
+      "confidence": "high",
+      "reason": "未必/不见得 express epistemic uncertainty/qualification.",
+      "status": "RESOLVED"
+    },
+    {
+      "id": "zh-hsk5-4-topic",
+      "title": "难免/免不了",
+      "level": "HSK5",
+      "family": "epistemic_modality",
+      "mode": "discourse",
+      "confidence": "high",
+      "reason": "难免/免不了 express evaluated likelihood/inevitability.",
+      "status": "RESOLVED"
+    },
+    {
+      "id": "zh-hsk5-6-topic",
+      "title": "务必/切勿/不得",
+      "level": "HSK5",
+      "family": "deontic_modality",
+      "mode": "form_choice",
+      "confidence": "high",
+      "reason": "务必/切勿/不得 encode strong obligation/prohibition.",
+      "status": "RESOLVED"
+    },
+    {
+      "id": "zh-hsk6-1-t-ng-t-c-n-ng-cao",
+      "title": "了/过/着 tương tác nâng cao",
+      "level": "HSK6",
+      "family": "aspect_interaction",
+      "mode": "aspect",
+      "confidence": "high",
+      "reason": "了/过/着 tương tác nâng cao explicitly compares interacting aspect markers.",
+      "status": "RESOLVED"
+    },
+    {
+      "id": "zh-hsk6-10-complex-complements",
+      "title": "Complex complements",
+      "level": "HSK6",
+      "family": "advanced_complements",
+      "mode": "transformation",
+      "confidence": "high",
+      "reason": "Complex complements integrates multiple complement mechanisms at advanced level.",
+      "status": "RESOLVED"
+    },
+    {
+      "id": "zh-hsk6-11-long-sentence-parsing",
+      "title": "Long sentence parsing",
+      "level": "HSK6",
+      "family": "complex_clause_analysis",
+      "mode": "review",
+      "confidence": "high",
+      "reason": "Long sentence parsing is an integration/review task over real clause structures.",
+      "status": "RESOLVED"
+    },
+    {
+      "id": "zh-hsk6-13-compression-and-expansion",
+      "title": "Compression and expansion",
+      "level": "HSK6",
+      "family": "sentence_transformation",
+      "mode": "transformation",
+      "confidence": "high",
+      "reason": "Compression and expansion explicitly trains structural sentence transformation.",
+      "status": "RESOLVED"
+    },
+    {
+      "id": "zh-hsk6-15-approximation-and-limitation",
+      "title": "Approximation and limitation",
+      "level": "HSK6",
+      "family": "quantification_limitation",
+      "mode": "discourse",
+      "confidence": "high",
+      "reason": "Approximation and limitation concerns scope/degree/limiting expressions.",
+      "status": "RESOLVED"
+    },
+    {
+      "id": "zh-hsk6-17-reference-chains",
+      "title": "Reference chains",
+      "level": "HSK6",
+      "family": "discourse_reference",
+      "mode": "discourse",
+      "confidence": "high",
+      "reason": "Reference chains are discourse-level anaphora/reference tracking.",
+      "status": "RESOLVED"
+    },
+    {
+      "id": "zh-hsk6-2-topic",
+      "title": "恐怕/大概/显然/据说",
+      "level": "HSK6",
+      "family": "epistemic_modality",
+      "mode": "discourse",
+      "confidence": "high",
+      "reason": "恐怕/大概/显然/据说 encode stance, certainty and evidential source.",
+      "status": "RESOLVED"
+    },
+    {
+      "id": "zh-hsk6-2-topic-175",
+      "title": "只要/只有/除非/倘若/假如/一旦",
+      "level": "HSK6",
+      "family": "conjunctions_connectives",
+      "mode": "discourse",
+      "confidence": "high",
+      "reason": "只要/只有/除非/倘若/假如/一旦 is an advanced conditional-connective set.",
+      "status": "RESOLVED"
+    },
+    {
+      "id": "zh-hsk6-21-vietnamese-transfer-errors",
+      "title": "Vietnamese transfer errors",
+      "level": "HSK6",
+      "family": "transfer_error_review",
+      "mode": "review",
+      "confidence": "high",
+      "reason": "Vietnamese transfer errors is a contrastive error-analysis/review unit, not one isolated grammar form.",
+      "status": "RESOLVED"
+    },
+    {
+      "id": "zh-hsk6-22-punctuation-and-clause-grammar",
+      "title": "Punctuation and clause grammar",
+      "level": "HSK6",
+      "family": "punctuation_clause_linking",
+      "mode": "discourse",
+      "confidence": "high",
+      "reason": "Punctuation and clause grammar concerns clause boundary/linking in written syntax.",
+      "status": "RESOLVED"
+    },
+    {
+      "id": "zh-hsk6-23-summary-and-reformulation-structures",
+      "title": "Summary and reformulation structures",
+      "level": "HSK6",
+      "family": "discourse_reformulation",
+      "mode": "discourse",
+      "confidence": "high",
+      "reason": "Summary and reformulation structures are discourse-level restatement/compression patterns.",
+      "status": "RESOLVED"
+    },
+    {
+      "id": "zh-hsk6-24-argument-qualification",
+      "title": "Argument qualification",
+      "level": "HSK6",
+      "family": "discourse_qualification",
+      "mode": "discourse",
+      "confidence": "high",
+      "reason": "Argument qualification is stance/hedging/limitation in formal discourse.",
+      "status": "RESOLVED"
+    },
+    {
+      "id": "zh-hsk6-3-agent-source",
+      "title": "由 + agent/source",
+      "level": "HSK6",
+      "family": "prepositions_coverbs",
+      "mode": "word_order",
+      "confidence": "high",
+      "reason": "由 + agent/source is an agent/source prepositional frame.",
+      "status": "RESOLVED"
+    },
+    {
+      "id": "zh-hsk6-3-n-ng-cao",
+      "title": "所字结构 nâng cao",
+      "level": "HSK6",
+      "family": "nominalization_suo",
+      "mode": "transformation",
+      "confidence": "high",
+      "reason": "所字结构 nâng cao is advanced 所 nominalization.",
+      "status": "RESOLVED"
+    },
+    {
+      "id": "zh-hsk6-3-topic",
+      "title": "并不/未必/不都/都不",
+      "level": "HSK6",
+      "family": "negation_scope",
+      "mode": "discourse",
+      "confidence": "high",
+      "reason": "并不/未必/不都/都不 is specifically about negation and quantifier scope.",
+      "status": "RESOLVED"
+    },
+    {
+      "id": "zh-hsk6-4-patterns",
+      "title": "者 patterns",
+      "level": "HSK6",
+      "family": "nominalization_zhe",
+      "mode": "transformation",
+      "confidence": "high",
+      "reason": "者 patterns are nominalizing/person-reference structures.",
+      "status": "RESOLVED"
+    },
+    {
+      "id": "zh-hsk6-5-patterns",
+      "title": "之 patterns",
+      "level": "HSK6",
+      "family": "nominalization_zhi",
+      "mode": "transformation",
+      "confidence": "high",
+      "reason": "之 patterns are classical/formal nominal-linking structures.",
+      "status": "RESOLVED"
+    },
+    {
+      "id": "zh-hsk6-5-topic",
+      "title": "使/令/让/促使",
+      "level": "HSK6",
+      "family": "causative_constructions",
+      "mode": "transformation",
+      "confidence": "high",
+      "reason": "使/令/让/促使 are causative predicates/constructions.",
+      "status": "RESOLVED"
+    },
+    {
+      "id": "zh-hsk6-6-topic",
+      "title": "导致/致使",
+      "level": "HSK6",
+      "family": "causative_constructions",
+      "mode": "transformation",
+      "confidence": "high",
+      "reason": "导致/致使 encode causation/result relations.",
+      "status": "RESOLVED"
+    },
+    {
+      "id": "zh-hsk6-7-topic-172",
+      "title": "以致/以至于",
+      "level": "HSK6",
+      "family": "conjunctions_connectives",
+      "mode": "discourse",
+      "confidence": "high",
+      "reason": "以致/以至于 introduce result clauses.",
+      "status": "RESOLVED"
+    },
+    {
+      "id": "zh-hsk6-7-topic-181",
+      "title": "就...而言 / 从...来看",
+      "level": "HSK6",
+      "family": "discourse_frame",
+      "mode": "discourse",
+      "confidence": "high",
+      "reason": "就...而言 / 从...来看 frame a proposition from a viewpoint/domain.",
+      "status": "RESOLVED"
+    },
+    {
+      "id": "zh-hsk6-8-topic",
+      "title": "以便/以免/以期",
+      "level": "HSK6",
+      "family": "conjunctions_connectives",
+      "mode": "discourse",
+      "confidence": "high",
+      "reason": "以便/以免/以期 introduce purpose/avoidance/expectation relations.",
+      "status": "RESOLVED"
+    },
+    {
+      "id": "zh-hsk6-9-topic",
+      "title": "同位语和插入语",
+      "level": "HSK6",
+      "family": "apposition_parentheticals",
+      "mode": "discourse",
+      "confidence": "high",
+      "reason": "同位语和插入语 explicitly covers apposition and parenthetical structures.",
+      "status": "RESOLVED"
+    }
+  ]
+}

@@ -3,26 +3,13 @@ from __future__ import annotations
 import re
 
 from writing_coach.core.request_context import current_language_code
-from writing_coach.languages.chinese.grammar_course import (
-    GRAMMAR_BY_ID as CHINESE_GRAMMAR_BY_ID,
-    GRAMMAR_COURSE as CHINESE_GRAMMAR_COURSE,
-)
-from writing_coach.languages.chinese.grammar_knowledge_base import (
-    GRAMMAR_KNOWLEDGE_BY_ID as CHINESE_GRAMMAR_KNOWLEDGE_BY_ID,
-)
+from writing_coach.languages.grammar_registry import grammar_provider
 from writing_coach.languages.chinese.profile import (
     ERROR_CATEGORIES as CHINESE_ERROR_CATEGORIES,
     PROFILE as CHINESE_PROFILE,
     RUBRIC_WEIGHTS as CHINESE_RUBRIC_WEIGHTS,
     SYSTEM_PROMPT as CHINESE_SYSTEM_PROMPT,
     score_to_level as chinese_score_to_level,
-)
-from writing_coach.languages.english.grammar_course import (
-    GRAMMAR_BY_ID as ENGLISH_GRAMMAR_BY_ID,
-    GRAMMAR_COURSE as ENGLISH_GRAMMAR_COURSE,
-)
-from writing_coach.languages.english.grammar_knowledge_base import (
-    GRAMMAR_KNOWLEDGE_BY_ID as ENGLISH_GRAMMAR_KNOWLEDGE_BY_ID,
 )
 from writing_coach.languages.english.profile import (
     ERROR_CATEGORIES as ENGLISH_ERROR_CATEGORIES,
@@ -88,37 +75,28 @@ def writing_unit_label() -> str:
     return "characters" if is_chinese() else "words"
 
 
+def active_grammar_provider():
+    return grammar_provider(current_language_code())
+
+
+def active_grammar_language_code() -> str:
+    return active_grammar_provider().code
+
+
 def active_grammar_course() -> list[dict]:
-    return CHINESE_GRAMMAR_COURSE if is_chinese() else ENGLISH_GRAMMAR_COURSE
+    return active_grammar_provider().course
 
 
 def active_grammar_by_id() -> dict[str, dict]:
-    return CHINESE_GRAMMAR_BY_ID if is_chinese() else ENGLISH_GRAMMAR_BY_ID
+    return active_grammar_provider().by_id
 
 
 def active_grammar_knowledge_by_id() -> dict[str, dict]:
-    return CHINESE_GRAMMAR_KNOWLEDGE_BY_ID if is_chinese() else ENGLISH_GRAMMAR_KNOWLEDGE_BY_ID
+    return active_grammar_provider().knowledge_by_id
 
 
 def grammar_level_names() -> dict[str, str]:
-    if is_chinese():
-        return {
-            "HSK1": "Foundation",
-            "HSK2": "Basic",
-            "HSK3": "Lower-intermediate",
-            "HSK4": "Intermediate",
-            "HSK5": "Upper-intermediate",
-            "HSK6": "Advanced",
-            "HSK7-9": "Advanced mastery",
-        }
-    return {
-        "A1": "Foundation",
-        "A2": "Core",
-        "B1": "Intermediate",
-        "B2": "Upper-intermediate",
-        "C1": "Advanced",
-        "C2": "Mastery",
-    }
+    return dict(active_grammar_provider().level_names)
 
 
 def grammar_lesson_prompts(lesson: dict) -> tuple[str, str]:

@@ -1,0 +1,218 @@
+{
+  "summary": {
+    "classification_version": 3,
+    "total_lessons": 508,
+    "english_lessons": 269,
+    "chinese_lessons": 239,
+    "english_unclassified": 0,
+    "chinese_unclassified": 0,
+    "resolved_in_final_pass": 53,
+    "authoring_batches": 199,
+    "blocked_batches": 0,
+    "classifier_status": "CLOSED",
+    "content_authoring_status": "READY",
+    "generic_mass_fill": "FORBIDDEN"
+  },
+  "family_counts": {
+    "en": {
+      "adjectives_adverbs": 8,
+      "adverbial_clauses": 4,
+      "articles_determiners": 10,
+      "basic_word_order": 1,
+      "be_existential": 5,
+      "comparison": 111,
+      "conditionals": 12,
+      "discourse_register": 5,
+      "future_forms": 12,
+      "gerund_infinitive": 8,
+      "modals": 19,
+      "nouns_countability": 5,
+      "participles": 2,
+      "passive_voice": 8,
+      "past_continuous": 1,
+      "past_simple": 5,
+      "present_continuous": 2,
+      "present_perfect": 3,
+      "present_perfect_continuous": 1,
+      "present_simple": 6,
+      "pronouns_possessives": 7,
+      "questions_negation": 10,
+      "relative_clauses": 6,
+      "reported_speech": 2,
+      "review_checkpoint": 16
+    },
+    "zh": {
+      "advanced_complements": 1,
+      "advanced_negation": 1,
+      "adverbs_degree_frequency": 11,
+      "apposition_parentheticals": 1,
+      "aspect_guo": 2,
+      "aspect_interaction": 1,
+      "aspect_le": 3,
+      "aspect_zhe": 3,
+      "ba_bei_contrast": 1,
+      "ba_construction": 5,
+      "bei_passive": 4,
+      "causative_constructions": 2,
+      "classifiers_measure_words": 2,
+      "comparison_bi": 2,
+      "comparison_change": 2,
+      "comparison_yiyang": 1,
+      "complex_clause_analysis": 1,
+      "complex_clauses": 8,
+      "conjunctions_connectives": 13,
+      "coordination_conjunctions": 1,
+      "copula_shi": 4,
+      "core_word_order": 1,
+      "de_modifier": 4,
+      "degree_complements": 2,
+      "demonstratives": 1,
+      "deontic_modality": 1,
+      "directional_complements": 4,
+      "discourse_connectivity": 4,
+      "discourse_frame": 1,
+      "discourse_qualification": 1,
+      "discourse_reference": 1,
+      "discourse_reformulation": 1,
+      "double_object": 1,
+      "epistemic_modality": 3,
+      "existential_you": 1,
+      "focus_emphasis": 7,
+      "limitation_focus": 1,
+      "location_zai": 1,
+      "modal_verbs": 2,
+      "negation_bu_mei": 6,
+      "negation_scope": 1,
+      "nominalization_suo": 2,
+      "nominalization_zhe": 1,
+      "nominalization_zhi": 1,
+      "numbers_dates_quantities": 1,
+      "pivotal_sentences": 1,
+      "potential_complements": 2,
+      "prepositions_coverbs": 16,
+      "progressive_zai_zhengzai": 1,
+      "pronouns": 1,
+      "punctuation_clause_linking": 1,
+      "quantification_limitation": 1,
+      "quantity_complements": 4,
+      "questions_ma_ne_wh": 5,
+      "reduplication": 1,
+      "register_pragmatics": 36,
+      "result_complements": 1,
+      "review_checkpoint": 43,
+      "sentence_final_particles": 1,
+      "sentence_transformation": 1,
+      "separable_verbs": 1,
+      "shi_de_construction": 1,
+      "time_expressions": 1,
+      "topic_comment": 2,
+      "transfer_error_review": 1
+    }
+  },
+  "new_family_descriptions": {
+    "coordination_conjunctions": "Coordination of equivalent constituents, e.g. noun coordination with 和.",
+    "ba_bei_contrast": "Contrastive disposal/passive transformation between 把 and 被.",
+    "nominalization_suo": "所 + V nominalization / formal relative-like structure.",
+    "advanced_negation": "Advanced propositional negation beyond basic 不/没 choice.",
+    "epistemic_modality": "Speaker certainty, likelihood, inference, evidential stance.",
+    "deontic_modality": "Obligation, prohibition, requirement and directive force.",
+    "limitation_focus": "Expressions that narrow, downscale or delimit propositional interpretation.",
+    "causative_constructions": "Causative predicates/constructions and cause-result restructuring.",
+    "aspect_interaction": "Interaction and contrast among multiple aspect markers.",
+    "negation_scope": "Interaction of negation with quantifiers/adverbs and scope.",
+    "nominalization_zhe": "者 nominalization/person-reference patterns.",
+    "nominalization_zhi": "Formal/classical 之 linking/nominalizing patterns.",
+    "discourse_frame": "Viewpoint/domain frames such as 就...而言 / 从...来看.",
+    "apposition_parentheticals": "Appositive and parenthetical clause/sentence structures.",
+    "advanced_complements": "Integrated advanced complement systems.",
+    "complex_clause_analysis": "Integration/review of real clause relationships in long sentences.",
+    "sentence_transformation": "Meaning-preserving compression, expansion and structural rewriting.",
+    "quantification_limitation": "Approximation, limitation and scope expressions.",
+    "discourse_reference": "Reference chains and anaphoric cohesion across discourse.",
+    "transfer_error_review": "Contrastive review of Vietnamese→Chinese transfer errors.",
+    "punctuation_clause_linking": "Punctuation as a signal of clause grammar and written linkage.",
+    "discourse_reformulation": "Summary, reformulation and restatement structures.",
+    "discourse_qualification": "Qualification, hedging and stance in argumentation."
+  },
+  "mode_requirements": {
+    "word_order": {
+      "visuals": [
+        "word_order",
+        "semantic_sentence",
+        "sentence_builder"
+      ],
+      "practice": [
+        "reorder",
+        "identify",
+        "build",
+        "production"
+      ]
+    },
+    "form_choice": {
+      "visuals": [
+        "formula",
+        "contrast",
+        "scene"
+      ],
+      "practice": [
+        "choose",
+        "fill",
+        "correct",
+        "production"
+      ]
+    },
+    "aspect": {
+      "visuals": [
+        "timeline",
+        "transformation",
+        "contrast",
+        "scene"
+      ],
+      "practice": [
+        "choose",
+        "contrast-decision",
+        "transform",
+        "production"
+      ]
+    },
+    "transformation": {
+      "visuals": [
+        "transformation",
+        "semantic_sentence",
+        "contrast"
+      ],
+      "practice": [
+        "transform",
+        "correct",
+        "build",
+        "production"
+      ]
+    },
+    "discourse": {
+      "visuals": [
+        "scene",
+        "contrast",
+        "semantic_sentence"
+      ],
+      "practice": [
+        "compare",
+        "classify",
+        "rewrite",
+        "production"
+      ]
+    },
+    "review": {
+      "visuals": [
+        "contrast",
+        "mixed-representation",
+        "recap"
+      ],
+      "practice": [
+        "recognition",
+        "distinction",
+        "correction",
+        "production"
+      ]
+    }
+  }
+}
