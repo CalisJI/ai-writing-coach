@@ -64,6 +64,19 @@ Future durable Listening progress belongs to R11. Advanced Shadowing belongs to
 R9. Speaking evaluation/pronunciation belongs to R7. None of those should reopen
 or duplicate M1 foundation architecture.
 
+Closeout evidence retained for future agents:
+
+- M1.1 is **CLOSED / APPROVED / merged**.
+- M1.2 is **CLOSED / APPROVED / merged**.
+- M1.3 Shared Media Translation is **CLOSED / APPROVED / merged**.
+- M1.4 Listening MVP integration and acceptance is **CLOSED / APPROVED / merged**.
+- M1.5 Active Listening is **CLOSED / APPROVED / merged**.
+- M1.6 Shared-media Shadowing integration is **CLOSED / APPROVED / merged** via PR #33.
+- PV-2 / OREN-10 internal Listening workspace foundation is merged.
+- PV-3 / OREN-11 Listening practice navigation and playback controls are merged.
+
+Listening and Speaking remain non-public.
+
 ## Current runtime truth
 
 - PostgreSQL remains authoritative; SQLite remains frozen rollback/archive only.
@@ -79,6 +92,8 @@ or duplicate M1 foundation architecture.
   capability activation has not occurred.
 - R6 Speaking Core may use the current bounded internal Groq ASR path, but
   transcript match is not pronunciation/fluency/proficiency scoring.
+- The authenticated internal transcription boundary remains
+  `/api/speech/transcribe`; audio is transient and not persisted to the learner account.
 
 ## Primary next checkpoint — R3 Writing Evaluation Completion
 
@@ -135,6 +150,7 @@ progress, and the final Speaking COMPLETE evidence.
 **YES**
 
 Production capability activation remains a human gate.
+This remains a human-gated activation boundary and is not a learner-product development blocker.
 
 Agents may:
 

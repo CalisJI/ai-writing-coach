@@ -89,6 +89,15 @@ provider-neutral Media Learning Object, canonical timestamped transcript
 segments, support-language translation, internal Listening practice, Active
 Listening reconstruction, and shared-media Shadowing integration.
 
+Merged foundation slices:
+
+- M1.1 — media object and segment contracts: **CLOSED / merged**;
+- M1.2 — media ingestion and transcript acquisition: **CLOSED / merged**;
+- M1.3 — shared media translation: **CLOSED / merged**;
+- M1.4 — Listening MVP integration and acceptance: **CLOSED / merged**;
+- M1.5 — Active Listening: **CLOSED / merged**;
+- M1.6 — Shadowing integration: **CLOSED / merged**.
+
 M1 is closed because no remaining foundation slice is defined. Future work does
 **not** reopen M1:
 
@@ -247,6 +256,8 @@ R11 turns the existing internal M1 Listening foundation into a complete learner
 product with durable progress, richer active practice, acceptance evidence, and
 its own public-release gate. Imported media remains shared with Speaking
 Shadowing.
+
+R11 remains the Listening completion and public-release-readiness gate.
 
 ## R12 — Retention & Growth
 

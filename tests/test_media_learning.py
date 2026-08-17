@@ -232,17 +232,17 @@ def test_governance_records_the_shared_media_learning_direction() -> None:
 
     for slice_name in ("M1.1", "M1.2", "M1.3", "M1.4", "M1.5", "M1.6"):
         assert slice_name in roadmap
-    assert "| M1 | Media Learning Foundation (cross-cutting) | IN PROGRESS |" in roadmap
-    assert "M1 — Media Learning Foundation: **IN PROGRESS / CROSS-CUTTING**" in project_state
-    assert "m1 is an active cross-cutting development track" in normalized_state
+    assert "| M1 | Media Learning Foundation (cross-cutting) | CLOSED / FOUNDATION COMPLETE |" in roadmap
+    assert "M1 — Media Learning Foundation: **CLOSED / FOUNDATION COMPLETE**" in project_state
+    assert "m1 is **closed / foundation complete**" in normalized_state
     assert "one imported media source is represented once" in normalized_state
     assert "both listening and speaking shadowing" in normalized_state
     assert "learner progress remains separate" in normalized_handoff
 
-    assert "R2 — AI Capability Control Plane: **IN PROGRESS / HUMAN-GATED ACTIVATION**" in handoff
+    assert "R2 — AI Capability Control Plane: **HUMAN GATE / READY, NOT PRODUCT-BLOCKING**" in handoff
     assert "## R2 human gate" in handoff
     assert "**YES**" in handoff
-    assert "R2 remains **IN PROGRESS**" in project_state
+    assert "R2 — AI Capability Control Plane: **HUMAN GATE / READY, NOT PRODUCT-BLOCKING**" in project_state
     assert "m1.2 is **closed / approved / merged**" in normalized_handoff
     assert "m1.3 shared media translation is **closed / approved / merged**" in normalized_handoff
     assert "m1.4 listening mvp integration and acceptance is **closed / approved / merged**" in normalized_handoff

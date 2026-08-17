@@ -114,6 +114,19 @@ Future durable Listening progress belongs to R11, advanced Shadowing belongs to
 R9, and full Speaking evaluation/pronunciation belongs to R7. Those stages
 consume M1; they do not reopen or duplicate its foundation.
 
+Explicit M1 closeout evidence remains canonical:
+
+- M1.1 is **CLOSED / APPROVED / merged** — media object and segment contracts.
+- M1.2 is **CLOSED / APPROVED / merged** — media ingestion and transcript acquisition.
+- M1.3 is **CLOSED / APPROVED / merged** — Shared Media Translation.
+- M1.4 is **CLOSED / APPROVED / merged** — Listening MVP integration and acceptance.
+- M1.5 is **CLOSED / APPROVED / merged** — Active Listening transcript reconstruction.
+- M1.6 Shared-media Shadowing integration is **CLOSED / APPROVED / merged** via PR #33.
+
+One imported media source is represented once as a reusable Media Learning
+Object and is consumed by both Listening and Speaking Shadowing through the same
+canonical asset and timestamped segments. Learner progress remains separate.
+
 M1.2 is **CLOSED / APPROVED / merged**. It established the authenticated media
 import API, isolated YouTube adapter, explicit learning-language caption
 selection, canonical transcripts, stable content-derived segment identities,
