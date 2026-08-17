@@ -405,8 +405,9 @@ export async function renderGrammar(root){
       return;
     }
 
-    slot.innerHTML=lessonMarkup(detail,payload);
+    const languageContext=grammarContext(detail);
 
+    slot.innerHTML=lessonMarkup(detail,payload);
     if(hasGrammarLearningModel(detail.learning_model)){
       bindGrammarLearningInteractions(slot,languageContext);
     }

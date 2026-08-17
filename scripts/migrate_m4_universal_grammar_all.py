@@ -621,13 +621,10 @@ def main() -> None:
     args = parser.parse_args()
 
     if args.write:
-        en_migrated, en_preserved = migrate_file(EN_PATH, "en", write=True)
-        zh_migrated, zh_preserved = migrate_file(ZH_PATH, "zh", write=True)
-        print(f"WRITE_EN_SOURCE_ADAPTED={en_migrated}")
-        print(f"WRITE_EN_REPRESENTATIVE_PRESERVED={en_preserved}")
-        print(f"WRITE_ZH_SOURCE_ADAPTED={zh_migrated}")
-        print(f"WRITE_ZH_REPRESENTATIVE_PRESERVED={zh_preserved}")
-
+        raise SystemExit(
+            "This structural migration is superseded by R5 concept-specific authoring; "
+            "--write is disabled to protect current grammar content."
+        )
     en_total, en_schema2, en_source = verify(EN_PATH, "en")
     zh_total, zh_schema2, zh_source = verify(ZH_PATH, "zh")
 

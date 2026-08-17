@@ -10,6 +10,14 @@ REPRESENTATIVES = {
     "b1-passive-voice-present-and-past",
 }
 
+PATTERN_BLOCK_TYPES = {
+    "formula",
+    "word_order",
+    "semantic_sentence",
+    "transformation",
+    "timeline",
+}
+
 
 def test_full_rollout_has_exact_508_schema2_models():
     validate_grammar_knowledge(EN_COURSE, EN_KB)
@@ -33,7 +41,7 @@ def test_full_rollout_has_exact_508_schema2_models():
             ]
 
 
-def test_human_reviewed_status_remains_distinct_from_structural_rollout():
+def test_human_reviewed_status_remains_distinct_from_concept_specific_rollout():
     curated = {
         item["id"]
         for item in EN_KB
@@ -41,12 +49,23 @@ def test_human_reviewed_status_remains_distinct_from_structural_rollout():
     }
     assert curated == REPRESENTATIVES
 
-    source_adapted = [
-        item
-        for item in [*EN_KB, *ZH_KB]
-        if item["source"].get("universal_model_status") == "source-adapted-v1"
-    ]
-    assert len(source_adapted) == 505
+    reviewed = 0
+    pending = 0
+    for item in [*EN_KB, *ZH_KB]:
+        authoring = item["learning_model"].get("authoring", {})
+        assert authoring.get("status") == "source-backed-concept-specific"
+        validation = authoring.get("human_expert_validation")
+        if validation == "representative-reviewed":
+            reviewed += 1
+        elif validation == "pending":
+            pending += 1
+        else:
+            raise AssertionError(
+                f"Unexpected human_expert_validation for {item['id']}: {validation!r}"
+            )
+
+    assert reviewed == 3
+    assert pending == 505
 
 
 def test_all_models_have_full_apply_recall_transfer_path():
@@ -56,33 +75,17 @@ def test_all_models_have_full_apply_recall_transfer_path():
         types = {block["type"] for block in model["blocks"]}
         assert {"pattern", "context", "compare", "apply", "recall", "transfer"} <= stages
         assert {
-            "scene", "contrast", "common_mistake", "exception",
-            "micro_practice", "personal_practice", "recall",
-            "memory_hook", "skill_transfer",
+            "scene", "common_mistake", "micro_practice", "personal_practice",
+            "recall", "memory_hook", "skill_transfer",
         } <= types
 
 
-def test_chinese_source_adapted_models_use_word_order_pattern_capability():
-    for item in ZH_KB:
-        assert item["learning_model"]["language_policy"]["target_language"] == "zh"
-        if item["source"].get("universal_model_status") == "source-adapted-v1":
-            assert "word-order" in item["learning_model"]["capabilities"]
-            pattern = [
-                block
-                for block in item["learning_model"]["blocks"]
-                if block["stage"] == "pattern"
-            ]
-            assert any(block["type"] == "word_order" for block in pattern)
-
-
-def test_english_source_adapted_models_use_formula_capability():
-    for item in EN_KB:
-        if item["id"] in REPRESENTATIVES:
-            continue
-        assert "formula" in item["learning_model"]["capabilities"]
+def test_concept_specific_models_use_supported_pattern_visuals():
+    for item in [*EN_KB, *ZH_KB]:
         pattern = [
             block
             for block in item["learning_model"]["blocks"]
             if block["stage"] == "pattern"
         ]
-        assert any(block["type"] == "formula" for block in pattern)
+        assert pattern, item["id"]
+        assert any(block["type"] in PATTERN_BLOCK_TYPES for block in pattern), item["id"]
