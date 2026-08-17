@@ -19,7 +19,7 @@ entry, and corresponding current-state and handoff updates.
 
 ## Frontend
 
-- `BECOMING_FRONTEND_VERSION` remains exactly `2.15.7` until an explicitly
+- `BECOMING_FRONTEND_VERSION` remains exactly `2.17.3` until an explicitly
   scoped, reviewed change updates it.
 - Backend and architecture tasks do not casually touch frontend code or assets.
 - Preserve shared responsive behavior, accessibility, EN/ZH parity, light/dark
@@ -37,6 +37,22 @@ entry, and corresponding current-state and handoff updates.
   product flows.
 - Conceptually language-scoped learner data is isolated by user and learning
   language.
+
+## Closed-stage protection
+
+- A reviewed CLOSED subsystem is a protected baseline. Later work consumes its
+  contracts instead of casually replacing or refactoring it.
+- R5 Grammar Knowledge System is closed at the PR #44 baseline: preserve stable
+  Grammar Concept IDs, Static Grammar KB authority, schema-v2 models, the shared
+  renderer, multilingual language-context separation, and Grammar runtime AI
+  `0`.
+- Do not re-run or recreate superseded broad structural Grammar migration write
+  paths over concept-specific authoring.
+- M1 Shared Media Learning contracts are likewise protected: one canonical
+  media asset/transcript/segment model is reused by Listening and Speaking
+  Shadowing.
+- Reopening a closed subsystem requires a concrete regression, explicit product
+  extension, or accepted architecture decision.
 
 ## Release
 

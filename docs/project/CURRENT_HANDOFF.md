@@ -1,138 +1,186 @@
 # Current Handoff
 
 **Application/runtime baseline:**
-`a246d6593bd58fcbcd0dd5e7c4482021eaa6c506`
+`d88c8cb17b16412b8c8b0de6d5fe7ab8f4a69061`
 
-This is the inherited verified application/runtime baseline, not a requirement
-that `main` HEAD remain identical after docs-only or governance-only commits.
+This baseline is the reviewed merge of R5 Grammar Knowledge System closeout
+(PR #44). Documentation-only descendants may advance `main` without changing
+this baseline.
 
-**Active programs:**
+**Primary active program:**
 
-- R2 — AI Capability Control Plane: **IN PROGRESS / HUMAN-GATED ACTIVATION**
-- M1 — Media Learning Foundation: **IN PROGRESS / CROSS-CUTTING**
-- R6 — Speaking Core: **IN PROGRESS / INTERNAL**
+- R3 — Writing Evaluation Completion: **IN PROGRESS / PRIMARY**
 
-## Completed
+**Secondary / gated programs:**
 
-- R2 Slice 1
-- R2 Slice 2
-- R2 Slice 3
-- R2 Slice 4
-- M1.1 — media object and segment contracts
-- M1.2 — media ingestion and transcript acquisition
-- M1.3 — shared media translation
-- M1.4 — internal passive Listening MVP integration and acceptance
-- M1.5 — Active Listening transcript reconstruction
-- M1.6 — shared-media Shadowing integration
-- PV-2 / OREN-10 — internal Listening workspace foundation
-- PV-3 / OREN-11 — Listening practice navigation and playback controls
+- R6 — Speaking Core: **IN PROGRESS / INTERNAL / SECONDARY**
+- R2 — AI Capability Control Plane: **HUMAN GATE / READY, NOT PRODUCT-BLOCKING**
 
-## Current M1 checkpoint
+**Closed programs protected from casual rewrite:**
 
-M1.1 is **CLOSED / APPROVED / merged**. Its provider-neutral, learner-neutral
-Media Learning Object remains the canonical shared content contract. Learner
-progress remains separate and scoped by user and learning language.
+- R5 — Grammar Knowledge System: **CLOSED**
+- M1 — Media Learning Foundation: **CLOSED / FOUNDATION COMPLETE**
+- R1 — Production Staging + Cloudflare + Google OAuth: **CLOSED / PASS**
+- R0 — Product Release Architecture: **CLOSED**
 
-M1.2 is **CLOSED / APPROVED / merged**. The authenticated import API owns
-provider acquisition, learning-language caption selection, canonical transcript
-identity, and provider-hosted playback.
+## Newly completed
 
-M1.3 Shared Media Translation is **CLOSED / APPROVED / merged**. It owns the
-independent backend support-language contract and enriches the server-owned
-import response through the exact `learner_translation` capability.
+### R5 Grammar Knowledge System
 
-The PV-2 / OREN-10 internal Listening workspace and PV-3 / OREN-11 practice UX
-are merged. Together they consume the import response for provider-hosted
-playback, transcript interaction, stable segment selection, Previous / Next,
-canonical timestamp replay, supported playback speeds, and truthful
-translated/degraded states.
+R5 closed via PR #44.
 
-M1.4 Listening MVP integration and acceptance is **CLOSED / APPROVED / merged**.
-It established one shared EN/ZH passive follow-along flow over the reviewed
-Media Learning backend.
+Verified closeout:
 
-M1.5 Active Listening is **CLOSED / APPROVED / merged**. It added bounded,
-deterministic transcript-reconstruction practice over canonical Media Learning
-segments with browser-session-only practice state. There is no durable media
-or Listening progress persistence or AI dictation grading.
+- EN `269 / 269`;
+- ZH `239 / 239`;
+- total `508 / 508`;
+- schema-v2 source-backed concept-specific models `508 / 508`;
+- Grammar runtime AI `0`;
+- representative expert-reviewed `3`;
+- expert-validation-pending `505` as a deferred content-quality track.
 
-M1.6 Shared-media Shadowing integration is **CLOSED / APPROVED / merged** via
-PR #33. Shadowing reuses the same canonical Media Learning asset, timestamped
-segments, translations, replay controls, and provider-hosted playback. Its
-round counters are browser-session-only learner state. No Speaking route,
-recording, ASR, pronunciation score, durable progress persistence, or public
-release was added.
+Protected contracts:
+
+- stable Grammar Concept IDs;
+- Static Grammar KB remains source of truth;
+- shared schema-v2 renderer;
+- target/interface/explanation/translation language separation;
+- capability-driven Chinese reading aid/Pinyin;
+- completion records learning activity evidence, not CEFR/HSK mastery;
+- superseded structural migration write paths must not overwrite current
+  concept-specific authoring.
+
+Future Writing/Speaking/Reading/Listening work consumes R5 through contracts and
+IDs. It does not create a second Grammar system.
+
+### M1 Media Learning Foundation
+
+M1.1 through M1.6 are all closed and merged, so the foundation program is now
+closed. Shared Media Learning remains the canonical contract for external media,
+timestamped transcript segments, translation, Listening consumption, and
+Speaking Shadowing consumption.
+
+Future durable Listening progress belongs to R11. Advanced Shadowing belongs to
+R9. Speaking evaluation/pronunciation belongs to R7. None of those should reopen
+or duplicate M1 foundation architecture.
 
 ## Current runtime truth
 
-- One central `LEGACY` / `CAPABILITY` learner runtime mode exists; `LEGACY`
-  remains the default and current production behavior.
-- All eight provider-backed workloads pass explicit, shared capability
-  identities. In `CAPABILITY` mode, exact persisted provider/model routing does
-  not fall back to `active_selection()`.
-- Capability runtime activation has not occurred. Rolling back to `LEGACY`
-  preserves capability configuration.
-- Speaking Core is available to the internal audience while remaining
-  DEVELOPMENT and non-public. It reuses the language-scoped shared media
-  session and records microphone audio locally with RNNoise enhancement when
-  supported. After stop, the take may be sent transiently through the
-  authenticated `/api/speech/transcribe` boundary to the configured Groq ASR
-  provider; Orena does not persist the audio to the learner account.
-- Returned ASR text may be compared deterministically with the source segment
-  for content-match plus missing/extra token feedback. This is transcript
-  comparison only, not a pronunciation, fluency, or proficiency score.
-- The R2 `speech_asr` capability remains reserved/unactivated; this R6 internal
-  checkpoint uses a direct bounded provider adapter outside R2 activation.
+- PostgreSQL remains authoritative; SQLite remains frozen rollback/archive only.
+- Application version remains `1.4.0`.
+- BECOMING frontend version is `2.17.3`.
+- Production staging remains behind the canonical Docker Cloudflare Tunnel and
+  Google OAuth path already verified in R1.
+- No learner skill is PUBLIC.
+- Writing remains BETA.
+- Speaking, Reading, and Listening remain DEVELOPMENT/internal.
+- Shared learner-facing behavior applies to EN and ZH.
+- One central `LEGACY` / `CAPABILITY` learner runtime mode exists; production
+  capability activation has not occurred.
+- R6 Speaking Core may use the current bounded internal Groq ASR path, but
+  transcript match is not pronunciation/fluency/proficiency scoring.
 
-## Next checkpoints
+## Primary next checkpoint — R3 Writing Evaluation Completion
 
-- M1 product-development lane: M1.1 through M1.6 are closed and merged.
-  Keep M1 program status IN PROGRESS until a separate explicit program-level
-  close review. Listening and Speaking remain non-public.
-- R6 product-development lane: internal Speaking Core is IN PROGRESS with
-  shared-media shadowing, RNNoise-enhanced local record/playback, Groq ASR
-  transcription, and deterministic transcript content-match feedback.
-  Pronunciation scoring, full Speaking evaluation, durable progress, R2
-  `speech_asr` activation, and PUBLIC promotion remain later gates.
-- R2 control-plane lane: static activation-readiness gate and operator
-  checkpoint. R2 remains IN PROGRESS.
+Do not start by replacing the Writing architecture. Inspect and complete the
+existing evaluation path.
+
+Existing stable foundations to preserve include:
+
+- shared `writing_evaluator` capability identity;
+- shared request/schema contract;
+- weighted scoring;
+- literal learner-fragment evidence;
+- confidence filtering;
+- existing persistence/revision flow;
+- Review/Journey/Library boundaries;
+- shared EN/ZH product behavior.
+
+R3 work should focus on learner-visible completion:
+
+1. verify the current EN/ZH evaluator contract and representative quality;
+2. close real scoring/evidence correctness gaps only;
+3. make categorized feedback clear and actionable in the Writing/Review flow;
+4. preserve exact learner evidence and meaningful corrections;
+5. verify provider/degraded states;
+6. create representative EN/ZH regression fixtures;
+7. validate the end-to-end Write → Evaluate → Review evidence path.
+
+Do not reopen R5 for Writing feedback. Grammar transfer belongs to the next
+stage, R4, and must reference stable R5 concepts rather than duplicate content.
+
+## Next after R3 — R4 Writing Learning Loop + Grammar Transfer
+
+The former standalone “Multilingual Writing Language Lens” stage is absorbed
+into R3 because multilingual parity is already a product invariant.
+
+R4 will connect:
+
+`Writing evidence → appropriate R5 Grammar concept → targeted practice →
+revision → delta/progress → Review/Journey/Library`
+
+Writing becomes a COMPLETE public-gate candidate only after R3 and R4 pass.
+
+## R6 secondary lane
+
+Preserve the existing internal Speaking/media implementation. Until R3/R4
+close, only bounded R6 blockers or necessary core completion should interrupt
+the primary Writing lane.
+
+Later R7 owns pronunciation, full Speaking evaluation, durable Speaking
+progress, and the final Speaking COMPLETE evidence.
 
 ## R2 human gate
 
 **YES**
 
-**Reason:** Production persistence migration/config initialization, live
-provider validation, learner runtime activation, and rollback execution can
-affect production behavior and data.
+Production capability activation remains a human gate.
 
 Agents may:
 
 - inspect activation design;
-- prepare code and tests;
-- prepare dry-run and preflight commands;
-- review migration logic;
-- validate atomic activation and rollback design.
-- run offline/static activation-readiness validation.
+- prepare code/tests;
+- run offline/static readiness checks;
+- review migration/config initialization and rollback logic.
 
 Agents must not without explicit human authorization:
 
-- execute production migration;
 - mutate production capability rows;
-- perform production provider live validation;
-- switch learner runtime;
-- remove legacy global routing;
-- deploy production activation.
+- execute production persistence/config migration;
+- run credentialed production provider validation;
+- switch production learner runtime;
+- remove the legacy rollback path;
+- deploy public capability activation.
+
+R2 should not be used as a reason to delay R3/R4 learner-facing work.
+
+## Protected-area rule
+
+If a new task does not require changing a stable subsystem, do not refactor it.
+
+Especially protect:
+
+- R5 Grammar contracts and curriculum IDs;
+- M1 shared Media Learning contracts;
+- PostgreSQL authority and persistence boundaries;
+- production Cloudflare/OAuth topology;
+- shared design tokens/layout primitives;
+- Journey, Review, Library/Active Recall behavior that already passes;
+- EN/ZH shared contracts;
+- current frontend version contract `2.17.3`.
 
 ## Stop conditions
 
-- Repository state contradicts these facts.
-- Production credentials are required.
-- A destructive operation is required.
-- Schema or Alembic work is unexpectedly required.
-- Activation cannot be atomic.
-- The rollback path is unclear.
+Stop and return to the human coordinator when:
 
-Do not mark R2 CLOSED in this handoff.
+- repository state materially contradicts these facts;
+- a task requires production credentials or mutation;
+- a destructive operation or schema/Alembic change appears unexpectedly;
+- a proposed change would replace a CLOSED stable subsystem without a concrete
+  regression or approved architecture decision;
+- a shared feature is being implemented for only one language without a genuine
+  linguistic reason;
+- an unresolved P0/P1 requires broader redesign;
+- the rollback path becomes unclear.
 
-**Next handoff owner:** Human coordinator → next implementation or review
-agent.
+**Next handoff owner:** R3 Writing implementation/review agent.
