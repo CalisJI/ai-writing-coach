@@ -76,6 +76,7 @@ Closeout evidence retained for future agents:
 - PV-3 / OREN-11 Listening practice navigation and playback controls are merged.
 
 Listening and Speaking remain non-public.
+Learner progress remains separate from shared Media Learning content and stays scoped by user and learning language.
 
 ## Current runtime truth
 
