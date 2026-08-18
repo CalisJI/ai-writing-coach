@@ -736,6 +736,6 @@ def test_canonical_state_marks_m15_and_m16_closed() -> None:
     assert "pv-2 / oren-10" in normalized_handoff
     assert "pv-3 / oren-11" in normalized_handoff
 
-    assert "R2 — AI Capability Control Plane: **IN PROGRESS / HUMAN-GATED ACTIVATION**" in handoff
+    assert "R2 — AI Capability Control Plane: **HUMAN GATE / READY, NOT PRODUCT-BLOCKING**" in handoff
     assert "| Listening | DEVELOPMENT | available | available | no |" in project_state
     assert "listening and speaking remain non-public" in normalized_handoff

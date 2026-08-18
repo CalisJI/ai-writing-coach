@@ -1,3 +1,5 @@
+> **Historical supporting release-contract document.** For current program status and execution order, use `docs/project/ROADMAP.md`, `PROJECT_STATE.md`, and `CURRENT_HANDOFF.md`.
+
 # BECOMING Public Product Release Roadmap
 
 ## Multilingual invariant
@@ -28,7 +30,7 @@ R0 establishes the release contract only. It does not claim that Speaking is
 implemented or complete. Promotion to PUBLIC is a later release-gate action,
 after both Writing and Speaking are complete for English and Chinese.
 
-## Current R0 truth
+## Historical R0 truth
 
 - Writing is BETA and internal-only during this pre-release stage.
 - Speaking is in development and is not available yet.

@@ -224,3 +224,45 @@ than the first authorization for media learning. This decision does not make
 Listening or Speaking public and does not close R2.
 
 **Supersedes / Superseded by:** None.
+
+## D-015 — Closed-stage preservation and contract-first integration
+
+**Status:** Accepted
+
+**Decision:** A reviewed CLOSED stage becomes a protected product baseline.
+Later stages consume its stable contracts, IDs, and data instead of
+opportunistically rewriting the subsystem. Reopening requires a concrete
+learner-facing regression, an explicitly approved extension, or a new accepted
+architecture decision.
+
+**Reason:** Rebuilding already-passing systems wastes implementation capacity,
+creates regressions, and causes agents to lose the product-level roadmap while
+chasing local improvements.
+
+**Consequences:** R5 Grammar and M1 Media Learning are the first explicit
+protected examples. Writing, Speaking, Reading, and Listening integrations must
+reference their stable contracts instead of creating duplicate curricula,
+renderers, transcript models, or migration paths. P2 polish remains deferable.
+
+**Supersedes / Superseded by:** None.
+
+## D-016 — Multilingual Writing quality is not a later retrofit
+
+**Status:** Accepted
+
+**Decision:** EN/ZH Writing evaluation quality is part of R3 Writing Evaluation
+Completion itself. The former standalone roadmap stage “R4 — Multilingual
+Writing Language Lens” is absorbed into R3. R4 is redefined as “Writing
+Learning Loop + Grammar Transfer.”
+
+**Reason:** D-003 already establishes multilingual shared behavior as a product
+invariant. A later language-lens stage encourages an English-first flow and
+creates avoidable divergence.
+
+**Consequences:** R3 must pass representative EN and ZH evaluation and learner
+feedback evidence. R4 focuses on turning those findings into targeted practice,
+revision, progress, and stable R5 Grammar concept transfer rather than building
+a second language-specific evaluator.
+
+**Supersedes / Superseded by:** Supersedes the old R4 roadmap meaning only. It
+does not supersede D-003.

@@ -8,7 +8,7 @@ historical narrative.
 - Product: Orena / BECOMING codebase
 - Repository: `CalisJI/ai-writing-coach`
 - Last verified application/runtime baseline:
-  `a246d6593bd58fcbcd0dd5e7c4482021eaa6c506`
+  `d88c8cb17b16412b8c8b0de6d5fe7ab8f4a69061`
 
 This SHA identifies the verified application/runtime baseline inherited by this
 governance checkpoint. Documentation-only or governance-only descendant commits
@@ -17,7 +17,7 @@ a reviewed change materially changes verified application, runtime, product, or
 operational state.
 
 - Application version: `1.4.0`
-- BECOMING frontend version: `2.15.7`
+- BECOMING frontend version: `2.17.3`
 
 ## Persistence
 
@@ -59,9 +59,11 @@ authority.
 
 - R0 — Product Release Architecture: **CLOSED**.
 - R1 — Production Staging + Cloudflare + Google OAuth: **CLOSED / PASS**.
-- R2 — AI Capability Control Plane: **IN PROGRESS**.
-- M1 — Media Learning Foundation: **IN PROGRESS / CROSS-CUTTING**.
-- R6 — Speaking Core: **IN PROGRESS / INTERNAL**.
+- R2 — AI Capability Control Plane: **HUMAN GATE / READY, NOT PRODUCT-BLOCKING**.
+- M1 — Media Learning Foundation: **CLOSED / FOUNDATION COMPLETE**.
+- R3 — Writing Evaluation Completion: **IN PROGRESS / PRIMARY**.
+- R5 — Grammar Knowledge System: **CLOSED / APPROVED / merged via PR #44**.
+- R6 — Speaking Core: **IN PROGRESS / INTERNAL / SECONDARY**.
 
 Current learner skill truth:
 
@@ -100,16 +102,30 @@ Conceptually language-scoped learner data remains isolated by:
 
 ## M1 Media Learning Foundation
 
-M1 is an active cross-cutting development track. M1.1 is **CLOSED / APPROVED /
-merged** and establishes the shared, provider-neutral and learner-neutral
-media-content contract. One imported media source is represented once as a
-reusable Media Learning Object and consumed by both Listening and Speaking
-Shadowing rather than being independently modeled inside either skill.
+M1 is **CLOSED / FOUNDATION COMPLETE** after the explicit post-R5
+program review. M1.1 through M1.6 are closed and merged. The provider-neutral,
+learner-neutral Media Learning Object remains the canonical shared content
+contract: source-language transcript, stable timestamped segment identities,
+support-language translations, internal Listening consumption, and
+shared-media Shadowing reuse the same asset.
 
-The source-language transcript, stable timestamped segment identities, and
-support-language translations belong to shared media content. Listening
-progress, Shadowing attempts, saved vocabulary, learned segments, and exercise
-outcomes remain separate learner state scoped by user and learning language.
+Learner progress remains separate and scoped by user and learning language.
+Future durable Listening progress belongs to R11, advanced Shadowing belongs to
+R9, and full Speaking evaluation/pronunciation belongs to R7. Those stages
+consume M1; they do not reopen or duplicate its foundation.
+
+Explicit M1 closeout evidence remains canonical:
+
+- M1.1 is **CLOSED / APPROVED / merged** — media object and segment contracts.
+- M1.2 is **CLOSED / APPROVED / merged** — media ingestion and transcript acquisition.
+- M1.3 is **CLOSED / APPROVED / merged** — Shared Media Translation.
+- M1.4 is **CLOSED / APPROVED / merged** — Listening MVP integration and acceptance.
+- M1.5 is **CLOSED / APPROVED / merged** — Active Listening transcript reconstruction.
+- M1.6 Shared-media Shadowing integration is **CLOSED / APPROVED / merged** via PR #33.
+
+One imported media source is represented once as a reusable Media Learning
+Object and is consumed by both Listening and Speaking Shadowing through the same
+canonical asset and timestamped segments. Learner progress remains separate.
 
 M1.2 is **CLOSED / APPROVED / merged**. It established the authenticated media
 import API, isolated YouTube adapter, explicit learning-language caption
@@ -143,6 +159,28 @@ Listening workspace, with browser-session-only Shadowing round state. It did
 not add a Speaking route, microphone capture, ASR, pronunciation scoring,
 durable learner-progress persistence, or public release. Listening and Speaking
 remain non-public.
+
+## R5 Grammar Knowledge System
+
+R5 is **CLOSED / APPROVED / merged via PR #44** at baseline
+`d88c8cb17b16412b8c8b0de6d5fe7ab8f4a69061`.
+
+Verified closeout:
+
+- English `269 / 269`;
+- Chinese `239 / 239`;
+- total `508 / 508`;
+- schema-v2 source-backed concept-specific learning models `508 / 508`;
+- Grammar runtime AI `0`;
+- representative expert-reviewed lessons `3`;
+- `505` lessons remain explicitly `human_expert_validation=pending` as a
+  deferred content-quality track.
+
+Static Grammar KB remains source of truth. Stable Grammar Concept IDs, the
+shared schema-v2 renderer, multilingual language-context separation,
+capability-driven Chinese reading aids/Pinyin, and activity-evidence completion
+semantics are protected. Future skill integrations consume these contracts
+rather than duplicating or mass-rewriting Grammar.
 
 ## R6 Speaking Core
 
@@ -219,18 +257,30 @@ fallback and no silent paid-provider failover.
 
 ## Current next development areas
 
-Three development tracks are active:
+The post-R5 roadmap uses one primary learner-visible lane.
 
-- R2 remains **IN PROGRESS**. Static activation readiness/preflight is its
-  current technical checkpoint. Production migration/config initialization,
-  live provider validation, runtime activation, and rollback execution remain
-  human gates.
-- M1 remains **IN PROGRESS** as a cross-cutting product-development track
-  pending an explicit program-level close review. M1.1 through M1.6 are closed
-  and merged. Shared-media Shadowing reuses the same canonical media object and
-  segments as Listening.
-- R6 is **IN PROGRESS / INTERNAL**. Speaking Core provides shared-media
-  shadowing, enhanced local record/playback, Groq ASR transcription, and
-  deterministic content-match feedback. Pronunciation scoring, full Speaking
-  evaluation, durable progress, R2 `speech_asr` activation, and public release
-  remain later gates.
+- **R3 — Writing Evaluation Completion: IN PROGRESS / PRIMARY.**
+  Preserve the current shared evaluator/request/schema/evidence architecture and
+  close real scoring, evidence, learner-feedback, EN/ZH parity, and end-to-end
+  Writing/Review gaps. Do not redesign R5 or duplicate Grammar content.
+- **R6 — Speaking Core: IN PROGRESS / INTERNAL / SECONDARY.**
+  Preserve the stable shared-media recording/ASR/content-match foundation.
+  Bounded blocker fixes may continue, but broad Speaking expansion should not
+  distract from R3/R4.
+- **R2 — AI Capability Control Plane: HUMAN GATE / READY.**
+  Static/runtime support exists. Production migration/config initialization,
+  credentialed validation, activation, and rollback execution remain human
+  gates and do not block R3/R4.
+- **M1 — Media Learning Foundation: CLOSED / FOUNDATION COMPLETE.**
+  Future Listening durability and advanced Shadowing belong to R11/R9.
+- **R5 — Grammar Knowledge System: CLOSED.**
+  Future skills consume its stable concept IDs and shared schema-v2 contracts.
+  Expert validation of the remaining 505 lessons is a deferred content-quality
+  track, not a reason to reopen the architecture.
+
+The intended product sequence is:
+
+`R3 → R4 → finish remaining R6 core gaps → R7 → R8`
+
+R2 production activation is completed when explicitly authorized and before a
+public capability-dependent release requires it.

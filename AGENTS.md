@@ -100,7 +100,8 @@ Treat these as PROTECTED unless the current task directly requires them:
 - section gaps;
 - overflow behavior;
 - content/container width primitives;
-- BECOMING frontend v2.15.7;
+- BECOMING frontend v2.17.3;
+- R5 Grammar Knowledge System contracts, stable Grammar Concept IDs, and shared schema-v2 renderer;
 - `docs/visual-references/**`.
 
 Do not opportunistically refactor protected areas. If a task requires modifying
