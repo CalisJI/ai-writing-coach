@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from typing import Any, Protocol
 
 import requests
+from urllib.parse import urlsplit
 
 
 class SpeechAsrError(Exception):
@@ -73,6 +74,93 @@ def _seconds_to_ms(value: Any) -> int:
     if not isinstance(value, (int, float)) or isinstance(value, bool):
         raise SpeechAsrMalformed()
     return max(0, round(float(value) * 1000))
+
+
+def _parse_transcription_response(
+    response: requests.Response,
+    *,
+    language: str | None,
+    provider: str,
+    model: str,
+) -> SpeechAsrResult:
+    if response.status_code == 413:
+        raise SpeechAsrPayloadTooLarge()
+    if response.status_code != 200:
+        provider_message = ""
+        try:
+            error_payload = response.json()
+            if isinstance(error_payload, dict):
+                error_value = error_payload.get("error")
+                if isinstance(error_value, dict):
+                    provider_message = str(error_value.get("message") or "")
+                elif isinstance(error_value, str):
+                    provider_message = error_value
+        except ValueError:
+            provider_message = ""
+        raise SpeechAsrRequestFailed(
+            status_code=response.status_code,
+            provider_message=provider_message[:500],
+        )
+
+    try:
+        payload = response.json()
+    except ValueError as exc:
+        raise SpeechAsrMalformed() from exc
+    if not isinstance(payload, dict):
+        raise SpeechAsrMalformed()
+
+    text = payload.get("text")
+    if not isinstance(text, str):
+        raise SpeechAsrMalformed()
+
+    detected_language = payload.get("language")
+    if not isinstance(detected_language, str) or not detected_language.strip():
+        detected_language = language or "und"
+
+    segments: list[SpeechAsrSegment] = []
+    raw_segments = payload.get("segments")
+    if isinstance(raw_segments, list):
+        for item in raw_segments:
+            if not isinstance(item, dict):
+                continue
+            segment_text = str(item.get("text") or "").strip()
+            if not segment_text:
+                continue
+            start_ms = _seconds_to_ms(item.get("start"))
+            end_ms = _seconds_to_ms(item.get("end"))
+            if end_ms <= start_ms:
+                continue
+            segments.append(
+                SpeechAsrSegment(
+                    text=segment_text,
+                    start_ms=start_ms,
+                    end_ms=end_ms,
+                )
+            )
+
+    words: list[SpeechAsrWord] = []
+    raw_words = payload.get("words")
+    if isinstance(raw_words, list):
+        for item in raw_words:
+            if not isinstance(item, dict):
+                continue
+            word = str(item.get("word") or "").strip()
+            if not word:
+                continue
+            start_ms = _seconds_to_ms(item.get("start"))
+            end_ms = _seconds_to_ms(item.get("end"))
+            if end_ms <= start_ms:
+                continue
+            words.append(SpeechAsrWord(word=word, start_ms=start_ms, end_ms=end_ms))
+
+    return SpeechAsrResult(
+        provider=provider,
+        model=model,
+        language=detected_language.strip(),
+        text=text.strip(),
+        segments=tuple(segments),
+        words=tuple(words),
+    )
 
 
 class GroqSpeechAsrProvider:
@@ -159,87 +247,59 @@ class GroqSpeechAsrProvider:
         except requests.RequestException as exc:
             raise SpeechAsrRequestFailed() from exc
 
-        if response.status_code == 413:
-            raise SpeechAsrPayloadTooLarge()
-        if response.status_code != 200:
-            provider_message = ""
-            try:
-                error_payload = response.json()
-                if isinstance(error_payload, dict):
-                    error_value = error_payload.get("error")
-                    if isinstance(error_value, dict):
-                        provider_message = str(error_value.get("message") or "")
-                    elif isinstance(error_value, str):
-                        provider_message = error_value
-            except ValueError:
-                provider_message = ""
-            raise SpeechAsrRequestFailed(
-                status_code=response.status_code,
-                provider_message=provider_message[:500],
-            )
-
-        try:
-            payload = response.json()
-        except ValueError as exc:
-            raise SpeechAsrMalformed() from exc
-        if not isinstance(payload, dict):
-            raise SpeechAsrMalformed()
-
-        text = payload.get("text")
-        if not isinstance(text, str):
-            raise SpeechAsrMalformed()
-
-        detected_language = payload.get("language")
-        if not isinstance(detected_language, str) or not detected_language.strip():
-            detected_language = language or "und"
-
-        segments: list[SpeechAsrSegment] = []
-        raw_segments = payload.get("segments")
-        if isinstance(raw_segments, list):
-            for item in raw_segments:
-                if not isinstance(item, dict):
-                    continue
-                segment_text = str(item.get("text") or "").strip()
-                if not segment_text:
-                    continue
-                start_ms = _seconds_to_ms(item.get("start"))
-                end_ms = _seconds_to_ms(item.get("end"))
-                if end_ms <= start_ms:
-                    continue
-                segments.append(
-                    SpeechAsrSegment(
-                        text=segment_text,
-                        start_ms=start_ms,
-                        end_ms=end_ms,
-                    )
-                )
-
-        words: list[SpeechAsrWord] = []
-        raw_words = payload.get("words")
-        if isinstance(raw_words, list):
-            for item in raw_words:
-                if not isinstance(item, dict):
-                    continue
-                word = str(item.get("word") or "").strip()
-                if not word:
-                    continue
-                start_ms = _seconds_to_ms(item.get("start"))
-                end_ms = _seconds_to_ms(item.get("end"))
-                if end_ms <= start_ms:
-                    continue
-                words.append(
-                    SpeechAsrWord(
-                        word=word,
-                        start_ms=start_ms,
-                        end_ms=end_ms,
-                    )
-                )
-
-        return SpeechAsrResult(
+        return _parse_transcription_response(
+            response,
+            language=language,
             provider=self.provider_id,
             model=self._model,
-            language=detected_language.strip(),
-            text=text.strip(),
-            segments=tuple(segments),
-            words=tuple(words),
+        )
+
+    def transcribe_url(
+        self,
+        audio_url: str,
+        *,
+        language: str | None,
+    ) -> SpeechAsrResult:
+        """Transcribe one public media-file URL without proxying bytes through Orena."""
+        try:
+            parsed = urlsplit(audio_url)
+            hostname = parsed.hostname
+        except ValueError as exc:
+            raise SpeechAsrMalformed() from exc
+        if (
+            parsed.scheme != "https"
+            or not hostname
+            or parsed.username is not None
+            or parsed.password is not None
+        ):
+            raise SpeechAsrMalformed()
+
+        fields: list[tuple[str, str]] = [
+            ("model", self._model),
+            ("response_format", "verbose_json"),
+            ("temperature", "0"),
+            ("timestamp_granularities[]", "segment"),
+            ("timestamp_granularities[]", "word"),
+        ]
+        if language:
+            fields.append(("language", language))
+
+        try:
+            response = self._session.post(
+                "https://api.groq.com/openai/v1/audio/transcriptions",
+                headers={"Authorization": f"Bearer {self._api_key}"},
+                files={"url": (None, audio_url)},
+                data=fields,
+                timeout=self._timeout_seconds,
+            )
+        except requests.Timeout as exc:
+            raise SpeechAsrTimedOut() from exc
+        except requests.RequestException as exc:
+            raise SpeechAsrRequestFailed() from exc
+
+        return _parse_transcription_response(
+            response,
+            language=language,
+            provider=self.provider_id,
+            model=self._model,
         )

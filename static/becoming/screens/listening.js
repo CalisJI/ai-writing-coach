@@ -289,7 +289,11 @@ export function createListeningController({importMedia,targetLanguage,onChange=(
       model.status='validating';model.error=null;changed();
       if(!validMediaUrl(sourceUrl)){model.status='unsupported';changed();return;}
       try{
-        const payload=await importMedia({source_url:sourceUrl,target_language:targetLanguage()});
+        const payload=await importMedia({
+          source_url:sourceUrl,
+          target_language:targetLanguage(),
+          include_word_timing:true,
+        });
         if(generation!==importGeneration)return;
         model.payload=payload;
         model.status=mediaImportState(model.payload);

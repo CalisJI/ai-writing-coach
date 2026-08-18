@@ -78,6 +78,43 @@ Closeout evidence retained for future agents:
 Listening and Speaking remain non-public.
 Learner progress remains separate from shared Media Learning content and stays scoped by user and learning language.
 
+## Approved cross-cutting priority override — Interactive Transcript refinement
+
+The human coordinator explicitly approved this bounded cross-cutting refinement
+on 2026-08-18. It runs on `codex/interactive-transcript-layer` and does **not**
+reopen M1 or change R3's canonical PRIMARY roadmap status.
+
+Current verified branch checkpoint:
+
+- Slice 1 commit `2aaba1e73c457ad9711bee6584fbe79eeeafd4cd` adds the shared
+  interactive transcript layer, EN/ZH annotation, Chinese lexical segmentation
+  and contextual Pinyin, POS highlighting, dictionary/explain interactions, and
+  media-clock segment synchronization.
+- Slice 1 local validation: architecture PASS, JavaScript syntax PASS, Docker
+  build PASS, full regression `486 passed`.
+- Slice 2A introduces a non-blocking Supadata job contract as fallback
+  infrastructure. Focused local validation: `9 passed`; architecture PASS.
+- Slice 2B is implementing Groq-backed real word timing by resolving a
+  short-lived YouTube audio-file URL without persisting media, reusing the
+  existing Groq Whisper ASR boundary, and attaching word timing to the API DTO
+  without changing M1 canonical segment identity.
+
+Status:
+
+- **DONE:** Slice 1 checkpoint and regression validation.
+- **IN PROGRESS:** Groq URL ASR + YouTube audio URL resolver + provider-neutral
+  word-timing enrichment + Listening request integration.
+- **PENDING:** make provider fallback order explicitly Groq-first when native
+  captions are absent; durable/resumable subtitle processing state; browser
+  resume UX; EN/ZH live-provider quality checks; full regression and review.
+- **BLOCKED:** no code blocker. Any PostgreSQL schema/Alembic change remains a
+  human gate and is not authorized by this refinement.
+
+Provider policy for this branch is explicit: native source captions remain
+preferred source text when available; Groq is used for real ASR timing and may
+fill a missing transcript under the same Media Learning contract; Supadata
+remains an explicit fallback path rather than a replacement media model.
+
 ## Current runtime truth
 
 - PostgreSQL remains authoritative; SQLite remains frozen rollback/archive only.

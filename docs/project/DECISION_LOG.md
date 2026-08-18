@@ -266,3 +266,29 @@ a second language-specific evaluator.
 
 **Supersedes / Superseded by:** Supersedes the old R4 roadmap meaning only. It
 does not supersede D-003.
+
+## D-017 — Interactive transcript timing is additive to Media Learning
+
+**Status:** Accepted
+
+**Decision:** Real word timing for interactive transcript playback is an
+additive interaction layer over the CLOSED M1 Media Learning contract. Native
+provider captions remain canonical source text when available. The existing
+Groq Whisper ASR boundary may resolve real segment/word timestamps from a
+short-lived provider media-file URL and may supply a missing source transcript
+when no canonical transcript exists. Supadata remains a transcript fallback;
+it does not become a second Media Learning model.
+
+**Reason:** Listening and Shadowing need truthful active-word synchronization,
+while M1 intentionally owns stable reusable media assets and segment identity.
+Fabricating equal-duration word timestamps or creating parallel Listening and
+Speaking transcript pipelines would violate those contracts.
+
+**Consequences:** Word timing is optional API interaction metadata and may
+degrade to segment-only synchronization. Provider media is not persisted merely
+to obtain timing. EN/ZH use the same flow. Existing source captions are not
+overwritten by ASR text solely to gain timing. Provider failures remain typed
+and must not cause a hidden cross-provider billing policy. Any future durable
+processing-job persistence or schema change requires its normal human gate.
+
+**Supersedes / Superseded by:** Extends D-014 and D-015; supersedes neither.
