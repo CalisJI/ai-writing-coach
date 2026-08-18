@@ -15,6 +15,7 @@ from writing_coach.media_ingestion import (
     MediaIngestionService,
 )
 from writing_coach.media_learning import MediaLearningObject, MediaTranscript
+from writing_coach.media_interaction import router as media_interaction_router
 from writing_coach.media_translation import (
     MediaTranslationResult,
     MediaTranslationService,
@@ -23,6 +24,7 @@ from writing_coach.media_translation import (
 
 
 router = APIRouter(prefix="/api/media-learning", tags=["media-learning"])
+router.include_router(media_interaction_router)
 _media_ingestion_service: MediaIngestionService | None = None
 _media_translation_service: MediaTranslationService | None = None
 

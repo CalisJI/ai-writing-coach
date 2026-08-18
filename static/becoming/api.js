@@ -93,6 +93,16 @@ export const api={
     headers:JSON_HEADERS,
     body:JSON.stringify(payload),
   }),
+  annotateMediaText:(payload)=>request('/api/media-learning/annotate',{
+    method:'POST',
+    headers:JSON_HEADERS,
+    body:JSON.stringify(payload),
+  }),
+  explainMediaText:(payload)=>request('/api/media-learning/explain',{
+    method:'POST',
+    headers:JSON_HEADERS,
+    body:JSON.stringify(payload),
+  }),
   transcribeSpeech:(blob,language,filename='recording.webm')=>{
     const form=new FormData();
     form.append('file',blob,filename);

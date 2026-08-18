@@ -1,0 +1,339 @@
+"""On-demand linguistic interaction for the closed shared Media Learning foundation."""
+
+from __future__ import annotations
+
+import re
+from typing import Any
+
+from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+from writing_coach.ai.base import AICapabilityError, AIProviderError, AIProviderUnavailable
+from writing_coach.ai.platform import generate_structured
+from writing_coach.core.request_context import current_language_code
+from writing_coach.core.support_languages import (
+    UnsupportedSupportLanguage,
+    normalize_support_language,
+)
+
+
+router = APIRouter()
+
+_ALLOWED_POS = {
+    "noun",
+    "verb",
+    "adjective",
+    "adverb",
+    "pronoun",
+    "determiner",
+    "preposition",
+    "conjunction",
+    "numeral",
+    "particle",
+    "auxiliary",
+    "interjection",
+    "classifier",
+    "proper_noun",
+    "other",
+}
+_SUPPORT_LANGUAGE_NAMES = {
+    "vi": "Vietnamese",
+    "en": "English",
+    "zh": "Simplified Chinese",
+}
+_MAX_ANNOTATIONS = 160
+
+
+class MediaAnnotateIn(BaseModel):
+    """One visible transcript segment to annotate lazily."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    text: str = Field(min_length=1, max_length=1200)
+    source_language: str = Field(min_length=2, max_length=32)
+
+
+class MediaExplainIn(BaseModel):
+    """A selected transcript word, phrase, or sentence to explain on demand."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    text: str = Field(min_length=1, max_length=1600)
+    source_language: str = Field(min_length=2, max_length=32)
+    target_language: str = Field(min_length=2, max_length=32)
+    context: str = Field(default="", max_length=2400)
+
+    @field_validator("target_language")
+    @classmethod
+    def normalize_target_language(cls, value: str) -> str:
+        return value.strip().casefold()
+
+
+def _primary_language(value: str) -> str:
+    return str(value or "").strip().split("-", 1)[0].casefold()
+
+
+def _validated_source_language(value: str) -> str:
+    requested = _primary_language(value)
+    current = _primary_language(current_language_code())
+    if requested not in {"en", "zh"} or requested != current:
+        raise HTTPException(
+            409,
+            "Transcript language must match the current learning language.",
+        )
+    return requested
+
+
+def _support_language(value: str) -> str:
+    try:
+        return normalize_support_language(value)
+    except UnsupportedSupportLanguage as exc:
+        raise HTTPException(422, "Choose a valid support language.") from exc
+
+
+def _annotation_schema() -> dict[str, Any]:
+    return {
+        "type": "object",
+        "properties": {
+            "annotations": {
+                "type": "array",
+                "maxItems": _MAX_ANNOTATIONS,
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "fragment": {"type": "string"},
+                        "pos": {"type": "string", "enum": sorted(_ALLOWED_POS)},
+                        "pronunciation": {"type": "string"},
+                        "lemma": {"type": "string"},
+                    },
+                    "required": ["fragment", "pos", "pronunciation", "lemma"],
+                },
+            },
+        },
+        "required": ["annotations"],
+    }
+
+
+def _annotation_prompt(language: str, text: str) -> tuple[str, str]:
+    if language == "zh":
+        language_name = "Simplified Chinese"
+        language_rules = (
+            "Segment Hanzi into meaningful lexical learner-facing words or particles, "
+            "not one character at a time unless the character is genuinely a standalone word. "
+            "For every Chinese fragment, return contextual tone-mark pinyin in pronunciation. "
+            "Handle polyphonic characters from sentence context when possible. "
+            "Use classifier for measure words and particle for grammatical particles."
+        )
+    else:
+        language_name = "English"
+        language_rules = (
+            "Segment English into lexical words and meaningful function words. "
+            "Do not return pronunciation unless a short learner-useful pronunciation is reliable; "
+            "otherwise return an empty pronunciation string."
+        )
+
+    system = (
+        "You are the shared linguistic annotation service for a language-learning product. "
+        "Return exact literal spans copied from the supplied text and keep them in source order. "
+        "Never rewrite, normalize, translate, or invent source fragments. "
+        "Do not annotate punctuation or whitespace. "
+        "Choose POS from the supplied enum according to the role in this sentence. "
+        + language_rules
+    )
+    user = (
+        f"LANGUAGE: {language_name}\n"
+        f"TEXT:\n{text}\n\n"
+        "Annotate this transcript segment for an interactive learning view. "
+        "Prefer useful lexical units over microscopic segmentation."
+    )
+    return system, user
+
+
+def _validated_annotations(source: str, raw: Any) -> list[dict[str, Any]]:
+    if not isinstance(raw, list):
+        return []
+
+    output: list[dict[str, Any]] = []
+    cursor = 0
+    for item in raw[:_MAX_ANNOTATIONS]:
+        if not isinstance(item, dict):
+            continue
+        fragment = str(item.get("fragment") or "")
+        pos = str(item.get("pos") or "other").strip().casefold()
+        pronunciation = re.sub(r"\s+", " ", str(item.get("pronunciation") or "")).strip()
+        lemma = re.sub(r"\s+", " ", str(item.get("lemma") or "")).strip()
+
+        if not fragment or fragment.isspace():
+            continue
+        if pos not in _ALLOWED_POS:
+            pos = "other"
+
+        start = source.find(fragment, cursor)
+        if start < 0:
+            continue
+        end = start + len(fragment)
+        output.append(
+            {
+                "fragment": fragment,
+                "start": start,
+                "end": end,
+                "pos": pos,
+                "pronunciation": pronunciation[:120],
+                "lemma": lemma[:160],
+            }
+        )
+        cursor = end
+    return output
+
+
+def _run_structured(
+    capability_key: str,
+    *,
+    messages: list[dict[str, str]],
+    schema: dict[str, Any],
+    max_output_tokens: int,
+) -> dict[str, Any]:
+    try:
+        result = generate_structured(
+            messages=messages,
+            schema=schema,
+            max_output_tokens=max_output_tokens,
+            temperature=0.0,
+            seed=42,
+            capability_key=capability_key,
+        )
+        return result.data if isinstance(result.data, dict) else {}
+    except (AIProviderUnavailable, AICapabilityError) as exc:
+        raise HTTPException(503, "AI language assistance is not configured right now.") from exc
+    except AIProviderError as exc:
+        raise HTTPException(502, "AI language assistance returned an invalid response.") from exc
+
+
+@router.post("/annotate")
+def annotate_media_text(payload: MediaAnnotateIn) -> dict[str, Any]:
+    """Annotate a visible transcript segment without persisting media/learner state."""
+    language = _validated_source_language(payload.source_language)
+    source = payload.text.strip()
+    if not source:
+        raise HTTPException(422, "Transcript text is required.")
+
+    system, user = _annotation_prompt(language, source)
+    raw = _run_structured(
+        "writing_linguistic",
+        messages=[
+            {"role": "system", "content": system},
+            {"role": "user", "content": user},
+        ],
+        schema=_annotation_schema(),
+        max_output_tokens=2200,
+    )
+    return {
+        "source_language": language,
+        "text": source,
+        "annotations": _validated_annotations(source, raw.get("annotations")),
+        "reading_aid": "pinyin" if language == "zh" else None,
+        "annotation_version": 1,
+        "claim": "interactive_transcript_learning_aid",
+    }
+
+
+def _explanation_schema() -> dict[str, Any]:
+    return {
+        "type": "object",
+        "properties": {
+            "summary": {"type": "string"},
+            "natural_translation": {"type": "string"},
+            "grammar_notes": {
+                "type": "array",
+                "maxItems": 5,
+                "items": {"type": "string"},
+            },
+            "vocabulary": {
+                "type": "array",
+                "maxItems": 8,
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "fragment": {"type": "string"},
+                        "meaning": {"type": "string"},
+                        "pos": {"type": "string"},
+                        "pronunciation": {"type": "string"},
+                    },
+                    "required": ["fragment", "meaning", "pos", "pronunciation"],
+                },
+            },
+            "usage_note": {"type": "string"},
+        },
+        "required": [
+            "summary",
+            "natural_translation",
+            "grammar_notes",
+            "vocabulary",
+            "usage_note",
+        ],
+    }
+
+
+@router.post("/explain")
+def explain_media_text(payload: MediaExplainIn) -> dict[str, Any]:
+    """Explain selected transcript text in learner-selected support language."""
+    language = _validated_source_language(payload.source_language)
+    target = _support_language(payload.target_language)
+    target_name = _SUPPORT_LANGUAGE_NAMES.get(target, target)
+    source_name = "Simplified Chinese" if language == "zh" else "English"
+    source = payload.text.strip()
+    context = payload.context.strip()
+
+    language_specific = (
+        "For Chinese, include contextual tone-mark pinyin for vocabulary and explain useful "
+        "particles, measure words, word order, or idiomatic usage when relevant."
+        if language == "zh"
+        else
+        "For English, focus on the actual contextual meaning, grammar, collocation, and register."
+    )
+    system = (
+        "You are an interactive language tutor inside a transcript. "
+        f"The learner is studying {source_name}. Explain in {target_name}. "
+        "Be concise, concrete, and tied to the supplied context. "
+        "Do not invent cultural claims or grammar rules. "
+        + language_specific
+    )
+    user = (
+        f"SELECTED TEXT:\n{source}\n\n"
+        f"CONTEXT:\n{context or source}\n\n"
+        "Explain what the selected text means here, why it is phrased this way, "
+        "and the most useful vocabulary/grammar to notice."
+    )
+    raw = _run_structured(
+        "learner_dictionary",
+        messages=[
+            {"role": "system", "content": system},
+            {"role": "user", "content": user},
+        ],
+        schema=_explanation_schema(),
+        max_output_tokens=1500,
+    )
+    return {
+        "source_language": language,
+        "target_language": target,
+        "selected_text": source,
+        "summary": str(raw.get("summary") or "").strip()[:2400],
+        "natural_translation": str(raw.get("natural_translation") or "").strip()[:2400],
+        "grammar_notes": [
+            str(item).strip()[:600]
+            for item in raw.get("grammar_notes", [])
+            if str(item).strip()
+        ][:5],
+        "vocabulary": [
+            {
+                "fragment": str(item.get("fragment") or "").strip()[:160],
+                "meaning": str(item.get("meaning") or "").strip()[:600],
+                "pos": str(item.get("pos") or "").strip()[:80],
+                "pronunciation": str(item.get("pronunciation") or "").strip()[:120],
+            }
+            for item in raw.get("vocabulary", [])
+            if isinstance(item, dict) and str(item.get("fragment") or "").strip()
+        ][:8],
+        "usage_note": str(raw.get("usage_note") or "").strip()[:1600],
+        "claim": "contextual_ai_explanation",
+    }
