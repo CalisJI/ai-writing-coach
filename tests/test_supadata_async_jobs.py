@@ -150,3 +150,31 @@ def test_poll_rejects_untrusted_job_identifiers(job_id: str) -> None:
         client.poll(job_id, "en")
 
     assert session.calls == []
+
+def test_poll_completed_accepts_nested_result_payload() -> None:
+    client, _session = client_for(
+        FakeResponse(
+            200,
+            {
+                "status": "completed",
+                "result": {
+                    "lang": "en",
+                    "content": [
+                        {"text": "Nested transcript", "offset": 100, "duration": 800, "lang": "en"}
+                    ],
+                },
+            },
+        )
+    )
+    result = client.poll("job-nested", "en")
+    assert result.status == "completed"
+    assert result.transcript is not None
+    assert result.transcript.chunks[0].text == "Nested transcript"
+
+
+@pytest.mark.parametrize("status", ("processing", "pending"))
+def test_poll_accepts_alternate_in_progress_states(status: str) -> None:
+    client, _session = client_for(FakeResponse(200, {"status": status}))
+    result = client.poll("job-progress", "en")
+    assert result.status == status
+    assert result.transcript is None

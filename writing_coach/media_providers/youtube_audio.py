@@ -17,9 +17,10 @@ from writing_coach.media_timing import (
 
 
 class YtDlpYouTubeAudioUrlResolver:
-    """Resolve one HTTPS audio format without persisting provider media."""
+    """YouTube resolver with truthful segment-level timing degradation."""
 
     provider_id = "youtube"
+    delivery_mode = "segment_only"
 
     def __init__(
         self,

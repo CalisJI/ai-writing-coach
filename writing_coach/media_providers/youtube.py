@@ -336,14 +336,22 @@ class YouTubeMediaProviderAdapter:
         metadata_client: YouTubeMetadataClient | None = None,
         caption_client: YouTubeCaptionClient | None = None,
         fallback_transcript_client: SupadataTranscriptClient | None = None,
+        *,
+        enable_fallback: bool = True,
+        defer_transcript_recovery: bool = False,
     ) -> None:
         self._metadata_client = metadata_client or RequestsYouTubeMetadataClient()
         self._caption_client = caption_client or PublicYouTubeCaptionClient()
         self._fallback_transcript_client = (
-            fallback_transcript_client
-            if fallback_transcript_client is not None
-            else SupadataTranscriptClient.from_env()
+            (
+                fallback_transcript_client
+                if fallback_transcript_client is not None
+                else SupadataTranscriptClient.from_env()
+            )
+            if enable_fallback
+            else None
         )
+        self._defer_transcript_recovery = bool(defer_transcript_recovery)
 
     def _fallback_track(
         self,
@@ -421,7 +429,7 @@ class YouTubeMediaProviderAdapter:
             if fallback_track is not None:
                 transcript = normalize_youtube_transcript(asset_id, fallback_track)
 
-        if transcript is None:
+        if transcript is None and not self._defer_transcript_recovery:
             if native_malformed:
                 raise ProviderTranscriptMalformed()
             if native_caption_error is not None:

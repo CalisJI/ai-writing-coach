@@ -205,3 +205,28 @@ def test_language_mismatch_does_not_replace_the_canonical_media_object() -> None
     assert timing.status == "unavailable"
     assert timing.failure_kind == "language_mismatch"
     assert timing.acquisition is original
+
+class SegmentOnlyResolver:
+    provider_id = "youtube"
+    delivery_mode = "segment_only"
+
+    def resolve(self, source_url: str) -> MediaAudioSource:
+        raise AssertionError("segment-only policy must not resolve provider audio")
+
+
+def test_segment_only_policy_preserves_canonical_transcript_without_audio_fetch() -> None:
+    original = acquisition_with_transcript()
+    timing = MediaTimingService(SegmentOnlyResolver(), FakeAsr(asr_result())).enrich(original, "en")
+    assert timing.status == "segment_only"
+    assert timing.failure_kind == "word_timing_transport_unavailable"
+    assert timing.words == ()
+    assert timing.acquisition is original
+
+
+def test_segment_only_policy_without_transcript_stays_unavailable() -> None:
+    original = acquisition_without_transcript()
+    timing = MediaTimingService(SegmentOnlyResolver(), FakeAsr(asr_result())).enrich(original, "en")
+    assert timing.status == "unavailable"
+    assert timing.failure_kind == "word_timing_transport_unavailable"
+    assert timing.words == ()
+    assert timing.acquisition is original

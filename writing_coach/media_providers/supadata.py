@@ -163,19 +163,22 @@ class SupadataTranscriptClient:
             raise SupadataTranscriptRequestFailed()
 
         status = str(payload.get("status") or "").casefold()
-        if status in {"queued", "active"}:
+        if status in {"queued", "active", "processing", "pending"}:
             return SupadataTranscriptJobResult(status=status)
         if status == "failed":
             return SupadataTranscriptJobResult(status="failed")
         if status == "completed":
-            transcript = self._parse_transcript(payload, preferred_language)
+            result = payload.get("result")
+            transcript_payload = result if isinstance(result, dict) else payload
+            transcript = self._parse_transcript(
+                transcript_payload,
+                preferred_language,
+            )
             return SupadataTranscriptJobResult(
                 status="completed",
                 transcript=transcript,
             )
 
-        # Older/alternate successful payloads may omit status while already
-        # containing the transcript. Treat those as completed, never as queued.
         if "content" in payload:
             transcript = self._parse_transcript(payload, preferred_language)
             return SupadataTranscriptJobResult(

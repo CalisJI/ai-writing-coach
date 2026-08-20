@@ -7,14 +7,25 @@ from typing import Any
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from writing_coach.core.request_context import current_language_code
+from writing_coach.core.request_context import current_language_code, current_user_key
+from writing_coach.media_fallback import (
+    MediaFallbackResult,
+    SupadataMediaFallbackService,
+)
 from writing_coach.media_ingestion import (
     MediaAcquisition,
     MediaImportCategory,
     MediaImportError,
     MediaIngestionService,
 )
-from writing_coach.media_learning import MediaLearningObject, MediaTranscript
+from writing_coach.media_learning import (
+    MediaLearningAsset,
+    MediaLearningContractError,
+    MediaLearningObject,
+    MediaProcessingState,
+    MediaTranscript,
+    TranscriptSegment,
+)
 from writing_coach.media_interaction import router as media_interaction_router
 from writing_coach.media_timing import (
     MediaTimingEnrichment,
@@ -32,6 +43,7 @@ router.include_router(media_interaction_router)
 _media_ingestion_service: MediaIngestionService | None = None
 _media_translation_service: MediaTranslationService | None = None
 _media_timing_service: MediaTimingService | None = None
+_media_fallback_service: SupadataMediaFallbackService | None = None
 
 
 class MediaImportIn(BaseModel):
@@ -40,6 +52,64 @@ class MediaImportIn(BaseModel):
     source_url: str = Field(min_length=1, max_length=2048)
     target_language: str = Field(min_length=2, max_length=32)
     include_word_timing: bool = False
+    include_translation: bool = True
+
+    @field_validator("target_language")
+    @classmethod
+    def normalize_target_language(cls, value: str) -> str:
+        return value.strip().casefold()
+
+
+class MediaImportStatusIn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    job_id: str = Field(min_length=20, max_length=200)
+
+
+class MediaTranslationAssetIn(BaseModel):
+    """Canonical asset metadata supplied by an already completed acquisition."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    asset_id: str = Field(min_length=1, max_length=128)
+    source_url: str = Field(min_length=1, max_length=2048)
+    source_provider: str = Field(min_length=1, max_length=128)
+    source_type: str = Field(min_length=1, max_length=128)
+    title: str = Field(min_length=1, max_length=2048)
+    source_language: str = Field(min_length=2, max_length=32)
+    processing_state: MediaProcessingState
+    duration_ms: int | None = Field(default=None, gt=0)
+    transcript_available: bool
+
+
+class MediaTranslationSegmentIn(BaseModel):
+    """One canonical transcript segment, deliberately excluding provider fields."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    segment_id: str = Field(min_length=1, max_length=128)
+    order: int = Field(ge=0)
+    start_ms: int = Field(ge=0)
+    end_ms: int = Field(gt=0)
+    original_text: str = Field(min_length=1, max_length=20000)
+
+
+class MediaTranslationTranscriptIn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    asset_id: str = Field(min_length=1, max_length=128)
+    source_language: str = Field(min_length=2, max_length=32)
+    segments: list[MediaTranslationSegmentIn] = Field(min_length=1)
+
+
+class MediaTranslationIn(BaseModel):
+    """Translate the existing canonical transcript; never acquire media again."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    target_language: str = Field(min_length=2, max_length=32)
+    asset: MediaTranslationAssetIn
+    transcript: MediaTranslationTranscriptIn
 
     @field_validator("target_language")
     @classmethod
@@ -60,6 +130,11 @@ def configure_media_translation(service: MediaTranslationService) -> None:
 def configure_media_timing(service: MediaTimingService | None) -> None:
     global _media_timing_service
     _media_timing_service = service
+
+
+def configure_media_fallback(service: SupadataMediaFallbackService | None) -> None:
+    global _media_fallback_service
+    _media_fallback_service = service
 
 
 def _installed_media_ingestion() -> MediaIngestionService:
@@ -86,35 +161,198 @@ _STATUS_BY_CATEGORY = {
 }
 
 
+def _serialize_processing_result(
+    result: MediaFallbackResult,
+    *,
+    timing: MediaTimingEnrichment | None = None,
+) -> dict[str, Any]:
+    response = serialize_media_acquisition(result.acquisition, timing=timing)
+    response["asset"]["processing_state"] = (
+        "processing" if result.status == "processing" else "failed"
+    )
+    response["import_job"] = {
+        "job_id": result.job_id,
+        "state": result.provider_state or result.status,
+        "source": result.source,
+        "failure_kind": result.failure_kind,
+        "resumable": result.status == "processing" and bool(result.job_id),
+    }
+    return response
+
+
+def _ready_response(
+    acquisition: MediaAcquisition,
+    *,
+    target_language: str,
+    timing: MediaTimingEnrichment | None = None,
+    job: MediaFallbackResult | None = None,
+    include_translation: bool = True,
+) -> dict[str, Any]:
+    translation = (
+        _installed_media_translation().translate(
+            acquisition.media_object,
+            target_language,
+        )
+        if include_translation
+        else None
+    )
+    response = serialize_media_acquisition(acquisition, translation, timing)
+    if job is not None:
+        response["import_job"] = {
+            "job_id": job.job_id,
+            "state": job.provider_state or "completed",
+            "source": job.source,
+            "failure_kind": None,
+            "resumable": False,
+        }
+    return response
+
+
 @router.post("/import")
 def import_media(payload: MediaImportIn) -> dict[str, Any]:
-    """Acquire shared media content; learner authentication is enforced by middleware."""
+    """Acquire native media, then Groq timing/transcript, then explicit fallback."""
+    learning_language = current_language_code()
     try:
         acquisition = _installed_media_ingestion().import_media(
             payload.source_url,
             payload.target_language,
-            current_language_code(),
+            learning_language,
         )
     except MediaImportError as exc:
         raise HTTPException(
             _STATUS_BY_CATEGORY[exc.category],
+            {"category": exc.category.value, "message": exc.learner_message},
+        ) from exc
+
+    timing: MediaTimingEnrichment | None = None
+    if _media_timing_service is not None and (
+        payload.include_word_timing or acquisition.media_object.transcript is None
+    ):
+        timing = _media_timing_service.enrich(acquisition, learning_language)
+        acquisition = timing.acquisition
+
+    if acquisition.media_object.transcript is not None:
+        return _ready_response(
+            acquisition,
+            target_language=payload.target_language,
+            include_translation=payload.include_translation,
+            timing=timing,
+        )
+
+    if _media_fallback_service is None:
+        return _ready_response(
+            acquisition,
+            target_language=payload.target_language,
+            include_translation=payload.include_translation,
+            timing=timing,
+        )
+
+    fallback = _media_fallback_service.start(
+        acquisition,
+        owner_key=current_user_key(),
+        learning_language=learning_language,
+        target_language=payload.target_language,
+    )
+    if fallback.status == "ready":
+        return _ready_response(
+            fallback.acquisition,
+            target_language=payload.target_language,
+            include_translation=payload.include_translation,
+            job=fallback,
+        )
+    if fallback.status in {"processing", "failed"}:
+        return _serialize_processing_result(fallback, timing=timing)
+    return _ready_response(
+        acquisition,
+        target_language=payload.target_language,
+        timing=timing,
+    )
+
+
+@router.post("/import/status")
+def import_media_status(payload: MediaImportStatusIn) -> dict[str, Any]:
+    service = _media_fallback_service
+    if service is None:
+        raise HTTPException(
+            404,
             {
-                "category": exc.category.value,
-                "message": exc.learner_message,
+                "category": "media_job_unavailable",
+                "message": "This transcript job is no longer available.",
+            },
+        )
+    try:
+        result = service.poll(
+            payload.job_id,
+            owner_key=current_user_key(),
+            learning_language=current_language_code(),
+        )
+    except KeyError as exc:
+        raise HTTPException(
+            404,
+            {
+                "category": "media_job_unavailable",
+                "message": "This transcript job is unavailable or expired.",
             },
         ) from exc
-    timing: MediaTimingEnrichment | None = None
-    if payload.include_word_timing and _media_timing_service is not None:
-        timing = _media_timing_service.enrich(
-            acquisition,
-            current_language_code(),
+
+    if result.status == "ready":
+        if not result.target_language:
+            raise HTTPException(404, "Media import job context is unavailable.")
+        return _ready_response(
+            result.acquisition,
+            target_language=result.target_language,
+            job=result,
         )
-        acquisition = timing.acquisition
+    return _serialize_processing_result(result)
+
+
+def _media_object_for_translation(payload: MediaTranslationIn) -> MediaLearningObject:
+    """Rebuild and validate only the canonical object needed by translation."""
+    try:
+        asset = MediaLearningAsset(
+            asset_id=payload.asset.asset_id,
+            source_url=payload.asset.source_url,
+            source_provider=payload.asset.source_provider,
+            source_type=payload.asset.source_type,
+            title=payload.asset.title,
+            source_language=payload.asset.source_language,
+            processing_state=payload.asset.processing_state,
+            duration_ms=payload.asset.duration_ms,
+            transcript_available=payload.asset.transcript_available,
+            translation_available=False,
+        )
+        transcript = MediaTranscript(
+            asset_id=payload.transcript.asset_id,
+            source_language=payload.transcript.source_language,
+            segments=tuple(
+                TranscriptSegment(
+                    segment_id=segment.segment_id,
+                    order=segment.order,
+                    start_ms=segment.start_ms,
+                    end_ms=segment.end_ms,
+                    original_text=segment.original_text,
+                )
+                for segment in payload.transcript.segments
+            ),
+        )
+        return MediaLearningObject(asset=asset, transcript=transcript)
+    except (MediaLearningContractError, ValueError) as exc:
+        raise HTTPException(
+            422,
+            {
+                "category": "invalid_media_transcript",
+                "message": "The prepared media transcript is invalid.",
+            },
+        ) from exc
+
+
+@router.post("/translate")
+def translate_media(payload: MediaTranslationIn) -> dict[str, Any]:
+    """Translate a previously acquired canonical transcript without re-importing."""
     translation = _installed_media_translation().translate(
-        acquisition.media_object,
-        payload.target_language,
+        _media_object_for_translation(payload), payload.target_language
     )
-    return serialize_media_acquisition(acquisition, translation, timing)
+    return serialize_media_translation(translation)
 
 
 def serialize_media_acquisition(
@@ -164,6 +402,33 @@ def serialize_media_acquisition(
             ),
         }
     return response
+
+
+def serialize_media_translation(translation: MediaTranslationResult) -> dict[str, Any]:
+    """Serialize a translation result without exposing an acquisition/playback path."""
+    media_object = translation.media_object
+    return {
+        "asset": _serialize_asset(media_object),
+        "transcript": _serialize_transcript(media_object.transcript),
+        "translations": [
+            {
+                "segment_id": item.segment_id,
+                "target_language": item.target_language,
+                "translated_meaning": item.translated_meaning,
+            }
+            for item in media_object.translations
+        ],
+        "translation": {
+            "status": translation.status.value,
+            "target_language": translation.target_language,
+            "source": safe_translation_source(translation.provenance),
+            "failure_kind": (
+                translation.failure_kind.value
+                if translation.failure_kind is not None
+                else None
+            ),
+        },
+    }
 
 
 def _serialize_asset(media_object: MediaLearningObject) -> dict[str, Any]:

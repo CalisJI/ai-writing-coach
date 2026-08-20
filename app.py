@@ -43,12 +43,15 @@ from writing_coach.writing_analytics import parse_persisted_error_events
 from auth_support import APP_ENV, AUTH_ENABLED, current_db_path, install_auth, require_admin, AUTH_DB_PATH, configure_auth_repository
 from writing_coach.product.api import router as product_router
 from writing_coach.media_api import (
+    configure_media_fallback,
     configure_media_ingestion,
     configure_media_timing,
     configure_media_translation,
     router as media_learning_router,
 )
+from writing_coach.media_fallback import SupadataMediaFallbackService
 from writing_coach.media_ingestion import MediaIngestionService
+from writing_coach.media_providers.supadata import SupadataTranscriptClient
 from writing_coach.media_providers.youtube import YouTubeMediaProviderAdapter
 from writing_coach.media_providers.youtube_audio import YtDlpYouTubeAudioUrlResolver
 from writing_coach.media_timing import MediaTimingService
@@ -191,12 +194,29 @@ def init_db() -> None:
 
 install_auth(app, init_db)
 _speech_asr_provider = GroqSpeechAsrProvider.from_env()
+_media_fallback_mode = os.getenv("MEDIA_TRANSCRIPT_FALLBACK", "none").strip().casefold()
+if _media_fallback_mode not in {"none", "supadata"}:
+    raise RuntimeError("MEDIA_TRANSCRIPT_FALLBACK must be 'none' or 'supadata'.")
+_supadata_fallback_client = (
+    SupadataTranscriptClient.from_env()
+    if _media_fallback_mode == "supadata"
+    else None
+)
+if _media_fallback_mode == "supadata" and _supadata_fallback_client is None:
+    raise RuntimeError(
+        "MEDIA_TRANSCRIPT_FALLBACK=supadata requires SUPADATA_API_KEY."
+    )
 
 app.include_router(platform_router)
 app.include_router(product_router)
 configure_media_ingestion(
     MediaIngestionService(
-        adapters=(YouTubeMediaProviderAdapter(),),
+        adapters=(
+            YouTubeMediaProviderAdapter(
+                enable_fallback=False,
+                defer_transcript_recovery=True,
+            ),
+        ),
         source_language_supported=is_enabled,
     )
 )
@@ -207,6 +227,11 @@ configure_media_timing(
         _speech_asr_provider,
     )
     if _speech_asr_provider is not None
+    else None
+)
+configure_media_fallback(
+    SupadataMediaFallbackService(_supadata_fallback_client)
+    if _supadata_fallback_client is not None
     else None
 )
 app.include_router(media_learning_router)

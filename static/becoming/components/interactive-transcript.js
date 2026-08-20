@@ -1,11 +1,12 @@
 import {api} from '../api.js';
 import {state,supportLanguage} from '../store.js';
 import {uiLocale} from '../domain/i18n.js';
+import {activeCanonicalSegment} from '../domain/transcript-playback.js';
 import {getSharedMediaSession} from '../domain/shared-media-session.js';
 import {openDictionary} from './dictionary.js';
 import {esc,showLoadingDialog,toast,updateDialog} from './primitives.js';
 
-const SETTINGS_KEY='orena.interactive-transcript.v1';
+const SETTINGS_KEY='orena.interactive-transcript.v2';
 const TRANSCRIPT_SELECTOR=[
   '.listening-token-line[aria-label]',
   '.shadowing-source[aria-label]',
@@ -72,9 +73,6 @@ const annotationFailures=new Map();
 const enhancedElements=new WeakSet();
 let mutationObserver=null;
 let intersectionObserver=null;
-let clockFrame=null;
-let clockOrigin='';
-let clockRetryTimer=null;
 let lastPlayingSegmentId='';
 let lastSelection=null;
 let installed=false;
@@ -82,7 +80,7 @@ let installed=false;
 const copy=()=>COPY[uiLocale()]||COPY.en;
 
 function loadSettings(){
-  const fallback={pos:true,reading:true};
+  const fallback={pos:false,reading:false};
   try{
     const parsed=JSON.parse(localStorage.getItem(SETTINGS_KEY)||'null');
     return {
@@ -96,9 +94,15 @@ function loadSettings(){
 
 let settings=loadSettings();
 
+function annotationRequested(){
+  const readingAllowed=state.language==='zh'&&state.profile?.pinyin!=='off';
+  return settings.pos||(settings.reading&&readingAllowed);
+}
+
 function saveSettings(){
   try{localStorage.setItem(SETTINGS_KEY,JSON.stringify(settings));}catch{}
   applySettings();
+  if(annotationRequested())observeTranscriptElements(document);
 }
 
 function applySettings(){
@@ -246,7 +250,7 @@ function annotatedMarkup(text,payload,segment){
 }
 
 async function enhanceElement(element){
-  if(!(element instanceof HTMLElement))return;
+  if(!(element instanceof HTMLElement)||!annotationRequested())return;
   const text=sourceTextFor(element);
   if(!text||text.length>1200)return;
   const {shared,segment}=segmentFor(element);
@@ -273,6 +277,7 @@ async function enhanceElement(element){
 }
 
 function observeTranscriptElements(root=document){
+  if(!annotationRequested())return;
   root.querySelectorAll?.(TRANSCRIPT_SELECTOR).forEach(element=>{
     if(intersectionObserver)intersectionObserver.observe(element);
     else enhanceElement(element);
@@ -402,32 +407,22 @@ function ensureControls(){
   applySettings();
 }
 
-function binarySearchSegment(segments,timeMs){
-  let low=0;
-  let high=segments.length-1;
-  while(low<=high){
-    const mid=(low+high)>>1;
-    const item=segments[mid];
-    const start=Number(item.start_ms);
-    const end=Number(item.end_ms);
-    if(timeMs<start)high=mid-1;
-    else if(timeMs>=end)low=mid+1;
-    else return item;
-  }
-  return null;
+export function applyPlayingSegment(root,segmentId){
+  root.querySelectorAll('.it-playing-segment').forEach(node=>node.classList.remove('it-playing-segment'));
+  if(!segmentId)return;
+
+  root.querySelectorAll('[data-segment-id]').forEach(node=>{
+    const aliases=String(node.dataset.canonicalSegmentIds||'').split(/\s+/).filter(Boolean);
+    if(node.dataset.segmentId===segmentId||aliases.includes(segmentId)){
+      node.classList.add('it-playing-segment');
+    }
+  });
 }
 
 function setPlayingSegment(segmentId){
-  if(segmentId===lastPlayingSegmentId)return;
   lastPlayingSegmentId=segmentId;
-  document.querySelectorAll('.it-playing-segment').forEach(node=>node.classList.remove('it-playing-segment'));
-  if(!segmentId)return;
-  document.querySelectorAll('[data-segment-id]').forEach(node=>{
-    if(node.dataset.segmentId===segmentId){
-      node.classList.add('it-playing-segment');
-      node.scrollIntoView?.({block:'nearest'});
-    }
-  });
+  applyPlayingSegment(document,segmentId);
+
   const shared=sharedSession();
   if(shared?.selected_segment_id===segmentId){
     document.querySelector('.speaking-focus')?.classList.add('it-playing-segment');
@@ -438,6 +433,7 @@ function setPlayingSegment(segmentId){
 function setPlayingWord(timeMs,segment){
   document.querySelectorAll('.it-token.it-speaking-word').forEach(node=>node.classList.remove('it-speaking-word'));
   if(!segment)return;
+
   const containers=[...document.querySelectorAll(TRANSCRIPT_SELECTOR)];
   for(const container of containers){
     const {id}=segmentFor(container);
@@ -455,47 +451,14 @@ function updatePlaybackTime(timeMs){
   const shared=sharedSession();
   const segments=shared?.payload?.transcript?.segments||[];
   if(!segments.length)return;
-  const segment=binarySearchSegment(segments,timeMs);
+  const segment=activeCanonicalSegment(segments,timeMs);
   setPlayingSegment(segment?.segment_id||'');
   setPlayingWord(timeMs,segment);
 }
 
-function postListeningHandshake(){
-  if(!clockFrame?.contentWindow||!clockOrigin)return;
-  try{
-    clockFrame.contentWindow.postMessage(JSON.stringify({
-      event:'listening',
-      id:clockFrame.id||'listeningPlayer',
-    }),clockOrigin);
-  }catch{}
-}
-
-function bindClockFrame(){
-  const frame=document.querySelector('#listeningPlayer');
-  if(!(frame instanceof HTMLIFrameElement)||frame===clockFrame)return;
-  let origin='';
-  try{
-    const url=new URL(frame.src,location.href);
-    if(url.origin!=='https://www.youtube-nocookie.com')return;
-    origin=url.origin;
-  }catch{return;}
-  clockFrame=frame;
-  clockOrigin=origin;
-  frame.addEventListener('load',postListeningHandshake,{once:false});
-  postListeningHandshake();
-  clearInterval(clockRetryTimer);
-  clockRetryTimer=setInterval(postListeningHandshake,5000);
-}
-
-function onPlayerMessage(event){
-  if(!clockFrame?.contentWindow||event.source!==clockFrame.contentWindow||event.origin!==clockOrigin)return;
-  let payload=event.data;
-  if(typeof payload==='string'){
-    try{payload=JSON.parse(payload);}catch{return;}
-  }
-  if(!payload||payload.event!=='infoDelivery'||!payload.info)return;
-  const currentTime=Number(payload.info.currentTime);
-  if(Number.isFinite(currentTime))updatePlaybackTime(Math.round(currentTime*1000));
+function handleMediaTime(event){
+  const timeMs=Number(event?.detail?.time_ms);
+  if(Number.isFinite(timeMs))updatePlaybackTime(timeMs);
 }
 
 function handleClick(event){
@@ -525,7 +488,7 @@ function handleClick(event){
     return;
   }
 
-  const token=target.closest('.it-token[data-it-term]');
+  const token=target.closest('.it-token[data-it-term],.transcript-token[data-it-term]');
   if(token){
     event.preventDefault();
     event.stopPropagation();
@@ -534,7 +497,7 @@ function handleClick(event){
 }
 
 function handleKeydown(event){
-  const target=event.target instanceof Element?event.target.closest('.it-token[data-it-term]'):null;
+  const target=event.target instanceof Element?event.target.closest('.it-token[data-it-term],.transcript-token[data-it-term]'):null;
   if(!target||!['Enter',' '].includes(event.key))return;
   event.preventDefault();
   openDictionary(target.dataset.itTerm,{language:state.language});
@@ -543,7 +506,7 @@ function handleKeydown(event){
 function refresh(root=document){
   observeTranscriptElements(root);
   ensureControls();
-  bindClockFrame();
+  if(lastPlayingSegmentId)applyPlayingSegment(root,lastPlayingSegmentId);
 }
 
 export function installInteractiveTranscriptLayer(){
@@ -560,8 +523,7 @@ export function installInteractiveTranscriptLayer(){
       }
     }
     ensureControls();
-    bindClockFrame();
-  });
+    });
   mutationObserver.observe(document.getElementById('mainContent')||document.body,{
     childList:true,
     subtree:true,
@@ -570,16 +532,15 @@ export function installInteractiveTranscriptLayer(){
   document.addEventListener('click',handleClick);
   document.addEventListener('keydown',handleKeydown);
   document.addEventListener('selectionchange',rememberSelection);
-  window.addEventListener('message',onPlayerMessage);
+  document.addEventListener('orena:media-time',handleMediaTime);
 }
 
 export function uninstallInteractiveTranscriptLayer(){
   mutationObserver?.disconnect();
   intersectionObserver?.disconnect();
-  clearInterval(clockRetryTimer);
   document.removeEventListener('click',handleClick);
   document.removeEventListener('keydown',handleKeydown);
   document.removeEventListener('selectionchange',rememberSelection);
-  window.removeEventListener('message',onPlayerMessage);
+  document.removeEventListener('orena:media-time',handleMediaTime);
   installed=false;
 }

@@ -226,6 +226,19 @@ class MediaTimingService:
                 failure_kind="unsupported_provider",
             )
 
+        if getattr(self._resolver, "delivery_mode", "url") == "segment_only":
+            if acquisition.media_object.transcript is not None:
+                return MediaTimingEnrichment(
+                    acquisition=acquisition,
+                    status="segment_only",
+                    failure_kind="word_timing_transport_unavailable",
+                )
+            return MediaTimingEnrichment(
+                acquisition=acquisition,
+                status="unavailable",
+                failure_kind="word_timing_transport_unavailable",
+            )
+
         try:
             media_source = self._resolver.resolve(asset.source_url)
         except MediaAudioResolutionFailed:

@@ -85,3 +85,9 @@ def test_resolver_rejects_non_https_resolved_media() -> None:
     resolver = YtDlpYouTubeAudioUrlResolver(ydl_factory=factory)
     with pytest.raises(MediaAudioResolutionFailed):
         resolver.resolve("https://youtu.be/dQw4w9WgXcQ")
+
+def test_youtube_timing_transport_is_explicitly_segment_only() -> None:
+    resolver = YtDlpYouTubeAudioUrlResolver(
+        ydl_factory=lambda _options: pytest.fail("must not contact yt-dlp")
+    )
+    assert resolver.delivery_mode == "segment_only"

@@ -21,7 +21,7 @@ from writing_coach.core.support_languages import (
     normalize_support_language,
     support_language,
 )
-from writing_coach.media_api import MediaImportIn
+from writing_coach.media_api import MediaImportIn, MediaTranslationIn
 from writing_coach.media_ingestion import (
     MediaAcquisition,
     MediaIngestionService,
@@ -429,6 +429,72 @@ def _api_response(
             target_language=target_language,
         )
     )
+
+
+def _translation_request(media_object: MediaLearningObject) -> MediaTranslationIn:
+    transcript = media_object.transcript
+    assert transcript is not None
+    asset = media_object.asset
+    return MediaTranslationIn(
+        target_language="vi",
+        asset={
+            "asset_id": asset.asset_id,
+            "source_url": asset.source_url,
+            "source_provider": asset.source_provider,
+            "source_type": asset.source_type,
+            "title": asset.title,
+            "source_language": asset.source_language,
+            "processing_state": asset.processing_state.value,
+            "duration_ms": asset.duration_ms,
+            "transcript_available": asset.transcript_available,
+        },
+        transcript={
+            "asset_id": transcript.asset_id,
+            "source_language": transcript.source_language,
+            "segments": [
+                {
+                    "segment_id": segment.segment_id,
+                    "order": segment.order,
+                    "start_ms": segment.start_ms,
+                    "end_ms": segment.end_ms,
+                    "original_text": segment.original_text,
+                }
+                for segment in transcript.segments
+            ],
+        },
+    )
+
+
+def test_api_translate_reuses_the_canonical_transcript_without_reimporting(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    original = _media("en", segment_count=3)
+    generator = FakeGenerator()
+    monkeypatch.setattr(media_api, "_media_ingestion_service", None)
+    monkeypatch.setattr(
+        media_api,
+        "_media_translation_service",
+        MediaTranslationService(generator),
+    )
+
+    response = media_api.translate_media(_translation_request(original))
+
+    assert response["translation"]["status"] == "ready"
+    assert [item["segment_id"] for item in response["translations"]] == [
+        segment.segment_id for segment in original.transcript.segments  # type: ignore[union-attr]
+    ]
+    assert response["transcript"]["segments"] == [
+        {
+            "segment_id": segment.segment_id,
+            "order": segment.order,
+            "start_ms": segment.start_ms,
+            "end_ms": segment.end_ms,
+            "original_text": segment.original_text,
+            "words": [],
+        }
+        for segment in original.transcript.segments  # type: ignore[union-attr]
+    ]
+    assert len(generator.calls) == 1
 
 
 def test_invalid_api_target_language_preserves_structured_http_contract(

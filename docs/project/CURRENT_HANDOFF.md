@@ -94,21 +94,28 @@ Current verified branch checkpoint:
   build PASS, full regression `486 passed`.
 - Slice 2A introduces a non-blocking Supadata job contract as fallback
   infrastructure. Focused local validation: `9 passed`; architecture PASS.
-- Slice 2B is implementing Groq-backed real word timing by resolving a
-  short-lived YouTube audio-file URL without persisting media, reusing the
-  existing Groq Whisper ASR boundary, and attaching word timing to the API DTO
-  without changing M1 canonical segment identity.
+- Slice 2B is committed at `ff0e5fad3420632f827638650cf7b66b77f19385`.
+  It adds Groq URL ASR, the no-download YouTube audio resolver, provider-neutral
+  word timing, and Listening word-timing requests.
+- Slice 2B local validation: Docker build PASS; focused media/timing regression
+  `26 passed`; architecture PASS; JavaScript syntax PASS; `git diff --check`
+  PASS; full local regression `507 passed, 3 warnings`.
+- Slice 2C implements explicit native -> Groq -> Supadata orchestration,
+  process-resumable fallback jobs, and browser local resume without a schema
+  change. Local validation: focused regression `70 passed, 2 warnings`;
+  architecture PASS; JavaScript syntax PASS; full regression
+  `516 passed, 3 warnings`. Live-provider/browser QA is still pending.
 
 Status:
 
-- **DONE:** Slice 1 checkpoint and regression validation.
-- **IN PROGRESS:** Groq URL ASR + YouTube audio URL resolver + provider-neutral
-  word-timing enrichment + Listening request integration.
-- **PENDING:** make provider fallback order explicitly Groq-first when native
-  captions are absent; durable/resumable subtitle processing state; browser
-  resume UX; EN/ZH live-provider quality checks; full regression and review.
-- **BLOCKED:** no code blocker. Any PostgreSQL schema/Alembic change remains a
-  human gate and is not authorized by this refinement.
+- **DONE:** Slice 1; Slice 2A; Slice 2B checkpoint `ff0e5fa` with local full
+  regression through `507 passed`.
+- **IN PROGRESS:** Slice 2C live-provider/browser QA and runtime-parity checks.
+- **PENDING:** EN/ZH live-provider quality checks; browser resume QA; decide
+  whether cross-restart/cross-worker job durability is required; PostgreSQL
+  runtime-parity smoke where relevant; checkpoint, final review and PR.
+- **BLOCKED:** no code blocker. Cross-restart durable job persistence would need
+  PostgreSQL schema/Alembic work and therefore remains a human gate.
 
 Provider policy for this branch is explicit: native source captions remain
 preferred source text when available; Groq is used for real ASR timing and may

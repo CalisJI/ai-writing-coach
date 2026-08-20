@@ -6,6 +6,11 @@ import {createListeningController,mediaImportErrorState,renderListening} from '.
 import {routeAvailable} from '../static/becoming/domain/skill-release.js';
 import {state} from '../static/becoming/store.js';
 
+// The lifecycle assertions below use minimal non-browser roots; media-player
+// only needs these constructors to reject their absent iframe safely.
+if(!globalThis.Element)globalThis.Element=Object;
+if(!globalThis.HTMLIFrameElement)globalThis.HTMLIFrameElement=class {};
+
 const calls=[];
 let resolveImport;
 const imported=new Promise(resolve=>{resolveImport=resolve;});
@@ -18,7 +23,12 @@ const controller=createListeningController({
 assert.match(controller.html(),/mediaImportForm/);
 const pending=controller.importUrl('https://youtu.be/dQw4w9WgXcQ');
 assert.equal(controller.model.status,'validating');
-assert.deepEqual(calls,[{source_url:'https://youtu.be/dQw4w9WgXcQ',target_language:'vi'}]);
+assert.deepEqual(calls,[{
+  source_url:'https://youtu.be/dQw4w9WgXcQ',
+  target_language:'vi',
+  include_word_timing:true,
+  include_translation:false,
+}]);
 resolveImport(MEDIA_LEARNING_FIXTURE);
 await pending;
 assert.deepEqual(states.slice(-2),['validating','ready']);
@@ -28,13 +38,67 @@ assert.equal(controller.model.selected,'segment-001');
 assert.doesNotMatch(controller.html(),/translation-status-(?:unavailable|too_large)/);
 assert.match(controller.html(),/Listen for the first complete idea\./);
 assert.match(controller.html(),/listening-segment selected[^>]*data-segment-id="segment-001"/);
-assert.match(controller.html(),/data-segment-id="segment-001" aria-current="true"/);
+assert.match(controller.html(),/data-segment-id="segment-001" data-canonical-segment-ids="segment-001" aria-current="true"/);
 assert.match(controller.html(),/data-previous-segment disabled/);
 assert.doesNotMatch(controller.html(),/data-next-segment disabled/);
 assert.match(controller.html(),/value="0.75"/);
 assert.match(controller.html(),/value="1.25"/);
 assert.match(controller.html(),/<iframe/);
 assert.match(controller.html(),/disabled/);
+
+const canonicalOnly={
+  ...MEDIA_LEARNING_FIXTURE,
+  asset:{...MEDIA_LEARNING_FIXTURE.asset,translation_available:false},
+  translations:[],
+};
+delete canonicalOnly.translation;
+const acquisitionRequests=[];
+const translationRequests=[];
+const backgroundTranslation=createListeningController({
+  importMedia:async payload=>{
+    acquisitionRequests.push(payload);
+    return canonicalOnly;
+  },
+  translateMedia:async payload=>{
+    translationRequests.push(payload);
+    return {
+      asset:{...MEDIA_LEARNING_FIXTURE.asset,translation_available:true},
+      transcript:MEDIA_LEARNING_FIXTURE.transcript,
+      translations:MEDIA_LEARNING_FIXTURE.translations,
+      translation:MEDIA_LEARNING_FIXTURE.translation,
+    };
+  },
+  targetLanguage:()=> 'vi',
+});
+await backgroundTranslation.importUrl('https://youtu.be/dQw4w9WgXcQ');
+await Promise.resolve();
+assert.equal(acquisitionRequests.length,1);
+assert.equal(translationRequests.length,1);
+assert.deepEqual(
+  translationRequests[0].transcript.segments.map(segment=>segment.segment_id),
+  MEDIA_LEARNING_FIXTURE.transcript.segments.map(segment=>segment.segment_id),
+);
+assert.equal(backgroundTranslation.model.payload.translation.status,'ready');
+assert.equal(backgroundTranslation.model.payload.asset.translation_available,true);
+
+const groupedDisplay={
+  ...MEDIA_LEARNING_FIXTURE,
+  transcript:{
+    ...MEDIA_LEARNING_FIXTURE.transcript,
+    segments:[
+      {...MEDIA_LEARNING_FIXTURE.transcript.segments[0],segment_id:'group-a',start_ms:0,end_ms:3900,original_text:'do you forget words when you speak'},
+      {...MEDIA_LEARNING_FIXTURE.transcript.segments[1],segment_id:'group-b',start_ms:2100,end_ms:6100,original_text:"English don't worry you are not alone"},
+    ],
+  },
+  translations:[],
+};
+const groupedController=createListeningController({
+  importMedia:async()=>groupedDisplay,
+  targetLanguage:()=> 'vi',
+});
+await groupedController.importUrl('https://youtu.be/dQw4w9WgXcQ');
+assert.equal(groupedController.select('group-b'),true);
+assert.match(groupedController.html(),/data-canonical-segment-ids="group-a group-b"[\s\S]*data-shadow-selected/);
 
 let activeImports=0;
 const activeController=createListeningController({importMedia:async()=>{activeImports+=1;return MEDIA_LEARNING_FIXTURE;},targetLanguage:()=> 'vi'});
@@ -147,6 +211,7 @@ const delayedRoot={
     return null;
   },
   querySelectorAll(){return [];},
+  addEventListener(){},
 };
 const mounted=await renderListening(delayedRoot,{importMedia:()=>delayedImport,targetLanguage:()=> 'vi'});
 const delayed=mounted.importUrl('https://youtu.be/dQw4w9WgXcQ');
@@ -168,20 +233,29 @@ const scrollRoot={
     return null;
   },
   querySelectorAll(selector){
-    if(selector==='[data-segment-id]'){
-      return ['segment-001','segment-002'].map(segmentId=>({
-        dataset:{segmentId},
-        scrollIntoView:()=>scrolledSegments.push(segmentId),
+    if(selector==='.listening-segment[data-canonical-segment-ids]'){
+      const container={
+        scrollTop:0,
+        scrollHeight:400,
+        clientHeight:100,
+        getBoundingClientRect:()=>({top:0}),
+        scrollTo:options=>scrolledSegments.push(options),
+      };
+      return ['segment-001','segment-002'].map((segmentId,index)=>({
+        dataset:{segmentId,canonicalSegmentIds:segmentId},
+        closest:selector=>selector==='.listening-segments'?container:null,
+        getBoundingClientRect:()=>({top:index*150,bottom:(index*150)+24,height:24}),
       }));
     }
     return [];
   },
+  addEventListener(){},
 };
 const scrollController=await renderListening(scrollRoot,{importMedia:async()=>MEDIA_LEARNING_FIXTURE,targetLanguage:()=> 'vi'});
 await scrollController.importUrl('https://youtu.be/dQw4w9WgXcQ');
-assert.deepEqual(scrolledSegments,['segment-001']);
+assert.deepEqual(scrolledSegments,[]);
 assert.equal(scrollController.moveSelection(1),true);
-assert.deepEqual(scrolledSegments,['segment-001','segment-002']);
+assert.deepEqual(scrolledSegments,[{top:86,behavior:'smooth'}]);
 
 const overlapping=[];
 const raceController=createListeningController({
