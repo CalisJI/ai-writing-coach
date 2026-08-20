@@ -5,35 +5,56 @@ function normalize(value=''){
   return String(value||'').trim();
 }
 
+const FEEDBACK_CATEGORY_ALIASES={
+  article:'grammar',
+  article_usage:'grammar',
+  subject_verb_agreement:'grammar',
+  agreement:'grammar',
+  word_order:'grammar',
+  sentence_structure:'grammar',
+  preposition:'grammar',
+  particle:'grammar',
+  aspect:'grammar',
+  complement:'grammar',
+  measure_word:'grammar',
+  ba_sentence:'grammar',
+  bei_sentence:'grammar',
+  punctuation:'grammar', // Punctuation is part of evaluator grammar correctness.
+  verb_form:'verb_tense',
+  tense:'verb_tense',
+  word_choice:'vocabulary',
+  lexical_choice:'vocabulary',
+  character_choice:'vocabulary',
+  word_form:'vocabulary',
+  spelling:'vocabulary',
+  precision:'vocabulary',
+  tone:'naturalness',
+  register:'naturalness',
+  expression:'naturalness',
+  redundancy:'naturalness',
+  organization:'coherence',
+  organisation:'coherence',
+  conjunction:'coherence',
+  linking:'coherence',
+  flow:'coherence',
+  task:'coherence',
+  task_achievement:'coherence',
+};
+
+const FEEDBACK_VISUAL_GROUPS=new Set([
+  'grammar','verb_tense','vocabulary','collocation','naturalness','coherence',
+]);
+
 export function feedbackCategoryKey(category=''){
   const key=String(category||'expression')
+    .trim()
     .toLowerCase()
     .replaceAll('-','_')
     .replaceAll(' ','_');
-  const aliases={
-    article:'grammar',
-    article_usage:'grammar',
-    subject_verb_agreement:'grammar',
-    word_order:'grammar',
-    sentence_structure:'grammar',
-    verb_form:'verb_tense',
-    tense:'verb_tense',
-    word_choice:'vocabulary',
-    lexical_choice:'vocabulary',
-    precision:'vocabulary',
-    tone:'naturalness',
-    register:'naturalness',
-    expression:'naturalness',
-    organization:'coherence',
-    organisation:'coherence',
-    linking:'coherence',
-    flow:'coherence',
-    task_achievement:'coherence',
-  };
-  const normalized=aliases[key]||key;
-  return new Set([
-    'grammar','verb_tense','vocabulary','collocation','naturalness','coherence',
-  ]).has(normalized)?normalized:'naturalness';
+  const normalized=FEEDBACK_CATEGORY_ALIASES[key]||key;
+  // Unknown evaluator categories use the broad correctness treatment instead
+  // of implying that every unmapped issue is about naturalness.
+  return FEEDBACK_VISUAL_GROUPS.has(normalized)?normalized:'grammar';
 }
 
 function isWordChar(char=''){
