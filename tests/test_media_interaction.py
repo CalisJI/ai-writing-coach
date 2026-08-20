@@ -44,28 +44,8 @@ def test_validated_annotations_drop_hallucinated_or_out_of_order_fragments() -> 
     assert [item["fragment"] for item in annotations] == ["I", "book"]
 
 
-def test_annotate_media_text_uses_contextual_chinese_reading_aid(monkeypatch) -> None:
+def test_annotate_media_text_uses_local_chinese_segmentation_and_pinyin(monkeypatch) -> None:
     monkeypatch.setattr(media_interaction, "current_language_code", lambda: "zh")
-    monkeypatch.setattr(
-        media_interaction,
-        "_run_structured",
-        lambda *args, **kwargs: {
-            "annotations": [
-                {
-                    "fragment": "葡萄牙",
-                    "pos": "proper_noun",
-                    "pronunciation": "Pútáoyá",
-                    "lemma": "葡萄牙",
-                },
-                {
-                    "fragment": "工作",
-                    "pos": "verb",
-                    "pronunciation": "gōngzuò",
-                    "lemma": "工作",
-                },
-            ]
-        },
-    )
 
     payload = media_interaction.annotate_media_text(
         media_interaction.MediaAnnotateIn(
@@ -76,7 +56,37 @@ def test_annotate_media_text_uses_contextual_chinese_reading_aid(monkeypatch) ->
 
     assert payload["source_language"] == "zh"
     assert payload["reading_aid"] == "pinyin"
-    assert [item["fragment"] for item in payload["annotations"]] == ["葡萄牙", "工作"]
+    annotations = payload["annotations"]
+    assert "葡萄牙" in [item["fragment"] for item in annotations]
+    assert "工作" in [item["fragment"] for item in annotations]
+    assert next(item for item in annotations if item["fragment"] == "工作")["pos"] == "verb"
+    assert next(item for item in annotations if item["fragment"] == "葡萄牙")["pronunciation"]
+    assert all(payload["text"][item["start"] : item["end"]] == item["fragment"] for item in annotations)
+
+
+def test_annotate_media_text_is_local_deterministic_and_cached(monkeypatch) -> None:
+    monkeypatch.setattr(media_interaction, "current_language_code", lambda: "en")
+    calls = 0
+
+    def fail_if_called(*args, **kwargs):
+        nonlocal calls
+        calls += 1
+        raise AssertionError("annotation must not call AI")
+
+    monkeypatch.setattr(media_interaction, "generate_structured", fail_if_called)
+    request = media_interaction.MediaAnnotateIn(
+        text="The curious students quickly study books.", source_language="en"
+    )
+
+    first = media_interaction.annotate_media_text(request)
+    second = media_interaction.annotate_media_text(request)
+
+    assert calls == 0
+    assert first == second
+    assert [item["pos"] for item in first["annotations"]] == [
+        "determiner", "adjective", "noun", "adverb", "verb", "noun"
+    ]
+    assert all(first["text"][item["start"] : item["end"]] == item["fragment"] for item in first["annotations"])
 
 
 def test_media_interaction_rejects_cross_language_annotation(monkeypatch) -> None:

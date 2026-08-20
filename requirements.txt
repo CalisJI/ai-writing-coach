@@ -1,4 +1,6 @@
 fastapi>=0.115
+jieba>=0.42,<0.43
+pypinyin>=0.53,<0.54
 uvicorn[standard]>=0.30
 requests>=2.31
 yt-dlp==2026.07.04

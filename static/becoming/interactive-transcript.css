@@ -212,7 +212,7 @@ html[data-transcript-pos="on"] .it-token.pos-other{color:var(--it-pos-other)}
   position:sticky;
   top:8px;
   z-index:20;
-  background:color-mix(in srgb,var(--surface,#fff) 94%,transparent);
+  background:color-mix(in srgb,var(--color-surface) 94%,transparent);
   backdrop-filter:blur(10px);
   border:1px solid color-mix(in srgb,currentColor 10%,transparent);
   border-radius:12px;

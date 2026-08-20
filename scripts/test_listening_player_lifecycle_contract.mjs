@@ -92,6 +92,16 @@ try{
   await controller.importUrl('https://youtu.be/dQw4w9WgXcQ');
   await Promise.resolve();
 
+  assert.equal(root.querySelector('#listeningPlayer'),null);
+  resolveTranslation({
+    asset:{...MEDIA_LEARNING_FIXTURE.asset,translation_available:true},
+    transcript:MEDIA_LEARNING_FIXTURE.transcript,
+    translations:MEDIA_LEARNING_FIXTURE.translations,
+    translation:MEDIA_LEARNING_FIXTURE.translation,
+  });
+  await Promise.resolve();
+  await Promise.resolve();
+  await new Promise(resolve=>setTimeout(resolve,0));
   const player=root.querySelector('#listeningPlayer');
   const fullRenders=root.fullRenders;
   assert.ok(player instanceof FakeFrame);
@@ -102,16 +112,7 @@ try{
   controller.toggleMeaning(false);
   assert.equal(controller.setMode('shadowing'),true);
   assert.match(root.learningColumn.innerHTML,/shadowing-focus/);
-  assert.doesNotMatch(root.learningColumn.innerHTML,/active-listening-meaning/);
-
-  resolveTranslation({
-    asset:{...MEDIA_LEARNING_FIXTURE.asset,translation_available:true},
-    transcript:MEDIA_LEARNING_FIXTURE.transcript,
-    translations:MEDIA_LEARNING_FIXTURE.translations,
-    translation:MEDIA_LEARNING_FIXTURE.translation,
-  });
-  await Promise.resolve();
-  await Promise.resolve();
+  assert.match(root.learningColumn.innerHTML,/active-listening-meaning/);
 
   assert.equal(root.querySelector('#listeningPlayer'),player);
   assert.equal(root.fullRenders,fullRenders);
@@ -129,11 +130,10 @@ try{
   await failedController.importUrl('https://youtu.be/dQw4w9WgXcQ');
   await Promise.resolve();
   await Promise.resolve();
-  const failedPlayer=failedRoot.querySelector('#listeningPlayer');
   const failedPlayerCreations=playerCreations;
-  assert.equal(failedController.setMode('shadowing'),true);
-  assert.match(failedRoot.learningColumn.innerHTML,/translation-status-unavailable/);
-  assert.equal(failedRoot.querySelector('#listeningPlayer'),failedPlayer);
+  assert.equal(failedController.model.status,'translation-failed');
+  assert.equal(failedController.setMode('shadowing'),false);
+  assert.equal(failedRoot.querySelector('#listeningPlayer'),null);
   assert.equal(playerCreations,failedPlayerCreations);
 }finally{
   for(const [key,value] of Object.entries(previous)){

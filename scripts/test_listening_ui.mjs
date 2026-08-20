@@ -27,7 +27,7 @@ assert.deepEqual(calls,[{
   source_url:'https://youtu.be/dQw4w9WgXcQ',
   target_language:'vi',
   include_word_timing:true,
-  include_translation:false,
+  include_translation:true,
 }]);
 resolveImport(MEDIA_LEARNING_FIXTURE);
 await pending;
@@ -153,16 +153,26 @@ assert.deepEqual(
 
 const pendingTranslationFailure={...pendingCanonical,asset:{...pendingCanonical.asset},translations:[]};
 delete pendingTranslationFailure.translation;
+let failedTranslationAttempts=0;
 const failedPendingTranslationController=createListeningController({
   importStatus:async()=>pendingTranslationFailure,
-  translateMedia:async()=>{throw new Error('translation unavailable');},
+  translateMedia:async()=>{
+    failedTranslationAttempts+=1;
+    if(failedTranslationAttempts===1)throw new Error('translation unavailable');
+    return {asset:{...MEDIA_LEARNING_FIXTURE.asset,translation_available:true},translations:MEDIA_LEARNING_FIXTURE.translations,translation:MEDIA_LEARNING_FIXTURE.translation};
+  },
   targetLanguage:()=> 'vi',
 });
 failedPendingTranslationController.resumePending({job_id:'supadata-job-1234567891',source_url:'https://youtu.be/dQw4w9WgXcQ'});
 await failedPendingTranslationController.pollPending();
 await new Promise(resolve=>setTimeout(resolve,0));
-assert.equal(failedPendingTranslationController.model.status,'ready');
+assert.equal(failedPendingTranslationController.model.status,'translation-failed');
 assert.equal(failedPendingTranslationController.model.payload.translation.status,'unavailable');
+assert.doesNotMatch(failedPendingTranslationController.html(),/<iframe/);
+assert.equal(failedPendingTranslationController.retryTranslation(),true);
+await new Promise(resolve=>setTimeout(resolve,0));
+assert.equal(failedTranslationAttempts,2);
+assert.equal(failedPendingTranslationController.model.status,'ready');
 
 const groupedDisplay={
   ...MEDIA_LEARNING_FIXTURE,
@@ -499,29 +509,15 @@ assert.match(controller.html(),/Cùng đoạn này có thể dùng để luyện
 
 const translationFailure={
   ...MEDIA_LEARNING_ZH_FIXTURE,
-  translation:{...MEDIA_LEARNING_ZH_FIXTURE.translation,provider_error:'RAW PROVIDER EXCEPTION'},
+  translation:{status:'unavailable',target_language:'vi',failure_kind:'execution_unavailable',provider_error:'RAW PROVIDER EXCEPTION'},
 };
 const untranslated=createListeningController({importMedia:async()=>translationFailure,targetLanguage:()=> 'vi'});
 await untranslated.importUrl('https://youtu.be/dQw4w9WgXcQ');
-assert.equal(untranslated.model.status,'ready');
+assert.equal(untranslated.model.status,'translation-failed');
 assert.equal(untranslated.model.payload.translation.status,'unavailable');
-assert.match(untranslated.html(),/这是共享的原文字幕。/);
-assert.match(untranslated.html(),/translation-status-unavailable/);
-assert.match(untranslated.html(),/Hiện chưa thể tạo phần nghĩa|Meaning could not be generated|目前无法生成释义/);
+assert.match(untranslated.html(),/data-retry-translation/);
+assert.doesNotMatch(untranslated.html(),/<iframe/);
 assert.doesNotMatch(untranslated.html(),/RAW PROVIDER EXCEPTION|translation-unavailable/);
-assert.equal(untranslated.moveSelection(1),true);
-assert.equal(untranslated.model.selected,'segment-zh-002');
-assert.match(untranslated.html(),/下一句也使用同一个学习流程。/);
-assert.match(untranslated.html(),/translation-status-unavailable/);
-assert.equal(untranslated.moveSelection(-1),true);
-assert.equal(untranslated.setMode('active'),true);
-assert.ok(!untranslated.html().includes(MEDIA_LEARNING_ZH_FIXTURE.transcript.segments[0].original_text));
-untranslated.setPracticeDraft(MEDIA_LEARNING_ZH_FIXTURE.transcript.segments[0].original_text);
-assert.equal(untranslated.checkPractice(),true);
-assert.match(untranslated.html(),/active-listening-text-match/);
-assert.match(untranslated.html(),/100%/);
-assert.ok(untranslated.html().includes(MEDIA_LEARNING_ZH_FIXTURE.transcript.segments[0].original_text));
-assert.match(untranslated.html(),/translation-status-unavailable/);
 
 const sameLanguage={
   ...MEDIA_LEARNING_FIXTURE,
@@ -548,17 +544,9 @@ const tooLarge={
 };
 const oversizedTranslation=createListeningController({importMedia:async()=>tooLarge,targetLanguage:()=> 'vi'});
 await oversizedTranslation.importUrl('https://youtu.be/dQw4w9WgXcQ');
-assert.equal(oversizedTranslation.model.status,'ready');
-assert.match(oversizedTranslation.html(),/这是共享的原文字幕。/);
-assert.match(oversizedTranslation.html(),/translation-status-too_large/);
-assert.match(oversizedTranslation.html(),/quá lớn để tự động tạo phần nghĩa|too large for automatic meaning generation|内容过大/);
-assert.doesNotMatch(oversizedTranslation.html(),/translation-status-unavailable|translation-unavailable/);
-assert.notEqual(oversizedTranslation.html(),untranslated.html());
-assert.equal(oversizedTranslation.setMode('active'),true);
-assert.equal(oversizedTranslation.revealPractice(),true);
-assert.match(oversizedTranslation.html(),/translation-status-too_large/);
-assert.ok(oversizedTranslation.html().includes(MEDIA_LEARNING_ZH_FIXTURE.transcript.segments[0].original_text));
-assert.doesNotMatch(oversizedTranslation.html(),/active-listening-text-match/);
+assert.equal(oversizedTranslation.model.status,'translation-failed');
+assert.match(oversizedTranslation.html(),/data-retry-translation/);
+assert.doesNotMatch(oversizedTranslation.html(),/<iframe/);
 
 const noCaption={...MEDIA_LEARNING_FIXTURE,asset:{...MEDIA_LEARNING_FIXTURE.asset,transcript_available:false,translation_available:false},transcript:null,translations:[],translation:{status:'transcript_unavailable',target_language:'vi',source:null,failure_kind:null}};
 const captionless=createListeningController({importMedia:async()=>noCaption,targetLanguage:()=> 'vi'});
@@ -586,7 +574,7 @@ const oversizedCanonical={
   ...MEDIA_LEARNING_FIXTURE,
   transcript:{...MEDIA_LEARNING_FIXTURE.transcript,segments:[{...MEDIA_LEARNING_FIXTURE.transcript.segments[0],original_text:'word '.repeat(501)}]},
   translations:[],
-  translation:{status:'unavailable',target_language:'vi',source:null,failure_kind:'too_large'},
+  translation:{status:'ready',target_language:'vi',source:{capability_key:'learner_translation',provider:'fake',request_count:1},failure_kind:null},
 };
 const noEvaluation=createListeningController({importMedia:async()=>oversizedCanonical,targetLanguage:()=> 'vi'});
 await noEvaluation.importUrl('https://example.invalid/oversized-segment');

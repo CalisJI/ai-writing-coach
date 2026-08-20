@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
+from functools import lru_cache
 import re
 from typing import Any
 
 from fastapi import APIRouter, HTTPException
+import jieba.posseg as pseg
 from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pypinyin import Style, lazy_pinyin
 
 from writing_coach.ai.base import AICapabilityError, AIProviderError, AIProviderUnavailable
 from writing_coach.ai.platform import generate_structured
@@ -42,6 +45,13 @@ _SUPPORT_LANGUAGE_NAMES = {
     "zh": "Simplified Chinese",
 }
 _MAX_ANNOTATIONS = 160
+_EN_DETERMINERS = {"a", "an", "the", "this", "that", "these", "those", "some", "any", "each", "every", "many", "much"}
+_EN_PRONOUNS = {"i", "me", "you", "he", "him", "she", "her", "it", "we", "us", "they", "them", "my", "your", "his", "our", "their", "mine", "yours", "ours", "theirs", "who", "which", "what"}
+_EN_PREPOSITIONS = {"at", "by", "for", "from", "in", "into", "of", "on", "over", "to", "under", "with", "without", "about", "after", "before", "between", "through"}
+_EN_CONJUNCTIONS = {"and", "but", "or", "nor", "so", "yet", "because", "although", "if", "while", "when"}
+_EN_AUXILIARIES = {"am", "are", "be", "been", "being", "can", "could", "did", "do", "does", "had", "has", "have", "is", "may", "might", "must", "shall", "should", "was", "were", "will", "would"}
+_EN_VERBS = {"be", "become", "come", "eat", "feel", "find", "get", "give", "go", "have", "know", "learn", "like", "listen", "make", "play", "read", "say", "see", "speak", "study", "take", "think", "use", "walk", "want", "watch", "work", "write"}
+_EN_ADJECTIVES = {"curious", "good", "great", "happy", "important", "new", "old", "small", "useful"}
 
 
 class MediaAnnotateIn(BaseModel):
@@ -91,64 +101,6 @@ def _support_language(value: str) -> str:
         raise HTTPException(422, "Choose a valid support language.") from exc
 
 
-def _annotation_schema() -> dict[str, Any]:
-    return {
-        "type": "object",
-        "properties": {
-            "annotations": {
-                "type": "array",
-                "maxItems": _MAX_ANNOTATIONS,
-                "items": {
-                    "type": "object",
-                    "properties": {
-                        "fragment": {"type": "string"},
-                        "pos": {"type": "string", "enum": sorted(_ALLOWED_POS)},
-                        "pronunciation": {"type": "string"},
-                        "lemma": {"type": "string"},
-                    },
-                    "required": ["fragment", "pos", "pronunciation", "lemma"],
-                },
-            },
-        },
-        "required": ["annotations"],
-    }
-
-
-def _annotation_prompt(language: str, text: str) -> tuple[str, str]:
-    if language == "zh":
-        language_name = "Simplified Chinese"
-        language_rules = (
-            "Segment Hanzi into meaningful lexical learner-facing words or particles, "
-            "not one character at a time unless the character is genuinely a standalone word. "
-            "For every Chinese fragment, return contextual tone-mark pinyin in pronunciation. "
-            "Handle polyphonic characters from sentence context when possible. "
-            "Use classifier for measure words and particle for grammatical particles."
-        )
-    else:
-        language_name = "English"
-        language_rules = (
-            "Segment English into lexical words and meaningful function words. "
-            "Do not return pronunciation unless a short learner-useful pronunciation is reliable; "
-            "otherwise return an empty pronunciation string."
-        )
-
-    system = (
-        "You are the shared linguistic annotation service for a language-learning product. "
-        "Return exact literal spans copied from the supplied text and keep them in source order. "
-        "Never rewrite, normalize, translate, or invent source fragments. "
-        "Do not annotate punctuation or whitespace. "
-        "Choose POS from the supplied enum according to the role in this sentence. "
-        + language_rules
-    )
-    user = (
-        f"LANGUAGE: {language_name}\n"
-        f"TEXT:\n{text}\n\n"
-        "Annotate this transcript segment for an interactive learning view. "
-        "Prefer useful lexical units over microscopic segmentation."
-    )
-    return system, user
-
-
 def _validated_annotations(source: str, raw: Any) -> list[dict[str, Any]]:
     if not isinstance(raw, list):
         return []
@@ -186,6 +138,113 @@ def _validated_annotations(source: str, raw: Any) -> list[dict[str, Any]]:
     return output
 
 
+def _english_pos(word: str) -> str:
+    lower = word.casefold()
+    if lower in _EN_DETERMINERS:
+        return "determiner"
+    if lower in _EN_PRONOUNS:
+        return "pronoun"
+    if lower in _EN_PREPOSITIONS:
+        return "preposition"
+    if lower in _EN_CONJUNCTIONS:
+        return "conjunction"
+    if lower in _EN_AUXILIARIES:
+        return "auxiliary"
+    if lower.isdigit():
+        return "numeral"
+    if lower in _EN_VERBS or lower.endswith(("ing", "ed", "ize", "ise")):
+        return "verb"
+    if lower.endswith("ly"):
+        return "adverb"
+    if lower in _EN_ADJECTIVES or lower.endswith(("ful", "ous", "ive", "able", "ible", "al", "ic")):
+        return "adjective"
+    return "proper_noun" if word[:1].isupper() else "noun"
+
+
+def _english_lemma(word: str) -> str:
+    lower = word.casefold()
+    if lower.endswith("ies") and len(lower) > 3:
+        return lower[:-3] + "y"
+    if lower.endswith("s") and len(lower) > 3 and not lower.endswith("ss"):
+        return lower[:-1]
+    return lower
+
+
+def _english_annotations(source: str) -> list[dict[str, Any]]:
+    return [
+        {
+            "fragment": match.group(),
+            "start": match.start(),
+            "end": match.end(),
+            "pos": _english_pos(match.group()),
+            "pronunciation": "",
+            "lemma": _english_lemma(match.group()),
+        }
+        for match in re.finditer(r"[A-Za-z]+(?:'[A-Za-z]+)?|\d+(?:[.,]\d+)?", source)
+    ][:_MAX_ANNOTATIONS]
+
+
+def _chinese_pos(tag: str) -> str:
+    if tag.startswith(("nr", "ns", "nt", "nz")):
+        return "proper_noun"
+    if tag.startswith("n"):
+        return "noun"
+    if tag.startswith("v"):
+        return "verb"
+    if tag.startswith("a"):
+        return "adjective"
+    if tag.startswith("d"):
+        return "adverb"
+    if tag.startswith("r"):
+        return "pronoun"
+    if tag.startswith("m"):
+        return "numeral"
+    if tag.startswith("q"):
+        return "classifier"
+    if tag.startswith("p"):
+        return "preposition"
+    if tag.startswith("c"):
+        return "conjunction"
+    if tag.startswith(("u", "y")):
+        return "particle"
+    if tag.startswith("e"):
+        return "interjection"
+    return "other"
+
+
+def _chinese_annotations(source: str) -> list[dict[str, Any]]:
+    output: list[dict[str, Any]] = []
+    cursor = 0
+    for item in pseg.cut(source):
+        word = str(item.word)
+        if not word or word.isspace() or not re.search(r"[\u3400-\u9fffA-Za-z0-9]", word):
+            continue
+        start = source.find(word, cursor)
+        if start < 0:
+            continue
+        end = start + len(word)
+        output.append(
+            {
+                "fragment": word,
+                "start": start,
+                "end": end,
+                "pos": _chinese_pos(str(item.flag)),
+                "pronunciation": " ".join(lazy_pinyin(word, style=Style.TONE)),
+                "lemma": word,
+            }
+        )
+        cursor = end
+        if len(output) == _MAX_ANNOTATIONS:
+            break
+    return output
+
+
+@lru_cache(maxsize=512)
+def _local_annotations(language: str, source: str) -> tuple[dict[str, Any], ...]:
+    annotations = _chinese_annotations(source) if language == "zh" else _english_annotations(source)
+    return tuple(annotations)
+
+
 def _run_structured(
     capability_key: str,
     *,
@@ -217,20 +276,10 @@ def annotate_media_text(payload: MediaAnnotateIn) -> dict[str, Any]:
     if not source:
         raise HTTPException(422, "Transcript text is required.")
 
-    system, user = _annotation_prompt(language, source)
-    raw = _run_structured(
-        "writing_linguistic",
-        messages=[
-            {"role": "system", "content": system},
-            {"role": "user", "content": user},
-        ],
-        schema=_annotation_schema(),
-        max_output_tokens=2200,
-    )
     return {
         "source_language": language,
         "text": source,
-        "annotations": _validated_annotations(source, raw.get("annotations")),
+        "annotations": list(_local_annotations(language, source)),
         "reading_aid": "pinyin" if language == "zh" else None,
         "annotation_version": 1,
         "claim": "interactive_transcript_learning_aid",
