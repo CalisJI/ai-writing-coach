@@ -45,6 +45,56 @@ assert.match(controller.html(),/value="0.75"/);
 assert.match(controller.html(),/value="1.25"/);
 assert.match(controller.html(),/<iframe/);
 assert.match(controller.html(),/disabled/);
+assert.doesNotMatch(controller.html(),/listening-meaning-inline"><small/);
+
+const wordTimedFixture={
+  ...MEDIA_LEARNING_FIXTURE,
+  transcript:{
+    ...MEDIA_LEARNING_FIXTURE.transcript,
+    segments:MEDIA_LEARNING_FIXTURE.transcript.segments.map((segment,index)=>index===0?{
+      ...segment,
+      words:[
+        {text:'Listen',start_ms:0,end_ms:450},
+        {text:'for',start_ms:500,end_ms:650},
+        {text:'the',start_ms:700,end_ms:850},
+        {text:'first',start_ms:900,end_ms:1150},
+        {text:'complete',start_ms:1200,end_ms:1550},
+        {text:'idea',start_ms:1600,end_ms:1900},
+      ],
+    }:segment),
+  },
+};
+const wordTimedController=createListeningController({importMedia:async()=>wordTimedFixture,targetLanguage:()=> 'vi'});
+await wordTimedController.importUrl('https://youtu.be/dQw4w9WgXcQ');
+assert.match(wordTimedController.html(),/transcript-token-timed[^>]*data-start-ms="0" data-end-ms="450"/);
+assert.equal(wordTimedController.setMode('shadowing'),true);
+assert.match(wordTimedController.html(),/shadowing-source[^>]*>[\s\S]*data-start-ms="0" data-end-ms="450"/);
+assert.equal(wordTimedController.setMode('active'),true);
+assert.equal(wordTimedController.revealPractice(),true);
+assert.match(wordTimedController.html(),/active-listening-source[^>]*>[\s\S]*data-start-ms="0" data-end-ms="450"/);
+
+const chineseWordTimed={
+  ...MEDIA_LEARNING_ZH_FIXTURE,
+  transcript:{
+    ...MEDIA_LEARNING_ZH_FIXTURE.transcript,
+    segments:[{
+      ...MEDIA_LEARNING_ZH_FIXTURE.transcript.segments[0],
+      original_text:'你好，世界。',
+      words:[
+        {text:'你好',start_ms:0,end_ms:450},
+        {text:'世界',start_ms:500,end_ms:950},
+      ],
+    }],
+  },
+};
+const chineseTimedController=createListeningController({importMedia:async()=>chineseWordTimed,targetLanguage:()=> 'vi'});
+await chineseTimedController.importUrl('https://youtu.be/dQw4w9WgXcQ');
+assert.match(chineseTimedController.html(),/data-it-term="你好"[^>]*data-start-ms="0" data-end-ms="450">你好<\/span>/);
+assert.match(chineseTimedController.html(),/data-it-term="世界"[^>]*data-start-ms="500" data-end-ms="950">世界<\/span>/);
+
+const segmentOnlyController=createListeningController({importMedia:async()=>MEDIA_LEARNING_FIXTURE,targetLanguage:()=> 'vi'});
+await segmentOnlyController.importUrl('https://youtu.be/dQw4w9WgXcQ');
+assert.doesNotMatch(segmentOnlyController.html(),/transcript-token-timed|data-start-ms=/);
 
 const canonicalOnly={
   ...MEDIA_LEARNING_FIXTURE,

@@ -49,9 +49,44 @@ const text=()=>COPY[uiLocale()]||COPY.en;
 const activeText=()=>ACTIVE_COPY[uiLocale()]||ACTIVE_COPY.en;
 const shadowText=()=>SHADOW_COPY[uiLocale()]||SHADOW_COPY.en;
 const stamp=ms=>`${Math.floor(ms/60000)}:${String(Math.floor(ms/1000)%60).padStart(2,'0')}`;
-const transcriptTokenMarkup=value=>transcriptTokens(value).map(token=>token.word
-  ?`<span class="transcript-token" data-it-term="${esc(token.text)}" tabindex="0" role="button">${esc(token.text)}</span>`
-  :esc(token.text)).join('');
+const timedTokenKey=value=>String(value||'').normalize('NFKC').toLocaleLowerCase()
+  .replace(/[\p{P}\p{S}\s]/gu,'');
+function transcriptTokenMarkup(value,words=[]){
+  const timing=Array.isArray(words)?words.filter(word=>word
+    &&typeof word.text==='string'
+    &&Number.isFinite(Number(word.start_ms))
+    &&Number.isFinite(Number(word.end_ms))
+    &&Number(word.end_ms)>Number(word.start_ms))
+    .map(word=>({...word,key:timedTokenKey(word.text)}))
+    .filter(word=>word.key):[];
+  const tokens=transcriptTokens(value);
+  let timingIndex=0;
+  const timingFor=index=>{
+    let key='';
+    for(let end=index;end<tokens.length&&tokens[end].word;end+=1){
+      key+=timedTokenKey(tokens[end].text);
+      for(let candidate=timingIndex;candidate<timing.length;candidate+=1){
+        if(timing[candidate].key===key)return {word:timing[candidate],candidate,end};
+      }
+    }
+    return null;
+  };
+  const markup=[];
+  for(let index=0;index<tokens.length;index+=1){
+    const token=tokens[index];
+    if(!token.word){markup.push(esc(token.text));continue;}
+    const match=timingFor(index);
+    if(!match){
+      markup.push(`<span class="transcript-token" data-it-term="${esc(token.text)}" tabindex="0" role="button">${esc(token.text)}</span>`);
+      continue;
+    }
+    timingIndex=match.candidate+1;
+    const source=tokens.slice(index,match.end+1).map(item=>item.text).join('');
+    markup.push(`<span class="transcript-token transcript-token-timed" data-it-term="${esc(source)}" tabindex="0" role="button" data-start-ms="${Number(match.word.start_ms)}" data-end-ms="${Number(match.word.end_ms)}">${esc(source)}</span>`);
+    index=match.end;
+  }
+  return markup.join('');
+}
 
 export function validMediaUrl(value){
   try{return ['http:','https:'].includes(new URL(value).protocol);}catch{return false;}
@@ -115,11 +150,14 @@ function segmentNavigation(segments,selected,playbackRate){
 
 function followWorkspace(payload,selected,{original,meaning,playbackRate}){
   const c=text();
-  const segments=buildTranscriptDisplayUnits(payload.transcript?.segments||[]);
+  const canonical=payload.transcript?.segments||[];
+  const canonicalById=new Map(canonical.map(segment=>[segment.segment_id,segment]));
+  const segments=buildTranscriptDisplayUnits(canonical);
   const selectedUnit=segments.find(unit=>displayUnitContains(unit,selected));
   const selectedDisplayId=selectedUnit?.segment_id||segments[0]?.segment_id||null;
   const translations=new Map((payload.translations||[]).map(item=>[item.segment_id,item.translated_meaning]));
   const displayMeaning=segment=>displayUnitMeaning(segment,translations);
+  const displayWords=segment=>segment.canonical_segment_ids.flatMap(id=>canonicalById.get(id)?.words||[]);
   const translationStatus=payload.translation?.status;
   const translationNotRequired=translationStatus==='not_required';
   const translationDegraded=translationStatus==='unavailable'||translationStatus==='too_large';
@@ -138,8 +176,8 @@ function followWorkspace(payload,selected,{original,meaning,playbackRate}){
         <button class="listening-segment-main" type="button" data-select-segment="${esc(segment.segment_id)}">
           <time>${stamp(segment.start_ms)}</time>
           <span class="listening-segment-copy">
-            ${original?`<strong class="listening-token-line" aria-label="${esc(segment.original_text)}">${transcriptTokenMarkup(segment.original_text)}</strong>`:''}
-            ${meaning&&!translationNotRequired&&!translationDegraded?(displayMeaning(segment)?`<span class="listening-meaning-inline"><small>${esc(c.meaning)}</small><span>${esc(displayMeaning(segment))}</span></span>`:`<span class="translation-unavailable listening-meaning-inline"><small>${esc(c.meaning)}</small><span>${esc(c.unavailable)}</span></span>`):''}
+            ${original?`<strong class="listening-token-line" aria-label="${esc(segment.original_text)}">${transcriptTokenMarkup(segment.original_text,displayWords(segment))}</strong>`:''}
+            ${meaning&&!translationNotRequired&&!translationDegraded&&displayMeaning(segment)?`<span class="listening-meaning-inline">${esc(displayMeaning(segment))}</span>`:''}
           </span>
         </button>
         ${displayUnitContains(segment,selected)?`<div class="listening-segment-actions">
@@ -155,7 +193,7 @@ function followWorkspace(payload,selected,{original,meaning,playbackRate}){
 function activeMeaning(payload,translations,segmentId){
   const c=activeText();
   const status=payload.translation?.status;
-  if(status==='ready'&&translations.has(segmentId))return `<p class="active-listening-meaning"><strong>${esc(text().meaning)}</strong> ${esc(translations.get(segmentId))}</p>`;
+  if(status==='ready'&&translations.has(segmentId))return `<p class="active-listening-meaning">${esc(translations.get(segmentId))}</p>`;
   if(status==='not_required')return `<p class="active-listening-meaning translation-not-required">${esc(c.meaningNotRequired)}</p>`;
   if(status==='unavailable')return `<p class="active-listening-meaning translation-status-unavailable">${esc(c.meaningUnavailable)}</p>`;
   if(status==='too_large')return `<p class="active-listening-meaning translation-status-too_large">${esc(c.meaningTooLarge)}</p>`;
@@ -195,7 +233,7 @@ function activeWorkspace(payload,selected,model){
     </form>`:`<p class="active-listening-unavailable" role="status">${esc(c.segmentTooLarge)}</p>`}
     ${visible?`<div class="active-listening-result" role="status">
       ${lastAttempt?`<p><strong>${esc(c.yourAnswer)}</strong> ${esc(lastAttempt.answer)}</p><p class="active-listening-text-match"><strong>${esc(c.textMatch)}</strong> ${result.accuracy_percent}% · ${esc(quality)}</p>`:''}
-      <p class="active-listening-source" aria-label="${esc(segment.original_text)}"><strong>${esc(text().original)}</strong> <span>${transcriptTokenMarkup(segment.original_text)}</span></p>
+      <p class="active-listening-source" aria-label="${esc(segment.original_text)}"><strong>${esc(text().original)}</strong> <span>${transcriptTokenMarkup(segment.original_text,segment.words)}</span></p>
       ${activeMeaning(payload,translations,selected)}
       <p class="active-listening-disclaimer">${esc(c.disclaimer)}</p>
     </div>`:''}
@@ -229,7 +267,7 @@ function shadowingWorkspace(payload,selected,model){
     </div>
     ${segment?`<div class="shadowing-focus" role="group" aria-label="${esc(c.practice)}">
       <span class="context-label">${esc(c.segment)} ${segmentIndex+1}</span>
-      <p class="shadowing-source" aria-label="${esc(segment.original_text)}">${transcriptTokenMarkup(segment.original_text)}</p>
+      <p class="shadowing-source" aria-label="${esc(segment.original_text)}">${transcriptTokenMarkup(segment.original_text,segment.words)}</p>
       ${activeMeaning(payload,translations,selected)}
       <div class="shadowing-round-actions">
         <button class="button button-primary" type="button" data-shadow-round>${esc(c.markRound)}</button>
