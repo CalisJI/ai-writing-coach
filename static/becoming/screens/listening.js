@@ -594,16 +594,6 @@ function installSmartFollow(root){
   return binding;
 }
 
-function refreshTranslationDom(root,payload){
-  const translations=new Map((payload?.translations||[]).map(item=>[item.segment_id,item.translated_meaning]));
-  root.querySelectorAll('.listening-segment[data-canonical-segment-ids]').forEach(row=>{
-    const ids=String(row.dataset.canonicalSegmentIds||'').split(/\s+/).filter(Boolean);
-    const meaning=ids.map(id=>translations.get(id)).filter(Boolean).join(' ').replace(/\s+/g,' ').trim();
-    if(!meaning)return;
-    const target=row.querySelector('.listening-meaning-inline span:last-child');
-    if(target)target.textContent=meaning;
-  });
-}
 export async function renderListening(root,{importMedia=api.importMedia,importStatus=api.mediaImportStatus,translateMedia=api.translateMedia,targetLanguage=supportLanguage}={}){
   let controller;
   let mounted=false;
@@ -700,7 +690,7 @@ export async function renderListening(root,{importMedia=api.importMedia,importSt
   controller=createListeningController({
     importMedia,importStatus,targetLanguage,translateMedia,onChange:render,
     onMediaReady:(payload,selected_segment_id)=>setSharedMediaSession({learning_language:state.language,payload,selected_segment_id}),
-    onTranslationReady:payload=>refreshTranslationDom(root,payload),
+    onTranslationReady:()=>render(),
     onSelection:segmentId=>selectSharedMediaSegment(state.language,segmentId),
     onProcessing:({job_id,source_url})=>setPendingMediaImport({learning_language:state.language,job_id,source_url}),
     onImportTerminal:()=>clearPendingMediaImport(state.language),

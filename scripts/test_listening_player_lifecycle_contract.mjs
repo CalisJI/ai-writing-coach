@@ -50,6 +50,7 @@ class ListeningRoot extends FakeElement {
     this.view={};
     this.player=value.includes('id="listeningPlayer"')?new FakeFrame():null;
     const column={innerHTML:''};
+    this.learningColumn=column;
     this.workspace={
       dataset:{},
       querySelector:selector=>selector==='.listening-learning-column'?column:null,
@@ -71,9 +72,21 @@ class ListeningRoot extends FakeElement {
 }
 
 try{
+  const canonicalOnly=()=>{
+    const payload={
+      ...MEDIA_LEARNING_FIXTURE,
+      asset:{...MEDIA_LEARNING_FIXTURE.asset,translation_available:false},
+      translations:[],
+    };
+    delete payload.translation;
+    return payload;
+  };
+  let resolveTranslation;
+  const translationPending=new Promise(resolve=>{resolveTranslation=resolve;});
   const root=new ListeningRoot();
   const controller=await renderListening(root,{
-    importMedia:async()=>MEDIA_LEARNING_FIXTURE,
+    importMedia:async()=>canonicalOnly(),
+    translateMedia:async()=>translationPending,
     targetLanguage:()=> 'vi',
   });
   await controller.importUrl('https://youtu.be/dQw4w9WgXcQ');
@@ -87,10 +100,41 @@ try{
   assert.equal(controller.select('segment-002'),true);
   controller.toggleOriginal(false);
   controller.toggleMeaning(false);
+  assert.equal(controller.setMode('shadowing'),true);
+  assert.match(root.learningColumn.innerHTML,/shadowing-focus/);
+  assert.doesNotMatch(root.learningColumn.innerHTML,/active-listening-meaning/);
+
+  resolveTranslation({
+    asset:{...MEDIA_LEARNING_FIXTURE.asset,translation_available:true},
+    transcript:MEDIA_LEARNING_FIXTURE.transcript,
+    translations:MEDIA_LEARNING_FIXTURE.translations,
+    translation:MEDIA_LEARNING_FIXTURE.translation,
+  });
+  await Promise.resolve();
+  await Promise.resolve();
 
   assert.equal(root.querySelector('#listeningPlayer'),player);
   assert.equal(root.fullRenders,fullRenders);
   assert.equal(playerCreations,1);
+  assert.equal(controller.model.selected,'segment-002');
+  assert.match(root.learningColumn.innerHTML,/active-listening-meaning/);
+  assert.match(root.learningColumn.innerHTML,/Cùng đoạn này có thể dùng để luyện nói sau\./);
+
+  const failedRoot=new ListeningRoot();
+  const failedController=await renderListening(failedRoot,{
+    importMedia:async()=>canonicalOnly(),
+    translateMedia:async()=>{throw new Error('translation unavailable');},
+    targetLanguage:()=> 'vi',
+  });
+  await failedController.importUrl('https://youtu.be/dQw4w9WgXcQ');
+  await Promise.resolve();
+  await Promise.resolve();
+  const failedPlayer=failedRoot.querySelector('#listeningPlayer');
+  const failedPlayerCreations=playerCreations;
+  assert.equal(failedController.setMode('shadowing'),true);
+  assert.match(failedRoot.learningColumn.innerHTML,/translation-status-unavailable/);
+  assert.equal(failedRoot.querySelector('#listeningPlayer'),failedPlayer);
+  assert.equal(playerCreations,failedPlayerCreations);
 }finally{
   for(const [key,value] of Object.entries(previous)){
     if(value===undefined)delete globalThis[key];

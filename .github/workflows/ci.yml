@@ -12,8 +12,21 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: '3.12'
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
       - run: pip install -r requirements.txt pytest
       - run: python scripts/validate_architecture.py
+      - run: |
+          node scripts/test_interactive_transcript_contract.mjs
+          node scripts/test_listening_player_lifecycle_contract.mjs
+          node scripts/test_listening_smart_follow_contract.mjs
+          node scripts/test_listening_ui.mjs
+          node scripts/test_transcript_display_units.mjs
+          node scripts/test_transcript_playback.mjs
+          node scripts/test_active_listening.mjs
+          node scripts/test_shadowing_practice.mjs
+          node scripts/test_media_learning_quality.mjs
       - run: python -m pytest -q test_app.py tests
         env:
           PERSISTENCE_BACKEND: sqlite

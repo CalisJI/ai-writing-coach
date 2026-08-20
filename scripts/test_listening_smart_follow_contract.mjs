@@ -6,7 +6,7 @@ const interactive=readFileSync('static/becoming/components/interactive-transcrip
 const css=readFileSync('static/becoming/interactive-transcript.css','utf8');
 const smartFollow=listening.slice(
   listening.indexOf('function installSmartFollow'),
-  listening.indexOf('function refreshTranslationDom'),
+  listening.indexOf('export async function renderListening'),
 );
 
 assert.doesNotMatch(listening,/data-now-playing|syncNowPlayingDock|listening-now-playing/);
