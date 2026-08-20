@@ -126,6 +126,44 @@ assert.deepEqual(
 assert.equal(backgroundTranslation.model.payload.translation.status,'ready');
 assert.equal(backgroundTranslation.model.payload.asset.translation_available,true);
 
+const pendingTranslationRequests=[];
+const pendingCanonical={...canonicalOnly,asset:{...canonicalOnly.asset},translations:[]};
+delete pendingCanonical.translation;
+const pendingTranslationController=createListeningController({
+  importStatus:async()=>pendingCanonical,
+  translateMedia:async payload=>{
+    pendingTranslationRequests.push(payload);
+    return {
+      asset:{...MEDIA_LEARNING_FIXTURE.asset,translation_available:true},
+      translations:MEDIA_LEARNING_FIXTURE.translations,
+      translation:MEDIA_LEARNING_FIXTURE.translation,
+    };
+  },
+  targetLanguage:()=> 'vi',
+});
+pendingTranslationController.resumePending({job_id:'supadata-job-1234567890',source_url:'https://youtu.be/dQw4w9WgXcQ'});
+await pendingTranslationController.pollPending();
+await Promise.resolve();
+assert.equal(pendingTranslationRequests.length,1);
+assert.equal(pendingTranslationController.model.payload.translation.status,'ready');
+assert.deepEqual(
+  pendingTranslationRequests[0].transcript.segments.map(segment=>segment.segment_id),
+  MEDIA_LEARNING_FIXTURE.transcript.segments.map(segment=>segment.segment_id),
+);
+
+const pendingTranslationFailure={...pendingCanonical,asset:{...pendingCanonical.asset},translations:[]};
+delete pendingTranslationFailure.translation;
+const failedPendingTranslationController=createListeningController({
+  importStatus:async()=>pendingTranslationFailure,
+  translateMedia:async()=>{throw new Error('translation unavailable');},
+  targetLanguage:()=> 'vi',
+});
+failedPendingTranslationController.resumePending({job_id:'supadata-job-1234567891',source_url:'https://youtu.be/dQw4w9WgXcQ'});
+await failedPendingTranslationController.pollPending();
+await new Promise(resolve=>setTimeout(resolve,0));
+assert.equal(failedPendingTranslationController.model.status,'ready');
+assert.equal(failedPendingTranslationController.model.payload.translation.status,'unavailable');
+
 const groupedDisplay={
   ...MEDIA_LEARNING_FIXTURE,
   transcript:{
@@ -369,6 +407,38 @@ assert.equal(typeof clockRoot._cleanupScreen,'function');
 assert.equal(clockListenerOptions.at(-1).signal.aborted,false);
 clockRoot._cleanupScreen();
 assert.equal(clockListenerOptions.at(-1).signal.aborted,true);
+
+const importSubmitListeners=[];
+let importSubmitCount=0;
+const persistentImportForm={
+  addEventListener(name,listener){if(name==='submit')importSubmitListeners.push(listener);},
+};
+const persistentWorkspace={
+  dataset:{},
+  querySelector(selector){return selector==='.listening-learning-column'?{innerHTML:''}:null;},
+};
+const persistentImportRoot={
+  innerHTML:'',
+  querySelector(selector){
+    if(selector.startsWith('[data-listening-view='))return {};
+    if(selector==='#mediaImportForm')return persistentImportForm;
+    if(selector==='#mediaSourceUrl')return {value:'https://youtu.be/dQw4w9WgXcQ'};
+    if(selector==='.listening-workspace')return persistentWorkspace;
+    if(selector==='#listeningPlayer')return {};
+    return null;
+  },
+  querySelectorAll(){return [];},
+  addEventListener(){},
+};
+const persistentImportController=await renderListening(persistentImportRoot,{
+  importMedia:async()=>{importSubmitCount+=1;return MEDIA_LEARNING_FIXTURE;},
+  targetLanguage:()=> 'vi',
+});
+await persistentImportController.importUrl('https://youtu.be/dQw4w9WgXcQ');
+for(const segmentId of ['segment-002','segment-001','segment-002','segment-001'])persistentImportController.setPlayingSegment(segmentId);
+assert.equal(importSubmitListeners.length,1);
+importSubmitListeners[0]({preventDefault(){}});
+assert.equal(importSubmitCount,2);
 
 const importFailure=new Error('The media provider could not complete this request.');
 importFailure.category='provider_failure';

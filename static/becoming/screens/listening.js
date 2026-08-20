@@ -350,6 +350,31 @@ export function createListeningController({importMedia,importStatus,targetLangua
     else onImportTerminal();
     if(model.status==='ready')onMediaReady(payload,model.selected);
   };
+  const translateReadyPayload=generation=>{
+    if(model.status!=='ready'||!model.payload?.transcript||model.payload.translation)return;
+    const translationGeneration=++backgroundTranslationGeneration;
+    const target=targetLanguage();
+    let translation;
+    try{translation=translateMedia(translationRequest(model.payload,target));}
+    catch(error){translation=Promise.reject(error);}
+    Promise.resolve(translation)
+      .then(translated=>{
+        if(generation!==importGeneration||translationGeneration!==backgroundTranslationGeneration)return;
+        model.payload.translations=Array.isArray(translated?.translations)?translated.translations:[];
+        model.payload.translation=translated?.translation||null;
+        model.payload.asset={
+          ...model.payload.asset,
+          translation_available:Boolean(translated?.asset?.translation_available),
+        };
+        onMediaReady(model.payload,model.selected);
+        onTranslationReady(model.payload);
+      })
+      .catch(()=>{
+        if(generation!==importGeneration||translationGeneration!==backgroundTranslationGeneration)return;
+        model.payload.translation={status:'unavailable',target_language:target};
+        onTranslationReady(model.payload);
+      });
+  };
   return {
     model,
     viewId,
@@ -363,24 +388,7 @@ export function createListeningController({importMedia,importStatus,targetLangua
         const payload=await importMedia({source_url:sourceUrl,target_language:targetLanguage(),include_word_timing:true,include_translation:false});
         if(generation!==importGeneration)return;
         acceptPayload(payload);
-        if(model.status==='ready'&&model.payload?.transcript&&!model.payload.translation){
-          const translationGeneration=++backgroundTranslationGeneration;
-          translateMedia(translationRequest(model.payload,targetLanguage())).then(translated=>{
-            if(generation!==importGeneration||translationGeneration!==backgroundTranslationGeneration)return;
-            model.payload.translations=Array.isArray(translated?.translations)?translated.translations:[];
-            model.payload.translation=translated?.translation||null;
-            model.payload.asset={
-              ...model.payload.asset,
-              translation_available:Boolean(translated?.asset?.translation_available),
-            };
-            onMediaReady(model.payload,model.selected);
-            onTranslationReady(model.payload);
-          }).catch(()=>{
-            if(generation!==importGeneration||translationGeneration!==backgroundTranslationGeneration)return;
-            model.payload.translation={status:'unavailable',target_language:targetLanguage()};
-            onTranslationReady(model.payload);
-          });
-        }
+        translateReadyPayload(generation);
       }catch(error){
         if(generation!==importGeneration)return;
         model.error=error;model.status=mediaImportErrorState(error);model.jobId=null;onImportTerminal();
@@ -394,6 +402,7 @@ export function createListeningController({importMedia,importStatus,targetLangua
         const payload=await importStatus({job_id:jobId});
         if(generation!==importGeneration||model.jobId!==jobId)return false;
         acceptPayload(payload);
+        translateReadyPayload(generation);
       }catch(error){
         if(generation!==importGeneration||model.jobId!==jobId)return false;
         model.error=error;model.status=mediaImportErrorState(error);model.jobId=null;onImportTerminal();
@@ -623,6 +632,16 @@ export async function renderListening(root,{importMedia=api.importMedia,importSt
   let renderedAssetId=null;
   const viewAbort=new AbortController();
   const smartFollow=installSmartFollow(root);
+  let importForm=null;
+  const bindImportForm=()=>{
+    const form=root.querySelector('#mediaImportForm');
+    if(!form||form===importForm)return;
+    importForm=form;
+    form.addEventListener('submit',event=>{
+      event.preventDefault();
+      controller.importUrl(root.querySelector('#mediaSourceUrl').value);
+    },{signal:viewAbort.signal});
+  };
   const schedulePoll=()=>{
     if(pollTimer)clearTimeout(pollTimer);
     pollTimer=null;
@@ -657,10 +676,7 @@ export async function renderListening(root,{importMedia=api.importMedia,importSt
       renderedAssetId=controller.model.status==='ready'?assetId:null;
     }
     mounted=true;
-    root.querySelector('#mediaImportForm')?.addEventListener('submit',event=>{
-      event.preventDefault();
-      controller.importUrl(root.querySelector('#mediaSourceUrl').value);
-    });
+    bindImportForm();
     root.querySelector('#toggleOriginal')?.addEventListener('change',event=>controller.toggleOriginal(event.target.checked));
     root.querySelector('#toggleMeaning')?.addEventListener('change',event=>controller.toggleMeaning(event.target.checked));
     root.querySelectorAll('button[data-listening-mode]').forEach(button=>button.addEventListener('click',()=>controller.setMode(button.dataset.listeningMode)));
