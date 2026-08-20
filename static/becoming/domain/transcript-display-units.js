@@ -29,18 +29,35 @@ function joinedText(parts){
   return accepted.filter(Boolean).join(' ').replace(/\s+/g,' ').trim();
 }
 
-function strongBoundary(text){
-  return /[.!?。！？]["'”’)]?$/.test(String(text||'').trim());
+const ENGLISH_NON_TERMINAL_TOKENS=new Set([
+  'a','an','the','and','or','but','so','to','of','in','on','at','for','with','from','by',
+  'is','are','was','were','be','been','being','do','does','did','have','has','had',
+  'can','could','will','would','should','may','might','must','i','you','we','they','he','she','it','this','that','these','those',
+]);
+
+function groupingLanguage(text){
+  return /\p{Script=Han}/u.test(String(text||''))?'zh':'en';
 }
 
-function incompleteClauseEnding(text){
-  return /\b(?:a|an|the|and|or|but|so|to|of|in|on|at|for|with|from|by|is|are|was|were|be|been|being|do|does|did|have|has|had|can|could|will|would|should|may|might|i|you|we|they|he|she|it|this|that|these|those)$/i.test(String(text||'').trim());
+function englishPlausibleBoundary(text){
+  const tail=String(text||'').trim().match(/[\p{L}]+(?:['’][\p{L}]+)?$/u)?.[0]?.toLocaleLowerCase();
+  return Boolean(tail)&&!ENGLISH_NON_TERMINAL_TOKENS.has(tail);
 }
 
-function safeClauseBoundary(text){
+function boundaryFor(text,language){
   const value=String(text||'').trim();
-  return strongBoundary(value)||(!incompleteClauseEnding(value)
-    &&/\b(?:alone|problem|today|now|here|there|again|enough|more|well|first|later)$/i.test(value));
+  if(language==='zh'){
+    return {
+      strong:/[。！？；][”’」』）)]?$/.test(value),
+      clause:/[，、][”’」』）)]?$/.test(value),
+      plausible:!/[，、]$/.test(value),
+    };
+  }
+  return {
+    strong:/[.!?]["'”’)]?$/.test(value),
+    clause:false,
+    plausible:englishPlausibleBoundary(value),
+  };
 }
 
 function unitFrom(group,endMs){
@@ -79,14 +96,18 @@ export function buildTranscriptDisplayUnits(
     const durationToNext=next.start_ms-group[0].start_ms;
     const rawGap=next.start_ms-current.end_ms;
 
-    const safeBreak=
-      strongBoundary(current.original_text)
-      ||rawGap>=pauseBreakMs
-      ||(safeClauseBoundary(currentText)&&durationToNext>=maxDurationMs&&words(currentText).length>=7);
+    const language=groupingLanguage(currentText);
+    const boundary=boundaryFor(current.original_text,language);
+    const accumulated=boundaryFor(currentText,language);
+    const pressure=durationToNext>=maxDurationMs||words(currentText).length>=maxWords||currentText.length>=maxChars;
+    const pauseBoundary=rawGap>=pauseBreakMs&&(language==='zh'||accumulated.plausible);
+    const pressureBoundary=language==='zh'?accumulated.clause:accumulated.plausible;
+    const safeBreak=boundary.strong
+      ||pauseBoundary
+      ||(pressure&&pressureBoundary);
     const hardSafety=(durationToNext>=maxDurationMs*2
       ||words(currentText).length>=maxWords*2
-      ||currentText.length>=maxChars*2)
-      &&!incompleteClauseEnding(currentText);
+      ||currentText.length>=maxChars*2);
     const shouldBreak=safeBreak||hardSafety;
 
     if(shouldBreak){
