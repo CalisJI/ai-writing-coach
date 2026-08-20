@@ -35,6 +35,10 @@ assert.match(css,/grid-template-columns:minmax\(0,1\.3fr\) minmax\(360px,\.9fr\)
 assert.match(css,/@media \(max-width:959px\)[\s\S]*grid-template-columns:minmax\(0,1fr\)/);
 assert.match(css,/\.listening-workspace\[data-listening-mode="follow"\] \.listening-practice-controls\{\s*position:sticky/);
 assert.match(css,/top:calc\(var\(--shell-topbar-height\) \+ var\(--space-3,12px\)\)/);
+assert.match(css,/\.listening-workspace\[data-listening-mode="follow"\] \.listening-video\{\s*position:sticky/);
+const listeningCss=readFileSync('static/becoming/listening.css','utf8');
+assert.match(listeningCss,/@media\(max-width:620px\)[\s\S]*grid-template-columns:repeat\(5,minmax\(0,1fr\)\)/);
+assert.doesNotMatch(listeningCss,/\[data-replay-current\][^}]*grid-column:1\/-1/);
 assert.doesNotMatch(css,/\.listening-now-playing/);
 assert.match(css,/\.listening-segment\.selected\.it-playing-segment/);
 assert.match(css,/transition:background-color \.2s ease/);

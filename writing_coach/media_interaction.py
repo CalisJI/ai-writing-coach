@@ -8,6 +8,8 @@ from typing import Any
 
 from fastapi import APIRouter, HTTPException
 import jieba.posseg as pseg
+from nltk import pos_tag
+from nltk.tokenize import TreebankWordTokenizer
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 from pypinyin import Style, lazy_pinyin
 
@@ -45,13 +47,7 @@ _SUPPORT_LANGUAGE_NAMES = {
     "zh": "Simplified Chinese",
 }
 _MAX_ANNOTATIONS = 160
-_EN_DETERMINERS = {"a", "an", "the", "this", "that", "these", "those", "some", "any", "each", "every", "many", "much"}
-_EN_PRONOUNS = {"i", "me", "you", "he", "him", "she", "her", "it", "we", "us", "they", "them", "my", "your", "his", "our", "their", "mine", "yours", "ours", "theirs", "who", "which", "what"}
-_EN_PREPOSITIONS = {"at", "by", "for", "from", "in", "into", "of", "on", "over", "to", "under", "with", "without", "about", "after", "before", "between", "through"}
-_EN_CONJUNCTIONS = {"and", "but", "or", "nor", "so", "yet", "because", "although", "if", "while", "when"}
-_EN_AUXILIARIES = {"am", "are", "be", "been", "being", "can", "could", "did", "do", "does", "had", "has", "have", "is", "may", "might", "must", "shall", "should", "was", "were", "will", "would"}
-_EN_VERBS = {"be", "become", "come", "eat", "feel", "find", "get", "give", "go", "have", "know", "learn", "like", "listen", "make", "play", "read", "say", "see", "speak", "study", "take", "think", "use", "walk", "want", "watch", "work", "write"}
-_EN_ADJECTIVES = {"curious", "good", "great", "happy", "important", "new", "old", "small", "useful"}
+_EN_TOKENIZER = TreebankWordTokenizer()
 
 
 class MediaAnnotateIn(BaseModel):
@@ -138,27 +134,21 @@ def _validated_annotations(source: str, raw: Any) -> list[dict[str, Any]]:
     return output
 
 
-def _english_pos(word: str) -> str:
-    lower = word.casefold()
-    if lower in _EN_DETERMINERS:
-        return "determiner"
-    if lower in _EN_PRONOUNS:
-        return "pronoun"
-    if lower in _EN_PREPOSITIONS:
-        return "preposition"
-    if lower in _EN_CONJUNCTIONS:
-        return "conjunction"
-    if lower in _EN_AUXILIARIES:
-        return "auxiliary"
-    if lower.isdigit():
-        return "numeral"
-    if lower in _EN_VERBS or lower.endswith(("ing", "ed", "ize", "ise")):
-        return "verb"
-    if lower.endswith("ly"):
-        return "adverb"
-    if lower in _EN_ADJECTIVES or lower.endswith(("ful", "ous", "ive", "able", "ible", "al", "ic")):
-        return "adjective"
-    return "proper_noun" if word[:1].isupper() else "noun"
+def _english_pos(tag: str) -> str:
+    if tag in {"NNP", "NNPS"}: return "proper_noun"
+    if tag.startswith("NN"): return "noun"
+    if tag.startswith("VB"): return "verb"
+    if tag.startswith("JJ"): return "adjective"
+    if tag.startswith("RB"): return "adverb"
+    if tag in {"PRP", "PRP$", "WP", "WP$"}: return "pronoun"
+    if tag in {"DT", "PDT", "WDT"}: return "determiner"
+    if tag == "IN": return "preposition"
+    if tag == "CC": return "conjunction"
+    if tag == "CD": return "numeral"
+    if tag == "UH": return "interjection"
+    if tag == "TO": return "particle"
+    if tag == "MD": return "auxiliary"
+    return "other"
 
 
 def _english_lemma(word: str) -> str:
@@ -171,17 +161,13 @@ def _english_lemma(word: str) -> str:
 
 
 def _english_annotations(source: str) -> list[dict[str, Any]]:
+    spans = list(_EN_TOKENIZER.span_tokenize(source))[:_MAX_ANNOTATIONS]
+    tokens = [source[start:end] for start, end in spans]
     return [
-        {
-            "fragment": match.group(),
-            "start": match.start(),
-            "end": match.end(),
-            "pos": _english_pos(match.group()),
-            "pronunciation": "",
-            "lemma": _english_lemma(match.group()),
-        }
-        for match in re.finditer(r"[A-Za-z]+(?:'[A-Za-z]+)?|\d+(?:[.,]\d+)?", source)
-    ][:_MAX_ANNOTATIONS]
+        {"fragment": token, "start": start, "end": end, "pos": _english_pos(tag), "pronunciation": "", "lemma": _english_lemma(token)}
+        for (start, end), (token, tag) in zip(spans, pos_tag(tokens, lang="eng"))
+        if re.search(r"[A-Za-z0-9]", token)
+    ]
 
 
 def _chinese_pos(tag: str) -> str:

@@ -89,6 +89,18 @@ def test_annotate_media_text_is_local_deterministic_and_cached(monkeypatch) -> N
     assert all(first["text"][item["start"] : item["end"]] == item["fragment"] for item in first["annotations"])
 
 
+def test_english_annotations_use_contextual_local_pos_tags(monkeypatch) -> None:
+    monkeypatch.setattr(media_interaction, "current_language_code", lambda: "en")
+    payload = media_interaction.annotate_media_text(
+        media_interaction.MediaAnnotateIn(
+            text="They can fish near the light.", source_language="en"
+        )
+    )
+    tags = {item["fragment"]: item["pos"] for item in payload["annotations"]}
+
+    assert tags == {"They": "pronoun", "can": "auxiliary", "fish": "verb", "near": "preposition", "the": "determiner", "light": "noun"}
+
+
 def test_media_interaction_rejects_cross_language_annotation(monkeypatch) -> None:
     monkeypatch.setattr(media_interaction, "current_language_code", lambda: "en")
 

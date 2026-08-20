@@ -1,5 +1,6 @@
 fastapi>=0.115
 jieba>=0.42,<0.43
+nltk>=3.9,<4
 pypinyin>=0.53,<0.54
 uvicorn[standard]>=0.30
 requests>=2.31
