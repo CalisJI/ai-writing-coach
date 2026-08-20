@@ -33,6 +33,16 @@ function strongBoundary(text){
   return /[.!?。！？]["'”’)]?$/.test(String(text||'').trim());
 }
 
+function incompleteClauseEnding(text){
+  return /\b(?:a|an|the|and|or|but|so|to|of|in|on|at|for|with|from|by|is|are|was|were|be|been|being|do|does|did|have|has|had|can|could|will|would|should|may|might|i|you|we|they|he|she|it|this|that|these|those)$/i.test(String(text||'').trim());
+}
+
+function safeClauseBoundary(text){
+  const value=String(text||'').trim();
+  return strongBoundary(value)||(!incompleteClauseEnding(value)
+    &&/\b(?:alone|problem|today|now|here|there|again|enough|more|well|first|later)$/i.test(value));
+}
+
 function unitFrom(group,endMs){
   const first=group[0];
   return {
@@ -69,12 +79,15 @@ export function buildTranscriptDisplayUnits(
     const durationToNext=next.start_ms-group[0].start_ms;
     const rawGap=next.start_ms-current.end_ms;
 
-    const shouldBreak=
+    const safeBreak=
       strongBoundary(current.original_text)
       ||rawGap>=pauseBreakMs
-      ||(durationToNext>=maxDurationMs&&words(currentText).length>=7)
-      ||words(currentText).length>=maxWords
-      ||currentText.length>=maxChars;
+      ||(safeClauseBoundary(currentText)&&durationToNext>=maxDurationMs&&words(currentText).length>=7);
+    const hardSafety=(durationToNext>=maxDurationMs*2
+      ||words(currentText).length>=maxWords*2
+      ||currentText.length>=maxChars*2)
+      &&!incompleteClauseEnding(currentText);
+    const shouldBreak=safeBreak||hardSafety;
 
     if(shouldBreak){
       units.push(unitFrom(group,Math.max(group[0].start_ms+1,next.start_ms)));

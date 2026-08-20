@@ -31,6 +31,10 @@ assert.match(smartFollow,/setTimeout\(resume,SMART_FOLLOW_IDLE_MS\)/);
 assert.match(smartFollow,/resumeNow\(\)[\s\S]*resume\(\)/);
 
 assert.match(css,/listening-workspace\[data-listening-mode="follow"\] \.listening-video-frame\{\s*position:sticky/);
+assert.match(css,/grid-template-columns:minmax\(0,1\.3fr\) minmax\(360px,\.9fr\)/);
+assert.match(css,/@media \(max-width:959px\)[\s\S]*grid-template-columns:minmax\(0,1fr\)/);
+assert.match(css,/\.listening-workspace\[data-listening-mode="follow"\] \.listening-practice-controls\{\s*position:sticky/);
+assert.match(css,/top:calc\(var\(--shell-topbar-height\) \+ var\(--space-3,12px\)\)/);
 assert.doesNotMatch(css,/\.listening-now-playing/);
 assert.match(css,/\.listening-segment\.selected\.it-playing-segment/);
 assert.match(css,/transition:background-color \.2s ease/);

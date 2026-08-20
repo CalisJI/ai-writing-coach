@@ -9,7 +9,6 @@ import {esc,showLoadingDialog,toast,updateDialog} from './primitives.js';
 const SETTINGS_KEY='orena.interactive-transcript.v2';
 const TRANSCRIPT_SELECTOR=[
   '.listening-token-line[aria-label]',
-  '.active-listening-source[aria-label]',
   '.shadowing-source[aria-label]',
   '.speaking-source[aria-label]',
   '[data-interactive-language-text][aria-label]',
@@ -431,40 +430,12 @@ function setPlayingSegment(segmentId){
   }
 }
 
-function sourceDisplaysSegment(container,segmentId){
-  const owner=container.closest('[data-segment-id]');
-  if(!owner)return segmentFor(container).id===segmentId;
-  const aliases=String(owner.dataset.canonicalSegmentIds||'').split(/\s+/).filter(Boolean);
-  return owner.dataset.segmentId===segmentId||aliases.includes(segmentId);
-}
-
-export function applyPlayingWord(root,timeMs,segmentId){
-  root.querySelectorAll('[data-start-ms][data-end-ms].it-speaking-word').forEach(node=>node.classList.remove('it-speaking-word'));
-  if(!segmentId)return;
-
-  const containers=[...root.querySelectorAll(TRANSCRIPT_SELECTOR)];
-  for(const container of containers){
-    if(!sourceDisplaysSegment(container,segmentId))continue;
-    const token=[...container.querySelectorAll('[data-start-ms][data-end-ms]')].find(node=>{
-      const start=Number(node.dataset.startMs);
-      const end=Number(node.dataset.endMs);
-      return Number.isFinite(start)&&Number.isFinite(end)&&timeMs>=start&&timeMs<end;
-    });
-    token?.classList.add('it-speaking-word');
-  }
-}
-
-function setPlayingWord(timeMs,segment){
-  applyPlayingWord(document,timeMs,segment?.segment_id||'');
-}
-
 function updatePlaybackTime(timeMs){
   const shared=sharedSession();
   const segments=shared?.payload?.transcript?.segments||[];
   if(!segments.length)return;
   const segment=activeCanonicalSegment(segments,timeMs);
   setPlayingSegment(segment?.segment_id||'');
-  setPlayingWord(timeMs,segment);
 }
 
 function handleMediaTime(event){

@@ -49,44 +49,9 @@ const text=()=>COPY[uiLocale()]||COPY.en;
 const activeText=()=>ACTIVE_COPY[uiLocale()]||ACTIVE_COPY.en;
 const shadowText=()=>SHADOW_COPY[uiLocale()]||SHADOW_COPY.en;
 const stamp=ms=>`${Math.floor(ms/60000)}:${String(Math.floor(ms/1000)%60).padStart(2,'0')}`;
-const timedTokenKey=value=>String(value||'').normalize('NFKC').toLocaleLowerCase()
-  .replace(/[\p{P}\p{S}\s]/gu,'');
-function transcriptTokenMarkup(value,words=[]){
-  const timing=Array.isArray(words)?words.filter(word=>word
-    &&typeof word.text==='string'
-    &&Number.isFinite(Number(word.start_ms))
-    &&Number.isFinite(Number(word.end_ms))
-    &&Number(word.end_ms)>Number(word.start_ms))
-    .map(word=>({...word,key:timedTokenKey(word.text)}))
-    .filter(word=>word.key):[];
-  const tokens=transcriptTokens(value);
-  let timingIndex=0;
-  const timingFor=index=>{
-    let key='';
-    for(let end=index;end<tokens.length&&tokens[end].word;end+=1){
-      key+=timedTokenKey(tokens[end].text);
-      for(let candidate=timingIndex;candidate<timing.length;candidate+=1){
-        if(timing[candidate].key===key)return {word:timing[candidate],candidate,end};
-      }
-    }
-    return null;
-  };
-  const markup=[];
-  for(let index=0;index<tokens.length;index+=1){
-    const token=tokens[index];
-    if(!token.word){markup.push(esc(token.text));continue;}
-    const match=timingFor(index);
-    if(!match){
-      markup.push(`<span class="transcript-token" data-it-term="${esc(token.text)}" tabindex="0" role="button">${esc(token.text)}</span>`);
-      continue;
-    }
-    timingIndex=match.candidate+1;
-    const source=tokens.slice(index,match.end+1).map(item=>item.text).join('');
-    markup.push(`<span class="transcript-token transcript-token-timed" data-it-term="${esc(source)}" tabindex="0" role="button" data-start-ms="${Number(match.word.start_ms)}" data-end-ms="${Number(match.word.end_ms)}">${esc(source)}</span>`);
-    index=match.end;
-  }
-  return markup.join('');
-}
+const transcriptTokenMarkup=value=>transcriptTokens(value).map(token=>token.word
+  ?`<span class="transcript-token" data-it-term="${esc(token.text)}" tabindex="0" role="button">${esc(token.text)}</span>`
+  :esc(token.text)).join('');
 
 export function validMediaUrl(value){
   try{return ['http:','https:'].includes(new URL(value).protocol);}catch{return false;}
@@ -148,16 +113,14 @@ function segmentNavigation(segments,selected,playbackRate){
   </div>`;
 }
 
-function followWorkspace(payload,selected,{original,meaning,playbackRate}){
+function followWorkspace(payload,selected,{original,meaning,playbackRate,manualSelection}){
   const c=text();
   const canonical=payload.transcript?.segments||[];
-  const canonicalById=new Map(canonical.map(segment=>[segment.segment_id,segment]));
   const segments=buildTranscriptDisplayUnits(canonical);
   const selectedUnit=segments.find(unit=>displayUnitContains(unit,selected));
   const selectedDisplayId=selectedUnit?.segment_id||segments[0]?.segment_id||null;
   const translations=new Map((payload.translations||[]).map(item=>[item.segment_id,item.translated_meaning]));
   const displayMeaning=segment=>displayUnitMeaning(segment,translations);
-  const displayWords=segment=>segment.canonical_segment_ids.flatMap(id=>canonicalById.get(id)?.words||[]);
   const translationStatus=payload.translation?.status;
   const translationNotRequired=translationStatus==='not_required';
   const translationDegraded=translationStatus==='unavailable'||translationStatus==='too_large';
@@ -172,11 +135,11 @@ function followWorkspace(payload,selected,{original,meaning,playbackRate}){
     ${translationStatusMessage?`<p class="translation-status translation-status-${esc(translationStatus)}" role="status">${esc(translationStatusMessage)}</p>`:''}
     ${segmentNavigation(segments,selectedDisplayId,playbackRate)}
     <div class="listening-segments">
-      ${segments.map(segment=>`<article class="listening-segment ${segment.segment_id===selectedDisplayId?'selected':''}" data-segment-id="${esc(segment.segment_id)}" data-canonical-segment-ids="${esc(segment.canonical_segment_ids.join(' '))}" ${segment.segment_id===selectedDisplayId?'aria-current="true"':''}>
+      ${segments.map(segment=>`<article class="listening-segment ${manualSelection&&segment.segment_id===selectedDisplayId?'selected':''}" data-segment-id="${esc(segment.segment_id)}" data-canonical-segment-ids="${esc(segment.canonical_segment_ids.join(' '))}" ${segment.segment_id===selectedDisplayId?'aria-current="true"':''}>
         <button class="listening-segment-main" type="button" data-select-segment="${esc(segment.segment_id)}">
           <time>${stamp(segment.start_ms)}</time>
           <span class="listening-segment-copy">
-            ${original?`<strong class="listening-token-line" aria-label="${esc(segment.original_text)}">${transcriptTokenMarkup(segment.original_text,displayWords(segment))}</strong>`:''}
+            ${original?`<strong class="listening-token-line" aria-label="${esc(segment.original_text)}">${transcriptTokenMarkup(segment.original_text)}</strong>`:''}
             ${meaning&&!translationNotRequired&&!translationDegraded&&displayMeaning(segment)?`<span class="listening-meaning-inline">${esc(displayMeaning(segment))}</span>`:''}
           </span>
         </button>
@@ -233,7 +196,7 @@ function activeWorkspace(payload,selected,model){
     </form>`:`<p class="active-listening-unavailable" role="status">${esc(c.segmentTooLarge)}</p>`}
     ${visible?`<div class="active-listening-result" role="status">
       ${lastAttempt?`<p><strong>${esc(c.yourAnswer)}</strong> ${esc(lastAttempt.answer)}</p><p class="active-listening-text-match"><strong>${esc(c.textMatch)}</strong> ${result.accuracy_percent}% · ${esc(quality)}</p>`:''}
-      <p class="active-listening-source" aria-label="${esc(segment.original_text)}"><strong>${esc(text().original)}</strong> <span>${transcriptTokenMarkup(segment.original_text,segment.words)}</span></p>
+      <p class="active-listening-source" aria-label="${esc(segment.original_text)}"><strong>${esc(text().original)}</strong> <span>${transcriptTokenMarkup(segment.original_text)}</span></p>
       ${activeMeaning(payload,translations,selected)}
       <p class="active-listening-disclaimer">${esc(c.disclaimer)}</p>
     </div>`:''}
@@ -267,7 +230,7 @@ function shadowingWorkspace(payload,selected,model){
     </div>
     ${segment?`<div class="shadowing-focus" role="group" aria-label="${esc(c.practice)}">
       <span class="context-label">${esc(c.segment)} ${segmentIndex+1}</span>
-      <p class="shadowing-source" aria-label="${esc(segment.original_text)}">${transcriptTokenMarkup(segment.original_text,segment.words)}</p>
+      <p class="shadowing-source" aria-label="${esc(segment.original_text)}">${transcriptTokenMarkup(segment.original_text)}</p>
       ${activeMeaning(payload,translations,selected)}
       <div class="shadowing-round-actions">
         <button class="button button-primary" type="button" data-shadow-round>${esc(c.markRound)}</button>
@@ -362,17 +325,20 @@ function translationRequest(payload,targetLanguage){
 }
 
 export function createListeningController({importMedia,importStatus,targetLanguage,translateMedia=()=>Promise.resolve(null),onChange=()=>{},onMediaReady=()=>{},onTranslationReady=()=>{},onSelection=()=>{},onProcessing=()=>{},onImportTerminal=()=>{}}){
-  const model={status:'empty',payload:null,error:null,selected:null,jobId:null,sourceUrl:'',original:true,meaning:true,playbackRate:1,mode:'follow',practiceSession:null,shadowingSession:null,practiceValidation:null};
+  const model={status:'empty',payload:null,error:null,selected:null,manualSelection:false,playingSegmentId:null,jobId:null,sourceUrl:'',original:true,meaning:true,playbackRate:1,mode:'follow',practiceSession:null,shadowingSession:null,practiceValidation:null};
   const viewId=`listening-${++listeningViewSequence}`;
   let importGeneration=0;
   let backgroundTranslationGeneration=0;
   const changed=()=>onChange({...model});
+  const actionAnchor=()=>model.manualSelection&&model.selected
+    ?model.selected:(model.playingSegmentId||model.selected);
   const selectedSegment=()=>model.payload?.transcript?.segments?.find(segment=>segment.segment_id===model.selected);
   const acceptPayload=payload=>{
     model.payload=payload;
     model.status=mediaImportState(payload);
     model.jobId=model.status==='processing'&&typeof payload?.import_job?.job_id==='string'?payload.import_job.job_id:null;
     model.selected=model.status==='ready'?payload.transcript.segments[0].segment_id:null;
+    model.manualSelection=false;model.playingSegmentId=null;
     const segmentIds=model.status==='ready'?payload.transcript.segments.map(segment=>segment.segment_id):[];
     model.practiceSession=model.status==='ready'?createListeningPracticeSession({asset_id:payload.asset.asset_id,segment_ids:segmentIds}):null;
     model.shadowingSession=model.status==='ready'?createShadowingPracticeSession({asset_id:payload.asset.asset_id,segment_ids:segmentIds}):null;
@@ -437,7 +403,7 @@ export function createListeningController({importMedia,importStatus,targetLangua
     },
     select(segmentId){
       if(!model.payload?.transcript?.segments?.some(segment=>segment.segment_id===segmentId))return false;
-      model.selected=segmentId;
+      model.selected=segmentId;model.manualSelection=true;
       if(model.practiceSession)selectListeningPracticeSegment(model.practiceSession,segmentId);
       if(model.shadowingSession)selectShadowingPracticeSegment(model.shadowingSession,segmentId);
       model.practiceValidation=null;onSelection(segmentId);changed();return true;
@@ -446,11 +412,11 @@ export function createListeningController({importMedia,importStatus,targetLangua
       const canonical=model.payload?.transcript?.segments||[];
       const segments=model.mode==='follow'?buildTranscriptDisplayUnits(canonical):canonical;
       const index=model.mode==='follow'
-        ?segments.findIndex(segment=>displayUnitContains(segment,model.selected))
-        :segments.findIndex(segment=>segment.segment_id===model.selected);
+        ?segments.findIndex(segment=>displayUnitContains(segment,actionAnchor()))
+        :segments.findIndex(segment=>segment.segment_id===actionAnchor());
       const target=segments[index+offset];
       if(!target)return false;
-      model.selected=target.segment_id;
+      model.selected=target.segment_id;model.manualSelection=true;
       if(model.practiceSession)selectListeningPracticeSegment(model.practiceSession,target.segment_id);
       if(model.shadowingSession)selectShadowingPracticeSegment(model.shadowingSession,target.segment_id);
       model.practiceValidation=null;onSelection(target.segment_id);changed();return true;
@@ -461,6 +427,7 @@ export function createListeningController({importMedia,importStatus,targetLangua
       model.status='ready';
       const ids=payload.transcript.segments.map(segment=>segment.segment_id);
       model.selected=ids.includes(selectedId)?selectedId:ids[0]||null;
+      model.manualSelection=false;model.playingSegmentId=null;
       model.practiceSession=createListeningPracticeSession({asset_id:payload.asset.asset_id,segment_ids:ids});
       model.shadowingSession=createShadowingPracticeSession({asset_id:payload.asset.asset_id,segment_ids:ids});
       if(model.selected){
@@ -520,6 +487,18 @@ export function createListeningController({importMedia,importStatus,targetLangua
     setPlaybackRate(value){
       if(![.75,1,1.25].includes(value))return false;
       model.playbackRate=value;return true;
+    },
+    actionAnchor,
+    followPlaying(){
+      if(model.playingSegmentId)model.selected=model.playingSegmentId;
+      model.manualSelection=false;changed();return actionAnchor();
+    },
+    setPlayingSegment(segmentId){
+      if(!model.payload?.transcript?.segments?.some(segment=>segment.segment_id===segmentId))return false;
+      if(model.playingSegmentId===segmentId)return true;
+      model.playingSegmentId=segmentId;
+      if(!model.manualSelection)model.selected=segmentId;
+      changed();return true;
     },
   };
 }
@@ -695,6 +674,7 @@ export async function renderListening(root,{importMedia=api.importMedia,importSt
       togglePlayback(root,controller.model.payload?.playback);
     });
     root.querySelector('[data-follow-playing]')?.addEventListener('click',()=>{
+      controller.followPlaying();
       smartFollow.resumeNow();
     });
     root.querySelectorAll('[data-select-segment]').forEach(button=>button.addEventListener('click',()=>controller.select(button.dataset.selectSegment)));
@@ -704,9 +684,10 @@ export async function renderListening(root,{importMedia=api.importMedia,importSt
       const payload=controller.model.payload;
       const canonical=payload.transcript.segments;
       const segments=controller.model.mode==='follow'?buildTranscriptDisplayUnits(canonical):canonical;
+      const anchor=controller.actionAnchor();
       const segment=controller.model.mode==='follow'
-        ?segments.find(item=>displayUnitContains(item,controller.model.selected))
-        :segments.find(item=>item.segment_id===controller.model.selected);
+        ?segments.find(item=>displayUnitContains(item,anchor))
+        :segments.find(item=>item.segment_id===anchor);
       if(segment)replaySegment(root,payload.playback,segment.start_ms,segment.end_ms,controller.model.playbackRate);
     });
     root.querySelector('#listeningPlaybackRate')?.addEventListener('change',event=>{
@@ -732,6 +713,10 @@ export async function renderListening(root,{importMedia=api.importMedia,importSt
     onSelection:segmentId=>selectSharedMediaSegment(state.language,segmentId),
     onProcessing:({job_id,source_url})=>setPendingMediaImport({learning_language:state.language,job_id,source_url}),
     onImportTerminal:()=>clearPendingMediaImport(state.language),
+  });
+  root.addEventListener('orena:media-time',event=>{
+    const segment=activeCanonicalSegment(controller.model.payload?.transcript?.segments||[],Number(event?.detail?.time_ms));
+    if(segment)controller.setPlayingSegment(segment.segment_id);
   });
   const pending=getPendingMediaImport(state.language);
   const shared=getSharedMediaSession(state.language);

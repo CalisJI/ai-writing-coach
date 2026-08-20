@@ -37,7 +37,7 @@ assert.equal(controller.model.payload.translation.status,'ready');
 assert.equal(controller.model.selected,'segment-001');
 assert.doesNotMatch(controller.html(),/translation-status-(?:unavailable|too_large)/);
 assert.match(controller.html(),/Listen for the first complete idea\./);
-assert.match(controller.html(),/listening-segment selected[^>]*data-segment-id="segment-001"/);
+assert.doesNotMatch(controller.html(),/listening-segment selected/);
 assert.match(controller.html(),/data-segment-id="segment-001" data-canonical-segment-ids="segment-001" aria-current="true"/);
 assert.match(controller.html(),/data-previous-segment disabled/);
 assert.doesNotMatch(controller.html(),/data-next-segment disabled/);
@@ -46,51 +46,38 @@ assert.match(controller.html(),/value="1.25"/);
 assert.match(controller.html(),/<iframe/);
 assert.match(controller.html(),/disabled/);
 assert.doesNotMatch(controller.html(),/listening-meaning-inline"><small/);
+assert.equal(controller.setPlayingSegment('segment-002'),true);
+assert.equal(controller.actionAnchor(),'segment-002');
+assert.equal(controller.moveSelection(-1),true);
+assert.equal(controller.model.selected,'segment-001');
+assert.equal(controller.model.manualSelection,true);
+assert.equal(controller.setPlayingSegment('segment-002'),true);
+assert.equal(controller.actionAnchor(),'segment-001');
+assert.equal(controller.followPlaying(),'segment-002');
+assert.equal(controller.model.manualSelection,false);
+assert.equal(controller.actionAnchor(),'segment-002');
 
-const wordTimedFixture={
+const actionAnchorFixture={
   ...MEDIA_LEARNING_FIXTURE,
   transcript:{
     ...MEDIA_LEARNING_FIXTURE.transcript,
-    segments:MEDIA_LEARNING_FIXTURE.transcript.segments.map((segment,index)=>index===0?{
-      ...segment,
-      words:[
-        {text:'Listen',start_ms:0,end_ms:450},
-        {text:'for',start_ms:500,end_ms:650},
-        {text:'the',start_ms:700,end_ms:850},
-        {text:'first',start_ms:900,end_ms:1150},
-        {text:'complete',start_ms:1200,end_ms:1550},
-        {text:'idea',start_ms:1600,end_ms:1900},
-      ],
-    }:segment),
+    segments:['A','B','C','D','E'].map((segment_id,index)=>({
+      segment_id,order:index,start_ms:index*1000,end_ms:(index+1)*1000,original_text:`Complete thought ${segment_id}.`,
+    })),
   },
+  translations:[],
 };
-const wordTimedController=createListeningController({importMedia:async()=>wordTimedFixture,targetLanguage:()=> 'vi'});
-await wordTimedController.importUrl('https://youtu.be/dQw4w9WgXcQ');
-assert.match(wordTimedController.html(),/transcript-token-timed[^>]*data-start-ms="0" data-end-ms="450"/);
-assert.equal(wordTimedController.setMode('shadowing'),true);
-assert.match(wordTimedController.html(),/shadowing-source[^>]*>[\s\S]*data-start-ms="0" data-end-ms="450"/);
-assert.equal(wordTimedController.setMode('active'),true);
-assert.equal(wordTimedController.revealPractice(),true);
-assert.match(wordTimedController.html(),/active-listening-source[^>]*>[\s\S]*data-start-ms="0" data-end-ms="450"/);
-
-const chineseWordTimed={
-  ...MEDIA_LEARNING_ZH_FIXTURE,
-  transcript:{
-    ...MEDIA_LEARNING_ZH_FIXTURE.transcript,
-    segments:[{
-      ...MEDIA_LEARNING_ZH_FIXTURE.transcript.segments[0],
-      original_text:'你好，世界。',
-      words:[
-        {text:'你好',start_ms:0,end_ms:450},
-        {text:'世界',start_ms:500,end_ms:950},
-      ],
-    }],
-  },
-};
-const chineseTimedController=createListeningController({importMedia:async()=>chineseWordTimed,targetLanguage:()=> 'vi'});
-await chineseTimedController.importUrl('https://youtu.be/dQw4w9WgXcQ');
-assert.match(chineseTimedController.html(),/data-it-term="你好"[^>]*data-start-ms="0" data-end-ms="450">你好<\/span>/);
-assert.match(chineseTimedController.html(),/data-it-term="世界"[^>]*data-start-ms="500" data-end-ms="950">世界<\/span>/);
+const actionAnchorController=createListeningController({importMedia:async()=>actionAnchorFixture,targetLanguage:()=> 'vi'});
+await actionAnchorController.importUrl('https://youtu.be/dQw4w9WgXcQ');
+for(const segmentId of ['A','B','C'])actionAnchorController.setPlayingSegment(segmentId);
+assert.equal(actionAnchorController.actionAnchor(),'C');
+assert.equal(actionAnchorController.moveSelection(-1),true);
+assert.equal(actionAnchorController.model.selected,'B');
+assert.equal(actionAnchorController.select('E'),true);
+assert.equal(actionAnchorController.moveSelection(-1),true);
+assert.equal(actionAnchorController.model.selected,'D');
+actionAnchorController.setPlayingSegment('C');
+assert.equal(actionAnchorController.followPlaying(),'C');
 
 const segmentOnlyController=createListeningController({importMedia:async()=>MEDIA_LEARNING_FIXTURE,targetLanguage:()=> 'vi'});
 await segmentOnlyController.importUrl('https://youtu.be/dQw4w9WgXcQ');
@@ -367,6 +354,7 @@ assert.equal(resetController.model.practiceSession.asset_id,'asset-fixture-zh');
 assert.equal(Object.values(resetController.model.practiceSession.segments).flatMap(item=>item.attempts).length,0);
 assert.match(resetController.html(),/value="0.75" selected/);
 
+assert.equal(controller.select('segment-001'),true);
 controller.toggleOriginal(false);
 controller.toggleMeaning(false);
 assert.equal(controller.moveSelection(1),true);
