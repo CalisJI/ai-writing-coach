@@ -6,6 +6,7 @@ existing canonical timestamped transcript contract.
 
 from __future__ import annotations
 
+import math
 import os
 import re
 import time
@@ -324,6 +325,8 @@ class SupadataTranscriptClient:
                 or isinstance(offset, bool)
                 or not isinstance(duration, (int, float))
                 or isinstance(duration, bool)
+                or not math.isfinite(offset)
+                or not math.isfinite(duration)
             ):
                 raise SupadataTranscriptMalformed()
             offset_ms = round(float(offset))

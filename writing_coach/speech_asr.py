@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 import os
 from dataclasses import dataclass
 from typing import Any, Protocol
@@ -71,7 +72,11 @@ class SpeechAsrProvider(Protocol):
 
 
 def _seconds_to_ms(value: Any) -> int:
-    if not isinstance(value, (int, float)) or isinstance(value, bool):
+    if (
+        not isinstance(value, (int, float))
+        or isinstance(value, bool)
+        or not math.isfinite(value)
+    ):
         raise SpeechAsrMalformed()
     return max(0, round(float(value) * 1000))
 

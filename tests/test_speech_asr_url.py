@@ -76,3 +76,20 @@ def test_groq_url_boundary_rejects_non_https_or_credentialed_urls(
         provider.transcribe_url(audio_url, language="en")
 
     assert session.calls == []
+
+
+@pytest.mark.parametrize("timestamp", (float("nan"), float("inf"), float("-inf")))
+def test_groq_rejects_non_finite_timestamps(timestamp: float) -> None:
+    class InvalidTimestampResponse(FakeResponse):
+        @staticmethod
+        def json() -> dict[str, Any]:
+            payload = FakeResponse.json()
+            payload["segments"][0]["start"] = timestamp
+            return payload
+
+    session = FakeSession()
+    session.post = lambda *_args, **_kwargs: InvalidTimestampResponse()  # type: ignore[method-assign]
+    provider = GroqSpeechAsrProvider("test-key", session=session)  # type: ignore[arg-type]
+
+    with pytest.raises(SpeechAsrMalformed):
+        provider.transcribe_url("https://media.example.test/audio.m4a", language="en")

@@ -205,6 +205,11 @@ def _ready_response(
             "failure_kind": None,
             "resumable": False,
         }
+        if acquisition.media_object.transcript is not None:
+            response["transcript_generation"] = {
+                "status": "generated",
+                "source": job.source,
+            }
     return response
 
 
@@ -252,6 +257,7 @@ def import_media(payload: MediaImportIn) -> dict[str, Any]:
         owner_key=current_user_key(),
         learning_language=learning_language,
         target_language=payload.target_language,
+        include_translation=payload.include_translation,
     )
     if fallback.status == "ready":
         return _ready_response(
@@ -301,6 +307,7 @@ def import_media_status(payload: MediaImportStatusIn) -> dict[str, Any]:
         return _ready_response(
             result.acquisition,
             target_language=result.target_language,
+            include_translation=result.include_translation,
             job=result,
         )
     return _serialize_processing_result(result)
@@ -390,6 +397,11 @@ def serialize_media_acquisition(
             "model": timing.model,
             "failure_kind": timing.failure_kind,
         }
+        if timing.transcript_generated:
+            response["transcript_generation"] = {
+                "status": "generated",
+                "source": timing.source,
+            }
     if translation is not None:
         response["translation"] = {
             "status": translation.status.value,

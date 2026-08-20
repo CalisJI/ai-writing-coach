@@ -17,6 +17,7 @@ from writing_coach.media_timing import (
     MediaTimingService,
 )
 from writing_coach.speech_asr import (
+    SpeechAsrPayloadTooLarge,
     SpeechAsrResult,
     SpeechAsrSegment,
     SpeechAsrWord,
@@ -184,6 +185,28 @@ def test_groq_segments_can_fill_a_missing_transcript_without_creating_parallel_m
         "Learn together",
     ]
     assert timing.acquisition.playback == original.playback
+    assert timing.transcript_generated is True
+    assert serialize_media_acquisition(
+        timing.acquisition,
+        timing=timing,
+    )["transcript_generation"] == {"status": "generated", "source": "groq"}
+
+
+def test_oversized_remote_media_degrades_with_a_deterministic_failure_kind() -> None:
+    class OversizedAsr:
+        provider_id = "groq"
+        model = "whisper-large-v3-turbo"
+
+        def transcribe_url(self, *_args: Any, **_kwargs: Any) -> SpeechAsrResult:
+            raise SpeechAsrPayloadTooLarge()
+
+    timing = MediaTimingService(FakeResolver(), OversizedAsr()).enrich(
+        acquisition_without_transcript(),
+        "en",
+    )
+
+    assert timing.status == "unavailable"
+    assert timing.failure_kind == "asr_payload_too_large"
 
 
 def test_language_mismatch_does_not_replace_the_canonical_media_object() -> None:

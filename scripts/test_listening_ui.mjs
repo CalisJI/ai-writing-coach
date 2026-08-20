@@ -83,6 +83,14 @@ const segmentOnlyController=createListeningController({importMedia:async()=>MEDI
 await segmentOnlyController.importUrl('https://youtu.be/dQw4w9WgXcQ');
 assert.doesNotMatch(segmentOnlyController.html(),/transcript-token-timed|data-start-ms=/);
 
+const generatedTranscriptController=createListeningController({
+  importMedia:async()=>({...MEDIA_LEARNING_FIXTURE,transcript_generation:{status:'generated',source:'supadata'}}),
+  targetLanguage:()=> 'vi',
+});
+await generatedTranscriptController.importUrl('https://youtu.be/dQw4w9WgXcQ');
+assert.match(generatedTranscriptController.html(),/generated-transcript-notice/);
+assert.match(generatedTranscriptController.html(),/may contain mistakes|có thể có sai sót|可能有误/);
+
 const canonicalOnly={
   ...MEDIA_LEARNING_FIXTURE,
   asset:{...MEDIA_LEARNING_FIXTURE.asset,translation_available:false},
@@ -321,6 +329,46 @@ assert.equal(raceController.model.selected,'segment-zh-001');
 assert.equal(raceController.model.status,'ready');
 assert.equal(raceController.model.practiceSession.asset_id,'asset-fixture-zh');
 assert.equal(raceController.model.practiceSession.segments['segment-zh-001'].attempts.length,1);
+
+let resolveStalePoll;
+const stalePollController=createListeningController({
+  importMedia:async()=>MEDIA_LEARNING_ZH_FIXTURE,
+  importStatus:()=>new Promise(resolve=>{resolveStalePoll=resolve;}),
+  targetLanguage:()=> 'vi',
+});
+stalePollController.resumePending({job_id:'resume-job-1234567890',source_url:'https://example.invalid/old'});
+const stalePoll=stalePollController.pollPending();
+await stalePollController.importUrl('https://example.invalid/new');
+resolveStalePoll(MEDIA_LEARNING_FIXTURE);
+await stalePoll;
+assert.equal(stalePollController.model.payload.asset.asset_id,'asset-fixture-zh');
+
+const clockListeners=[];
+const clockListenerOptions=[];
+let clockHtml='';
+const clockRoot={
+  get innerHTML(){return clockHtml;},
+  set innerHTML(value){clockHtml=value;},
+  querySelector(selector){
+    if(selector.startsWith('[data-listening-view='))return {};
+    return null;
+  },
+  querySelectorAll(){return [];},
+  addEventListener(name,listener,options){
+    if(name==='orena:media-time'){
+      clockListeners.push(listener);
+      clockListenerOptions.push(options);
+    }
+  },
+};
+const clockController=await renderListening(clockRoot,{importMedia:async()=>MEDIA_LEARNING_FIXTURE,targetLanguage:()=> 'vi'});
+await clockController.importUrl('https://example.invalid/clock');
+clockListeners.at(-1)({detail:{time_ms:5000}});
+assert.equal(clockController.model.playingSegmentId,'segment-002');
+assert.equal(typeof clockRoot._cleanupScreen,'function');
+assert.equal(clockListenerOptions.at(-1).signal.aborted,false);
+clockRoot._cleanupScreen();
+assert.equal(clockListenerOptions.at(-1).signal.aborted,true);
 
 const importFailure=new Error('The media provider could not complete this request.');
 importFailure.category='provider_failure';

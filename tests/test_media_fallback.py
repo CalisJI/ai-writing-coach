@@ -19,6 +19,7 @@ from writing_coach.media_providers.supadata import (
     SupadataTranscriptChunk,
     SupadataTranscriptJob,
     SupadataTranscriptJobResult,
+    SupadataTranscriptTimedOut,
 )
 
 
@@ -109,6 +110,7 @@ def test_fallback_poll_completes_same_media_object_contract() -> None:
         owner_key="learner-a",
         learning_language="en",
         target_language="vi",
+        include_translation=False,
     )
     completed = service.poll(
         started.job_id or "",
@@ -123,6 +125,7 @@ def test_fallback_poll_completes_same_media_object_contract() -> None:
     assert transcript.segments[0].original_text == "Generated transcript"
     assert transcript.segments[0].start_ms == 200
     assert transcript.segments[0].end_ms == 1100
+    assert completed.include_translation is False
 
 
 def test_immediate_fallback_transcript_never_creates_resume_job() -> None:
@@ -160,3 +163,57 @@ def test_registry_expiry_invalidates_old_resume_handle() -> None:
             owner_key="learner-a",
             learning_language="en",
         )
+
+
+def test_polling_does_not_extend_the_resume_job_lifetime() -> None:
+    now = [100.0]
+    registry = MediaFallbackJobRegistry(ttl_seconds=10, clock=lambda: now[0])
+    client = FakeClient(
+        SupadataTranscriptJob("provider-job-123"),
+        SupadataTranscriptJobResult(status="processing"),
+    )
+    service = SupadataMediaFallbackService(client, registry=registry)  # type: ignore[arg-type]
+    started = service.start(
+        base_acquisition(),
+        owner_key="learner-a",
+        learning_language="en",
+        target_language="vi",
+    )
+
+    now[0] = 105.0
+    assert service.poll(
+        started.job_id or "",
+        owner_key="learner-a",
+        learning_language="en",
+    ).status == "processing"
+    now[0] = 111.0
+    with pytest.raises(KeyError):
+        service.poll(
+            started.job_id or "",
+            owner_key="learner-a",
+            learning_language="en",
+        )
+
+
+def test_poll_timeout_remains_distinct_from_a_provider_failure() -> None:
+    class TimeoutClient(FakeClient):
+        def poll(self, job_id: str, preferred_language: str):
+            raise SupadataTranscriptTimedOut()
+
+    service = SupadataMediaFallbackService(
+        TimeoutClient(SupadataTranscriptJob("provider-job-123"))  # type: ignore[arg-type]
+    )
+    started = service.start(
+        base_acquisition(),
+        owner_key="learner-a",
+        learning_language="en",
+        target_language="vi",
+    )
+
+    result = service.poll(
+        started.job_id or "",
+        owner_key="learner-a",
+        learning_language="en",
+    )
+    assert result.status == "failed"
+    assert result.failure_kind == "provider_timeout"

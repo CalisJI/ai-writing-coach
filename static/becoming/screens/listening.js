@@ -2,10 +2,11 @@ import {api} from '../api.js';
 import {go} from '../router.js';
 import {state,supportLanguage} from '../store.js';
 import {esc} from '../components/primitives.js';
-import {connectMediaPlayer,mediaPlayer,playbackAvailable,replaySegment,togglePlayback,setPlaybackRate as setMediaPlaybackRate} from '../components/media-player.js';
+import {connectMediaPlayer,disconnectMediaPlayer,mediaPlayer,playbackAvailable,replaySegment,togglePlayback,setPlaybackRate as setMediaPlaybackRate} from '../components/media-player.js';
 import {uiLocale} from '../domain/i18n.js';
 import {transcriptTokens} from '../domain/transcript-tokens.js';
 import {buildTranscriptDisplayUnits,displayUnitContains,displayUnitMeaning} from '../domain/transcript-display-units.js';
+import {activeCanonicalSegment} from '../domain/transcript-playback.js';
 import {
   MAX_LISTENING_EVALUATION_UNITS,
   MAX_LISTENING_RECONSTRUCTION_CHARS,
@@ -29,9 +30,9 @@ import {getSharedMediaSession,selectSharedMediaSegment,setSharedMediaSession} fr
 import {clearPendingMediaImport,getPendingMediaImport,setPendingMediaImport} from '../domain/media-import-resume.js';
 
 const COPY={
-  en:{listen:'LISTEN · FOLLOW',title:'HEAR THE IDEA, ONE MOMENT AT A TIME.',lead:'Bring an external video into one shared media lesson. Watch, follow the original words, read the meaning when available, and replay a sentence.',url:'Video URL',placeholder:'https://…',prepare:'Import / Prepare lesson',validating:'Checking the URL…',processing:'Preparing the transcript…',original:'Original transcript',meaning:'Meaning',unavailable:'Meaning is not available yet.',notRequired:'Translation is not required for the selected support language.',translationUnavailable:'Meaning could not be generated right now. Continue with the original transcript.',translationTooLarge:'This lesson is too large for automatic meaning generation. Continue with the original transcript.',transcriptMissing:'This video has no usable transcript.',unsupported:'This video source is not supported.',malformedUrl:'Enter a valid public media URL.',unsupportedProvider:'This media provider is not supported yet.',mediaUnavailable:'This media is private or unavailable.',providerTimeout:'The media provider did not respond in time. Please try again.',providerFailure:'The media provider could not prepare this lesson. Please try again.',unsupportedSourceLanguage:'This media language is not supported yet.',invalidTargetLanguage:'Choose a valid support language.',failed:'The lesson could not be prepared.',previous:'Previous segment',next:'Next segment',replay:'Replay',speed:'Speed',select:'Select a transcript segment to replay it.',shadow:'Shadow this',shared:'Shadowing reuses this same media and segment. No separate import is needed.',playback:'Playback is unavailable for this source.'},
-  vi:{listen:'NGHE · THEO DÕI',title:'NGHE TỪNG Ý, THEO TỪNG KHOẢNH KHẮC.',lead:'Đưa video bên ngoài vào một bài học media dùng chung. Xem, theo dõi lời gốc, đọc nghĩa khi có và nghe lại từng câu.',url:'URL video',placeholder:'https://…',prepare:'Nhập / Chuẩn bị bài học',validating:'Đang kiểm tra URL…',processing:'Đang chuẩn bị transcript…',original:'Transcript gốc',meaning:'Nghĩa',unavailable:'Bản dịch nghĩa chưa có.',notRequired:'Không cần bản dịch cho ngôn ngữ hỗ trợ đã chọn.',translationUnavailable:'Hiện chưa thể tạo phần nghĩa. Bạn vẫn có thể tiếp tục với transcript gốc.',translationTooLarge:'Bài học này quá lớn để tự động tạo phần nghĩa. Bạn vẫn có thể tiếp tục với transcript gốc.',transcriptMissing:'Video này không có transcript phù hợp.',unsupported:'Nguồn video này chưa được hỗ trợ.',malformedUrl:'Hãy nhập URL media công khai hợp lệ.',unsupportedProvider:'Nhà cung cấp media này chưa được hỗ trợ.',mediaUnavailable:'Media này đang riêng tư hoặc không khả dụng.',providerTimeout:'Nhà cung cấp media không phản hồi kịp thời. Vui lòng thử lại.',providerFailure:'Nhà cung cấp media không thể chuẩn bị bài học này. Vui lòng thử lại.',unsupportedSourceLanguage:'Ngôn ngữ của media này chưa được hỗ trợ.',invalidTargetLanguage:'Hãy chọn ngôn ngữ hỗ trợ hợp lệ.',failed:'Không thể chuẩn bị bài học.',previous:'Đoạn trước',next:'Đoạn sau',replay:'Nghe lại',speed:'Tốc độ',select:'Chọn một đoạn transcript để nghe lại.',shadow:'Shadow câu này',shared:'Shadowing dùng lại chính media và đoạn này, không cần nhập lại video.',playback:'Không thể phát nguồn này.'},
-  zh:{listen:'听力 · 跟随',title:'逐句听见意思。',lead:'把外部视频导入一个共享媒体课程。观看视频、跟随原文、在可用时阅读释义，并重听每个句子。',url:'视频网址',placeholder:'https://…',prepare:'导入 / 准备课程',validating:'正在检查网址…',processing:'正在准备字幕…',original:'原文字幕',meaning:'释义',unavailable:'释义暂时不可用。',notRequired:'所选辅助语言不需要翻译。',translationUnavailable:'目前无法生成释义。你仍可继续使用原文字幕。',translationTooLarge:'本课内容过大，当前无法自动生成释义。你仍可继续使用原文字幕。',transcriptMissing:'这个视频没有可用字幕。',unsupported:'暂不支持这个视频来源。',malformedUrl:'请输入有效的公开视频网址。',unsupportedProvider:'暂不支持这个媒体提供方。',mediaUnavailable:'该媒体为私密内容或暂不可用。',providerTimeout:'媒体提供方响应超时，请重试。',providerFailure:'媒体提供方无法准备本课，请重试。',unsupportedSourceLanguage:'暂不支持该媒体语言。',invalidTargetLanguage:'请选择有效的辅助语言。',failed:'无法准备课程。',previous:'上一句',next:'下一句',replay:'重听',speed:'速度',select:'选择一段字幕后重听。',shadow:'跟读这句',shared:'跟读直接复用同一媒体和句段，不需要再次导入视频。',playback:'这个来源暂时无法播放。'},
+  en:{listen:'LISTEN · FOLLOW',title:'HEAR THE IDEA, ONE MOMENT AT A TIME.',lead:'Bring an external video into one shared media lesson. Watch, follow the original words, read the meaning when available, and replay a sentence.',url:'Video URL',placeholder:'https://…',prepare:'Import / Prepare lesson',validating:'Checking the URL…',processing:'Preparing the transcript…',original:'Original transcript',meaning:'Meaning',unavailable:'Meaning is not available yet.',notRequired:'Translation is not required for the selected support language.',translationUnavailable:'Meaning could not be generated right now. Continue with the original transcript.',translationTooLarge:'This lesson is too large for automatic meaning generation. Continue with the original transcript.',generatedTranscript:'This transcript was generated automatically and may contain mistakes.',transcriptMissing:'This video has no usable transcript.',unsupported:'This video source is not supported.',malformedUrl:'Enter a valid public media URL.',unsupportedProvider:'This media provider is not supported yet.',mediaUnavailable:'This media is private or unavailable.',providerTimeout:'The media provider did not respond in time. Please try again.',providerFailure:'The media provider could not prepare this lesson. Please try again.',unsupportedSourceLanguage:'This media language is not supported yet.',invalidTargetLanguage:'Choose a valid support language.',failed:'The lesson could not be prepared.',previous:'Previous segment',next:'Next segment',replay:'Replay',speed:'Speed',select:'Select a transcript segment to replay it.',shadow:'Shadow this',shared:'Shadowing reuses this same media and segment. No separate import is needed.',playback:'Playback is unavailable for this source.'},
+  vi:{listen:'NGHE · THEO DÕI',title:'NGHE TỪNG Ý, THEO TỪNG KHOẢNH KHẮC.',lead:'Đưa video bên ngoài vào một bài học media dùng chung. Xem, theo dõi lời gốc, đọc nghĩa khi có và nghe lại từng câu.',url:'URL video',placeholder:'https://…',prepare:'Nhập / Chuẩn bị bài học',validating:'Đang kiểm tra URL…',processing:'Đang chuẩn bị transcript…',original:'Transcript gốc',meaning:'Nghĩa',unavailable:'Bản dịch nghĩa chưa có.',notRequired:'Không cần bản dịch cho ngôn ngữ hỗ trợ đã chọn.',translationUnavailable:'Hiện chưa thể tạo phần nghĩa. Bạn vẫn có thể tiếp tục với transcript gốc.',translationTooLarge:'Bài học này quá lớn để tự động tạo phần nghĩa. Bạn vẫn có thể tiếp tục với transcript gốc.',generatedTranscript:'Transcript này được tạo tự động và có thể có sai sót.',transcriptMissing:'Video này không có transcript phù hợp.',unsupported:'Nguồn video này chưa được hỗ trợ.',malformedUrl:'Hãy nhập URL media công khai hợp lệ.',unsupportedProvider:'Nhà cung cấp media này chưa được hỗ trợ.',mediaUnavailable:'Media này đang riêng tư hoặc không khả dụng.',providerTimeout:'Nhà cung cấp media không phản hồi kịp thời. Vui lòng thử lại.',providerFailure:'Nhà cung cấp media không thể chuẩn bị bài học này. Vui lòng thử lại.',unsupportedSourceLanguage:'Ngôn ngữ của media này chưa được hỗ trợ.',invalidTargetLanguage:'Hãy chọn ngôn ngữ hỗ trợ hợp lệ.',failed:'Không thể chuẩn bị bài học.',previous:'Đoạn trước',next:'Đoạn sau',replay:'Nghe lại',speed:'Tốc độ',select:'Chọn một đoạn transcript để nghe lại.',shadow:'Shadow câu này',shared:'Shadowing dùng lại chính media và đoạn này, không cần nhập lại video.',playback:'Không thể phát nguồn này.'},
+  zh:{listen:'听力 · 跟随',title:'逐句听见意思。',lead:'把外部视频导入一个共享媒体课程。观看视频、跟随原文、在可用时阅读释义，并重听每个句子。',url:'视频网址',placeholder:'https://…',prepare:'导入 / 准备课程',validating:'正在检查网址…',processing:'正在准备字幕…',original:'原文字幕',meaning:'释义',unavailable:'释义暂时不可用。',notRequired:'所选辅助语言不需要翻译。',translationUnavailable:'目前无法生成释义。你仍可继续使用原文字幕。',translationTooLarge:'本课内容过大，当前无法自动生成释义。你仍可继续使用原文字幕。',generatedTranscript:'此字幕由系统自动生成，可能有误。',transcriptMissing:'这个视频没有可用字幕。',unsupported:'暂不支持这个视频来源。',malformedUrl:'请输入有效的公开视频网址。',unsupportedProvider:'暂不支持这个媒体提供方。',mediaUnavailable:'该媒体为私密内容或暂不可用。',providerTimeout:'媒体提供方响应超时，请重试。',providerFailure:'媒体提供方无法准备本课，请重试。',unsupportedSourceLanguage:'暂不支持该媒体语言。',invalidTargetLanguage:'请选择有效的辅助语言。',failed:'无法准备课程。',previous:'上一句',next:'下一句',replay:'重听',speed:'速度',select:'选择一段字幕后重听。',shadow:'跟读这句',shared:'跟读直接复用同一媒体和句段，不需要再次导入视频。',playback:'这个来源暂时无法播放。'},
 };
 const ACTIVE_COPY={
   en:{follow:'Follow',active:'Active',mode:'Listening mode',activeUnavailable:'Active Listening and Shadowing need usable provider playback.',practice:'Active Listening',prompt:'Type what you heard',check:'Check answer',reveal:'Reveal answer',retry:'Retry',yourAnswer:'Your answer',textMatch:'Text match',exact:'Exact match',close:'Close match',tryAgain:'Try again',disclaimer:'Text match compares your reconstruction with this transcript. It is not a proficiency score.',progress:'Session practice',practiced:'Practiced',exactCount:'Exact',average:'Average best text match',attempts:'Checked attempts',revealed:'Revealed only',segment:'Segment',answerEmpty:'Type what you heard before checking.',answerTooLarge:'Your reconstruction is too long to check safely.',segmentTooLarge:'This transcript segment is too large to check safely. Follow mode remains available.',meaningUnavailable:'Meaning is currently unavailable. The original transcript remains usable.',meaningTooLarge:'Meaning is unavailable because this lesson is too large for automatic translation.',meaningNotRequired:'Translation is not required for the selected support language.'},
@@ -263,6 +264,7 @@ function learningWorkspace(payload,selected,model,mode){
       <button type="button" class="button ${mode==='active'?'button-primary':'button-secondary'}" data-listening-mode="active" aria-pressed="${mode==='active'}" ${playbackReady?'':'disabled'}>${esc(a.active)}</button>
       <button type="button" class="button ${mode==='shadowing'?'button-primary':'button-secondary'}" data-listening-mode="shadowing" aria-pressed="${mode==='shadowing'}" ${playbackReady?'':'disabled'}>${esc(s.mode)}</button>
     </div>
+    ${payload.transcript_generation?.status==='generated'?`<p class="generated-transcript-notice" role="status">${esc(text().generatedTranscript)}</p>`:''}
     ${playbackReady?'':`<p class="active-listening-playback-unavailable" role="status">${esc(a.activeUnavailable)}</p>`}
     ${mode==='active'?activeWorkspace(payload,selected,model):mode==='shadowing'?shadowingWorkspace(payload,selected,model):followWorkspace(payload,selected,model)}`;
 }
@@ -387,11 +389,13 @@ export function createListeningController({importMedia,importStatus,targetLangua
     },
     async pollPending(jobId=model.jobId){
       if(typeof jobId!=='string'||!jobId)return false;
+      const generation=importGeneration;
       try{
         const payload=await importStatus({job_id:jobId});
-        if(model.jobId&&model.jobId!==jobId)return false;
+        if(generation!==importGeneration||model.jobId!==jobId)return false;
         acceptPayload(payload);
       }catch(error){
+        if(generation!==importGeneration||model.jobId!==jobId)return false;
         model.error=error;model.status=mediaImportErrorState(error);model.jobId=null;onImportTerminal();
       }
       changed();
@@ -617,6 +621,7 @@ export async function renderListening(root,{importMedia=api.importMedia,importSt
   let visibleSelection=null;
   let pollTimer=null;
   let renderedAssetId=null;
+  const viewAbort=new AbortController();
   const smartFollow=installSmartFollow(root);
   const schedulePoll=()=>{
     if(pollTimer)clearTimeout(pollTimer);
@@ -717,7 +722,13 @@ export async function renderListening(root,{importMedia=api.importMedia,importSt
   root.addEventListener('orena:media-time',event=>{
     const segment=activeCanonicalSegment(controller.model.payload?.transcript?.segments||[],Number(event?.detail?.time_ms));
     if(segment)controller.setPlayingSegment(segment.segment_id);
-  });
+  },{signal:viewAbort.signal});
+  root._cleanupScreen=()=>{
+    if(pollTimer)clearTimeout(pollTimer);
+    smartFollow.abort();
+    viewAbort.abort();
+    disconnectMediaPlayer(root);
+  };
   const pending=getPendingMediaImport(state.language);
   const shared=getSharedMediaSession(state.language);
   if(pending)controller.resumePending(pending);

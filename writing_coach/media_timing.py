@@ -20,6 +20,7 @@ from writing_coach.media_learning import (
 )
 from writing_coach.speech_asr import (
     SpeechAsrMalformed,
+    SpeechAsrPayloadTooLarge,
     SpeechAsrRequestFailed,
     SpeechAsrResult,
     SpeechAsrTimedOut,
@@ -71,6 +72,7 @@ class MediaTimingEnrichment:
     source: str | None = None
     model: str | None = None
     failure_kind: str | None = None
+    transcript_generated: bool = False
 
 
 class MediaAudioResolutionFailed(Exception):
@@ -257,6 +259,8 @@ class MediaTimingService:
             failure_kind = "asr_timeout"
         except SpeechAsrMalformed:
             failure_kind = "asr_malformed"
+        except SpeechAsrPayloadTooLarge:
+            failure_kind = "asr_payload_too_large"
         except SpeechAsrRequestFailed:
             failure_kind = "asr_provider_failure"
         else:
@@ -272,6 +276,7 @@ class MediaTimingService:
                 )
 
             enriched_acquisition = acquisition
+            transcript_generated = False
             if acquisition.media_object.transcript is None:
                 generated = _transcript_from_asr(
                     acquisition,
@@ -280,6 +285,7 @@ class MediaTimingService:
                 )
                 if generated is not None:
                     enriched_acquisition = generated
+                    transcript_generated = True
 
             words = _map_words(
                 result,
@@ -292,6 +298,7 @@ class MediaTimingService:
                     words=words,
                     source=result.provider,
                     model=result.model,
+                    transcript_generated=transcript_generated,
                 )
             if enriched_acquisition.media_object.transcript is not None:
                 return MediaTimingEnrichment(
@@ -300,6 +307,7 @@ class MediaTimingService:
                     source=result.provider,
                     model=result.model,
                     failure_kind="word_timing_unavailable",
+                    transcript_generated=transcript_generated,
                 )
             failure_kind = "empty_transcript"
 

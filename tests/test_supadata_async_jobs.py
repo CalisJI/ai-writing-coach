@@ -8,6 +8,7 @@ from writing_coach.media_providers.supadata import (
     SupadataTranscript,
     SupadataTranscriptClient,
     SupadataTranscriptJob,
+    SupadataTranscriptMalformed,
 )
 
 
@@ -170,6 +171,22 @@ def test_poll_completed_accepts_nested_result_payload() -> None:
     assert result.status == "completed"
     assert result.transcript is not None
     assert result.transcript.chunks[0].text == "Nested transcript"
+
+
+@pytest.mark.parametrize("timestamp", (float("nan"), float("inf"), float("-inf")))
+def test_supadata_rejects_non_finite_timestamps(timestamp: float) -> None:
+    client, _session = client_for(
+        FakeResponse(
+            200,
+            {
+                "lang": "en",
+                "content": [{"text": "Hello", "offset": timestamp, "duration": 500}],
+            },
+        )
+    )
+
+    with pytest.raises(SupadataTranscriptMalformed):
+        client.start("https://youtu.be/dQw4w9WgXcQ", "en", mode="generate")
 
 
 @pytest.mark.parametrize("status", ("processing", "pending"))

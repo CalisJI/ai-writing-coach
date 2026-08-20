@@ -39,6 +39,7 @@ class MediaFallbackResult:
     source: str | None = None
     failure_kind: str | None = None
     target_language: str | None = None
+    include_translation: bool = True
 
 
 @dataclass
@@ -49,6 +50,7 @@ class _JobRecord:
     learning_language: str
     target_language: str
     acquisition: MediaAcquisition
+    include_translation: bool
     created_at: float
     updated_at: float
     state: str = "queued"
@@ -78,7 +80,7 @@ class MediaFallbackJobRegistry:
         expired = [
             job_id
             for job_id, record in self._jobs.items()
-            if now - record.updated_at > self._ttl_seconds
+            if now - record.created_at > self._ttl_seconds
         ]
         for job_id in expired:
             self._jobs.pop(job_id, None)
@@ -96,6 +98,7 @@ class MediaFallbackJobRegistry:
         learning_language: str,
         target_language: str,
         acquisition: MediaAcquisition,
+        include_translation: bool,
     ) -> _JobRecord:
         self._prune()
         now = self._clock()
@@ -107,6 +110,7 @@ class MediaFallbackJobRegistry:
             learning_language=learning_language,
             target_language=target_language,
             acquisition=acquisition,
+            include_translation=include_translation,
             created_at=now,
             updated_at=now,
         )
@@ -219,6 +223,7 @@ class SupadataMediaFallbackService:
         owner_key: str,
         learning_language: str,
         target_language: str,
+        include_translation: bool = True,
     ) -> MediaFallbackResult:
         try:
             result = self._client.start(
@@ -296,6 +301,7 @@ class SupadataMediaFallbackService:
             learning_language=learning_language,
             target_language=target_language,
             acquisition=acquisition,
+            include_translation=include_translation,
         )
         return MediaFallbackResult(
             status="processing",
@@ -329,6 +335,7 @@ class SupadataMediaFallbackService:
                 provider_state="completed",
                 source=self.provider_id,
                 target_language=record.target_language,
+                include_translation=record.include_translation,
             )
         if record.state == "failed":
             return MediaFallbackResult(
@@ -346,7 +353,10 @@ class SupadataMediaFallbackService:
                 record.provider_job_id,
                 record.learning_language,
             )
-        except (SupadataTranscriptTimedOut, SupadataTranscriptRequestFailed):
+        except SupadataTranscriptTimedOut:
+            record.state = "failed"
+            record.failure_kind = "provider_timeout"
+        except SupadataTranscriptRequestFailed:
             record.state = "failed"
             record.failure_kind = "provider_failure"
         except (SupadataTranscriptMalformed, ValueError):
@@ -384,6 +394,7 @@ class SupadataMediaFallbackService:
                         provider_state="completed",
                         source=self.provider_id,
                         target_language=record.target_language,
+                        include_translation=record.include_translation,
                     )
             else:
                 record.state = "failed"
