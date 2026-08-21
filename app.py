@@ -55,7 +55,7 @@ from writing_coach.media_providers.supadata import SupadataTranscriptClient
 from writing_coach.media_providers.youtube import YouTubeMediaProviderAdapter
 from writing_coach.media_providers.youtube_audio import YtDlpYouTubeAudioUrlResolver
 from writing_coach.media_timing import MediaTimingService
-from writing_coach.media_translation import MediaTranslationService
+from writing_coach.media_translation import LocalHttpTranslationProvider, MediaTranslationService
 from writing_coach.speech_api import (
     configure_speech_asr,
     configure_speech_pronunciation,
@@ -220,7 +220,13 @@ configure_media_ingestion(
         source_language_supported=is_enabled,
     )
 )
-configure_media_translation(MediaTranslationService(generate_structured))
+configure_media_translation(
+    MediaTranslationService(
+        LocalHttpTranslationProvider(
+            os.getenv("LOCAL_TRANSLATION_URL", "http://local-translator:8090")
+        )
+    )
+)
 configure_media_timing(
     MediaTimingService(
         YtDlpYouTubeAudioUrlResolver(),

@@ -63,11 +63,7 @@ export function mediaImportState(payload){
   if(asset.processing_state==='processing'||asset.processing_state==='registered')return 'processing';
   if(asset.processing_state==='failed')return 'error';
   if(asset.processing_state==='ready'&&!asset.transcript_available)return 'transcript-unavailable';
-  if(asset.processing_state==='ready'&&payload?.transcript?.segments?.length){
-    if(['ready','not_required'].includes(payload?.translation?.status))return 'ready';
-    if(['unavailable','too_large'].includes(payload?.translation?.status))return 'translation-failed';
-    return 'processing';
-  }
+  if(asset.processing_state==='ready'&&payload?.transcript?.segments?.length)return 'ready';
   return 'error';
 }
 
@@ -128,16 +124,17 @@ function followWorkspace(payload,selected,{original,meaning,playbackRate,manualS
   const displayMeaning=segment=>displayUnitMeaning(segment,translations);
   const translationStatus=payload.translation?.status;
   const translationNotRequired=translationStatus==='not_required';
+  const translationPreparing=!translationStatus;
   const translationDegraded=translationStatus==='unavailable'||translationStatus==='too_large';
-  const translationStatusMessage=translationStatus==='unavailable'?c.translationUnavailable:translationStatus==='too_large'?c.translationTooLarge:null;
+  const translationStatusMessage=translationPreparing?c.unavailable:translationStatus==='unavailable'?c.translationUnavailable:translationStatus==='too_large'?c.translationTooLarge:null;
   return `<section class="listening-transcript visual-section-surface" aria-label="${esc(c.original)}">
     <div class="listening-toolbar">
       <div><strong>${esc(c.original)}</strong><small>${esc(c.select)}</small></div>
       <label><input id="toggleOriginal" type="checkbox" ${original?'checked':''}> ${esc(c.original)}</label>
-      <label><input id="toggleMeaning" type="checkbox" ${meaning?'checked':''} ${translationNotRequired||translationDegraded?'disabled':''}> ${esc(c.meaning)}</label>
+      <label><input id="toggleMeaning" type="checkbox" ${meaning?'checked':''} ${translationPreparing||translationNotRequired||translationDegraded?'disabled':''}> ${esc(c.meaning)}</label>
     </div>
     ${translationNotRequired?`<p class="translation-not-required" role="status">${esc(c.notRequired)}</p>`:''}
-    ${translationStatusMessage?`<p class="translation-status translation-status-${esc(translationStatus)}" role="status">${esc(translationStatusMessage)}</p>`:''}
+    ${translationStatusMessage?`<p class="translation-status translation-status-${esc(translationStatus||'preparing')}" role="status">${esc(translationStatusMessage)}</p>`:''}
     ${segmentNavigation(segments,selectedDisplayId,playbackRate)}
     <div class="listening-segments">
       ${segments.map(segment=>`<article class="listening-segment ${manualSelection&&segment.segment_id===selectedDisplayId?'selected':''}" data-segment-id="${esc(segment.segment_id)}" data-canonical-segment-ids="${esc(segment.canonical_segment_ids.join(' '))}" ${segment.segment_id===selectedDisplayId?'aria-current="true"':''}>
@@ -294,7 +291,7 @@ function listeningPage(model,viewId){
     <header class="listening-header"><span class="editorial-kicker">${esc(c.listen)}</span><h1 class="editorial-title">${esc(c.title)}</h1><p class="editorial-lead">${esc(c.lead)}</p></header>
     <form id="mediaImportForm" class="listening-import visual-section-surface" novalidate>
       <label for="mediaSourceUrl">${esc(c.url)}</label><div><input id="mediaSourceUrl" type="url" inputmode="url" placeholder="${esc(c.placeholder)}" required><button class="button button-primary" type="submit" ${busy?'disabled':''}>${esc(c.prepare)}</button></div>
-      <div id="listeningStatus" aria-live="polite">${stateMessage(model.status,model.error)}${model.status==='translation-failed'?`<button class="button button-secondary" type="button" data-retry-translation>${esc(c.retryTranslation)}</button>`:''}</div>
+      <div id="listeningStatus" aria-live="polite">${stateMessage(model.status,model.error)}${model.payload?.translation?.status==='unavailable'?`<button class="button button-secondary" type="button" data-retry-translation>${esc(c.retryTranslation)}</button>`:''}</div>
     </form>
     <div id="listeningReady">${model.status==='ready'?workspace(model.payload,model.selected,model):''}</div>
   </section>`;
@@ -355,7 +352,7 @@ export function createListeningController({importMedia,importStatus,targetLangua
     if(model.status==='ready')onMediaReady(payload,model.selected);
   };
   const translateReadyPayload=generation=>{
-    if(model.status!=='processing'||!model.payload?.transcript||model.payload.translation)return;
+    if(model.status!=='ready'||!model.payload?.transcript||model.payload.translation)return;
     const translationGeneration=++backgroundTranslationGeneration;
     const target=targetLanguage();
     let translation;
@@ -370,7 +367,6 @@ export function createListeningController({importMedia,importStatus,targetLangua
       .catch(()=>{
         if(generation!==importGeneration||translationGeneration!==backgroundTranslationGeneration)return;
         model.payload.translation={status:'unavailable',target_language:target};
-        model.status='translation-failed';
         onImportTerminal();
         onTranslationReady(model.payload);
       });
@@ -385,7 +381,7 @@ export function createListeningController({importMedia,importStatus,targetLangua
       model.status='validating';model.error=null;model.jobId=null;changed();
       if(!validMediaUrl(sourceUrl)){model.status='unsupported';changed();return;}
       try{
-        const payload=await importMedia({source_url:sourceUrl,target_language:targetLanguage(),include_word_timing:true,include_translation:true});
+        const payload=await importMedia({source_url:sourceUrl,target_language:targetLanguage(),include_word_timing:true,include_translation:false});
         if(generation!==importGeneration)return;
         acceptPayload(payload);
         translateReadyPayload(generation);
@@ -415,8 +411,8 @@ export function createListeningController({importMedia,importStatus,targetLangua
       model.jobId=job_id;model.sourceUrl=typeof source_url==='string'?source_url:'';model.status='processing';model.error=null;changed();return true;
     },
     retryTranslation(){
-      if(model.status!=='translation-failed'||!model.payload?.transcript)return false;
-      model.payload.translation=null;model.status='processing';model.error=null;changed();
+      if(model.status!=='ready'||model.payload?.translation?.status!=='unavailable'||!model.payload?.transcript)return false;
+      model.payload.translation=null;model.error=null;changed();
       translateReadyPayload(importGeneration);
       return true;
     },

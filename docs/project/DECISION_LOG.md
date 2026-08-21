@@ -365,3 +365,22 @@ POS/Pinyin annotation begins only after learner opt-in. Real word highlight is
 shown only when true word timestamps exist.
 
 **Supersedes / Superseded by:** Extends D-017 and D-019; supersedes neither.
+
+## D-021 — Media Meaning uses isolated local machine translation
+
+**Status:** Accepted
+
+**Decision:** Normal Media Meaning translation uses a provider-neutral boundary
+whose default provider is an isolated local Marian service. Canonical transcript
+and playback readiness do not depend on translation readiness.
+
+**Reason:** Per-request generic AI translation adds avoidable latency and cost,
+and translation failure must not make otherwise usable media lessons unavailable.
+
+**Consequences:** The application image contains no translation models. Models
+are provisioned into a separate cache, loaded lazily by language pair, and used
+in bounded batches. Completed translations are cached by engine version,
+language pair, and canonical transcript hash. Generic AI remains available only
+for explicit intelligence features, not normal Meaning generation.
+
+**Supersedes / Superseded by:** Narrows D-014 for Media Meaning; extends D-020.

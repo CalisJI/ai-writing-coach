@@ -27,7 +27,7 @@ assert.deepEqual(calls,[{
   source_url:'https://youtu.be/dQw4w9WgXcQ',
   target_language:'vi',
   include_word_timing:true,
-  include_translation:true,
+  include_translation:false,
 }]);
 resolveImport(MEDIA_LEARNING_FIXTURE);
 await pending;
@@ -154,8 +154,9 @@ assert.deepEqual(
 const pendingTranslationFailure={...pendingCanonical,asset:{...pendingCanonical.asset},translations:[]};
 delete pendingTranslationFailure.translation;
 let failedTranslationAttempts=0;
+let failedTranslationAcquisitions=0;
 const failedPendingTranslationController=createListeningController({
-  importStatus:async()=>pendingTranslationFailure,
+  importStatus:async()=>{failedTranslationAcquisitions+=1;return pendingTranslationFailure;},
   translateMedia:async()=>{
     failedTranslationAttempts+=1;
     if(failedTranslationAttempts===1)throw new Error('translation unavailable');
@@ -166,12 +167,13 @@ const failedPendingTranslationController=createListeningController({
 failedPendingTranslationController.resumePending({job_id:'supadata-job-1234567891',source_url:'https://youtu.be/dQw4w9WgXcQ'});
 await failedPendingTranslationController.pollPending();
 await new Promise(resolve=>setTimeout(resolve,0));
-assert.equal(failedPendingTranslationController.model.status,'translation-failed');
+assert.equal(failedPendingTranslationController.model.status,'ready');
 assert.equal(failedPendingTranslationController.model.payload.translation.status,'unavailable');
-assert.doesNotMatch(failedPendingTranslationController.html(),/<iframe/);
+assert.match(failedPendingTranslationController.html(),/<iframe/);
 assert.equal(failedPendingTranslationController.retryTranslation(),true);
 await new Promise(resolve=>setTimeout(resolve,0));
 assert.equal(failedTranslationAttempts,2);
+assert.equal(failedTranslationAcquisitions,1);
 assert.equal(failedPendingTranslationController.model.status,'ready');
 
 const groupedDisplay={
@@ -513,10 +515,10 @@ const translationFailure={
 };
 const untranslated=createListeningController({importMedia:async()=>translationFailure,targetLanguage:()=> 'vi'});
 await untranslated.importUrl('https://youtu.be/dQw4w9WgXcQ');
-assert.equal(untranslated.model.status,'translation-failed');
+assert.equal(untranslated.model.status,'ready');
 assert.equal(untranslated.model.payload.translation.status,'unavailable');
 assert.match(untranslated.html(),/data-retry-translation/);
-assert.doesNotMatch(untranslated.html(),/<iframe/);
+assert.match(untranslated.html(),/<iframe/);
 assert.doesNotMatch(untranslated.html(),/RAW PROVIDER EXCEPTION|translation-unavailable/);
 
 const sameLanguage={
@@ -544,9 +546,9 @@ const tooLarge={
 };
 const oversizedTranslation=createListeningController({importMedia:async()=>tooLarge,targetLanguage:()=> 'vi'});
 await oversizedTranslation.importUrl('https://youtu.be/dQw4w9WgXcQ');
-assert.equal(oversizedTranslation.model.status,'translation-failed');
-assert.match(oversizedTranslation.html(),/data-retry-translation/);
-assert.doesNotMatch(oversizedTranslation.html(),/<iframe/);
+assert.equal(oversizedTranslation.model.status,'ready');
+assert.doesNotMatch(oversizedTranslation.html(),/data-retry-translation/);
+assert.match(oversizedTranslation.html(),/<iframe/);
 
 const noCaption={...MEDIA_LEARNING_FIXTURE,asset:{...MEDIA_LEARNING_FIXTURE.asset,transcript_available:false,translation_available:false},transcript:null,translations:[],translation:{status:'transcript_unavailable',target_language:'vi',source:null,failure_kind:null}};
 const captionless=createListeningController({importMedia:async()=>noCaption,targetLanguage:()=> 'vi'});

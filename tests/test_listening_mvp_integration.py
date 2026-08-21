@@ -7,7 +7,7 @@ from typing import Any
 import pytest
 
 import writing_coach.media_api as media_api
-from writing_coach.ai.base import AIProviderUnavailable, AIResult
+
 from writing_coach.core.request_context import LANGUAGE_CODE_CTX
 from writing_coach.media_api import MediaImportIn
 from writing_coach.media_ingestion import (
@@ -23,10 +23,11 @@ from writing_coach.media_learning import (
     TranscriptSegment,
 )
 from writing_coach.media_translation import (
-    LEARNER_TRANSLATION_CAPABILITY,
+
     MAX_TRANSLATION_BATCHES,
     MAX_TRANSLATION_BATCH_SEGMENTS,
     MediaTranslationService,
+    TranslationProviderError,
 )
 
 
@@ -122,30 +123,21 @@ class FakeMediaAdapter:
 
 
 class FakeTranslationGenerator:
+    engine_id = "local_test"
+    model_version = "v1"
+
     def __init__(self, *, unavailable: bool = False) -> None:
         self.unavailable = unavailable
         self.calls: list[dict[str, Any]] = []
 
-    def __call__(self, **kwargs: Any) -> AIResult:
-        self.calls.append(kwargs)
+    def translate_batch(self, source_language, target_language, segments):
+        self.calls.append({"source_language": source_language, "target_language": target_language, "segments": segments})
         if self.unavailable:
-            raise AIProviderUnavailable("private provider failure must not reach learners")
-        request = json.loads(kwargs["messages"][1]["content"])
-        translations = [
-            {
-                "segment_id": segment["segment_id"],
-                "translated_meaning": (
-                    f"{request['target_language']} meaning for {segment['segment_id']}"
-                ),
-            }
-            for segment in reversed(request["segments"])
-        ]
-        return AIResult(
-            data={"translations": translations},
-            provider="fake",
-            model="fake-model",
-            runtime={"private": "must not be serialized"},
-        )
+            raise TranslationProviderError("private provider failure must not reach learners")
+        return {
+            segment.segment_id: f"{target_language} meaning for {segment.segment_id}"
+            for segment in reversed(segments)
+        }
 
 
 def _import_mvp_lesson(
@@ -198,8 +190,9 @@ def _assert_shared_workspace_contract(
     assert response["translation"]["status"] == "ready"
     assert response["translation"]["target_language"] == support_language
     assert response["translation"]["source"] == {
-        "capability_key": LEARNER_TRANSLATION_CAPABILITY,
-        "provider": "fake",
+        "capability_key": "local_translation",
+        "provider": "local_test",
+        "model": "v1",
         "request_count": 1,
     }
     segment_ids = [segment["segment_id"] for segment in transcript["segments"]]
@@ -235,9 +228,7 @@ def test_real_backend_response_satisfies_one_shared_listening_workspace_contract
         support_language=support_language,
     )
     assert adapter.calls == [(SOURCE_URL, learning_language)]
-    assert [call["capability_key"] for call in generator.calls] == [
-        LEARNER_TRANSLATION_CAPABILITY
-    ]
+    assert [call["target_language"] for call in generator.calls] == [support_language]
 
 
 def test_same_language_is_truthful_non_blocking_and_zero_call(

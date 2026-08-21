@@ -92,7 +92,7 @@ try{
   await controller.importUrl('https://youtu.be/dQw4w9WgXcQ');
   await Promise.resolve();
 
-  assert.equal(root.querySelector('#listeningPlayer'),null);
+  assert.ok(root.querySelector('#listeningPlayer') instanceof FakeFrame);
   resolveTranslation({
     asset:{...MEDIA_LEARNING_FIXTURE.asset,translation_available:true},
     transcript:MEDIA_LEARNING_FIXTURE.transcript,
@@ -131,9 +131,9 @@ try{
   await Promise.resolve();
   await Promise.resolve();
   const failedPlayerCreations=playerCreations;
-  assert.equal(failedController.model.status,'translation-failed');
-  assert.equal(failedController.setMode('shadowing'),false);
-  assert.equal(failedRoot.querySelector('#listeningPlayer'),null);
+  assert.equal(failedController.model.status,'ready');
+  assert.equal(failedController.setMode('shadowing'),true);
+  assert.ok(failedRoot.querySelector('#listeningPlayer') instanceof FakeFrame);
   assert.equal(playerCreations,failedPlayerCreations);
 }finally{
   for(const [key,value] of Object.entries(previous)){
