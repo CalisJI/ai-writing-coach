@@ -16,6 +16,7 @@ jobs:
         with:
           node-version: '24'
       - run: pip install -r requirements.txt pytest
+      - run: python -m nltk.downloader -q averaged_perceptron_tagger_eng
       - run: python scripts/validate_architecture.py
       - run: |
           node scripts/test_interactive_transcript_contract.mjs
