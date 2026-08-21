@@ -4,6 +4,7 @@ import {renderListening} from '../static/becoming/screens/listening.js';
 
 class FakeElement {}
 class FakeFrame extends FakeElement {
+  addEventListener(){}
   constructor(){
     super();
     this.isConnected=true;
@@ -92,7 +93,21 @@ try{
   await controller.importUrl('https://youtu.be/dQw4w9WgXcQ');
   await Promise.resolve();
 
-  assert.ok(root.querySelector('#listeningPlayer') instanceof FakeFrame);
+  const playerBeforeTranslation=root.querySelector('#listeningPlayer');
+  assert.ok(playerBeforeTranslation instanceof FakeFrame);
+  assert.equal(controller.select('segment-002'),true);
+  assert.equal(controller.setPlayingSegment('segment-001'),true);
+  assert.equal(controller.setMode('shadowing'),true);
+  assert.equal(controller.recordShadowingRound(),true);
+  assert.equal(controller.setMode('active'),true);
+  assert.equal(controller.setPracticeDraft('kept draft'),true);
+  assert.equal(controller.setPracticeDraft('x'.repeat(2001)),false);
+  controller.toggleOriginal(false);
+  controller.toggleMeaning(false);
+  assert.equal(controller.setPlaybackRate(1.25),true);
+  const practiceSession=controller.model.practiceSession;
+  const shadowingSession=controller.model.shadowingSession;
+  const practiceValidation=controller.model.practiceValidation;
   resolveTranslation({
     asset:{...MEDIA_LEARNING_FIXTURE.asset,translation_available:true},
     transcript:MEDIA_LEARNING_FIXTURE.transcript,
@@ -105,7 +120,19 @@ try{
   const player=root.querySelector('#listeningPlayer');
   const fullRenders=root.fullRenders;
   assert.ok(player instanceof FakeFrame);
+  assert.equal(player,playerBeforeTranslation);
   assert.equal(playerCreations,1);
+  assert.equal(controller.model.selected,'segment-002');
+  assert.equal(controller.model.playingSegmentId,'segment-001');
+  assert.equal(controller.model.manualSelection,true);
+  assert.equal(controller.model.practiceSession,practiceSession);
+  assert.equal(controller.model.practiceSession.segments['segment-002'].draft,'kept draft');
+  assert.equal(controller.model.shadowingSession,shadowingSession);
+  assert.equal(controller.model.shadowingSession.segments['segment-002'].rounds,1);
+  assert.equal(controller.model.practiceValidation,practiceValidation);
+  assert.equal(controller.model.original,false);
+  assert.equal(controller.model.meaning,false);
+  assert.equal(controller.model.playbackRate,1.25);
 
   assert.equal(controller.select('segment-002'),true);
   controller.toggleOriginal(false);
@@ -122,9 +149,19 @@ try{
   assert.match(root.learningColumn.innerHTML,/Cùng đoạn này có thể dùng để luyện nói sau\./);
 
   const failedRoot=new ListeningRoot();
+  let failedTranslationAttempts=0;
   const failedController=await renderListening(failedRoot,{
     importMedia:async()=>canonicalOnly(),
-    translateMedia:async()=>{throw new Error('translation unavailable');},
+    translateMedia:async()=>{
+      failedTranslationAttempts+=1;
+      if(failedTranslationAttempts===1)throw new Error('translation unavailable');
+      return {
+        asset:{...MEDIA_LEARNING_FIXTURE.asset,translation_available:true},
+        transcript:MEDIA_LEARNING_FIXTURE.transcript,
+        translations:MEDIA_LEARNING_FIXTURE.translations,
+        translation:MEDIA_LEARNING_FIXTURE.translation,
+      };
+    },
     targetLanguage:()=> 'vi',
   });
   await failedController.importUrl('https://youtu.be/dQw4w9WgXcQ');
@@ -135,6 +172,33 @@ try{
   assert.equal(failedController.setMode('shadowing'),true);
   assert.ok(failedRoot.querySelector('#listeningPlayer') instanceof FakeFrame);
   assert.equal(playerCreations,failedPlayerCreations);
+  failedRoot._cleanupScreen();
+
+  const restoredRoot=new ListeningRoot();
+  let restoredImports=0;
+  const restoredController=await renderListening(restoredRoot,{
+    importMedia:async()=>{restoredImports+=1;return canonicalOnly();},
+    translateMedia:async()=>{
+      failedTranslationAttempts+=1;
+      return {
+        asset:{...MEDIA_LEARNING_FIXTURE.asset,translation_available:true},
+        transcript:MEDIA_LEARNING_FIXTURE.transcript,
+        translations:MEDIA_LEARNING_FIXTURE.translations,
+        translation:MEDIA_LEARNING_FIXTURE.translation,
+      };
+    },
+    targetLanguage:()=> 'vi',
+  });
+  const restoredPlayer=restoredRoot.querySelector('#listeningPlayer');
+  assert.equal(restoredImports,0);
+  assert.equal(restoredController.model.payload.translation.status,'unavailable');
+  assert.ok(restoredPlayer instanceof FakeFrame);
+  assert.equal(restoredController.retryTranslation(),true);
+  await Promise.resolve();
+  await Promise.resolve();
+  assert.equal(failedTranslationAttempts,2);
+  assert.equal(restoredController.model.payload.translation.status,'ready');
+  assert.equal(restoredRoot.querySelector('#listeningPlayer'),restoredPlayer);
 }finally{
   for(const [key,value] of Object.entries(previous)){
     if(value===undefined)delete globalThis[key];

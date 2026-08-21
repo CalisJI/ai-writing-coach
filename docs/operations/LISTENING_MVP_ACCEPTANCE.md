@@ -23,7 +23,8 @@ The EN acceptance flow uses an English learning context and Vietnamese support
 language. The ZH acceptance flow uses a Chinese learning context and Vietnamese
 support language. A cross-support check also covers English source content with
 Simplified Chinese meaning. All three use the same API, Media Learning Object,
-translation capability, response shape, and Listening controller.
+provider-neutral local translation boundary, response shape, and Listening
+controller.
 
 ## Translation and degraded states
 
@@ -57,12 +58,11 @@ YouTube commands.
 
 ## Explicit non-goals
 
-M1.4 adds no Active Listening exercises, scoring, dictation, comprehension
-quiz, persistence, media download, translation cache, Shadowing activation,
-recording, microphone access, ASR, pronunciation evaluation, new AI capability,
-schema/Alembic work, or public Listening release. The disabled Shadowing
-affordance remains informational. `learner_translation` is the only translation
-capability.
+M1.4 adds no scoring, comprehension quiz, persistence, media download,
+recording, microphone access, pronunciation evaluation, schema/Alembic work, or
+public Listening release. Meaning uses the D-021 provider-neutral
+`local_translation` boundary with deterministic cache identity; it is not a
+generic AI capability. The disabled Shadowing affordance remains informational.
 
 ## Local offline verification
 

@@ -336,6 +336,14 @@ export function createListeningController({importMedia,importStatus,targetLangua
   const actionAnchor=()=>model.manualSelection&&model.selected
     ?model.selected:(model.playingSegmentId||model.selected);
   const selectedSegment=()=>model.payload?.transcript?.segments?.find(segment=>segment.segment_id===model.selected);
+  const mergeTranslation=translated=>{
+    model.payload={
+      ...model.payload,
+      asset:{...model.payload.asset,...translated.asset},
+      translations:translated.translations,
+      translation:translated.translation,
+    };
+  };
   const acceptPayload=payload=>{
     model.payload=payload;
     model.status=mediaImportState(payload);
@@ -361,7 +369,7 @@ export function createListeningController({importMedia,importStatus,targetLangua
     Promise.resolve(translation)
       .then(translated=>{
         if(generation!==importGeneration||translationGeneration!==backgroundTranslationGeneration)return;
-        acceptPayload({...model.payload,...translated,playback:model.payload.playback});
+        mergeTranslation(translated);
         onTranslationReady(model.payload);
       })
       .catch(()=>{
@@ -733,7 +741,10 @@ export async function renderListening(root,{importMedia=api.importMedia,importSt
   controller=createListeningController({
     importMedia,importStatus,targetLanguage,translateMedia,onChange:render,
     onMediaReady:(payload,selected_segment_id)=>setSharedMediaSession({learning_language:state.language,payload,selected_segment_id}),
-    onTranslationReady:()=>render(),
+    onTranslationReady:payload=>{
+      setSharedMediaSession({learning_language:state.language,payload,selected_segment_id:controller.model.selected});
+      render();
+    },
     onSelection:segmentId=>selectSharedMediaSegment(state.language,segmentId),
     onProcessing:({job_id,source_url})=>setPendingMediaImport({learning_language:state.language,job_id,source_url}),
     onImportTerminal:()=>clearPendingMediaImport(state.language),

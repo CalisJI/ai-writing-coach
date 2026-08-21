@@ -324,5 +324,6 @@ def test_internal_mvp_acceptance_document_preserves_scope_and_human_gate() -> No
     ):
         assert required in normalized
     assert "not listening completion or public release" in normalized
-    assert "learner_translation" in document
+    assert "local_translation" in document
+    assert "learner_translation" not in document
     assert "docker compose down -v" not in document
