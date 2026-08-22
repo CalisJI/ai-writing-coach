@@ -104,6 +104,24 @@ assert.equal(modeAwareController.setMode('follow'),true);
 assert.equal(modeAwareController.setPlayingSegment('D'),true);
 assert.equal(modeAwareController.actionAnchor(),'D');
 
+const shadowingFollowController=createListeningController({importMedia:async()=>actionAnchorFixture,targetLanguage:()=> 'vi'});
+await shadowingFollowController.importUrl('https://youtu.be/dQw4w9WgXcQ');
+assert.equal(shadowingFollowController.setMode('shadowing'),true);
+assert.equal(shadowingFollowController.model.selected,'A');
+assert.match(shadowingFollowController.html(),/Complete thought A\./);
+assert.equal(shadowingFollowController.setPlayingSegment('B'),true);
+assert.equal(shadowingFollowController.model.selected,'B');
+assert.equal(shadowingFollowController.model.shadowingSession.current_segment_id,'B');
+assert.match(shadowingFollowController.html(),/Complete thought B\./);
+assert.equal(shadowingFollowController.select('A'),true);
+assert.equal(shadowingFollowController.model.manualSelection,true);
+assert.equal(shadowingFollowController.setPlayingSegment('C'),true);
+assert.equal(shadowingFollowController.model.selected,'A');
+assert.equal(shadowingFollowController.model.shadowingSession.current_segment_id,'A');
+assert.equal(shadowingFollowController.followPlaying(),'C');
+assert.equal(shadowingFollowController.model.selected,'C');
+assert.equal(shadowingFollowController.model.shadowingSession.current_segment_id,'C');
+
 const segmentOnlyController=createListeningController({importMedia:async()=>MEDIA_LEARNING_FIXTURE,targetLanguage:()=> 'vi'});
 await segmentOnlyController.importUrl('https://youtu.be/dQw4w9WgXcQ');
 assert.doesNotMatch(segmentOnlyController.html(),/transcript-token-timed|data-start-ms=/);
@@ -236,8 +254,8 @@ assert.equal(playbackPracticeController.followPlaying(),'segment-002');
 assert.equal(playbackPracticeController.model.selected,'segment-002');
 assert.equal(playbackPracticeController.setMode('shadowing'),true);
 assert.equal(playbackPracticeController.setPlayingSegment('segment-001'),true);
-assert.equal(playbackPracticeController.model.selected,'segment-002');
-assert.equal(playbackPracticeController.model.shadowingSession.current_segment_id,'segment-002');
+assert.equal(playbackPracticeController.model.selected,'segment-001');
+assert.equal(playbackPracticeController.model.shadowingSession.current_segment_id,'segment-001');
 
 const activeController=createListeningController({importMedia:async()=>{activeImports+=1;return MEDIA_LEARNING_FIXTURE;},targetLanguage:()=> 'vi'});
 await activeController.importUrl('https://youtu.be/dQw4w9WgXcQ');
@@ -504,6 +522,12 @@ assert.equal(persistentImportController.setPracticeDraft('draft that must surviv
 const activePlaybackWrites=persistentLearningWrites;
 assert.equal(persistentImportController.setPlayingSegment('segment-002'),true);
 assert.equal(persistentLearningWrites,activePlaybackWrites);
+assert.equal(persistentImportController.setMode('shadowing'),true);
+assert.equal(persistentImportController.setPlayingSegment('segment-001'),true);
+const shadowingPlaybackWrites=persistentLearningWrites;
+assert.equal(persistentImportController.setPlayingSegment('segment-002'),true);
+assert.ok(persistentLearningWrites>shadowingPlaybackWrites);
+assert.match(persistentLearningHtml,new RegExp(MEDIA_LEARNING_FIXTURE.transcript.segments[1].original_text));
 importSubmitListeners[0]({preventDefault(){}});
 assert.equal(importSubmitCount,2);
 

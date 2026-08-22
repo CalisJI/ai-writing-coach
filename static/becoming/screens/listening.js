@@ -527,8 +527,12 @@ export function createListeningController({importMedia,importStatus,targetLangua
       if(!model.payload?.transcript?.segments?.some(segment=>segment.segment_id===segmentId))return false;
       if(model.playingSegmentId===segmentId)return true;
       model.playingSegmentId=segmentId;
-      if(model.mode==='follow'&&!model.manualSelection)model.selected=segmentId;
-      changed({playbackOnly:true});return true;
+      const selectedChanged=['follow','shadowing'].includes(model.mode)&&!model.manualSelection;
+      if(selectedChanged){
+        model.selected=segmentId;
+        if(model.mode==='shadowing')selectShadowingPracticeSegment(model.shadowingSession,segmentId);
+      }
+      changed({playbackOnly:true,selectedChanged});return true;
     },
   };
 }
@@ -670,8 +674,8 @@ export async function renderListening(root,{importMedia=api.importMedia,importSt
       controller.pollPending();
     },2500);
   };
-  const render=(_model,{playbackOnly=false}={})=>{
-    if(playbackOnly&&['active','shadowing'].includes(controller.model.mode))return;
+  const render=(_model,{playbackOnly=false,selectedChanged=false}={})=>{
+    if(playbackOnly&&(controller.model.mode==='active'||(controller.model.mode==='shadowing'&&!selectedChanged)))return;
     if(mounted&&!root.querySelector(`[data-listening-view="${controller.viewId}"]`))return;
     const payload=controller.model.payload;
     const assetId=payload?.asset?.asset_id||null;
