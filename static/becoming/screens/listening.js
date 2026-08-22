@@ -333,8 +333,8 @@ export function createListeningController({importMedia,importStatus,targetLangua
   let importGeneration=0;
   let backgroundTranslationGeneration=0;
   const changed=(options={})=>onChange({...model},options);
-  const actionAnchor=()=>model.manualSelection&&model.selected
-    ?model.selected:(model.playingSegmentId||model.selected);
+  const actionAnchor=()=>model.mode==='follow'&&!model.manualSelection
+    ?(model.playingSegmentId||model.selected):model.selected;
   const selectedSegment=()=>model.payload?.transcript?.segments?.find(segment=>segment.segment_id===model.selected);
   const mergeTranslation=translated=>{
     model.payload={
@@ -516,7 +516,11 @@ export function createListeningController({importMedia,importStatus,targetLangua
     },
     actionAnchor,
     followPlaying(){
-      if(model.playingSegmentId)model.selected=model.playingSegmentId;
+      if(model.playingSegmentId){
+        model.selected=model.playingSegmentId;
+        if(model.mode==='active')selectListeningPracticeSegment(model.practiceSession,model.selected);
+        if(model.mode==='shadowing')selectShadowingPracticeSegment(model.shadowingSession,model.selected);
+      }
       model.manualSelection=false;changed();return actionAnchor();
     },
     setPlayingSegment(segmentId){
