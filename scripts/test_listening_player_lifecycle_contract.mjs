@@ -10,11 +10,23 @@ class FakeFrame extends FakeElement {
     this.isConnected=true;
   }
 }
+class ScrollContainer extends FakeElement {
+  constructor(){
+    super();
+    this.scrollTop=0;
+    this.clientHeight=100;
+    this.scrollHeight=500;
+    this.row={getBoundingClientRect:()=>({top:300,bottom:320,height:20})};
+  }
+  closest(){return this;}
+  querySelector(){return this.row;}
+  getBoundingClientRect(){return {top:0};}
+  scrollTo({top}){this.scrollTop=top;}
+}
 class LearningColumn {
   set innerHTML(value){
     this.html=value;
-    this.segments=new FakeElement();
-    this.segments.scrollTop=0;
+    this.segments=new ScrollContainer();
   }
   get innerHTML(){return this.html||'';}
   querySelector(selector){return selector==='.listening-segments'?this.segments:null;}
@@ -52,6 +64,12 @@ class ListeningRoot extends FakeElement {
     this.player=null;
     this.workspace=null;
     this.view=null;
+    this.listeners=new Map();
+    this.followButton={
+      listeners:[],
+      addEventListener:(_type,listener)=>this.followButton.listeners.push(listener),
+      click:()=>this.followButton.listeners.at(-1)?.(),
+    };
   }
 
   set innerHTML(value){
@@ -73,11 +91,15 @@ class ListeningRoot extends FakeElement {
     if(selector.startsWith('[data-listening-view='))return this.view;
     if(selector==='.listening-workspace')return this.workspace;
     if(selector==='#listeningPlayer')return this.player;
+    if(selector==='[data-follow-playing]')return this.followButton;
+    if(selector.includes('.listening-workspace[data-listening-mode="follow"] .listening-segments'))return this.learningColumn?.segments;
     return null;
   }
 
   querySelectorAll(){return [];}
-  addEventListener(){}
+  addEventListener(type,listener){this.listeners.set(type,listener);}
+  emit(type,target){this.listeners.get(type)?.({target});}
+  contains(){return true;}
   dispatchEvent(){}
 }
 
@@ -156,6 +178,15 @@ try{
   assert.equal(controller.model.selected,'segment-002');
   assert.match(root.learningColumn.innerHTML,/active-listening-meaning/);
   assert.match(root.learningColumn.innerHTML,/Cùng đoạn này có thể dùng để luyện nói sau\./);
+
+  assert.equal(controller.setMode('follow'),true);
+  root.learningColumn.querySelector('.listening-segments').scrollTop=300;
+  root.emit('wheel',root.learningColumn.querySelector('.listening-segments'));
+  assert.equal(controller.setPlayingSegment('segment-002'),true);
+  assert.equal(root.learningColumn.querySelector('.listening-segments').scrollTop,300);
+  assert.equal(root.querySelector('#listeningPlayer'),player);
+  root.followButton.click();
+  assert.notEqual(root.learningColumn.querySelector('.listening-segments').scrollTop,300);
 
   assert.equal(controller.setMode('active'),true);
   root.learningColumn.querySelector('.listening-segments').scrollTop=137;

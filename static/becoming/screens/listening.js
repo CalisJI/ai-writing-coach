@@ -624,6 +624,7 @@ function installSmartFollow(root){
       if(resumeTimer!==null)clearTimeout(resumeTimer);
       abortController.abort();
     },
+    isSuspended:()=>suspended,
     resumeNow(){
       if(resumeTimer!==null)clearTimeout(resumeTimer);
       resume();
@@ -671,6 +672,8 @@ export async function renderListening(root,{importMedia=api.importMedia,importSt
     const previousMode=workspaceNode?.dataset?.listeningMode;
     const previousSegments=typeof learningColumn?.querySelector==='function'
       ?learningColumn.querySelector('.listening-segments'):null;
+    const preserveFollowScroll=previousMode==='follow'&&smartFollow.isSuspended()&&previousSegments
+      ?previousSegments.scrollTop:null;
     if(['active','shadowing'].includes(previousMode)&&previousSegments)transcriptScrollTops.set(previousMode,previousSegments.scrollTop);
     const preservePlayer=Boolean(
       mounted
@@ -685,11 +688,10 @@ export async function renderListening(root,{importMedia=api.importMedia,importSt
       const mode=listeningMode(payload,controller.model);
       workspaceNode.dataset.listeningMode=mode;
       learningColumn.innerHTML=learningWorkspace(payload,controller.model.selected,controller.model,mode);
-      if(['active','shadowing'].includes(mode)){
-        const segments=typeof learningColumn.querySelector==='function'
-          ?learningColumn.querySelector('.listening-segments'):null;
-        if(segments)segments.scrollTop=transcriptScrollTops.get(mode)||0;
-      }
+      const segments=typeof learningColumn.querySelector==='function'
+        ?learningColumn.querySelector('.listening-segments'):null;
+      if(segments&&['active','shadowing'].includes(mode))segments.scrollTop=transcriptScrollTops.get(mode)||0;
+      if(segments&&mode==='follow'&&preserveFollowScroll!==null)segments.scrollTop=preserveFollowScroll;
     }else{
       root.innerHTML=controller.html();
       connectMediaPlayer(root,payload?.playback);
