@@ -37,7 +37,10 @@ assert.match(css,/@media \(max-width:959px\)[\s\S]*grid-template-columns:minmax\
 assert.match(css,/\.listening-workspace\[data-listening-mode="follow"\] \.listening-practice-controls\{\s*position:static/);
 assert.doesNotMatch(css,/\.listening-transcript \.listening-practice-controls\{\s*position:sticky/);
 assert.match(css,/\.listening-workspace\[data-listening-mode="follow"\] \.listening-transcript\{\s*display:flex[\s\S]*flex-direction:column/);
-assert.match(css,/top:calc\(var\(--shell-topbar-height\) \+ var\(--space-3,12px\)\)/);
+assert.match(css,/--listening-sticky-offset:/);
+assert.match(css,/\.listening-video-frame\{[\s\S]*top:var\(--listening-sticky-offset\)/);
+assert.match(css,/@media \(max-width:959px\)\{[\s\S]*\.listening-video\{[\s\S]*top:var\(--listening-sticky-offset\)/);
+assert.doesNotMatch(css,/top:calc\(var\(--shell-topbar-height\) \+ var\(--space-3,12px\)\)/);
 assert.match(css,/\.listening-workspace\[data-listening-mode="follow"\] \.listening-video\{\s*position:sticky/);
 const listeningCss=readFileSync('static/becoming/listening.css','utf8');
 assert.match(listeningCss,/@media\(max-width:620px\)[\s\S]*grid-template-columns:repeat\(5,minmax\(0,1fr\)\)/);
