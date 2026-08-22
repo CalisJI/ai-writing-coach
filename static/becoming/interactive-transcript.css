@@ -373,3 +373,8 @@ html[data-transcript-pos="on"] .it-token.pos-other{color:var(--it-pos-other)}
 @media (max-width:480px){.listening-transcript .listening-practice-controls{gap:3px;padding:4px}.listening-icon-button{flex-basis:34px;width:34px;min-width:34px;height:34px;min-height:34px}.listening-speed-control{min-height:34px;padding:0 4px;gap:2px}.listening-speed-control select{min-width:48px;min-height:30px;font-size:.78rem}}
 
 .listening-toolbar{padding:8px 12px;gap:6px}.listening-toolbar strong{font-size:.9rem}.listening-toolbar small{display:none}.it-controls{gap:4px}.it-control{padding:3px 7px;font-size:.72rem}
+@media (max-width:959px){
+  .listening-workspace[data-listening-mode="follow"] .listening-media-caption{display:none}
+  .listening-active-segments{max-height:clamp(144px,30dvh,220px);overflow-y:auto}
+  .listening-shadowing-segments{max-height:clamp(132px,27dvh,200px);overflow-y:auto}
+}
