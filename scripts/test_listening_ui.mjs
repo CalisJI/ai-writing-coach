@@ -196,6 +196,24 @@ assert.equal(groupedController.select('group-b'),true);
 assert.match(groupedController.html(),/data-canonical-segment-ids="group-a group-b"[\s\S]*data-shadow-selected/);
 
 let activeImports=0;
+const playbackPracticeController=createListeningController({importMedia:async()=>MEDIA_LEARNING_FIXTURE,targetLanguage:()=> 'vi'});
+await playbackPracticeController.importUrl('https://youtu.be/dQw4w9WgXcQ');
+assert.equal(playbackPracticeController.setMode('active'),true);
+const activeDraft=MEDIA_LEARNING_FIXTURE.transcript.segments[0].original_text;
+assert.equal(playbackPracticeController.setPracticeDraft(activeDraft),true);
+assert.equal(playbackPracticeController.setPlayingSegment('segment-002'),true);
+assert.equal(playbackPracticeController.model.selected,'segment-001');
+assert.equal(playbackPracticeController.model.practiceSession.current_segment_id,'segment-001');
+assert.equal(playbackPracticeController.checkPractice(),true);
+assert.equal(playbackPracticeController.model.practiceSession.segments['segment-001'].attempts[0].answer,activeDraft);
+assert.equal(playbackPracticeController.setMode('follow'),true);
+assert.equal(playbackPracticeController.followPlaying(),'segment-002');
+assert.equal(playbackPracticeController.model.selected,'segment-002');
+assert.equal(playbackPracticeController.setMode('shadowing'),true);
+assert.equal(playbackPracticeController.setPlayingSegment('segment-001'),true);
+assert.equal(playbackPracticeController.model.selected,'segment-002');
+assert.equal(playbackPracticeController.model.shadowingSession.current_segment_id,'segment-002');
+
 const activeController=createListeningController({importMedia:async()=>{activeImports+=1;return MEDIA_LEARNING_FIXTURE;},targetLanguage:()=> 'vi'});
 await activeController.importUrl('https://youtu.be/dQw4w9WgXcQ');
 activeController.toggleOriginal(false);
@@ -425,9 +443,16 @@ let importSubmitCount=0;
 const persistentImportForm={
   addEventListener(name,listener){if(name==='submit')importSubmitListeners.push(listener);},
 };
+let persistentLearningHtml='';
+let persistentLearningWrites=0;
+const persistentLearningColumn={
+  get innerHTML(){return persistentLearningHtml;},
+  set innerHTML(value){persistentLearningHtml=value;persistentLearningWrites+=1;},
+  querySelector(){return null;},
+};
 const persistentWorkspace={
   dataset:{},
-  querySelector(selector){return selector==='.listening-learning-column'?{innerHTML:''}:null;},
+  querySelector(selector){return selector==='.listening-learning-column'?persistentLearningColumn:null;},
 };
 const persistentImportRoot={
   innerHTML:'',
@@ -449,6 +474,11 @@ const persistentImportController=await renderListening(persistentImportRoot,{
 await persistentImportController.importUrl('https://youtu.be/dQw4w9WgXcQ');
 for(const segmentId of ['segment-002','segment-001','segment-002','segment-001'])persistentImportController.setPlayingSegment(segmentId);
 assert.equal(importSubmitListeners.length,1);
+assert.equal(persistentImportController.setMode('active'),true);
+assert.equal(persistentImportController.setPracticeDraft('draft that must survive playback'),true);
+const activePlaybackWrites=persistentLearningWrites;
+assert.equal(persistentImportController.setPlayingSegment('segment-002'),true);
+assert.equal(persistentLearningWrites,activePlaybackWrites);
 importSubmitListeners[0]({preventDefault(){}});
 assert.equal(importSubmitCount,2);
 

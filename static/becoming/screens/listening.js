@@ -332,7 +332,7 @@ export function createListeningController({importMedia,importStatus,targetLangua
   const viewId=`listening-${++listeningViewSequence}`;
   let importGeneration=0;
   let backgroundTranslationGeneration=0;
-  const changed=()=>onChange({...model});
+  const changed=(options={})=>onChange({...model},options);
   const actionAnchor=()=>model.manualSelection&&model.selected
     ?model.selected:(model.playingSegmentId||model.selected);
   const selectedSegment=()=>model.payload?.transcript?.segments?.find(segment=>segment.segment_id===model.selected);
@@ -467,7 +467,10 @@ export function createListeningController({importMedia,importStatus,targetLangua
       if(!['follow','active','shadowing'].includes(value))return false;
       if(value==='active'&&(!model.practiceSession||!playbackAvailable(model.payload?.playback)))return false;
       if(value==='shadowing'&&(!model.shadowingSession||!playbackAvailable(model.payload?.playback)))return false;
-      model.mode=value;model.practiceValidation=null;changed();return true;
+      model.mode=value;
+      if(value==='active')selectListeningPracticeSegment(model.practiceSession,model.selected);
+      if(value==='shadowing')selectShadowingPracticeSegment(model.shadowingSession,model.selected);
+      model.practiceValidation=null;changed();return true;
     },
     setPracticeDraft(value){
       if(!model.practiceSession)return false;
@@ -520,8 +523,8 @@ export function createListeningController({importMedia,importStatus,targetLangua
       if(!model.payload?.transcript?.segments?.some(segment=>segment.segment_id===segmentId))return false;
       if(model.playingSegmentId===segmentId)return true;
       model.playingSegmentId=segmentId;
-      if(!model.manualSelection)model.selected=segmentId;
-      changed();return true;
+      if(model.mode==='follow'&&!model.manualSelection)model.selected=segmentId;
+      changed({playbackOnly:true});return true;
     },
   };
 }
@@ -663,7 +666,8 @@ export async function renderListening(root,{importMedia=api.importMedia,importSt
       controller.pollPending();
     },2500);
   };
-  const render=()=>{
+  const render=(_model,{playbackOnly=false}={})=>{
+    if(playbackOnly&&['active','shadowing'].includes(controller.model.mode))return;
     if(mounted&&!root.querySelector(`[data-listening-view="${controller.viewId}"]`))return;
     const payload=controller.model.payload;
     const assetId=payload?.asset?.asset_id||null;
