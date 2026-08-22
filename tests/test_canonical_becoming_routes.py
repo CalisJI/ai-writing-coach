@@ -37,3 +37,9 @@ def test_oauth_callback_target_and_frontend_version_remain_canonical() -> None:
         )
     )
     assert asset_versions == {frontend_version}
+    assert "<title>Orena</title>" in template
+    assert "aria-label=\"Orena navigation\"" in template
+    assert "BECOMING navigation" not in template
+    assert "BECOMING home" not in template
+    assert ">BECOMING<" not in template
+    assert "Orena" in (ROOT / "static" / "becoming" / "domain" / "i18n.js").read_text(encoding="utf-8")

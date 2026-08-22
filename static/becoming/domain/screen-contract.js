@@ -1,7 +1,7 @@
 export const SCREEN_CONTRACT={
   onboarding:{
     learnerGoal:'Choose a learning language, interface language, goal and guidance style without being overwhelmed.',
-    dominantIdea:'BECOMING adapts to the learner before it asks for evidence.',
+    dominantIdea:'Orena adapts to the learner before it asks for evidence.',
     primaryAction:'Continue setup',
     progressiveDisclosure:'Language → goal → learning style → enter product',
     evidence:'Preferences only; no mastery claims',
@@ -120,7 +120,7 @@ export const SCREEN_CONTRACT={
     fidelityMode:'high',
   },
   profile:{
-    learnerGoal:'Make BECOMING feel personally owned while keeping learning evidence honest.',
+    learnerGoal:'Make Orena feel personally owned while keeping learning evidence honest.',
     dominantIdea:'Preferences and earned growth identity.',
     primaryAction:'Adjust a preference',
     progressiveDisclosure:'Theme, Pinyin and rank evidence are grouped by purpose.',

@@ -99,7 +99,7 @@ APP_VERSION = os.getenv(
 )
 SCHEMA_VERSION = 11
 
-app = FastAPI(title="AI Writing Coach", version=APP_VERSION)
+app = FastAPI(title="Orena", version=APP_VERSION)
 app.mount("/static", StaticFiles(directory=ROOT / "static"), name="static")
 
 BECOMING_ASSET_ROOT = (ROOT / "static" / "becoming").resolve()
