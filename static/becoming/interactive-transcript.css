@@ -310,8 +310,8 @@ html[data-transcript-pos="on"] .it-token.pos-other{color:var(--it-pos-other)}
   margin-top:0;
 }
 .listening-workspace[data-listening-mode="follow"] .listening-transcript{
-  display:grid;
-  grid-template-rows:auto auto minmax(0,1fr) auto;
+  display:flex;
+  flex-direction:column;
   max-height:calc(100vh - var(--listening-sticky-offset) - var(--space-6,24px));
 }
 .listening-workspace[data-listening-mode="follow"] .listening-practice-controls{
