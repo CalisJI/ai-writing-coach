@@ -209,11 +209,7 @@ html[data-transcript-pos="on"] .it-token.pos-other{color:var(--it-pos-other)}
   .it-vocabulary-list{grid-template-columns:1fr}
 }
 .listening-transcript .listening-practice-controls{
-  position:sticky;
-  top:8px;
-  z-index:20;
   background:color-mix(in srgb,var(--color-surface) 94%,transparent);
-  backdrop-filter:blur(10px);
   border:1px solid color-mix(in srgb,currentColor 10%,transparent);
   border-radius:12px;
   padding:8px;
@@ -319,9 +315,7 @@ html[data-transcript-pos="on"] .it-token.pos-other{color:var(--it-pos-other)}
   max-height:calc(100vh - var(--listening-sticky-offset) - var(--space-6,24px));
 }
 .listening-workspace[data-listening-mode="follow"] .listening-practice-controls{
-  position:sticky;
-  top:0;
-  z-index:4;
+  position:static;
 }
 .listening-workspace[data-listening-mode="follow"] .listening-segments{
   min-height:0;

@@ -640,6 +640,7 @@ export async function renderListening(root,{importMedia=api.importMedia,importSt
   let visibleSelection=null;
   let pollTimer=null;
   let renderedAssetId=null;
+  const transcriptScrollTops=new Map();
   const viewAbort=new AbortController();
   const smartFollow=installSmartFollow(root);
   let importForm=null;
@@ -667,6 +668,10 @@ export async function renderListening(root,{importMedia=api.importMedia,importSt
     const assetId=payload?.asset?.asset_id||null;
     const workspaceNode=root.querySelector('.listening-workspace');
     const learningColumn=workspaceNode?.querySelector('.listening-learning-column');
+    const previousMode=workspaceNode?.dataset?.listeningMode;
+    const previousSegments=typeof learningColumn?.querySelector==='function'
+      ?learningColumn.querySelector('.listening-segments'):null;
+    if(['active','shadowing'].includes(previousMode)&&previousSegments)transcriptScrollTops.set(previousMode,previousSegments.scrollTop);
     const preservePlayer=Boolean(
       mounted
       && controller.model.status==='ready'
@@ -680,6 +685,11 @@ export async function renderListening(root,{importMedia=api.importMedia,importSt
       const mode=listeningMode(payload,controller.model);
       workspaceNode.dataset.listeningMode=mode;
       learningColumn.innerHTML=learningWorkspace(payload,controller.model.selected,controller.model,mode);
+      if(['active','shadowing'].includes(mode)){
+        const segments=typeof learningColumn.querySelector==='function'
+          ?learningColumn.querySelector('.listening-segments'):null;
+        if(segments)segments.scrollTop=transcriptScrollTops.get(mode)||0;
+      }
     }else{
       root.innerHTML=controller.html();
       connectMediaPlayer(root,payload?.playback);

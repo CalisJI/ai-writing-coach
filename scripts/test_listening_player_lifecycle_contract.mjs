@@ -10,6 +10,15 @@ class FakeFrame extends FakeElement {
     this.isConnected=true;
   }
 }
+class LearningColumn {
+  set innerHTML(value){
+    this.html=value;
+    this.segments=new FakeElement();
+    this.segments.scrollTop=0;
+  }
+  get innerHTML(){return this.html||'';}
+  querySelector(selector){return selector==='.listening-segments'?this.segments:null;}
+}
 
 const previous={
   Element:globalThis.Element,
@@ -50,7 +59,7 @@ class ListeningRoot extends FakeElement {
     this.html=value;
     this.view={};
     this.player=value.includes('id="listeningPlayer"')?new FakeFrame():null;
-    const column={innerHTML:''};
+    const column=new LearningColumn();
     this.learningColumn=column;
     this.workspace={
       dataset:{},
@@ -147,6 +156,19 @@ try{
   assert.equal(controller.model.selected,'segment-002');
   assert.match(root.learningColumn.innerHTML,/active-listening-meaning/);
   assert.match(root.learningColumn.innerHTML,/Cùng đoạn này có thể dùng để luyện nói sau\./);
+
+  assert.equal(controller.setMode('active'),true);
+  root.learningColumn.querySelector('.listening-segments').scrollTop=137;
+  assert.equal(controller.setPlayingSegment('segment-001'),true);
+  assert.equal(root.learningColumn.querySelector('.listening-segments').scrollTop,137);
+  assert.equal(controller.setMode('shadowing'),true);
+  assert.equal(root.learningColumn.querySelector('.listening-segments').scrollTop,0);
+  root.learningColumn.querySelector('.listening-segments').scrollTop=241;
+  assert.equal(controller.setPlayingSegment('segment-002'),true);
+  assert.equal(root.learningColumn.querySelector('.listening-segments').scrollTop,241);
+  assert.equal(controller.setMode('active'),true);
+  assert.equal(root.learningColumn.querySelector('.listening-segments').scrollTop,137);
+  assert.equal(root.querySelector('#listeningPlayer'),player);
 
   const failedRoot=new ListeningRoot();
   let failedTranslationAttempts=0;
