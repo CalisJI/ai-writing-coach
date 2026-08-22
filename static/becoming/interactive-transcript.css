@@ -219,8 +219,9 @@ html[data-transcript-pos="on"] .it-token.pos-other{color:var(--it-pos-other)}
   display:flex;
   align-items:center;
   gap:8px;
-  flex-wrap:wrap;
-  padding:10px 12px;
+  flex-wrap:nowrap;
+  justify-content:center;
+  padding:6px 8px;
 }
 .listening-icon-button{
   flex:0 0 44px;
@@ -251,7 +252,7 @@ html[data-transcript-pos="on"] .it-token.pos-other{color:var(--it-pos-other)}
   stroke:none;
 }
 .listening-speed-control{
-  margin-inline-start:auto;
+  margin-inline-start:0;
   display:inline-flex;
   align-items:center;
   gap:6px;
