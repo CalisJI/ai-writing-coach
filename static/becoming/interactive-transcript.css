@@ -374,7 +374,7 @@ html[data-transcript-pos="on"] .it-token.pos-other{color:var(--it-pos-other)}
 
 .listening-toolbar{padding:8px 12px;gap:6px}.listening-toolbar strong{font-size:.9rem}.listening-toolbar small{display:none}.it-controls{gap:4px}.it-control{padding:3px 7px;font-size:.72rem}
 @media (max-width:959px){
-  .listening-workspace[data-listening-mode="follow"] .listening-media-caption{display:none}
+  .listening-workspace .listening-media-caption{display:none}
   .listening-active-segments{max-height:clamp(144px,30dvh,220px);overflow-y:auto}
   .listening-shadowing-segments{max-height:clamp(132px,27dvh,200px);overflow-y:auto}
 }
