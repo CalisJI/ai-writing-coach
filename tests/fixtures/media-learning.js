@@ -34,7 +34,7 @@ export const MEDIA_LEARNING_FIXTURE={
 
 export const MEDIA_LEARNING_ZH_FIXTURE={
   ...MEDIA_LEARNING_FIXTURE,
-  asset:{...MEDIA_LEARNING_FIXTURE.asset,asset_id:'asset-fixture-zh',source_language:'zh',title:'共享媒体课程',translation_available:false},
+  asset:{...MEDIA_LEARNING_FIXTURE.asset,asset_id:'asset-fixture-zh',source_language:'zh',title:'共享媒体课程',translation_available:true},
   transcript:{
     asset_id:'asset-fixture-zh',
     source_language:'zh',
@@ -43,6 +43,9 @@ export const MEDIA_LEARNING_ZH_FIXTURE={
       {segment_id:'segment-zh-002',order:1,start_ms:4000,end_ms:8000,original_text:'下一句也使用同一个学习流程。'},
     ],
   },
-  translations:[],
-  translation:{status:'unavailable',target_language:'vi',source:null,failure_kind:'execution_unavailable'},
+  translations:[
+    {segment_id:'segment-zh-001',target_language:'vi',translated_meaning:'Đây là phụ đề gốc dùng chung.'},
+    {segment_id:'segment-zh-002',target_language:'vi',translated_meaning:'Câu tiếp theo cũng dùng cùng một quy trình học.'},
+  ],
+  translation:{status:'ready',target_language:'vi',source:{capability_key:'learner_translation',provider:'fake',request_count:1},failure_kind:null},
 };

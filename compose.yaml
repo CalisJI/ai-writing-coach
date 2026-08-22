@@ -34,6 +34,8 @@ services:
       DEEPSEEK_BASE_URL: ${DEEPSEEK_BASE_URL:-https://api.deepseek.com}
       DEEPSEEK_MODELS: ${DEEPSEEK_MODELS:-deepseek-v4-flash,deepseek-v4-pro}
       CLOUD_AI_TIMEOUT: ${CLOUD_AI_TIMEOUT:-180}
+      MEDIA_TRANSCRIPT_FALLBACK: ${MEDIA_TRANSCRIPT_FALLBACK:-none}
+      LOCAL_TRANSLATION_URL: ${LOCAL_TRANSLATION_URL:-http://local-translator:8090}
       SUPADATA_API_KEY: ${SUPADATA_API_KEY:-}
       SUPADATA_REQUEST_TIMEOUT_SECONDS: ${SUPADATA_REQUEST_TIMEOUT_SECONDS:-20}
       SUPADATA_MAX_WAIT_SECONDS: ${SUPADATA_MAX_WAIT_SECONDS:-150}
@@ -83,6 +85,17 @@ services:
       timeout: 3s
       retries: 20
 
+  local-translator:
+    build: ./services/local_translation
+    image: ai-writing-coach-local-translation:local
+    restart: unless-stopped
+    environment:
+      HF_HOME: /models
+      TRANSFORMERS_OFFLINE: "1"
+      MAX_LOADED_TRANSLATION_MODELS: ${MAX_LOADED_TRANSLATION_MODELS:-2}
+    volumes:
+      - translation_models:/models
+
   cloudflared:
     image: cloudflare/cloudflared:latest
     restart: unless-stopped
@@ -96,3 +109,5 @@ volumes:
     name: ai-writing-coach-data
   postgres_data:
     name: ai-writing-coach-postgres-data
+  translation_models:
+    name: ai-writing-coach-translation-models

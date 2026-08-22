@@ -266,3 +266,121 @@ a second language-specific evaluator.
 
 **Supersedes / Superseded by:** Supersedes the old R4 roadmap meaning only. It
 does not supersede D-003.
+
+## D-017 — Interactive transcript timing is additive to Media Learning
+
+**Status:** Accepted
+
+**Decision:** Real word timing for interactive transcript playback is an
+additive interaction layer over the CLOSED M1 Media Learning contract. Native
+provider captions remain canonical source text when available. The existing
+Groq Whisper ASR boundary may resolve real segment/word timestamps from a
+short-lived provider media-file URL and may supply a missing source transcript
+when no canonical transcript exists. Supadata remains a transcript fallback;
+it does not become a second Media Learning model.
+
+**Reason:** Listening and Shadowing need truthful active-word synchronization,
+while M1 intentionally owns stable reusable media assets and segment identity.
+Fabricating equal-duration word timestamps or creating parallel Listening and
+Speaking transcript pipelines would violate those contracts.
+
+**Consequences:** Word timing is optional API interaction metadata and may
+degrade to segment-only synchronization. Provider media is not persisted merely
+to obtain timing. EN/ZH use the same flow. Existing source captions are not
+overwritten by ASR text solely to gain timing. Provider failures remain typed
+and must not cause a hidden cross-provider billing policy. Any future durable
+processing-job persistence or schema change requires its normal human gate.
+
+**Supersedes / Superseded by:** Extends D-014 and D-015; supersedes neither.
+
+## D-018 — YouTube timing uses bounded ephemeral provider-native download
+
+**Status:** Accepted
+
+**Decision:** When Groq cannot retrieve a resolved YouTube media URL, Orena may
+use yt-dlp itself to acquire the selected audio format into bounded ephemeral
+temporary storage and upload those bytes through the existing Groq ASR boundary.
+The temporary artifact is not product storage and is deleted automatically.
+
+**Reason:** Live validation on 2026-08-19 showed Groq returning HTTP 400 because
+its media fetcher received a 302 redirect. A generic `requests` fallback also
+failed, while yt-dlp's own downloader successfully retrieved YouTube format 140.
+The provider-native downloader is therefore the transport path actually verified.
+
+**Consequences:** No durable media cache, database schema, or Alembic migration is
+introduced. The Groq byte limit is enforced around acquisition, yt-dlp filesystem
+cache is disabled for this operation, native captions remain canonical when
+available, and no hidden cross-provider failover is added.
+
+**Supersedes / Superseded by:** Extends D-017; supersedes neither D-014 nor D-017.
+
+## D-019 — YouTube word timing degrades truthfully when audio transport is unavailable
+
+**Status:** Accepted
+
+**Decision:** The default YouTube Interactive Transcript path does not claim
+word-level timing unless Orena has a verified raw-audio transport that can
+deliver real media bytes to ASR. With canonical YouTube captions available,
+the learner receives real segment-level synchronization. Without a canonical
+transcript, the existing explicitly configured transcript fallback policy may
+run. Orena does not fabricate equal-duration word timing.
+
+**Reason:** Live validation on 2026-08-19 showed that Groq could not retrieve
+the resolved media URL, generic direct download was not reliable, and a full
+yt-dlp audio download returned HTTP 403 even with a supported JavaScript
+runtime. A short `--test` download was therefore insufficient evidence for
+full-media transport.
+
+**Consequences:** The failed experimental direct-download transport is removed
+from the default path. Native caption text and segment timing remain canonical.
+Real word timing can return later only through a separately reviewed and
+verified media transport capability. This does not authorize hidden provider
+failover, account-cookie use, fabricated timing, or a schema change.
+
+**Supersedes / Superseded by:** Supersedes D-018. Extends D-017 without
+superseding D-014 or D-017.
+
+## D-020 — Playback clock ownership and learner-facing transcript units
+
+**Status:** Accepted
+
+**Decision:** Media playback owns the provider clock. Interactive Transcript
+consumes an internal media-time event and never instantiates or polls a provider
+player itself. Canonical M1 transcript snippets remain unchanged; Listening may
+derive deterministic learner-facing display units that map one or more
+canonical segment IDs into one presentation row. Automatic linguistic AI
+annotation is opt-in rather than viewport-triggered.
+
+**Reason:** Browser acceptance showed split player ownership, overlapping
+provider caption intervals, learner-visible over-segmentation, and unnecessary
+automatic annotation calls. The upstream YouTube transcript contract describes
+snippet duration as on-screen duration rather than speech duration and permits
+overlaps, so raw snippet intervals are not a valid non-overlapping playback
+timeline.
+
+**Consequences:** Active caption lookup uses ordered caption starts with the
+next start as the overlap boundary. Display grouping is deterministic and does
+not rewrite stable canonical IDs. Dictionary/playback remain usable without AI.
+POS/Pinyin annotation begins only after learner opt-in. Real word highlight is
+shown only when true word timestamps exist.
+
+**Supersedes / Superseded by:** Extends D-017 and D-019; supersedes neither.
+
+## D-021 — Media Meaning uses isolated local machine translation
+
+**Status:** Accepted
+
+**Decision:** Normal Media Meaning translation uses a provider-neutral boundary
+whose default provider is an isolated local Marian service. Canonical transcript
+and playback readiness do not depend on translation readiness.
+
+**Reason:** Per-request generic AI translation adds avoidable latency and cost,
+and translation failure must not make otherwise usable media lessons unavailable.
+
+**Consequences:** The application image contains no translation models. Models
+are provisioned into a separate cache, loaded lazily by language pair, and used
+in bounded batches. Completed translations are cached by engine version,
+language pair, and canonical transcript hash. Generic AI remains available only
+for explicit intelligence features, not normal Meaning generation.
+
+**Supersedes / Superseded by:** Narrows D-014 for Media Meaning; extends D-020.

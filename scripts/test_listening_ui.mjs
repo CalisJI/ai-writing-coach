@@ -6,6 +6,11 @@ import {createListeningController,mediaImportErrorState,renderListening} from '.
 import {routeAvailable} from '../static/becoming/domain/skill-release.js';
 import {state} from '../static/becoming/store.js';
 
+// The lifecycle assertions below use minimal non-browser roots; media-player
+// only needs these constructors to reject their absent iframe safely.
+if(!globalThis.Element)globalThis.Element=Object;
+if(!globalThis.HTMLIFrameElement)globalThis.HTMLIFrameElement=class {};
+
 const calls=[];
 let resolveImport;
 const imported=new Promise(resolve=>{resolveImport=resolve;});
@@ -18,7 +23,12 @@ const controller=createListeningController({
 assert.match(controller.html(),/mediaImportForm/);
 const pending=controller.importUrl('https://youtu.be/dQw4w9WgXcQ');
 assert.equal(controller.model.status,'validating');
-assert.deepEqual(calls,[{source_url:'https://youtu.be/dQw4w9WgXcQ',target_language:'vi'}]);
+assert.deepEqual(calls,[{
+  source_url:'https://youtu.be/dQw4w9WgXcQ',
+  target_language:'vi',
+  include_word_timing:true,
+  include_translation:false,
+}]);
 resolveImport(MEDIA_LEARNING_FIXTURE);
 await pending;
 assert.deepEqual(states.slice(-2),['validating','ready']);
@@ -27,16 +37,226 @@ assert.equal(controller.model.payload.translation.status,'ready');
 assert.equal(controller.model.selected,'segment-001');
 assert.doesNotMatch(controller.html(),/translation-status-(?:unavailable|too_large)/);
 assert.match(controller.html(),/Listen for the first complete idea\./);
-assert.match(controller.html(),/listening-segment selected[^>]*data-segment-id="segment-001"/);
-assert.match(controller.html(),/data-segment-id="segment-001" aria-current="true"/);
+assert.doesNotMatch(controller.html(),/listening-segment selected/);
+assert.match(controller.html(),/data-segment-id="segment-001" data-canonical-segment-ids="segment-001" aria-current="true"/);
 assert.match(controller.html(),/data-previous-segment disabled/);
 assert.doesNotMatch(controller.html(),/data-next-segment disabled/);
 assert.match(controller.html(),/value="0.75"/);
 assert.match(controller.html(),/value="1.25"/);
 assert.match(controller.html(),/<iframe/);
 assert.match(controller.html(),/disabled/);
+assert.doesNotMatch(controller.html(),/listening-meaning-inline"><small/);
+assert.equal(controller.setPlayingSegment('segment-002'),true);
+assert.equal(controller.actionAnchor(),'segment-002');
+assert.equal(controller.moveSelection(-1),true);
+assert.equal(controller.model.selected,'segment-001');
+assert.equal(controller.model.manualSelection,true);
+assert.equal(controller.setPlayingSegment('segment-002'),true);
+assert.equal(controller.actionAnchor(),'segment-001');
+assert.equal(controller.followPlaying(),'segment-002');
+assert.equal(controller.model.manualSelection,false);
+assert.equal(controller.actionAnchor(),'segment-002');
+
+const actionAnchorFixture={
+  ...MEDIA_LEARNING_FIXTURE,
+  transcript:{
+    ...MEDIA_LEARNING_FIXTURE.transcript,
+    segments:['A','B','C','D','E'].map((segment_id,index)=>({
+      segment_id,order:index,start_ms:index*1000,end_ms:(index+1)*1000,original_text:`Complete thought ${segment_id}.`,
+    })),
+  },
+  translations:[],
+};
+const actionAnchorController=createListeningController({importMedia:async()=>actionAnchorFixture,targetLanguage:()=> 'vi'});
+await actionAnchorController.importUrl('https://youtu.be/dQw4w9WgXcQ');
+for(const segmentId of ['A','B','C'])actionAnchorController.setPlayingSegment(segmentId);
+assert.equal(actionAnchorController.actionAnchor(),'C');
+assert.equal(actionAnchorController.moveSelection(-1),true);
+assert.equal(actionAnchorController.model.selected,'B');
+assert.equal(actionAnchorController.select('E'),true);
+assert.equal(actionAnchorController.moveSelection(-1),true);
+assert.equal(actionAnchorController.model.selected,'D');
+actionAnchorController.setPlayingSegment('C');
+assert.equal(actionAnchorController.followPlaying(),'C');
+
+const modeAwareController=createListeningController({importMedia:async()=>actionAnchorFixture,targetLanguage:()=> 'vi'});
+await modeAwareController.importUrl('https://youtu.be/dQw4w9WgXcQ');
+assert.equal(modeAwareController.setMode('active'),true);
+assert.equal(modeAwareController.select('B'),true);
+for(const segmentId of ['C','D','E'])assert.equal(modeAwareController.setPlayingSegment(segmentId),true);
+assert.equal(modeAwareController.model.selected,'B');
+assert.equal(modeAwareController.model.practiceSession.current_segment_id,'B');
+assert.equal(modeAwareController.actionAnchor(),'B');
+assert.equal(modeAwareController.moveSelection(1),true);
+assert.equal(modeAwareController.model.selected,'C');
+assert.equal(modeAwareController.actionAnchor(),'C');
+assert.equal(modeAwareController.moveSelection(-1),true);
+assert.equal(modeAwareController.model.selected,'B');
+assert.equal(modeAwareController.followPlaying(),'E');
+assert.equal(modeAwareController.model.selected,'E');
+assert.equal(modeAwareController.model.practiceSession.current_segment_id,'E');
+assert.equal(modeAwareController.setMode('shadowing'),true);
+assert.equal(modeAwareController.setPlayingSegment('C'),true);
+assert.equal(modeAwareController.followPlaying(),'C');
+assert.equal(modeAwareController.model.selected,'C');
+assert.equal(modeAwareController.model.shadowingSession.current_segment_id,'C');
+assert.equal(modeAwareController.setMode('follow'),true);
+assert.equal(modeAwareController.setPlayingSegment('D'),true);
+assert.equal(modeAwareController.actionAnchor(),'D');
+
+const shadowingFollowController=createListeningController({importMedia:async()=>actionAnchorFixture,targetLanguage:()=> 'vi'});
+await shadowingFollowController.importUrl('https://youtu.be/dQw4w9WgXcQ');
+assert.equal(shadowingFollowController.setMode('shadowing'),true);
+assert.equal(shadowingFollowController.model.selected,'A');
+assert.match(shadowingFollowController.html(),/Complete thought A\./);
+assert.equal(shadowingFollowController.setPlayingSegment('B'),true);
+assert.equal(shadowingFollowController.model.selected,'B');
+assert.equal(shadowingFollowController.model.shadowingSession.current_segment_id,'B');
+assert.match(shadowingFollowController.html(),/Complete thought B\./);
+assert.equal(shadowingFollowController.select('A'),true);
+assert.equal(shadowingFollowController.model.manualSelection,true);
+assert.equal(shadowingFollowController.setPlayingSegment('C'),true);
+assert.equal(shadowingFollowController.model.selected,'A');
+assert.equal(shadowingFollowController.model.shadowingSession.current_segment_id,'A');
+assert.equal(shadowingFollowController.followPlaying(),'C');
+assert.equal(shadowingFollowController.model.selected,'C');
+assert.equal(shadowingFollowController.model.shadowingSession.current_segment_id,'C');
+
+const segmentOnlyController=createListeningController({importMedia:async()=>MEDIA_LEARNING_FIXTURE,targetLanguage:()=> 'vi'});
+await segmentOnlyController.importUrl('https://youtu.be/dQw4w9WgXcQ');
+assert.doesNotMatch(segmentOnlyController.html(),/transcript-token-timed|data-start-ms=/);
+
+const generatedTranscriptController=createListeningController({
+  importMedia:async()=>({...MEDIA_LEARNING_FIXTURE,transcript_generation:{status:'generated',source:'supadata'}}),
+  targetLanguage:()=> 'vi',
+});
+await generatedTranscriptController.importUrl('https://youtu.be/dQw4w9WgXcQ');
+assert.match(generatedTranscriptController.html(),/generated-transcript-notice/);
+assert.match(generatedTranscriptController.html(),/may contain mistakes|có thể có sai sót|可能有误/);
+
+const canonicalOnly={
+  ...MEDIA_LEARNING_FIXTURE,
+  asset:{...MEDIA_LEARNING_FIXTURE.asset,translation_available:false},
+  translations:[],
+};
+delete canonicalOnly.translation;
+const acquisitionRequests=[];
+const translationRequests=[];
+const backgroundTranslation=createListeningController({
+  importMedia:async payload=>{
+    acquisitionRequests.push(payload);
+    return canonicalOnly;
+  },
+  translateMedia:async payload=>{
+    translationRequests.push(payload);
+    return {
+      asset:{...MEDIA_LEARNING_FIXTURE.asset,translation_available:true},
+      transcript:MEDIA_LEARNING_FIXTURE.transcript,
+      translations:MEDIA_LEARNING_FIXTURE.translations,
+      translation:MEDIA_LEARNING_FIXTURE.translation,
+    };
+  },
+  targetLanguage:()=> 'vi',
+});
+await backgroundTranslation.importUrl('https://youtu.be/dQw4w9WgXcQ');
+await Promise.resolve();
+assert.equal(acquisitionRequests.length,1);
+assert.equal(translationRequests.length,1);
+assert.deepEqual(
+  translationRequests[0].transcript.segments.map(segment=>segment.segment_id),
+  MEDIA_LEARNING_FIXTURE.transcript.segments.map(segment=>segment.segment_id),
+);
+assert.equal(backgroundTranslation.model.payload.translation.status,'ready');
+assert.equal(backgroundTranslation.model.payload.asset.translation_available,true);
+
+const pendingTranslationRequests=[];
+const pendingCanonical={...canonicalOnly,asset:{...canonicalOnly.asset},translations:[]};
+delete pendingCanonical.translation;
+const pendingTranslationController=createListeningController({
+  importStatus:async()=>pendingCanonical,
+  translateMedia:async payload=>{
+    pendingTranslationRequests.push(payload);
+    return {
+      asset:{...MEDIA_LEARNING_FIXTURE.asset,translation_available:true},
+      translations:MEDIA_LEARNING_FIXTURE.translations,
+      translation:MEDIA_LEARNING_FIXTURE.translation,
+    };
+  },
+  targetLanguage:()=> 'vi',
+});
+pendingTranslationController.resumePending({job_id:'supadata-job-1234567890',source_url:'https://youtu.be/dQw4w9WgXcQ'});
+await pendingTranslationController.pollPending();
+await Promise.resolve();
+assert.equal(pendingTranslationRequests.length,1);
+assert.equal(pendingTranslationController.model.payload.translation.status,'ready');
+assert.deepEqual(
+  pendingTranslationRequests[0].transcript.segments.map(segment=>segment.segment_id),
+  MEDIA_LEARNING_FIXTURE.transcript.segments.map(segment=>segment.segment_id),
+);
+
+const pendingTranslationFailure={...pendingCanonical,asset:{...pendingCanonical.asset},translations:[]};
+delete pendingTranslationFailure.translation;
+let failedTranslationAttempts=0;
+let failedTranslationAcquisitions=0;
+const failedPendingTranslationController=createListeningController({
+  importStatus:async()=>{failedTranslationAcquisitions+=1;return pendingTranslationFailure;},
+  translateMedia:async()=>{
+    failedTranslationAttempts+=1;
+    if(failedTranslationAttempts===1)throw new Error('translation unavailable');
+    return {asset:{...MEDIA_LEARNING_FIXTURE.asset,translation_available:true},translations:MEDIA_LEARNING_FIXTURE.translations,translation:MEDIA_LEARNING_FIXTURE.translation};
+  },
+  targetLanguage:()=> 'vi',
+});
+failedPendingTranslationController.resumePending({job_id:'supadata-job-1234567891',source_url:'https://youtu.be/dQw4w9WgXcQ'});
+await failedPendingTranslationController.pollPending();
+await new Promise(resolve=>setTimeout(resolve,0));
+assert.equal(failedPendingTranslationController.model.status,'ready');
+assert.equal(failedPendingTranslationController.model.payload.translation.status,'unavailable');
+assert.match(failedPendingTranslationController.html(),/<iframe/);
+assert.equal(failedPendingTranslationController.retryTranslation(),true);
+await new Promise(resolve=>setTimeout(resolve,0));
+assert.equal(failedTranslationAttempts,2);
+assert.equal(failedTranslationAcquisitions,1);
+assert.equal(failedPendingTranslationController.model.status,'ready');
+
+const groupedDisplay={
+  ...MEDIA_LEARNING_FIXTURE,
+  transcript:{
+    ...MEDIA_LEARNING_FIXTURE.transcript,
+    segments:[
+      {...MEDIA_LEARNING_FIXTURE.transcript.segments[0],segment_id:'group-a',start_ms:0,end_ms:3900,original_text:'do you forget words when you speak'},
+      {...MEDIA_LEARNING_FIXTURE.transcript.segments[1],segment_id:'group-b',start_ms:2100,end_ms:6100,original_text:"English don't worry you are not alone"},
+    ],
+  },
+  translations:[],
+};
+const groupedController=createListeningController({
+  importMedia:async()=>groupedDisplay,
+  targetLanguage:()=> 'vi',
+});
+await groupedController.importUrl('https://youtu.be/dQw4w9WgXcQ');
+assert.equal(groupedController.select('group-b'),true);
+assert.match(groupedController.html(),/data-canonical-segment-ids="group-a group-b"[\s\S]*data-shadow-selected/);
 
 let activeImports=0;
+const playbackPracticeController=createListeningController({importMedia:async()=>MEDIA_LEARNING_FIXTURE,targetLanguage:()=> 'vi'});
+await playbackPracticeController.importUrl('https://youtu.be/dQw4w9WgXcQ');
+assert.equal(playbackPracticeController.setMode('active'),true);
+const activeDraft=MEDIA_LEARNING_FIXTURE.transcript.segments[0].original_text;
+assert.equal(playbackPracticeController.setPracticeDraft(activeDraft),true);
+assert.equal(playbackPracticeController.setPlayingSegment('segment-002'),true);
+assert.equal(playbackPracticeController.model.selected,'segment-001');
+assert.equal(playbackPracticeController.model.practiceSession.current_segment_id,'segment-001');
+assert.equal(playbackPracticeController.checkPractice(),true);
+assert.equal(playbackPracticeController.model.practiceSession.segments['segment-001'].attempts[0].answer,activeDraft);
+assert.equal(playbackPracticeController.setMode('follow'),true);
+assert.equal(playbackPracticeController.followPlaying(),'segment-002');
+assert.equal(playbackPracticeController.model.selected,'segment-002');
+assert.equal(playbackPracticeController.setMode('shadowing'),true);
+assert.equal(playbackPracticeController.setPlayingSegment('segment-001'),true);
+assert.equal(playbackPracticeController.model.selected,'segment-001');
+assert.equal(playbackPracticeController.model.shadowingSession.current_segment_id,'segment-001');
+
 const activeController=createListeningController({importMedia:async()=>{activeImports+=1;return MEDIA_LEARNING_FIXTURE;},targetLanguage:()=> 'vi'});
 await activeController.importUrl('https://youtu.be/dQw4w9WgXcQ');
 activeController.toggleOriginal(false);
@@ -147,6 +367,7 @@ const delayedRoot={
     return null;
   },
   querySelectorAll(){return [];},
+  addEventListener(){},
 };
 const mounted=await renderListening(delayedRoot,{importMedia:()=>delayedImport,targetLanguage:()=> 'vi'});
 const delayed=mounted.importUrl('https://youtu.be/dQw4w9WgXcQ');
@@ -168,20 +389,29 @@ const scrollRoot={
     return null;
   },
   querySelectorAll(selector){
-    if(selector==='[data-segment-id]'){
-      return ['segment-001','segment-002'].map(segmentId=>({
-        dataset:{segmentId},
-        scrollIntoView:()=>scrolledSegments.push(segmentId),
+    if(selector==='.listening-segment[data-canonical-segment-ids]'){
+      const container={
+        scrollTop:0,
+        scrollHeight:400,
+        clientHeight:100,
+        getBoundingClientRect:()=>({top:0}),
+        scrollTo:options=>scrolledSegments.push(options),
+      };
+      return ['segment-001','segment-002'].map((segmentId,index)=>({
+        dataset:{segmentId,canonicalSegmentIds:segmentId},
+        closest:selector=>selector==='.listening-segments'?container:null,
+        getBoundingClientRect:()=>({top:index*150,bottom:(index*150)+24,height:24}),
       }));
     }
     return [];
   },
+  addEventListener(){},
 };
 const scrollController=await renderListening(scrollRoot,{importMedia:async()=>MEDIA_LEARNING_FIXTURE,targetLanguage:()=> 'vi'});
 await scrollController.importUrl('https://youtu.be/dQw4w9WgXcQ');
-assert.deepEqual(scrolledSegments,['segment-001']);
+assert.deepEqual(scrolledSegments,[]);
 assert.equal(scrollController.moveSelection(1),true);
-assert.deepEqual(scrolledSegments,['segment-001','segment-002']);
+assert.deepEqual(scrolledSegments,[{top:86,behavior:'smooth'}]);
 
 const overlapping=[];
 const raceController=createListeningController({
@@ -210,6 +440,96 @@ assert.equal(raceController.model.selected,'segment-zh-001');
 assert.equal(raceController.model.status,'ready');
 assert.equal(raceController.model.practiceSession.asset_id,'asset-fixture-zh');
 assert.equal(raceController.model.practiceSession.segments['segment-zh-001'].attempts.length,1);
+
+let resolveStalePoll;
+const stalePollController=createListeningController({
+  importMedia:async()=>MEDIA_LEARNING_ZH_FIXTURE,
+  importStatus:()=>new Promise(resolve=>{resolveStalePoll=resolve;}),
+  targetLanguage:()=> 'vi',
+});
+stalePollController.resumePending({job_id:'resume-job-1234567890',source_url:'https://example.invalid/old'});
+const stalePoll=stalePollController.pollPending();
+await stalePollController.importUrl('https://example.invalid/new');
+resolveStalePoll(MEDIA_LEARNING_FIXTURE);
+await stalePoll;
+assert.equal(stalePollController.model.payload.asset.asset_id,'asset-fixture-zh');
+
+const clockListeners=[];
+const clockListenerOptions=[];
+let clockHtml='';
+const clockRoot={
+  get innerHTML(){return clockHtml;},
+  set innerHTML(value){clockHtml=value;},
+  querySelector(selector){
+    if(selector.startsWith('[data-listening-view='))return {};
+    return null;
+  },
+  querySelectorAll(){return [];},
+  addEventListener(name,listener,options){
+    if(name==='orena:media-time'){
+      clockListeners.push(listener);
+      clockListenerOptions.push(options);
+    }
+  },
+};
+const clockController=await renderListening(clockRoot,{importMedia:async()=>MEDIA_LEARNING_FIXTURE,targetLanguage:()=> 'vi'});
+await clockController.importUrl('https://example.invalid/clock');
+clockListeners.at(-1)({detail:{time_ms:5000}});
+assert.equal(clockController.model.playingSegmentId,'segment-002');
+assert.equal(typeof clockRoot._cleanupScreen,'function');
+assert.equal(clockListenerOptions.at(-1).signal.aborted,false);
+clockRoot._cleanupScreen();
+assert.equal(clockListenerOptions.at(-1).signal.aborted,true);
+
+const importSubmitListeners=[];
+let importSubmitCount=0;
+const persistentImportForm={
+  addEventListener(name,listener){if(name==='submit')importSubmitListeners.push(listener);},
+};
+let persistentLearningHtml='';
+let persistentLearningWrites=0;
+const persistentLearningColumn={
+  get innerHTML(){return persistentLearningHtml;},
+  set innerHTML(value){persistentLearningHtml=value;persistentLearningWrites+=1;},
+  querySelector(){return null;},
+};
+const persistentWorkspace={
+  dataset:{},
+  querySelector(selector){return selector==='.listening-learning-column'?persistentLearningColumn:null;},
+};
+const persistentImportRoot={
+  innerHTML:'',
+  querySelector(selector){
+    if(selector.startsWith('[data-listening-view='))return {};
+    if(selector==='#mediaImportForm')return persistentImportForm;
+    if(selector==='#mediaSourceUrl')return {value:'https://youtu.be/dQw4w9WgXcQ'};
+    if(selector==='.listening-workspace')return persistentWorkspace;
+    if(selector==='#listeningPlayer')return {};
+    return null;
+  },
+  querySelectorAll(){return [];},
+  addEventListener(){},
+};
+const persistentImportController=await renderListening(persistentImportRoot,{
+  importMedia:async()=>{importSubmitCount+=1;return MEDIA_LEARNING_FIXTURE;},
+  targetLanguage:()=> 'vi',
+});
+await persistentImportController.importUrl('https://youtu.be/dQw4w9WgXcQ');
+for(const segmentId of ['segment-002','segment-001','segment-002','segment-001'])persistentImportController.setPlayingSegment(segmentId);
+assert.equal(importSubmitListeners.length,1);
+assert.equal(persistentImportController.setMode('active'),true);
+assert.equal(persistentImportController.setPracticeDraft('draft that must survive playback'),true);
+const activePlaybackWrites=persistentLearningWrites;
+assert.equal(persistentImportController.setPlayingSegment('segment-002'),true);
+assert.equal(persistentLearningWrites,activePlaybackWrites);
+assert.equal(persistentImportController.setMode('shadowing'),true);
+assert.equal(persistentImportController.setPlayingSegment('segment-001'),true);
+const shadowingPlaybackWrites=persistentLearningWrites;
+assert.equal(persistentImportController.setPlayingSegment('segment-002'),true);
+assert.ok(persistentLearningWrites>shadowingPlaybackWrites);
+assert.match(persistentLearningHtml,new RegExp(MEDIA_LEARNING_FIXTURE.transcript.segments[1].original_text));
+importSubmitListeners[0]({preventDefault(){}});
+assert.equal(importSubmitCount,2);
 
 const importFailure=new Error('The media provider could not complete this request.');
 importFailure.category='provider_failure';
@@ -243,6 +563,7 @@ assert.equal(resetController.model.practiceSession.asset_id,'asset-fixture-zh');
 assert.equal(Object.values(resetController.model.practiceSession.segments).flatMap(item=>item.attempts).length,0);
 assert.match(resetController.html(),/value="0.75" selected/);
 
+assert.equal(controller.select('segment-001'),true);
 controller.toggleOriginal(false);
 controller.toggleMeaning(false);
 assert.equal(controller.moveSelection(1),true);
@@ -269,29 +590,15 @@ assert.match(controller.html(),/Cùng đoạn này có thể dùng để luyện
 
 const translationFailure={
   ...MEDIA_LEARNING_ZH_FIXTURE,
-  translation:{...MEDIA_LEARNING_ZH_FIXTURE.translation,provider_error:'RAW PROVIDER EXCEPTION'},
+  translation:{status:'unavailable',target_language:'vi',failure_kind:'execution_unavailable',provider_error:'RAW PROVIDER EXCEPTION'},
 };
 const untranslated=createListeningController({importMedia:async()=>translationFailure,targetLanguage:()=> 'vi'});
 await untranslated.importUrl('https://youtu.be/dQw4w9WgXcQ');
 assert.equal(untranslated.model.status,'ready');
 assert.equal(untranslated.model.payload.translation.status,'unavailable');
-assert.match(untranslated.html(),/这是共享的原文字幕。/);
-assert.match(untranslated.html(),/translation-status-unavailable/);
-assert.match(untranslated.html(),/Hiện chưa thể tạo phần nghĩa|Meaning could not be generated|目前无法生成释义/);
+assert.match(untranslated.html(),/data-retry-translation/);
+assert.match(untranslated.html(),/<iframe/);
 assert.doesNotMatch(untranslated.html(),/RAW PROVIDER EXCEPTION|translation-unavailable/);
-assert.equal(untranslated.moveSelection(1),true);
-assert.equal(untranslated.model.selected,'segment-zh-002');
-assert.match(untranslated.html(),/下一句也使用同一个学习流程。/);
-assert.match(untranslated.html(),/translation-status-unavailable/);
-assert.equal(untranslated.moveSelection(-1),true);
-assert.equal(untranslated.setMode('active'),true);
-assert.ok(!untranslated.html().includes(MEDIA_LEARNING_ZH_FIXTURE.transcript.segments[0].original_text));
-untranslated.setPracticeDraft(MEDIA_LEARNING_ZH_FIXTURE.transcript.segments[0].original_text);
-assert.equal(untranslated.checkPractice(),true);
-assert.match(untranslated.html(),/active-listening-text-match/);
-assert.match(untranslated.html(),/100%/);
-assert.ok(untranslated.html().includes(MEDIA_LEARNING_ZH_FIXTURE.transcript.segments[0].original_text));
-assert.match(untranslated.html(),/translation-status-unavailable/);
 
 const sameLanguage={
   ...MEDIA_LEARNING_FIXTURE,
@@ -319,16 +626,8 @@ const tooLarge={
 const oversizedTranslation=createListeningController({importMedia:async()=>tooLarge,targetLanguage:()=> 'vi'});
 await oversizedTranslation.importUrl('https://youtu.be/dQw4w9WgXcQ');
 assert.equal(oversizedTranslation.model.status,'ready');
-assert.match(oversizedTranslation.html(),/这是共享的原文字幕。/);
-assert.match(oversizedTranslation.html(),/translation-status-too_large/);
-assert.match(oversizedTranslation.html(),/quá lớn để tự động tạo phần nghĩa|too large for automatic meaning generation|内容过大/);
-assert.doesNotMatch(oversizedTranslation.html(),/translation-status-unavailable|translation-unavailable/);
-assert.notEqual(oversizedTranslation.html(),untranslated.html());
-assert.equal(oversizedTranslation.setMode('active'),true);
-assert.equal(oversizedTranslation.revealPractice(),true);
-assert.match(oversizedTranslation.html(),/translation-status-too_large/);
-assert.ok(oversizedTranslation.html().includes(MEDIA_LEARNING_ZH_FIXTURE.transcript.segments[0].original_text));
-assert.doesNotMatch(oversizedTranslation.html(),/active-listening-text-match/);
+assert.doesNotMatch(oversizedTranslation.html(),/data-retry-translation/);
+assert.match(oversizedTranslation.html(),/<iframe/);
 
 const noCaption={...MEDIA_LEARNING_FIXTURE,asset:{...MEDIA_LEARNING_FIXTURE.asset,transcript_available:false,translation_available:false},transcript:null,translations:[],translation:{status:'transcript_unavailable',target_language:'vi',source:null,failure_kind:null}};
 const captionless=createListeningController({importMedia:async()=>noCaption,targetLanguage:()=> 'vi'});
@@ -356,7 +655,7 @@ const oversizedCanonical={
   ...MEDIA_LEARNING_FIXTURE,
   transcript:{...MEDIA_LEARNING_FIXTURE.transcript,segments:[{...MEDIA_LEARNING_FIXTURE.transcript.segments[0],original_text:'word '.repeat(501)}]},
   translations:[],
-  translation:{status:'unavailable',target_language:'vi',source:null,failure_kind:'too_large'},
+  translation:{status:'ready',target_language:'vi',source:{capability_key:'learner_translation',provider:'fake',request_count:1},failure_kind:null},
 };
 const noEvaluation=createListeningController({importMedia:async()=>oversizedCanonical,targetLanguage:()=> 'vi'});
 await noEvaluation.importUrl('https://example.invalid/oversized-segment');

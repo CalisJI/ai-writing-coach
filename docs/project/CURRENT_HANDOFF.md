@@ -78,6 +78,50 @@ Closeout evidence retained for future agents:
 Listening and Speaking remain non-public.
 Learner progress remains separate from shared Media Learning content and stays scoped by user and learning language.
 
+## Approved cross-cutting priority override — Interactive Transcript refinement
+
+The human coordinator explicitly approved this bounded cross-cutting refinement
+on 2026-08-18. It runs on `codex/interactive-transcript-layer` and does **not**
+reopen M1 or change R3's canonical PRIMARY roadmap status.
+
+Current verified branch checkpoint:
+
+- Slice 1 commit `2aaba1e73c457ad9711bee6584fbe79eeeafd4cd` adds the shared
+  interactive transcript layer, EN/ZH annotation, Chinese lexical segmentation
+  and contextual Pinyin, POS highlighting, dictionary/explain interactions, and
+  media-clock segment synchronization.
+- Slice 1 local validation: architecture PASS, JavaScript syntax PASS, Docker
+  build PASS, full regression `486 passed`.
+- Slice 2A introduces a non-blocking Supadata job contract as fallback
+  infrastructure. Focused local validation: `9 passed`; architecture PASS.
+- Slice 2B is committed at `ff0e5fad3420632f827638650cf7b66b77f19385`.
+  It adds Groq URL ASR, the no-download YouTube audio resolver, provider-neutral
+  word timing, and Listening word-timing requests.
+- Slice 2B local validation: Docker build PASS; focused media/timing regression
+  `26 passed`; architecture PASS; JavaScript syntax PASS; `git diff --check`
+  PASS; full local regression `507 passed, 3 warnings`.
+- Slice 2C implements explicit native -> Groq -> Supadata orchestration,
+  process-resumable fallback jobs, and browser local resume without a schema
+  change. Local validation: focused regression `70 passed, 2 warnings`;
+  architecture PASS; JavaScript syntax PASS; full regression
+  `516 passed, 3 warnings`. Live-provider/browser QA is still pending.
+
+Status:
+
+- **DONE:** Slice 1; Slice 2A; Slice 2B checkpoint `ff0e5fa` with local full
+  regression through `507 passed`.
+- **IN PROGRESS:** Slice 2C live-provider/browser QA and runtime-parity checks.
+- **PENDING:** EN/ZH live-provider quality checks; browser resume QA; decide
+  whether cross-restart/cross-worker job durability is required; PostgreSQL
+  runtime-parity smoke where relevant; checkpoint, final review and PR.
+- **BLOCKED:** no code blocker. Cross-restart durable job persistence would need
+  PostgreSQL schema/Alembic work and therefore remains a human gate.
+
+Provider policy for this branch is explicit: native source captions remain
+preferred source text when available; Groq is used for real ASR timing and may
+fill a missing transcript under the same Media Learning contract; Supadata
+remains an explicit fallback path rather than a replacement media model.
+
 ## Current runtime truth
 
 - PostgreSQL remains authoritative; SQLite remains frozen rollback/archive only.

@@ -6,7 +6,9 @@ existing canonical timestamped transcript contract.
 
 from __future__ import annotations
 
+import math
 import os
+import re
 import time
 from dataclasses import dataclass
 from typing import Any
@@ -44,6 +46,22 @@ class SupadataTranscriptChunk:
 class SupadataTranscript:
     language: str
     chunks: tuple[SupadataTranscriptChunk, ...]
+
+
+@dataclass(frozen=True)
+class SupadataTranscriptJob:
+    """One provider-side async transcript job."""
+
+    job_id: str
+    status: str = "queued"
+
+
+@dataclass(frozen=True)
+class SupadataTranscriptJobResult:
+    """One non-blocking provider job status check."""
+
+    status: str
+    transcript: SupadataTranscript | None = None
 
 
 def _primary_language(value: str) -> str:
@@ -89,6 +107,86 @@ class SupadataTranscriptClient:
                 os.getenv("SUPADATA_POLL_INTERVAL_SECONDS", "1")
             ),
         )
+
+    def start(
+        self,
+        source_url: str,
+        preferred_language: str,
+        *,
+        mode: str = "auto",
+    ) -> SupadataTranscript | SupadataTranscriptJob | None:
+        """Start one transcript request without waiting for provider async work."""
+        if mode not in {"auto", "generate", "native"}:
+            raise ValueError("Unsupported Supadata transcript mode.")
+
+        deadline = time.monotonic() + self._request_timeout_seconds
+        payload = self._get(
+            _ENDPOINT,
+            params={
+                "url": source_url,
+                "lang": preferred_language,
+                "text": "false",
+                "mode": mode,
+            },
+            deadline=deadline,
+            allow_206=True,
+        )
+        if payload is None:
+            return None
+
+        job_id = payload.get("jobId")
+        if isinstance(job_id, str) and job_id.strip():
+            return SupadataTranscriptJob(job_id=job_id.strip(), status="queued")
+        return self._parse_transcript(payload, preferred_language)
+
+    def poll(
+        self,
+        job_id: str,
+        preferred_language: str,
+    ) -> SupadataTranscriptJobResult:
+        """Check one provider job exactly once; never sleep or loop here."""
+        normalized_job_id = str(job_id or "").strip()
+        if (
+            not normalized_job_id
+            or len(normalized_job_id) > 200
+            or re.fullmatch(r"[A-Za-z0-9._:-]+", normalized_job_id) is None
+        ):
+            raise ValueError("Invalid Supadata transcript job id.")
+
+        deadline = time.monotonic() + self._request_timeout_seconds
+        payload = self._get(
+            f"{_ENDPOINT}/{normalized_job_id}",
+            params=None,
+            deadline=deadline,
+            allow_206=False,
+        )
+        if payload is None:
+            raise SupadataTranscriptRequestFailed()
+
+        status = str(payload.get("status") or "").casefold()
+        if status in {"queued", "active", "processing", "pending"}:
+            return SupadataTranscriptJobResult(status=status)
+        if status == "failed":
+            return SupadataTranscriptJobResult(status="failed")
+        if status == "completed":
+            result = payload.get("result")
+            transcript_payload = result if isinstance(result, dict) else payload
+            transcript = self._parse_transcript(
+                transcript_payload,
+                preferred_language,
+            )
+            return SupadataTranscriptJobResult(
+                status="completed",
+                transcript=transcript,
+            )
+
+        if "content" in payload:
+            transcript = self._parse_transcript(payload, preferred_language)
+            return SupadataTranscriptJobResult(
+                status="completed",
+                transcript=transcript,
+            )
+        raise SupadataTranscriptMalformed()
 
     def fetch(
         self,
@@ -227,6 +325,8 @@ class SupadataTranscriptClient:
                 or isinstance(offset, bool)
                 or not isinstance(duration, (int, float))
                 or isinstance(duration, bool)
+                or not math.isfinite(offset)
+                or not math.isfinite(duration)
             ):
                 raise SupadataTranscriptMalformed()
             offset_ms = round(float(offset))
