@@ -580,7 +580,7 @@ function installSmartFollow(root){
     return container&&root.contains(container)?container:null;
   };
   const focusPlaying=({force=false}={})=>{
-    const container=root.querySelector('.listening-workspace[data-listening-mode="follow"] .listening-segments');
+    const container=root.querySelector('.listening-workspace .listening-segments');
     const row=container?.querySelector('.listening-segment.it-playing-segment');
     if(!row||(!force&&row===lastFocusedRow))return false;
 

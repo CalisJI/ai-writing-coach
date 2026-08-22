@@ -40,6 +40,7 @@
 .listening-segment-actions .button{min-height:36px;padding-inline:12px}
 .listening-shared-note{margin:0;padding:var(--space-4);color:var(--color-ink-muted);font-size:var(--font-size-meta)}
 .listening-active-segments{max-height:180px;border-bottom:1px solid var(--color-border-subtle)}
+.listening-shadowing-segments{max-height:clamp(180px,28dvh,280px);overflow-y:auto;border-bottom:1px solid var(--color-border-subtle)}
 .active-listening-form{display:grid;gap:12px;padding:var(--space-4);border-bottom:1px solid var(--color-border-subtle)}
 .active-listening-form>label{font-weight:700}
 .active-listening-form textarea{width:100%;resize:vertical;padding:12px;border:1px solid var(--color-border-strong);border-radius:var(--radius-control);background:var(--color-canvas);color:var(--color-ink-strong)}

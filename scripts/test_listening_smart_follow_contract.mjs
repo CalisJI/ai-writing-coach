@@ -14,6 +14,7 @@ assert.match(interactive,/dataset\.canonicalSegmentIds/);
 assert.match(interactive,/classList\.add\('it-playing-segment'/);
 assert.match(listening,/const SMART_FOLLOW_IDLE_MS=4500/);
 assert.match(smartFollow,/root\.addEventListener\('orena:media-time',scheduleFollow/);
+assert.match(smartFollow,/root\.querySelector\('\.listening-workspace \.listening-segments'\)/);
 assert.match(smartFollow,/scrollTranscriptRow\(container,row,\{focusFraction:\.45\}\)/);
 assert.match(listening,/function transcriptRowGeometry[\s\S]*container\.scrollTop\+rowRect\.top-containerRect\.top/);
 assert.match(listening,/function scrollTranscriptRow[\s\S]*container\.scrollTo\(\{/);

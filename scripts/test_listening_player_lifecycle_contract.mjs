@@ -92,6 +92,7 @@ class ListeningRoot extends FakeElement {
     if(selector==='.listening-workspace')return this.workspace;
     if(selector==='#listeningPlayer')return this.player;
     if(selector==='[data-follow-playing]')return this.followButton;
+    if(selector.includes('.listening-workspace .listening-segments'))return this.learningColumn?.segments;
     if(selector.includes('.listening-workspace[data-listening-mode="follow"] .listening-segments'))return this.learningColumn?.segments;
     return null;
   }
