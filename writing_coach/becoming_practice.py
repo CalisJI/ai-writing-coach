@@ -183,12 +183,12 @@ def build_practice_recommendation(
         evidence = str(focus.get("example") or "")
         if language == "zh":
             reason = (
-                f"这个模式目前是“{status}”。BECOMING 根据重复写作证据把它作为下一次练习重点，"
+                f"这个模式目前是“{status}”。Orena 根据重复写作证据把它作为下一次练习重点，"
                 "而不是同时追踪所有小错误。"
             )
         else:
             reason = (
-                f"This pattern is currently {status}. BECOMING selected it from repeated writing evidence "
+                f"This pattern is currently {status}. Orena selected it from repeated writing evidence "
                 "instead of asking you to chase every small issue at once."
             )
     elif strength:
@@ -214,9 +214,9 @@ def build_practice_recommendation(
         intent = "baseline"
         evidence = ""
         reason = (
-            "BECOMING 还没有足够的重复证据。先完成一篇短写作，建立可以比较的基线。"
+            "Orena 还没有足够的重复证据。先完成一篇短写作，建立可以比较的基线。"
             if language == "zh"
-            else "BECOMING does not have enough repeated evidence yet. A short real writing sample will create the next useful baseline."
+            else "Orena does not have enough repeated evidence yet. A short real writing sample will create the next useful baseline."
         )
 
     task_type = _task_type(language, goal, family)
