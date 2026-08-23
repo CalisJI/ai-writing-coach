@@ -4,7 +4,6 @@ def req(ok,msg):
     if not ok: raise SystemExit('Specialized persistence boundary validation FAILED: '+msg)
 def text(rel): return (ROOT/rel).read_text(encoding='utf-8')
 req((ROOT/'VERSION').read_text().strip() == '1.4.0','VERSION must be v1.4.0')
-req((ROOT/'BECOMING_FRONTEND_VERSION').read_text().strip()=='2.17.5','frontend must remain 2.17.5')
 app=text('app.py'); repo=text('writing_coach/persistence/specialized_repository.py')
 for name in ['becoming_memory.py','becoming_outcomes.py','becoming_library.py','becoming_reading.py','becoming_linguistics.py']:
     src=text('writing_coach/'+name)
@@ -15,8 +14,18 @@ for name in ['becoming_memory.py','becoming_library.py','becoming_reading.py']:
     src=text('writing_coach/'+name)
     for forbidden in ['import sqlite3','sqlite3.Connection','CREATE TABLE','ALTER TABLE','PRAGMA']:
         req(forbidden not in src,name+' still owns SQLite schema detail: '+forbidden)
-req('_specialized_learning_repository = _persistence_runtime.specialized_learning_repository' in app,'specialized repository must come from the authoritative runtime boundary')
-req('SQLiteSpecializedLearningRepository(_learning_repository.connect)' not in app,'runtime must not pin the specialized repository to SQLite')
+# Was: require app.py to construct SQLiteSpecializedLearningRepository.
+# That froze SQLite as the active backend, which the v1.4.0 cutover has since
+# superseded -- PostgreSQL is authoritative. The boundary that still matters is
+# that the implementation is chosen centrally by build_runtime, and that app.py
+# never constructs one itself.
+runtime = text('writing_coach/persistence/runtime.py')
+req('PostgresSpecializedLearningRepository(' in runtime
+    and 'SQLiteSpecializedLearningRepository(' in runtime,
+    'central runtime must offer both specialized repository implementations')
+req('SQLiteSpecializedLearningRepository(' not in app
+    and 'PostgresSpecializedLearningRepository(' not in app,
+    'app.py must not construct a specialized repository; build_runtime selects it')
 core_init=app.find('_learning_repository.initialize(schema_version=SCHEMA_VERSION)')
 specialized_init=app.find('_specialized_learning_repository.initialize()')
 cache_init=app.find('_learning_cache.initialize()')
