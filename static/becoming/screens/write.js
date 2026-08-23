@@ -61,27 +61,19 @@ export async function renderWrite(root){
   const scaffold=writingScaffold(adaptiveMode,state.language);
 
   root.innerHTML=`<section class="page guidance-${esc(adaptiveMode)}">
-    <header class="write-header">
-      <div>
-        <span class="editorial-kicker">${state.draft.parentEssayId?t('write.refine_kicker'):t('write.practice_kicker')}</span>
-        <h1>${state.draft.parentEssayId?t('write.refine_title'):t('write.workspace_title')}</h1>
-        <p>${state.draft.parentEssayId?t('write.refine_lead'):t('write.workspace_lead')}</p>
-        ${supportNote('write_intro',state.profile||{})}
-        <div class="guidance-row">
-          <span class="guidance-badge">${esc(guidanceLabel(adaptiveMode))}</span>
-          ${state.draft.practiceContext||state.draft.generatedTask?.personalization?`<span class="guidance-badge memory-guided-badge">${t('write.memory_guided')}</span>`:''}
-          ${helpTip(supportCopy('setup_tip',state.profile||{}),t('help.setup'))}
-        </div>
-      </div>
-      ${state.draft.parentEssayId?`<button id="newDraftButton" class="button button-tertiary">${t('write.start_fresh')}</button>`:''}
-    </header>
-
+    ${state.draft.parentEssayId?`<div class="action-row"><button id="newDraftButton" class="button button-tertiary">${t('write.start_fresh')}</button></div>`:''}
     <div class="write-layout">
       <section class="editor-workspace writing-hero-surface visual-hero-surface" aria-labelledby="editorLabel">
         <div class="editor-context">
           <span id="editorLabel">${state.draft.parentEssayId?t('write.revision'):t('write.your_writing')}</span>
           <span id="editorCount">${countUnits(state.draft.text,state.language)} ${esc(unitLabel(state.language))}</span>
         </div>
+        <div class="guidance-row">
+          <span class="guidance-badge">${esc(guidanceLabel(adaptiveMode))}</span>
+          ${state.draft.practiceContext||state.draft.generatedTask?.personalization?`<span class="guidance-badge memory-guided-badge">${t('write.memory_guided')}</span>`:''}
+          ${helpTip(supportCopy('setup_tip',state.profile||{}),t('help.setup'))}
+        </div>
+        ${supportNote('write_intro',state.profile||{})}
 
         <textarea id="writingEditor" class="writing-editor ${state.language==='zh'?'cjk':''}" spellcheck="${state.language==='en'?'true':'false'}" placeholder="${esc(t('write.editor_placeholder'))}">${esc(state.draft.text||'')}</textarea>
 

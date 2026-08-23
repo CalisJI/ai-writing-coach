@@ -298,10 +298,6 @@ export async function renderHome(root){
     root.innerHTML=`<section class="page canonical-home">
       <section class="home-editorial-hero">
         <div class="home-editorial-copy">
-          <span class="editorial-kicker">${esc(insight.kicker)}</span>
-          <h1 class="editorial-title ${state.language==='zh'?'cjk':''}">${esc(insight.statement)}</h1>
-          <p class="editorial-lead">${esc(insight.context)}</p>
-          ${insight.evidence?`<p class="home-proof-line"><span></span>${esc(insight.evidence)}</p>`:''}
           <div class="action-row home-hero-actions">
             <button id="homePrimary" class="button button-primary">${esc(personalized?t('home.practice_action'):insight.action)}</button>
             <button id="journeyLinkTop" class="button button-secondary" type="button">${t('home.journey')}</button>

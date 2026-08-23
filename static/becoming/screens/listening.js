@@ -288,7 +288,6 @@ function listeningPage(model,viewId){
   const c=text();
   const busy=['validating','processing'].includes(model.status);
   return `<section class="page listening-page" data-listening-view="${viewId}">
-    <header class="listening-header"><span class="editorial-kicker">${esc(c.listen)}</span><h1 class="editorial-title">${esc(c.title)}</h1><p class="editorial-lead">${esc(c.lead)}</p></header>
     <form id="mediaImportForm" class="listening-import visual-section-surface" novalidate>
       <label for="mediaSourceUrl">${esc(c.url)}</label><div><input id="mediaSourceUrl" type="url" inputmode="url" placeholder="${esc(c.placeholder)}" required><button class="button button-primary" type="submit" ${busy?'disabled':''}>${esc(c.prepare)}</button></div>
       <div id="listeningStatus" aria-live="polite">${stateMessage(model.status,model.error)}${model.payload?.translation?.status==='unavailable'?`<button class="button button-secondary" type="button" data-retry-translation>${esc(c.retryTranslation)}</button>`:''}</div>

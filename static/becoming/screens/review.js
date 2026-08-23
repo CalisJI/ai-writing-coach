@@ -1,7 +1,7 @@
 import {api} from '../api.js';
 import {state,saveDraft} from '../store.js';
 import {go} from '../router.js';
-import {metricsFrom,reviewInsight,benchmarkLabel,changedSegments} from '../domain/feedback.js';
+import {metricsFrom,benchmarkLabel,changedSegments} from '../domain/feedback.js';
 import {guidanceMode,guidanceLabel,feedbackBudget} from '../domain/adaptive.js';
 import {highlightedLearnerText,bindEvidenceLinks,sentenceContext,feedbackCategoryKey} from '../domain/feedback-map.js';
 import {esc,errorBlock,loadingBlock,metricRows,showDialog,toast,helpTip,runBusy,spinner,setBusy} from '../components/primitives.js';
@@ -426,8 +426,6 @@ export async function renderReview(root){
 
   if(!result){
     root.innerHTML=`<section class="page empty-state">
-      <span class="editorial-kicker">${t('review.empty_kicker')}</span>
-      <h1 class="editorial-title">${t('review.empty_title')}</h1>
       <p class="editorial-lead">${t('review.empty_body')}</p>
       <div class="action-row" style="margin-top:32px"><button id="reviewWrite" class="button button-primary">${t('review.go_write')}</button></div>
     </section>`;
@@ -448,16 +446,9 @@ export async function renderReview(root){
   const level=result.target_cefr||state.draft.level||'';
   const mode=guidanceMode(state.profile||{},state.language,level);
   const budget=feedbackBudget(mode);
-  const baseInsight=reviewInsight(result,state.language);
   const errors=result.errors||[];
   const strengthEvidence=result.strength_evidence||[];
   const locale=nativeLanguage(state.profile||{});
-  const insight={
-    ...baseInsight,
-    context:locale==='vi'
-      ?baseInsight.context
-      :categoryReason(errors[0]?.category||baseInsight.weak?.key||'expression',state.profile||{}),
-  };
   const benchmark=benchmarkLabel(result);
   const strength=(locale==='vi'&&(result.strengths_vi||[])[0])
     ||(strengthEvidence[0]
@@ -467,9 +458,6 @@ export async function renderReview(root){
   root.innerHTML=`<section class="page review guidance-${esc(mode)}">
     <div class="review-hero">
       <div>
-        <span class="editorial-kicker">${esc(insight.kicker)}</span>
-        <h1 class="editorial-title ${state.language==='zh'?'cjk':''}">${esc(insight.statement)}</h1>
-        <p class="editorial-lead">${esc(insight.context)}</p>
         ${supportNote('review_intro',state.profile||{})}
         <div class="guidance-row">
           <span class="guidance-badge">${esc(guidanceLabel(mode))}</span>

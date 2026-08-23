@@ -134,12 +134,6 @@ function overviewMarkup(payload){
   if(!items.length)return `<section class="page grammar-page">${errorBlock(c.empty)}</section>`;
 
   return `<section class="page grammar-page" data-grammar-ui>
-    <header class="grammar-page-head">
-      <span class="editorial-kicker">${esc(c.kicker)}</span>
-      <h1 class="editorial-title">${esc(c.title)}</h1>
-      <p class="editorial-lead">${esc(c.lead)}</p>
-    </header>
-
     <section class="grammar-hero visual-hero-surface">
       <div class="grammar-progress-visual" aria-label="${esc(c.progress)}">
         <div class="grammar-progress-number"><strong>${progress.percent}</strong><span>%</span></div>

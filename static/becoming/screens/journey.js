@@ -171,12 +171,6 @@ export async function renderJourney(root){
     const hasWriting=groups.length>0;
 
     root.innerHTML=`<section class="page">
-      <header class="journey-header">
-        <span class="editorial-kicker">${t('journey.kicker')}</span>
-        <h1 class="editorial-title">${t('journey.title')}</h1>
-        <p class="editorial-lead">${t('journey.lead')}</p>
-      </header>
-
       ${!hasWriting?`
         <div class="empty-state">
           <h2>${t('journey.empty_title')}</h2>

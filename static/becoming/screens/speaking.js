@@ -180,12 +180,8 @@ function translationFor(payload,segmentId){
 function emptyPage(){
   const c=copy();
   return `<section class="page speaking-page speaking-empty">
-    <header class="speaking-header">
-      <span class="editorial-kicker">${esc(c.kicker)}</span>
-      <h1 class="editorial-title">${esc(c.emptyTitle)}</h1>
-      <p class="editorial-lead">${esc(c.emptyBody)}</p>
-    </header>
     <div class="speaking-empty-card visual-section-surface">
+      <p>${esc(c.emptyBody)}</p>
       <button class="button button-primary" type="button" data-speaking-open-listening>${esc(c.openListening)}</button>
     </div>
   </section>`;
@@ -230,12 +226,6 @@ export function createSpeakingController({session,recorder=createLocalAudioRecor
         :recording.status==='unsupported'?c.unsupported:'';
 
       return `<section class="page speaking-page" data-speaking-core>
-        <header class="speaking-header">
-          <span class="editorial-kicker">${esc(c.kicker)}</span>
-          <h1 class="editorial-title">${esc(c.title)}</h1>
-          <p class="editorial-lead">${esc(c.lead)}</p>
-        </header>
-
         <div class="speaking-workspace">
           <section class="speaking-video visual-hero-surface">
             <div class="speaking-video-frame">${mediaPlayer(payload.playback,payload.asset?.title)}</div>
