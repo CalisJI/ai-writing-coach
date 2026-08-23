@@ -28,7 +28,7 @@ import {
 } from '../domain/shadowing-practice.js';
 import {getSharedMediaSession,selectSharedMediaSegment,setSharedMediaSession} from '../domain/shared-media-session.js';
 import {clearPendingMediaImport,getPendingMediaImport,setPendingMediaImport} from '../domain/media-import-resume.js';
-import {listMediaLessons,rememberMediaLesson,takeLessonAutostart} from '../domain/media-lesson-history.js';
+import {listMediaLessons,rememberMediaLesson,takeLessonAutostart,resumableLesson} from '../domain/media-lesson-history.js';
 import {skillMasthead} from '../components/skill-masthead.js';
 
 const COPY={
@@ -329,7 +329,7 @@ function listeningPage(model,viewId){
   return `<section class="page listening-page" data-listening-view="${viewId}">
     ${intro}
     <form id="mediaImportForm" class="listening-import visual-section-surface" novalidate>
-      <label for="mediaSourceUrl">${esc(c.url)}</label><div><input id="mediaSourceUrl" type="url" inputmode="url" placeholder="${esc(c.placeholder)}" required><button class="button button-primary" type="submit" ${busy?'disabled':''}>${esc(c.prepare)}</button></div>
+      <label for="mediaSourceUrl">${esc(c.url)}</label><div><input id="mediaSourceUrl" type="url" inputmode="url" placeholder="${esc(c.placeholder)}" value="${ready?'':esc(model.sourceUrl||'')}" required><button class="button button-primary" type="submit" ${busy?'disabled':''}>${esc(c.prepare)}</button></div>
       <div id="listeningStatus" aria-live="polite">${stateMessage(model.status,model.error)}${model.payload?.translation?.status==='unavailable'?`<button class="button button-secondary" type="button" data-retry-translation>${esc(c.retryTranslation)}</button>`:''}</div>
     </form>
     ${history}
@@ -850,15 +850,20 @@ export async function renderListening(root,{importMedia=api.importMedia,importSt
   // Speaking can ask for a specific remembered lesson. A live import in flight
   // and an already-restored session both outrank it: the learner's current work
   // is never interrupted by a handoff.
-  const autostart=pending?'':takeLessonAutostart(state.language);
+  // Speaking's handoff wins over a plain resume: it is an explicit request,
+  // where a resume is only a guess about what the learner was doing.
+  const handoff=pending?'':takeLessonAutostart(state.language);
+  const resume=(pending||handoff||shared)?null:resumableLesson(state.language);
+  const autostart=handoff||resume?.source_url||'';
   if(pending)controller.resumePending(pending);
   else if(shared)controller.restore(shared.payload,shared.selected_segment_id);
   else if(autostart){
+    // The field renders model.sourceUrl while an import is in flight or has
+    // failed, so the learner can see and edit the link that went wrong. It
+    // clears once a lesson is ready, because the form then means "import
+    // something new". Setting the DOM here would not survive: importUrl
+    // re-renders straight away.
     render();
-    // Show what is being prepared. If it fails, the learner can see which link
-    // it was and edit it, instead of facing an error over an empty field.
-    const field=root.querySelector('#mediaSourceUrl');
-    if(field)field.value=autostart;
     controller.importUrl(autostart);
   }
   else render();
