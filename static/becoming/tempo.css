@@ -594,3 +594,70 @@ html:root .review-hero + .section-rule{
     gap:var(--space-3);
   }
 }
+
+/* ---------- WRITE — recurring-error watchlist ----------
+   Sits at the top of the setup rail, inside an already-raised surface, so it
+   recesses rather than stacking another card (AGENTS.md 9). Rows, tabular
+   figures, and a trend that is text as well as an arrow -- an arrow alone
+   carries no meaning for anyone not seeing colour or shape clearly. */
+.write-watchlist{
+  display:flex;
+  flex-direction:column;
+  gap:var(--space-3);
+  margin-bottom:var(--space-6);
+  padding-bottom:var(--space-5);
+  border-bottom:1px solid var(--color-border-subtle);
+}
+
+.write-watchlist ul{
+  margin:0;
+  padding:0;
+  list-style:none;
+  display:flex;
+  flex-direction:column;
+  gap:1px;
+}
+
+.watchlist-row{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto auto;
+  align-items:baseline;
+  gap:var(--space-3);
+  padding:var(--space-2) 0;
+}
+
+.watchlist-name{
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  color:var(--color-ink);
+  font-size:var(--font-size-ui);
+  font-weight:500;
+}
+
+.watchlist-count{
+  font-variant-numeric:tabular-nums;
+  font-weight:600;
+  font-size:var(--font-size-ui);
+  color:var(--color-ink-strong);
+}
+
+.watchlist-trend{
+  font-size:var(--font-size-meta);
+  color:var(--color-ink-muted);
+  white-space:nowrap;
+  min-width:8ch;
+  text-align:right;
+}
+
+/* Easing is the only good news here, so it is the only row that earns colour.
+   Rising is left neutral on purpose: a writer about to start does not need a
+   red mark telling them they are getting worse. */
+.watchlist-row[data-trend="down"] .watchlist-trend{color:var(--color-positive)}
+
+.watchlist-note{
+  margin:0;
+  color:var(--color-ink-muted);
+  font-size:var(--font-size-meta);
+  line-height:1.5;
+}

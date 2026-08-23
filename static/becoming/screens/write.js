@@ -4,7 +4,7 @@ import {go} from '../router.js';
 import {configFor,countUnits} from '../language.js';
 import {guidanceMode,guidanceLabel,writingScaffold} from '../domain/adaptive.js';
 import {esc,toast,helpTip,runBusy} from '../components/primitives.js';
-import {t,practiceModeLabel,topicLabel,unitLabel} from '../domain/i18n.js';
+import {t,practiceModeLabel,topicLabel,unitLabel,categoryLabel} from '../domain/i18n.js';
 import {supportCopy,supportNote} from '../domain/support.js';
 import {openDictionary} from '../components/dictionary.js';
 import {skillMasthead} from '../components/skill-masthead.js';
@@ -52,10 +52,59 @@ function renderContext(config){
   </div>`;
 }
 
+/* The recurring-error watchlist.
+ *
+ * The product already knows which mistakes a learner keeps making -- the
+ * dashboard has carried error_memory all along -- but it only ever said so
+ * *after* a piece was graded. Telling someone what they habitually get wrong
+ * once the writing is finished is a report; telling them while the cursor is
+ * still blinking is a chance to not make the mistake at all.
+ *
+ * Only `recurring` entries are shown. Anything the evidence marks historical
+ * has stopped coming back, and putting it in front of a writer would be
+ * nagging about a problem they have already solved.
+ *
+ * The trend compares the newer half of the evidence window with the older
+ * half, so it reports what the record shows and never claims mastery
+ * (regression rule 16).
+ */
+function watchlistMarkup(memory=[]){
+  const recurring=(Array.isArray(memory)?memory:[])
+    .filter(item=>item&&item.status==='recurring'&&Number(item.total)>0)
+    .sort((a,b)=>Number(b.total)-Number(a.total))
+    .slice(0,4);
+  if(!recurring.length)return '';
+
+  const rows=recurring.map(item=>{
+    const older=Number(item.older)||0;
+    const newer=Number(item.newer)||0;
+    const trend=newer<older?'down':newer>older?'up':'flat';
+    const mark=trend==='down'?'↓':trend==='up'?'↑':'→';
+    return `<li class="watchlist-row" data-trend="${esc(trend)}">
+      <span class="watchlist-name">${esc(categoryLabel(item.category))}</span>
+      <span class="watchlist-count">${esc(String(item.total))}</span>
+      <span class="watchlist-trend"><span aria-hidden="true">${mark}</span> ${esc(t('write.trend_'+trend))}</span>
+    </li>`;
+  }).join('');
+
+  return `<section class="write-watchlist">
+    <span class="context-label">${t('write.watchlist')}</span>
+    <ul>${rows}</ul>
+    <p class="watchlist-note">${t('write.watchlist_note')}</p>
+  </section>`;
+}
+
 export async function renderWrite(root){
   const config=configFor(state.language);
   if(!config.levels.includes(state.draft.level)){
     saveDraft({level:config.defaultLevel,length:config.defaultLength,mode:'free',prompt:'',generatedTask:null,practiceContext:null});
+  }
+
+  // Home populates state.dashboard, but a learner can land on Write directly.
+  // A failure here must never block writing, so the watchlist simply does not
+  // appear if the evidence cannot be loaded.
+  if(!state.dashboard){
+    try{ state.dashboard=await api.dashboard(); }catch{ /* write without it */ }
   }
 
   const adaptiveMode=guidanceMode(state.profile||{},state.language,state.draft.level);
@@ -97,6 +146,7 @@ export async function renderWrite(root){
       </section>
 
       <aside class="practice-context visual-section-surface" aria-label="${esc(t('write.context'))}">
+        ${watchlistMarkup(state.dashboard?.error_memory)}
         <div class="section-title-row">
           <span class="context-label">${t('write.setup')}</span>
           ${helpTip(supportCopy('setup_tip',state.profile||{}),t('help.setup'))}
