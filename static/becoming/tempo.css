@@ -826,48 +826,88 @@ html:root .listening-replay-button{
 }
 
 /* ---------- LISTEN — the phone layout ----------
-   On a phone the workspace stacks, and the order was: video, mode tabs,
-   display toggles, lens chips, translation note, playback bar, and only then
-   the transcript -- which put the learning surface roughly 70% down the
-   screen. A learner had to scroll past every setting to reach the words.
+   On a phone the workspace stacks in source order: video, mode tabs, display
+   toggles, lens chips, translation note, playback bar, and only then the
+   transcript -- so the learning surface sat roughly 70% down the screen and a
+   learner scrolled past every setting to reach the words.
 
-   The transcript and the playback bar move up directly under the video. The
-   display toggles are preferences, set once and rarely changed, so they go
-   below the text they affect. Nothing is hidden; the order just matches how
-   often each part is actually used. */
+   interactive-transcript.css deliberately sets this panel to `display:block`
+   below 959px so the transcript flows with the page instead of trapping the
+   reader in a nested scroll area. That decision is right and is kept: the
+   panel is a flex column here only to get `order`, with no max-height and no
+   inner scrolling, so the page still scrolls as one piece.
+
+   Its selector is (0,3,0), so these have to out-rank it deliberately rather
+   than by accident -- hence the `html:root` prefix on each. */
 @media(max-width:1000px){
-  .listening-transcript{
+  html:root .listening-workspace .listening-transcript{
     display:flex;
     flex-direction:column;
+    max-height:none;
   }
 
-  .listening-transcript .listening-practice-controls{order:1}
-  .listening-transcript .listening-segments{order:2}
-  .listening-transcript .translation-status,
-  .listening-transcript .translation-not-required{order:3}
-  .listening-transcript .listening-toolbar{
+  html:root .listening-workspace .listening-transcript .listening-segments{
+    max-height:none;
+    overflow:visible;
+    order:2;
+  }
+
+  html:root .listening-workspace .listening-transcript .listening-practice-controls{
+    order:1;
+    position:sticky;
+    top:var(--listening-sticky-offset,90px);
+    z-index:3;
+    background:var(--color-surface);
+  }
+
+  html:root .listening-workspace .listening-transcript .translation-status,
+  html:root .listening-workspace .listening-transcript .translation-not-required{
+    order:3;
+  }
+
+  /* Preferences, set once and rarely touched, belong below the text they
+     affect rather than in front of it. */
+  html:root .listening-workspace .listening-transcript .listening-toolbar{
     order:4;
     padding-top:var(--space-4);
     border-top:1px solid var(--color-border-subtle);
   }
-  .listening-transcript .listening-shared-note{order:5}
 
-  /* The playback bar is what a learner touches between replays, so it stays
-     put while the transcript scrolls under it. */
-  .listening-transcript .listening-practice-controls{
-    position:sticky;
-    top:0;
-    z-index:2;
-    background:var(--color-surface);
+  html:root .listening-workspace .listening-transcript .listening-shared-note{
+    order:5;
   }
 
-  /* A 16:9 embed on a tall phone screen was taking a third of the viewport
-     before the first line of transcript. Capped so both fit. */
-  .listening-video-frame{
+  /* Page level, once a lesson is ready: the video and transcript come first.
+     On a desktop the import form sits beside plenty of space, but on a phone
+     it pushes the lesson down a whole screen, and "paste a new link" is not
+     what someone opening a lesson they were already studying wants first. */
+  html:root .listening-page:has(#listeningReady > *){
+    display:flex;
+    flex-direction:column;
+  }
+  html:root .listening-page:has(#listeningReady > *) .skill-masthead{order:1}
+  html:root .listening-page:has(#listeningReady > *) #listeningReady{order:2}
+  html:root .listening-page:has(#listeningReady > *) .listening-import{order:3}
+
+  /* A 16:9 embed was taking a third of a tall phone viewport before any text
+     appeared. */
+  html:root .listening-video-frame,
+  html:root .listening-video-frame iframe,
+  html:root .listening-video-frame video{
     max-height:32vh;
   }
-  .listening-video-frame iframe,
-  .listening-video-frame video{
-    max-height:32vh;
+}
+
+/* The masthead is a section front, which is worth a lot of type on a desktop
+   and much less on a phone, where every 40px it spends is 40px of the lesson
+   pushed off screen. It keeps its identity at about half the height. */
+@media(max-width:640px){
+  html:root .skill-masthead{
+    padding-block:var(--space-4) var(--space-3);
+    margin-bottom:var(--space-4);
+    gap:var(--space-2);
   }
+  html:root .skill-masthead-name{font-size:clamp(26px,8vw,34px)}
+  html:root .skill-masthead-value{font-size:clamp(24px,7vw,30px)}
+  html:root .skill-masthead-purpose{font-size:var(--font-size-ui)}
 }
