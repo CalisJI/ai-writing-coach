@@ -731,3 +731,96 @@ html[data-theme="dark"] .it-pos-legend .pos-pronoun{color:#71d4e7}
 .listening-page:has(#listeningReady > *) .listening-import label{
   font-size:var(--font-size-meta);
 }
+
+/* ---------- LISTEN — give the learning surface the room ----------
+   `max-height:62vh` was not the real constraint. The right column stacks the
+   mode tabs, the display toolbar, the lens chips, a translation note and the
+   control bar before the transcript starts, so roughly 250px was gone before
+   the first line of it appeared: a 459px window for 3145px of content while
+   the video beside it held 470px.
+
+   The panel becomes a column of its own height. Controls keep their size and
+   stay put; the transcript takes everything that is left. That is what
+   SCREEN_CONTRACT means by "the shared transcript is the learning surface".
+   Below 1000px the workspace is already one column and scrolls as a page, so
+   this is left alone there. */
+@media(min-width:1001px){
+  .listening-workspace{align-items:start}
+
+  .listening-transcript{
+    display:flex;
+    flex-direction:column;
+    max-height:calc(100vh - var(--listening-sticky-offset,90px) - var(--space-8));
+  }
+
+  html:root .listening-segments{
+    flex:1 1 auto;
+    min-height:0;
+    max-height:none;
+  }
+
+  /* The controls are what a learner reaches for between replays, so they stay
+     on screen instead of scrolling away with the text. */
+  .listening-transcript .listening-practice-controls{flex-shrink:0}
+  .listening-transcript .listening-toolbar{flex-shrink:0}
+}
+
+/* Replay carries a word next to its icon: it is the action used over and over
+   while following a transcript, and the one worth naming. */
+.listening-replay-button{
+  display:inline-flex;
+  align-items:center;
+  gap:var(--space-2);
+  width:auto;
+  padding-inline:var(--space-4);
+}
+
+.listening-replay-label{
+  font-size:var(--font-size-meta);
+  font-weight:600;
+  white-space:nowrap;
+}
+
+@media(max-width:760px){
+  .listening-replay-label{display:none}
+  .listening-replay-button{padding-inline:var(--space-3)}
+}
+
+/* The toolbar was a three-column grid whose last column was 57px wide, so the
+   two lens chips stacked and the toolbar alone took 145px of a panel whose
+   transcript only had 459px. One wrapping row instead: same controls, about a
+   third of the height, and the space goes to the text being studied. */
+html:root .listening-toolbar{
+  display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+  gap:var(--space-3) var(--space-5);
+}
+
+html:root .listening-toolbar>div:first-child{
+  display:flex;
+  align-items:baseline;
+  gap:var(--space-2);
+  margin-right:auto;
+}
+
+html:root .listening-toolbar .it-controls{
+  display:flex;
+  flex-direction:row;
+  flex-wrap:wrap;
+  align-items:center;
+  gap:var(--space-2);
+  width:auto;
+}
+
+/* Fixed 44px square from .listening-icon-button was clipping the replay label
+   to "Nghe lạ". This button is deliberately wider than the icon squares. */
+html:root .listening-replay-button{
+  /* .listening-icon-button pins every control to `flex:0 0 44px`, so a width
+     override could never win -- flex-basis decides first. This button is
+     deliberately wider than the icon squares because it carries a word. */
+  flex:0 0 auto;
+  width:auto;
+  min-width:0;
+  overflow:visible;
+}
