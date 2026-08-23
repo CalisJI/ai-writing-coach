@@ -110,16 +110,6 @@ export async function renderLibrary(root){
     const summary=payload.summary||{total:items.length,due:0,available:0};
 
     root.innerHTML=`<section class="page library-page">
-      <header class="library-header">
-        <span class="editorial-kicker">${t('library.kicker')}</span>
-        <h1 class="editorial-title">${t('library.title')}</h1>
-        <p class="editorial-lead">${t('library.lead')}</p>
-        ${supportNote('lookup_tip',state.profile||{})}
-        <p class="library-summary">${t('library.summary',{total:summary.total,due:summary.due,available:summary.available})}</p>
-      </header>
-
-      <div class="section-rule"></div>
-
       <section class="library-review-section functional-surface library-functional-section visual-hero-surface library-recall-hero" aria-labelledby="recallHeading">
         <div class="library-section-head">
           <div>
@@ -128,6 +118,8 @@ export async function renderLibrary(root){
           </div>
           <p>${t('library.reveal_note')}</p>
         </div>
+        ${supportNote('lookup_tip',state.profile||{})}
+        <p class="library-summary">${t('library.summary',{total:summary.total,due:summary.due,available:summary.available})}</p>
         <div id="recallSlot">${reviewCard(due)}</div>
       </section>
 

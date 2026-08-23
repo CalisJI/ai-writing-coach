@@ -223,12 +223,6 @@ export async function renderReading(root,{preserveControls=false}={}){
     const result=state.readingResult;
 
     root.innerHTML=`<section class="page reading-page">
-      <header class="reading-header">
-        <span class="editorial-kicker">${t('read.kicker')}</span>
-        <h1 class="editorial-title">${t('read.title')}</h1>
-        <p class="editorial-lead">${t('read.lead')}</p>
-      </header>
-
       ${session
         ?`<div class="reading-workspace">
           ${passageBlock(session,result)}
