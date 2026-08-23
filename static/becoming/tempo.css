@@ -1,0 +1,479 @@
+/* ===== Orena — Tempo axis =====
+   Adds two things to the existing token system, additively. Nothing here
+   overrides an existing token; theme.css and tokens.css stay authoritative.
+
+   1. REWARD tokens (--theme-reward-*)
+      Effort rewards — streak, session progress, milestones — need a colour
+      that is never mistaken for an action. `accentPolicy` in SCREEN_CONTRACT
+      reserves the accent for the primary action on every screen, so rewards
+      cannot borrow it.
+
+      The separation rule is treatment, not only hue:
+
+          rewards  -> soft tint background, coloured text, never a solid fill
+          actions  -> solid accent fill
+
+      That rule holds even in the `clay` palette, whose terracotta accent sits
+      close to amber in hue. Clay still gets a shifted reward hue below so the
+      two never read as the same family.
+
+   2. TEMPO tokens (--tempo-*)
+      One product, two densities. `studio` is the default and matches today's
+      layout. `practice` trades density for air, larger touch targets and a
+      slower reveal, for learners who want one thing at a time.
+
+      Screens read --tempo-* instead of hard-coding spacing, so the two
+      tempos cannot drift apart the way the phase/vNNN stylesheets did.
+*/
+
+/* ---------- reward: light ---------- */
+:root,
+html[data-theme="light"]{
+  --theme-reward:#8A5A00;
+  --theme-reward-bright:#FFB020;
+  --theme-reward-soft:rgba(255,176,32,.16);
+  --theme-reward-line:rgba(255,176,32,.34);
+}
+
+/* ---------- reward: dark ---------- */
+html[data-theme="dark"]{
+  --theme-reward:#FFC24D;
+  --theme-reward-bright:#FFCE6B;
+  --theme-reward-soft:rgba(255,194,77,.14);
+  --theme-reward-line:rgba(255,194,77,.28);
+}
+
+/* Clay's accent is terracotta; push reward toward gold so the two stay
+   distinguishable at a glance. */
+html[data-palette="clay"][data-theme="light"]{
+  --theme-reward:#6F6212;
+  --theme-reward-bright:#D9B03A;
+  --theme-reward-soft:rgba(217,176,58,.18);
+  --theme-reward-line:rgba(217,176,58,.36);
+}
+html[data-palette="clay"][data-theme="dark"]{
+  --theme-reward:#E3C766;
+  --theme-reward-bright:#EDD684;
+  --theme-reward-soft:rgba(227,199,102,.14);
+  --theme-reward-line:rgba(227,199,102,.28);
+}
+
+/* ============================================================
+   TEMPO — studio is the default so nothing changes until a
+   learner opts into practice.
+   ============================================================ */
+:root,
+html[data-tempo="studio"]{
+  --tempo-surface-pad:var(--space-6);      /* 24px */
+  --tempo-section-gap:var(--space-4);      /* 16px */
+  --tempo-object-radius:var(--radius-object);
+  --tempo-title-size:var(--font-size-h2);  /* 28px */
+  --tempo-control-pad-block:var(--space-3);
+  --tempo-control-pad-inline:var(--space-5);
+  --tempo-control-size:var(--font-size-ui);
+  --tempo-reveal-duration:0ms;
+  --tempo-reveal-step:0ms;
+  --tempo-reward-motion:0ms;
+}
+
+html[data-tempo="practice"]{
+  --tempo-surface-pad:var(--space-8);      /* 32px */
+  --tempo-section-gap:var(--space-6);      /* 24px */
+  --tempo-object-radius:var(--radius-surface);
+  --tempo-title-size:var(--font-size-h1);  /* 36px */
+  --tempo-control-pad-block:var(--space-4);
+  --tempo-control-pad-inline:var(--space-6);
+  --tempo-control-size:var(--font-size-body);
+  --tempo-reveal-duration:var(--motion-standard);
+  --tempo-reveal-step:45ms;
+  --tempo-reward-motion:var(--motion-milestone);
+}
+
+/* ---------- reward surface primitive ----------
+   The only sanctioned way to render an effort reward. Tint, never fill.
+*/
+.reward-surface{
+  display:inline-flex;
+  align-items:center;
+  gap:var(--space-3);
+  padding:var(--space-2) var(--space-3);
+  border-radius:var(--radius-control);
+  background:var(--theme-reward-soft);
+  color:var(--theme-reward);
+}
+.reward-surface .reward-text{
+  display:flex;
+  flex-direction:column;
+  gap:2px;
+}
+.reward-surface .reward-value{
+  font-variant-numeric:tabular-nums;
+  font-weight:600;
+  line-height:1;
+}
+.reward-surface .reward-label{
+  font-size:var(--font-size-meta);
+  opacity:.88;
+  line-height:1.25;
+}
+
+/* Reward ring. Only animates in practice tempo, and never when the learner
+   has asked for reduced motion. */
+.reward-ring{position:relative;flex-shrink:0}
+.reward-ring svg{transform:rotate(-90deg);display:block}
+.reward-ring circle{fill:none;stroke-width:3.5;stroke-linecap:round}
+.reward-ring .reward-ring-track{stroke:var(--theme-reward-line)}
+.reward-ring .reward-ring-fill{stroke:var(--theme-reward-bright)}
+
+html[data-tempo="practice"] .reward-ring .reward-ring-fill{
+  animation:reward-ring-fill var(--tempo-reward-motion) cubic-bezier(.22,.61,.36,1) both;
+}
+@keyframes reward-ring-fill{
+  from{stroke-dashoffset:var(--reward-ring-empty,88)}
+  to{stroke-dashoffset:var(--reward-ring-offset,88)}
+}
+
+/* ---------- staged reveal ----------
+   Applied by screens that opt in. No-op in studio tempo because the
+   duration token is 0ms.
+*/
+.tempo-reveal>*{
+  animation:tempo-rise var(--tempo-reveal-duration) cubic-bezier(.22,.61,.36,1) both;
+}
+.tempo-reveal>*:nth-child(1){animation-delay:calc(var(--tempo-reveal-step) * 0)}
+.tempo-reveal>*:nth-child(2){animation-delay:calc(var(--tempo-reveal-step) * 1)}
+.tempo-reveal>*:nth-child(3){animation-delay:calc(var(--tempo-reveal-step) * 2)}
+.tempo-reveal>*:nth-child(4){animation-delay:calc(var(--tempo-reveal-step) * 3)}
+.tempo-reveal>*:nth-child(5){animation-delay:calc(var(--tempo-reveal-step) * 4)}
+.tempo-reveal>*:nth-child(6){animation-delay:calc(var(--tempo-reveal-step) * 5)}
+@keyframes tempo-rise{
+  from{opacity:0;transform:translateY(9px)}
+  to{opacity:1;transform:none}
+}
+
+/* Content that only belongs to one tempo. */
+html[data-tempo="studio"] [data-tempo-only="practice"]{display:none}
+html[data-tempo="practice"] [data-tempo-only="studio"]{display:none}
+
+@media (prefers-reduced-motion:reduce){
+  html[data-tempo="practice"] .reward-ring .reward-ring-fill,
+  .tempo-reveal>*{
+    animation-duration:.01ms;
+    animation-delay:0ms;
+  }
+}
+
+/* ============================================================
+   CONTROLS — first pieces of the consolidated system.
+   ============================================================ */
+
+/* The language picker still rendered as a native OS dropdown: `appearance`
+   was never set, so the platform drew its own chrome (a white box on the dark
+   theme) and ignored the token background. app.css had already reserved
+   34px of right padding for a chevron that was never drawn.
+   The chevron lives on the wrapper because visual-alignment.css sets
+   `background:` on .language-select as a shorthand, which would erase any
+   background-image declared on the select itself. */
+.language-select{
+  -webkit-appearance:none;
+  appearance:none;
+}
+
+.learning-language-control{
+  position:relative;
+}
+
+.learning-language-control::after{
+  content:"";
+  position:absolute;
+  right:13px;
+  top:50%;
+  width:12px;
+  height:12px;
+  transform:translateY(-50%);
+  pointer-events:none;
+  background:currentColor;
+  opacity:.5;
+  -webkit-mask:var(--chevron-mask) center/contain no-repeat;
+  mask:var(--chevron-mask) center/contain no-repeat;
+}
+
+:root{
+  --chevron-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M2.5 4.75 6 8.25 9.5 4.75' fill='none' stroke='%23000' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+
+/* ============================================================
+   ELEVATION DISCIPLINE  (AGENTS.md §9: no nested card stacks)
+   ============================================================
+   Home alone was painting 25 card surfaces, nested three deep:
+   .writing-dashboard -> .dashboard-focus-object -> .dashboard-level-chip.
+
+   The rule: a raised surface may not contain another raised surface.
+   Children of a raised surface RECESS -- muted ground, no border, no
+   shadow -- so depth still reads, but through tone instead of another
+   stacked edge. The folio keeps its own chrome: its pages are a
+   deliberate 3D book object, not a card stack.
+*/
+/* `html` prefix only to outrank lively-details' own
+   `html[data-theme="dark"] .bc14-mini-card` background, which would otherwise
+   keep its raised gradient in dark mode. Border width is kept and only the
+   colour cleared, so flattening never shifts the layout by a pixel. */
+html .visual-raised-surface .bc14-mini-card,
+html .visual-raised-surface .dashboard-focus-object,
+html .visual-section-surface .bc14-mini-card,
+html .visual-section-surface .dashboard-focus-object{
+  border-color:transparent;
+  box-shadow:none;
+  background:var(--color-surface-muted);
+}
+
+/* Third level never gets chrome at all -- it is a label, not an object. */
+.visual-raised-surface .dashboard-focus-object .dashboard-level-chip,
+.visual-section-surface .dashboard-focus-object .dashboard-level-chip{
+  border-color:transparent;
+  box-shadow:none;
+  background:transparent;
+  padding-inline:0;
+}
+
+/* Navigation is a list, not nine stacked objects. Every item -- active and
+   inactive alike -- was carrying its own border and shadow, which is nine
+   competing surfaces in a rail that should read as one. Only the current
+   item keeps chrome; the rest are text with a hover ground. */
+html .primary-nav a:not(.active){
+  border-color:transparent;
+  box-shadow:none;
+  background:transparent;
+}
+
+html .primary-nav a:not(.active):hover,
+html .primary-nav a:not(.active):focus-visible{
+  background:var(--color-surface-muted);
+}
+
+/* ---------- every select, not just the language one ----------
+   Write renders 5 selects and 4 of them were still native OS dropdowns;
+   Read had 2 of 3. They carry `bc13-select` from trusted-ui-v213 and a
+   decorative gradient from `bc14-tactile`, which is why a plain `select`
+   rule could never reach them.
+
+   Form controls are functional surfaces, not decorative objects: the
+   tactile gradient is dropped here in favour of a flat token ground, which
+   also frees background-image for the chevron. Selector is explicit about
+   the legacy classes so it outranks them; it goes away with those layers. */
+/* `html:root` (0,1,2) rather than `html select` (0,0,2): app.css sets
+   `.field select { padding; background }` at (0,1,1), which silently ate both
+   the chevron and the padding that makes room for it. */
+html:root select,
+html:root select.bc13-select,
+html:root select.bc14-tactile{
+  -webkit-appearance:none;
+  appearance:none;
+  padding-right:34px;
+  background:var(--color-surface) var(--chevron-bg) no-repeat right 12px center;
+  background-size:12px 12px;
+  border:1px solid var(--color-border-strong);
+  border-radius:var(--radius-control);
+  color:var(--color-ink-strong);
+  font-family:inherit;
+  font-size:var(--font-size-ui);
+}
+
+html:root select:hover{border-color:var(--color-accent-600)}
+
+/* Checkboxes and radios were rendering in the OS accent (blue on Windows),
+   which is the one colour the palette does not contain. */
+html input[type="checkbox"],
+html input[type="radio"]{
+  accent-color:var(--color-accent-600);
+}
+
+/* Chevron as a background image, one per theme so the stroke stays legible.
+   `currentColor` is not available inside a data URI, hence two variants. */
+:root,
+html[data-theme="light"]{
+  --chevron-bg:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M2.5 4.75 6 8.25 9.5 4.75' fill='none' stroke='%236B7280' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+html[data-theme="dark"]{
+  --chevron-bg:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M2.5 4.75 6 8.25 9.5 4.75' fill='none' stroke='%238A919C' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+
+/* ============================================================
+   LISTEN — entry state
+   ============================================================
+   The import form is the primary action, so it keeps the raised surface.
+   The orientation above it and the requirements below are quiet text, not
+   more cards: three stacked surfaces on a near-empty screen is exactly the
+   nesting this file exists to stop.
+*/
+.listening-page{
+  display:flex;
+  flex-direction:column;
+  gap:var(--space-6);
+  max-width:var(--layout-content-max);
+}
+
+.listening-intro{
+  max-width:var(--layout-reading-max);
+  display:flex;
+  flex-direction:column;
+  gap:var(--space-3);
+}
+
+.listening-purpose{
+  margin:0;
+  color:var(--color-ink-muted);
+  font-size:var(--font-size-body-large);
+  line-height:1.6;
+}
+
+.listening-requirements{
+  max-width:var(--layout-reading-max);
+  display:flex;
+  flex-direction:column;
+  gap:var(--space-3);
+}
+
+.listening-requirements ul{
+  margin:0;
+  padding:0;
+  list-style:none;
+  display:flex;
+  flex-direction:column;
+  gap:1px;
+  border-top:1px solid var(--color-border-subtle);
+}
+
+.listening-requirements li{
+  padding:var(--space-3) 0;
+  border-bottom:1px solid var(--color-border-subtle);
+  color:var(--color-ink-muted);
+  font-size:var(--font-size-ui);
+  line-height:1.55;
+}
+
+/* The URL field is the one thing on the screen a learner must act on. */
+.listening-import input[type="url"]{
+  font-size:var(--font-size-body);
+}
+
+/* Align the form with the text above and below it. Left as full width it ran
+   700px past where the reading column ends, and the entry state read as two
+   unrelated pieces rather than one column. Released once a lesson is ready,
+   because the transcript workspace legitimately needs the full canvas. */
+.listening-page:not(:has(#listeningReady > *)) .listening-import{
+  max-width:var(--layout-reading-max);
+}
+
+/* Remembered lessons. Rows, not cards -- same elevation rule as everywhere
+   else: the import form is the raised object on this screen, and a list of
+   six more surfaces beside it would flatten the hierarchy that tells a
+   learner where to act. */
+.listening-history{
+  max-width:var(--layout-reading-max);
+  display:flex;
+  flex-direction:column;
+  gap:var(--space-3);
+}
+
+.listening-history ul{
+  margin:0;
+  padding:0;
+  list-style:none;
+  display:flex;
+  flex-direction:column;
+  gap:1px;
+  border-top:1px solid var(--color-border-subtle);
+}
+
+.listening-history li{border-bottom:1px solid var(--color-border-subtle)}
+
+.listening-history-item{
+  width:100%;
+  display:flex;
+  align-items:baseline;
+  justify-content:space-between;
+  gap:var(--space-4);
+  padding:var(--space-3) var(--space-2);
+  background:none;
+  border:0;
+  border-radius:var(--radius-small);
+  cursor:pointer;
+  text-align:left;
+  font-family:inherit;
+  color:var(--color-ink);
+  font-size:var(--font-size-ui);
+  transition:background var(--motion-micro) ease,color var(--motion-micro) ease;
+}
+
+.listening-history-item:hover,
+.listening-history-item:focus-visible{
+  background:var(--color-surface-muted);
+  color:var(--color-ink-strong);
+}
+
+.listening-history-title{
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  min-width:0;
+}
+
+.listening-history-meta{
+  flex-shrink:0;
+  color:var(--color-ink-muted);
+  font-size:var(--font-size-meta);
+  text-transform:uppercase;
+  letter-spacing:.08em;
+}
+
+/* ---------- SPEAK — entry state ----------
+   Reuses the listening history row styling: the same object should look the
+   same wherever a learner meets it. */
+.speaking-empty{
+  display:flex;
+  flex-direction:column;
+  gap:var(--space-6);
+  max-width:var(--layout-reading-max);
+}
+
+.speaking-intro{
+  display:flex;
+  flex-direction:column;
+  gap:var(--space-3);
+}
+
+.speaking-purpose{
+  margin:0;
+  color:var(--color-ink-muted);
+  font-size:var(--font-size-body-large);
+  line-height:1.6;
+}
+
+.speaking-sources{
+  display:flex;
+  flex-direction:column;
+  gap:var(--space-3);
+}
+
+.speaking-sources ul{
+  margin:0;
+  padding:0;
+  list-style:none;
+  display:flex;
+  flex-direction:column;
+  gap:1px;
+  border-top:1px solid var(--color-border-subtle);
+}
+
+.speaking-sources li{border-bottom:1px solid var(--color-border-subtle)}
+
+.speaking-empty-actions{display:flex;gap:var(--space-3);flex-wrap:wrap}
+
+.speaking-privacy-note{
+  margin:0;
+  color:var(--color-ink-muted);
+  font-size:var(--font-size-meta);
+  line-height:1.55;
+  max-width:56ch;
+}

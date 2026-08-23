@@ -1,5 +1,5 @@
 import {api} from '../api.js';
-import {go} from '../router.js?v=2.17.3';
+import {go} from '../router.js?v=2.17.4';
 import {supportLanguage} from '../store.js';
 import {esc,errorBlock,loadingBlock,toast,runBusy} from '../components/primitives.js';
 import {
@@ -9,7 +9,7 @@ import {
   grammarLearningCompletion,
   localizedText,
   grammarLanguageContext,
-} from '../components/grammar-learning.js?v=2.17.3';
+} from '../components/grammar-learning.js?v=2.17.4';
 
 const COPY={
   en:{
