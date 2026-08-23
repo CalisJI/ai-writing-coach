@@ -911,3 +911,194 @@ html:root .listening-replay-button{
   html:root .skill-masthead-value{font-size:clamp(24px,7vw,30px)}
   html:root .skill-masthead-purpose{font-size:var(--font-size-ui)}
 }
+
+/* ============================================================
+   SHELL — utility controls
+   ============================================================
+   The learning-language picker and the theme toggle are the only two controls
+   in the top bar, and they were built as unrelated objects: an uppercase label
+   plus a bare select next to a lone icon square. They do the same kind of job
+   -- set something and get out of the way -- so they are one pair now, at one
+   height, one radius, one weight of border.
+
+   The chip follows the visual reference: globe, language, chevron. The
+   uppercase label it replaces said "LEARNING LANGUAGE" in the loudest style
+   the type system has, next to a control that already says English.
+*/
+:root{
+  --utility-control-height:40px;
+}
+
+html:root .learning-language-control{
+  display:inline-flex;
+  align-items:center;
+  gap:var(--space-2);
+  height:var(--utility-control-height);
+  padding-inline:var(--space-3);
+  border:1px solid var(--color-border-strong);
+  border-radius:999px;
+  background:var(--color-surface);
+  transition:border-color var(--motion-micro) ease;
+}
+
+html:root .learning-language-control:hover,
+html:root .learning-language-control:focus-within{
+  border-color:var(--color-accent-600);
+}
+
+html:root .language-globe{
+  width:16px;
+  height:16px;
+  flex-shrink:0;
+  fill:none;
+  stroke:var(--color-ink-muted);
+  stroke-width:1.6;
+  stroke-linecap:round;
+}
+
+/* The select loses its own chrome: the chip around it is the control now. */
+html:root .learning-language-control .language-select{
+  height:auto;
+  min-width:0;
+  padding:0 22px 0 0;
+  border:0;
+  border-radius:0;
+  background:none;
+  background-image:var(--chevron-bg);
+  background-repeat:no-repeat;
+  background-position:right center;
+  background-size:11px 11px;
+  font-size:var(--font-size-ui);
+  font-weight:600;
+  color:var(--color-ink-strong);
+}
+
+html:root .learning-language-control::after{content:none}
+
+html:root .theme-button{
+  width:var(--utility-control-height);
+  height:var(--utility-control-height);
+  min-width:var(--utility-control-height);
+  min-height:var(--utility-control-height);
+  border-radius:999px;
+  border:1px solid var(--color-border-strong);
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  transition:border-color var(--motion-micro) ease;
+}
+
+html:root .theme-button:hover,
+html:root .theme-button:focus-visible{
+  border-color:var(--color-accent-600);
+}
+
+html:root .header-actions{
+  display:flex;
+  align-items:center;
+  gap:var(--space-3);
+}
+
+/* ============================================================
+   SHELL — the phone frame
+   ============================================================
+   A phone was giving 240px, 29% of the screen, to chrome before any content:
+   a 44px brand row, a 67px nav row, then a whole 78px bar holding two 44px
+   controls pushed to the right with 220px of nothing beside them. Three
+   stacked rows to say "Orena", "here are nine places", and "English, dark".
+
+   One row now: brand on the left, the language chip and theme toggle on the
+   right, in the space that was already empty. Navigation goes to the bottom
+   of the screen, where a thumb actually is -- the standard place for it on a
+   phone, and it stops the nav competing with the screen's own masthead for
+   the top of the page.
+*/
+@media(max-width:1000px){
+  html:root .app-shell{
+    position:relative;
+    /* Room for the fixed bar, plus the home-indicator inset on phones that
+       have one, so the last row of content is never trapped under it. */
+    padding-bottom:calc(64px + env(safe-area-inset-bottom,0px));
+  }
+
+  html:root .app-sidebar{
+    height:56px;
+    min-height:0;
+    display:flex;
+    align-items:center;
+    padding:0 var(--gutter,14px);
+    border-bottom:1px solid var(--color-border-subtle);
+  }
+
+  html:root .sidebar-brand-row{height:auto;margin:0}
+
+  /* The controls move into the empty half of the brand row rather than
+     occupying a bar of their own. */
+  html:root .app-header{
+    position:absolute;
+    top:0;
+    right:var(--gutter,14px);
+    left:auto;
+    height:56px;
+    min-height:0;
+    padding:0;
+    background:none;
+    border:0;
+    box-shadow:none;
+    display:flex;
+    align-items:center;
+    z-index:60;
+  }
+
+  html:root .workspace-quiet-mark{display:none}
+
+  /* ---- bottom navigation ---- */
+  html:root .primary-nav{
+    position:fixed;
+    left:0;
+    right:0;
+    bottom:0;
+    z-index:70;
+    display:flex;
+    justify-content:space-around;
+    align-items:stretch;
+    gap:0;
+    padding:0 var(--space-2) env(safe-area-inset-bottom,0px);
+    height:calc(64px + env(safe-area-inset-bottom,0px));
+    background:var(--color-surface);
+    border-top:1px solid var(--color-border-subtle);
+    overflow-x:auto;
+    scrollbar-width:none;
+  }
+  html:root .primary-nav::-webkit-scrollbar{display:none}
+
+  html:root .primary-nav a{
+    flex:1 0 auto;
+    min-width:60px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:3px;
+    padding:8px 6px;
+    border:0;
+    border-radius:var(--radius-small);
+    background:none;
+    box-shadow:none;
+    color:var(--color-ink-muted);
+  }
+
+  html:root .primary-nav a .nav-label{
+    font-size:11px;
+    line-height:1.1;
+    white-space:nowrap;
+  }
+
+  /* Only the current destination is marked, and by colour rather than by a
+     surface -- nine boxes in a 64px bar would be nothing but boxes. */
+  html:root .primary-nav a.active{
+    background:none;
+    color:var(--color-accent-600);
+  }
+  html:root .primary-nav a.active .nav-icon{color:inherit}
+}
