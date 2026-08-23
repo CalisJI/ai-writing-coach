@@ -1,7 +1,7 @@
 import {api} from '../api.js';
 import {state,saveDraft} from '../store.js';
 import {go} from '../router.js';
-import {metricsFrom,benchmarkLabel,changedSegments} from '../domain/feedback.js';
+import {metricsFrom,weakestMetric,benchmarkLabel,changedSegments} from '../domain/feedback.js';
 import {guidanceMode,guidanceLabel,feedbackBudget} from '../domain/adaptive.js';
 import {highlightedLearnerText,bindEvidenceLinks,sentenceContext,feedbackCategoryKey} from '../domain/feedback-map.js';
 import {esc,errorBlock,loadingBlock,metricRows,showDialog,toast,helpTip,runBusy,spinner,setBusy} from '../components/primitives.js';
@@ -450,6 +450,14 @@ export async function renderReview(root){
   const strengthEvidence=result.strength_evidence||[];
   const locale=nativeLanguage(state.profile||{});
   const benchmark=benchmarkLabel(result);
+  // OREN-15 removed this screen's editorial header and, with it, the insight
+  // object it came from -- but two non-editorial references to that object's
+  // weakest-metric field were left behind, so Review died with
+  // "insight is not defined" before rendering anything at all. Only the
+  // weakest metric is still needed, so compute it directly rather than
+  // restoring a header the UI-02 contract forbids.
+  const focusMetric=weakestMetric(metricsFrom(result));
+
   const strength=(locale==='vi'&&(result.strengths_vi||[])[0])
     ||(strengthEvidence[0]
       ?categoryReason(strengthEvidence[0].category,state.profile||{})
@@ -522,7 +530,7 @@ export async function renderReview(root){
         <button id="mobileFeedbackTrigger" class="mobile-feedback-trigger" type="button" aria-controls="reviewSide" aria-expanded="false">
           <span>
             <strong>${t('review.mobile_focus')}</strong>
-            <span>${esc(insight.weak?.label||t('review.selected_feedback'))} · ${t('review.evidence_count',{count:Math.min(errors.length,budget.visibleEvidence)})}</span>
+            <span>${esc(focusMetric?.label||t('review.selected_feedback'))} · ${t('review.evidence_count',{count:Math.min(errors.length,budget.visibleEvidence)})}</span>
           </span>
           <span class="trigger-arrow" aria-hidden="true">↑</span>
         </button>
@@ -537,7 +545,7 @@ export async function renderReview(root){
 
         <section class="insight-block functional-surface focus-surface review-focus-hero visual-hero-surface">
           <div class="section-title-row"><span class="context-label">${t('review.start_here')}</span>${helpTip(supportCopy("current_focus_tip",state.profile||{}),t('help.focus'))}</div>
-          <h2>${esc(insight.weak?.label||t('common.current_focus'))}</h2>
+          <h2>${esc(focusMetric?.label||t('common.current_focus'))}</h2>
           <p class="review-density-note">${t('review.showing_count',{count:Math.min(errors.length,budget.visibleEvidence)})}</p>
           ${evidenceItems(errors,{
             count:budget.visibleEvidence,
