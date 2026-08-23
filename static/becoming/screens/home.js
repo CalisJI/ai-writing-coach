@@ -2,7 +2,7 @@ import {api} from '../api.js';
 import {state,saveDraft} from '../store.js';
 import {go} from '../router.js';
 import {homeInsight,metricOverview} from '../domain/feedback.js';
-import {esc,errorBlock,loadingBlock,runBusy,sectionHeading} from '../components/primitives.js';
+import {esc,errorBlock,loadingBlock,runBusy,sectionHeading,helpTip} from '../components/primitives.js';
 import {t,categoryLabel,masteryLabel,practiceModeLabel,topicLabel,unitLabel} from '../domain/i18n.js';
 
 function sortedEssays(rows=[]){
@@ -56,7 +56,11 @@ function memorySignal(memory){
     return `<article class="home-signal-card visual-raised-surface">
       <span class="context-label">${t('home.learning_memory')}</span>
       <strong>${t('home.before_now')}</strong>
-      <p>${win.overall_delta>=0?'+':''}${esc(win.overall_delta)} · ${esc(win.error_delta)} · ${esc(win.revisions)}</p>
+      <p>${t('home.before_now_detail',{
+        overall:`${win.overall_delta>=0?'+':''}${esc(win.overall_delta)}`,
+        errors:`${win.error_delta>=0?'+':''}${esc(win.error_delta)}`,
+        revisions:esc(win.revisions),
+      })}</p>
     </article>`;
   }
 
@@ -219,7 +223,7 @@ function writingDashboardMarkup(dashboard,essays,memory){
           <strong>${esc(evidence.revisionSeries)}</strong>
         </article>
         <article>
-          <span>${t('home.dashboard_strengths')}</span>
+          <span>${t('home.dashboard_strengths')} ${helpTip(t('home.tooltip_reliable_strengths'))}</span>
           <strong>${esc(evidence.reliable)}</strong>
         </article>
       </div>

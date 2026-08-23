@@ -54,6 +54,13 @@ export function spinner(label=''){
   </span>`;
 }
 
+const BUSY_ROTATION_MS=6000;
+const busyRotationTimers=new WeakMap();
+
+function busyLabelSpan(control){
+  return control.querySelector(':scope > span:last-child');
+}
+
 export function setBusy(control,busy,{label=''}={}){
   if(!control)return;
   if(busy){
@@ -62,10 +69,24 @@ export function setBusy(control,busy,{label=''}={}){
     control.dataset.previousHtml=control.innerHTML;
     control.disabled=true;
     control.setAttribute('aria-busy','true');
-    const text=label||t('busy.working');
-    control.innerHTML=`<span class="busy-spinner" aria-hidden="true"></span><span>${esc(text)}</span>`;
+    const messages=Array.isArray(label)?label.filter(Boolean):[label||t('busy.working')];
+    control.innerHTML=`<span class="busy-spinner" aria-hidden="true"></span><span>${esc(messages[0])}</span>`;
+    if(messages.length>1){
+      let index=0;
+      const timer=setInterval(()=>{
+        index=(index+1)%messages.length;
+        const span=busyLabelSpan(control);
+        if(span)span.textContent=messages[index];
+      },BUSY_ROTATION_MS);
+      busyRotationTimers.set(control,timer);
+    }
   }else{
     if(control.dataset.busy!=='true')return;
+    const timer=busyRotationTimers.get(control);
+    if(timer){
+      clearInterval(timer);
+      busyRotationTimers.delete(control);
+    }
     control.innerHTML=control.dataset.previousHtml||control.textContent||'';
     delete control.dataset.previousHtml;
     delete control.dataset.busy;

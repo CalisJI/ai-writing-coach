@@ -111,16 +111,16 @@
 }
 
 .reading-mark.evidence{
-  background:color-mix(in srgb,var(--color-info) 12%,transparent);
-  box-shadow:inset 0 -2px 0 color-mix(in srgb,var(--color-info) 55%,transparent);
+  background:color-mix(in srgb,var(--color-informational) 12%,transparent);
+  box-shadow:inset 0 -2px 0 color-mix(in srgb,var(--color-informational) 55%,transparent);
   transition:
     background-color var(--motion-micro) ease,
     box-shadow var(--motion-micro) ease;
 }
 
 .reading-mark.evidence.reading-evidence-active{
-  background:color-mix(in srgb,var(--color-info) 22%,transparent);
-  box-shadow:0 0 0 3px color-mix(in srgb,var(--color-info) 16%,transparent);
+  background:color-mix(in srgb,var(--color-informational) 22%,transparent);
+  box-shadow:0 0 0 3px color-mix(in srgb,var(--color-informational) 16%,transparent);
 }
 
 .reading-questions{
@@ -226,7 +226,7 @@
 }
 
 .reading-answer-evidence>span{
-  color:var(--color-info);
+  color:var(--color-informational);
   font-size:9px;
   font-weight:800;
   letter-spacing:.05em;
@@ -242,14 +242,14 @@
 .reading-answer-evidence blockquote{
   margin:10px 0 6px;
   padding-left:12px;
-  border-left:2px solid var(--color-info);
+  border-left:2px solid var(--color-informational);
   color:var(--color-ink);
   font-size:11px;
   line-height:1.5;
 }
 
 .reading-answer-evidence .text-link{
-  color:var(--color-info);
+  color:var(--color-informational);
   font-size:10px;
 }
 
