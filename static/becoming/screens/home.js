@@ -330,7 +330,7 @@ export async function renderHome(root){
           action:`<button id="journeyLink" class="text-link" type="button">${t('home.journey')} →</button>`,
         })}
         ${recentRows(essays)}
-      </section>`;
+      </section>
     </section>`;
 
     root.querySelector('#homePrimary')?.addEventListener('click',async()=>{
