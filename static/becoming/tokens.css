@@ -58,6 +58,12 @@
   --motion-reveal: 300ms;
   --motion-milestone: 600ms;
 
+  /* Shared learner UI density: sections, cards, icon controls, and progress. */
+  --orena-section-gap: var(--space-6);
+  --orena-card-padding: var(--space-5);
+  --orena-icon-size: 20px;
+  --orena-icon-control-size: 44px;
+
   --layout-content-max: 1440px;
   --layout-reading-max: 760px;
   --layout-editor-desktop: 64%;

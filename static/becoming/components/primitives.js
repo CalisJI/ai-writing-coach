@@ -113,6 +113,30 @@ export function button(label,{
   return `<button ${id?`id="${attr(id)}"`:''} type="${attr(type)}" class="button button-${attr(kind)}" ${attrs}>${esc(label)}</button>`;
 }
 
+export function iconButton(label,iconMarkup,{
+  id='',
+  type='button',
+  kind='secondary',
+  attrs='',
+}={}){
+  return `<button ${id?`id="${attr(id)}"`:''} type="${attr(type)}" class="button button-${attr(kind)} orena-icon-button" aria-label="${attr(label)}" title="${attr(label)}" ${attrs}>${iconMarkup}<span class="sr-only">${esc(label)}</span></button>`;
+}
+
+export function sectionHeading({kicker='',title='',id='',action=''}={}){
+  return `<div class="orena-section-heading">
+    <div class="orena-section-heading-copy">
+      ${kicker?`<span class="context-label">${esc(kicker)}</span>`:''}
+      ${title?`<h2${id?` id="${attr(id)}"`:''}>${esc(title)}</h2>`:''}
+    </div>
+    ${action?`<div class="orena-section-heading-action">${action}</div>`:''}
+  </div>`;
+}
+
+export function progressBar(value,{label='',className=''}={}){
+  const percent=Math.max(0,Math.min(100,Number(value)||0));
+  return `<div class="orena-progress ${attr(className)}" role="progressbar"${label?` aria-label="${attr(label)}"`:''} aria-valuemin="0" aria-valuemax="100" aria-valuenow="${percent}"><i style="width:${percent}%"></i></div>`;
+}
+
 
 export function helpTip(text,label=''){
   label=label||t('chrome.details');
@@ -235,7 +259,7 @@ export function metricRows(metrics={}){
     const pct=Math.max(0,Math.min(100,Number(value)||0));
     return `<div class="metric-row">
       <span>${esc(label)}</span>
-      <div class="metric-track" aria-hidden="true"><i style="width:${pct}%"></i></div>
+      ${progressBar(pct,{label})}
       <strong>${pct.toFixed(0)}</strong>
     </div>`;
   }).join('');
