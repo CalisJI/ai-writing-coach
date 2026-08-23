@@ -66,12 +66,7 @@ export async function renderProfile(root){
   const themePreset=profile.theme_preset||activePalette();
 
   root.innerHTML=`<section class="page profile-page">
-    <header class="journey-header">
-      <span class="editorial-kicker">${t('profile.kicker')}</span>
-      <h1 class="editorial-title">${t('profile.title')}</h1>
-      <p class="editorial-lead">${t('profile.lead')}</p>
-      ${statusMarkup()}
-    </header>
+    ${statusMarkup()}
 
     <div class="profile-layout">
       <div class="profile-sections visual-section-surface">

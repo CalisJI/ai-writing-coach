@@ -241,15 +241,32 @@ export async function renderWrite(root){
     }
 
     const button=root.querySelector('#evaluateButton');
+    const evaluateOnce=(parentEssayId)=>api.evaluate({
+      prompt:state.draft.prompt||'',
+      text,
+      target_cefr:state.draft.level,
+      parent_essay_id:parentEssayId||null,
+      practice_context:state.draft.practiceContext||state.draft.generatedTask?.personalization||null,
+    });
+
     try{
       await runBusy(button,async()=>{
-        const result=await api.evaluate({
-          prompt:state.draft.prompt||'',
-          text,
-          target_cefr:state.draft.level,
-          parent_essay_id:state.draft.parentEssayId||null,
-          practice_context:state.draft.practiceContext||state.draft.generatedTask?.personalization||null,
-        });
+        let result;
+        const requestedParentId=state.draft.parentEssayId||null;
+        try{
+          result=await evaluateOnce(requestedParentId);
+        }catch(error){
+          // A locally remembered parent essay can go stale (deleted, or from
+          // a different learning-language/session scope). Recover by saving
+          // the learner's text as a fresh entry instead of losing it.
+          if(requestedParentId&&error.status===404){
+            saveDraft({parentEssayId:null});
+            toast(t('write.parent_missing_retry'));
+            result=await evaluateOnce(null);
+          }else{
+            throw error;
+          }
+        }
 
         if(result.id && (state.draft.practiceContext||state.draft.generatedTask?.personalization)){
           try{
@@ -266,7 +283,12 @@ export async function renderWrite(root){
           parentEssayId:result.id,
         });
         go('review');
-      },{label:t('busy.preparing_review')});
+      },{label:[
+        t('busy.preparing_review'),
+        t('busy.preparing_review_2'),
+        t('busy.preparing_review_3'),
+        t('busy.preparing_review_4'),
+      ]});
     }catch(error){
       toast(error.message||t('write.review_failed'));
     }

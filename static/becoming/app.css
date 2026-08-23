@@ -1591,7 +1591,7 @@ body.onboarding-mode .language-select{visibility:hidden}
 }
 
 .rank-emerging{--rank-accent:var(--color-border-strong)}
-.rank-developing{--rank-accent:var(--color-informational)}
+.rank-developing{--rank-accent:var(--color-accent-600)}
 .rank-stable{--rank-accent:var(--color-positive)}
 .rank-mastered{--rank-accent:var(--color-attention)}
 

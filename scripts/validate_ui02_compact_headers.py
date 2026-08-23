@@ -20,6 +20,7 @@ for name, forbidden in {
     "speaking.js": ('<header class="speaking-header">', "editorial-title"),
     "review.js": ("insight.statement", "review.empty_title", "editorial-title"),
     "write.js": ('<header class="write-header">',),
+    "profile.js": ('<header class="journey-header">', "editorial-title"),
 }.items():
     source = (SCREENS / name).read_text(encoding="utf-8")
     for token in forbidden:
