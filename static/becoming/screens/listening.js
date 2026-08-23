@@ -28,11 +28,12 @@ import {
 } from '../domain/shadowing-practice.js';
 import {getSharedMediaSession,selectSharedMediaSegment,setSharedMediaSession} from '../domain/shared-media-session.js';
 import {clearPendingMediaImport,getPendingMediaImport,setPendingMediaImport} from '../domain/media-import-resume.js';
+import {listMediaLessons,rememberMediaLesson,takeLessonAutostart} from '../domain/media-lesson-history.js';
 
 const COPY={
-  en:{listen:'LISTEN · FOLLOW',title:'HEAR THE IDEA, ONE MOMENT AT A TIME.',lead:'Bring an external video into one shared media lesson. Watch, follow the original words, read the meaning when available, and replay a sentence.',url:'Video URL',placeholder:'https://…',prepare:'Import / Prepare lesson',retryTranslation:'Retry preparation',validating:'Checking the URL…',processing:'Preparing lesson…',translationFailed:'Meaning could not be prepared. Retry preparation to start this lesson.',original:'Original transcript',meaning:'Meaning',unavailable:'Meaning is not available yet.',notRequired:'Translation is not required for the selected support language.',translationUnavailable:'Meaning could not be generated right now. Continue with the original transcript.',translationTooLarge:'This lesson is too large for automatic meaning generation. Continue with the original transcript.',generatedTranscript:'This transcript was generated automatically and may contain mistakes.',transcriptMissing:'This video has no usable transcript.',unsupported:'This video source is not supported.',malformedUrl:'Enter a valid public media URL.',unsupportedProvider:'This media provider is not supported yet.',mediaUnavailable:'This media is private or unavailable.',providerTimeout:'The media provider did not respond in time. Please try again.',providerFailure:'The media provider could not prepare this lesson. Please try again.',unsupportedSourceLanguage:'This media language is not supported yet.',invalidTargetLanguage:'Choose a valid support language.',failed:'The lesson could not be prepared.',previous:'Previous segment',next:'Next segment',replay:'Replay',speed:'Speed',select:'Select a transcript segment to replay it.',shadow:'Shadow this',shared:'Shadowing reuses this same media and segment. No separate import is needed.',playback:'Playback is unavailable for this source.'},
-  vi:{listen:'NGHE · THEO DÕI',title:'NGHE TỪNG Ý, THEO TỪNG KHOẢNH KHẮC.',lead:'Đưa video bên ngoài vào một bài học media dùng chung. Xem, theo dõi lời gốc, đọc nghĩa khi có và nghe lại từng câu.',url:'URL video',placeholder:'https://…',prepare:'Nhập / Chuẩn bị bài học',retryTranslation:'Thử chuẩn bị lại',validating:'Đang kiểm tra URL…',processing:'Đang chuẩn bị bài học…',translationFailed:'Chưa thể chuẩn bị phần nghĩa. Hãy thử lại để bắt đầu bài học.',original:'Transcript gốc',meaning:'Nghĩa',unavailable:'Bản dịch nghĩa chưa có.',notRequired:'Không cần bản dịch cho ngôn ngữ hỗ trợ đã chọn.',translationUnavailable:'Hiện chưa thể tạo phần nghĩa. Bạn vẫn có thể tiếp tục với transcript gốc.',translationTooLarge:'Bài học này quá lớn để tự động tạo phần nghĩa. Bạn vẫn có thể tiếp tục với transcript gốc.',generatedTranscript:'Transcript này được tạo tự động và có thể có sai sót.',transcriptMissing:'Video này không có transcript phù hợp.',unsupported:'Nguồn video này chưa được hỗ trợ.',malformedUrl:'Hãy nhập URL media công khai hợp lệ.',unsupportedProvider:'Nhà cung cấp media này chưa được hỗ trợ.',mediaUnavailable:'Media này đang riêng tư hoặc không khả dụng.',providerTimeout:'Nhà cung cấp media không phản hồi kịp thời. Vui lòng thử lại.',providerFailure:'Nhà cung cấp media không thể chuẩn bị bài học này. Vui lòng thử lại.',unsupportedSourceLanguage:'Ngôn ngữ của media này chưa được hỗ trợ.',invalidTargetLanguage:'Hãy chọn ngôn ngữ hỗ trợ hợp lệ.',failed:'Không thể chuẩn bị bài học.',previous:'Đoạn trước',next:'Đoạn sau',replay:'Nghe lại',speed:'Tốc độ',select:'Chọn một đoạn transcript để nghe lại.',shadow:'Shadow câu này',shared:'Shadowing dùng lại chính media và đoạn này, không cần nhập lại video.',playback:'Không thể phát nguồn này.'},
-  zh:{listen:'听力 · 跟随',title:'逐句听见意思。',lead:'把外部视频导入一个共享媒体课程。观看视频、跟随原文、在可用时阅读释义，并重听每个句子。',url:'视频网址',placeholder:'https://…',prepare:'导入 / 准备课程',retryTranslation:'重试准备',validating:'正在检查网址…',processing:'正在准备课程…',translationFailed:'暂时无法准备释义。请重试准备后开始课程。',original:'原文字幕',meaning:'释义',unavailable:'释义暂时不可用。',notRequired:'所选辅助语言不需要翻译。',translationUnavailable:'目前无法生成释义。你仍可继续使用原文字幕。',translationTooLarge:'本课内容过大，当前无法自动生成释义。你仍可继续使用原文字幕。',generatedTranscript:'此字幕由系统自动生成，可能有误。',transcriptMissing:'这个视频没有可用字幕。',unsupported:'暂不支持这个视频来源。',malformedUrl:'请输入有效的公开视频网址。',unsupportedProvider:'暂不支持这个媒体提供方。',mediaUnavailable:'该媒体为私密内容或暂不可用。',providerTimeout:'媒体提供方响应超时，请重试。',providerFailure:'媒体提供方无法准备本课，请重试。',unsupportedSourceLanguage:'暂不支持这个媒体语言。',invalidTargetLanguage:'请选择有效的辅助语言。',failed:'无法准备课程。',previous:'上一句',next:'下一句',replay:'重听',speed:'速度',select:'选择一段字幕后重听。',shadow:'跟读这句',shared:'跟读直接复用同一媒体和句段，不需要再次导入视频。',playback:'这个来源暂时无法播放。'},
+  en:{listen:'LISTEN · FOLLOW',title:'HEAR THE IDEA, ONE MOMENT AT A TIME.',lead:'Bring an external video into one shared media lesson. Watch, follow the original words, read the meaning when available, and replay a sentence.',url:'Video URL',placeholder:'https://www.youtube.com/watch?v=…',prepare:'Import / Prepare lesson',recentTitle:'Continue a lesson',needTitle:'What works',need1:'A YouTube link, pasted straight from the address bar.',need2:'The video must already have captions — without them there is nothing to follow.',need3:'Spoken in the language you are studying.',retryTranslation:'Retry preparation',validating:'Checking the URL…',processing:'Preparing lesson…',translationFailed:'Meaning could not be prepared. Retry preparation to start this lesson.',original:'Original transcript',meaning:'Meaning',unavailable:'Meaning is not available yet.',notRequired:'Translation is not required for the selected support language.',translationUnavailable:'Meaning could not be generated right now. Continue with the original transcript.',translationTooLarge:'This lesson is too large for automatic meaning generation. Continue with the original transcript.',generatedTranscript:'This transcript was generated automatically and may contain mistakes.',transcriptMissing:'This video has no usable transcript.',unsupported:'This video source is not supported.',malformedUrl:'Enter a valid public media URL.',unsupportedProvider:'This media provider is not supported yet.',mediaUnavailable:'This media is private or unavailable.',providerTimeout:'The media provider did not respond in time. Please try again.',providerFailure:'The media provider could not prepare this lesson. Please try again.',unsupportedSourceLanguage:'This media language is not supported yet.',invalidTargetLanguage:'Choose a valid support language.',failed:'The lesson could not be prepared.',previous:'Previous segment',next:'Next segment',replay:'Replay',speed:'Speed',select:'Select a transcript segment to replay it.',shadow:'Shadow this',shared:'Shadowing reuses this same media and segment. No separate import is needed.',playback:'Playback is unavailable for this source.'},
+  vi:{listen:'NGHE · THEO DÕI',title:'NGHE TỪNG Ý, THEO TỪNG KHOẢNH KHẮC.',lead:'Đưa video bên ngoài vào một bài học media dùng chung. Xem, theo dõi lời gốc, đọc nghĩa khi có và nghe lại từng câu.',url:'URL video',placeholder:'https://www.youtube.com/watch?v=…',prepare:'Nhập / Chuẩn bị bài học',recentTitle:'Học tiếp một bài',needTitle:'Video thế nào thì dùng được',need1:'Một đường dẫn YouTube, dán thẳng từ thanh địa chỉ.',need2:'Video phải có sẵn phụ đề — không có phụ đề thì không có gì để theo dõi.',need3:'Nội dung nói bằng ngôn ngữ bạn đang học.',retryTranslation:'Thử chuẩn bị lại',validating:'Đang kiểm tra URL…',processing:'Đang chuẩn bị bài học…',translationFailed:'Chưa thể chuẩn bị phần nghĩa. Hãy thử lại để bắt đầu bài học.',original:'Transcript gốc',meaning:'Nghĩa',unavailable:'Bản dịch nghĩa chưa có.',notRequired:'Không cần bản dịch cho ngôn ngữ hỗ trợ đã chọn.',translationUnavailable:'Hiện chưa thể tạo phần nghĩa. Bạn vẫn có thể tiếp tục với transcript gốc.',translationTooLarge:'Bài học này quá lớn để tự động tạo phần nghĩa. Bạn vẫn có thể tiếp tục với transcript gốc.',generatedTranscript:'Transcript này được tạo tự động và có thể có sai sót.',transcriptMissing:'Video này không có transcript phù hợp.',unsupported:'Nguồn video này chưa được hỗ trợ.',malformedUrl:'Hãy nhập URL media công khai hợp lệ.',unsupportedProvider:'Nhà cung cấp media này chưa được hỗ trợ.',mediaUnavailable:'Media này đang riêng tư hoặc không khả dụng.',providerTimeout:'Nhà cung cấp media không phản hồi kịp thời. Vui lòng thử lại.',providerFailure:'Nhà cung cấp media không thể chuẩn bị bài học này. Vui lòng thử lại.',unsupportedSourceLanguage:'Ngôn ngữ của media này chưa được hỗ trợ.',invalidTargetLanguage:'Hãy chọn ngôn ngữ hỗ trợ hợp lệ.',failed:'Không thể chuẩn bị bài học.',previous:'Đoạn trước',next:'Đoạn sau',replay:'Nghe lại',speed:'Tốc độ',select:'Chọn một đoạn transcript để nghe lại.',shadow:'Shadow câu này',shared:'Shadowing dùng lại chính media và đoạn này, không cần nhập lại video.',playback:'Không thể phát nguồn này.'},
+  zh:{listen:'听力 · 跟随',title:'逐句听见意思。',lead:'把外部视频导入一个共享媒体课程。观看视频、跟随原文、在可用时阅读释义，并重听每个句子。',url:'视频网址',placeholder:'https://www.youtube.com/watch?v=…',prepare:'导入 / 准备课程',recentTitle:'继续一课',needTitle:'什么样的视频可用',need1:'一个 YouTube 链接，直接从地址栏粘贴。',need2:'视频必须已有字幕 —— 没有字幕就无法跟读。',need3:'使用你正在学习的语言。',retryTranslation:'重试准备',validating:'正在检查网址…',processing:'正在准备课程…',translationFailed:'暂时无法准备释义。请重试准备后开始课程。',original:'原文字幕',meaning:'释义',unavailable:'释义暂时不可用。',notRequired:'所选辅助语言不需要翻译。',translationUnavailable:'目前无法生成释义。你仍可继续使用原文字幕。',translationTooLarge:'本课内容过大，当前无法自动生成释义。你仍可继续使用原文字幕。',generatedTranscript:'此字幕由系统自动生成，可能有误。',transcriptMissing:'这个视频没有可用字幕。',unsupported:'暂不支持这个视频来源。',malformedUrl:'请输入有效的公开视频网址。',unsupportedProvider:'暂不支持这个媒体提供方。',mediaUnavailable:'该媒体为私密内容或暂不可用。',providerTimeout:'媒体提供方响应超时，请重试。',providerFailure:'媒体提供方无法准备本课，请重试。',unsupportedSourceLanguage:'暂不支持这个媒体语言。',invalidTargetLanguage:'请选择有效的辅助语言。',failed:'无法准备课程。',previous:'上一句',next:'下一句',replay:'重听',speed:'速度',select:'选择一段字幕后重听。',shadow:'跟读这句',shared:'跟读直接复用同一媒体和句段，不需要再次导入视频。',playback:'这个来源暂时无法播放。'},
 };
 const ACTIVE_COPY={
   en:{follow:'Follow',active:'Active',mode:'Listening mode',activeUnavailable:'Active Listening and Shadowing need usable provider playback.',practice:'Active Listening',prompt:'Type what you heard',check:'Check answer',reveal:'Reveal answer',retry:'Retry',yourAnswer:'Your answer',textMatch:'Text match',exact:'Exact match',close:'Close match',tryAgain:'Try again',disclaimer:'Text match compares your reconstruction with this transcript. It is not a proficiency score.',progress:'Session practice',practiced:'Practiced',exactCount:'Exact',average:'Average best text match',attempts:'Checked attempts',revealed:'Revealed only',segment:'Segment',answerEmpty:'Type what you heard before checking.',answerTooLarge:'Your reconstruction is too long to check safely.',segmentTooLarge:'This transcript segment is too large to check safely. Follow mode remains available.',meaningUnavailable:'Meaning is currently unavailable. The original transcript remains usable.',meaningTooLarge:'Meaning is unavailable because this lesson is too large for automatic translation.',meaningNotRequired:'Translation is not required for the selected support language.'},
@@ -287,12 +288,45 @@ function workspace(payload,selectedId=null,model={}){
 function listeningPage(model,viewId){
   const c=text();
   const busy=['validating','processing'].includes(model.status);
+  // Before a lesson exists this screen was a bare URL field: no statement of
+  // what it does and no hint that a video without captions cannot work, so the
+  // first thing a new learner met was an error. The orientation and the
+  // requirements only show until a lesson is ready, then the video takes over
+  // as the hero (SCREEN_CONTRACT listen: "the video is the hero").
+  const ready=model.status==='ready';
+  const intro=ready?'':`<div class="listening-intro">
+      <span class="context-label">${esc(c.listen)}</span>
+      <p class="listening-purpose">${esc(c.lead)}</p>
+    </div>`;
+  const recent=ready?[]:listMediaLessons(state.language);
+  const history=recent.length?`<div class="listening-history">
+      <span class="context-label">${esc(c.recentTitle)}</span>
+      <ul>
+        ${recent.map(item=>`<li>
+          <button type="button" class="listening-history-item" data-lesson-url="${esc(item.source_url)}">
+            <span class="listening-history-title">${esc(item.title||item.source_url)}</span>
+            ${item.provider?`<span class="listening-history-meta">${esc(item.provider)}</span>`:''}
+          </button>
+        </li>`).join('')}
+      </ul>
+    </div>`:'';
+  const requirements=ready?'':`<div class="listening-requirements">
+      <span class="context-label">${esc(c.needTitle)}</span>
+      <ul>
+        <li>${esc(c.need1)}</li>
+        <li>${esc(c.need2)}</li>
+        <li>${esc(c.need3)}</li>
+      </ul>
+    </div>`;
   return `<section class="page listening-page" data-listening-view="${viewId}">
+    ${intro}
     <form id="mediaImportForm" class="listening-import visual-section-surface" novalidate>
       <label for="mediaSourceUrl">${esc(c.url)}</label><div><input id="mediaSourceUrl" type="url" inputmode="url" placeholder="${esc(c.placeholder)}" required><button class="button button-primary" type="submit" ${busy?'disabled':''}>${esc(c.prepare)}</button></div>
       <div id="listeningStatus" aria-live="polite">${stateMessage(model.status,model.error)}${model.payload?.translation?.status==='unavailable'?`<button class="button button-secondary" type="button" data-retry-translation>${esc(c.retryTranslation)}</button>`:''}</div>
     </form>
-    <div id="listeningReady">${model.status==='ready'?workspace(model.payload,model.selected,model):''}</div>
+    ${history}
+    ${requirements}
+    <div id="listeningReady">${ready?workspace(model.payload,model.selected,model):''}</div>
   </section>`;
 }
 
@@ -663,6 +697,17 @@ export async function renderListening(root,{importMedia=api.importMedia,importSt
       event.preventDefault();
       controller.importUrl(root.querySelector('#mediaSourceUrl').value);
     },{signal:viewAbort.signal});
+    // A remembered lesson goes straight back in. The field is filled too, so
+    // the learner can see what was used and edit it instead of committing.
+    root.querySelectorAll('[data-lesson-url]').forEach(button=>{
+      button.addEventListener('click',()=>{
+        const url=button.dataset.lessonUrl||'';
+        if(!url)return;
+        const field=root.querySelector('#mediaSourceUrl');
+        if(field)field.value=url;
+        controller.importUrl(url);
+      },{signal:viewAbort.signal});
+    });
   };
   const schedulePoll=()=>{
     if(pollTimer)clearTimeout(pollTimer);
@@ -763,7 +808,17 @@ export async function renderListening(root,{importMedia=api.importMedia,importSt
   };
   controller=createListeningController({
     importMedia,importStatus,targetLanguage,translateMedia,onChange:render,
-    onMediaReady:(payload,selected_segment_id)=>setSharedMediaSession({learning_language:state.language,payload,selected_segment_id}),
+    onMediaReady:(payload,selected_segment_id)=>{
+      setSharedMediaSession({learning_language:state.language,payload,selected_segment_id});
+      // Listening is the skill where returning to the same material matters,
+      // so a prepared lesson is worth remembering by name, not just by URL.
+      rememberMediaLesson({
+        learning_language:state.language,
+        source_url:payload?.asset?.source_url||'',
+        title:payload?.asset?.title||'',
+        provider:payload?.asset?.source_provider||'',
+      });
+    },
     onTranslationReady:payload=>{
       setSharedMediaSession({learning_language:state.language,payload,selected_segment_id:controller.model.selected});
       render();
@@ -784,8 +839,20 @@ export async function renderListening(root,{importMedia=api.importMedia,importSt
   };
   const pending=getPendingMediaImport(state.language);
   const shared=getSharedMediaSession(state.language);
+  // Speaking can ask for a specific remembered lesson. A live import in flight
+  // and an already-restored session both outrank it: the learner's current work
+  // is never interrupted by a handoff.
+  const autostart=pending?'':takeLessonAutostart(state.language);
   if(pending)controller.resumePending(pending);
   else if(shared)controller.restore(shared.payload,shared.selected_segment_id);
+  else if(autostart){
+    render();
+    // Show what is being prepared. If it fails, the learner can see which link
+    // it was and edit it, instead of facing an error over an empty field.
+    const field=root.querySelector('#mediaSourceUrl');
+    if(field)field.value=autostart;
+    controller.importUrl(autostart);
+  }
   else render();
   return controller;
 }

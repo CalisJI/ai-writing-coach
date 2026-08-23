@@ -7,13 +7,14 @@ import {mediaPlayer,replaySegment,setPlaybackRate as setMediaPlaybackRate} from 
 import {uiLocale} from '../domain/i18n.js';
 import {transcriptTokens} from '../domain/transcript-tokens.js';
 import {getSharedMediaSession,selectSharedMediaSegment} from '../domain/shared-media-session.js';
+import {listMediaLessons,requestLessonAutostart} from '../domain/media-lesson-history.js';
 import {evaluateSpeechTranscript} from '../domain/speaking-evaluation.js';
 
 const COPY={
   en:{
     kicker:'SPEAK · SHADOW',title:'HEAR IT. SAY IT. HEAR YOURSELF.',
     lead:'Use the same media lesson from Listening. Record one local practice take, play it back, and repeat without creating a second media import.',
-    emptyTitle:'Choose a media lesson first.',emptyBody:'Import a video in Listening. Speaking reuses that exact media object and its canonical segments.',
+    emptyTitle:'Pick something to say.',emptyBody:'Speaking works from the lines of a prepared lesson. Continue one you have used before, or prepare a new video in Listening.',recentTitle:'Continue a lesson',prepareNew:'Prepare a new video',
     openListening:'Open Listening',backListening:'Back to Listening',segment:'Segment',meaning:'Meaning',
     replay:'Replay source',speed:'Speed',record:'Record my voice',stop:'Stop recording',discard:'Discard take',
     yourTake:'Your latest take',attempts:'Local takes',recording:'Recording… speak the selected segment aloud.',
@@ -27,7 +28,7 @@ const COPY={
   vi:{
     kicker:'NÓI · SHADOW',title:'NGHE. NÓI THEO. NGHE LẠI GIỌNG MÌNH.',
     lead:'Dùng lại đúng bài media từ Listening. Ghi một lượt luyện cục bộ, nghe lại và lặp lại mà không cần import media lần hai.',
-    emptyTitle:'Hãy chọn một bài media trước.',emptyBody:'Import video trong Listening. Speaking sẽ dùng lại đúng media object và các đoạn canonical đó.',
+    emptyTitle:'Chọn một thứ để nói.',emptyBody:'Mục Nói luyện theo câu của một bài đã chuẩn bị. Học tiếp một bài bạn từng dùng, hoặc chuẩn bị video mới ở mục Nghe.',recentTitle:'Học tiếp một bài',prepareNew:'Chuẩn bị video mới',
     openListening:'Mở Listening',backListening:'Quay lại Listening',segment:'Đoạn',meaning:'Nghĩa',
     replay:'Nghe lại câu gốc',speed:'Tốc độ',record:'Ghi giọng của tôi',stop:'Dừng ghi âm',discard:'Xóa lượt ghi',
     yourTake:'Lượt ghi gần nhất',attempts:'Lượt ghi cục bộ',recording:'Đang ghi… hãy nói theo đoạn đã chọn.',
@@ -41,7 +42,7 @@ const COPY={
   zh:{
     kicker:'口语 · 跟读',title:'先听，再说，再听自己的声音。',
     lead:'直接复用 Listening 中的同一媒体课程。录制一次本地练习、回放并重复，不需要再次导入媒体。',
-    emptyTitle:'请先选择一个媒体课程。',emptyBody:'先在 Listening 中导入视频。Speaking 会复用同一个媒体对象与标准句段。',
+    emptyTitle:'选一个要说的内容。',emptyBody:'口语练习使用已准备课程中的句子。继续一个用过的课程，或在听力中准备新视频。',recentTitle:'继续一课',prepareNew:'准备新视频',
     openListening:'打开 Listening',backListening:'返回 Listening',segment:'句段',meaning:'释义',
     replay:'重听原句',speed:'速度',record:'录下我的声音',stop:'停止录音',discard:'删除本次录音',
     yourTake:'最近一次录音',attempts:'本地录音次数',recording:'正在录音… 请大声跟读当前句段。',
@@ -179,11 +180,32 @@ function translationFor(payload,segmentId){
 
 function emptyPage(){
   const c=copy();
+  // Speaking used to render one sentence of engineering shorthand and a single
+  // "Open Listening" button, so the only way in was to walk to another screen
+  // and find the video again. Remembered lessons are offered here directly,
+  // which is what breaks the hard dependency on Listening.
+  const recent=listMediaLessons(state.language);
+  const history=recent.length?`<div class="speaking-sources">
+      <span class="context-label">${esc(c.recentTitle)}</span>
+      <ul>
+        ${recent.map(item=>`<li>
+          <button type="button" class="listening-history-item" data-speaking-lesson="${esc(item.source_url)}">
+            <span class="listening-history-title">${esc(item.title||item.source_url)}</span>
+            ${item.provider?`<span class="listening-history-meta">${esc(item.provider)}</span>`:''}
+          </button>
+        </li>`).join('')}
+      </ul>
+    </div>`:'';
   return `<section class="page speaking-page speaking-empty">
-    <div class="speaking-empty-card visual-section-surface">
-      <p>${esc(c.emptyBody)}</p>
-      <button class="button button-primary" type="button" data-speaking-open-listening>${esc(c.openListening)}</button>
+    <div class="speaking-intro">
+      <span class="context-label">${esc(c.kicker)}</span>
+      <p class="speaking-purpose">${esc(c.emptyBody)}</p>
     </div>
+    ${history}
+    <div class="speaking-empty-actions">
+      <button class="button ${recent.length?'button-secondary':'button-primary'}" type="button" data-speaking-open-listening>${esc(recent.length?c.prepareNew:c.openListening)}</button>
+    </div>
+    <p class="speaking-privacy-note">${esc(c.privacy)}</p>
   </section>`;
 }
 
@@ -457,6 +479,14 @@ export async function renderSpeaking(root,{recorderFactory=createLocalAudioRecor
   if(!session){
     root.innerHTML=emptyPage();
     root.querySelector('[data-speaking-open-listening]')?.addEventListener('click',()=>go('listen'));
+    root.querySelectorAll('[data-speaking-lesson]').forEach(button=>{
+      button.addEventListener('click',()=>{
+        // Ask Listening to prepare this exact lesson, then go there. Listening
+        // builds the session Speaking needs; the learner does not have to.
+        requestLessonAutostart(state.language,button.dataset.speakingLesson||'');
+        go('listen');
+      });
+    });
     return null;
   }
 
