@@ -824,3 +824,50 @@ html:root .listening-replay-button{
   min-width:0;
   overflow:visible;
 }
+
+/* ---------- LISTEN — the phone layout ----------
+   On a phone the workspace stacks, and the order was: video, mode tabs,
+   display toggles, lens chips, translation note, playback bar, and only then
+   the transcript -- which put the learning surface roughly 70% down the
+   screen. A learner had to scroll past every setting to reach the words.
+
+   The transcript and the playback bar move up directly under the video. The
+   display toggles are preferences, set once and rarely changed, so they go
+   below the text they affect. Nothing is hidden; the order just matches how
+   often each part is actually used. */
+@media(max-width:1000px){
+  .listening-transcript{
+    display:flex;
+    flex-direction:column;
+  }
+
+  .listening-transcript .listening-practice-controls{order:1}
+  .listening-transcript .listening-segments{order:2}
+  .listening-transcript .translation-status,
+  .listening-transcript .translation-not-required{order:3}
+  .listening-transcript .listening-toolbar{
+    order:4;
+    padding-top:var(--space-4);
+    border-top:1px solid var(--color-border-subtle);
+  }
+  .listening-transcript .listening-shared-note{order:5}
+
+  /* The playback bar is what a learner touches between replays, so it stays
+     put while the transcript scrolls under it. */
+  .listening-transcript .listening-practice-controls{
+    position:sticky;
+    top:0;
+    z-index:2;
+    background:var(--color-surface);
+  }
+
+  /* A 16:9 embed on a tall phone screen was taking a third of the viewport
+     before the first line of transcript. Capped so both fit. */
+  .listening-video-frame{
+    max-height:32vh;
+  }
+  .listening-video-frame iframe,
+  .listening-video-frame video{
+    max-height:32vh;
+  }
+}
