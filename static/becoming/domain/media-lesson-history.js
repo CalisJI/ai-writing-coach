@@ -138,3 +138,24 @@ export function takeLessonAutostart(learningLanguage = '') {
     return '';
   }
 }
+
+/* ---- resume ----
+ * The prepared session lives in memory only, so a refresh loses the lesson and
+ * the learner has to go and find it again. Persisting the payload is the wrong
+ * fix: a transcript is large, localStorage has a quota, and a stale copy of a
+ * lesson is worse than no copy.
+ *
+ * `saved_at` on the newest entry already records when a lesson was last
+ * prepared, so it doubles as "what was I working on". Inside a short window
+ * that is a resume; outside it, reopening Listening means starting something
+ * new, and silently re-importing an old video would be the wrong guess.
+ */
+const RESUME_WINDOW_MS = 60 * 60 * 1000;
+
+export function resumableLesson(learningLanguage = '', windowMs = RESUME_WINDOW_MS) {
+  const [newest] = listMediaLessons(learningLanguage);
+  if (!newest) return null;
+  const savedAt = Number(newest.saved_at);
+  if (!Number.isFinite(savedAt) || Date.now() - savedAt > windowMs) return null;
+  return { source_url: newest.source_url, title: newest.title || '' };
+}
