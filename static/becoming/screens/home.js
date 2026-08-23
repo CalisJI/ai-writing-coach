@@ -2,7 +2,7 @@ import {api} from '../api.js';
 import {state,saveDraft} from '../store.js';
 import {go} from '../router.js';
 import {homeInsight,metricOverview} from '../domain/feedback.js';
-import {esc,errorBlock,loadingBlock,runBusy} from '../components/primitives.js';
+import {esc,errorBlock,loadingBlock,runBusy,sectionHeading} from '../components/primitives.js';
 import {t,categoryLabel,masteryLabel,practiceModeLabel,topicLabel,unitLabel} from '../domain/i18n.js';
 
 function sortedEssays(rows=[]){
@@ -323,15 +323,14 @@ export async function renderHome(root){
       </section>
 
       <section class="home-recent-section visual-section-surface" aria-labelledby="recentHeading">
-        <div class="home-section-heading">
-          <div>
-            <span class="context-label">${t('home.recent_work')}</span>
-            <h2 id="recentHeading">${t('home.recent')}</h2>
-          </div>
-          <button id="journeyLink" class="text-link" type="button">${t('home.journey')} →</button>
-        </div>
+        ${sectionHeading({
+          kicker:t('home.recent_work'),
+          title:t('home.recent'),
+          id:'recentHeading',
+          action:`<button id="journeyLink" class="text-link" type="button">${t('home.journey')} →</button>`,
+        })}
         ${recentRows(essays)}
-      </section>
+      </section>`;
     </section>`;
 
     root.querySelector('#homePrimary')?.addEventListener('click',async()=>{
