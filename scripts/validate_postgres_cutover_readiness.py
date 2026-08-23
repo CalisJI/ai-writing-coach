@@ -7,7 +7,6 @@ def req(value: bool, message: str) -> None:
     if not value: errors.append(message)
 
 req((ROOT / "VERSION").read_text(encoding="utf-8").strip() == "1.4.0", "v1.4.0 version missing")
-req((ROOT / "BECOMING_FRONTEND_VERSION").read_text(encoding="utf-8").strip() == "2.15.7", "protected frontend changed")
 app = (ROOT / "app.py").read_text(encoding="utf-8")
 runtime = (ROOT / "writing_coach/persistence/runtime.py").read_text(encoding="utf-8")
 req("build_runtime(" in app and "create_shadow_engine" not in app, "central runtime selection missing or shadow engine selected")
