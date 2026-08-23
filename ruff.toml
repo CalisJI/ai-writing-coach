@@ -1,0 +1,42 @@
+# Lint-only configuration. Formatting is intentionally NOT enabled:
+# app.py and the BECOMING modules predate this config and reformatting them
+# would produce large diffs across protected areas (AGENTS.md §5).
+#
+#   ruff check .                 # lint everything
+#   ruff check path/to/file.py   # lint what you just edited
+
+target-version = "py311"
+line-length = 120
+
+exclude = [
+    ".venv",
+    "__pycache__",
+    "data",
+    "migrations/versions",
+    "docs/visual-references",
+]
+
+[lint]
+# Conservative: real defects and unused code, not style opinions.
+select = [
+    "E9",   # syntax / IO errors
+    "F",    # pyflakes: undefined names, unused imports and variables
+    "B",    # bugbear: likely bugs (mutable defaults, loop-variable binding)
+    "UP",   # pyupgrade: outdated syntax for py311
+    "T20",  # stray print()/pprint() left in source
+]
+ignore = [
+    "B008",  # FastAPI Depends() in defaults is idiomatic here
+    "B904",  # bare `raise ... from` not consistently used in this codebase
+]
+
+[lint.per-file-ignores]
+# Scripts, validators, selftests, and benchmark runners print to stdout by
+# design -- T20 there is noise, not a finding.
+"scripts/*.py" = ["T20"]
+"tests/*.py" = ["T20"]
+"test_app.py" = ["T20"]
+"services/**/provision_models.py" = ["T20"]
+"**/selftest.py" = ["T20"]
+"**/*_selftest.py" = ["T20"]
+"**/*benchmark_runner.py" = ["T20"]
