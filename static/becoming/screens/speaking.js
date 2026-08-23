@@ -23,7 +23,7 @@ const COPY={
     micError:'Microphone access is unavailable. Check browser permission and try again.',
     emptyRecording:'No usable audio was captured. Try another take.',
     privacy:'This take stays in this browser tab. It is not uploaded or saved to your account.',
-    noScore:'Speaking Core is internal and self-guided for now. No ASR, pronunciation score, or speaking evaluation is generated.',
+    noScore:'Speaking practice here is self-guided. Nothing is transcribed, scored, or evaluated.',
     source:'Source line',
   },
   vi:{
@@ -37,7 +37,7 @@ const COPY={
     micError:'Không truy cập được microphone. Hãy kiểm tra quyền của trình duyệt rồi thử lại.',
     emptyRecording:'Không thu được audio phù hợp. Hãy thử lại.',
     privacy:'Lượt ghi chỉ tồn tại trong tab trình duyệt này. Audio không được upload hay lưu vào tài khoản.',
-    noScore:'Speaking Core hiện là bản internal tự luyện. Chưa có ASR, điểm phát âm hoặc chấm Speaking.',
+    noScore:'Phần luyện nói này bạn tự dẫn dắt. Không có gì được chuyển thành văn bản, chấm điểm hay đánh giá.',
     source:'Câu gốc',
   },
   zh:{
@@ -51,7 +51,7 @@ const COPY={
     micError:'无法使用麦克风。请检查浏览器权限后重试。',
     emptyRecording:'没有录到可用音频，请再试一次。',
     privacy:'本次录音只保留在当前浏览器标签页，不会上传或保存到账户。',
-    noScore:'Speaking Core 目前是内部自主练习，不运行 ASR，也不生成发音分数或口语评估。',
+    noScore:'这里的口语练习由你自主掌控。不转写、不评分、也不做评估。',
     source:'原句',
   },
 };

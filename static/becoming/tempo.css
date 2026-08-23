@@ -661,3 +661,73 @@ html:root .review-hero + .section-rule{
   font-size:var(--font-size-meta);
   line-height:1.5;
 }
+
+/* ============================================================
+   TRANSCRIPT — part-of-speech legibility
+   ============================================================
+   The POS lens painted seven saturated hues across running text, so every
+   content word carried a strong colour at once. When everything is marked,
+   nothing is: the transcript -- the screen's actual learning surface, and the
+   thing a learner reads for minutes at a time -- became the hardest text in
+   the product to read, and on the dark ground the near-neon values fringed
+   badly at body size.
+
+   The lens is worth keeping; its intensity was not. Each hue is mixed back
+   toward the ink colour, so the mapping still reads at a glance while the
+   transcript reads as prose first and structure second. Hue identity is
+   preserved, which is what the legend depends on.
+*/
+html:root{
+  --it-pos-noun:color-mix(in srgb,#2563eb 62%,var(--color-ink));
+  --it-pos-verb:color-mix(in srgb,#059669 62%,var(--color-ink));
+  --it-pos-adjective:color-mix(in srgb,#9333ea 58%,var(--color-ink));
+  --it-pos-adverb:color-mix(in srgb,#c2410c 62%,var(--color-ink));
+  --it-pos-pronoun:color-mix(in srgb,#0891b2 62%,var(--color-ink));
+  --it-pos-particle:color-mix(in srgb,#d97706 62%,var(--color-ink));
+  --it-pos-function:var(--color-ink-muted);
+}
+
+html[data-theme="dark"]{
+  --it-pos-noun:color-mix(in srgb,#7aa7ff 46%,var(--color-ink));
+  --it-pos-verb:color-mix(in srgb,#67d5ad 46%,var(--color-ink));
+  --it-pos-adjective:color-mix(in srgb,#caa3ff 44%,var(--color-ink));
+  --it-pos-adverb:color-mix(in srgb,#ffae78 46%,var(--color-ink));
+  --it-pos-pronoun:color-mix(in srgb,#71d4e7 46%,var(--color-ink));
+  --it-pos-particle:color-mix(in srgb,#f5c266 46%,var(--color-ink));
+  --it-pos-function:var(--color-ink-muted);
+}
+
+/* The legend is a key, not prose: a few small swatches carrying the full hue
+   is exactly where saturation belongs, so it keeps the original values. */
+html:root .it-pos-legend .pos-noun{color:#2563eb}
+html:root .it-pos-legend .pos-verb{color:#059669}
+html:root .it-pos-legend .pos-adjective{color:#9333ea}
+html:root .it-pos-legend .pos-adverb{color:#c2410c}
+html:root .it-pos-legend .pos-pronoun{color:#0891b2}
+html[data-theme="dark"] .it-pos-legend .pos-noun{color:#7aa7ff}
+html[data-theme="dark"] .it-pos-legend .pos-verb{color:#67d5ad}
+html[data-theme="dark"] .it-pos-legend .pos-adjective{color:#caa3ff}
+html[data-theme="dark"] .it-pos-legend .pos-adverb{color:#ffae78}
+html[data-theme="dark"] .it-pos-legend .pos-pronoun{color:#71d4e7}
+
+/* Once a lesson is prepared, the import form has done its job. It was holding
+   130px of prime space at full strength while the transcript below it -- the
+   thing being studied -- got a 459px window for 3145px of content. It recedes
+   to a quiet strip that still accepts a new link. */
+.listening-page:has(#listeningReady > *) .listening-import{
+  padding:var(--space-3) var(--space-4);
+  background:none;
+  border:1px solid var(--color-border-subtle);
+  box-shadow:none;
+  opacity:.7;
+  transition:opacity var(--motion-standard) ease;
+}
+
+.listening-page:has(#listeningReady > *) .listening-import:hover,
+.listening-page:has(#listeningReady > *) .listening-import:focus-within{
+  opacity:1;
+}
+
+.listening-page:has(#listeningReady > *) .listening-import label{
+  font-size:var(--font-size-meta);
+}
