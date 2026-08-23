@@ -206,9 +206,13 @@ html[data-theme="dark"]{
 .bc13-control,
 .bc13-choice,
 .bc13-select{
-  border:1px solid var(--bc13-edge)!important;
+  /* `!important` dropped from border/background so the design system can style
+     form controls: it was blocking the chevron and the flat functional ground
+     that tells a learner this is a dropdown. Third patch layer found doing
+     this (see also lively-details-v214 .bc14-mini-card). */
+  border:1px solid var(--bc13-edge);
   border-radius:var(--radius-control)!important;
-  background:linear-gradient(145deg,var(--bc13-top),var(--bc13-bottom))!important;
+  background:linear-gradient(145deg,var(--bc13-top),var(--bc13-bottom));
   color:var(--color-ink)!important;
   box-shadow:var(--bc13-depth-control)!important;
   transition:

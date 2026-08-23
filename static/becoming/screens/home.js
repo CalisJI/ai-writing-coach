@@ -181,6 +181,32 @@ function dashboardEvidence(essays=[],memory={}){
   };
 }
 
+/* Effort reward. `streak` is consecutive days with real written evidence,
+   computed server-side from essays.created_at. It reports behaviour only --
+   never proficiency -- so it stays inside UIUX contract rule 10 and
+   regression rule 16. A zero streak is not rendered: an empty reward is
+   discouraging and says nothing. */
+function streakMarkup(dashboard){
+  const days=Number(dashboard&&dashboard.streak)||0;
+  if(days<1)return '';
+  const ring=88;                                   // 2*pi*r for r=14
+  const offset=Math.round(ring*(1-Math.min(days,7)/7));
+  const label=days===1?t('home.streak_day'):t('home.streak_days');
+  const note=t('home.streak_note');
+  return `<div class="reward-surface home-streak" title="${esc(note)}">
+    <span class="reward-ring" style="--reward-ring-offset:${offset};--reward-ring-empty:${ring}" aria-hidden="true">
+      <svg width="34" height="34" viewBox="0 0 34 34">
+        <circle class="reward-ring-track" cx="17" cy="17" r="14"></circle>
+        <circle class="reward-ring-fill" cx="17" cy="17" r="14" stroke-dasharray="${ring}" stroke-dashoffset="${offset}"></circle>
+      </svg>
+    </span>
+    <span class="reward-text">
+      <span class="reward-value">${days}</span>
+      <span class="reward-label">${esc(label)}</span>
+    </span>
+  </div>`;
+}
+
 function writingDashboardMarkup(dashboard,essays,memory){
   const evidence=dashboardEvidence(essays,memory);
   const metrics=metricOverview(dashboard).slice(0,4);
@@ -302,6 +328,7 @@ export async function renderHome(root){
     root.innerHTML=`<section class="page canonical-home">
       <section class="home-editorial-hero">
         <div class="home-editorial-copy">
+          ${streakMarkup(dashboard)}
           <div class="action-row home-hero-actions">
             <button id="homePrimary" class="button button-primary">${esc(personalized?t('home.practice_action'):insight.action)}</button>
             <button id="journeyLinkTop" class="button button-secondary" type="button">${t('home.journey')}</button>
