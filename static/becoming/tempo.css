@@ -477,3 +477,17 @@ html[data-theme="dark"]{
   line-height:1.55;
   max-width:56ch;
 }
+
+/* ---------- REVIEW — hero spacing after the header removal ----------
+   The padding here was sized to breathe around a large editorial headline.
+   OREN-15 removed that headline, so the band kept its generous spacing with
+   almost nothing in it: 206px of hero for roughly 60px of content, and the
+   evidence below pushed 500px down the page. Tightened to suit what is
+   actually there now -- a one-line lede, a guidance chip and the benchmark. */
+html:root .review-hero{
+  padding-block:var(--space-5) var(--space-6);
+}
+
+html:root .review-hero + .section-rule{
+  margin-block:0;
+}
