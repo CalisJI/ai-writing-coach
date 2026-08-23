@@ -3,6 +3,7 @@ import {state} from '../store.js';
 import {configFor} from '../language.js';
 import {esc,errorBlock,loadingBlock,toast,runBusy} from '../components/primitives.js';
 import {t,uiLocale} from '../domain/i18n.js';
+import {skillMasthead} from '../components/skill-masthead.js';
 
 const TOPIC_KEYS=['random','daily_life','work','science','culture','community'];
 
@@ -222,7 +223,16 @@ export async function renderReading(root,{preserveControls=false}={}){
     const session=state.readingSession;
     const result=state.readingResult;
 
+    // Saved passages are kept evidence, so the count reads as effort banked.
+    // The purpose line drops once a passage is open: the passage is the hero
+    // then, and a description of the screen would compete with it.
+    const kept=(state.readingSessions||[]).length;
     root.innerHTML=`<section class="page reading-page">
+      ${skillMasthead({
+        name:t('skill.read.name'),
+        purpose:session?'':t('skill.read.purpose'),
+        stat:kept?{value:kept,label:t('skill.read.stat'),tone:'reward'}:null,
+      })}
       ${session
         ?`<div class="reading-workspace">
           ${passageBlock(session,result)}

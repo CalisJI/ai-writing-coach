@@ -7,6 +7,7 @@ import {esc,toast,helpTip,runBusy} from '../components/primitives.js';
 import {t,practiceModeLabel,topicLabel,unitLabel} from '../domain/i18n.js';
 import {supportCopy,supportNote} from '../domain/support.js';
 import {openDictionary} from '../components/dictionary.js';
+import {skillMasthead} from '../components/skill-masthead.js';
 
 function option(value,label,current){
   return `<option value="${esc(value)}" ${String(value)===String(current)?'selected':''}>${esc(label)}</option>`;
@@ -60,7 +61,16 @@ export async function renderWrite(root){
   const adaptiveMode=guidanceMode(state.profile||{},state.language,state.draft.level);
   const scaffold=writingScaffold(adaptiveMode,state.language);
 
+  // The live number is the draft's own length -- the one figure a writer
+  // actually watches while working. Accent, not reward: it is a working
+  // measure, not evidence of effort banked.
+  const draftUnits=countUnits(state.draft.text,state.language);
   root.innerHTML=`<section class="page guidance-${esc(adaptiveMode)}">
+    ${skillMasthead({
+      name:t('skill.write.name'),
+      purpose:t('skill.write.purpose'),
+      stat:draftUnits?{value:draftUnits,label:t('skill.write.stat'),tone:'accent'}:null,
+    })}
     ${state.draft.parentEssayId?`<div class="action-row"><button id="newDraftButton" class="button button-tertiary">${t('write.start_fresh')}</button></div>`:''}
     <div class="write-layout">
       <section class="editor-workspace writing-hero-surface visual-hero-surface" aria-labelledby="editorLabel">
