@@ -8,11 +8,12 @@ import {uiLocale} from '../domain/i18n.js';
 import {transcriptTokens} from '../domain/transcript-tokens.js';
 import {getSharedMediaSession,selectSharedMediaSegment} from '../domain/shared-media-session.js';
 import {listMediaLessons,requestLessonAutostart} from '../domain/media-lesson-history.js';
+import {skillMasthead} from '../components/skill-masthead.js';
 import {evaluateSpeechTranscript} from '../domain/speaking-evaluation.js';
 
 const COPY={
   en:{
-    kicker:'SPEAK · SHADOW',title:'HEAR IT. SAY IT. HEAR YOURSELF.',
+    kicker:'SPEAK · SHADOW',skillName:'Speak',skillStat:'lessons ready',title:'HEAR IT. SAY IT. HEAR YOURSELF.',
     lead:'Use the same media lesson from Listening. Record one local practice take, play it back, and repeat without creating a second media import.',
     emptyTitle:'Pick something to say.',emptyBody:'Speaking works from the lines of a prepared lesson. Continue one you have used before, or prepare a new video in Listening.',recentTitle:'Continue a lesson',prepareNew:'Prepare a new video',
     openListening:'Open Listening',backListening:'Back to Listening',segment:'Segment',meaning:'Meaning',
@@ -26,7 +27,7 @@ const COPY={
     source:'Source line',
   },
   vi:{
-    kicker:'NÓI · SHADOW',title:'NGHE. NÓI THEO. NGHE LẠI GIỌNG MÌNH.',
+    kicker:'NÓI · SHADOW',skillName:'Nói',skillStat:'bài đã chuẩn bị',title:'NGHE. NÓI THEO. NGHE LẠI GIỌNG MÌNH.',
     lead:'Dùng lại đúng bài media từ Listening. Ghi một lượt luyện cục bộ, nghe lại và lặp lại mà không cần import media lần hai.',
     emptyTitle:'Chọn một thứ để nói.',emptyBody:'Mục Nói luyện theo câu của một bài đã chuẩn bị. Học tiếp một bài bạn từng dùng, hoặc chuẩn bị video mới ở mục Nghe.',recentTitle:'Học tiếp một bài',prepareNew:'Chuẩn bị video mới',
     openListening:'Mở Listening',backListening:'Quay lại Listening',segment:'Đoạn',meaning:'Nghĩa',
@@ -40,7 +41,7 @@ const COPY={
     source:'Câu gốc',
   },
   zh:{
-    kicker:'口语 · 跟读',title:'先听，再说，再听自己的声音。',
+    kicker:'口语 · 跟读',skillName:'口语',skillStat:'已准备课程',title:'先听，再说，再听自己的声音。',
     lead:'直接复用 Listening 中的同一媒体课程。录制一次本地练习、回放并重复，不需要再次导入媒体。',
     emptyTitle:'选一个要说的内容。',emptyBody:'口语练习使用已准备课程中的句子。继续一个用过的课程，或在听力中准备新视频。',recentTitle:'继续一课',prepareNew:'准备新视频',
     openListening:'打开 Listening',backListening:'返回 Listening',segment:'句段',meaning:'释义',
@@ -197,10 +198,11 @@ function emptyPage(){
       </ul>
     </div>`:'';
   return `<section class="page speaking-page speaking-empty">
-    <div class="speaking-intro">
-      <span class="context-label">${esc(c.kicker)}</span>
-      <p class="speaking-purpose">${esc(c.emptyBody)}</p>
-    </div>
+    ${skillMasthead({
+      name:c.skillName,
+      purpose:c.emptyBody,
+      stat:recent.length?{value:recent.length,label:c.skillStat,tone:'reward'}:null,
+    })}
     ${history}
     <div class="speaking-empty-actions">
       <button class="button ${recent.length?'button-secondary':'button-primary'}" type="button" data-speaking-open-listening>${esc(recent.length?c.prepareNew:c.openListening)}</button>
