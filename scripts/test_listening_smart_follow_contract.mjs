@@ -48,7 +48,23 @@ assert.doesNotMatch(listeningCss,/\[data-replay-current\][^}]*grid-column:1\/-1/
 assert.doesNotMatch(css,/\.listening-now-playing/);
 assert.match(css,/\.listening-segment\.selected\.it-playing-segment/);
 assert.match(css,/transition:background-color \.2s ease/);
-assert.match(listening,/data-toggle-playback[\s\S]*data-follow-playing[\s\S]*data-previous-segment[\s\S]*data-replay-current[\s\S]*data-next-segment/);
+// The five controls used to sit in one row, and this asserted their order in
+// it. The rebuild against ORENA-LISTENING-* splits them by job: transport lives
+// on the player (skip, play, skip, mute, rate) and segment movement lives under
+// the transcript (previous, replay, next). Order within a row is no longer the
+// contract; that every control still exists and still reaches the player is.
+// The behavioural guards above this line are untouched.
+for(const control of [
+  'data-toggle-playback',
+  'data-follow-playing',
+  'data-previous-segment',
+  'data-replay-current',
+  'data-next-segment',
+  'data-seek',
+  'data-toggle-mute',
+]){
+  assert.match(listening,new RegExp(control),`listening lost the ${control} control`);
+}
 assert.match(listening,/data-follow-playing aria-label=/);
 
 console.log('LISTENING_SMART_FOLLOW_CONTRACT=PASS');

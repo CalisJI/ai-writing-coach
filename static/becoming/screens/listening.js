@@ -2,8 +2,11 @@ import {api} from '../api.js';
 import {go} from '../router.js';
 import {state,supportLanguage} from '../store.js';
 import {esc} from '../components/primitives.js';
-import {connectMediaPlayer,disconnectMediaPlayer,mediaPlayer,playbackAvailable,replaySegment,togglePlayback,setPlaybackRate as setMediaPlaybackRate} from '../components/media-player.js';
-import {uiLocale} from '../domain/i18n.js';
+import {connectMediaPlayer,disconnectMediaPlayer,mediaPlayer,playbackAvailable,replaySegment,seekBy,toggleMute,togglePlayback,setPlaybackRate as setMediaPlaybackRate} from '../components/media-player.js';
+import {t,uiLocale} from '../domain/i18n.js';
+import {countUnits} from '../language.js';
+import {oIcon} from '../orena/icons.js';
+import {showDialog} from '../components/primitives.js';
 import {transcriptTokens} from '../domain/transcript-tokens.js';
 import {buildTranscriptDisplayUnits,displayUnitContains,displayUnitMeaning} from '../domain/transcript-display-units.js';
 import {activeCanonicalSegment} from '../domain/transcript-playback.js';
@@ -32,9 +35,9 @@ import {listMediaLessons,rememberMediaLesson,takeLessonAutostart,resumableLesson
 import {skillMasthead} from '../components/skill-masthead.js';
 
 const COPY={
-  en:{listen:'LISTEN · FOLLOW',title:'HEAR THE IDEA, ONE MOMENT AT A TIME.',lead:'Bring an external video into one shared media lesson. Watch, follow the original words, read the meaning when available, and replay a sentence.',url:'Video URL',placeholder:'https://www.youtube.com/watch?v=…',prepare:'Import / Prepare lesson',preparingMeaning:'Preparing the meaning… the original transcript is ready to use now.',showGroup:'Show',skillName:'Listen',skillStat:'lessons ready',recentTitle:'Continue a lesson',needTitle:'What works',need1:'A YouTube link, pasted straight from the address bar.',need2:'The video must already have captions — without them there is nothing to follow.',need3:'Spoken in the language you are studying.',retryTranslation:'Retry preparation',validating:'Checking the URL…',processing:'Preparing lesson…',translationFailed:'Meaning could not be prepared. Retry preparation to start this lesson.',original:'Original transcript',meaning:'Meaning',unavailable:'Meaning is not available yet.',notRequired:'Translation is not required for the selected support language.',translationUnavailable:'Meaning could not be generated right now. Continue with the original transcript.',translationTooLarge:'This lesson is too large for automatic meaning generation. Continue with the original transcript.',generatedTranscript:'This transcript was generated automatically and may contain mistakes.',transcriptMissing:'This video has no usable transcript.',unsupported:'This video source is not supported.',malformedUrl:'Enter a valid public media URL.',unsupportedProvider:'This media provider is not supported yet.',mediaUnavailable:'This media is private or unavailable.',providerTimeout:'The media provider did not respond in time. Please try again.',providerFailure:'The media provider could not prepare this lesson. Please try again.',unsupportedSourceLanguage:'This media language is not supported yet.',invalidTargetLanguage:'Choose a valid support language.',failed:'The lesson could not be prepared.',previous:'Previous segment',next:'Next segment',replay:'Replay',speed:'Speed',select:'Select a transcript segment to replay it.',shadow:'Shadow this',shared:'Shadowing reuses this same media and segment. No separate import is needed.',playback:'Playback is unavailable for this source.'},
-  vi:{listen:'NGHE · THEO DÕI',title:'NGHE TỪNG Ý, THEO TỪNG KHOẢNH KHẮC.',lead:'Đưa video bên ngoài vào một bài học media dùng chung. Xem, theo dõi lời gốc, đọc nghĩa khi có và nghe lại từng câu.',url:'URL video',placeholder:'https://www.youtube.com/watch?v=…',prepare:'Nhập / Chuẩn bị bài học',preparingMeaning:'Đang chuẩn bị phần nghĩa… transcript gốc đã dùng được ngay.',showGroup:'Hiển thị',skillName:'Nghe',skillStat:'bài đã chuẩn bị',recentTitle:'Học tiếp một bài',needTitle:'Video thế nào thì dùng được',need1:'Một đường dẫn YouTube, dán thẳng từ thanh địa chỉ.',need2:'Video phải có sẵn phụ đề — không có phụ đề thì không có gì để theo dõi.',need3:'Nội dung nói bằng ngôn ngữ bạn đang học.',retryTranslation:'Thử chuẩn bị lại',validating:'Đang kiểm tra URL…',processing:'Đang chuẩn bị bài học…',translationFailed:'Chưa thể chuẩn bị phần nghĩa. Hãy thử lại để bắt đầu bài học.',original:'Transcript gốc',meaning:'Nghĩa',unavailable:'Bản dịch nghĩa chưa có.',notRequired:'Không cần bản dịch cho ngôn ngữ hỗ trợ đã chọn.',translationUnavailable:'Hiện chưa thể tạo phần nghĩa. Bạn vẫn có thể tiếp tục với transcript gốc.',translationTooLarge:'Bài học này quá lớn để tự động tạo phần nghĩa. Bạn vẫn có thể tiếp tục với transcript gốc.',generatedTranscript:'Transcript này được tạo tự động và có thể có sai sót.',transcriptMissing:'Video này không có transcript phù hợp.',unsupported:'Nguồn video này chưa được hỗ trợ.',malformedUrl:'Hãy nhập URL media công khai hợp lệ.',unsupportedProvider:'Nhà cung cấp media này chưa được hỗ trợ.',mediaUnavailable:'Media này đang riêng tư hoặc không khả dụng.',providerTimeout:'Nhà cung cấp media không phản hồi kịp thời. Vui lòng thử lại.',providerFailure:'Nhà cung cấp media không thể chuẩn bị bài học này. Vui lòng thử lại.',unsupportedSourceLanguage:'Ngôn ngữ của media này chưa được hỗ trợ.',invalidTargetLanguage:'Hãy chọn ngôn ngữ hỗ trợ hợp lệ.',failed:'Không thể chuẩn bị bài học.',previous:'Đoạn trước',next:'Đoạn sau',replay:'Nghe lại',speed:'Tốc độ',select:'Chọn một đoạn transcript để nghe lại.',shadow:'Shadow câu này',shared:'Shadowing dùng lại chính media và đoạn này, không cần nhập lại video.',playback:'Không thể phát nguồn này.'},
-  zh:{listen:'听力 · 跟随',title:'逐句听见意思。',lead:'把外部视频导入一个共享媒体课程。观看视频、跟随原文、在可用时阅读释义，并重听每个句子。',url:'视频网址',placeholder:'https://www.youtube.com/watch?v=…',prepare:'导入 / 准备课程',preparingMeaning:'正在准备释义……原文字幕现在已可使用。',showGroup:'显示',skillName:'听力',skillStat:'已准备课程',recentTitle:'继续一课',needTitle:'什么样的视频可用',need1:'一个 YouTube 链接，直接从地址栏粘贴。',need2:'视频必须已有字幕 —— 没有字幕就无法跟读。',need3:'使用你正在学习的语言。',retryTranslation:'重试准备',validating:'正在检查网址…',processing:'正在准备课程…',translationFailed:'暂时无法准备释义。请重试准备后开始课程。',original:'原文字幕',meaning:'释义',unavailable:'释义暂时不可用。',notRequired:'所选辅助语言不需要翻译。',translationUnavailable:'目前无法生成释义。你仍可继续使用原文字幕。',translationTooLarge:'本课内容过大，当前无法自动生成释义。你仍可继续使用原文字幕。',generatedTranscript:'此字幕由系统自动生成，可能有误。',transcriptMissing:'这个视频没有可用字幕。',unsupported:'暂不支持这个视频来源。',malformedUrl:'请输入有效的公开视频网址。',unsupportedProvider:'暂不支持这个媒体提供方。',mediaUnavailable:'该媒体为私密内容或暂不可用。',providerTimeout:'媒体提供方响应超时，请重试。',providerFailure:'媒体提供方无法准备本课，请重试。',unsupportedSourceLanguage:'暂不支持这个媒体语言。',invalidTargetLanguage:'请选择有效的辅助语言。',failed:'无法准备课程。',previous:'上一句',next:'下一句',replay:'重听',speed:'速度',select:'选择一段字幕后重听。',shadow:'跟读这句',shared:'跟读直接复用同一媒体和句段，不需要再次导入视频。',playback:'这个来源暂时无法播放。'},
+  en:{shortcuts:'Shortcuts',shortcutsTitle:'Keyboard shortcuts',wordTiming:'Word timing',vocabulary:'Vocabulary',notes:'Notes',notesPlaceholder:'Your notes for this lesson stay on this device.',vocabularyEmpty:'Words you save from a review appear here.',download:'Download',hidePlayer:'Hide player',showPlayer:'Show player',jumpPlaying:'Jump to what is playing',skipBack:'Skip back',skipForward:'Skip forward',mute:'Mute',unmute:'Unmute',words:'words',listen:'LISTEN · FOLLOW',title:'HEAR THE IDEA, ONE MOMENT AT A TIME.',lead:'Bring an external video into one shared media lesson. Watch, follow the original words, read the meaning when available, and replay a sentence.',url:'Video URL',placeholder:'https://www.youtube.com/watch?v=…',prepare:'Import / Prepare lesson',preparingMeaning:'Preparing the meaning… the original transcript is ready to use now.',showGroup:'Show',skillName:'Listen',skillStat:'lessons ready',recentTitle:'Continue a lesson',needTitle:'What works',need1:'A YouTube link, pasted straight from the address bar.',need2:'The video must already have captions — without them there is nothing to follow.',need3:'Spoken in the language you are studying.',retryTranslation:'Retry preparation',validating:'Checking the URL…',processing:'Preparing lesson…',translationFailed:'Meaning could not be prepared. Retry preparation to start this lesson.',original:'Original transcript',meaning:'Meaning',unavailable:'Meaning is not available yet.',notRequired:'Translation is not required for the selected support language.',translationUnavailable:'Meaning could not be generated right now. Continue with the original transcript.',translationTooLarge:'This lesson is too large for automatic meaning generation. Continue with the original transcript.',generatedTranscript:'This transcript was generated automatically and may contain mistakes.',transcriptMissing:'This video has no usable transcript.',unsupported:'This video source is not supported.',malformedUrl:'Enter a valid public media URL.',unsupportedProvider:'This media provider is not supported yet.',mediaUnavailable:'This media is private or unavailable.',providerTimeout:'The media provider did not respond in time. Please try again.',providerFailure:'The media provider could not prepare this lesson. Please try again.',unsupportedSourceLanguage:'This media language is not supported yet.',invalidTargetLanguage:'Choose a valid support language.',failed:'The lesson could not be prepared.',previous:'Previous segment',next:'Next segment',replay:'Replay',speed:'Speed',select:'Select a transcript segment to replay it.',shadow:'Shadow this',shared:'Shadowing reuses this same media and segment. No separate import is needed.',playback:'Playback is unavailable for this source.'},
+  vi:{shortcuts:'Phím tắt',shortcutsTitle:'Phím tắt bàn phím',wordTiming:'Bám theo từ',vocabulary:'Từ vựng',notes:'Ghi chú',notesPlaceholder:'Ghi chú cho bài học này chỉ lưu trên thiết bị.',vocabularyEmpty:'Những từ bạn lưu từ phần nhận xét sẽ hiện ở đây.',download:'Tải về',hidePlayer:'Ẩn video',showPlayer:'Hiện video',jumpPlaying:'Nhảy tới chỗ đang phát',skipBack:'Lùi',skipForward:'Tiến',mute:'Tắt tiếng',unmute:'Bật tiếng',words:'từ',listen:'NGHE · THEO DÕI',title:'NGHE TỪNG Ý, THEO TỪNG KHOẢNH KHẮC.',lead:'Đưa video bên ngoài vào một bài học media dùng chung. Xem, theo dõi lời gốc, đọc nghĩa khi có và nghe lại từng câu.',url:'URL video',placeholder:'https://www.youtube.com/watch?v=…',prepare:'Nhập / Chuẩn bị bài học',preparingMeaning:'Đang chuẩn bị phần nghĩa… transcript gốc đã dùng được ngay.',showGroup:'Hiển thị',skillName:'Nghe',skillStat:'bài đã chuẩn bị',recentTitle:'Học tiếp một bài',needTitle:'Video thế nào thì dùng được',need1:'Một đường dẫn YouTube, dán thẳng từ thanh địa chỉ.',need2:'Video phải có sẵn phụ đề — không có phụ đề thì không có gì để theo dõi.',need3:'Nội dung nói bằng ngôn ngữ bạn đang học.',retryTranslation:'Thử chuẩn bị lại',validating:'Đang kiểm tra URL…',processing:'Đang chuẩn bị bài học…',translationFailed:'Chưa thể chuẩn bị phần nghĩa. Hãy thử lại để bắt đầu bài học.',original:'Transcript gốc',meaning:'Nghĩa',unavailable:'Bản dịch nghĩa chưa có.',notRequired:'Không cần bản dịch cho ngôn ngữ hỗ trợ đã chọn.',translationUnavailable:'Hiện chưa thể tạo phần nghĩa. Bạn vẫn có thể tiếp tục với transcript gốc.',translationTooLarge:'Bài học này quá lớn để tự động tạo phần nghĩa. Bạn vẫn có thể tiếp tục với transcript gốc.',generatedTranscript:'Transcript này được tạo tự động và có thể có sai sót.',transcriptMissing:'Video này không có transcript phù hợp.',unsupported:'Nguồn video này chưa được hỗ trợ.',malformedUrl:'Hãy nhập URL media công khai hợp lệ.',unsupportedProvider:'Nhà cung cấp media này chưa được hỗ trợ.',mediaUnavailable:'Media này đang riêng tư hoặc không khả dụng.',providerTimeout:'Nhà cung cấp media không phản hồi kịp thời. Vui lòng thử lại.',providerFailure:'Nhà cung cấp media không thể chuẩn bị bài học này. Vui lòng thử lại.',unsupportedSourceLanguage:'Ngôn ngữ của media này chưa được hỗ trợ.',invalidTargetLanguage:'Hãy chọn ngôn ngữ hỗ trợ hợp lệ.',failed:'Không thể chuẩn bị bài học.',previous:'Đoạn trước',next:'Đoạn sau',replay:'Nghe lại',speed:'Tốc độ',select:'Chọn một đoạn transcript để nghe lại.',shadow:'Shadow câu này',shared:'Shadowing dùng lại chính media và đoạn này, không cần nhập lại video.',playback:'Không thể phát nguồn này.'},
+  zh:{shortcuts:'快捷键',shortcutsTitle:'键盘快捷键',wordTiming:'逐词对齐',vocabulary:'词汇',notes:'笔记',notesPlaceholder:'本课笔记仅保存在此设备上。',vocabularyEmpty:'你在点评中保存的词会出现在这里。',download:'下载',hidePlayer:'隐藏视频',showPlayer:'显示视频',jumpPlaying:'跳到正在播放处',skipBack:'后退',skipForward:'前进',mute:'静音',unmute:'取消静音',words:'词',listen:'听力 · 跟随',title:'逐句听见意思。',lead:'把外部视频导入一个共享媒体课程。观看视频、跟随原文、在可用时阅读释义，并重听每个句子。',url:'视频网址',placeholder:'https://www.youtube.com/watch?v=…',prepare:'导入 / 准备课程',preparingMeaning:'正在准备释义……原文字幕现在已可使用。',showGroup:'显示',skillName:'听力',skillStat:'已准备课程',recentTitle:'继续一课',needTitle:'什么样的视频可用',need1:'一个 YouTube 链接，直接从地址栏粘贴。',need2:'视频必须已有字幕 —— 没有字幕就无法跟读。',need3:'使用你正在学习的语言。',retryTranslation:'重试准备',validating:'正在检查网址…',processing:'正在准备课程…',translationFailed:'暂时无法准备释义。请重试准备后开始课程。',original:'原文字幕',meaning:'释义',unavailable:'释义暂时不可用。',notRequired:'所选辅助语言不需要翻译。',translationUnavailable:'目前无法生成释义。你仍可继续使用原文字幕。',translationTooLarge:'本课内容过大，当前无法自动生成释义。你仍可继续使用原文字幕。',generatedTranscript:'此字幕由系统自动生成，可能有误。',transcriptMissing:'这个视频没有可用字幕。',unsupported:'暂不支持这个视频来源。',malformedUrl:'请输入有效的公开视频网址。',unsupportedProvider:'暂不支持这个媒体提供方。',mediaUnavailable:'该媒体为私密内容或暂不可用。',providerTimeout:'媒体提供方响应超时，请重试。',providerFailure:'媒体提供方无法准备本课，请重试。',unsupportedSourceLanguage:'暂不支持这个媒体语言。',invalidTargetLanguage:'请选择有效的辅助语言。',failed:'无法准备课程。',previous:'上一句',next:'下一句',replay:'重听',speed:'速度',select:'选择一段字幕后重听。',shadow:'跟读这句',shared:'跟读直接复用同一媒体和句段，不需要再次导入视频。',playback:'这个来源暂时无法播放。'},
 };
 const ACTIVE_COPY={
   en:{follow:'Follow',active:'Active',mode:'Listening mode',activeUnavailable:'Active Listening and Shadowing need usable provider playback.',practice:'Active Listening',prompt:'Type what you heard',check:'Check answer',reveal:'Reveal answer',retry:'Retry',yourAnswer:'Your answer',textMatch:'Text match',exact:'Exact match',close:'Close match',tryAgain:'Try again',disclaimer:'Text match compares your reconstruction with this transcript. It is not a proficiency score.',progress:'Session practice',practiced:'Practiced',exactCount:'Exact',average:'Average best text match',attempts:'Checked attempts',revealed:'Revealed only',segment:'Segment',answerEmpty:'Type what you heard before checking.',answerTooLarge:'Your reconstruction is too long to check safely.',segmentTooLarge:'This transcript segment is too large to check safely. Follow mode remains available.',meaningUnavailable:'Meaning is currently unavailable. The original transcript remains usable.',meaningTooLarge:'Meaning is unavailable because this lesson is too large for automatic translation.',meaningNotRequired:'Translation is not required for the selected support language.'},
@@ -100,19 +103,23 @@ function stateMessage(kind,error=null){
   return labels[kind]?`<div class="listening-state listening-state-${kind}${categoryClass}" role="status">${esc(labels[kind])}</div>`:'';
 }
 
+/* The row under the transcript, as the reference draws it: move between
+   segments and replay the one in hand. The reference also offers "Repeat" and
+   an auto-advance delay; neither exists in the product, and drawing a control
+   that does nothing is worse than leaving it out. */
 function segmentNavigation(segments,selected,playbackRate){
   const c=text();
-  const locale=uiLocale();
-  const playPauseLabel=locale==='vi'?'Phát / Dừng':locale==='zh'?'播放 / 暂停':'Play / Pause';
-  const currentLabel=locale==='vi'?'Đang nghe':locale==='zh'?'当前字幕':'Current';
   const selectedIndex=segments.findIndex(segment=>segment.segment_id===selected);
-  return `<div class="listening-practice-controls" aria-label="${esc(c.select)}">
-    <button type="button" class="button button-secondary listening-icon-button" data-toggle-playback aria-label="${esc(playPauseLabel)}" title="${esc(playPauseLabel)}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/><path d="M5 5h2v14H5z"/></svg></button>
-    <button type="button" class="button button-secondary listening-icon-button" data-follow-playing aria-label="${esc(currentLabel)}" title="${esc(currentLabel)}"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><circle cx="12" cy="12" r="8"/><path d="M12 1.5v3M12 19.5v3M1.5 12h3M19.5 12h3"/></svg></button>
-    <button type="button" class="button button-secondary listening-icon-button" data-previous-segment ${selectedIndex<=0?'disabled':''} aria-label="${esc(c.previous)}" title="${esc(c.previous)}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 5v14M18 6l-9 6 9 6z"/></svg></button>
-    <button type="button" class="button button-primary listening-icon-button listening-replay-button" data-replay-current aria-label="${esc(c.replay)}" title="${esc(c.replay)}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4v6h6"/><path d="M5.5 9A8 8 0 1 1 4 14"/></svg><span class="listening-replay-label">${esc(c.replay)}</span></button>
-    <button type="button" class="button button-secondary listening-icon-button" data-next-segment ${selectedIndex<0||selectedIndex>=segments.length-1?'disabled':''} aria-label="${esc(c.next)}" title="${esc(c.next)}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 5v14M6 6l9 6-9 6z"/></svg></button>
-    <label class="listening-speed-control" aria-label="${esc(c.speed)}" title="${esc(c.speed)}"><select id="listeningPlaybackRate">${[.75,1,1.25].map(rate=>`<option value="${rate}" ${rate===playbackRate?'selected':''}>${rate.toFixed(2).replace(/0$/,'')}x</option>`).join('')}</select></label>
+  return `<div class="listening-practice-controls o-tbar" aria-label="${esc(c.select)}">
+    <button type="button" class="o-btn o-btn--outline o-btn--compact" data-previous-segment ${selectedIndex<=0?'disabled':''}>
+      ${oIcon('arrowLeft')}<span>${esc(c.previous)}</span>
+    </button>
+    <button type="button" class="o-btn o-btn--outline o-btn--compact" data-replay-current>
+      ${oIcon('undo')}<span>${esc(c.replay)}</span>
+    </button>
+    <button type="button" class="o-btn o-btn--outline o-btn--compact" data-next-segment ${selectedIndex<0||selectedIndex>=segments.length-1?'disabled':''}>
+      <span>${esc(c.next)}</span>${oIcon('arrowRight')}
+    </button>
   </div>`;
 }
 
@@ -133,17 +140,33 @@ function followWorkspace(payload,selected,{original,meaning,playbackRate,manualS
   // work is still in flight reads as a dead end, and hides that the original
   // transcript is already usable.
   const translationStatusMessage=translationPreparing?c.preparingMeaning:translationStatus==='unavailable'?c.translationUnavailable:translationStatus==='too_large'?c.translationTooLarge:null;
-  return `<section class="listening-transcript visual-section-surface" aria-label="${esc(c.original)}">
-    <div class="listening-toolbar">
-      <!-- The heading used to repeat the first checkbox's own label word for
-           word. It names the group of display choices instead. -->
-      <div><strong>${esc(c.showGroup)}</strong><small>${esc(c.select)}</small></div>
-      <label><input id="toggleOriginal" type="checkbox" ${original?'checked':''}> ${esc(c.original)}</label>
-      <label><input id="toggleMeaning" type="checkbox" ${meaning?'checked':''} ${translationPreparing||translationNotRequired||translationDegraded?'disabled':''}> ${esc(c.meaning)}</label>
+  const meaningBlocked=translationPreparing||translationNotRequired||translationDegraded;
+  const words=segments.reduce((total,segment)=>total+countUnits(segment.original_text,state.language),0);
+
+  /* The reference shows Original and Meaning as one choice, and the tabs below
+     present them that way. The rendering underneath stays independent, because
+     the controller genuinely supports all four combinations - including both
+     off, which a two-state tab cannot express and which the contract test for
+     this screen checks. Presentation follows the reference; the model does not
+     lose a state to it. */
+
+  return `<section class="listening-transcript o-card o-tcard" aria-label="${esc(c.original)}">
+    <div class="o-tcard-head">
+      <div class="o-tabs" role="group" aria-label="${esc(c.showGroup)}">
+        <button type="button" class="o-tab ${original?'is-active':''}" data-transcript-view="original" aria-pressed="${Boolean(original)}">${esc(c.original)}</button>
+        <button type="button" class="o-tab ${meaning?'is-active':''}" data-transcript-view="meaning" aria-pressed="${Boolean(meaning)}" ${meaningBlocked?'disabled':''}>${esc(c.meaning)}</button>
+      </div>
+      <label class="o-switch">
+        <span>${esc(c.wordTiming)}</span>
+        <input id="toggleOriginal" type="checkbox" ${original?'checked':''}>
+        <span class="o-switch-track" aria-hidden="true"><i></i></span>
+      </label>
+      <button type="button" class="o-icon-button" data-follow-playing aria-label="${esc(c.jumpPlaying)}" title="${esc(c.jumpPlaying)}">${oIcon('listen')}</button>
     </div>
+
     ${translationNotRequired?`<p class="translation-not-required" role="status">${esc(c.notRequired)}</p>`:''}
     ${translationStatusMessage?`<p class="translation-status translation-status-${esc(translationStatus||'preparing')}" role="status">${esc(translationStatusMessage)}</p>`:''}
-    ${segmentNavigation(segments,selectedDisplayId,playbackRate)}
+
     <div class="listening-segments">
       ${segments.map(segment=>`<article class="listening-segment ${manualSelection&&segment.segment_id===selectedDisplayId?'selected':''}" data-segment-id="${esc(segment.segment_id)}" data-canonical-segment-ids="${esc(segment.canonical_segment_ids.join(' '))}" ${segment.segment_id===selectedDisplayId?'aria-current="true"':''}>
         <button class="listening-segment-main" type="button" data-select-segment="${esc(segment.segment_id)}">
@@ -154,11 +177,21 @@ function followWorkspace(payload,selected,{original,meaning,playbackRate,manualS
           </span>
         </button>
         ${displayUnitContains(segment,selected)?`<div class="listening-segment-actions">
-          <button type="button" class="button button-secondary" data-shadow-selected title="${esc(c.shared)}">${esc(c.shadow)}</button>
-          <button type="button" class="button button-primary" data-open-speaking title="${esc(c.shared)}">${esc(shadowText().openSpeaking)}</button>
+          <button type="button" class="o-btn o-btn--outline o-btn--compact" data-shadow-selected title="${esc(c.shared)}">${esc(c.shadow)}</button>
+          <button type="button" class="o-btn o-btn--primary o-btn--compact" data-open-speaking title="${esc(c.shared)}">${esc(shadowText().openSpeaking)}</button>
         </div>`:''}
       </article>`).join('')}
     </div>
+
+    <div class="o-tcard-foot">
+      <ul class="o-legend o-legend--inline">
+        ${['verb','noun','adjective','adverb'].map(role=>`<li data-role="${role}"><span class="o-legend-dot" aria-hidden="true"></span><span>${esc(t('write.role_'+role))}</span></li>`).join('')}
+      </ul>
+      <span class="o-tcard-count">${words} ${esc(c.words)}</span>
+      <button type="button" class="o-btn o-btn--outline o-btn--compact" data-download-transcript>${oIcon('cloud')}<span>${esc(c.download)}</span></button>
+    </div>
+
+    ${segmentNavigation(segments,selectedDisplayId,playbackRate)}
     <p class="listening-shared-note">${esc(c.shared)}</p>
   </section>`;
 }
@@ -266,30 +299,87 @@ function listeningMode(payload,model={}){
 function learningWorkspace(payload,selected,model,mode){
   const a=activeText();
   const s=shadowText();
+  const c=text();
   const segments=payload.transcript?.segments||[];
   const playbackReady=segments.length>0&&playbackAvailable(payload.playback);
-  return `<div class="listening-mode-switch" role="group" aria-label="${esc(a.mode)}">
-      <button type="button" class="button ${mode==='follow'?'button-primary':'button-secondary'}" data-listening-mode="follow" aria-pressed="${mode==='follow'}">${esc(a.follow)}</button>
-      <button type="button" class="button ${mode==='active'?'button-primary':'button-secondary'}" data-listening-mode="active" aria-pressed="${mode==='active'}" ${playbackReady?'':'disabled'}>${esc(a.active)}</button>
-      <button type="button" class="button ${mode==='shadowing'?'button-primary':'button-secondary'}" data-listening-mode="shadowing" aria-pressed="${mode==='shadowing'}" ${playbackReady?'':'disabled'}>${esc(s.mode)}</button>
+  const tab=(key,label,disabled)=>`<button type="button" class="o-tab ${mode===key?'is-active':''}" data-listening-mode="${key}" aria-pressed="${mode===key}" ${disabled?'disabled':''}>${oIcon(key==='follow'?'rubric':key==='active'?'speak':'listen')}<span>${esc(label)}</span></button>`;
+
+  return `<div class="o-listen-modes o-card">
+      <div class="o-tabs" role="group" aria-label="${esc(a.mode)}">
+        ${tab('follow',a.follow,false)}
+        ${tab('active',a.active,!playbackReady)}
+        ${tab('shadowing',s.mode,!playbackReady)}
+      </div>
+      <button type="button" class="o-btn o-btn--outline o-btn--compact" data-listening-shortcuts>${oIcon('rubric')}<span>${esc(c.shortcuts)}</span></button>
     </div>
-    ${payload.transcript_generation?.status==='generated'?`<p class="generated-transcript-notice" role="status">${esc(text().generatedTranscript)}</p>`:''}
+    ${payload.transcript_generation?.status==='generated'?`<p class="generated-transcript-notice" role="status">${esc(c.generatedTranscript)}</p>`:''}
     ${playbackReady?'':`<p class="active-listening-playback-unavailable" role="status">${esc(a.activeUnavailable)}</p>`}
     ${mode==='active'?activeWorkspace(payload,selected,model):mode==='shadowing'?shadowingWorkspace(payload,selected,model):followWorkspace(payload,selected,model)}`;
 }
 
+/* The reference puts the player and what the learner has kept down the left,
+   and the transcript beside it. That happens to suit the re-render path
+   exactly: only `.listening-learning-column` is replaced when the lesson is
+   unchanged, so the iframe on the left is never torn down and rebuilt. */
 function workspace(payload,selectedId=null,model={}){
   const c=text();
   const segments=payload.transcript?.segments||[];
   const selected=selectedId||segments[0]?.segment_id;
   const mode=listeningMode(payload,model);
-  return `<div class="listening-workspace" data-listening-mode="${mode}">
-    <section class="listening-video visual-hero-surface">
-      <div class="listening-video-frame">${mediaPlayer(payload.playback,payload.asset?.title).replace('Playback is unavailable for this source.',c.playback)}</div>
-      <div class="listening-media-caption"><span>${esc(payload.asset?.source_provider||'media')}</span><h2>${esc(payload.asset?.title||'Media lesson')}</h2></div>
-    </section>
+  const rate=model.playbackRate||1;
+  return `<div class="listening-workspace o-listen" data-listening-mode="${mode}">
+    <div class="o-listen-left">
+      <section class="listening-video o-card o-player">
+        <div class="listening-video-frame">${mediaPlayer(payload.playback,payload.asset?.title).replace('Playback is unavailable for this source.',c.playback)}</div>
+        <div class="o-player-track">
+          <div class="o-player-bar" role="progressbar" aria-label="${esc(payload.asset?.title||'')}"><span data-progress-fill></span></div>
+          <span class="o-player-time" data-elapsed>0:00</span>
+          <span class="o-player-time" data-duration>—</span>
+        </div>
+        <div class="listening-media-caption o-player-meta">
+          <h2>${esc(payload.asset?.title||'Media lesson')}</h2>
+          <span>${esc(payload.asset?.source_provider||'media')}</span>
+        </div>
+        <div class="o-player-controls">
+          <label class="o-player-rate" aria-label="${esc(c.speed)}" title="${esc(c.speed)}">
+            <select id="listeningPlaybackRate">${[.75,1,1.25].map(value=>`<option value="${value}" ${value===rate?'selected':''}>${value.toFixed(2).replace(/0$/,'')}x</option>`).join('')}</select>
+          </label>
+          <button type="button" class="o-icon-button" data-seek="-5" aria-label="${esc(c.skipBack)}" title="${esc(c.skipBack)}">${oIcon('undo')}</button>
+          <button type="button" class="o-player-play" data-toggle-playback aria-label="${esc(c.replay)}" title="${esc(c.replay)}">${oIcon('listen')}</button>
+          <button type="button" class="o-icon-button" data-seek="5" aria-label="${esc(c.skipForward)}" title="${esc(c.skipForward)}">${oIcon('redo')}</button>
+          <button type="button" class="o-icon-button" data-toggle-mute aria-label="${esc(c.mute)}" title="${esc(c.mute)}" aria-pressed="false">${oIcon('speak')}</button>
+        </div>
+      </section>
+
+      <section class="o-card o-vocab">
+        <div class="o-tabs" role="tablist">
+          <button type="button" role="tab" class="o-tab is-active" data-side-view="vocabulary" aria-selected="true">${esc(c.vocabulary)}</button>
+          <button type="button" role="tab" class="o-tab" data-side-view="notes" aria-selected="false">${esc(c.notes)}</button>
+        </div>
+        <div data-side-panel="vocabulary">${lessonVocabularyMarkup()}</div>
+        <div data-side-panel="notes" class="hidden">
+          <textarea id="lessonNotes" class="o-control o-control--area" rows="6" placeholder="${esc(c.notesPlaceholder)}"></textarea>
+        </div>
+      </section>
+
+      <button type="button" class="o-btn o-btn--outline" data-toggle-player>${oIcon('arrowLeft')}<span>${esc(c.hidePlayer)}</span></button>
+    </div>
+
     <div class="listening-learning-column">${learningWorkspace(payload,selected,model,mode)}</div>
   </div>`;
+}
+
+/* What the learner has kept, not a per-lesson glossary the product does not
+   have. Filled once per view; empty until the Library has something in it. */
+let lessonVocabulary=[];
+
+function lessonVocabularyMarkup(){
+  const c=text();
+  if(!lessonVocabulary.length)return `<p class="o-panel-copy">${esc(c.vocabularyEmpty)}</p>`;
+  return `<ul class="o-vocab-list">${lessonVocabulary.slice(0,8).map(item=>`<li>
+    <span class="o-vocab-word">${esc(item.word||'')}</span>
+    <span class="o-vocab-gloss">${esc(item.translation||item.definition||'')}</span>
+  </li>`).join('')}</ul>`;
 }
 
 function listeningPage(model,viewId){
@@ -330,16 +420,21 @@ function listeningPage(model,viewId){
         <li>${esc(c.need3)}</li>
       </ul>
     </div>`;
-  return `<section class="page listening-page" data-listening-view="${viewId}">
-    ${intro}
-    <form id="mediaImportForm" class="listening-import visual-section-surface" novalidate>
-      <label for="mediaSourceUrl">${esc(c.url)}</label><div><input id="mediaSourceUrl" type="url" inputmode="url" placeholder="${esc(c.placeholder)}" value="${ready?'':esc(model.sourceUrl||'')}" required><button class="button button-primary" type="submit" ${busy?'disabled':''}>${esc(c.prepare)}</button></div>
-      <div id="listeningStatus" aria-live="polite">${stateMessage(model.status,model.error)}${model.payload?.translation?.status==='unavailable'?`<button class="button button-secondary" type="button" data-retry-translation>${esc(c.retryTranslation)}</button>`:''}</div>
+  return `<div class="o-page listening-page" data-listening-view="${viewId}">
+    ${ready?'':intro}
+    <form id="mediaImportForm" class="o-card o-import" novalidate ${ready?'data-collapsed':''}>
+      ${ready?`<button type="button" class="o-import-toggle" data-expand-import>${esc(c.url)}</button>`:''}
+      <label class="o-label" for="mediaSourceUrl">${esc(c.url)}</label>
+      <div class="o-import-row">
+        <input id="mediaSourceUrl" class="o-control" type="url" inputmode="url" placeholder="${esc(c.placeholder)}" value="${ready?'':esc(model.sourceUrl||'')}" required>
+        <button class="o-btn o-btn--primary" type="submit" ${busy?'disabled':''}>${esc(c.prepare)}</button>
+      </div>
+      <div id="listeningStatus" aria-live="polite">${stateMessage(model.status,model.error)}${model.payload?.translation?.status==='unavailable'?`<button class="o-btn o-btn--outline o-btn--compact" type="button" data-retry-translation>${esc(c.retryTranslation)}</button>`:''}</div>
     </form>
     ${history}
     ${requirements}
     <div id="listeningReady">${ready?workspace(model.payload,model.selected,model):''}</div>
-  </section>`;
+  </div>`;
 }
 
 function translationRequest(payload,targetLanguage){
@@ -789,6 +884,94 @@ export async function renderListening(root,{importMedia=api.importMedia,importSt
       controller.followPlaying();
       smartFollow.resumeNow();
     });
+    /* Player transport added by the rebuild. Each of these drives the real
+       player; none of them is decoration. */
+    root.querySelector('[data-expand-import]')?.addEventListener('click',event=>{
+      event.currentTarget.closest('form')?.removeAttribute('data-collapsed');
+      root.querySelector('#mediaSourceUrl')?.focus();
+    });
+
+    root.querySelectorAll('[data-seek]').forEach(button=>button.addEventListener('click',()=>{
+      seekBy(root,controller.model.payload?.playback,Number(button.dataset.seek));
+    }));
+    root.querySelector('[data-toggle-mute]')?.addEventListener('click',event=>{
+      const button=event.currentTarget;
+      const muted=toggleMute(root,controller.model.payload?.playback);
+      if(muted===null)return;
+      button.setAttribute('aria-pressed',muted?'true':'false');
+      const label=muted?text().unmute:text().mute;
+      button.setAttribute('aria-label',label);
+      button.title=label;
+    });
+
+    /* Original / Meaning are one choice in the rebuilt transcript, so the tab
+       sets both underlying toggles rather than flipping one of them. */
+    root.querySelectorAll('[data-transcript-view]').forEach(button=>button.addEventListener('click',()=>{
+      const on=button.getAttribute('aria-pressed')!=='true';
+      if(button.dataset.transcriptView==='meaning')controller.toggleMeaning(on);
+      else controller.toggleOriginal(on);
+    }));
+
+    /* The side panel is presentation only, so it switches in place instead of
+       going through the controller and re-rendering the transcript. */
+    root.querySelectorAll('[data-side-view]').forEach(button=>button.addEventListener('click',()=>{
+      const view=button.dataset.sideView;
+      root.querySelectorAll('[data-side-view]').forEach(other=>{
+        const on=other===button;
+        other.classList.toggle('is-active',on);
+        other.setAttribute('aria-selected',on?'true':'false');
+      });
+      root.querySelectorAll('[data-side-panel]').forEach(panel=>{
+        panel.classList.toggle('hidden',panel.dataset.sidePanel!==view);
+      });
+    }));
+
+    root.querySelector('[data-toggle-player]')?.addEventListener('click',event=>{
+      const workspaceNode=root.querySelector('.listening-workspace');
+      if(!workspaceNode)return;
+      const hidden=workspaceNode.toggleAttribute('data-player-hidden');
+      const label=hidden?text().showPlayer:text().hidePlayer;
+      const copy=event.currentTarget.querySelector('span');
+      if(copy)copy.textContent=label;
+    });
+
+    root.querySelector('[data-listening-shortcuts]')?.addEventListener('click',()=>{
+      const c=text();
+      showDialog(c.shortcutsTitle,`<ul class="o-legend">
+        <li><span>&uarr; &darr;</span><span>${esc(c.previous)} / ${esc(c.next)}</span></li>
+        <li><span>Page&nbsp;Up / Page&nbsp;Down</span><span>${esc(c.select)}</span></li>
+        <li><span>Home / End</span><span>${esc(c.select)}</span></li>
+      </ul>`);
+    });
+
+    /* The transcript, kept as text. M1 forbids downloading the media itself;
+       the words the learner has been reading are not the media. */
+    root.querySelector('[data-download-transcript]')?.addEventListener('click',()=>{
+      const payload=controller.model.payload;
+      const units=buildTranscriptDisplayUnits(payload?.transcript?.segments||[]);
+      const lines=[payload?.asset?.title||'',payload?.asset?.source_url||'','']
+        .concat(units.map(unit=>`[${stamp(unit.start_ms)}] ${unit.original_text}`));
+      const blob=new Blob([lines.join('\n')],{type:'text/plain;charset=utf-8'});
+      const url=URL.createObjectURL(blob);
+      const link=document.createElement('a');
+      link.href=url;
+      link.download=`orena-transcript-${payload?.asset?.asset_id||'lesson'}.txt`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    });
+
+    /* Notes are this device's own, like the practice state around them. */
+    const notes=root.querySelector('#lessonNotes');
+    if(notes){
+      const key=`orena.listen.notes.${controller.model.payload?.asset?.asset_id||'lesson'}`;
+      try{ notes.value=localStorage.getItem(key)||''; }catch{}
+      notes.addEventListener('input',()=>{
+        try{ localStorage.setItem(key,notes.value); }catch{}
+      });
+    }
+
     root.querySelectorAll('[data-select-segment]').forEach(button=>button.addEventListener('click',()=>controller.select(button.dataset.selectSegment)));
     root.querySelector('[data-previous-segment]')?.addEventListener('click',()=>controller.moveSelection(-1));
     root.querySelector('[data-next-segment]')?.addEventListener('click',()=>controller.moveSelection(1));
@@ -818,6 +1001,16 @@ export async function renderListening(root,{importMedia=api.importMedia,importSt
     }
     schedulePoll();
   };
+  /* What the learner has kept, for the panel beside the player. Additive: a
+     failure leaves that one panel empty rather than the lesson unusable. */
+  api.libraryVocabulary()
+    .then(saved=>{
+      lessonVocabulary=Array.isArray(saved)?saved:(saved?.items||[]);
+      const panel=root.querySelector('[data-side-panel="vocabulary"]');
+      if(panel)panel.innerHTML=lessonVocabularyMarkup();
+    })
+    .catch(()=>{ lessonVocabulary=[]; });
+
   controller=createListeningController({
     importMedia,importStatus,targetLanguage,translateMedia,onChange:render,
     onMediaReady:(payload,selected_segment_id)=>{
@@ -842,6 +1035,20 @@ export async function renderListening(root,{importMedia=api.importMedia,importSt
   root.addEventListener('orena:media-time',event=>{
     const segment=activeCanonicalSegment(controller.model.payload?.transcript?.segments||[],Number(event?.detail?.time_ms));
     if(segment)controller.setPlayingSegment(segment.segment_id);
+
+    /* The progress bar is written straight onto the existing nodes rather than
+       through a re-render: the clock ticks eight times a second, and
+       re-rendering the transcript at that rate would fight smart-follow. */
+    const elapsed=Number(event?.detail?.time_ms);
+    const total=Number(event?.detail?.duration_ms);
+    const fill=root.querySelector('[data-progress-fill]');
+    if(fill&&Number.isFinite(elapsed)&&Number.isFinite(total)&&total>0){
+      fill.style.width=`${Math.max(0,Math.min(100,(elapsed/total)*100))}%`;
+    }
+    const elapsedNode=root.querySelector('[data-elapsed]');
+    if(elapsedNode&&Number.isFinite(elapsed))elapsedNode.textContent=stamp(elapsed);
+    const durationNode=root.querySelector('[data-duration]');
+    if(durationNode&&Number.isFinite(total)&&total>0)durationNode.textContent=stamp(total);
   },{signal:viewAbort.signal});
   root._cleanupScreen=()=>{
     if(pollTimer)clearTimeout(pollTimer);

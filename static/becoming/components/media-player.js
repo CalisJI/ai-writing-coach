@@ -256,6 +256,18 @@ export function seekBy(root,playback,deltaSeconds){
   }catch{return false;}
 }
 
+/* Returns the new muted state, or null when the player cannot be reached, so
+   the caller can label its own button from the truth rather than a guess. */
+export function toggleMute(root,playback){
+  const controller=controllers.get(root);
+  if(!controller?.player)return null;
+  try{
+    const muted=Boolean(controller.player.isMuted?.());
+    const ok=sendCommand(root,playback,muted?'unMute':'mute');
+    return ok?!muted:null;
+  }catch{return null;}
+}
+
 export function togglePlayback(root,playback){
   const controller=controllers.get(root);
   if(!controller?.player)return false;
