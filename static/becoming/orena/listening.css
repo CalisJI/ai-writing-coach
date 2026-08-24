@@ -178,6 +178,12 @@
 }
 .o-player-play svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 
+/* Measured across the reference's control row at y=443: the skip glyphs are
+   25px and the speaker 23px, against a 51px play button. The shared icon
+   button is 20px in a 38px target, which read as small and uneven beside it. */
+.o-player-controls .o-icon-button{width:44px;height:44px}
+.o-player-controls .o-icon-button svg{width:24px;height:24px}
+
 /* ========================================================= side panel ==== */
 
 .o-vocab{display:grid;gap:14px;padding:16px}
