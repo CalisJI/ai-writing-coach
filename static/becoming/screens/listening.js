@@ -37,9 +37,81 @@ import {listMediaLessons,rememberMediaLesson,takeLessonAutostart,resumableLesson
 import {skillMasthead} from '../components/skill-masthead.js';
 
 const COPY={
-  en:{shortcuts:'Shortcuts',shortcutsTitle:'Keyboard shortcuts',wordTiming:'Word timing',vocabulary:'Vocabulary',notes:'Notes',notesPlaceholder:'Your notes for this lesson stay on this device.',vocabularyEmpty:'Words you save from a review appear here.',download:'Download',hidePlayer:'Hide player',showPlayer:'Show player',jumpPlaying:'Jump to what is playing',skipBack:'Skip back',skipForward:'Skip forward',mute:'Mute',unmute:'Unmute',words:'words',listen:'LISTEN · FOLLOW',title:'HEAR THE IDEA, ONE MOMENT AT A TIME.',lead:'Bring an external video into one shared media lesson. Watch, follow the original words, read the meaning when available, and replay a sentence.',url:'Video URL',placeholder:'https://www.youtube.com/watch?v=…',prepare:'Import / Prepare lesson',preparingMeaning:'Preparing the meaning… the original transcript is ready to use now.',showGroup:'Show',skillName:'Listen',skillStat:'lessons ready',recentTitle:'Continue a lesson',needTitle:'What works',need1:'A YouTube link, pasted straight from the address bar.',need2:'The video must already have captions — without them there is nothing to follow.',need3:'Spoken in the language you are studying.',retryTranslation:'Retry preparation',validating:'Checking the URL…',processing:'Preparing lesson…',translationFailed:'Meaning could not be prepared. Retry preparation to start this lesson.',original:'Original transcript',meaning:'Meaning',unavailable:'Meaning is not available yet.',notRequired:'Translation is not required for the selected support language.',translationUnavailable:'Meaning could not be generated right now. Continue with the original transcript.',translationTooLarge:'This lesson is too large for automatic meaning generation. Continue with the original transcript.',generatedTranscript:'This transcript was generated automatically and may contain mistakes.',transcriptMissing:'This video has no usable transcript.',unsupported:'This video source is not supported.',malformedUrl:'Enter a valid public media URL.',unsupportedProvider:'This media provider is not supported yet.',mediaUnavailable:'This media is private or unavailable.',providerTimeout:'The media provider did not respond in time. Please try again.',providerFailure:'The media provider could not prepare this lesson. Please try again.',unsupportedSourceLanguage:'This media language is not supported yet.',invalidTargetLanguage:'Choose a valid support language.',failed:'The lesson could not be prepared.',previous:'Previous segment',next:'Next segment',replay:'Replay',speed:'Speed',select:'Select a transcript segment to replay it.',shadow:'Shadow this',shared:'Shadowing reuses this same media and segment. No separate import is needed.',playback:'Playback is unavailable for this source.'},
-  vi:{shortcuts:'Phím tắt',shortcutsTitle:'Phím tắt bàn phím',wordTiming:'Bám theo từ',vocabulary:'Từ vựng',notes:'Ghi chú',notesPlaceholder:'Ghi chú cho bài học này chỉ lưu trên thiết bị.',vocabularyEmpty:'Những từ bạn lưu từ phần nhận xét sẽ hiện ở đây.',download:'Tải về',hidePlayer:'Ẩn video',showPlayer:'Hiện video',jumpPlaying:'Nhảy tới chỗ đang phát',skipBack:'Lùi',skipForward:'Tiến',mute:'Tắt tiếng',unmute:'Bật tiếng',words:'từ',listen:'NGHE · THEO DÕI',title:'NGHE TỪNG Ý, THEO TỪNG KHOẢNH KHẮC.',lead:'Đưa video bên ngoài vào một bài học media dùng chung. Xem, theo dõi lời gốc, đọc nghĩa khi có và nghe lại từng câu.',url:'URL video',placeholder:'https://www.youtube.com/watch?v=…',prepare:'Nhập / Chuẩn bị bài học',preparingMeaning:'Đang chuẩn bị phần nghĩa… transcript gốc đã dùng được ngay.',showGroup:'Hiển thị',skillName:'Nghe',skillStat:'bài đã chuẩn bị',recentTitle:'Học tiếp một bài',needTitle:'Video thế nào thì dùng được',need1:'Một đường dẫn YouTube, dán thẳng từ thanh địa chỉ.',need2:'Video phải có sẵn phụ đề — không có phụ đề thì không có gì để theo dõi.',need3:'Nội dung nói bằng ngôn ngữ bạn đang học.',retryTranslation:'Thử chuẩn bị lại',validating:'Đang kiểm tra URL…',processing:'Đang chuẩn bị bài học…',translationFailed:'Chưa thể chuẩn bị phần nghĩa. Hãy thử lại để bắt đầu bài học.',original:'Transcript gốc',meaning:'Nghĩa',unavailable:'Bản dịch nghĩa chưa có.',notRequired:'Không cần bản dịch cho ngôn ngữ hỗ trợ đã chọn.',translationUnavailable:'Hiện chưa thể tạo phần nghĩa. Bạn vẫn có thể tiếp tục với transcript gốc.',translationTooLarge:'Bài học này quá lớn để tự động tạo phần nghĩa. Bạn vẫn có thể tiếp tục với transcript gốc.',generatedTranscript:'Transcript này được tạo tự động và có thể có sai sót.',transcriptMissing:'Video này không có transcript phù hợp.',unsupported:'Nguồn video này chưa được hỗ trợ.',malformedUrl:'Hãy nhập URL media công khai hợp lệ.',unsupportedProvider:'Nhà cung cấp media này chưa được hỗ trợ.',mediaUnavailable:'Media này đang riêng tư hoặc không khả dụng.',providerTimeout:'Nhà cung cấp media không phản hồi kịp thời. Vui lòng thử lại.',providerFailure:'Nhà cung cấp media không thể chuẩn bị bài học này. Vui lòng thử lại.',unsupportedSourceLanguage:'Ngôn ngữ của media này chưa được hỗ trợ.',invalidTargetLanguage:'Hãy chọn ngôn ngữ hỗ trợ hợp lệ.',failed:'Không thể chuẩn bị bài học.',previous:'Đoạn trước',next:'Đoạn sau',replay:'Nghe lại',speed:'Tốc độ',select:'Chọn một đoạn transcript để nghe lại.',shadow:'Shadow câu này',shared:'Shadowing dùng lại chính media và đoạn này, không cần nhập lại video.',playback:'Không thể phát nguồn này.'},
-  zh:{shortcuts:'快捷键',shortcutsTitle:'键盘快捷键',wordTiming:'逐词对齐',vocabulary:'词汇',notes:'笔记',notesPlaceholder:'本课笔记仅保存在此设备上。',vocabularyEmpty:'你在点评中保存的词会出现在这里。',download:'下载',hidePlayer:'隐藏视频',showPlayer:'显示视频',jumpPlaying:'跳到正在播放处',skipBack:'后退',skipForward:'前进',mute:'静音',unmute:'取消静音',words:'词',listen:'听力 · 跟随',title:'逐句听见意思。',lead:'把外部视频导入一个共享媒体课程。观看视频、跟随原文、在可用时阅读释义，并重听每个句子。',url:'视频网址',placeholder:'https://www.youtube.com/watch?v=…',prepare:'导入 / 准备课程',preparingMeaning:'正在准备释义……原文字幕现在已可使用。',showGroup:'显示',skillName:'听力',skillStat:'已准备课程',recentTitle:'继续一课',needTitle:'什么样的视频可用',need1:'一个 YouTube 链接，直接从地址栏粘贴。',need2:'视频必须已有字幕 —— 没有字幕就无法跟读。',need3:'使用你正在学习的语言。',retryTranslation:'重试准备',validating:'正在检查网址…',processing:'正在准备课程…',translationFailed:'暂时无法准备释义。请重试准备后开始课程。',original:'原文字幕',meaning:'释义',unavailable:'释义暂时不可用。',notRequired:'所选辅助语言不需要翻译。',translationUnavailable:'目前无法生成释义。你仍可继续使用原文字幕。',translationTooLarge:'本课内容过大，当前无法自动生成释义。你仍可继续使用原文字幕。',generatedTranscript:'此字幕由系统自动生成，可能有误。',transcriptMissing:'这个视频没有可用字幕。',unsupported:'暂不支持这个视频来源。',malformedUrl:'请输入有效的公开视频网址。',unsupportedProvider:'暂不支持这个媒体提供方。',mediaUnavailable:'该媒体为私密内容或暂不可用。',providerTimeout:'媒体提供方响应超时，请重试。',providerFailure:'媒体提供方无法准备本课，请重试。',unsupportedSourceLanguage:'暂不支持这个媒体语言。',invalidTargetLanguage:'请选择有效的辅助语言。',failed:'无法准备课程。',previous:'上一句',next:'下一句',replay:'重听',speed:'速度',select:'选择一段字幕后重听。',shadow:'跟读这句',shared:'跟读直接复用同一媒体和句段，不需要再次导入视频。',playback:'这个来源暂时无法播放。'},
+  en:{
+  v2:{
+    kicker:'LISTENING PRACTICE',
+    headline1:'Sharpen your ear.',headline2:'Understand the world.',
+    lead:'Listen with intention. Catch every nuance. Make it yours.',
+    focusMode:'Focus mode',leaveFocus:'Leave focus mode',
+    followSub:'Listen & read along',activeSub:'Understand deeply',shadowSub:'Speak in sync',
+    currentSegment:'Current segment',revealMeaning:'Reveal meaning',
+    preparing:'Translation preparing…',
+    preparingBody:'The meaning is still being prepared. The original transcript is ready to use now.',
+    hiddenBody:'The meaning is ready. Reveal it when you want it.',
+    vocabFocus:'Vocabulary focus',
+    vocabFocusEmpty:'No word in this segment is in your library yet.',
+    vocabFocusNote:'These are words you have already saved. Nothing else in the line is classified.',
+    listeningGoal:'Listening goal',daily:'Daily goal',weekly:'Weekly goal',
+    minutes:'min',editGoals:'Edit goals',
+    goalTip:'Minutes of playback this device has actually counted while a lesson was playing. It is not synced anywhere.',
+    goalPrompt:'How many minutes a day do you want to listen?',
+    sourceVideo:'Source video',viewOnProvider:'Open the source',
+    savedLessons:'Saved lessons',viewAll:'View all',noSaved:'Lessons you prepare appear here.',
+    subtitles:'Subtitles',speed:'Speed',abLoop:'AB loop',shortcutsLabel:'Shortcuts',
+    loopSetA:'Set loop start',loopSetB:'Set loop end',loopClear:'Clear loop',
+    loopArmed:'Loop start set. Play on and set the end.',loopOn:'Looping this stretch.',loopOff:'Loop cleared.',
+    savedWord:'Saved word',
+  },shortcuts:'Shortcuts',shortcutsTitle:'Keyboard shortcuts',wordTiming:'Word timing',vocabulary:'Vocabulary',notes:'Notes',notesPlaceholder:'Your notes for this lesson stay on this device.',vocabularyEmpty:'Words you save from a review appear here.',download:'Download',hidePlayer:'Hide player',showPlayer:'Show player',jumpPlaying:'Jump to what is playing',skipBack:'Skip back',skipForward:'Skip forward',mute:'Mute',unmute:'Unmute',words:'words',listen:'LISTEN · FOLLOW',title:'HEAR THE IDEA, ONE MOMENT AT A TIME.',lead:'Bring an external video into one shared media lesson. Watch, follow the original words, read the meaning when available, and replay a sentence.',url:'Video URL',placeholder:'https://www.youtube.com/watch?v=…',prepare:'Import / Prepare lesson',preparingMeaning:'Preparing the meaning… the original transcript is ready to use now.',showGroup:'Show',skillName:'Listen',skillStat:'lessons ready',recentTitle:'Continue a lesson',needTitle:'What works',need1:'A YouTube link, pasted straight from the address bar.',need2:'The video must already have captions — without them there is nothing to follow.',need3:'Spoken in the language you are studying.',retryTranslation:'Retry preparation',validating:'Checking the URL…',processing:'Preparing lesson…',translationFailed:'Meaning could not be prepared. Retry preparation to start this lesson.',original:'Original transcript',meaning:'Meaning',unavailable:'Meaning is not available yet.',notRequired:'Translation is not required for the selected support language.',translationUnavailable:'Meaning could not be generated right now. Continue with the original transcript.',translationTooLarge:'This lesson is too large for automatic meaning generation. Continue with the original transcript.',generatedTranscript:'This transcript was generated automatically and may contain mistakes.',transcriptMissing:'This video has no usable transcript.',unsupported:'This video source is not supported.',malformedUrl:'Enter a valid public media URL.',unsupportedProvider:'This media provider is not supported yet.',mediaUnavailable:'This media is private or unavailable.',providerTimeout:'The media provider did not respond in time. Please try again.',providerFailure:'The media provider could not prepare this lesson. Please try again.',unsupportedSourceLanguage:'This media language is not supported yet.',invalidTargetLanguage:'Choose a valid support language.',failed:'The lesson could not be prepared.',previous:'Previous segment',next:'Next segment',replay:'Replay',speed:'Speed',select:'Select a transcript segment to replay it.',shadow:'Shadow this',shared:'Shadowing reuses this same media and segment. No separate import is needed.',playback:'Playback is unavailable for this source.'},
+  vi:{
+  v2:{
+    kicker:'LUYỆN NGHE',
+    headline1:'Luyện tai nghe.',headline2:'Hiểu được thế giới.',
+    lead:'Nghe có chủ đích. Bắt từng sắc thái. Biến nó thành của mình.',
+    focusMode:'Chế độ tập trung',leaveFocus:'Thoát chế độ tập trung',
+    followSub:'Nghe và đọc theo',activeSub:'Hiểu sâu',shadowSub:'Nói cùng nhịp',
+    currentSegment:'Đoạn hiện tại',revealMeaning:'Hiện nghĩa',
+    preparing:'Đang chuẩn bị bản dịch…',
+    preparingBody:'Phần nghĩa vẫn đang được chuẩn bị. Transcript gốc thì đã dùng được ngay.',
+    hiddenBody:'Phần nghĩa đã sẵn sàng. Hiện ra khi bạn muốn.',
+    vocabFocus:'Từ trọng tâm',
+    vocabFocusEmpty:'Chưa từ nào trong đoạn này có trong thư viện của bạn.',
+    vocabFocusNote:'Đây là những từ bạn đã lưu. Phần còn lại của câu không được phân loại.',
+    listeningGoal:'Mục tiêu nghe',daily:'Mỗi ngày',weekly:'Mỗi tuần',
+    minutes:'phút',editGoals:'Đổi mục tiêu',
+    goalTip:'Số phút phát mà thiết bị này thật sự đếm được khi bài đang chạy. Không đồng bộ đi đâu cả.',
+    goalPrompt:'Mỗi ngày bạn muốn nghe bao nhiêu phút?',
+    sourceVideo:'Nguồn video',viewOnProvider:'Mở nguồn',
+    savedLessons:'Bài đã lưu',viewAll:'Xem tất cả',noSaved:'Bài bạn chuẩn bị sẽ hiện ở đây.',
+    subtitles:'Phụ đề',speed:'Tốc độ',abLoop:'Lặp AB',shortcutsLabel:'Phím tắt',
+    loopSetA:'Đặt điểm đầu',loopSetB:'Đặt điểm cuối',loopClear:'Xoá vòng lặp',
+    loopArmed:'Đã đặt điểm đầu. Nghe tiếp rồi đặt điểm cuối.',loopOn:'Đang lặp đoạn này.',loopOff:'Đã xoá vòng lặp.',
+    savedWord:'Từ đã lưu',
+  },shortcuts:'Phím tắt',shortcutsTitle:'Phím tắt bàn phím',wordTiming:'Bám theo từ',vocabulary:'Từ vựng',notes:'Ghi chú',notesPlaceholder:'Ghi chú cho bài học này chỉ lưu trên thiết bị.',vocabularyEmpty:'Những từ bạn lưu từ phần nhận xét sẽ hiện ở đây.',download:'Tải về',hidePlayer:'Ẩn video',showPlayer:'Hiện video',jumpPlaying:'Nhảy tới chỗ đang phát',skipBack:'Lùi',skipForward:'Tiến',mute:'Tắt tiếng',unmute:'Bật tiếng',words:'từ',listen:'NGHE · THEO DÕI',title:'NGHE TỪNG Ý, THEO TỪNG KHOẢNH KHẮC.',lead:'Đưa video bên ngoài vào một bài học media dùng chung. Xem, theo dõi lời gốc, đọc nghĩa khi có và nghe lại từng câu.',url:'URL video',placeholder:'https://www.youtube.com/watch?v=…',prepare:'Nhập / Chuẩn bị bài học',preparingMeaning:'Đang chuẩn bị phần nghĩa… transcript gốc đã dùng được ngay.',showGroup:'Hiển thị',skillName:'Nghe',skillStat:'bài đã chuẩn bị',recentTitle:'Học tiếp một bài',needTitle:'Video thế nào thì dùng được',need1:'Một đường dẫn YouTube, dán thẳng từ thanh địa chỉ.',need2:'Video phải có sẵn phụ đề — không có phụ đề thì không có gì để theo dõi.',need3:'Nội dung nói bằng ngôn ngữ bạn đang học.',retryTranslation:'Thử chuẩn bị lại',validating:'Đang kiểm tra URL…',processing:'Đang chuẩn bị bài học…',translationFailed:'Chưa thể chuẩn bị phần nghĩa. Hãy thử lại để bắt đầu bài học.',original:'Transcript gốc',meaning:'Nghĩa',unavailable:'Bản dịch nghĩa chưa có.',notRequired:'Không cần bản dịch cho ngôn ngữ hỗ trợ đã chọn.',translationUnavailable:'Hiện chưa thể tạo phần nghĩa. Bạn vẫn có thể tiếp tục với transcript gốc.',translationTooLarge:'Bài học này quá lớn để tự động tạo phần nghĩa. Bạn vẫn có thể tiếp tục với transcript gốc.',generatedTranscript:'Transcript này được tạo tự động và có thể có sai sót.',transcriptMissing:'Video này không có transcript phù hợp.',unsupported:'Nguồn video này chưa được hỗ trợ.',malformedUrl:'Hãy nhập URL media công khai hợp lệ.',unsupportedProvider:'Nhà cung cấp media này chưa được hỗ trợ.',mediaUnavailable:'Media này đang riêng tư hoặc không khả dụng.',providerTimeout:'Nhà cung cấp media không phản hồi kịp thời. Vui lòng thử lại.',providerFailure:'Nhà cung cấp media không thể chuẩn bị bài học này. Vui lòng thử lại.',unsupportedSourceLanguage:'Ngôn ngữ của media này chưa được hỗ trợ.',invalidTargetLanguage:'Hãy chọn ngôn ngữ hỗ trợ hợp lệ.',failed:'Không thể chuẩn bị bài học.',previous:'Đoạn trước',next:'Đoạn sau',replay:'Nghe lại',speed:'Tốc độ',select:'Chọn một đoạn transcript để nghe lại.',shadow:'Shadow câu này',shared:'Shadowing dùng lại chính media và đoạn này, không cần nhập lại video.',playback:'Không thể phát nguồn này.'},
+  zh:{
+  v2:{
+    kicker:'听力练习',
+    headline1:'练出你的耳朵。',headline2:'听懂这个世界。',
+    lead:'带着目的去听，抓住每一处细微差别，把它变成你自己的。',
+    focusMode:'专注模式',leaveFocus:'退出专注模式',
+    followSub:'边听边读',activeSub:'深入理解',shadowSub:'同步跟读',
+    currentSegment:'当前句段',revealMeaning:'显示释义',
+    preparing:'正在准备释义…',
+    preparingBody:'释义还在准备中。原文字幕现在已经可以使用。',
+    hiddenBody:'释义已经准备好，想看的时候再打开。',
+    vocabFocus:'重点词汇',
+    vocabFocusEmpty:'这一句里还没有你词库中的词。',
+    vocabFocusNote:'这些是你已经保存过的词。句中其他内容没有做任何分类。',
+    listeningGoal:'听力目标',daily:'每日目标',weekly:'每周目标',
+    minutes:'分钟',editGoals:'修改目标',
+    goalTip:'本设备在课程播放时真实计到的分钟数，不会同步到任何地方。',
+    goalPrompt:'你每天想听多少分钟？',
+    sourceVideo:'视频来源',viewOnProvider:'打开来源',
+    savedLessons:'已保存课程',viewAll:'查看全部',noSaved:'你准备的课程会出现在这里。',
+    subtitles:'字幕',speed:'速度',abLoop:'AB 循环',shortcutsLabel:'快捷键',
+    loopSetA:'设置起点',loopSetB:'设置终点',loopClear:'清除循环',
+    loopArmed:'起点已设置，继续播放后设置终点。',loopOn:'正在循环这一段。',loopOff:'循环已清除。',
+    savedWord:'已保存的词',
+  },shortcuts:'快捷键',shortcutsTitle:'键盘快捷键',wordTiming:'逐词对齐',vocabulary:'词汇',notes:'笔记',notesPlaceholder:'本课笔记仅保存在此设备上。',vocabularyEmpty:'你在点评中保存的词会出现在这里。',download:'下载',hidePlayer:'隐藏视频',showPlayer:'显示视频',jumpPlaying:'跳到正在播放处',skipBack:'后退',skipForward:'前进',mute:'静音',unmute:'取消静音',words:'词',listen:'听力 · 跟随',title:'逐句听见意思。',lead:'把外部视频导入一个共享媒体课程。观看视频、跟随原文、在可用时阅读释义，并重听每个句子。',url:'视频网址',placeholder:'https://www.youtube.com/watch?v=…',prepare:'导入 / 准备课程',preparingMeaning:'正在准备释义……原文字幕现在已可使用。',showGroup:'显示',skillName:'听力',skillStat:'已准备课程',recentTitle:'继续一课',needTitle:'什么样的视频可用',need1:'一个 YouTube 链接，直接从地址栏粘贴。',need2:'视频必须已有字幕 —— 没有字幕就无法跟读。',need3:'使用你正在学习的语言。',retryTranslation:'重试准备',validating:'正在检查网址…',processing:'正在准备课程…',translationFailed:'暂时无法准备释义。请重试准备后开始课程。',original:'原文字幕',meaning:'释义',unavailable:'释义暂时不可用。',notRequired:'所选辅助语言不需要翻译。',translationUnavailable:'目前无法生成释义。你仍可继续使用原文字幕。',translationTooLarge:'本课内容过大，当前无法自动生成释义。你仍可继续使用原文字幕。',generatedTranscript:'此字幕由系统自动生成，可能有误。',transcriptMissing:'这个视频没有可用字幕。',unsupported:'暂不支持这个视频来源。',malformedUrl:'请输入有效的公开视频网址。',unsupportedProvider:'暂不支持这个媒体提供方。',mediaUnavailable:'该媒体为私密内容或暂不可用。',providerTimeout:'媒体提供方响应超时，请重试。',providerFailure:'媒体提供方无法准备本课，请重试。',unsupportedSourceLanguage:'暂不支持这个媒体语言。',invalidTargetLanguage:'请选择有效的辅助语言。',failed:'无法准备课程。',previous:'上一句',next:'下一句',replay:'重听',speed:'速度',select:'选择一段字幕后重听。',shadow:'跟读这句',shared:'跟读直接复用同一媒体和句段，不需要再次导入视频。',playback:'这个来源暂时无法播放。'},
 };
 const ACTIVE_COPY={
   en:{follow:'Follow',active:'Active',mode:'Listening mode',activeUnavailable:'Active Listening and Shadowing need usable provider playback.',practice:'Active Listening',prompt:'Type what you heard',check:'Check answer',reveal:'Reveal answer',retry:'Retry',yourAnswer:'Your answer',textMatch:'Text match',exact:'Exact match',close:'Close match',tryAgain:'Try again',disclaimer:'Text match compares your reconstruction with this transcript. It is not a proficiency score.',progress:'Session practice',practiced:'Practiced',exactCount:'Exact',average:'Average best text match',attempts:'Checked attempts',revealed:'Revealed only',segment:'Segment',answerEmpty:'Type what you heard before checking.',answerTooLarge:'Your reconstruction is too long to check safely.',segmentTooLarge:'This transcript segment is too large to check safely. Follow mode remains available.',meaningUnavailable:'Meaning is currently unavailable. The original transcript remains usable.',meaningTooLarge:'Meaning is unavailable because this lesson is too large for automatic translation.',meaningNotRequired:'Translation is not required for the selected support language.'},
@@ -53,9 +125,63 @@ const SHADOW_COPY={
 };
 let listeningViewSequence=0;
 
+/* Listening time.
+ *
+ * The reference shows a daily and a weekly goal in minutes. Nothing in the
+ * product records how long anyone listened, so this device counts it: the media
+ * clock ticks while a lesson plays, and the elapsed wall time between ticks is
+ * added to today. It is a real measurement of this device and it is labelled as
+ * one - it does not sync, and it is not a claim about the learner's practice
+ * anywhere else.
+ */
+const LISTEN_TIME_KEY='becoming.listening.minutes.v1';
+const LISTEN_GOAL_KEY='becoming.listening.goals.v1';
+
+const dayKey=(date=new Date())=>`${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
+
+function readJson(key,fallback){
+  try{return JSON.parse(globalThis.localStorage?.getItem(key)||'')||fallback;}catch{return fallback;}
+}
+function writeJson(key,value){
+  try{globalThis.localStorage?.setItem(key,JSON.stringify(value));}catch{}
+}
+
+function listenedSeconds(){
+  const store=readJson(LISTEN_TIME_KEY,{});
+  const today=Number(store[dayKey()])||0;
+  let week=0;
+  for(let back=0;back<7;back+=1){
+    const date=new Date();
+    date.setDate(date.getDate()-back);
+    week+=Number(store[dayKey(date)])||0;
+  }
+  return {today,week};
+}
+
+function addListenedSeconds(seconds){
+  if(!(seconds>0)||seconds>30)return;
+  const store=readJson(LISTEN_TIME_KEY,{});
+  const key=dayKey();
+  store[key]=(Number(store[key])||0)+seconds;
+  /* Thirty days is enough for the weekly figure; the rest is dead weight. */
+  const cutoff=new Date();
+  cutoff.setDate(cutoff.getDate()-30);
+  for(const day of Object.keys(store)){
+    if(day<dayKey(cutoff))delete store[day];
+  }
+  writeJson(LISTEN_TIME_KEY,store);
+}
+
+function listeningGoals(){
+  const stored=readJson(LISTEN_GOAL_KEY,{});
+  const daily=Number(stored.daily)>0?Math.min(600,Math.round(stored.daily)):40;
+  return {daily,weekly:daily*7};
+}
+
 const text=()=>COPY[uiLocale()]||COPY.en;
 const activeText=()=>ACTIVE_COPY[uiLocale()]||ACTIVE_COPY.en;
 const shadowText=()=>SHADOW_COPY[uiLocale()]||SHADOW_COPY.en;
+const v2Text=()=>(COPY[uiLocale()]||COPY.en).v2;
 const stamp=ms=>`${Math.floor(ms/60000)}:${String(Math.floor(ms/1000)%60).padStart(2,'0')}`;
 const transcriptTokenMarkup=value=>transcriptTokens(value).map(token=>token.word
   ?`<span class="transcript-token" data-it-term="${esc(token.text)}" tabindex="0" role="button">${esc(token.text)}</span>`
@@ -464,19 +590,37 @@ function learningWorkspace(payload,selected,model,mode){
           <button type="button" class="o-btn o-btn--outline o-btn--compact" data-listening-mode="follow">${oIcon('arrowLeft')}<span>${esc(s.leaveStudio)}</span></button>
         </div>
       </div>`
-    : `<div class="o-listen-modes o-card">
-        <div class="o-tabs" role="group" aria-label="${esc(a.mode)}">
-          ${tab('follow',a.follow,false)}
-          ${tab('active',a.active,!playbackReady)}
-          ${tab('shadowing',s.mode,!playbackReady)}
-        </div>
-        <button type="button" class="o-btn o-btn--outline o-btn--compact" data-listening-shortcuts>${oIcon('rubric')}<span>${esc(c.shortcuts)}</span></button>
-      </div>`;
+    : listeningHeader(mode,playbackReady);
+
+  /* Follow and Active share the reference's three columns: the player and the
+     transcript down the left, what is being heard right now in the middle, and
+     the learner's own context on the right. The shadowing studio keeps the
+     layout its own reference gives it. */
+  const notices=`${payload.transcript_generation?.status==='generated'?`<p class="generated-transcript-notice" role="status">${esc(c.generatedTranscript)}</p>`:''}
+    ${playbackReady?'':`<p class="active-listening-playback-unavailable" role="status">${esc(a.activeUnavailable)}</p>`}`;
+
+  if(mode==='shadowing'){
+    return `${modeBar}${notices}${shadowingWorkspace(payload,selected,model)}`;
+  }
+
+  /* The tab helper stays: it is what the mode switcher replaced, and the
+     contract test for this screen still reads a mode control out of the
+     markup. */
+  void tab;
 
   return `${modeBar}
-    ${payload.transcript_generation?.status==='generated'?`<p class="generated-transcript-notice" role="status">${esc(c.generatedTranscript)}</p>`:''}
-    ${playbackReady?'':`<p class="active-listening-playback-unavailable" role="status">${esc(a.activeUnavailable)}</p>`}
-    ${mode==='active'?activeWorkspace(payload,selected,model):mode==='shadowing'?shadowingWorkspace(payload,selected,model):followWorkspace(payload,selected,model)}`;
+    <div class="o-listen-notices">${notices}</div>
+    ${mode==='active'?activeWorkspace(payload,selected,model):followWorkspace(payload,selected,model)}
+    <div class="o-listen-mid">
+      ${currentSegmentPanel(payload,selected,model,mode)}
+      ${vocabularyFocusPanel(payload,selected,mode,model)}
+    </div>
+    <aside class="o-listen-right">
+      ${goalPanel()}
+      ${sourcePanel(payload)}
+      ${savedLessonsPanel()}
+    </aside>
+    ${transportBar(model)}`;
 }
 
 /* The reference puts the player and what the learner has kept down the left,
@@ -557,6 +701,222 @@ function lessonVocabularyMarkup(){
     <span class="o-vocab-word">${esc(item.word||'')}</span>
     <span class="o-vocab-gloss">${esc(item.translation||item.definition||'')}</span>
   </li>`).join('')}</ul>`;
+}
+
+/* The reference's three-way switcher: name, one line of what it is for, and
+   the selected card carrying the accent. */
+function modeSwitcher(mode,playbackReady){
+  const a=activeText();
+  const s=shadowText();
+  const v=v2Text();
+  const card=(key,name,sub,icon,disabled)=>`<button type="button" class="o-mode-card ${mode===key?'is-active':''}" data-listening-mode="${key}" aria-pressed="${mode===key}" ${disabled?'disabled':''}>
+    <span class="o-mode-icon">${oIcon(icon)}</span>
+    <span class="o-mode-copy"><strong>${esc(name)}</strong><small>${esc(sub)}</small></span>
+  </button>`;
+  return `<div class="o-mode-switch" role="group" aria-label="${esc(a.mode)}">
+    ${card('follow',a.follow,v.followSub,'rubric',false)}
+    ${card('active',a.active,v.activeSub,'listen',!playbackReady)}
+    ${card('shadowing',s.mode,v.shadowSub,'speak',!playbackReady)}
+  </div>`;
+}
+
+function listeningHeader(mode,playbackReady){
+  const v=v2Text();
+  return `<header class="o-listen-head">
+    <div class="o-listen-head-copy">
+      <span class="o-kicker">${esc(v.kicker)}</span>
+      <h1>${esc(v.headline1)}<br>${esc(v.headline2)}</h1>
+      <p>${esc(v.lead)}</p>
+    </div>
+    <div class="o-listen-head-side">
+      <button type="button" class="o-btn o-btn--outline o-btn--compact" data-focus-mode>${oIcon('flag')}<span>${esc(v.focusMode)}</span></button>
+      ${modeSwitcher(mode,playbackReady)}
+    </div>
+  </header>`;
+}
+
+/* The segment in front of the learner, set large. The meaning is behind a
+   reveal, which is the state the translation flow already has - a prepared
+   translation the learner has not asked to see yet. */
+function currentSegmentPanel(payload,selected,model,mode){
+  const c=text();
+  const v=v2Text();
+  const segments=payload.transcript?.segments||[];
+  const segment=segments.find(item=>item.segment_id===selected)||segments[0];
+  if(!segment)return '';
+  const translations=new Map((payload.translations||[]).map(item=>[item.segment_id,item.translated_meaning]));
+  const status=payload.translation?.status;
+  const meaning=translations.get(segment.segment_id)||'';
+  const revealed=Boolean(model.revealedMeaning);
+  const preparing=!status;
+  const showOriginal=model.original!==false;
+  const showMeaning=model.meaning!==false;
+
+  /* Active Listening is a reconstruction exercise: the learner types what they
+     heard. Printing the line here would hand them the answer, so this panel
+     shows only where they are and how to hear it again. */
+  if(mode==='active'){
+    return `<section class="o-card o-segment-now o-segment-now--hidden">
+      <span class="o-segment-rule" aria-hidden="true"></span>
+      <div class="o-segment-head">
+        <span class="o-label">${esc(v.currentSegment)}</span>
+        <button type="button" class="o-icon-button" data-replay-current aria-label="${esc(c.replay)}" title="${esc(c.replay)}">${oIcon('volume')}</button>
+      </div>
+      <time class="o-segment-time">${stamp(segment.start_ms)} &ndash; ${stamp(segment.end_ms)}</time>
+      <p class="o-panel-copy">${esc(activeText().prompt)}</p>
+    </section>`;
+  }
+
+  return `<section class="o-card o-segment-now">
+    <span class="o-segment-rule" aria-hidden="true"></span>
+    <div class="o-segment-head">
+      <span class="o-label">${esc(v.currentSegment)}</span>
+      <button type="button" class="o-icon-button" data-replay-current aria-label="${esc(c.replay)}" title="${esc(c.replay)}">${oIcon('volume')}</button>
+    </div>
+    <time class="o-segment-time">${stamp(segment.start_ms)} &ndash; ${stamp(segment.end_ms)}</time>
+<!-- This panel is the same line the transcript shows, set large, so it
+         obeys the same two switches. With the original turned off the learner
+         has asked not to see the words; printing them here would put them back. -->
+    ${showOriginal?`<p class="o-segment-text ${state.language==='zh'?'cjk':''}" aria-label="${esc(segment.original_text)}">${transcriptTokenMarkup(segment.original_text)}</p>`:''}
+    ${showOriginal&&segment.pinyin?`<p class="o-segment-pinyin">${esc(segment.pinyin)}</p>`:''}
+    ${showMeaning&&revealed&&meaning?`<p class="o-segment-meaning">${esc(meaning)}</p>`:''}
+    ${revealed||!showMeaning?'':`<div class="o-reveal">
+      <span class="o-reveal-ring" aria-hidden="true"><i>AI</i></span>
+      <span class="o-label">${esc(preparing?v.preparing:c.meaning)}</span>
+      <p>${esc(preparing?v.preparingBody:v.hiddenBody)}</p>
+      <button type="button" class="o-btn o-btn--outline o-btn--compact" data-reveal-meaning ${meaning?'':'disabled'}>${oIcon('info')}<span>${esc(v.revealMeaning)}</span></button>
+    </div>`}
+  </section>`;
+}
+
+/* Only words already in the learner's library are named here. The reference
+   also colours new words, grammar and key phrases; nothing in this product
+   classifies a transcript that way, so those are absent rather than guessed. */
+function vocabularyFocusPanel(payload,selected,mode,model={}){
+  const v=v2Text();
+  /* The saved words are words of the line, so listing them would leak what
+     Active mode is asking the learner to reconstruct - and what a learner who
+     switched the original off has asked not to see. */
+  if(mode==='active'||model.original===false)return '';
+  const segments=payload.transcript?.segments||[];
+  const segment=segments.find(item=>item.segment_id===selected)||segments[0];
+  const saved=(state.libraryVocabulary?.items)||[];
+  const line=String(segment?.original_text||'').toLocaleLowerCase();
+  const hits=saved.filter(item=>{
+    const word=String(item.word||'').toLocaleLowerCase();
+    return word&&line.includes(word);
+  }).slice(0,6);
+
+  return `<section class="o-card o-vocab-focus">
+    <h3 class="o-label">${esc(v.vocabFocus)}</h3>
+    ${hits.length
+      ? `<ul class="o-focus-words">
+          ${hits.map(item=>`<li>
+            <b>${esc(item.word)}</b>
+            ${item.phonetic?`<i>${esc(item.phonetic)}</i>`:''}
+            <span>${esc((uiLocale()==='vi'?item.translation_vi:'')||item.definition||'')}</span>
+            <button type="button" class="o-icon-button" data-say-word="${esc(item.word)}" aria-label="${esc(v.savedWord)}">${oIcon('volume')}</button>
+          </li>`).join('')}
+        </ul>
+        <p class="o-panel-copy">${esc(v.vocabFocusNote)}</p>`
+      : `<p class="o-panel-copy">${esc(v.vocabFocusEmpty)}</p>`}
+  </section>`;
+}
+
+function goalPanel(){
+  const v=v2Text();
+  const {today,week}=listenedSeconds();
+  const goals=listeningGoals();
+  const bar=(value,total)=>`<div class="o-meter"><span style="width:${total?Math.min(100,Math.round((value/total)*100)):0}%"></span></div>`;
+  const mins=seconds=>Math.floor(seconds/60);
+  return `<section class="o-card o-panel o-goal-panel">
+    <h3 class="o-label">${esc(v.listeningGoal)}<span class="o-info-dot" role="img" title="${esc(v.goalTip)}" aria-label="${esc(v.goalTip)}">${oIcon('info')}</span></h3>
+    <div class="o-goal-row">
+      <span>${esc(v.daily)}</span>
+      <b>${mins(today)}<i> / ${goals.daily} ${esc(v.minutes)}</i></b>
+    </div>
+    ${bar(mins(today),goals.daily)}
+    <div class="o-goal-row">
+      <span>${esc(v.weekly)}</span>
+      <b>${mins(week)}<i> / ${goals.weekly} ${esc(v.minutes)}</i></b>
+    </div>
+    ${bar(mins(week),goals.weekly)}
+    <button type="button" class="o-btn o-btn--outline o-btn--compact" data-edit-goals>${oIcon('write')}<span>${esc(v.editGoals)}</span></button>
+  </section>`;
+}
+
+function sourcePanel(payload){
+  const v=v2Text();
+  const asset=payload.asset||{};
+  const duration=Number(asset.duration_ms);
+  return `<section class="o-card o-panel o-source-panel">
+    <h3 class="o-label">${esc(v.sourceVideo)}</h3>
+    <div class="o-source-row">
+      <div class="o-source-meta">
+        <strong>${esc(asset.title||'Media lesson')}</strong>
+        <span>${esc(asset.source_provider||'media')}</span>
+        ${Number.isFinite(duration)&&duration>0?`<span>${stamp(duration)}</span>`:''}
+      </div>
+    </div>
+    ${asset.source_url?`<a class="o-row-button" href="${esc(asset.source_url)}" target="_blank" rel="noreferrer noopener">
+      <span>${esc(v.viewOnProvider)}</span>${oIcon('arrowRight')}
+    </a>`:''}
+  </section>`;
+}
+
+function savedLessonsPanel(){
+  const v=v2Text();
+  const lessons=listMediaLessons(state.language);
+  return `<section class="o-card o-panel o-saved-panel">
+    <div class="o-panel-head">
+      <h3 class="o-label">${esc(v.savedLessons)}</h3>
+      ${lessons.length>3?`<span class="o-panel-count">${lessons.length}</span>`:''}
+    </div>
+    ${lessons.length
+      ? `<ul class="o-saved-list">
+          ${lessons.slice(0,4).map(item=>`<li>
+            <button type="button" class="o-saved-row" data-lesson-url="${esc(item.source_url)}">
+              <span class="o-saved-copy">
+                <strong>${esc(item.title||item.source_url)}</strong>
+                ${item.provider?`<small>${esc(item.provider)}</small>`:''}
+              </span>
+              ${oIcon('arrowRight')}
+            </button>
+          </li>`).join('')}
+        </ul>`
+      : `<p class="o-panel-copy">${esc(v.noSaved)}</p>`}
+  </section>`;
+}
+
+/* The transport the reference pins across the bottom. Everything on it already
+   exists on the player; AB loop is the one addition, and it runs on the media
+   clock this screen already listens to. */
+function transportBar(model){
+  const c=text();
+  const v=v2Text();
+  const loop=model.loop||{};
+  const loopState=loop.b!=null?'on':loop.a!=null?'armed':'off';
+  return `<div class="o-transport">
+    <button type="button" class="o-transport-item" data-toggle-subtitles>
+      ${oIcon('rubric')}<small>${esc(v.subtitles)}</small>
+    </button>
+    <div class="o-transport-main">
+      <button type="button" class="o-icon-button" data-seek="-5" aria-label="${esc(c.skipBack)}">${oIcon('skipBack')}</button>
+      <button type="button" class="o-icon-button" data-previous-segment aria-label="${esc(c.previous)}">${oIcon('chevronDown')}</button>
+      <button type="button" class="o-transport-play" data-toggle-playback aria-label="${esc(c.replay)}">${oIcon('play')}</button>
+      <button type="button" class="o-icon-button" data-next-segment aria-label="${esc(c.next)}">${oIcon('chevronUp')}</button>
+      <button type="button" class="o-icon-button" data-seek="5" aria-label="${esc(c.skipForward)}">${oIcon('skipForward')}</button>
+    </div>
+    <div class="o-transport-side">
+      <span class="o-transport-item is-static"><b>${(model.playbackRate||1).toFixed(2).replace(/0$/,'')}x</b><small>${esc(v.speed)}</small></span>
+      <button type="button" class="o-transport-item is-loop-${loopState}" data-ab-loop>
+        <b>AB</b><small>${esc(v.abLoop)}</small>
+      </button>
+      <button type="button" class="o-transport-item" data-listening-shortcuts>
+        ${oIcon('rubric')}<small>${esc(v.shortcutsLabel)}</small>
+      </button>
+    </div>
+  </div>`;
 }
 
 function listeningPage(model,viewId){
@@ -1049,6 +1409,68 @@ export async function renderListening(root,{importMedia=api.importMedia,importSt
     root.querySelector('#toggleOriginal')?.addEventListener('change',event=>controller.toggleOriginal(event.target.checked));
     root.querySelector('#toggleMeaning')?.addEventListener('change',event=>controller.toggleMeaning(event.target.checked));
     root.querySelectorAll('button[data-listening-mode]').forEach(button=>button.addEventListener('click',()=>controller.setMode(button.dataset.listeningMode)));
+
+    /* --- listening v2 ------------------------------------------------- */
+
+    root.querySelector('[data-focus-mode]')?.addEventListener('click',event=>{
+      const v=v2Text();
+      const page=root.querySelector('.listening-page');
+      const on=page?.classList.toggle('is-focus');
+      const button=event.currentTarget;
+      button.querySelector('span')?.replaceChildren(document.createTextNode(on?v.leaveFocus:v.focusMode));
+    });
+
+    /* A prepared translation the learner has not asked to see yet. The state is
+       on the controller so a re-render does not quietly reveal it. */
+    root.querySelector('[data-reveal-meaning]')?.addEventListener('click',()=>{
+      controller.model.revealedMeaning=true;
+      controller.select(controller.model.selected);
+    });
+
+    root.querySelector('[data-edit-goals]')?.addEventListener('click',()=>{
+      const v=v2Text();
+      const current=listeningGoals().daily;
+      const answer=globalThis.prompt?.(v.goalPrompt,String(current));
+      const parsed=Number(answer);
+      if(Number.isFinite(parsed)&&parsed>0){
+        writeJson(LISTEN_GOAL_KEY,{daily:Math.min(600,Math.round(parsed))});
+        controller.select(controller.model.selected);
+      }
+    });
+
+    root.querySelectorAll('[data-say-word]').forEach(button=>button.addEventListener('click',()=>{
+      const synth=globalThis.speechSynthesis;
+      if(!synth)return;
+      try{
+        synth.cancel();
+        const utterance=new globalThis.SpeechSynthesisUtterance(button.dataset.sayWord);
+        utterance.lang=state.language==='zh'?'zh-CN':'en-US';
+        synth.speak(utterance);
+      }catch{}
+    }));
+
+    root.querySelector('[data-toggle-subtitles]')?.addEventListener('click',()=>{
+      root.querySelector('.listening-page')?.classList.toggle('is-subtitles-off');
+    });
+
+    /* AB loop. Two presses mark the stretch, a third clears it; the clock
+       handler below is what actually sends playback back to A. */
+    root.querySelector('[data-ab-loop]')?.addEventListener('click',()=>{
+      const v=v2Text();
+      const loop=controller.model.loop||{};
+      const now=Number(controller.model.playheadMs)||0;
+      if(loop.a==null){
+        controller.model.loop={a:now,b:null};
+        toast(v.loopArmed);
+      }else if(loop.b==null&&now>loop.a+400){
+        controller.model.loop={a:loop.a,b:now};
+        toast(v.loopOn);
+      }else{
+        controller.model.loop={a:null,b:null};
+        toast(v.loopOff);
+      }
+      controller.select(controller.model.selected);
+    });
     root.querySelector('[data-shadow-selected]')?.addEventListener('click',()=>controller.setMode('shadowing'));
     /* In the studio a round IS the recorded take, so it is counted when the
        take lands - see the hold-to-repeat wiring below. Counting on click too
@@ -1325,8 +1747,26 @@ export async function renderListening(root,{importMedia=api.importMedia,importSt
     else if(event.key==='ArrowLeft'){ event.preventDefault(); controller.moveSelection(-1); }
   },{signal:viewAbort.signal});
 
+  let lastTick=0;
   root.addEventListener('orena:media-time',event=>{
-    const segment=activeCanonicalSegment(controller.model.payload?.transcript?.segments||[],Number(event?.detail?.time_ms));
+    const timeMs=Number(event?.detail?.time_ms);
+    controller.model.playheadMs=timeMs;
+
+    /* Minutes listened, measured as wall time between ticks while the clock is
+       actually moving. A tick gap longer than a couple of seconds means the tab
+       was away, so it is dropped rather than counted as listening. */
+    const now=Date.now();
+    if(lastTick&&now-lastTick<2500)addListenedSeconds((now-lastTick)/1000);
+    lastTick=now;
+
+    const loop=controller.model.loop;
+    if(loop?.b!=null&&timeMs>loop.b){
+      /* replaySegment is the existing seek: it puts the head back at A and
+         plays on, which is exactly what a loop does at B. */
+      replaySegment(root,controller.model.payload?.playback,loop.a||0,loop.b,controller.model.playbackRate||1);
+    }
+
+    const segment=activeCanonicalSegment(controller.model.payload?.transcript?.segments||[],timeMs);
     if(segment)controller.setPlayingSegment(segment.segment_id);
 
     /* The progress bar is written straight onto the existing nodes rather than
