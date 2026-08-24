@@ -301,3 +301,91 @@
   .o-reading-create{padding:20px}
   .o-passage-history{padding:18px}
 }
+
+/* ==================================================== material and rail === */
+
+/* Which form the passage takes, said once beside where it came from. */
+.o-article-source{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.o-material-chip{
+  display:inline-flex;align-items:center;gap:6px;
+  height:24px;padding:0 10px;
+  border-radius:var(--o-radius-pill);
+  background:var(--o-surface-sunken);
+  color:var(--o-ink-muted);
+  font-size:var(--o-text-meta);font-weight:500;
+}
+.o-material-chip svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.o-material-chip--article{background:color-mix(in srgb,var(--o-role-adverb) 15%,transparent);color:var(--o-role-adverb)}
+.o-material-chip--book{background:color-mix(in srgb,var(--o-role-noun) 15%,transparent);color:var(--o-role-noun)}
+.o-material-chip--news{background:color-mix(in srgb,var(--o-role-verb) 14%,transparent);color:var(--o-role-verb)}
+.o-material-chip--quote{background:color-mix(in srgb,var(--o-role-adjective) 15%,transparent);color:var(--o-role-adjective)}
+
+/* Reading position: a hairline across the top of the passage card. It only
+   ever moves forward, because it records the furthest point reached. */
+.o-reading-rail{
+  position:relative;
+  height:3px;
+  border-radius:var(--o-radius-card) var(--o-radius-card) 0 0;
+  background:color-mix(in srgb,var(--o-ink) 8%,transparent);
+  overflow:hidden;
+}
+.o-reading-rail span{
+  display:block;height:100%;width:0;
+  background:var(--o-accent);
+  transition:width .15s linear;
+}
+.o-reader-right{display:flex;align-items:center;gap:8px}
+.o-reading-percent{
+  font-size:var(--o-text-meta);color:var(--o-ink-muted);
+  font-variant-numeric:tabular-nums;cursor:help;white-space:nowrap;
+}
+
+/* ---- the four forms on the create screen ---- */
+
+.o-material-picker{margin:0;padding:0;border:0}
+.o-material-picker legend{padding:0 0 8px;font-size:var(--o-text-meta);color:var(--o-ink-muted)}
+.o-material-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:10px}
+.o-material-card{position:relative;display:block;cursor:pointer}
+.o-material-card input{position:absolute;inset:0;width:100%;height:100%;opacity:0;margin:0;cursor:pointer}
+.o-material-face{
+  display:grid;gap:5px;height:100%;
+  padding:14px;
+  border:1px solid var(--o-border);
+  border-radius:var(--o-radius-field);
+  background-color:var(--o-surface);
+  background-image:var(--o-sheen-control);
+  box-shadow:var(--o-shadow-control);
+}
+.o-material-icon{display:grid;place-items:center;width:30px;height:30px;border-radius:9px;background:var(--o-surface-sunken);color:var(--o-ink-muted)}
+.o-material-icon svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.o-material-face strong{font-size:var(--o-text-ui);font-weight:600}
+.o-material-face small{font-size:var(--o-text-meta);color:var(--o-ink-muted);line-height:1.5}
+.o-material-card input:checked + .o-material-face{
+  border-color:var(--o-accent-edge);
+  background-color:var(--o-accent-tint);
+  background-image:none;
+}
+.o-material-card input:checked + .o-material-face .o-material-icon{background:color-mix(in srgb,var(--o-accent) 16%,transparent);color:var(--o-accent)}
+.o-material-card input:focus-visible + .o-material-face{outline:2px solid var(--o-focus-ring);outline-offset:2px}
+
+/* ---- a quotation is set as one, not as a paragraph ---- */
+
+.o-reader--quote .o-reader-text{text-align:center;max-width:52ch}
+.o-reader--quote .o-reader-text p:first-child{
+  font-size:1.35em;
+  line-height:1.5;
+  font-style:italic;
+  margin-bottom:1.4em;
+}
+.o-reader--quote .o-reader-text p:first-child::before{content:'\201C'}
+.o-reader--quote .o-reader-text p:first-child::after{content:'\201D'}
+.o-reader--quote .o-reader-text p + p{font-size:.92em;color:var(--o-ink-muted);text-align:left}
+
+/* A news report reads in short paragraphs, and its first one carries the
+   weight, so it is set a step up like a standfirst. */
+.o-reader--news .o-reader-text p:first-child{font-size:1.08em;line-height:1.6}
+
+@media (max-width:1023px){
+  .o-material-grid{grid-template-columns:minmax(0,1fr)}
+  .o-reader--quote .o-reader-text{max-width:none}
+}

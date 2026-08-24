@@ -20,6 +20,9 @@ const TOPIC_KEYS=['random','daily_life','work','science','culture','community'];
 const WORDS_PER_MINUTE=200;
 const FONT_STEPS=[16,18,20,23];
 const FONT_KEY='becoming.reading.font-step.v1';
+const MATERIAL_KEY='becoming.reading.material.v1';
+const PROGRESS_KEY='becoming.reading.progress.v1';
+const MATERIALS=['article','book','news','quote'];
 
 const COPY={
   en:{
@@ -44,6 +47,16 @@ const COPY={
     recycle:'Reuse my saved words',recycleDesc:'The passage is written to include words you have saved.',
     create:'Create a passage',createDisclaimer:'Passages are generated for practice, not published journalism.',
     recent:'Recent passages',unread:'Not checked yet',
+    material:'What kind of text',
+    materials:{
+      article:{name:'Article',desc:'A short explanatory piece that opens with the idea and builds on it.'},
+      book:{name:'Book excerpt',desc:'A passage from the middle of a longer work, in a narrative or reflective voice.'},
+      news:{name:'News report',desc:'What happened first, then the detail and a line of comment.'},
+      quote:{name:'Quote',desc:'One short line worth remembering, followed by what it means.'},
+    },
+    materialNote:'Every passage is written here for practice. None of them is taken from a real book, outlet or speaker, and none is attributed to one.',
+    readingProgress:'Read',progressTip:'How far down this passage you have scrolled on this device. It says nothing about whether you understood it.',
+    finished:'Reached the end',
     lineSpacing:'Line spacing',collapse:'Collapse',expand:'Expand',
     saveAll:'Save all key words',savedAll:'{n} words saved to your library',
     viewAllWords:'View all words',
@@ -71,6 +84,16 @@ const COPY={
     recycle:'Dùng lại từ tôi đã lưu',recycleDesc:'Bài đọc sẽ được viết sao cho có các từ bạn đã lưu.',
     create:'Tạo bài đọc',createDisclaimer:'Bài đọc được tạo để luyện tập, không phải báo chí xuất bản.',
     recent:'Bài đọc gần đây',unread:'Chưa kiểm tra',
+    material:'Loại văn bản',
+    materials:{
+      article:{name:'Bài viết',desc:'Bài giải thích ngắn, nêu ý chính trước rồi triển khai.'},
+      book:{name:'Trích sách',desc:'Một đoạn giữa một tác phẩm dài, giọng kể hoặc suy ngẫm.'},
+      news:{name:'Bản tin',desc:'Việc gì xảy ra trước, rồi đến chi tiết và một câu bình luận.'},
+      quote:{name:'Câu trích',desc:'Một câu đáng nhớ, kèm phần giải nghĩa.'},
+    },
+    materialNote:'Mọi bài đọc đều được viết ra để luyện tập. Không bài nào lấy từ sách, báo hay người nói có thật, và cũng không gán cho ai.',
+    readingProgress:'Đã đọc',progressTip:'Bạn đã cuộn tới đâu trong bài này, tính trên thiết bị này. Nó không nói gì về việc bạn có hiểu hay không.',
+    finished:'Đã đọc hết',
     lineSpacing:'Giãn dòng',collapse:'Thu gọn',expand:'Mở ra',
     saveAll:'Lưu tất cả từ trọng tâm',savedAll:'Đã lưu {n} từ vào thư viện',
     viewAllWords:'Xem tất cả từ',
@@ -98,6 +121,16 @@ const COPY={
     recycle:'复用我保存的词',recycleDesc:'文章会尽量用上你保存过的词。',
     create:'生成文章',createDisclaimer:'文章为练习而生成，不是已发表的新闻报道。',
     recent:'最近的文章',unread:'尚未检查',
+    material:'文本类型',
+    materials:{
+      article:{name:'文章',desc:'先点明主旨再展开的短篇说明文。'},
+      book:{name:'书籍节选',desc:'长篇作品中间的一段，叙述或思考的语气。'},
+      news:{name:'新闻报道',desc:'先说发生了什么，再补充细节和一句评论。'},
+      quote:{name:'引文',desc:'一句值得记住的话，附上它的意思。'},
+    },
+    materialNote:'所有文章都是为练习而写的，不取自真实的书籍、媒体或人物，也不会署上任何人的名字。',
+    readingProgress:'已读',progressTip:'你在本设备上把这篇文章滚动到了哪里。它不代表你是否读懂了。',
+    finished:'已读到结尾',
     lineSpacing:'行距',collapse:'收起',expand:'展开',
     saveAll:'保存全部重点词',savedAll:'已将 {n} 个词保存到词库',
     viewAllWords:'查看全部词汇',
@@ -134,12 +167,43 @@ const TOPIC_ICONS={
 };
 function coverTile(session){
   const seed=[...String(session.title||'')].reduce((total,ch)=>(total*31+ch.charCodeAt(0))%360,7);
-  const icon=TOPIC_ICONS[session.topic]||'read';
+  const icon=MATERIAL_ICONS[materialOf(session)]||TOPIC_ICONS[session.topic]||'read';
   return `<span class="o-article-cover" style="--o-cover-hue:${seed}" aria-hidden="true">${oIcon(icon)}</span>`;
 }
 
 function infoTip(text){
   return `<span class="o-info-dot" role="img" title="${esc(text)}" aria-label="${esc(text)}">${oIcon('info')}</span>`;
+}
+
+/* The service has no column for the form, so a passage reopened from history
+   would forget it. Remembering the choice against the session id on this device
+   is a bridge, not the fix: the fix is a column, and that is a migration. */
+function readStore(key){
+  try{return JSON.parse(globalThis.localStorage?.getItem(key)||'{}');}catch{return {};}
+}
+function writeStore(key,value){
+  try{globalThis.localStorage?.setItem(key,JSON.stringify(value));}catch{}
+}
+function rememberMaterial(sessionId,material){
+  if(!sessionId||!MATERIALS.includes(material))return;
+  const store=readStore(MATERIAL_KEY);
+  store[String(sessionId)]=material;
+  writeStore(MATERIAL_KEY,store);
+}
+function materialOf(session){
+  if(MATERIALS.includes(session?.material))return session.material;
+  return readStore(MATERIAL_KEY)[String(session?.id)]||'article';
+}
+function readProgress(sessionId){
+  return Number(readStore(PROGRESS_KEY)[String(sessionId)])||0;
+}
+function saveProgress(sessionId,percent){
+  if(!sessionId)return;
+  const store=readStore(PROGRESS_KEY);
+  const previous=Number(store[String(sessionId)])||0;
+  if(percent<=previous)return;
+  store[String(sessionId)]=percent;
+  writeStore(PROGRESS_KEY,store);
 }
 
 function readFontStep(){
@@ -211,8 +275,11 @@ function highlightedPassage(text,{recycled=[],evidence=[]}={}){
   return html;
 }
 
+const MATERIAL_ICONS={article:'document',book:'read',news:'library',quote:'grammar'};
+
 function articleHeader(session,position){
   const c=copy();
+  const material=materialOf(session);
   const words=wordCount(session.passage);
   const minutes=Math.max(1,Math.round(words/WORDS_PER_MINUTE));
   return `<section class="o-card o-article-head">
@@ -222,8 +289,11 @@ function articleHeader(session,position){
       <span>${esc(t('skill.read.name'))}</span>${oIcon('chevronRight')}<span>${esc(labelTopic(session.topic))}</span>
     </div>
     <h1 class="o-article-title">${esc(session.title)}</h1>
-    <p class="o-article-source">${esc(session.generation_mode==='generated'?c.generated:c.builtin)}${
-      position?` &middot; ${esc(fill(c.position,position))}`:''}</p>
+    <p class="o-article-source">
+      <span class="o-material-chip o-material-chip--${esc(material)}">${oIcon(MATERIAL_ICONS[material])}<span>${esc(c.materials[material]?.name||'')}</span></span>
+      <span>${esc(session.generation_mode==='generated'?c.generated:c.builtin)}${
+        position?` &middot; ${esc(fill(c.position,position))}`:''}</span>
+    </p>
     <div class="o-article-meta">
       <span class="o-band-chip">${esc(session.target_level)}</span>
       <span class="o-meta-item">${oIcon('document')}<span>${words} ${esc(c.words)}</span></span>
@@ -240,7 +310,13 @@ function passageBlock(session,result){
     recycled:session.recycled_words||[],
     evidence,
   });
-  return `<section class="o-card o-reader" data-font-step="${readFontStep()}">
+  const material=materialOf(session);
+  return `<section class="o-card o-reader o-reader--${material}" data-font-step="${readFontStep()}">
+    <!-- How far down the passage the learner has scrolled. It is a position,
+         not a score, and the tooltip says so. -->
+    <div class="o-reading-rail" role="progressbar" aria-label="${esc(c.readingProgress)}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" data-reading-rail>
+      <span data-reading-rail-fill></span>
+    </div>
     <div class="o-reader-bar">
       <!-- The reference's undo and redo belong to an editor. A reader gets the
            three controls that change how it reads. -->
@@ -250,7 +326,10 @@ function passageBlock(session,result){
         <span class="o-reader-divider"></span>
         <button type="button" class="o-icon-button" data-line-spacing aria-label="${esc(c.lineSpacing)}" title="${esc(c.lineSpacing)}">${oIcon('bulletList')}</button>
       </div>
-      <button type="button" class="o-icon-button" data-reading-focus aria-label="${esc(c.focusMode)}" title="${esc(c.focusMode)}">${oIcon('chevronUp')}</button>
+      <div class="o-reader-right">
+        <span class="o-reading-percent" data-reading-percent title="${esc(c.progressTip)}">0%</span>
+        <button type="button" class="o-icon-button" data-reading-focus aria-label="${esc(c.focusMode)}" title="${esc(c.focusMode)}">${oIcon('chevronUp')}</button>
+      </div>
     </div>
     <div class="o-reader-text ${state.language==='zh'?'cjk':''}" data-reading-passage>
       <p>${content}</p>
@@ -428,6 +507,7 @@ export async function renderReading(root){
   const config=configFor(state.language);
   const rememberedLevel=state.readingSession?.target_level||state.draft.level||config.defaultLevel;
 
+  root._readingScroll?.();
   root.innerHTML=`<section class="o-page">${loadingBlock(5)}</section>`;
 
   let history;
@@ -462,6 +542,20 @@ export async function renderReading(root){
               ${config.levels.map(level=>`<option value="${esc(level)}" ${level===rememberedLevel?'selected':''}>${esc(level)}</option>`).join('')}
             </select>
           </label>
+          <fieldset class="o-material-picker">
+            <legend>${esc(c.material)}</legend>
+            <div class="o-material-grid">
+              ${MATERIALS.map((key,index)=>`<label class="o-material-card">
+                <input type="radio" name="readingMaterial" value="${key}" ${index===0?'checked':''}>
+                <span class="o-material-face">
+                  <span class="o-material-icon">${oIcon(MATERIAL_ICONS[key])}</span>
+                  <strong>${esc(c.materials[key].name)}</strong>
+                  <small>${esc(c.materials[key].desc)}</small>
+                </span>
+              </label>`).join('')}
+            </div>
+            <p class="o-panel-copy">${esc(c.materialNote)}</p>
+          </fieldset>
           <label class="o-field">
             <span>${esc(c.topic)}</span>
             <select id="readingTopic" class="o-control">
@@ -508,6 +602,10 @@ export async function renderReading(root){
       </button>
     </div>
   </section>`;
+
+  /* The position listener is on the window, so it has to come off when the
+     learner leaves - otherwise every visit adds another one. */
+  root._cleanupScreen=()=>{root._readingScroll?.();};
 
   bindReader();
   bindHistory();
@@ -571,6 +669,40 @@ export async function renderReading(root){
       view.status='idle';
       paintUnderstanding();
     });
+
+    /* Position is measured against the passage, not the page, so a long
+       comprehension block below it cannot report itself as reading. */
+    const rail=root.querySelector('[data-reading-rail]');
+    const railFill=root.querySelector('[data-reading-rail-fill]');
+    const percentLabel=root.querySelector('[data-reading-percent]');
+    let furthest=readProgress(session.id);
+    const updateProgress=()=>{
+      if(!passage||!railFill)return;
+      /* Nothing scrolls, nothing to report. A bar pinned at 100% because the
+         passage happened to fit the window would be claiming the learner read
+         it, which is not something scrolling can tell us. */
+      const scrollable=(document.documentElement.scrollHeight-globalThis.innerHeight)>8;
+      rail?.classList.toggle('hidden',!scrollable);
+      if(percentLabel)percentLabel.classList.toggle('hidden',!scrollable);
+      if(!scrollable)return;
+      /* Measured against a line two thirds down the window: text has to travel
+         past where it is actually read, not merely appear at the bottom edge. */
+      const box=passage.getBoundingClientRect();
+      const line=globalThis.innerHeight*0.66;
+      const percent=box.height<=0?0:Math.max(0,Math.min(100,Math.round(((line-box.top)/box.height)*100)));
+      furthest=Math.max(furthest,percent);
+      railFill.style.width=`${furthest}%`;
+      rail?.setAttribute('aria-valuenow',String(furthest));
+      if(percentLabel)percentLabel.textContent=furthest>=99?c.finished:`${furthest}%`;
+      saveProgress(session.id,furthest);
+    };
+    globalThis.addEventListener('scroll',updateProgress,{passive:true});
+    globalThis.addEventListener('resize',updateProgress,{passive:true});
+    root._readingScroll=()=>{
+      globalThis.removeEventListener('scroll',updateProgress);
+      globalThis.removeEventListener('resize',updateProgress);
+    };
+    updateProgress();
 
     root.querySelectorAll('[data-panel-toggle]').forEach(button=>button.addEventListener('click',()=>{
       const open=button.getAttribute('aria-expanded')!=='true';
@@ -705,11 +837,14 @@ export async function renderReading(root){
       const button=form.querySelector('button[type="submit"]');
       try{
         await runBusy(button,async()=>{
+          const material=root.querySelector('input[name="readingMaterial"]:checked')?.value||'article';
           const created=await api.createReadingSession({
             target_level:root.querySelector('#readingLevel').value,
             topic:root.querySelector('#readingTopic').value,
+            material,
             recycle_library:root.querySelector('#readingRecycle').checked,
           });
+          rememberMaterial(created?.id,created?.material||material);
           state.readingSession=created;
           state.readingResult=null;
           await renderReading(root);
