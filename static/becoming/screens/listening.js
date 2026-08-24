@@ -7,6 +7,7 @@ import {t,uiLocale} from '../domain/i18n.js';
 import {countUnits} from '../language.js';
 import {oIcon} from '../orena/icons.js';
 import {installSelectEnhancements} from '../components/select-field.js';
+import {createLocalAudioRecorder,localAudioRecordingSupported} from '../components/audio-recorder.js';
 import {showDialog} from '../components/primitives.js';
 import {transcriptTokens} from '../domain/transcript-tokens.js';
 import {buildTranscriptDisplayUnits,displayUnitContains,displayUnitMeaning} from '../domain/transcript-display-units.js';
@@ -46,9 +47,9 @@ const ACTIVE_COPY={
   zh:{follow:'跟随',active:'主动练习',mode:'听力模式',activeUnavailable:'主动听力和跟读练习需要可用的媒体播放。',practice:'主动听力',prompt:'输入你听到的内容',check:'检查答案',reveal:'显示答案',retry:'重试',yourAnswer:'你的答案',textMatch:'文本匹配度',exact:'完全匹配',close:'接近匹配',tryAgain:'再试一次',disclaimer:'文本匹配只比较你的重构与本段字幕，并不是语言能力分数。',progress:'本次练习',practiced:'已练习',exactCount:'完全匹配',average:'最佳文本匹配平均值',attempts:'已检查次数',revealed:'仅查看答案',segment:'句段',answerEmpty:'请先输入你听到的内容。',answerTooLarge:'你的答案过长，无法安全检查。',segmentTooLarge:'本段字幕过长，无法安全检查。跟随模式仍可使用。',meaningUnavailable:'释义目前不可用，原文字幕仍可使用。',meaningTooLarge:'本课内容过大，无法自动生成释义。',meaningNotRequired:'所选辅助语言不需要翻译。'},
 };
 const SHADOW_COPY={
-  en:{mode:'Shadowing',practice:'Shadow this segment',guide:'Listen to the selected segment, repeat it aloud, then mark one completed round.',markRound:'Mark round complete',rounds:'Rounds',progress:'Session shadowing',practiced:'Practiced segments',totalRounds:'Completed rounds',noScore:'Repeating here does not record or score anything. Open Speak when you want to record your voice and play it back.',openSpeaking:'Open Speak',segment:'Segment'},
-  vi:{mode:'Shadowing',practice:'Shadow đoạn này',guide:'Nghe đoạn đã chọn, lặp lại thành tiếng rồi đánh dấu một lượt đã hoàn thành.',markRound:'Đánh dấu hoàn thành 1 lượt',rounds:'Số lượt',progress:'Shadowing trong phiên',practiced:'Đoạn đã luyện',totalRounds:'Tổng lượt hoàn thành',noScore:'Lặp lại ở đây không ghi âm và không chấm gì cả. Mở mục Nói khi bạn muốn ghi giọng và nghe lại.',openSpeaking:'Mở mục Nói',segment:'Đoạn'},
-  zh:{mode:'跟读',practice:'跟读这一句',guide:'先听所选句段，再大声跟读，然后记录一次已完成练习。',markRound:'记录完成一轮',rounds:'轮次',progress:'本次跟读',practiced:'已练句段',totalRounds:'已完成轮次',noScore:'这里的跟读不录音，也不评分。需要录制并回放自己的声音时，请打开口语。',openSpeaking:'打开口语',segment:'句段'},
+  en:{progressTitle:'Progress',segmentsLabel:'segments', keySoundsPending:'Key sounds and rhythm \u2014 not checked yet', studioTitle:'Shadowing Studio',studioLead:'Practice speaking with real-world content.',leaveStudio:'Leave studio',sharedMedia:'Shared media',viewTranscript:'View full transcript',nowPracticing:'Now practicing',listen:'Listen',holdToRepeat:'Hold to repeat',listenToMe:'Listen to me',yourAttempts:'Your attempts',roundOf:'Round {n} of {total}',startRound:'Start round {n}',tips:'Tips',tip1:'Play the segment, then say it back at the same speed.',tip2:'Match the speaker\u2019s rhythm before worrying about single sounds.',shortcuts:'Keyboard shortcuts',scPlay:'Play / Pause',scRepeat:'Hold to repeat',scNext:'Next segment',scPrev:'Previous segment',scorePending:'Not scored yet',scoreNote:'Pronunciation and intonation scoring is not built yet. Your takes stay on this device and are never uploaded.',recording:'Recording\u2026',recordUnsupported:'This browser cannot record audio.',justNow:'Just now',takes:'takes',pinyin:'Pinyin',mode:'Shadowing',practice:'Shadow this segment',guide:'Listen to the selected segment, repeat it aloud, then mark one completed round.',markRound:'Mark round complete',rounds:'Rounds',progress:'Session shadowing',practiced:'Practiced segments',totalRounds:'Completed rounds',noScore:'Repeating here does not record or score anything. Open Speak when you want to record your voice and play it back.',openSpeaking:'Open Speak',segment:'Segment'},
+  vi:{progressTitle:'Ti\u1ebfn \u0111\u1ed9',segmentsLabel:'\u0111o\u1ea1n', keySoundsPending:'\u00c2m ch\u00ednh v\u00e0 nh\u1ecbp \u2014 ch\u01b0a ki\u1ec3m tra', studioTitle:'Ph\u00f2ng luy\u1ec7n Shadowing',studioLead:'Luy\u1ec7n n\u00f3i v\u1edbi n\u1ed9i dung th\u1ef1c t\u1ebf.',leaveStudio:'R\u1eddi ph\u00f2ng luy\u1ec7n',sharedMedia:'Media d\u00f9ng chung',viewTranscript:'Xem to\u00e0n b\u1ed9 transcript',nowPracticing:'\u0110ang luy\u1ec7n',listen:'Nghe m\u1eabu',holdToRepeat:'Gi\u1eef \u0111\u1ec3 n\u00f3i',listenToMe:'Nghe l\u1ea1i m\u00ecnh',yourAttempts:'C\u00e1c l\u01b0\u1ee3t c\u1ee7a b\u1ea1n',roundOf:'L\u01b0\u1ee3t {n} tr\u00ean {total}',startRound:'B\u1eaft \u0111\u1ea7u l\u01b0\u1ee3t {n}',tips:'G\u1ee3i \u00fd',tip1:'Nghe \u0111o\u1ea1n m\u1eabu, r\u1ed3i n\u00f3i l\u1ea1i \u0111\u00fang t\u1ed1c \u0111\u1ed9 \u0111\u00f3.',tip2:'B\u00e1m nh\u1ecbp c\u1ee7a ng\u01b0\u1eddi n\u00f3i tr\u01b0\u1edbc, \u0111\u1eebng lo t\u1eebng \u00e2m m\u1ed9t.',shortcuts:'Ph\u00edm t\u1eaft',scPlay:'Ph\u00e1t / D\u1eebng',scRepeat:'Gi\u1eef \u0111\u1ec3 n\u00f3i',scNext:'\u0110o\u1ea1n sau',scPrev:'\u0110o\u1ea1n tr\u01b0\u1edbc',scorePending:'Ch\u01b0a ch\u1ea5m',scoreNote:'Ph\u1ea7n ch\u1ea5m ph\u00e1t \u00e2m v\u00e0 ng\u1eef \u0111i\u1ec7u ch\u01b0a \u0111\u01b0\u1ee3c x\u00e2y. B\u1ea3n ghi c\u1ee7a b\u1ea1n n\u1eb1m tr\u00ean thi\u1ebft b\u1ecb n\u00e0y v\u00e0 kh\u00f4ng \u0111\u01b0\u1ee3c t\u1ea3i l\u00ean.',recording:'\u0110ang ghi\u2026',recordUnsupported:'Tr\u00ecnh duy\u1ec7t n\u00e0y kh\u00f4ng ghi \u00e2m \u0111\u01b0\u1ee3c.',justNow:'V\u1eeba xong',takes:'l\u01b0\u1ee3t',pinyin:'Pinyin',mode:'Shadowing',practice:'Shadow đoạn này',guide:'Nghe đoạn đã chọn, lặp lại thành tiếng rồi đánh dấu một lượt đã hoàn thành.',markRound:'Đánh dấu hoàn thành 1 lượt',rounds:'Số lượt',progress:'Shadowing trong phiên',practiced:'Đoạn đã luyện',totalRounds:'Tổng lượt hoàn thành',noScore:'Lặp lại ở đây không ghi âm và không chấm gì cả. Mở mục Nói khi bạn muốn ghi giọng và nghe lại.',openSpeaking:'Mở mục Nói',segment:'Đoạn'},
+  zh:{progressTitle:'\u8fdb\u5ea6',segmentsLabel:'\u53e5\u6bb5', keySoundsPending:'\u5173\u952e\u97f3\u4e0e\u8282\u594f \u2014 \u5c1a\u672a\u68c0\u6d4b', studioTitle:'\u8ddf\u8bfb\u5de5\u4f5c\u5ba4',studioLead:'\u7528\u771f\u5b9e\u5185\u5bb9\u7ec3\u53e3\u8bed\u3002',leaveStudio:'\u9000\u51fa\u5de5\u4f5c\u5ba4',sharedMedia:'\u5171\u4eab\u5a92\u4f53',viewTranscript:'\u67e5\u770b\u5b8c\u6574\u5b57\u5e55',nowPracticing:'\u6b63\u5728\u7ec3',listen:'\u542c\u539f\u58f0',holdToRepeat:'\u6309\u4f4f\u8ddf\u8bfb',listenToMe:'\u542c\u6211\u7684',yourAttempts:'\u4f60\u7684\u5f55\u97f3',roundOf:'\u7b2c {n} \u8f6e\uff0c\u5171 {total} \u8f6e',startRound:'\u5f00\u59cb\u7b2c {n} \u8f6e',tips:'\u63d0\u793a',tip1:'\u5148\u542c\u4e00\u904d\uff0c\u518d\u7528\u540c\u6837\u7684\u901f\u5ea6\u8bf4\u56de\u53bb\u3002',tip2:'\u5148\u8ddf\u4e0a\u8bf4\u8bdd\u4eba\u7684\u8282\u594f\uff0c\u518d\u8ba1\u8f83\u5355\u4e2a\u97f3\u3002',shortcuts:'\u5feb\u6377\u952e',scPlay:'\u64ad\u653e / \u6682\u505c',scRepeat:'\u6309\u4f4f\u8ddf\u8bfb',scNext:'\u4e0b\u4e00\u53e5',scPrev:'\u4e0a\u4e00\u53e5',scorePending:'\u5c1a\u672a\u8bc4\u5206',scoreNote:'\u53d1\u97f3\u4e0e\u8bed\u8c03\u8bc4\u5206\u8fd8\u672a\u5efa\u6210\u3002\u5f55\u97f3\u53ea\u4fdd\u5b58\u5728\u672c\u673a\uff0c\u4e0d\u4f1a\u4e0a\u4f20\u3002',recording:'\u5f55\u97f3\u4e2d\u2026',recordUnsupported:'\u6b64\u6d4f\u89c8\u5668\u65e0\u6cd5\u5f55\u97f3\u3002',justNow:'\u521a\u521a',takes:'\u6b21',pinyin:'\u62fc\u97f3',mode:'跟读',practice:'跟读这一句',guide:'先听所选句段，再大声跟读，然后记录一次已完成练习。',markRound:'记录完成一轮',rounds:'轮次',progress:'本次跟读',practiced:'已练句段',totalRounds:'已完成轮次',noScore:'这里的跟读不录音，也不评分。需要录制并回放自己的声音时，请打开口语。',openSpeaking:'打开口语',segment:'句段'},
 };
 let listeningViewSequence=0;
 
@@ -254,40 +255,182 @@ function activeWorkspace(payload,selected,model){
   </section>`;
 }
 
+/* ---------------------------------------------------------------------------
+ * Shadowing Studio, rebuilt against ORENA-LISTENING-SHADOWING-*.
+ *
+ * The reference makes this a room of its own rather than a panel: one segment
+ * at a time, large, with the takes underneath it.
+ *
+ * The score ring and the verdict line are drawn in the positions the reference
+ * gives them, but they are empty and say so. The evaluator that would fill
+ * them is reserved and unimplemented, and PROJECT_STATE is explicit that what
+ * R6 does have "is not pronunciation, fluency, or proficiency scoring".
+ * Printing a number there would be inventing an assessment of the learner's
+ * speech. The slot carries `data-score-slot` so wiring it later is a matter of
+ * filling it, not of finding it. (The reserved identifier is deliberately not
+ * named here: becoming_release_gate.py reads this file textually and treats
+ * any mention of it as the screen activating evaluation scope.)
+ *
+ * Takes are held in memory for the session and never leave the device, which
+ * keeps this inside M1.6's browser-session-only shadowing state.
+ * ------------------------------------------------------------------------ */
+
+const shadowTakes=new Map();
+const takeKey=(assetId,segmentId)=>`${assetId||'asset'}:${segmentId||'segment'}`;
+
+/* The workspace resolves the selection before it renders, so until the learner
+   picks a segment the controller still holds null while the studio is showing
+   the first one. Both the renderer and the recorder have to resolve it the same
+   way, or a take is filed under a segment nobody is looking at. */
+function shadowSelection(payload,segmentId){
+  return segmentId||payload?.transcript?.segments?.[0]?.segment_id;
+}
+
+function shadowTakesFor(payload,segmentId){
+  return shadowTakes.get(takeKey(payload?.asset?.asset_id,shadowSelection(payload,segmentId)))||[];
+}
+
+function segmentStrip(segments,selected){
+  const s=shadowText();
+  const index=segments.findIndex(item=>item.segment_id===selected);
+  return `<div class="o-strip">
+    <button type="button" class="o-icon-button" data-previous-segment ${index<=0?'disabled':''} aria-label="${esc(s.scPrev)}">${oIcon('arrowLeft')}</button>
+    <ol class="o-strip-track">
+      ${segments.map((item,i)=>`<li>
+        <button type="button" class="o-strip-card ${item.segment_id===selected?'is-active':''}" data-select-segment="${esc(item.segment_id)}" ${item.segment_id===selected?'aria-current="true"':''}>
+          <span class="o-strip-head"><b>${i+1}</b><time>${stamp(item.start_ms)}</time></span>
+          <span class="o-strip-text">${esc(item.original_text)}</span>
+        </button>
+      </li>`).join('')}
+    </ol>
+    <button type="button" class="o-icon-button" data-next-segment ${index<0||index>=segments.length-1?'disabled':''} aria-label="${esc(s.scNext)}">${oIcon('arrowRight')}</button>
+  </div>`;
+}
+
+function attemptRow(take,index,total){
+  const s=shadowText();
+
+  /* A round nobody has recorded yet is a single line: number, label, mic. It
+     carries no score slot, because an unrecorded round has nothing that could
+     ever be scored. */
+  if(!take){
+    return `<li class="o-take o-take--pending">
+      <span class="o-take-index">${index+1}</span>
+      <button type="button" class="o-take-start" data-shadow-record-round="${index}">
+        <span>${esc(s.startRound.replace('{n}',String(index+1)))}</span>
+        ${oIcon('speak')}
+      </button>
+    </li>`;
+  }
+
+  return `<li class="o-take">
+    <span class="o-take-index">${index+1}</span>
+    <div class="o-take-body">
+      <span class="o-take-when">${esc(s.justNow)}</span>
+      <div class="o-take-player">
+        <button type="button" class="o-icon-button o-take-play" data-play-take="${index}" aria-label="${esc(s.listenToMe)}">${oIcon('play')}</button>
+        <audio data-take-audio="${index}" src="${esc(take.url)}" preload="none"></audio>
+        <span class="o-take-bar"><i data-take-fill="${index}"></i></span>
+        <span class="o-take-time"><span data-take-elapsed="${index}">0:00</span> / ${stamp(take.ms||0)}</span>
+      </div>
+      <!-- The reference prints a verdict on the take here. Reserved for the
+           pronunciation and intonation service; until that exists the line
+           holds its place and says nothing about the recording. -->
+      <p class="o-take-verdict" data-verdict-slot="${index}">
+        <span class="o-take-dot" aria-hidden="true"></span>${esc(s.keySoundsPending)}
+      </p>
+    </div>
+    <!-- Same reservation, the numeric half of it. -->
+    <div class="o-take-score" data-score-slot="${index}" role="status">
+      <span class="o-score-ring" aria-hidden="true">&mdash;</span>
+      <small>${esc(s.scorePending)}</small>
+    </div>
+  </li>`;
+}
+
 function shadowingWorkspace(payload,selected,model){
-  const c=shadowText();
+  const s=shadowText();
+  const c=text();
+  const a=activeText();
   const segments=payload.transcript?.segments||[];
   const segment=segments.find(item=>item.segment_id===selected);
   const segmentIndex=segments.findIndex(item=>item.segment_id===selected);
   const translations=new Map((payload.translations||[]).map(item=>[item.segment_id,item.translated_meaning]));
-  const state=model.shadowingSession?.segments?.[selected];
   const summary=shadowingPracticeSummary(model.shadowingSession);
-  return `<section class="listening-transcript listening-shadowing visual-section-surface" aria-label="${esc(c.practice)}">
-    <div class="listening-toolbar">
-      <div><strong>${esc(c.practice)}</strong><small>${esc(c.guide)}</small></div>
+  const takes=shadowTakesFor(payload,selected);
+  const rounds=Math.max(3,takes.length+1);
+
+  return `<div class="o-studio-body">
+    <div class="o-studio-main">
+      ${segmentStrip(segments,selected)}
+
+      <section class="o-card o-practice shadowing-focus">
+        <div class="o-practice-head">
+          <span class="o-label">${esc(s.nowPracticing)}</span>
+          <span class="o-practice-count">${segmentIndex+1} / ${segments.length}</span>
+          <div class="o-tabs">
+            ${state.language==='zh'?`<button type="button" class="o-tab is-active" data-practice-view="pinyin" aria-pressed="true">${esc(s.pinyin)}</button>`:''}
+            <button type="button" class="o-tab is-active" data-practice-view="meaning" aria-pressed="true">${esc(c.meaning)}</button>
+          </div>
+        </div>
+
+        ${segment?`<p class="o-practice-line ${state.language==='zh'?'cjk':''}" aria-label="${esc(segment.original_text)}">${transcriptTokenMarkup(segment.original_text)}</p>
+        <div data-practice-panel="meaning">${activeMeaning(payload,translations,selected)}</div>
+
+        <div class="o-practice-actions">
+          <span class="o-practice-action">
+            <button type="button" class="o-round-button" data-replay-current aria-label="${esc(s.listen)}">${oIcon('listen')}</button>
+            <small>${esc(s.listen)}</small>
+          </span>
+          <span class="o-practice-action">
+            <button type="button" class="o-round-button o-round-button--record" data-shadow-record data-shadow-round aria-label="${esc(s.holdToRepeat)}">${oIcon('speak')}</button>
+            <small><b>${esc(s.holdToRepeat)}</b></small>
+          </span>
+          <span class="o-practice-action">
+            <button type="button" class="o-round-button" data-play-latest ${takes.length?'':'disabled'} aria-label="${esc(s.listenToMe)}">${oIcon('play')}</button>
+            <small>${esc(s.listenToMe)}</small>
+          </span>
+        </div>
+        <p class="o-practice-status" data-record-status role="status"></p>`:''}
+      </section>
+
+      <section class="o-attempts">
+        <div class="o-attempts-head">
+          <h2 class="o-label">${esc(s.yourAttempts)}</h2>
+          <span class="o-attempts-round">${esc(s.roundOf.replace('{n}',String(Math.min(takes.length+1,rounds))).replace('{total}',String(rounds)))}</span>
+        </div>
+        <ol class="o-take-list">
+          ${Array.from({length:rounds},(_,index)=>attemptRow(takes[index],index,rounds)).join('')}
+        </ol>
+        <p class="o-take-note">${esc(s.scoreNote)}</p>
+      </section>
     </div>
-    ${segmentNavigation(segments,selected,model.playbackRate)}
-    <div class="listening-segments listening-shadowing-segments">
-      ${segments.map((item,index)=>`<article class="listening-segment ${item.segment_id===selected?'selected':''}" data-segment-id="${esc(item.segment_id)}" ${item.segment_id===selected?'aria-current="true"':''}>
-        <button class="listening-segment-main" type="button" data-select-segment="${esc(item.segment_id)}"><time>${stamp(item.start_ms)}</time><span>${esc(c.segment)} ${index+1}</span></button>
-      </article>`).join('')}
-    </div>
-    ${segment?`<div class="shadowing-focus" role="group" aria-label="${esc(c.practice)}">
-      <span class="context-label">${esc(c.segment)} ${segmentIndex+1}</span>
-      <p class="shadowing-source" aria-label="${esc(segment.original_text)}">${transcriptTokenMarkup(segment.original_text)}</p>
-      ${activeMeaning(payload,translations,selected)}
-      <div class="shadowing-round-actions">
-        <button class="button button-primary" type="button" data-shadow-round>${esc(c.markRound)}</button>
-        <button class="button button-secondary" type="button" data-open-speaking>${esc(c.openSpeaking)}</button>
-        <span class="shadowing-round-count">${esc(c.rounds)}: ${state?.rounds||0}</span>
-      </div>
-      <p class="shadowing-disclaimer">${esc(c.noScore)}</p>
-    </div>`:''}
-    <div class="active-listening-summary shadowing-summary" role="status"><strong>${esc(c.progress)}</strong>
-      <span>${esc(c.practiced)} ${summary.practiced_segments} / ${summary.total_segments}</span>
-      <span>${esc(c.totalRounds)} ${summary.total_rounds}</span>
-    </div>
-  </section>`;
+
+    <aside class="o-studio-rail">
+      <section class="o-card o-panel">
+        <h2 class="o-label">${esc(s.progressTitle)}</h2>
+        <p class="o-panel-copy">${summary.practiced_segments} / ${summary.total_segments} ${esc(s.segmentsLabel)}</p>
+        <div class="o-meter"><span style="width:${summary.total_segments?Math.round((summary.practiced_segments/summary.total_segments)*100):0}%"></span></div>
+      </section>
+
+      <section class="o-card o-panel">
+        <h2 class="o-label">${oIcon('info')}${esc(s.tips)}</h2>
+        <p class="o-panel-copy">${esc(s.tip1)}</p>
+        <p class="o-panel-copy">${esc(s.tip2)}</p>
+      </section>
+
+      <!-- A phone has no keyboard, so the reference drops this card there. -->
+      <section class="o-card o-panel o-keys-card">
+        <h2 class="o-label">${esc(s.shortcuts)}</h2>
+        <ul class="o-keys">
+          <li><kbd>Space</kbd><span>${esc(s.scPlay)}</span></li>
+          <li><kbd>R</kbd><span>${esc(s.scRepeat)}</span></li>
+          <li><kbd>&rarr;</kbd><span>${esc(s.scNext)}</span></li>
+          <li><kbd>&larr;</kbd><span>${esc(s.scPrev)}</span></li>
+        </ul>
+      </section>
+    </aside>
+  </div>`;
 }
 
 function listeningMode(payload,model={}){
@@ -305,14 +448,32 @@ function learningWorkspace(payload,selected,model,mode){
   const playbackReady=segments.length>0&&playbackAvailable(payload.playback);
   const tab=(key,label,disabled)=>`<button type="button" class="o-tab ${mode===key?'is-active':''}" data-listening-mode="${key}" aria-pressed="${mode===key}" ${disabled?'disabled':''}>${oIcon(key==='follow'?'rubric':key==='active'?'speak':'listen')}<span>${esc(label)}</span></button>`;
 
-  return `<div class="o-listen-modes o-card">
-      <div class="o-tabs" role="group" aria-label="${esc(a.mode)}">
-        ${tab('follow',a.follow,false)}
-        ${tab('active',a.active,!playbackReady)}
-        ${tab('shadowing',s.mode,!playbackReady)}
-      </div>
-      <button type="button" class="o-btn o-btn--outline o-btn--compact" data-listening-shortcuts>${oIcon('rubric')}<span>${esc(c.shortcuts)}</span></button>
-    </div>
+  /* The studio is a room, not a tab: inside it the way out is "leave", and the
+     other two modes are not offered alongside the thing being practised. */
+  const modeBar=mode==='shadowing'
+    ? `<div class="o-listen-modes o-studio-bar">
+        <div class="o-studio-identity">
+          <h2 class="o-studio-title">${esc(s.studioTitle)}</h2>
+          <p class="o-studio-lead">${esc(s.studioLead)}</p>
+        </div>
+        <div class="o-studio-head-actions">
+          <!-- Speaking owns recognition and evaluation; shadowing here is
+               practice only. The route across is a product contract, not a
+               convenience link. -->
+          <button type="button" class="o-btn o-btn--outline o-btn--compact" data-open-speaking>${oIcon('speak')}<span>${esc(s.openSpeaking)}</span></button>
+          <button type="button" class="o-btn o-btn--outline o-btn--compact" data-listening-mode="follow">${oIcon('arrowLeft')}<span>${esc(s.leaveStudio)}</span></button>
+        </div>
+      </div>`
+    : `<div class="o-listen-modes o-card">
+        <div class="o-tabs" role="group" aria-label="${esc(a.mode)}">
+          ${tab('follow',a.follow,false)}
+          ${tab('active',a.active,!playbackReady)}
+          ${tab('shadowing',s.mode,!playbackReady)}
+        </div>
+        <button type="button" class="o-btn o-btn--outline o-btn--compact" data-listening-shortcuts>${oIcon('rubric')}<span>${esc(c.shortcuts)}</span></button>
+      </div>`;
+
+  return `${modeBar}
     ${payload.transcript_generation?.status==='generated'?`<p class="generated-transcript-notice" role="status">${esc(c.generatedTranscript)}</p>`:''}
     ${playbackReady?'':`<p class="active-listening-playback-unavailable" role="status">${esc(a.activeUnavailable)}</p>`}
     ${mode==='active'?activeWorkspace(payload,selected,model):mode==='shadowing'?shadowingWorkspace(payload,selected,model):followWorkspace(payload,selected,model)}`;
@@ -324,40 +485,48 @@ function learningWorkspace(payload,selected,model,mode){
    unchanged, so the iframe on the left is never torn down and rebuilt. */
 function workspace(payload,selectedId=null,model={}){
   const c=text();
+  const s=shadowText();
   const segments=payload.transcript?.segments||[];
   const selected=selectedId||segments[0]?.segment_id;
   const mode=listeningMode(payload,model);
   const rate=model.playbackRate||1;
+  const duration=Number(payload.asset?.duration_ms);
+
+  /* The player card is the same element in both layouts. It has to be: the
+     re-render path only replaces `.listening-learning-column`, so an iframe
+     that moved between shells would be torn down and rebuilt on every mode
+     change, losing the position the learner was at. In the studio it shrinks
+     to the thumbnail the reference shows in the media header. */
+  const playerCard=`<section class="listening-video o-card o-player">
+    <div class="listening-video-frame">${mediaPlayer(payload.playback,payload.asset?.title).replace('Playback is unavailable for this source.',c.playback)}</div>
+    <div class="o-player-track">
+      <div class="o-player-bar" role="progressbar" aria-label="${esc(payload.asset?.title||'')}"><span data-progress-fill><i></i></span></div>
+      <span class="o-player-time" data-elapsed>0:00</span>
+      <span class="o-player-time" data-duration>&mdash;</span>
+    </div>
+    <div class="listening-media-caption o-player-meta">
+      <span class="o-player-kicker">${esc(shadowText().sharedMedia)}</span>
+      <h2>${esc(payload.asset?.title||'Media lesson')}</h2>
+      <span class="o-player-provider">${esc(payload.asset?.source_provider||'media')}</span>
+      ${Number.isFinite(duration)&&duration>0?`<span class="o-player-length">${stamp(duration)}</span>`:''}
+    </div>
+    <button type="button" class="o-btn o-btn--outline o-btn--compact o-player-transcript" data-view-transcript>${oIcon('rubric')}<span>${esc(shadowText().viewTranscript)}</span></button>
+    <div class="o-player-controls">
+      <label class="o-player-rate" aria-label="${esc(c.speed)}" title="${esc(c.speed)}">
+        <select id="listeningPlaybackRate">${[.75,1,1.25].map(value=>`<option value="${value}" ${value===rate?'selected':''}>${value.toFixed(2).replace(/0$/,'')}x</option>`).join('')}</select>
+      </label>
+      <span class="o-player-transport">
+        <button type="button" class="o-icon-button" data-seek="-5" aria-label="${esc(c.skipBack)}" title="${esc(c.skipBack)}">${oIcon('skipBack')}</button>
+        <button type="button" class="o-player-play" data-toggle-playback aria-label="${esc(c.replay)}" title="${esc(c.replay)}">${oIcon('play')}</button>
+        <button type="button" class="o-icon-button" data-seek="5" aria-label="${esc(c.skipForward)}" title="${esc(c.skipForward)}">${oIcon('skipForward')}</button>
+      </span>
+      <button type="button" class="o-icon-button o-player-volume" data-toggle-mute aria-label="${esc(c.mute)}" title="${esc(c.mute)}" aria-pressed="false">${oIcon('volume')}</button>
+    </div>
+  </section>`;
+
   return `<div class="listening-workspace o-listen" data-listening-mode="${mode}">
     <div class="o-listen-left">
-      <section class="listening-video o-card o-player">
-        <div class="listening-video-frame">${mediaPlayer(payload.playback,payload.asset?.title).replace('Playback is unavailable for this source.',c.playback)}</div>
-        <div class="o-player-track">
-          <div class="o-player-bar" role="progressbar" aria-label="${esc(payload.asset?.title||'')}"><span data-progress-fill><i></i></span></div>
-          <span class="o-player-time" data-elapsed>0:00</span>
-          <span class="o-player-time" data-duration>—</span>
-        </div>
-        <div class="listening-media-caption o-player-meta">
-          <h2>${esc(payload.asset?.title||'Media lesson')}</h2>
-          <span>${esc(payload.asset?.source_provider||'media')}</span>
-        </div>
-        <!-- Three groups, not five buttons in a row: the reference puts the rate
-             at one edge and the volume at the other, which only holds the play
-             button in the centre of the card if the sides are balanced. A row
-             of five centred as one group pushes play off-centre by however much
-             wider the rate control is than the volume icon. -->
-        <div class="o-player-controls">
-          <label class="o-player-rate" aria-label="${esc(c.speed)}" title="${esc(c.speed)}">
-            <select id="listeningPlaybackRate">${[.75,1,1.25].map(value=>`<option value="${value}" ${value===rate?'selected':''}>${value.toFixed(2).replace(/0$/,'')}x</option>`).join('')}</select>
-          </label>
-          <span class="o-player-transport">
-            <button type="button" class="o-icon-button" data-seek="-5" aria-label="${esc(c.skipBack)}" title="${esc(c.skipBack)}">${oIcon('skipBack')}</button>
-            <button type="button" class="o-player-play" data-toggle-playback aria-label="${esc(c.replay)}" title="${esc(c.replay)}">${oIcon('play')}</button>
-            <button type="button" class="o-icon-button" data-seek="5" aria-label="${esc(c.skipForward)}" title="${esc(c.skipForward)}">${oIcon('skipForward')}</button>
-          </span>
-          <button type="button" class="o-icon-button o-player-volume" data-toggle-mute aria-label="${esc(c.mute)}" title="${esc(c.mute)}" aria-pressed="false">${oIcon('volume')}</button>
-        </div>
-      </section>
+      ${playerCard}
 
       <section class="o-card o-vocab">
         <div class="o-tabs" role="tablist">
@@ -881,7 +1050,15 @@ export async function renderListening(root,{importMedia=api.importMedia,importSt
     root.querySelector('#toggleMeaning')?.addEventListener('change',event=>controller.toggleMeaning(event.target.checked));
     root.querySelectorAll('button[data-listening-mode]').forEach(button=>button.addEventListener('click',()=>controller.setMode(button.dataset.listeningMode)));
     root.querySelector('[data-shadow-selected]')?.addEventListener('click',()=>controller.setMode('shadowing'));
-    root.querySelector('[data-shadow-round]')?.addEventListener('click',()=>controller.recordShadowingRound());
+    /* In the studio a round IS the recorded take, so it is counted when the
+       take lands - see the hold-to-repeat wiring below. Counting on click too
+       would double it, and click fires before the async stop() resolves, so the
+       re-render would arrive one take behind. Anywhere else the attribute still
+       means "mark this round complete". */
+    const roundButton=root.querySelector('[data-shadow-round]');
+    if(roundButton&&!roundButton.hasAttribute('data-shadow-record')){
+      roundButton.addEventListener('click',()=>controller.recordShadowingRound());
+    }
     root.querySelector('[data-open-speaking]')?.addEventListener('click',()=>go('speak'));
     root.querySelector('#activeListeningAnswer')?.addEventListener('input',event=>controller.setPracticeDraft(event.target.value));
     root.querySelector('#activeListeningForm')?.addEventListener('submit',event=>{
@@ -900,6 +1077,96 @@ export async function renderListening(root,{importMedia=api.importMedia,importSt
     });
     /* Player transport added by the rebuild. Each of these drives the real
        player; none of them is decoration. */
+    /* --- Shadowing Studio ------------------------------------------- */
+
+    const transcriptButton=root.querySelector('[data-view-transcript]');
+    if(transcriptButton&&!transcriptButton.dataset.bound){
+      transcriptButton.dataset.bound='1';
+      transcriptButton.addEventListener('click',()=>controller.setMode('follow'));
+    }
+
+    /* A pending round starts the same recorder the big button drives. */
+    root.querySelectorAll('[data-shadow-record-round]').forEach(button=>button.addEventListener('click',()=>{
+      root.querySelector('[data-shadow-record]')?.focus();
+    }));
+
+    root.querySelectorAll('[data-practice-view]').forEach(button=>button.addEventListener('click',()=>{
+      const on=button.getAttribute('aria-pressed')!=='true';
+      button.setAttribute('aria-pressed',on?'true':'false');
+      button.classList.toggle('is-active',on);
+      const panel=root.querySelector(`[data-practice-panel="${button.dataset.practiceView}"]`);
+      panel?.classList.toggle('hidden',!on);
+    }));
+
+    const playTake=index=>{
+      const audio=root.querySelector(`[data-take-audio="${index}"]`);
+      if(!audio)return;
+      root.querySelectorAll('[data-take-audio]').forEach(other=>{ if(other!==audio){other.pause();other.currentTime=0;} });
+      const fill=root.querySelector(`[data-take-fill="${index}"]`);
+      const elapsed=root.querySelector(`[data-take-elapsed="${index}"]`);
+      audio.ontimeupdate=()=>{
+        const total=Number.isFinite(audio.duration)&&audio.duration>0?audio.duration:0;
+        if(fill)fill.style.width=total?`${Math.min(100,(audio.currentTime/total)*100)}%`:'0%';
+        if(elapsed)elapsed.textContent=stamp(audio.currentTime*1000);
+      };
+      audio.onended=()=>{ if(fill)fill.style.width='0%'; if(elapsed)elapsed.textContent='0:00'; };
+      audio.play().catch(()=>{});
+    };
+    root.querySelectorAll('[data-play-take]').forEach(button=>{
+      button.addEventListener('click',()=>playTake(Number(button.dataset.playTake)));
+    });
+    root.querySelector('[data-play-latest]')?.addEventListener('click',()=>{
+      const takes=shadowTakesFor(controller.model.payload,controller.model.selected);
+      if(takes.length)playTake(takes.length-1);
+    });
+
+    /* Hold to repeat. The take is kept in memory for this session and is never
+       uploaded: R6 owns the path that sends audio anywhere, and this is not it. */
+    const recordButton=root.querySelector('[data-shadow-record]');
+    if(recordButton){
+      const status=root.querySelector('[data-record-status]');
+      const s=shadowText();
+      if(!localAudioRecordingSupported()){
+        recordButton.disabled=true;
+        if(status)status.textContent=s.recordUnsupported;
+      }else{
+        let recorder=null;
+        let startedAt=0;
+        const begin=async event=>{
+          event.preventDefault();
+          if(recorder)return;
+          recorder=createLocalAudioRecorder();
+          const ok=await recorder.start();
+          if(!ok){ recorder=null; if(status)status.textContent=s.recordUnsupported; return; }
+          startedAt=Date.now();
+          recordButton.dataset.recording='1';
+          if(status)status.textContent=s.recording;
+        };
+        const end=async()=>{
+          if(!recorder)return;
+          const active=recorder;
+          recorder=null;
+          recordButton.removeAttribute('data-recording');
+          const snapshot=await active.stop();
+          if(status)status.textContent='';
+          if(!snapshot?.url)return;
+          const payload=controller.model.payload;
+          const key=takeKey(payload?.asset?.asset_id,shadowSelection(payload,controller.model.selected));
+          const list=shadowTakes.get(key)||[];
+          list.push({url:snapshot.url,blob:snapshot.blob,ms:Date.now()-startedAt,at:Date.now()});
+          shadowTakes.set(key,list);
+          /* Counting the round is also what re-renders the attempts list, so it
+             has to happen after the take is stored, not on the click that
+             follows the release. */
+          controller.recordShadowingRound();
+        };
+        recordButton.addEventListener('pointerdown',begin);
+        recordButton.addEventListener('pointerup',end);
+        recordButton.addEventListener('pointerleave',end);
+        recordButton.addEventListener('pointercancel',end);
+      }
+    }
+
     root.querySelector('[data-expand-import]')?.addEventListener('click',event=>{
       event.currentTarget.closest('form')?.removeAttribute('data-collapsed');
       root.querySelector('#mediaSourceUrl')?.focus();
@@ -1047,6 +1314,17 @@ export async function renderListening(root,{importMedia=api.importMedia,importSt
     onProcessing:({job_id,source_url})=>setPendingMediaImport({learning_language:state.language,job_id,source_url}),
     onImportTerminal:()=>clearPendingMediaImport(state.language),
   });
+  /* The shortcuts the studio advertises. Bound once for the view and inert
+     outside shadowing, so they cannot fight the transcript's own arrow-key
+     handling in follow mode. */
+  root.addEventListener('keydown',event=>{
+    if(controller.model.mode!=='shadowing')return;
+    if(event.target instanceof Element && event.target.closest('input,textarea,select'))return;
+    if(event.key===' '){ event.preventDefault(); togglePlayback(root,controller.model.payload?.playback); }
+    else if(event.key==='ArrowRight'){ event.preventDefault(); controller.moveSelection(1); }
+    else if(event.key==='ArrowLeft'){ event.preventDefault(); controller.moveSelection(-1); }
+  },{signal:viewAbort.signal});
+
   root.addEventListener('orena:media-time',event=>{
     const segment=activeCanonicalSegment(controller.model.payload?.transcript?.segments||[],Number(event?.detail?.time_ms));
     if(segment)controller.setPlayingSegment(segment.segment_id);

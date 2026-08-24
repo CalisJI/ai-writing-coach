@@ -109,7 +109,7 @@
 .o-player-meta h2{margin:0;font-size:var(--o-text-heading);font-weight:600;line-height:1.35}
 /* The provider comes back lowercase from the asset. adopt.css turns off every
    text-transform inside the screen, so this has to match that tier to win. */
-#mainContent .o-player-meta span{
+#mainContent .o-player-provider{
   font-size:var(--o-text-meta);
   color:var(--o-ink-muted);
   text-transform:capitalize;
@@ -384,4 +384,432 @@
   .o-switch{margin-left:0}
   .listening-practice-controls .o-btn{flex:1 1 auto}
   .listening-practice-controls [data-next-segment]{margin-left:0}
+}
+
+/* ================================================= shadowing studio ====== */
+/* One shell serves every mode, because switching modes only replaces the
+   learning column and a second shell would take the iframe with it. So the
+   studio is a different arrangement of the same elements.
+
+   The reference draws the studio as one card holding the media header, the
+   segment strip, the practice panel and the attempts. Those live on both sides
+   of the shell/learning-column boundary, so the two wrappers go
+   `display:contents` and the shell grid places all four real blocks itself.
+   The media header and the studio body then meet with no seam: shared border
+   colour, no radius between them, and one shadow cast by the lower half. */
+
+.o-listen[data-listening-mode="shadowing"]{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) var(--o-aside-w);
+  column-gap:24px;
+  row-gap:0;
+  align-items:start;
+}
+.o-listen[data-listening-mode="shadowing"] .listening-learning-column,
+.o-listen[data-listening-mode="shadowing"] .o-studio-body{display:contents}
+
+.o-listen[data-listening-mode="shadowing"] .o-studio-bar{grid-area:1 / 1 / 2 / -1;margin-bottom:20px}
+.o-listen[data-listening-mode="shadowing"] .o-listen-left{grid-area:2 / 1 / 3 / 2;display:block}
+.o-listen[data-listening-mode="shadowing"] .o-studio-main{grid-area:3 / 1 / 4 / 2}
+.o-listen[data-listening-mode="shadowing"] .o-studio-rail{grid-area:2 / 2 / 4 / 3}
+
+/* Not offered inside the studio: the vocabulary panel and the player toggle
+   belong to reading along, not to repeating one line. */
+.o-listen[data-listening-mode="shadowing"] .o-vocab,
+.o-listen[data-listening-mode="shadowing"] [data-toggle-player],
+.o-listen[data-listening-mode="shadowing"] .o-player-track,
+.o-listen[data-listening-mode="shadowing"] .o-player-controls,
+.o-listen[data-listening-mode="shadowing"] .o-player-provider{display:none}
+
+/* ---- the media header ---- */
+
+.o-listen[data-listening-mode="shadowing"] .o-player{
+  position:static;
+  max-height:none;
+  overflow:visible;
+  grid-template-columns:112px minmax(0,1fr) auto;
+  align-items:center;
+  gap:18px;
+  padding:20px 18px;
+  border-bottom:0;
+  border-bottom-left-radius:0;
+  border-bottom-right-radius:0;
+  box-shadow:none;
+}
+.o-listen[data-listening-mode="shadowing"] .listening-video-frame{
+  aspect-ratio:16 / 10;
+  border-radius:10px;
+}
+.o-listen[data-listening-mode="shadowing"] .o-player-meta{display:grid;gap:3px;min-width:0}
+.o-player-kicker,
+.o-player-length{display:none;font-size:var(--o-text-meta);color:var(--o-ink-muted)}
+.o-player-length{font-variant-numeric:tabular-nums}
+.o-listen[data-listening-mode="shadowing"] .o-player-kicker,
+.o-listen[data-listening-mode="shadowing"] .o-player-length{display:block}
+.o-listen[data-listening-mode="shadowing"] .o-player-meta h2{font-size:18px;font-weight:600;letter-spacing:-.01em}
+
+.o-player-transcript{display:none}
+.o-listen[data-listening-mode="shadowing"] .o-player-transcript{display:inline-flex}
+
+/* ---- studio header on the canvas ---- */
+
+.o-studio-bar{display:flex;align-items:flex-start;gap:16px;padding:0;border:0;background:none;box-shadow:none}
+.o-studio-identity{display:grid;gap:3px;min-width:0}
+.o-studio-title{margin:0;font-size:24px;font-weight:600;letter-spacing:-.015em}
+.o-studio-lead{margin:0;font-size:var(--o-text-body);color:var(--o-ink-muted)}
+.o-studio-head-actions{display:flex;gap:10px;flex-wrap:wrap;margin-left:auto}
+
+/* ---- the studio body ---- */
+
+.o-studio-main{
+  display:grid;
+  gap:18px;
+  min-width:0;
+  padding:0 18px 20px;
+  border:1px solid var(--o-border);
+  border-top:0;
+  border-radius:0 0 var(--o-radius-card) var(--o-radius-card);
+  background-color:var(--o-surface);
+  background-image:var(--o-sheen);
+  box-shadow:var(--o-shadow-card);
+}
+.o-studio-rail{display:grid;gap:16px;min-width:0;position:sticky;top:calc(var(--o-header-h) + var(--o-gap))}
+
+/* ---- segment strip ---- */
+
+.o-strip{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:12px}
+.o-strip .o-icon-button{width:40px;height:40px;flex:0 0 auto}
+.o-strip-track{
+  display:flex;
+  gap:12px;
+  margin:0;
+  padding:2px 2px 12px;
+  list-style:none;
+  overflow-x:auto;
+  scrollbar-width:thin;
+  scroll-snap-type:x proximity;
+}
+.o-strip-track > li{flex:0 0 auto}
+.o-strip-card{
+  position:relative;
+  display:grid;
+  gap:6px;
+  width:154px;
+  min-height:64px;
+  padding:10px 12px;
+  border:1px solid var(--o-border);
+  border-radius:var(--o-radius-field);
+  background-color:var(--o-surface);
+  background-image:var(--o-sheen-control);
+  box-shadow:var(--o-shadow-control);
+  color:var(--o-ink);
+  font:inherit;
+  text-align:left;
+  cursor:pointer;
+  scroll-snap-align:center;
+}
+.o-strip-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.o-strip-head b{font-size:var(--o-text-meta);font-weight:700;color:var(--o-ink-muted)}
+.o-strip-head time{font-size:var(--o-text-meta);color:var(--o-ink-faint);font-variant-numeric:tabular-nums}
+.o-strip-text{
+  font-size:var(--o-text-meta);
+  line-height:1.35;
+  overflow:hidden;
+  display:-webkit-box;
+  -webkit-line-clamp:1;
+  -webkit-box-orient:vertical;
+}
+.o-strip-card.is-active{
+  border-color:var(--o-accent);
+  background-color:var(--o-accent-tint);
+  background-image:none;
+}
+.o-strip-card.is-active .o-strip-head b,
+.o-strip-card.is-active .o-strip-text{color:var(--o-accent)}
+/* The reference points the active card at the panel it selects. */
+.o-strip-card.is-active::after{
+  content:'';
+  position:absolute;
+  left:50%;
+  bottom:-6px;
+  width:11px;
+  height:11px;
+  transform:translateX(-50%) rotate(45deg);
+  border-right:1px solid var(--o-accent);
+  border-bottom:1px solid var(--o-accent);
+  background:var(--o-accent-tint);
+}
+
+/* ---- the segment being practised ---- */
+
+/* A card inside a card: the reference lifts it off the panel it sits on,
+   which dark needs more than light - `--o-raised` carries both. */
+.o-practice{display:grid;gap:16px;padding:24px;justify-items:center;text-align:center;background-color:var(--o-raised)}
+.o-practice-head{display:flex;align-items:center;gap:14px;width:100%;flex-wrap:wrap}
+.o-practice-head .o-label{margin:0}
+.o-practice-count{font-size:var(--o-text-ui);color:var(--o-ink-muted);font-variant-numeric:tabular-nums}
+.o-practice-head .o-tabs{margin-left:auto}
+
+.o-practice-line{
+  margin:0;
+  max-width:32ch;
+  font-size:clamp(22px,2.3vw,28px);
+  font-weight:600;
+  line-height:1.4;
+}
+.o-practice-line.cjk{font-family:var(--o-font-cjk);line-height:1.6}
+.o-practice [data-practice-panel]{font-size:var(--o-text-body);color:var(--o-ink-muted);max-width:44ch}
+
+.o-practice-actions{
+  display:flex;
+  align-items:flex-start;
+  justify-content:center;
+  gap:clamp(36px,12%,132px);
+  margin-top:6px;
+}
+.o-practice-action{display:grid;justify-items:center;gap:10px}
+.o-practice-action small{font-size:var(--o-text-ui);color:var(--o-ink-muted);white-space:nowrap}
+.o-practice-action small b{font-weight:600;color:var(--o-ink)}
+
+.o-round-button{
+  display:grid;
+  place-items:center;
+  width:56px;
+  height:56px;
+  border:1px solid var(--o-border-strong);
+  border-radius:var(--o-radius-pill);
+  background-color:var(--o-surface);
+  background-image:var(--o-sheen-control);
+  color:var(--o-ink);
+  cursor:pointer;
+  box-shadow:var(--o-shadow-control),var(--o-rim-control);
+}
+.o-round-button svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.o-round-button[disabled]{opacity:.45;cursor:not-allowed}
+.o-round-button--record{
+  width:68px;
+  height:68px;
+  border-color:transparent;
+  background-color:var(--o-accent);
+  background-image:var(--o-accent-face);
+  color:var(--o-on-accent);
+  box-shadow:var(--o-shadow-raised),var(--o-glow-accent),var(--o-rim-control);
+}
+.o-round-button--record svg{width:28px;height:28px}
+/* Held down, so it has to look held. */
+.o-round-button--record[data-recording]{transform:scale(.94);box-shadow:var(--o-shadow-card),var(--o-glow-accent)}
+.o-practice-status{margin:0;min-height:18px;font-size:var(--o-text-meta);color:var(--o-ink-muted)}
+
+/* ---- attempts ---- */
+
+.o-attempts{display:grid;gap:12px}
+.o-attempts-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.o-attempts-head .o-label{margin:0}
+.o-attempts-round{font-size:var(--o-text-ui);color:var(--o-ink-muted)}
+
+.o-take-list{display:grid;gap:10px;margin:0;padding:0;list-style:none}
+.o-take{
+  display:grid;
+  grid-template-columns:auto minmax(0,1fr) auto;
+  /* The number labels the take, so it sits with the take's first line rather
+     than floating at the middle of a three-line row. */
+  align-items:start;
+  gap:14px;
+  padding:16px 18px;
+  border:1px solid var(--o-border);
+  border-radius:var(--o-radius-card);
+  background-color:var(--o-surface);
+  background-image:var(--o-sheen-control);
+  box-shadow:var(--o-shadow-control);
+}
+.o-take--pending{grid-template-columns:auto minmax(0,1fr);align-items:center;padding:12px 18px}
+.o-take-index{
+  display:grid;place-items:center;
+  width:26px;height:26px;
+  border-radius:8px;
+  background:var(--o-accent-tint);
+  border:1px solid var(--o-accent-edge);
+  color:var(--o-accent);
+  font-size:var(--o-text-meta);
+  font-weight:600;
+}
+.o-take-body{display:grid;gap:10px;min-width:0}
+.o-take-when{font-size:var(--o-text-ui);color:var(--o-ink)}
+.o-take-player{display:flex;align-items:center;gap:14px}
+.o-take-play{width:36px;height:36px;flex:0 0 auto}
+.o-take-bar{
+  position:relative;
+  flex:1 1 auto;
+  height:4px;
+  border-radius:var(--o-radius-pill);
+  background:color-mix(in srgb,var(--o-ink) 12%,transparent);
+  overflow:hidden;
+}
+.o-take-bar i{position:absolute;inset:0 auto 0 0;width:0;border-radius:inherit;background:var(--o-accent)}
+.o-take-time{font-size:var(--o-text-meta);color:var(--o-ink-muted);font-variant-numeric:tabular-nums;white-space:nowrap}
+.o-take-start{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  width:100%;padding:0;border:0;background:transparent;
+  color:var(--o-ink-muted);font:inherit;font-size:var(--o-text-ui);cursor:pointer;
+}
+.o-take-start svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+
+/* The two reserved slots. They keep the reference's positions and stay empty,
+   because a verdict or a number here would claim something about the learner's
+   speech that nothing has measured. */
+.o-take-verdict{display:flex;align-items:center;gap:9px;margin:0;font-size:var(--o-text-meta);color:var(--o-ink-faint)}
+.o-take-dot{
+  width:15px;height:15px;flex:0 0 auto;
+  border:1.5px dashed var(--o-border-strong);
+  border-radius:var(--o-radius-pill);
+}
+.o-take-score{display:grid;justify-items:center;align-self:center;gap:5px;min-width:78px}
+.o-score-ring{
+  display:grid;place-items:center;
+  width:52px;height:52px;
+  border:2px dashed var(--o-border-strong);
+  border-radius:var(--o-radius-pill);
+  color:var(--o-ink-faint);
+  font-size:var(--o-text-body);
+}
+.o-take-score small{font-size:11px;color:var(--o-ink-faint);text-align:center;line-height:1.3}
+.o-take-note{margin:0;font-size:var(--o-text-meta);color:var(--o-ink-faint);line-height:1.5}
+
+.o-keys{display:grid;gap:10px;margin:0;padding:0;list-style:none}
+.o-keys li{display:flex;align-items:center;gap:12px;font-size:var(--o-text-ui);color:var(--o-ink-muted)}
+.o-keys kbd{
+  display:grid;place-items:center;
+  min-width:34px;height:28px;padding:0 8px;
+  border:1px solid var(--o-border-strong);
+  border-radius:8px;
+  background:var(--o-surface);
+  color:var(--o-ink);
+  font:inherit;font-size:var(--o-text-meta);
+}
+
+/* ---- what the old shadowing panel still asserts ---- */
+/* `shadowing-focus` is the class the player-lifecycle contract looks for, so it
+   stays on the practice card - but app.css gives it a muted panel and
+   interactive-transcript.css draws an inset accent bar down its left edge when
+   the segment is playing. Both belong to the layout this screen replaced, and
+   the compound `.shadowing-focus.it-playing-segment` outranks `.o-card`, so the
+   bar has to be cancelled at its own tier rather than left to source order. */
+.o-practice.shadowing-focus{margin-top:0;box-shadow:var(--o-shadow-card),var(--o-rim)}
+.o-practice.shadowing-focus.it-playing-segment{
+  box-shadow:var(--o-shadow-card),var(--o-rim);
+  background-color:var(--o-surface);
+  background-image:var(--o-sheen);
+  border-color:var(--o-border);
+}
+
+/* ---- controls the reference draws as outlined circles ---- */
+.o-strip .o-icon-button,
+.o-take-play{
+  border:1px solid var(--o-border-strong);
+  background-color:var(--o-surface);
+  background-image:var(--o-sheen-control);
+  color:var(--o-ink);
+  box-shadow:var(--o-shadow-control);
+}
+.o-strip .o-icon-button[disabled]{opacity:.4;cursor:not-allowed}
+.o-take-play svg{width:17px;height:17px}
+
+/* ---- the support toggle is a segmented control, not two loose buttons ---- */
+.o-practice-head .o-tabs{
+  gap:0;
+  padding:3px;
+  border:1px solid var(--o-border);
+  border-radius:var(--o-radius-pill);
+  background:var(--o-surface-sunken);
+  flex-wrap:nowrap;
+}
+.o-practice-head .o-tab{min-height:30px;padding:0 14px;border-radius:var(--o-radius-pill)}
+.o-practice-head .o-tab.is-active{
+  background:var(--o-accent-soft);
+  border-color:var(--o-accent-edge);
+}
+
+/* The rail panels sit tighter than a page card: title, one line, one meter. */
+.o-studio-rail .o-panel{display:grid;gap:10px;padding:18px}
+.o-studio-rail .o-panel-copy{margin:0;font-size:var(--o-text-ui);color:var(--o-ink-muted);line-height:1.55}
+.o-studio-rail .o-label{font-size:var(--o-text-body);font-weight:600;color:var(--o-ink)}
+.o-studio-rail .o-label svg{width:17px;height:17px;flex:0 0 auto;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;color:var(--o-accent)}
+
+@media (max-width:1023px){
+  /* One column, and the header stops competing with the media for the row. */
+  .o-listen[data-listening-mode="shadowing"]{grid-template-columns:minmax(0,1fr)}
+  .o-listen[data-listening-mode="shadowing"] .o-studio-bar{grid-area:1 / 1 / 2 / -1;margin-bottom:14px}
+  .o-listen[data-listening-mode="shadowing"] .o-listen-left{grid-area:2 / 1 / 3 / 2}
+  .o-listen[data-listening-mode="shadowing"] .o-studio-main{grid-area:3 / 1 / 4 / 2}
+  .o-listen[data-listening-mode="shadowing"] .o-studio-rail{grid-area:4 / 1 / 5 / 2;margin-top:16px}
+  .o-studio-rail{position:static}
+  .o-studio-bar{flex-direction:column;align-items:stretch}
+  .o-studio-title{font-size:21px}
+  .o-studio-head-actions{margin-left:0}
+  .o-listen[data-listening-mode="shadowing"] .o-player{
+    grid-template-columns:88px minmax(0,1fr);
+    gap:12px;
+    padding:14px;
+  }
+  .o-listen[data-listening-mode="shadowing"] .o-player-transcript{grid-column:1 / -1;justify-content:center}
+  .o-studio-main{padding:0 14px 16px;gap:14px}
+  .o-practice{padding:18px 14px;gap:14px}
+  .o-practice-actions{gap:clamp(20px,7vw,52px)}
+  .o-practice-line{font-size:clamp(19px,5.4vw,24px)}
+  .o-strip-card{width:132px}
+  /* The reference keeps the score at the right of the row on a phone too, so
+     the column stays - it only gets narrower and lets its caption wrap. */
+  .o-take{padding:14px;gap:10px}
+  .o-take-score{min-width:62px}
+  .o-score-ring{width:42px;height:42px}
+  .o-take-score small{font-size:10px}
+  .o-take-verdict{font-size:11px}
+  /* `.o-studio-rail .o-panel` styles every rail card, so the one that hides
+     has to answer at the same tier. */
+  .o-studio-rail .o-keys-card{display:none}
+}
+
+/* The kicker and the running time are the studio's own labels, so they have to
+   out-specify `.listening-media-caption span`, which still styles this block as
+   the white overlay caption of the layout this screen replaced. */
+#mainContent .o-player-kicker,
+#mainContent .o-player-length{
+  font-size:var(--o-text-meta);
+  font-weight:500;
+  letter-spacing:0;
+  text-transform:none;
+  color:var(--o-ink-muted);
+}
+#mainContent .o-player-length{font-variant-numeric:tabular-nums}
+
+/* `.o-panel` sets justify-items:start, which collapses an empty meter to zero
+   width. The meter is a bar, not content: it has to span the panel. */
+.o-studio-rail .o-meter{width:100%;justify-self:stretch}
+
+/* The reference spaces the three practice controls far apart - they are the
+   only thing in that half of the card, and crowding them reads as a toolbar.
+   A percentage gap resolves against an indefinite basis inside clamp(), so
+   this is stated in pixels and reduced explicitly on a narrow viewport. */
+.o-practice-actions{gap:132px}
+
+/* Importing a new video is not part of practising one. The reference shows no
+   import bar inside the studio, and the form is a sibling of the workspace, so
+   the page has to ask whether the studio is open. */
+.o-page.listening-page:has(.o-listen[data-listening-mode="shadowing"]) #mediaImportForm{display:none}
+
+@media (max-width:1023px){
+  .o-practice-actions{gap:clamp(20px,7vw,52px)}
+}
+
+/* The studio names itself, and on a phone the route name sits directly above
+   it - two headings for one screen. The studio's own title is the specific
+   one, so the route name steps aside while the studio is open. */
+.o-workspace:has(.o-listen[data-listening-mode="shadowing"]) #pageHeading{display:none}
+
+@media (max-width:1023px){
+  /* The reference scrolls the strip on a phone instead of stepping it: the
+     arrows would take a third of the row from the cards. */
+  .o-strip{grid-template-columns:minmax(0,1fr)}
+  .o-strip .o-icon-button{display:none}
+  .o-strip-card{width:150px}
 }
