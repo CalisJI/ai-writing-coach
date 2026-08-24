@@ -3,6 +3,7 @@ import fs from 'node:fs';
 
 const profile=fs.readFileSync(new URL('../static/becoming/screens/profile.js',import.meta.url),'utf8');
 const styles=fs.readFileSync(new URL('../static/becoming/orena/profile.css',import.meta.url),'utf8');
+const selectField=fs.readFileSync(new URL('../static/becoming/components/select-field.js',import.meta.url),'utf8');
 const i18n=fs.readFileSync(new URL('../static/becoming/domain/i18n.js',import.meta.url),'utf8');
 const template=fs.readFileSync(new URL('../templates/becoming/index.html',import.meta.url),'utf8');
 const version=fs.readFileSync(new URL('../BECOMING_FRONTEND_VERSION',import.meta.url),'utf8').trim();
@@ -40,6 +41,12 @@ assert.match(
 assert.match(profile,/api\.setLanguage\(next\)/);
 assert.match(profile,/becoming:language-changed/);
 assert.match(profile,/applyTheme\(event\.currentTarget\.value,\{persist:true\}\)/);
+assert.match(profile,/data-orena-icon/);
+assert.match(profile,/icon:`flag-\$\{value\}`/);
+assert.doesNotMatch(profile,/ðŸ|â˜|LANGUAGE_FLAGS|SUPPORT_FLAGS/,'Profile labels must not depend on mojibake-prone glyphs');
+assert.doesNotMatch(profile,/theme-choice-grid/,'Palette choice must use the same compact row geometry as other preferences');
+assert.match(i18n,/vi:'Tiếng Việt'/,'Vietnamese locale label must remain valid UTF-8');
+assert.match(i18n,/zh:'中文'/,'Chinese locale label must remain valid UTF-8');
 assert.match(profile,/\{pinyin:event\.currentTarget\.checked\?'auto':'off'\}/);
 assert.match(profile,/growthRankFrame\(rank\)/);
 assert.doesNotMatch(profile,/delete account/i,'Profile must not invent an unsupported destructive account action');
@@ -54,6 +61,11 @@ for(const selector of [
   assert.ok(styles.includes(selector),'Profile stylesheet must define '+selector);
 }
 assert.match(styles,/grid-template-columns:minmax\(0,830px\) minmax\(260px,294px\)/);
+assert.match(styles,/--o-profile-control-track:minmax\(190px,220px\)/);
+assert.match(styles,/grid-template-columns:minmax\(0,1fr\) var\(--o-profile-control-track\)/);
+for(const icon of ['flag-en','flag-zh','flag-vi'])assert.match(styles,new RegExp(`data-icon="${icon}"`));
+assert.match(selectField,/option\?\.dataset\?\.orenaIcon/);
+assert.match(selectField,/orena-select-option-icon/);
 assert.match(styles,/@media\(max-width:720px\)[\s\S]*\.o-profile-section-body\{[\s\S]*border:1px solid var\(--o-border\)/);
 assert.match(styles,/prefers-reduced-motion:reduce/);
 assert.doesNotMatch(styles,/#[0-9a-f]{3,8}\b/i,'Profile must consume shared Orena colour tokens');

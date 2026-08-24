@@ -52,6 +52,8 @@ for selector in (".o-write{", ".o-editor{", ".o-review{", ".o-lens.active{"):
     require(selector in ORENA_WRITING, f"missing Orena Writing/Review primitive: {selector}")
 for selector in (".o-profile{", ".o-profile-panel", ".o-profile-setting{", ".o-profile-about-card{", ".o-switch{"):
     require(selector in ORENA_PROFILE, f"missing Orena Profile primitive: {selector}")
+for contract in ('--o-profile-control-track:', '[data-icon="flag-en"]', '[data-icon="flag-zh"]', '[data-icon="flag-vi"]'):
+    require(contract in ORENA_PROFILE, f"missing Orena Profile alignment/icon contract: {contract}")
 require(
     "@media(max-width:720px)" in ORENA_PROFILE,
     "Orena Profile must retain its mobile grouped-row contract",

@@ -31,6 +31,20 @@ function optionsOf(select) {
   return [...select.options].filter(option => !option.disabled);
 }
 
+function iconName(option) {
+  return option?.dataset?.orenaIcon || '';
+}
+
+function iconElement(option, className = 'orena-select-leading') {
+  const icon = document.createElement('span');
+  icon.className = className;
+  icon.setAttribute('aria-hidden', 'true');
+  const name = iconName(option);
+  if (name) icon.dataset.icon = name;
+  icon.hidden = !name;
+  return icon;
+}
+
 function closeOpenField(returnFocus = false) {
   if (!openField) return;
   const field = openField;
@@ -70,6 +84,8 @@ export function enhanceSelect(select) {
   const value = document.createElement('span');
   value.className = 'orena-select-value';
 
+  const leading = iconElement(null);
+
   const chevron = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
   chevron.setAttribute('viewBox', '0 0 12 12');
   chevron.setAttribute('aria-hidden', 'true');
@@ -78,7 +94,7 @@ export function enhanceSelect(select) {
   chevronPath.setAttribute('d', 'M2.5 4.75 6 8.25 9.5 4.75');
   chevron.appendChild(chevronPath);
 
-  button.append(value, chevron);
+  button.append(leading, value, chevron);
 
   const panel = document.createElement('div');
   panel.className = 'orena-select-panel';
@@ -110,7 +126,10 @@ export function enhanceSelect(select) {
       item.setAttribute('role', 'option');
       item.setAttribute('aria-selected', String(option.selected));
       item.dataset.value = option.value;
-      item.textContent = option.textContent;
+      const itemIcon = iconElement(option, 'orena-select-option-icon');
+      const itemLabel = document.createElement('span');
+      itemLabel.textContent = option.textContent;
+      item.append(itemIcon, itemLabel);
       item.addEventListener('click', () => commit(index));
       item.addEventListener('pointermove', () => setActive(index, false));
       panel.appendChild(item);
@@ -124,6 +143,10 @@ export function enhanceSelect(select) {
   function syncButton() {
     const selected = select.options[select.selectedIndex];
     value.textContent = selected ? selected.textContent : '';
+    const selectedIcon = iconName(selected);
+    if (selectedIcon) leading.dataset.icon = selectedIcon;
+    else delete leading.dataset.icon;
+    leading.hidden = !selectedIcon;
     button.disabled = select.disabled;
     wrapper.classList.toggle('is-disabled', select.disabled);
   }

@@ -147,6 +147,7 @@ def main() -> None:
     orena_shell_css = read("static/becoming/orena/shell.css")
     orena_home_css = read("static/becoming/orena/home.css")
     orena_writing_css = read("static/becoming/orena/writing.css")
+    orena_profile_css = read("static/becoming/orena/profile.css")
     router = read("static/becoming/router.js")
     primitives = read("static/becoming/components/primitives.js")
     dictionary = read("static/becoming/components/dictionary.js")
@@ -1052,10 +1053,11 @@ def main() -> None:
         if f'html[data-palette="{palette}"]' not in theme_css:
             errors.append(f"theme CSS palette missing: {palette}")
     require_contains(errors, profile, [
-        "profileTheme", "theme-choice-grid", "applyPalette", "theme_preset",
+        "profileTheme", "THEME_PALETTES.map", "applyPalette", "theme_preset",
     ], "Profile theme preference")
-    if ".theme-choice-grid" not in app_css or ".theme-swatch" not in app_css:
-        errors.append("theme selector visual system missing")
+    require_contains(errors, orena_profile_css, [
+        "--o-profile-control-track", '[data-icon^="palette-"]',
+    ], "Profile compact theme selector visual system")
 
     # Growth Rank: original evidence-derived identity frame, not activity XP or external benchmark.
     require_contains(errors, rank_domain, [

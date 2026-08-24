@@ -30,8 +30,6 @@ import {oIcon} from '../orena/icons.js';
 const GOALS=['everyday','work','exam','voice'];
 const STYLES=['guided','examples','concise','deep'];
 const NATIVE_LANGUAGES=['vi','en','zh'];
-const LANGUAGE_FLAGS={en:'ðŸ‡ºðŸ‡¸',zh:'ðŸ‡¨ðŸ‡³'};
-const SUPPORT_FLAGS={vi:'ðŸ‡»ðŸ‡³',en:'ðŸ‡ºðŸ‡¸',zh:'ðŸ‡¨ðŸ‡³'};
 
 function learningLanguageLabel(value){
   const language=(state.languages||[]).find(item=>item.code===value);
@@ -39,9 +37,11 @@ function learningLanguageLabel(value){
 }
 
 function selectOptions(options,current){
-  return options.map(({value,label})=>
-    `<option value="${esc(value)}" ${value===current?'selected':''}>${esc(label)}</option>`
-  ).join('');
+  return options.map(({value,label,icon=''})=>{
+    const iconAttribute=icon?` data-orena-icon="${esc(icon)}"`:'';
+    const selectedAttribute=value===current?' selected':'';
+    return `<option value="${esc(value)}"${iconAttribute}${selectedAttribute}>${esc(label)}</option>`;
+  }).join('');
 }
 
 function selectSetting({
@@ -67,19 +67,6 @@ function selectSetting({
       </select>
     </div>
   </div>`;
-}
-
-function themeChoice(value,current){
-  return `<label class="theme-choice ${current===value?'selected':''}">
-    <input type="radio" name="profileTheme" value="${esc(value)}" ${current===value?'checked':''}>
-    <span class="theme-swatch palette-${esc(value)}" aria-hidden="true">
-      <i></i><b></b><em></em>
-    </span>
-    <span>
-      <strong>${esc(t(`theme.${value}`))}</strong>
-      <small>${esc(t(`theme.${value}_desc`))}</small>
-    </span>
-  </label>`;
 }
 
 function sectionMarkup({title,className='',body}){
@@ -158,7 +145,8 @@ export async function renderProfile(root){
         current:state.language,
         options:['en','zh'].map(value=>({
           value,
-          label:`${LANGUAGE_FLAGS[value]}  ${learningLanguageLabel(value)}`,
+          label:learningLanguageLabel(value),
+          icon:`flag-${value}`,
         })),
       }),
       selectSetting({
@@ -168,7 +156,8 @@ export async function renderProfile(root){
         current:profile.native_language||'vi',
         options:NATIVE_LANGUAGES.map(value=>({
           value,
-          label:`${SUPPORT_FLAGS[value]}  ${localeLabel(value)}`,
+          label:localeLabel(value),
+          icon:`flag-${value}`,
         })),
       }),
     ].join(''),
@@ -223,19 +212,20 @@ export async function renderProfile(root){
       description:t('profile.color_mode_desc'),
       current:activeTheme(),
       options:[
-        {value:'light',label:`â˜€  ${t('profile.mode_light')}`},
-        {value:'dark',label:`â˜¾  ${t('profile.mode_dark')}`},
+        {value:'light',label:t('profile.mode_light'),icon:'mode-light'},
+        {value:'dark',label:t('profile.mode_dark'),icon:'mode-dark'},
       ],
-    })}
-    <div class="o-profile-palette">
-      <div class="o-profile-setting-copy">
-        <span class="o-profile-setting-label">${esc(t('profile.theme_title'))}</span>
-        <small>${esc(t('profile.theme_status'))}</small>
-      </div>
-      <div class="theme-choice-grid">
-        ${THEME_PALETTES.map(value=>themeChoice(value,themePreset)).join('')}
-      </div>
-    </div>`,
+    })}${selectSetting({
+      id:'profileTheme',
+      label:t('profile.theme_title'),
+      description:t('profile.theme_status'),
+      current:themePreset,
+      options:THEME_PALETTES.map(value=>({
+        value,
+        label:t(`theme.${value}`),
+        icon:`palette-${value}`,
+      })),
+    })}`,
   });
 
   const account=sectionMarkup({
@@ -410,22 +400,17 @@ export async function renderProfile(root){
   root._cleanupProfile=cleanupProfile;
   root._cleanupScreen=cleanupProfile;
 
-  root.querySelectorAll('input[name="profileTheme"]').forEach(input=>{
-    input.addEventListener('change',async()=>{
-      const previous=activePalette();
-      applyPalette(input.value,{persist:true});
-      try{
-        await persistProfile({theme_preset:input.value},'toast.theme_saved');
-        root.querySelectorAll('.theme-choice').forEach(label=>{
-          label.classList.toggle(
-            'selected',
-            label.querySelector('input')?.value===input.value,
-          );
-        });
-      }catch{
-        applyPalette(previous,{persist:true});
-      }
-    });
+  root.querySelector('#profileTheme')?.addEventListener('change',async event=>{
+    const select=event.currentTarget;
+    const previous=activePalette();
+    applyPalette(select.value,{persist:true});
+    try{
+      await persistProfile({theme_preset:select.value},'toast.theme_saved');
+    }catch{
+      applyPalette(previous,{persist:true});
+      select.value=previous;
+      syncSelectField(select);
+    }
   });
 
   root.querySelector('#redoOnboarding')?.addEventListener('click',()=>{

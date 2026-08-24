@@ -6,6 +6,7 @@
  */
 
 #mainContent[data-screen-contract="profile"] .o-profile{
+  --o-profile-control-track:minmax(190px,220px);
   width:100%;
   padding-bottom:48px;
 }
@@ -79,14 +80,13 @@
 
 #mainContent[data-screen-contract="profile"] .o-profile-setting{
   display:grid;
-  grid-template-columns:minmax(0,1fr) minmax(190px,220px);
+  grid-template-columns:minmax(0,1fr) var(--o-profile-control-track);
   align-items:center;
   gap:24px;
   min-height:52px;
 }
 
-#mainContent[data-screen-contract="profile"] .o-profile-setting + .o-profile-setting,
-#mainContent[data-screen-contract="profile"] .o-profile-setting + .o-profile-palette{
+#mainContent[data-screen-contract="profile"] .o-profile-setting + .o-profile-setting{
   margin-top:2px;
 }
 
@@ -142,6 +142,10 @@
   font-size:var(--o-text-ui);
 }
 
+#mainContent[data-screen-contract="profile"] .o-profile-setting-control .orena-select-value{
+  flex:1;
+}
+
 #mainContent[data-screen-contract="profile"] .o-profile-setting-control .orena-select-panel{
   min-width:100%;
   padding:5px;
@@ -152,6 +156,96 @@
   min-height:38px;
   padding:8px 10px;
 }
+
+#mainContent[data-screen-contract="profile"] .orena-select-leading,
+#mainContent[data-screen-contract="profile"] .orena-select-option-icon{
+  position:relative;
+  display:inline-block;
+  width:22px;
+  height:15px;
+  flex:0 0 22px;
+  overflow:hidden;
+  border:1px solid color-mix(in srgb,var(--o-ink) 18%,transparent);
+  border-radius:3px;
+  background:var(--o-surface-sunken);
+  box-shadow:0 1px 2px color-mix(in srgb,var(--o-ink) 12%,transparent);
+}
+
+#mainContent[data-screen-contract="profile"] .orena-select-leading[hidden],
+#mainContent[data-screen-contract="profile"] .orena-select-option-icon[hidden]{
+  display:none;
+}
+
+#mainContent[data-screen-contract="profile"] :is(.orena-select-leading,.orena-select-option-icon)[data-icon="flag-en"]{
+  background:
+    linear-gradient(to right,hsl(216 80% 30%) 0 43%,transparent 43%) 0 0/100% 54% no-repeat,
+    repeating-linear-gradient(to bottom,hsl(354 72% 45%) 0 2px,hsl(0 0% 100%) 2px 4px);
+}
+
+#mainContent[data-screen-contract="profile"] :is(.orena-select-leading,.orena-select-option-icon)[data-icon="flag-zh"],
+#mainContent[data-screen-contract="profile"] :is(.orena-select-leading,.orena-select-option-icon)[data-icon="flag-vi"]{
+  background:hsl(354 72% 45%);
+}
+
+#mainContent[data-screen-contract="profile"] :is(.orena-select-leading,.orena-select-option-icon)[data-icon="flag-zh"]::after,
+#mainContent[data-screen-contract="profile"] :is(.orena-select-leading,.orena-select-option-icon)[data-icon="flag-vi"]::after{
+  content:"";
+  position:absolute;
+  width:7px;
+  height:7px;
+  background:hsl(48 96% 55%);
+  clip-path:polygon(50% 0,61% 35%,98% 35%,68% 57%,79% 94%,50% 72%,21% 94%,32% 57%,2% 35%,39% 35%);
+}
+
+#mainContent[data-screen-contract="profile"] :is(.orena-select-leading,.orena-select-option-icon)[data-icon="flag-zh"]::after{
+  top:2px;
+  left:3px;
+}
+
+#mainContent[data-screen-contract="profile"] :is(.orena-select-leading,.orena-select-option-icon)[data-icon="flag-vi"]::after{
+  top:3px;
+  left:7px;
+}
+
+#mainContent[data-screen-contract="profile"] :is(.orena-select-leading,.orena-select-option-icon)[data-icon^="mode-"]{
+  width:18px;
+  height:18px;
+  flex-basis:18px;
+  border:0;
+  border-radius:50%;
+  background:var(--o-accent-soft);
+  box-shadow:none;
+}
+
+#mainContent[data-screen-contract="profile"] :is(.orena-select-leading,.orena-select-option-icon)[data-icon="mode-light"]::after{
+  content:"";
+  position:absolute;
+  inset:5px;
+  border-radius:50%;
+  background:var(--o-accent);
+  box-shadow:0 -5px 0 -3px var(--o-accent),0 5px 0 -3px var(--o-accent),5px 0 0 -3px var(--o-accent),-5px 0 0 -3px var(--o-accent);
+}
+
+#mainContent[data-screen-contract="profile"] :is(.orena-select-leading,.orena-select-option-icon)[data-icon="mode-dark"]::after{
+  content:"";
+  position:absolute;
+  inset:4px 5px 4px 3px;
+  border-radius:50%;
+  background:var(--o-accent);
+  box-shadow:3px -1px 0 0 var(--o-accent-soft);
+}
+
+#mainContent[data-screen-contract="profile"] :is(.orena-select-leading,.orena-select-option-icon)[data-icon^="palette-"]{
+  width:18px;
+  height:18px;
+  flex-basis:18px;
+  border-radius:5px;
+  background:var(--o-accent);
+}
+
+#mainContent[data-screen-contract="profile"] :is(.orena-select-leading,.orena-select-option-icon)[data-icon="palette-sage"]{background:seagreen}
+#mainContent[data-screen-contract="profile"] :is(.orena-select-leading,.orena-select-option-icon)[data-icon="palette-clay"]{background:peru}
+#mainContent[data-screen-contract="profile"] :is(.orena-select-leading,.orena-select-option-icon)[data-icon="palette-blueprint"]{background:steelblue}
 
 #mainContent[data-screen-contract="profile"] .o-profile-setting-control.is-switch{
   align-items:center;
@@ -210,94 +304,15 @@
   outline-offset:3px;
 }
 
-#mainContent[data-screen-contract="profile"] .o-profile-palette{
-  display:grid;
-  grid-template-columns:minmax(0,1fr) minmax(190px,220px);
-  align-items:start;
-  gap:24px;
-  padding-top:7px;
-}
-
-#mainContent[data-screen-contract="profile"] .o-profile-palette .theme-choice-grid{
-  display:grid;
-  grid-template-columns:repeat(2,minmax(0,1fr));
-  gap:7px;
-  margin:0;
-}
-
-#mainContent[data-screen-contract="profile"] .o-profile-palette .theme-choice{
-  display:grid;
-  grid-template-columns:26px minmax(0,1fr);
-  align-items:center;
-  gap:7px;
-  min-height:48px;
-  padding:7px;
-  border:1px solid var(--o-border);
-  border-radius:9px;
-  background-color:var(--o-surface);
-  background-image:var(--o-sheen-control);
-  box-shadow:var(--o-shadow-control),var(--o-rim-control);
-}
-
-#mainContent[data-screen-contract="profile"] .o-profile-palette .theme-choice:hover{
-  border-color:var(--o-border-strong);
-  transform:none;
-}
-
-#mainContent[data-screen-contract="profile"] .o-profile-palette .theme-choice.selected{
-  border-color:var(--o-accent);
-  background-color:var(--o-accent-tint);
-  box-shadow:0 0 0 2px var(--o-focus-ring);
-}
-
-#mainContent[data-screen-contract="profile"] .o-profile-palette .theme-swatch{
-  width:26px;
-  height:26px;
-  border-radius:7px;
-}
-
-#mainContent[data-screen-contract="profile"] .o-profile-palette .theme-swatch i{
-  width:11px;
-  height:11px;
-  left:4px;
-  top:4px;
-}
-
-#mainContent[data-screen-contract="profile"] .o-profile-palette .theme-swatch b{
-  width:8px;
-  height:8px;
-  right:3px;
-  top:4px;
-}
-
-#mainContent[data-screen-contract="profile"] .o-profile-palette .theme-swatch em{
-  width:10px;
-  height:4px;
-  right:3px;
-  bottom:4px;
-}
-
-#mainContent[data-screen-contract="profile"] .o-profile-palette .theme-choice strong{
-  overflow:hidden;
-  font-size:11px;
-  font-weight:500;
-  text-overflow:ellipsis;
-  white-space:nowrap;
-}
-
-#mainContent[data-screen-contract="profile"] .o-profile-palette .theme-choice small{
-  display:none;
-}
-
 #mainContent[data-screen-contract="profile"] .o-profile-account-list{
   display:grid;
 }
 
 #mainContent[data-screen-contract="profile"] .o-profile-account-row{
   display:grid;
-  grid-template-columns:minmax(0,1fr) minmax(0,1fr) 18px;
+  grid-template-columns:minmax(0,1fr) var(--o-profile-control-track) 18px;
   align-items:center;
-  gap:12px;
+  gap:24px;
   min-height:44px;
   width:100%;
   padding:0;
@@ -315,7 +330,7 @@
 }
 
 #mainContent[data-screen-contract="profile"] .o-profile-account-row:not(.is-action){
-  grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+  grid-template-columns:minmax(0,1fr) var(--o-profile-control-track);
 }
 
 #mainContent[data-screen-contract="profile"] .o-profile-account-copy{
@@ -521,13 +536,12 @@
 }
 
 @media(max-width:1120px){
-  #mainContent[data-screen-contract="profile"] .profile-layout{
-    grid-template-columns:minmax(0,1fr) 260px;
+  #mainContent[data-screen-contract="profile"] .o-profile{
+    --o-profile-control-track:190px;
   }
 
-  #mainContent[data-screen-contract="profile"] .o-profile-setting,
-  #mainContent[data-screen-contract="profile"] .o-profile-palette{
-    grid-template-columns:minmax(0,1fr) 190px;
+  #mainContent[data-screen-contract="profile"] .profile-layout{
+    grid-template-columns:minmax(0,1fr) 260px;
   }
 }
 
@@ -543,6 +557,7 @@
 
 @media(max-width:720px){
   #mainContent[data-screen-contract="profile"] .o-profile{
+    --o-profile-control-track:minmax(116px,45%);
     padding-bottom:124px;
   }
 
@@ -581,14 +596,13 @@
   }
 
   #mainContent[data-screen-contract="profile"] .o-profile-setting{
-    grid-template-columns:minmax(0,1fr) minmax(116px,45%);
+    grid-template-columns:minmax(0,1fr) var(--o-profile-control-track);
     gap:12px;
     min-height:56px;
     padding:8px 11px;
   }
 
-  #mainContent[data-screen-contract="profile"] .o-profile-setting + .o-profile-setting,
-  #mainContent[data-screen-contract="profile"] .o-profile-setting + .o-profile-palette{
+  #mainContent[data-screen-contract="profile"] .o-profile-setting + .o-profile-setting{
     margin:0;
     border-top:1px solid var(--o-border);
   }
@@ -628,32 +642,12 @@
     right:0;
   }
 
-  #mainContent[data-screen-contract="profile"] .o-profile-palette{
-    grid-template-columns:1fr;
-    gap:10px;
-    padding:12px;
-  }
-
-  #mainContent[data-screen-contract="profile"] .o-profile-palette .theme-choice-grid{
-    grid-template-columns:repeat(4,minmax(0,1fr));
-  }
-
-  #mainContent[data-screen-contract="profile"] .o-profile-palette .theme-choice{
-    grid-template-columns:1fr;
-    justify-items:center;
-    min-width:0;
-  }
-
-  #mainContent[data-screen-contract="profile"] .o-profile-palette .theme-choice>span:last-child{
-    width:100%;
-    text-align:center;
-  }
-
   #mainContent[data-screen-contract="profile"] .o-profile-account-list{
     padding:0 11px;
   }
 
   #mainContent[data-screen-contract="profile"] .o-profile-account-row{
+    gap:12px;
     min-height:48px;
   }
 
@@ -668,12 +662,8 @@
 }
 
 @media(max-width:430px){
-  #mainContent[data-screen-contract="profile"] .o-profile-setting{
-    grid-template-columns:minmax(0,1fr) minmax(104px,44%);
-  }
-
-  #mainContent[data-screen-contract="profile"] .o-profile-palette .theme-choice-grid{
-    grid-template-columns:repeat(2,minmax(0,1fr));
+  #mainContent[data-screen-contract="profile"] .o-profile{
+    --o-profile-control-track:minmax(104px,44%);
   }
 }
 
