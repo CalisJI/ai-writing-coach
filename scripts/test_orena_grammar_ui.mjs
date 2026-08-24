@@ -25,12 +25,15 @@ assert.match(screen,/curriculumProgress=progressOf\(items\)/,'Lesson progress mu
 assert.match(screen,/data-grammar-lesson-outline/,'Lesson rail must derive its outline from rendered lesson sections');
 assert.match(screen,/page\?\.classList\.add\('has-open-lesson'\)/,'Opening a lesson must enter focused lesson mode');
 assert.match(screen,/page\?\.classList\.remove\('has-open-lesson'\)/,'Back must restore the curriculum overview');
+assert.match(screen,/data-grammar-lesson-title/,'Open lessons must expose their title to the mobile top bar');
 assert.match(screen,/bindGrammarLearningInteractions\(slot,languageContext\)/,'Schema-v2 interactions must remain connected');
 assert.match(screen,/grammarLearningCompletion\(slot,detail\.learning_model,languageContext\)/,'Completion evidence must remain authoritative');
+assert.match(screen,/learningCheck\.focus\?\.closest\('details'\)/,'Hidden completion evidence must open its disclosure before focus');
 assert.match(screen,/oIcon\('arrowLeft'\)/,'Back control must reuse the shared icon system');
 assert.match(screen,/oIcon\('chevronDown'\)/,'Mobile accordions must reuse the shared icon system');
+assert.match(screen,/oIcon\(detail\.completed\?'check':'bookmark'\)/,'Lesson state must use the shared bookmark icon treatment');
 
-assert.match(styles,/grid-template-columns:minmax\(0,830px\) minmax\(260px,294px\)/,'Desktop lesson must follow the reference two-column geometry');
+assert.match(styles,/grid-template-columns:minmax\(0,830px\) 288px/,'Desktop lesson must follow the reference two-column geometry');
 assert.match(styles,/gap:0 26px/,'Desktop lesson must preserve the reference column gap');
 assert.match(styles,/\.grammar-page\.has-open-lesson > :is\([\s\S]*\.grammar-curriculum-map[\s\S]*display:none/,'Focused lesson mode must remove the catalog from the lesson reading flow');
 assert.match(styles,/@media\(max-width:720px\)[\s\S]*grid-template-columns:minmax\(0,1fr\)/,'Mobile lesson must recompose to one column');
@@ -54,9 +57,13 @@ for(const visualContract of [
   'grammar-use-check',
   'grammar-example-mark',
   'grammar-segment-connector',
+  'grammar-pattern-ribbon',
+  'grammar-pattern-track',
   'grammar-contrast-vs',
+  'grammar-contrast-pair',
   'grammar-mistake-row',
   'grammar-micro-options',
+  'grammar-learning-more',
   'grammar-skill-name',
 ]){
   assert.ok(styles.includes(visualContract)||renderer.includes(visualContract),'Missing universal visual contract '+visualContract);
@@ -80,6 +87,7 @@ for(const [language,file] of [['en','english'],['zh','chinese']]){
       targetLanguage:language,
     });
     assert.match(html,/data-grammar-visual-system="orena-grammar-v2"/,lesson.id);
+    assert.match(html,/data-grammar-reference="orena-prod"/,lesson.id);
     assert.match(html,/class="grammar-learning-primary-pattern"/,lesson.id);
     assert.match(html,/data-grammar-block-type="use_when"/,lesson.id);
     assert.match(html,/class="grammar-use-check"/,lesson.id);
@@ -88,6 +96,7 @@ for(const [language,file] of [['en','english'],['zh','chinese']]){
     assert.match(html,/grammar-mistake-row is-incorrect/,lesson.id);
     assert.match(html,/grammar-mistake-row is-correct/,lesson.id);
     assert.match(html,/grammar-learning-micro_practice/,lesson.id);
+    assert.match(html,/<details class="grammar-learning-more">/,lesson.id);
     for(const block of lesson.learning_model.blocks){
       assert.ok(
         html.includes(`data-grammar-block-type="${block.type}"`),

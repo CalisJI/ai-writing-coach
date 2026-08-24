@@ -30,6 +30,7 @@ export const ORENA_ICONS = {
   chevronRight: `<svg ${STROKE}><path d="m10 7 5 5-5 5"/></svg>`,
   arrowLeft: `<svg ${STROKE}><path d="M19 12H5M10 7l-5 5 5 5"/></svg>`,
   arrowRight: `<svg ${STROKE}><path d="M5 12h14M14 7l5 5-5 5"/></svg>`,
+  bookmark: `<svg ${STROKE}><path d="M7 4.2h10a1.2 1.2 0 0 1 1.2 1.2v14.2L12 16l-6.2 3.6V5.4A1.2 1.2 0 0 1 7 4.2Z"/></svg>`,
   info: `<svg ${STROKE}><circle cx="12" cy="12" r="8.6"/><path d="M12 11.2v5M12 8.2v.1"/></svg>`,
   check: `<svg ${STROKE}><path d="m5 12.5 4.5 4.5L19 7"/></svg>`,
   trash: `<svg ${STROKE}><path d="M4.6 6.6h14.8M9.4 6.6V4.9a1.2 1.2 0 0 1 1.2-1.2h2.8a1.2 1.2 0 0 1 1.2 1.2v1.7"/><path d="M6.6 6.6 7.5 19a1.3 1.3 0 0 0 1.3 1.2h6.4a1.3 1.3 0 0 0 1.3-1.2l.9-12.4"/></svg>`,

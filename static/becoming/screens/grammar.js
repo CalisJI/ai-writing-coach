@@ -322,12 +322,12 @@ function lessonMarkup(detail,payload){
   return `<article class="grammar-lesson visual-raised-surface" data-grammar-lesson="${esc(detail.id)}">
     <header class="grammar-lesson-head">
       <div>
-        <span class="editorial-kicker">${esc(detail.level)} · ${esc(kindLabel(detail.kind))}</span>
+        <span class="editorial-kicker" aria-label="${esc(detail.level)} · ${esc(kindLabel(detail.kind))}">${esc(detail.level)}</span>
         <h2>${esc(detail.title)}</h2>
         <p>${esc(objective)}</p>
       </div>
-      <span class="grammar-completion-chip ${detail.completed?'is-complete':''}">
-        ${detail.completed?'✓ '+esc(c.complete):esc(detail.category||detail.module||'Grammar')}
+      <span class="grammar-completion-chip ${detail.completed?'is-complete':''}" title="${detail.completed?esc(c.complete):esc(detail.category||detail.module||'Grammar')}">
+        ${oIcon(detail.completed?'check':'bookmark')}<span class="sr-only">${detail.completed?esc(c.complete):esc(detail.category||detail.module||'Grammar')}</span>
       </span>
     </header>
 
@@ -408,7 +408,6 @@ function bindOrenaLessonChrome(slot){
     '.grammar-learning-scene',
     '.grammar-learning-contrast',
     '.grammar-learning-common_mistake',
-    '.grammar-learning-exception',
   ].join(',');
   slot.querySelectorAll(collapsibleSelector).forEach((section,index)=>{
     const label=section.querySelector(':scope > .grammar-learning-block-head h3, :scope > .grammar-compact-heading h3')?.textContent?.trim()
@@ -431,6 +430,8 @@ function bindOrenaLessonChrome(slot){
 
 export async function renderGrammar(root){
   const c=copy();
+  const pageTitle=document.getElementById('pageTitle');
+  pageTitle?.removeAttribute('data-grammar-lesson-title');
   root.innerHTML=`<section class="page grammar-page">${loadingBlock(6)}</section>`;
 
   let payload;
@@ -451,6 +452,7 @@ export async function renderGrammar(root){
     activeLessonId='';
     slot.innerHTML='';
     page?.classList.remove('has-open-lesson');
+    pageTitle?.removeAttribute('data-grammar-lesson-title');
     page?.scrollIntoView({behavior:'smooth',block:'start'});
     requestAnimationFrame(()=>root.querySelector(`[data-grammar-open="${CSS.escape(lessonId)}"]`)?.focus());
   };
@@ -492,6 +494,7 @@ export async function renderGrammar(root){
     }
 
     const languageContext=grammarContext(detail);
+    if(pageTitle)pageTitle.dataset.grammarLessonTitle=detail.title||c.lesson;
 
     slot.innerHTML=`${lessonBackMarkup()}${lessonMarkup(detail,payload)}`;
     bindBack();
@@ -529,6 +532,8 @@ export async function renderGrammar(root){
       if(learningCheck){
         if(!learningCheck.ready){
           toast(learningCheck.message);
+          const disclosure=learningCheck.focus?.closest('details');
+          if(disclosure)disclosure.open=true;
           learningCheck.focus?.focus();
           return;
         }
