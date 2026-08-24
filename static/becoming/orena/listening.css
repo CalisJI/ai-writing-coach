@@ -1004,6 +1004,9 @@
   box-shadow:var(--o-shadow-raised),var(--o-glow-accent),var(--o-rim-control);
 }
 .o-transport-play svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+/* The player card keeps its own volume on a wide screen, the way the reference
+   draws it, so the bar does not carry a second one there. */
+.o-transport-mute{display:none}
 .o-transport [data-previous-segment] svg{transform:rotate(-90deg)}
 .o-transport [data-next-segment] svg{transform:rotate(90deg)}
 
@@ -1039,13 +1042,28 @@
   .o-listen-right{grid-column:1;grid-row:6}
   .o-listen:not([data-listening-mode="shadowing"]) .o-transport{grid-column:1;grid-row:7}
   /* The bar stacks into three rows on a phone, so the lane under it grows. */
+  /* Two control rows stacked on a phone is one too many. The pinned bar wins
+     because it stays reachable wherever the learner has scrolled to, so the
+     player card drops its own row - which is why speed and mute had to move
+     onto the bar. */
+  .o-listen:not([data-listening-mode="shadowing"]) .o-player-controls{display:none}
+  .o-transport-mute{display:grid}
   /* A pinned bar covers the screen it is pinned over, so on a phone it drops
      its labels and stays one row instead of three. */
-  .o-transport{grid-template-columns:auto 1fr auto;gap:8px;padding:8px 12px;bottom:8px}
+  /* `1fr` keeps its min-content width, so the middle refused to shrink and
+     pushed the right-hand controls off the screen. Every track is allowed to
+     go to zero and the rows scroll internally if the phone is very narrow. */
+  .o-transport{
+    grid-template-columns:minmax(0,auto) minmax(0,1fr) minmax(0,auto);
+    gap:6px;padding:8px 10px;bottom:8px;
+  }
   .o-transport-item small{display:none}
-  .o-transport-item{padding:6px}
-  .o-transport-side{gap:8px}
-  .o-transport-main{gap:6px}
+  .o-transport-item{padding:5px}
+  .o-transport-main,.o-transport-side{min-width:0;overflow-x:auto;scrollbar-width:none}
+  .o-transport-main::-webkit-scrollbar,.o-transport-side::-webkit-scrollbar{display:none}
+  .o-transport-side{gap:4px}
+  .o-transport-main{gap:2px}
+  .o-transport .o-icon-button{width:34px;height:34px}
   .o-transport-play{width:46px;height:46px}
   .o-transport-play svg{width:20px;height:20px}
   .listening-page:has(.o-transport){padding-bottom:96px}
