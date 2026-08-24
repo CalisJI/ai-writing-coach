@@ -56,11 +56,16 @@ function closeOpenField(returnFocus = false) {
   if (returnFocus) field.button.focus();
 }
 
-document.addEventListener('pointerdown', event => {
+/* These are module-level, so importing this file in a environment without a DOM
+   used to throw before a single function ran. Screens that are exercised by
+   Node contract tests import it now, so the module has to be loadable without a
+   document; the listeners are simply not installed when there is nothing to
+   listen to. */
+globalThis.document?.addEventListener?.('pointerdown', event => {
   if (openField && !openField.wrapper.contains(event.target)) closeOpenField();
 }, true);
 
-window.addEventListener('blur', () => closeOpenField());
+globalThis.window?.addEventListener?.('blur', () => closeOpenField());
 
 export function enhanceSelect(select) {
   if (!(select instanceof HTMLSelectElement)) return null;
@@ -257,6 +262,12 @@ export function syncSelectField(select) {
   select?.orenaSelectField?.sync?.();
 }
 
-export function installSelectEnhancements(root = document) {
+export function installSelectEnhancements(root = globalThis.document) {
+  /* Screens call this after every render, and some of them are exercised by
+     contract tests that run in Node against a minimal fake root. Building the
+     replacement control needs a real document, so without a document there is
+     nothing to enhance and the native select is already correct. */
+  if (typeof globalThis.document?.createElement !== 'function') return;
+  if (typeof root?.querySelectorAll !== 'function') return;
   root.querySelectorAll('select:not([data-orena-select])').forEach(enhanceSelect);
 }

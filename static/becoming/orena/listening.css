@@ -59,7 +59,7 @@
 .listening-video-frame iframe{position:absolute;inset:0;width:100%;height:100%;border:0;display:block}
 .listening-player-unavailable{display:grid;place-items:center;height:100%;padding:16px;color:var(--o-ink-muted);font-size:var(--o-text-ui);text-align:center}
 
-.o-player-track{display:grid;grid-template-columns:1fr auto auto;align-items:center;gap:10px}
+.o-player-track{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:6px 10px}
 .o-player-bar{
   grid-column:1 / -1;
   height:4px;
@@ -67,9 +67,32 @@
   background:color-mix(in srgb,var(--o-ink) 12%,transparent);
   overflow:hidden;
 }
-.o-player-bar > span{display:block;width:0;height:100%;border-radius:inherit;background:var(--o-accent);transition:width .2s linear}
+/* The fill carries the knob at its leading edge, so the two can never drift
+   apart the way a separately positioned handle would. */
+.o-player-bar{overflow:visible}
+.o-player-bar > span{
+  position:relative;
+  display:block;
+  width:0;
+  height:100%;
+  border-radius:inherit;
+  background:var(--o-accent);
+  transition:width .2s linear;
+}
+.o-player-bar > span > i{
+  position:absolute;
+  right:-6px;
+  top:50%;
+  width:12px;
+  height:12px;
+  transform:translateY(-50%);
+  border-radius:var(--o-radius-pill);
+  background:var(--o-accent);
+  box-shadow:0 1px 3px rgba(0,0,0,.35);
+}
 .o-player-time{font-size:var(--o-text-meta);color:var(--o-ink-muted);font-variant-numeric:tabular-nums}
-.o-player-time[data-duration]{margin-left:auto}
+.o-player-time[data-elapsed]{grid-column:1}
+.o-player-time[data-duration]{grid-column:3}
 
 /* interactive-transcript.css paints this caption as an overlay strip on the
    video. In the rebuild it is a normal title block under the progress bar. */
@@ -84,19 +107,62 @@
 }
 .o-player-meta{display:grid;gap:2px}
 .o-player-meta h2{margin:0;font-size:var(--o-text-heading);font-weight:600;line-height:1.35}
-.o-player-meta span{font-size:var(--o-text-meta);color:var(--o-ink-muted)}
-
-.o-player-controls{display:flex;align-items:center;justify-content:center;gap:10px;padding-bottom:4px}
-.o-player-rate select{
-  min-height:34px;
-  padding:0 8px;
-  border:1px solid var(--o-border-strong);
-  border-radius:9px;
-  background:var(--o-surface);
-  color:var(--o-ink);
-  font:inherit;
+/* The provider comes back lowercase from the asset. adopt.css turns off every
+   text-transform inside the screen, so this has to match that tier to win. */
+#mainContent .o-player-meta span{
   font-size:var(--o-text-meta);
+  color:var(--o-ink-muted);
+  text-transform:capitalize;
 }
+
+/* Three tracks, so the transport sits at the card's centre no matter how much
+   wider the rate control is than the volume button. Centring one flex row of
+   five instead pushes play off-centre by half that difference, which is what
+   made this card look shifted. */
+.o-player-controls{
+  position:relative;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  min-height:52px;
+  padding-bottom:4px;
+}
+/* Anchored to the centre rather than laid out between the sides. Three grid
+   tracks were tried first and did not hold: `1fr` collapses to content width
+   once the row is tight, so the side tracks stopped being equal and the play
+   button drifted by half the difference between the rate pill and the volume
+   icon. Anchoring is immune to what sits either side of it. */
+.o-player-transport{
+  position:absolute;
+  left:50%;
+  transform:translateX(-50%);
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+
+/* A compact pill, not a form field. The select here is upgraded to the shared
+   listbox, so this dresses that button; styling the native select underneath
+   it has no visible effect at all. The chevron goes: at this size it doubles
+   the width and the pill already reads as "tap to change". */
+.o-player-rate .orena-select{width:auto}
+/* adopt.css sets the shared listbox from `#mainContent .orena-select-button`,
+   which carries an id. A screen overriding that base has to match the tier or
+   nothing lands - which is the cost of the id scope adopt.css chose, paid here
+   explicitly rather than by guessing why the pill would not take. */
+#mainContent .o-player-rate .orena-select-button{
+  width:auto;
+  min-width:58px;
+  min-height:32px;
+  padding:0 10px;
+  border-radius:var(--o-radius-pill);
+  font-size:var(--o-text-meta);
+  font-weight:600;
+  justify-content:center;
+  gap:0;
+}
+#mainContent .o-player-rate .orena-select-chevron{display:none}
 .o-player-play{
   display:grid;
   place-items:center;
