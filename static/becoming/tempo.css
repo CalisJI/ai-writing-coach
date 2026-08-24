@@ -1192,3 +1192,160 @@ html:root .primary-nav a.active::before{
   }
   html:root .primary-nav a.active .nav-label{color:var(--color-accent-600)}
 }
+
+/* ============================================================
+   SELECT — the app's own listbox
+   ============================================================
+   The native <select> stays in the DOM as the source of truth and the
+   fallback, but it is taken out of the visual and tab order once enhanced:
+   two focusable controls for one choice would mean tabbing through the same
+   field twice.
+*/
+.orena-select{position:relative;display:inline-flex;min-width:0}
+
+.orena-select>select[data-orena-select="on"]{
+  position:absolute;
+  width:1px;
+  height:1px;
+  padding:0;
+  margin:-1px;
+  overflow:hidden;
+  clip-path:inset(50%);
+  white-space:nowrap;
+  border:0;
+  pointer-events:none;
+}
+
+.orena-select-button{
+  display:inline-flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:var(--space-2);
+  width:100%;
+  min-width:0;
+  min-height:var(--utility-control-height,40px);
+  padding:0 var(--space-3);
+  border:1px solid var(--color-border-strong);
+  border-radius:var(--radius-control);
+  background:var(--color-surface);
+  color:var(--color-ink-strong);
+  font-family:inherit;
+  font-size:var(--font-size-ui);
+  font-weight:500;
+  cursor:pointer;
+  text-align:left;
+  transition:border-color var(--motion-micro) ease,box-shadow var(--motion-micro) ease;
+}
+
+.orena-select-button:hover{border-color:var(--color-accent-600)}
+
+.orena-select.is-open .orena-select-button{
+  border-color:var(--color-accent-600);
+  box-shadow:0 0 0 3px var(--color-accent-100);
+}
+
+.orena-select.is-disabled .orena-select-button{
+  opacity:.55;
+  cursor:not-allowed;
+}
+
+.orena-select-value{
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+.orena-select-chevron{
+  width:11px;
+  height:11px;
+  flex-shrink:0;
+  fill:none;
+  stroke:var(--color-ink-muted);
+  stroke-width:1.6;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+  transition:transform var(--motion-micro) ease;
+}
+
+.orena-select.is-open .orena-select-chevron{transform:rotate(180deg)}
+
+/* The panel is the one place on these controls that earns real elevation:
+   it floats above the page, so it needs to read as a separate plane. */
+.orena-select-panel{
+  position:absolute;
+  z-index:80;
+  top:calc(100% + 6px);
+  left:0;
+  min-width:100%;
+  max-height:280px;
+  overflow-y:auto;
+  overscroll-behavior:contain;
+  padding:var(--space-2);
+  border:1px solid var(--color-border-subtle);
+  border-radius:var(--radius-object);
+  background:var(--color-surface);
+  box-shadow:var(--shadow-overlay);
+  animation:orena-select-in var(--motion-micro) cubic-bezier(.22,.61,.36,1);
+}
+
+.orena-select.opens-up .orena-select-panel{
+  top:auto;
+  bottom:calc(100% + 6px);
+}
+
+@keyframes orena-select-in{
+  from{opacity:0;transform:translateY(-4px)}
+  to{opacity:1;transform:none}
+}
+
+.orena-select-option{
+  display:flex;
+  align-items:center;
+  gap:var(--space-2);
+  padding:var(--space-2) var(--space-3);
+  border-radius:var(--radius-small);
+  color:var(--color-ink);
+  font-size:var(--font-size-ui);
+  line-height:1.4;
+  cursor:pointer;
+  white-space:nowrap;
+}
+
+.orena-select-option.is-active{
+  background:var(--color-surface-muted);
+  color:var(--color-ink-strong);
+}
+
+/* Selected is a different fact from active, so it gets a different signal:
+   a mark that stays put while the highlight moves with the arrow keys. */
+.orena-select-option[aria-selected="true"]{
+  color:var(--color-ink-strong);
+  font-weight:600;
+}
+
+.orena-select-option[aria-selected="true"]::after{
+  content:"";
+  margin-left:auto;
+  width:6px;
+  height:6px;
+  border-radius:50%;
+  background:var(--color-accent-600);
+  flex-shrink:0;
+}
+
+/* Inside the header pill the button is the pill, so it drops its own frame. */
+.learning-language-control .orena-select{flex:1;min-width:0}
+.learning-language-control .orena-select-button{
+  border:0;
+  background:none;
+  min-height:0;
+  padding:0;
+  font-weight:600;
+}
+.learning-language-control .orena-select.is-open .orena-select-button{box-shadow:none}
+.learning-language-control .orena-select-panel{min-width:180px;left:auto;right:-10px}
+
+@media (prefers-reduced-motion:reduce){
+  .orena-select-panel{animation:none}
+  .orena-select-chevron{transition:none}
+}

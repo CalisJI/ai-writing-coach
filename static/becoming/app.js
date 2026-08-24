@@ -4,6 +4,7 @@ import {currentRoute,go,syncNav} from './router.js?v=2.17.4';
 import {closeDialog,toast,setBusy,installTooltipLayer} from './components/primitives.js';
 import {installTheme,applyPalette,activePalette,storedPalette} from './theme.js';
 import {installTempo,applyTempo,storedTempo,tempoForStyle} from './tempo.js';
+import {installSelectEnhancements,syncSelectField} from './components/select-field.js';
 import {t,applyChromeI18n,uiHtmlLang,localeLabel} from './domain/i18n.js';
 import {screenContract} from './domain/screen-contract.js?v=2.17.4';
 import {applySkillNavigation,routeAvailable} from './domain/skill-release.js?v=2.17.4';
@@ -95,6 +96,7 @@ function renderLanguages(){
   select.innerHTML=INTERFACE_LANGUAGES.map(code=>
     `<option value="${code}" ${code===current?'selected':''}>${localeLabel(code)}</option>`
   ).join('');
+  syncSelectField(select);
 }
 
 
@@ -206,12 +208,17 @@ async function renderCurrent(){
       <div style="margin-top:6px">${String(error.message||error)}</div>
     </section>`;
   }finally{
+    // Screens re-render with innerHTML, so their selects are new elements every
+    // time. Enhancement marks what it has already done, so running it after
+    // every render is both correct and cheap.
+    installSelectEnhancements(root);
     root.setAttribute('aria-busy','false');
     requestAnimationFrame(()=>root.focus({preventScroll:true}));
   }
 }
 
 function installHeaderEvents(){
+  installSelectEnhancements(document.querySelector('.app-header'));
   document.getElementById('languageSelect').addEventListener('change',async event=>{
     const select=event.currentTarget;
     const value=select.value;
