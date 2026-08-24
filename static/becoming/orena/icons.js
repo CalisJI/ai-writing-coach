@@ -35,6 +35,7 @@ export const ORENA_ICONS = {
   trash: `<svg ${STROKE}><path d="M4.6 6.6h14.8M9.4 6.6V4.9a1.2 1.2 0 0 1 1.2-1.2h2.8a1.2 1.2 0 0 1 1.2 1.2v1.7"/><path d="M6.6 6.6 7.5 19a1.3 1.3 0 0 0 1.3 1.2h6.4a1.3 1.3 0 0 0 1.3-1.2l.9-12.4"/></svg>`,
   cloud: `<svg ${STROKE}><path d="M7.2 18.4a4.2 4.2 0 0 1-.5-8.4 5.4 5.4 0 0 1 10.4-1.1 3.9 3.9 0 0 1-.8 9.5Z"/></svg>`,
   rubric: `<svg ${STROKE}><path d="M4.4 6.6h4M4.4 12h4M4.4 17.4h4"/><path d="M11.4 6.6h8.2M11.4 12h8.2M11.4 17.4h8.2"/></svg>`,
+  sliders: `<svg ${STROKE}><path d="M4 6h5M15 6h5M4 12h9M17 12h3M4 18h3M11 18h9"/><circle cx="12" cy="6" r="2"/><circle cx="15" cy="12" r="2"/><circle cx="9" cy="18" r="2"/></svg>`,
   document: `<svg ${STROKE}><path d="M6.6 3.8h7l4.4 4.4v11.2a1 1 0 0 1-1 1H6.6a1 1 0 0 1-1-1V4.8a1 1 0 0 1 1-1Z"/><path d="M13 3.8v4.6h4.6M8.8 12.6h6M8.8 16h4"/></svg>`,
   flame: `<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 2.4c2.7 3.1 4 5.6 4 7.5 0 1.3-.6 2.4-1.8 3 .5-1.6.2-3.1-1-4.3.2 2.5-.8 4.1-3.1 5-1.6.7-2.5 1.9-2.5 3.6 0 2.5 2.1 4.5 4.8 4.5 3.3 0 5.8-2.5 5.8-6 0-4.3-2.1-8.7-6.2-13.3Z"/></svg>`,
   flag: `<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 21V4.2c3.6-1.9 7.2 1.9 10.8 0v8.4c-3.6 1.9-7.2-1.9-10.8 0"/></svg>`,

@@ -7,8 +7,9 @@
 
 #mainContent[data-screen-contract="profile"] .o-profile{
   --o-profile-control-track:minmax(190px,220px);
-  width:100%;
-  padding-bottom:48px;
+  width:min(calc(100% - 52px),1152px);
+  margin-inline:auto;
+  padding:28px 0 48px;
 }
 
 #mainContent[data-screen-contract="profile"] .profile-save-status{
@@ -33,7 +34,7 @@
   display:grid;
   grid-template-columns:minmax(0,830px) minmax(260px,294px);
   align-items:start;
-  gap:24px;
+  gap:26px;
   width:100%;
 }
 
@@ -373,6 +374,11 @@
 #mainContent[data-screen-contract="profile"] .o-profile-row-chevron svg{
   width:17px;
   height:17px;
+  fill:none;
+  stroke:currentColor;
+  stroke-width:1.8;
+  stroke-linecap:round;
+  stroke-linejoin:round;
 }
 
 #mainContent[data-screen-contract="profile"] .o-profile-account-row.is-danger,
@@ -427,6 +433,11 @@
 #mainContent[data-screen-contract="profile"] .o-profile-about-icon svg{
   width:24px;
   height:24px;
+  fill:none;
+  stroke:currentColor;
+  stroke-width:1.8;
+  stroke-linecap:round;
+  stroke-linejoin:round;
 }
 
 #mainContent[data-screen-contract="profile"] .o-profile-about-card>p{
@@ -459,7 +470,11 @@
   height:16px;
   margin-top:1px;
   color:var(--o-accent);
+  fill:none;
+  stroke:currentColor;
   stroke-width:2.4;
+  stroke-linecap:round;
+  stroke-linejoin:round;
 }
 
 #mainContent[data-screen-contract="profile"] .o-profile-growth{
@@ -492,6 +507,11 @@
 #mainContent[data-screen-contract="profile"] .o-profile-growth>summary svg{
   width:18px;
   height:18px;
+  fill:none;
+  stroke:currentColor;
+  stroke-width:1.8;
+  stroke-linecap:round;
+  stroke-linejoin:round;
   transition:transform var(--o-motion);
 }
 
@@ -556,9 +576,41 @@
 }
 
 @media(max-width:720px){
+  .o-workspace:has(#mainContent[data-screen-contract="profile"]) .o-topbar{
+    position:sticky;
+  }
+
+  .o-workspace:has(#mainContent[data-screen-contract="profile"]) .o-topbar-brand{
+    display:none;
+  }
+
+  .o-workspace:has(#mainContent[data-screen-contract="profile"]) .o-topbar-title{
+    position:absolute;
+    left:50%;
+    display:block;
+    width:max-content;
+    max-width:calc(100% - 184px);
+    transform:translateX(-50%);
+    overflow:hidden;
+    font-size:17px;
+    text-align:center;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+  }
+
+  .o-workspace:has(#mainContent[data-screen-contract="profile"]) .o-topbar-actions{
+    margin-left:auto;
+  }
+
+  .o-workspace:has(#mainContent[data-screen-contract="profile"]) .o-page-heading{
+    display:none;
+  }
+
   #mainContent[data-screen-contract="profile"] .o-profile{
     --o-profile-control-track:minmax(116px,45%);
-    padding-bottom:124px;
+    width:calc(100% - 24px);
+    max-width:none;
+    padding:22px 0 124px;
   }
 
   #mainContent[data-screen-contract="profile"] .o-profile-panel.profile-sections.visual-section-surface{
@@ -638,8 +690,12 @@
   }
 
   #mainContent[data-screen-contract="profile"] .o-profile-setting-control .orena-select-panel{
-    min-width:190px;
+    left:auto;
     right:0;
+    width:max(100%,190px);
+    min-width:0;
+    max-width:calc(100vw - 32px);
+    box-sizing:border-box;
   }
 
   #mainContent[data-screen-contract="profile"] .o-profile-account-list{

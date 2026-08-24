@@ -260,7 +260,7 @@ export async function renderProfile(root){
       <aside class="profile-identity-stack visual-identity-column o-profile-about">
         <section class="o-profile-about-card">
           <div class="o-profile-about-heading">
-            <span class="o-profile-about-icon" aria-hidden="true">${oIcon('rubric')}</span>
+            <span class="o-profile-about-icon" aria-hidden="true">${oIcon('sliders')}</span>
             <h2>${esc(t('profile.about_title'))}</h2>
           </div>
           <p>${esc(t('profile.about_desc'))}</p>

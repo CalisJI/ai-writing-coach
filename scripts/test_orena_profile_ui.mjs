@@ -3,6 +3,7 @@ import fs from 'node:fs';
 
 const profile=fs.readFileSync(new URL('../static/becoming/screens/profile.js',import.meta.url),'utf8');
 const styles=fs.readFileSync(new URL('../static/becoming/orena/profile.css',import.meta.url),'utf8');
+const icons=fs.readFileSync(new URL('../static/becoming/orena/icons.js',import.meta.url),'utf8');
 const selectField=fs.readFileSync(new URL('../static/becoming/components/select-field.js',import.meta.url),'utf8');
 const i18n=fs.readFileSync(new URL('../static/becoming/domain/i18n.js',import.meta.url),'utf8');
 const template=fs.readFileSync(new URL('../templates/becoming/index.html',import.meta.url),'utf8');
@@ -49,6 +50,8 @@ assert.match(i18n,/vi:'Tiếng Việt'/,'Vietnamese locale label must remain val
 assert.match(i18n,/zh:'中文'/,'Chinese locale label must remain valid UTF-8');
 assert.match(profile,/\{pinyin:event\.currentTarget\.checked\?'auto':'off'\}/);
 assert.match(profile,/growthRankFrame\(rank\)/);
+assert.match(profile,/oIcon\('sliders'\)/,'About Preferences must use the reference-aligned settings icon');
+assert.match(icons,/sliders:\s*`<svg/,'Shared icon set must expose the settings sliders icon');
 assert.doesNotMatch(profile,/delete account/i,'Profile must not invent an unsupported destructive account action');
 
 for(const selector of [
@@ -61,12 +64,20 @@ for(const selector of [
   assert.ok(styles.includes(selector),'Profile stylesheet must define '+selector);
 }
 assert.match(styles,/grid-template-columns:minmax\(0,830px\) minmax\(260px,294px\)/);
+assert.match(styles,/width:min\(calc\(100% - 52px\),1152px\)/,'Desktop Profile must preserve the reference gutter and balanced two-column width');
+assert.match(styles,/\.profile-layout\{[\s\S]*?gap:26px/,'Desktop Profile columns must keep the reference gap');
 assert.match(styles,/--o-profile-control-track:minmax\(190px,220px\)/);
 assert.match(styles,/grid-template-columns:minmax\(0,1fr\) var\(--o-profile-control-track\)/);
 for(const icon of ['flag-en','flag-zh','flag-vi'])assert.match(styles,new RegExp(`data-icon="${icon}"`));
 assert.match(selectField,/option\?\.dataset\?\.orenaIcon/);
 assert.match(selectField,/orena-select-option-icon/);
 assert.match(styles,/@media\(max-width:720px\)[\s\S]*\.o-profile-section-body\{[\s\S]*border:1px solid var\(--o-border\)/);
+assert.match(styles,/@media\(max-width:720px\)[\s\S]*width:calc\(100% - 24px\)/,'Mobile Profile cards must retain a balanced outer gutter');
+assert.match(styles,/@media\(max-width:720px\)[\s\S]*\.orena-select-panel\{[\s\S]*left:auto;[\s\S]*right:0;[\s\S]*max-width:calc\(100vw - 32px\)/,'Mobile listboxes must stay inside the viewport');
+assert.match(styles,/\.o-profile-about-icon svg\{[\s\S]*stroke:currentColor/,'Profile illustration icon must render as a visible stroke icon');
+assert.match(styles,/\.o-profile-about-card>ul svg\{[\s\S]*stroke:currentColor/,'Profile reassurance checks must render visibly');
+assert.match(styles,/\.o-workspace:has\(#mainContent\[data-screen-contract="profile"\]\) \.o-topbar-title/,'Mobile Profile must promote the route title into the top bar');
+assert.match(styles,/\.o-workspace:has\(#mainContent\[data-screen-contract="profile"\]\) \.o-topbar-actions\{[\s\S]*?margin-left:auto/,'Mobile Profile actions must remain anchored to the right edge');
 assert.match(styles,/prefers-reduced-motion:reduce/);
 assert.doesNotMatch(styles,/#[0-9a-f]{3,8}\b/i,'Profile must consume shared Orena colour tokens');
 
