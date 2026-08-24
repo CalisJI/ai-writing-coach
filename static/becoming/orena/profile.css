@@ -1,0 +1,686 @@
+/* Orena Profile / Preferences.
+ *
+ * This screen follows the Orena-prod Profile references: one quiet settings
+ * panel, compact value controls, a secondary explanatory card, and grouped
+ * mobile rows. The shared --o-* tokens remain the only colour/depth source.
+ */
+
+#mainContent[data-screen-contract="profile"] .o-profile{
+  width:100%;
+  padding-bottom:48px;
+}
+
+#mainContent[data-screen-contract="profile"] .profile-save-status{
+  position:fixed;
+  z-index:90;
+  top:calc(var(--o-header-h) + 14px);
+  right:24px;
+  min-height:0;
+  margin:0;
+  pointer-events:none;
+}
+
+#mainContent[data-screen-contract="profile"] .profile-save-status:not(:empty){
+  padding:9px 12px;
+  border:1px solid var(--o-border);
+  border-radius:var(--o-radius-pill);
+  background:var(--o-surface);
+  box-shadow:var(--o-shadow-overlay),var(--o-rim);
+}
+
+#mainContent[data-screen-contract="profile"] .profile-layout{
+  display:grid;
+  grid-template-columns:minmax(0,830px) minmax(260px,294px);
+  align-items:start;
+  gap:24px;
+  width:100%;
+}
+
+#mainContent[data-screen-contract="profile"] .o-profile-panel.profile-sections.visual-section-surface{
+  display:block;
+  min-width:0;
+  padding:0;
+  overflow:visible;
+  border:1px solid var(--o-border);
+  border-radius:var(--o-radius-card);
+  background-color:var(--o-surface);
+  background-image:var(--o-sheen);
+  box-shadow:var(--o-shadow-card),var(--o-rim);
+}
+
+#mainContent[data-screen-contract="profile"] .profile-section,
+#mainContent[data-screen-contract="profile"] .profile-section + .profile-section{
+  display:grid;
+  gap:13px;
+  margin:0;
+  padding:20px 20px 18px;
+  border:0;
+  border-bottom:1px solid var(--o-border);
+  border-radius:0;
+  background:transparent;
+  box-shadow:none;
+}
+
+#mainContent[data-screen-contract="profile"] .profile-section:first-child{border-top:0}
+#mainContent[data-screen-contract="profile"] .profile-section:last-child{border-bottom:0}
+
+#mainContent[data-screen-contract="profile"] .profile-section>h2{
+  margin:0;
+  color:var(--o-ink);
+  font-size:var(--o-text-body);
+  font-weight:600;
+  line-height:1.35;
+}
+
+#mainContent[data-screen-contract="profile"] .o-profile-section-body{
+  display:grid;
+  min-width:0;
+}
+
+#mainContent[data-screen-contract="profile"] .o-profile-setting{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) minmax(190px,220px);
+  align-items:center;
+  gap:24px;
+  min-height:52px;
+}
+
+#mainContent[data-screen-contract="profile"] .o-profile-setting + .o-profile-setting,
+#mainContent[data-screen-contract="profile"] .o-profile-setting + .o-profile-palette{
+  margin-top:2px;
+}
+
+#mainContent[data-screen-contract="profile"] .o-profile-setting-copy{
+  display:grid;
+  min-width:0;
+  gap:3px;
+}
+
+#mainContent[data-screen-contract="profile"] .o-profile-setting-label{
+  display:flex;
+  align-items:center;
+  gap:7px;
+  min-width:0;
+  color:var(--o-ink);
+  font-size:var(--o-text-ui);
+  font-weight:400;
+}
+
+#mainContent[data-screen-contract="profile"] .o-profile-setting-label label{
+  min-width:0;
+  color:inherit;
+  cursor:pointer;
+}
+
+#mainContent[data-screen-contract="profile"] .o-profile-setting-copy small{
+  color:var(--o-ink-muted);
+  font-size:var(--o-text-meta);
+  line-height:1.45;
+}
+
+#mainContent[data-screen-contract="profile"] .o-profile-setting-label .help-tip{
+  width:18px;
+  height:18px;
+  min-width:18px;
+  color:var(--o-ink-muted);
+}
+
+#mainContent[data-screen-contract="profile"] .o-profile-setting-control{
+  display:flex;
+  justify-content:flex-end;
+  min-width:0;
+}
+
+#mainContent[data-screen-contract="profile"] .o-profile-setting-control .orena-select{
+  width:100%;
+}
+
+#mainContent[data-screen-contract="profile"] .o-profile-setting-control .orena-select-button{
+  min-height:40px;
+  padding:0 12px;
+  border-radius:9px;
+  font-size:var(--o-text-ui);
+}
+
+#mainContent[data-screen-contract="profile"] .o-profile-setting-control .orena-select-panel{
+  min-width:100%;
+  padding:5px;
+  border-radius:10px;
+}
+
+#mainContent[data-screen-contract="profile"] .o-profile-setting-control .orena-select-option{
+  min-height:38px;
+  padding:8px 10px;
+}
+
+#mainContent[data-screen-contract="profile"] .o-profile-setting-control.is-switch{
+  align-items:center;
+}
+
+#mainContent[data-screen-contract="profile"] .o-switch{
+  position:relative;
+  display:inline-flex;
+  width:44px;
+  height:24px;
+  cursor:pointer;
+}
+
+#mainContent[data-screen-contract="profile"] .o-switch input{
+  position:absolute;
+  width:1px;
+  height:1px;
+  opacity:0;
+}
+
+#mainContent[data-screen-contract="profile"] .o-switch>span{
+  position:absolute;
+  inset:0;
+  border:1px solid var(--o-border-strong);
+  border-radius:var(--o-radius-pill);
+  background:var(--o-surface-sunken);
+  box-shadow:var(--o-shadow-inset);
+  transition:background var(--o-motion),border-color var(--o-motion);
+}
+
+#mainContent[data-screen-contract="profile"] .o-switch>span::after{
+  content:"";
+  position:absolute;
+  top:2px;
+  left:2px;
+  width:18px;
+  height:18px;
+  border-radius:50%;
+  background:var(--o-surface);
+  box-shadow:0 1px 3px rgba(0,0,0,.32);
+  transition:transform var(--o-motion);
+}
+
+#mainContent[data-screen-contract="profile"] .o-switch input:checked + span{
+  border-color:var(--o-accent);
+  background:var(--o-accent);
+  box-shadow:var(--o-glow-accent);
+}
+
+#mainContent[data-screen-contract="profile"] .o-switch input:checked + span::after{
+  transform:translateX(20px);
+}
+
+#mainContent[data-screen-contract="profile"] .o-switch input:focus-visible + span{
+  outline:3px solid var(--o-focus-ring);
+  outline-offset:3px;
+}
+
+#mainContent[data-screen-contract="profile"] .o-profile-palette{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) minmax(190px,220px);
+  align-items:start;
+  gap:24px;
+  padding-top:7px;
+}
+
+#mainContent[data-screen-contract="profile"] .o-profile-palette .theme-choice-grid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:7px;
+  margin:0;
+}
+
+#mainContent[data-screen-contract="profile"] .o-profile-palette .theme-choice{
+  display:grid;
+  grid-template-columns:26px minmax(0,1fr);
+  align-items:center;
+  gap:7px;
+  min-height:48px;
+  padding:7px;
+  border:1px solid var(--o-border);
+  border-radius:9px;
+  background-color:var(--o-surface);
+  background-image:var(--o-sheen-control);
+  box-shadow:var(--o-shadow-control),var(--o-rim-control);
+}
+
+#mainContent[data-screen-contract="profile"] .o-profile-palette .theme-choice:hover{
+  border-color:var(--o-border-strong);
+  transform:none;
+}
+
+#mainContent[data-screen-contract="profile"] .o-profile-palette .theme-choice.selected{
+  border-color:var(--o-accent);
+  background-color:var(--o-accent-tint);
+  box-shadow:0 0 0 2px var(--o-focus-ring);
+}
+
+#mainContent[data-screen-contract="profile"] .o-profile-palette .theme-swatch{
+  width:26px;
+  height:26px;
+  border-radius:7px;
+}
+
+#mainContent[data-screen-contract="profile"] .o-profile-palette .theme-swatch i{
+  width:11px;
+  height:11px;
+  left:4px;
+  top:4px;
+}
+
+#mainContent[data-screen-contract="profile"] .o-profile-palette .theme-swatch b{
+  width:8px;
+  height:8px;
+  right:3px;
+  top:4px;
+}
+
+#mainContent[data-screen-contract="profile"] .o-profile-palette .theme-swatch em{
+  width:10px;
+  height:4px;
+  right:3px;
+  bottom:4px;
+}
+
+#mainContent[data-screen-contract="profile"] .o-profile-palette .theme-choice strong{
+  overflow:hidden;
+  font-size:11px;
+  font-weight:500;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+#mainContent[data-screen-contract="profile"] .o-profile-palette .theme-choice small{
+  display:none;
+}
+
+#mainContent[data-screen-contract="profile"] .o-profile-account-list{
+  display:grid;
+}
+
+#mainContent[data-screen-contract="profile"] .o-profile-account-row{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) minmax(0,1fr) 18px;
+  align-items:center;
+  gap:12px;
+  min-height:44px;
+  width:100%;
+  padding:0;
+  border:0;
+  border-bottom:1px solid var(--o-border);
+  border-radius:0;
+  background:transparent;
+  color:var(--o-ink);
+  font:inherit;
+  text-align:left;
+}
+
+#mainContent[data-screen-contract="profile"] .o-profile-account-row:last-child{
+  border-bottom:0;
+}
+
+#mainContent[data-screen-contract="profile"] .o-profile-account-row:not(.is-action){
+  grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+}
+
+#mainContent[data-screen-contract="profile"] .o-profile-account-copy{
+  display:grid;
+  gap:2px;
+  min-width:0;
+  font-size:var(--o-text-ui);
+}
+
+#mainContent[data-screen-contract="profile"] .o-profile-account-copy small{
+  color:var(--o-ink-muted);
+  font-size:var(--o-text-meta);
+}
+
+#mainContent[data-screen-contract="profile"] .o-profile-account-value{
+  overflow:hidden;
+  color:var(--o-ink-muted);
+  font-size:var(--o-text-ui);
+  text-align:right;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+#mainContent[data-screen-contract="profile"] .o-profile-account-row.is-action{
+  cursor:pointer;
+}
+
+#mainContent[data-screen-contract="profile"] .o-profile-account-row.is-action:hover{
+  color:var(--o-accent);
+}
+
+#mainContent[data-screen-contract="profile"] .o-profile-row-chevron{
+  display:grid;
+  place-items:center;
+  width:18px;
+  height:18px;
+  color:currentColor;
+}
+
+#mainContent[data-screen-contract="profile"] .o-profile-row-chevron svg{
+  width:17px;
+  height:17px;
+}
+
+#mainContent[data-screen-contract="profile"] .o-profile-account-row.is-danger,
+#mainContent[data-screen-contract="profile"] .o-profile-account-row.is-danger:hover{
+  color:var(--o-critical);
+}
+
+#mainContent[data-screen-contract="profile"] .o-profile-account-row:focus-visible{
+  outline:3px solid var(--o-focus-ring);
+  outline-offset:3px;
+}
+
+#mainContent[data-screen-contract="profile"] .o-profile-about.profile-identity-stack.visual-identity-column{
+  position:sticky;
+  top:calc(var(--o-header-h) + 28px);
+  display:block;
+}
+
+#mainContent[data-screen-contract="profile"] .o-profile-about-card{
+  padding:20px;
+  border:1px solid var(--o-border);
+  border-radius:var(--o-radius-card);
+  background-color:var(--o-surface);
+  background-image:var(--o-sheen);
+  box-shadow:var(--o-shadow-card),var(--o-rim);
+}
+
+#mainContent[data-screen-contract="profile"] .o-profile-about-heading{
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+
+#mainContent[data-screen-contract="profile"] .o-profile-about-heading h2{
+  margin:0;
+  color:var(--o-ink);
+  font-size:var(--o-text-body);
+  font-weight:600;
+}
+
+#mainContent[data-screen-contract="profile"] .o-profile-about-icon{
+  display:grid;
+  place-items:center;
+  width:46px;
+  height:46px;
+  flex:0 0 auto;
+  border-radius:12px;
+  background:var(--o-accent-soft);
+  color:var(--o-accent);
+}
+
+#mainContent[data-screen-contract="profile"] .o-profile-about-icon svg{
+  width:24px;
+  height:24px;
+}
+
+#mainContent[data-screen-contract="profile"] .o-profile-about-card>p{
+  margin:16px 0 0;
+  color:var(--o-ink-muted);
+  font-size:var(--o-text-ui);
+  line-height:1.55;
+}
+
+#mainContent[data-screen-contract="profile"] .o-profile-about-card>ul{
+  display:grid;
+  gap:14px;
+  margin:18px 0 0;
+  padding:0;
+  list-style:none;
+}
+
+#mainContent[data-screen-contract="profile"] .o-profile-about-card>ul li{
+  display:grid;
+  grid-template-columns:16px minmax(0,1fr);
+  gap:8px;
+  align-items:start;
+  color:var(--o-ink-muted);
+  font-size:var(--o-text-ui);
+  line-height:1.45;
+}
+
+#mainContent[data-screen-contract="profile"] .o-profile-about-card>ul svg{
+  width:16px;
+  height:16px;
+  margin-top:1px;
+  color:var(--o-accent);
+  stroke-width:2.4;
+}
+
+#mainContent[data-screen-contract="profile"] .o-profile-growth{
+  margin-top:20px;
+  padding-top:17px;
+  border-top:1px solid var(--o-border);
+}
+
+#mainContent[data-screen-contract="profile"] .o-profile-growth>summary{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto 18px;
+  align-items:center;
+  gap:8px;
+  color:var(--o-ink);
+  font-size:var(--o-text-ui);
+  cursor:pointer;
+  list-style:none;
+}
+
+#mainContent[data-screen-contract="profile"] .o-profile-growth>summary::-webkit-details-marker{
+  display:none;
+}
+
+#mainContent[data-screen-contract="profile"] .o-profile-growth>summary strong{
+  color:var(--o-accent);
+  font-size:var(--o-text-label);
+  font-weight:600;
+}
+
+#mainContent[data-screen-contract="profile"] .o-profile-growth>summary svg{
+  width:18px;
+  height:18px;
+  transition:transform var(--o-motion);
+}
+
+#mainContent[data-screen-contract="profile"] .o-profile-growth[open]>summary svg{
+  transform:rotate(180deg);
+}
+
+#mainContent[data-screen-contract="profile"] .o-profile-growth .growth-rank{
+  min-height:0;
+  margin-top:16px;
+  padding:16px;
+  gap:12px;
+  border-color:var(--o-border);
+  border-radius:12px;
+  background:var(--o-surface-sunken);
+  box-shadow:none;
+}
+
+#mainContent[data-screen-contract="profile"] .o-profile-growth .growth-rank::after,
+#mainContent[data-screen-contract="profile"] .o-profile-growth .growth-rank-frame{
+  display:none;
+}
+
+#mainContent[data-screen-contract="profile"] .o-profile-growth .growth-rank-copy{
+  text-align:left;
+}
+
+#mainContent[data-screen-contract="profile"] .o-profile-growth .growth-rank-copy h2{
+  margin:4px 0 8px;
+  font-size:20px;
+}
+
+#mainContent[data-screen-contract="profile"] .o-profile-growth .growth-rank-copy p{
+  color:var(--o-ink-muted);
+  font-size:var(--o-text-meta);
+}
+
+#mainContent[data-screen-contract="profile"] .o-profile-growth .rank-evidence-row{
+  justify-content:flex-start;
+  color:var(--o-ink-muted);
+  font-size:11px;
+}
+
+@media(max-width:1120px){
+  #mainContent[data-screen-contract="profile"] .profile-layout{
+    grid-template-columns:minmax(0,1fr) 260px;
+  }
+
+  #mainContent[data-screen-contract="profile"] .o-profile-setting,
+  #mainContent[data-screen-contract="profile"] .o-profile-palette{
+    grid-template-columns:minmax(0,1fr) 190px;
+  }
+}
+
+@media(max-width:900px){
+  #mainContent[data-screen-contract="profile"] .profile-layout{
+    grid-template-columns:1fr;
+  }
+
+  #mainContent[data-screen-contract="profile"] .o-profile-about.profile-identity-stack.visual-identity-column{
+    position:static;
+  }
+}
+
+@media(max-width:720px){
+  #mainContent[data-screen-contract="profile"] .o-profile{
+    padding-bottom:124px;
+  }
+
+  #mainContent[data-screen-contract="profile"] .o-profile-panel.profile-sections.visual-section-surface{
+    display:grid;
+    gap:25px;
+    overflow:visible;
+    border:0;
+    border-radius:0;
+    background:transparent;
+    box-shadow:none;
+  }
+
+  #mainContent[data-screen-contract="profile"] .profile-section,
+  #mainContent[data-screen-contract="profile"] .profile-section + .profile-section{
+    gap:9px;
+    padding:0;
+    border:0;
+    background:transparent;
+  }
+
+  #mainContent[data-screen-contract="profile"] .profile-section>h2{
+    color:var(--o-ink-muted);
+    font-size:11px;
+    font-weight:500;
+    letter-spacing:.04em;
+  }
+
+  #mainContent[data-screen-contract="profile"] .o-profile-section-body{
+    overflow:visible;
+    border:1px solid var(--o-border);
+    border-radius:11px;
+    background-color:var(--o-surface);
+    background-image:var(--o-sheen);
+    box-shadow:var(--o-shadow-card),var(--o-rim);
+  }
+
+  #mainContent[data-screen-contract="profile"] .o-profile-setting{
+    grid-template-columns:minmax(0,1fr) minmax(116px,45%);
+    gap:12px;
+    min-height:56px;
+    padding:8px 11px;
+  }
+
+  #mainContent[data-screen-contract="profile"] .o-profile-setting + .o-profile-setting,
+  #mainContent[data-screen-contract="profile"] .o-profile-setting + .o-profile-palette{
+    margin:0;
+    border-top:1px solid var(--o-border);
+  }
+
+  #mainContent[data-screen-contract="profile"] .o-profile-setting-copy small{
+    font-size:10px;
+  }
+
+  #mainContent[data-screen-contract="profile"] .o-profile-setting-label{
+    font-size:13px;
+  }
+
+  #mainContent[data-screen-contract="profile"] .o-profile-setting-label .help-tip{
+    display:none;
+  }
+
+  #mainContent[data-screen-contract="profile"] .o-profile-setting-control .orena-select-button{
+    min-height:38px;
+    padding:0 3px 0 8px;
+    border-color:transparent;
+    background:transparent;
+    box-shadow:none;
+  }
+
+  #mainContent[data-screen-contract="profile"] .o-profile-setting-control .orena-select-value{
+    color:var(--o-ink-muted);
+    font-size:12px;
+  }
+
+  #mainContent[data-screen-contract="profile"] .o-profile-setting-control .orena-select-chevron{
+    width:14px;
+    height:14px;
+  }
+
+  #mainContent[data-screen-contract="profile"] .o-profile-setting-control .orena-select-panel{
+    min-width:190px;
+    right:0;
+  }
+
+  #mainContent[data-screen-contract="profile"] .o-profile-palette{
+    grid-template-columns:1fr;
+    gap:10px;
+    padding:12px;
+  }
+
+  #mainContent[data-screen-contract="profile"] .o-profile-palette .theme-choice-grid{
+    grid-template-columns:repeat(4,minmax(0,1fr));
+  }
+
+  #mainContent[data-screen-contract="profile"] .o-profile-palette .theme-choice{
+    grid-template-columns:1fr;
+    justify-items:center;
+    min-width:0;
+  }
+
+  #mainContent[data-screen-contract="profile"] .o-profile-palette .theme-choice>span:last-child{
+    width:100%;
+    text-align:center;
+  }
+
+  #mainContent[data-screen-contract="profile"] .o-profile-account-list{
+    padding:0 11px;
+  }
+
+  #mainContent[data-screen-contract="profile"] .o-profile-account-row{
+    min-height:48px;
+  }
+
+  #mainContent[data-screen-contract="profile"] .o-profile-account-copy,
+  #mainContent[data-screen-contract="profile"] .o-profile-account-value{
+    font-size:12px;
+  }
+
+  #mainContent[data-screen-contract="profile"] .o-profile-about{
+    display:none!important;
+  }
+}
+
+@media(max-width:430px){
+  #mainContent[data-screen-contract="profile"] .o-profile-setting{
+    grid-template-columns:minmax(0,1fr) minmax(104px,44%);
+  }
+
+  #mainContent[data-screen-contract="profile"] .o-profile-palette .theme-choice-grid{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+}
+
+@media(prefers-reduced-motion:reduce){
+  #mainContent[data-screen-contract="profile"] .o-switch>span,
+  #mainContent[data-screen-contract="profile"] .o-switch>span::after,
+  #mainContent[data-screen-contract="profile"] .o-profile-growth>summary svg{
+    transition:none;
+  }
+}
