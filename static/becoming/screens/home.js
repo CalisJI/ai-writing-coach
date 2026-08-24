@@ -1,8 +1,9 @@
 import {api} from '../api.js';
+import {oIcon} from '../orena/icons.js';
 import {state,saveDraft} from '../store.js';
 import {go} from '../router.js';
 import {homeInsight,metricOverview} from '../domain/feedback.js';
-import {esc,errorBlock,loadingBlock,runBusy,sectionHeading,helpTip} from '../components/primitives.js';
+import {attr,esc,errorBlock,loadingBlock,runBusy,sectionHeading,helpTip} from '../components/primitives.js';
 import {t,categoryLabel,masteryLabel,practiceModeLabel,topicLabel,unitLabel,uiLocale} from '../domain/i18n.js';
 
 function sortedEssays(rows=[]){
@@ -323,6 +324,140 @@ function currentWorkFolio(currentEssay,insight){
   </div>`;
 }
 
+/* ---------------------------------------------------------------------------
+ * Home, rebuilt against docs/visual-references/Orena-prod/ORENA_APPLICATION_*.
+ * (The reference still carries the old BECOMING wordmark; the layout is the
+ * target, the branding is not.)
+ *
+ * The reference opens on a statement, then reads as: where this piece sits in
+ * the loop, what the evidence noticed, and what the learner has been keeping.
+ * Every figure below comes from the learner's own dashboard, essays, memory
+ * and library. Two places where the reference could not be followed literally:
+ *
+ *  - It illustrates the hero with a photographed notebook. There is no such
+ *    asset, and a stock image would say nothing. The slot holds the piece the
+ *    learner actually has in progress, which is the thing they came back for.
+ *  - Its "Overall Progress 62%" has no counterpart in the data model. The
+ *    number shown is the latest graded score, labelled as that, because
+ *    inventing a progress metric would be inventing evidence.
+ * ------------------------------------------------------------------------ */
+
+function greeting(){
+  const hour=new Date().getHours();
+  const key=hour<12?'home.greet_morning':hour<18?'home.greet_afternoon':'home.greet_evening';
+  const name=String(state.me?.name||'').trim().split(/\s+/)[0]||'';
+  return name?`${t(key)}, ${name}.`:`${t(key)}.`;
+}
+
+const HOME_STAGES=[
+  ['capture','home.stage_capture','home.stage_capture_note'],
+  ['draft','home.stage_draft','home.stage_draft_note'],
+  ['refine','home.stage_refine','home.stage_refine_note'],
+  ['finalize','home.stage_finalize','home.stage_finalize_note'],
+];
+
+/* Which stage the learner is standing in, read from what exists rather than
+   from a stored step: no piece yet is Capture, an ungraded draft is Draft, a
+   graded piece with a revision is Refine, and a revision is Finalise. */
+function homeStageIndex(essays,currentEssay){
+  if(!currentEssay)return 0;
+  if(Number(currentEssay.revision_no)>0)return 3;
+  if(Number.isFinite(Number(currentEssay.overall)))return 2;
+  return 1;
+}
+
+function homeHero(insight,personalized,currentEssay){
+  return `<section class="o-hero o-card">
+    <div class="o-hero-copy">
+      <p class="o-hero-greet">${esc(greeting())}</p>
+      <p class="o-hero-statement ${state.language==='zh'?'cjk':''}">${esc(insight.statement)}</p>
+      <p class="o-hero-lede">${esc(insight.context)}</p>
+      <div class="o-hero-actions">
+        <button id="homePrimary" class="o-btn o-btn--primary" type="button">
+          <span>${esc(personalized?t('home.practice_action'):insight.action)}</span>${oIcon('arrowRight')}
+        </button>
+        <button id="journeyLinkTop" class="o-btn o-btn--outline" type="button">${esc(t('home.journey'))}</button>
+      </div>
+    </div>
+    ${homeCurrentPiece(currentEssay)}
+  </section>`;
+}
+
+function homeCurrentPiece(currentEssay){
+  if(!currentEssay){
+    return `<aside class="o-hero-piece o-hero-piece--empty">
+      <span class="o-label">${esc(t('home.current_piece_title'))}</span>
+      <p class="o-panel-copy">${esc(t('home.no_current_piece'))}</p>
+    </aside>`;
+  }
+  const score=Number(currentEssay.overall);
+  return `<aside class="o-hero-piece">
+    <span class="o-label">${esc(t('home.current_piece_title'))}</span>
+    <h3 class="o-hero-piece-title">${esc(essayTitle(currentEssay))}</h3>
+    <p class="o-hero-piece-body">${esc(excerpt(currentEssay.text||'',160))}</p>
+    <div class="o-hero-piece-foot">
+      ${currentEssay.target_cefr?`<span class="o-chip">${esc(currentEssay.target_cefr)}</span>`:''}
+      ${Number.isFinite(score)?`<span class="o-hero-piece-score">${esc(String(score))}</span>`:''}
+      <button class="o-btn o-btn--outline o-btn--compact" type="button" data-open-current>${esc(t('home.open_piece'))}</button>
+    </div>
+  </aside>`;
+}
+
+function homeJourney(essays,currentEssay){
+  const active=homeStageIndex(essays,currentEssay);
+  const latest=sortedEssays(essays).find(row=>Number.isFinite(Number(row.overall)));
+  const score=latest?Number(latest.overall):null;
+
+  return `<section class="o-card o-journey">
+    <div class="o-journey-head">
+      <h2>${esc(t('home.your_journey'))}</h2>
+      <p class="o-panel-copy">${esc(t('home.journey_lead'))}</p>
+    </div>
+
+    <ol class="o-stages">
+      ${HOME_STAGES.map(([key,labelKey,noteKey],index)=>`<li class="o-stage" data-state="${index<active?'done':index===active?'active':'ahead'}">
+        <span class="o-stage-tile" aria-hidden="true">${oIcon(index<active?'check':key==='capture'?'document':key==='draft'?'write':key==='refine'?'undo':'flag')}</span>
+        <span class="o-stage-name">${esc(t(labelKey))}</span>
+        <span class="o-stage-note">${esc(t(noteKey))}</span>
+      </li>`).join('')}
+    </ol>
+
+    <div class="o-well">
+      <div class="o-well-copy">
+        <span class="o-label">${esc(t('home.latest_score'))}</span>
+        ${score===null
+          ?`<p class="o-panel-copy">${esc(t('home.latest_score_none'))}</p>`
+          :`<p class="o-well-figure">${esc(String(score))}</p>
+            <div class="o-meter" role="img" aria-label="${attr(String(score))}"><span style="width:${Math.max(0,Math.min(100,score))}%"></span></div>`}
+      </div>
+      <button id="dashboardJourneyLink" class="o-btn o-btn--outline o-btn--compact" type="button">
+        <span>${esc(t('home.view_insights'))}</span>${oIcon('chevronRight')}
+      </button>
+    </div>
+  </section>`;
+}
+
+function homeLibrary(items=[]){
+  const STAGES=['Emerging','Good','Strong','Mastered'];
+  const rows=items.slice(0,4);
+  return `<section class="o-card o-panel">
+    <h2 class="o-label">${esc(t('home.from_library'))}</h2>
+    ${rows.length?`<ul class="o-lib">
+      ${rows.map(item=>{
+        const stage=String(item.stage||item.mastery||'Emerging');
+        const filled=Math.max(1,STAGES.indexOf(stage)+1);
+        return `<li class="o-lib-row">
+          <span class="o-lib-word">${esc(item.word||'')}</span>
+          <span class="o-lib-gloss">${esc(item.translation||item.definition||'')}</span>
+          <span class="o-lib-meter" role="img" aria-label="${attr(stage)}">
+            ${STAGES.map((_,i)=>`<i${i<filled?' data-on="1"':''}></i>`).join('')}
+          </span>
+        </li>`;
+      }).join('')}
+    </ul>`:`<p class="o-panel-copy">${esc(t('home.library_empty'))}</p>`}
+  </section>`;
+}
+
 export async function renderHome(root){
   document.querySelector('#primaryNav')?.classList.remove('hidden');
   root.innerHTML=`<section class="page">${loadingBlock(5)}</section>`;
@@ -335,6 +470,13 @@ export async function renderHome(root){
       api.practiceRecommendation(),
       api.practiceOutcomes(1),
     ]);
+    /* The library panel is additive: Home is still useful without it, so a
+       failure here degrades that one card rather than the screen. */
+    let library=[];
+    try{
+      const saved=await api.libraryVocabulary();
+      library=Array.isArray(saved)?saved:(saved?.items||[]);
+    }catch{ library=[]; }
     state.dashboard=dashboard;
     state.essays=essays;
     state.memory=memory;
@@ -345,52 +487,39 @@ export async function renderHome(root){
     const personalized=recommendation && recommendation.intent!=='baseline';
     const currentEssay=sortedEssays(essays)[0]||null;
 
-    root.innerHTML=`<section class="page canonical-home">
-      <section class="home-editorial-hero">
-        <div class="home-editorial-copy">
-          <!-- The reference opens Home on a statement: an accent eyebrow over
-               one large editorial line, then a quiet lede. UI-02 had removed
-               it and left the grid column it lived in empty. Every word here
-               comes from homeInsight, which reads the learner's own dashboard
-               and memory -- so it is evidence, not a slogan. -->
-          <span class="home-hero-kicker">${esc(insight.kicker)}</span>
-          <h1 class="home-hero-title ${state.language==='zh'?'cjk':''}">${esc(insight.statement)}</h1>
-          <p class="home-hero-lede">${esc(insight.context)}</p>
-          <div class="action-row home-hero-actions">
-            <button id="homePrimary" class="button button-primary">${esc(personalized?t('home.practice_action'):insight.action)}</button>
-            <button id="journeyLinkTop" class="button button-secondary" type="button">${t('home.journey')}</button>
-          </div>
+    root.innerHTML=`<div class="o-page">
+      <div class="o-home">
+        ${homeHero(insight,personalized,currentEssay)}
+
+        <div class="o-home-split">
+          ${homeJourney(essays,currentEssay)}
+          <aside class="o-home-rail">
+            <section class="o-card o-panel">
+              <h2 class="o-label">${esc(t('home.insight_title'))}</h2>
+              <p class="o-quote" aria-hidden="true">&ldquo;</p>
+              <p class="o-insight-line">${esc(insight.statement)}</p>
+              <p class="o-panel-copy">${esc(insight.context)}</p>
+              ${personalized?`<p class="o-panel-copy"><strong>${esc(categoryLabel(recommendation.focus_category||recommendation.focus_label||'expression'))}</strong> · ${esc(practiceModeLabel(recommendation.task_type))}</p>`:''}
+            </section>
+            ${memorySignal(memory)}
+            ${practiceOutcomeSignal(outcomes?.latest)}
+            ${streakCard(dashboard,essays)}
+          </aside>
         </div>
-        ${currentWorkFolio(currentEssay,insight)}
-      </section>
 
-      ${writingDashboardMarkup(dashboard,essays,memory)}
-
-      <section class="home-composed-grid">
-        ${journeyMarkup(essays,memory,currentEssay)}
-        <aside class="home-signal-rail">
-          ${streakCard(dashboard,essays)}
-          ${personalized?`<article class="home-signal-card visual-raised-surface home-next-practice">
-            <span class="context-label">${t('home.today_signal')}</span>
-            <strong>${esc(categoryLabel(recommendation.focus_category||recommendation.focus_label||'expression'))}</strong>
-            <p>${esc(practiceModeLabel(recommendation.task_type))} · ${esc(topicLabel(recommendation.topic))}</p>
-            <small>~${esc(recommendation.word_target)} ${esc(unitLabel(state.language))}</small>
-          </article>`:''}
-          ${memorySignal(memory)}
-          ${practiceOutcomeSignal(outcomes?.latest)}
-        </aside>
-      </section>
-
-      <section class="home-recent-section visual-section-surface" aria-labelledby="recentHeading">
-        ${sectionHeading({
-          kicker:t('home.recent_work'),
-          title:t('home.recent'),
-          id:'recentHeading',
-          action:`<button id="journeyLink" class="text-link" type="button">${t('home.journey')} →</button>`,
-        })}
-        ${recentRows(essays)}
-      </section>
-    </section>`;
+        <div class="o-home-split o-home-split--even">
+          <section class="o-card o-panel" aria-labelledby="recentHeading">
+            ${sectionHeading({
+              title:t('home.recent_drafts'),
+              id:'recentHeading',
+              action:`<button id="journeyLink" class="text-link" type="button">${esc(t('home.journey'))} &rarr;</button>`,
+            })}
+            ${recentRows(essays)}
+          </section>
+          ${homeLibrary(library)}
+        </div>
+      </div>
+    </div>`;
 
     root.querySelector('#homePrimary')?.addEventListener('click',async()=>{
       if(!personalized){

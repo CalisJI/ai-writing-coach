@@ -6,6 +6,7 @@ import {installTheme,applyPalette,activePalette,storedPalette} from './theme.js'
 import {installTempo,applyTempo,storedTempo,tempoForStyle} from './tempo.js';
 import {installSelectEnhancements,syncSelectField} from './components/select-field.js';
 import {t,applyChromeI18n,uiHtmlLang,localeLabel} from './domain/i18n.js';
+import {installOrenaShell,syncOrenaChrome,installDisclosures} from './orena/shell.js?v=2.17.4';
 import {screenContract} from './domain/screen-contract.js?v=2.17.4';
 import {applySkillNavigation,routeAvailable} from './domain/skill-release.js?v=2.17.4';
 import {renderOnboarding} from './screens/onboarding.js';
@@ -71,7 +72,37 @@ function renderAccount(){
   if(me.picture){
     avatar.innerHTML=`<img src="${String(me.picture).replace(/"/g,'&quot;')}" alt="" referrerpolicy="no-referrer">`;
   }else{
-    avatar.textContent=display.slice(0,1).toUpperCase();
+    // Two initials where the learner has two names, as the reference draws it.
+    const initials=display.trim().split(/\s+/).slice(0,2).map(part=>part[0]||'').join('');
+    avatar.textContent=(initials||display.slice(0,1)).toUpperCase();
+  }
+}
+
+/* The sidebar foot.
+ *
+ * The reference puts a streak and a plan in the rail. The streak is a real
+ * learner number that arrives with the dashboard, so the card stays hidden
+ * until that number exists rather than showing a zero the learner has not
+ * earned. The plan has no backend yet: it reports what the account API
+ * actually says and otherwise states the honest default, never a made-up
+ * renewal date. */
+function renderRail(){
+  const streakCard=document.getElementById('streakCard');
+  const days=Number(state.dashboard?.streak);
+  if(streakCard){
+    const known=Number.isFinite(days)&&days>0;
+    streakCard.hidden=!known;
+    if(known){
+      document.getElementById('streakCount').textContent=String(days);
+      document.getElementById('streakLabel').textContent=t('chrome.day_streak');
+    }
+  }
+
+  const planName=document.getElementById('planName');
+  const planNote=document.getElementById('planNote');
+  if(planName&&planNote){
+    planName.textContent=state.me?.plan_name||t('chrome.plan_free');
+    planNote.textContent=state.me?.plan_note||t('chrome.plan_free_note');
   }
 }
 
@@ -189,6 +220,7 @@ async function renderCurrent(){
 
   document.body.classList.toggle('onboarding-mode',route==='onboarding');
   syncNav(route);
+  syncOrenaChrome(route);
   const screen=SCREENS[route]||SCREENS.home;
   const contract=screenContract(route);
   if(!contract){
@@ -212,19 +244,25 @@ async function renderCurrent(){
     // time. Enhancement marks what it has already done, so running it after
     // every render is both correct and cheap.
     installSelectEnhancements(root);
+    installDisclosures(root);
+    // The dashboard often arrives during the screen render, so the rail is
+    // refreshed after it rather than before.
+    renderRail();
     root.setAttribute('aria-busy','false');
     requestAnimationFrame(()=>root.focus({preventScroll:true}));
   }
 }
 
 function installHeaderEvents(){
-  installSelectEnhancements(document.querySelector('.app-header'));
+  // The interface-language select moved out of the header and into the account
+  // menu, which is where the reference keeps account-level settings.
+  installSelectEnhancements(document.getElementById('accountMenu'));
   document.getElementById('languageSelect').addEventListener('change',async event=>{
     const select=event.currentTarget;
     const value=select.value;
     select.disabled=true;
     select.setAttribute('aria-busy','true');
-    document.querySelector('.header-actions')?.classList.add('is-processing');
+    document.querySelector('.o-topbar-actions')?.classList.add('is-processing');
     try{
       // Same full-shape save Profile uses: a partial patch would drop the
       // fields it does not mention.
@@ -246,7 +284,7 @@ function installHeaderEvents(){
     }finally{
       select.disabled=false;
       select.removeAttribute('aria-busy');
-      document.querySelector('.header-actions')?.classList.remove('is-processing');
+      document.querySelector('.o-topbar-actions')?.classList.remove('is-processing');
     }
   });
 
@@ -293,6 +331,7 @@ function installDialogEvents(){
 }
 
 async function bootstrap(){
+  installOrenaShell();
   installTheme();
   installTempo();
   installTooltipLayer();
@@ -318,6 +357,7 @@ async function bootstrap(){
 
     setDocumentLanguage();
     renderAccount();
+    renderRail();
     renderLanguages();
 
     window.addEventListener('hashchange',renderCurrent);
