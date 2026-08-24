@@ -1,7 +1,7 @@
 # Current Handoff
 
 **Application/runtime baseline:**
-`4f92ac6258fb83e2e2ec14e21557901aea3af218`
+`b216ac1ed106f1ba26515bec8b916ff0b0d4ee66`
 
 This baseline is the locally verified Orena UI/UX `2.17.5` integration code
 checkpoint. It inherits the reviewed R5 Grammar Knowledge System closeout
@@ -28,9 +28,9 @@ baseline.
 
 Branch: `codex/orena-ui-ux-integration`
 
-Code checkpoint: `4f92ac6258fb83e2e2ec14e21557901aea3af218`
+Code checkpoint: `b216ac1ed106f1ba26515bec8b916ff0b0d4ee66`
 
-Status: **LOCAL AUTOMATION PASS / INTERACTIVE VISUAL QA PENDING / NOT DEPLOYED**
+Status: **LOCAL AUTOMATION PASS / INTERACTIVE VISUAL REREVIEW PENDING / NOT DEPLOYED**
 
 - Selected UI commits from `claude/work` are integrated over the latest
   `origin/main`; Claude-specific tooling and broad validator archival were
@@ -42,14 +42,19 @@ Status: **LOCAL AUTOMATION PASS / INTERACTIVE VISUAL QA PENDING / NOT DEPLOYED**
   light/dark, and mobile hierarchy while retaining the real EN/ZH learning
   switch, interface language, goal, guidance, Pinyin, palette, account, and
   evidence-derived Growth Rank contracts.
+- The failed first human review identified uneven row geometry and corrupted
+  glyph-based language flags. Checkpoint `b216ac1` replaces them with CSS-drawn
+  flag/icon primitives, aligns setting and account values to one shared control
+  track, and converts palette cards to the same compact selector row.
 - Integration fixes preserve Writing practice context, Dictionary/Pinyin,
   Review POS lens, Chinese Review Pinyin, and the UI-03 shared primitive
   contract.
-- Local evidence: `503 passed, 3 warnings`; JavaScript `28 passed` with two
-  unchanged failures in protected R5/Speaking tests; ESM graph `48 modules`;
-  architecture, UI-02, UI-03, Docker build, and isolated runtime smoke PASS.
+- Local evidence for the correction: Profile contract, architecture, UI-03,
+  ESM graph (`48 modules`), Docker build, and isolated runtime smoke PASS;
+  JavaScript `28 passed` with two unchanged failures in protected R5/Speaking
+  tests. The inherited backend regression remains `503 passed, 3 warnings`.
 - Remaining evidence: interactive desktop/mobile, light/dark, EN/ZH browser
-  review. The configured Browser surface returned no available browser.
+  rereview. The configured Browser surface returned no available browser.
 - No production runtime, PostgreSQL data, deployment, OAuth, Cloudflare,
   release state, application version, or public skill state changed.
 

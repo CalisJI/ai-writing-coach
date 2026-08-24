@@ -8,7 +8,7 @@ historical narrative.
 - Product: Orena / BECOMING codebase
 - Repository: `CalisJI/ai-writing-coach`
 - Last verified application/runtime baseline:
-  `4f92ac6258fb83e2e2ec14e21557901aea3af218`
+  `b216ac1ed106f1ba26515bec8b916ff0b0d4ee66`
 
 This SHA identifies the verified application/runtime baseline inherited by this
 governance checkpoint. Documentation-only or governance-only descendant commits
@@ -35,14 +35,21 @@ operational state.
   listboxes, a Pinyin switch, truthful account rows, and a compact explanatory
   aside. Existing goal, guidance, palette, EN/ZH, interface-language, and
   evidence-derived Growth Rank behavior remains connected.
+- Human review of the first Profile pass found uneven preference-row alignment
+  and mojibake in glyph-based language icons. Baseline `b216ac1` replaces those
+  glyphs with font-independent CSS flag/icon primitives, gives settings and
+  account values one shared control track, and moves palette selection into the
+  same compact row geometry. Interactive rereview remains pending.
 - Existing Writing practice context, Dictionary/Pinyin assistance, Review POS
   lens, Chinese Review Pinyin, EN/ZH behavior, and UI-03 shared primitives are
   preserved by the integration checkpoint.
-- Local automated evidence at `4f92ac6258fb83e2e2ec14e21557901aea3af218`:
-  architecture/UI validators PASS; browser ESM graph PASS with 48 linked
-  modules; Python regression `503 passed, 3 warnings`; JavaScript UI tests
-  `28 passed, 2 known pre-existing failures`; Docker build PASS; isolated
-  SQLite runtime health/readiness/product smoke PASS.
+- Local automated evidence at `b216ac1ed106f1ba26515bec8b916ff0b0d4ee66`:
+  architecture and UI-03 validators PASS; Profile contract PASS; browser ESM
+  graph PASS with 48 linked modules; JavaScript UI tests `28 passed, 2 known
+  pre-existing failures`; Docker build PASS; isolated SQLite runtime
+  health/assets/product smoke PASS. The backend regression inherited from the
+  preceding Profile checkpoint remains `503 passed, 3 warnings` and was not
+  rerun for this CSS/JavaScript-only correction.
 - Interactive visual QA remains pending because no in-app or connected browser
   was available. This checkpoint is not deployed and does not promote any
   learner skill to PUBLIC.
