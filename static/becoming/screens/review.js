@@ -7,7 +7,16 @@ import {highlightedLearnerText,bindEvidenceLinks,sentenceContext,feedbackCategor
 import {esc,errorBlock,loadingBlock,metricRows,showDialog,toast,helpTip,runBusy,spinner,setBusy} from '../components/primitives.js';
 import {supportCopy,supportNote,categoryReason,categoryRule,nativeLanguage} from '../domain/support.js';
 import {openDictionary} from '../components/dictionary.js';
-import {t,uiLocale,categoryLabel} from '../domain/i18n.js';
+import {t,uiLocale,categoryLabel,unitLabel} from '../domain/i18n.js';
+import {countUnits} from '../language.js';
+import {attr} from '../components/primitives.js';
+import {oIcon} from '../orena/icons.js';
+import {installDisclosures} from '../orena/shell.js';
+
+function reviewInfo(text){
+  if(!text)return '';
+  return `<button class="o-info" type="button" tabindex="0" data-tooltip="${attr(text)}" aria-label="${attr(t('chrome.details'))}">${oIcon('info')}</button>`;
+}
 
 function patternName(item={}){
   return categoryLabel(item.category||'expression');
@@ -408,6 +417,142 @@ function installMobileSheet(root){
   };
 }
 
+/* ---------------------------------------------------------------------------
+ * Review, rebuilt against docs/visual-references/Orena-prod/ORENA-WRITING-
+ * REIVEW-*. The reference reads the piece as one document with the findings
+ * numbered in the margin, rather than as a stack of separate feedback cards.
+ *
+ * What the reference could not know, and this build has to be honest about:
+ *
+ *  - The reference prints a score of 7.5. The evaluator returns 0-100 with one
+ *    decimal, and Home and Journey both show that scale. Showing 7.5 here would
+ *    mean two scales for the same number, so the real one is used.
+ *  - The reference labels each issue High / Medium / Low, which reads as
+ *    severity. The evaluator does not return severity; it returns `confidence`
+ *    in the evidence. The chip carries confidence and says so in its tooltip,
+ *    because relabelling it severity would assert something the data does not.
+ *  - The compact list in the reference hides the quote, the correction and the
+ *    save action that this screen already has. Each row expands instead of
+ *    dropping them.
+ * ------------------------------------------------------------------------ */
+
+/* The same six-step ladder Writing uses for the level chip. */
+const BAND_TIERS={
+  A1:'beginner',A2:'elementary',B1:'intermediate',
+  B2:'upper',C1:'advanced',C2:'proficient',
+  HSK1:'beginner',HSK2:'beginner',HSK3:'elementary',
+  HSK4:'intermediate',HSK5:'upper',HSK6:'advanced','HSK7-9':'proficient',
+};
+
+function bandLabel(level){
+  const tier=BAND_TIERS[String(level||'').toUpperCase()]||BAND_TIERS[level];
+  return tier?t(`band.${tier}`):'';
+}
+
+function scoreBand(overall){
+  const value=Number(overall);
+  if(!Number.isFinite(value))return '';
+  if(value>=90)return t('review.score_excellent');
+  if(value>=78)return t('review.score_strong');
+  if(value>=65)return t('review.score_good');
+  if(value>=50)return t('review.score_fair');
+  return t('review.score_weak');
+}
+
+/* The evaluator reports confidence in the evidence, not severity of the
+   mistake. Bands mirror the confidence filter the backend already applies. */
+function confidenceBand(item={}){
+  const value=Number(item.confidence);
+  if(!Number.isFinite(value))return 'medium';
+  if(value>=0.8)return 'high';
+  if(value>=0.6)return 'medium';
+  return 'low';
+}
+
+function reviewSummaryText(result,focusMetric,strengthEvidence){
+  const locale=nativeLanguage(state.profile||{});
+  const written=locale==='vi'?(result.priorities_vi||'') : '';
+  if(typeof written==='string'&&written.trim())return written.trim();
+  const strong=strengthEvidence[0]?categoryLabel(strengthEvidence[0].category):'';
+  const focus=focusMetric?categoryLabel(focusMetric.key||focusMetric):'';
+  if(strong&&focus)return t('review.summary_focus',{strong,focus});
+  return t('review.summary_plain');
+}
+
+function reviewPromptBlock(result){
+  const text=String(result.prompt||state.draft.prompt||'').trim();
+  const level=result.target_cefr||state.draft.level||'';
+  return `<article class="o-card o-prompt">
+    <span class="o-prompt-tile" aria-hidden="true">${oIcon('document')}</span>
+    <div class="o-prompt-body">
+      <span class="o-prompt-kicker">${esc(t('write.prompt'))}</span>
+      <p class="o-prompt-text">${text?esc(text):esc(t('write.no_prompt'))}</p>
+      <div class="o-prompt-foot">
+        ${level?`<span class="o-chip">${esc(level)}</span>`:''}
+        ${level&&bandLabel(level)?`<span class="o-prompt-level">${esc(bandLabel(level))}</span>`:''}
+        <button id="reviewRubric" class="o-btn o-btn--outline o-btn--compact" type="button">${oIcon('rubric')}<span>${esc(t('write.view_rubric'))}</span></button>
+      </div>
+    </div>
+  </article>`;
+}
+
+/* One issue row: compact at rest, and carrying the full evidence when opened.
+   The number matches the badge on the mark inside the learner's text. */
+function issueRow(item,index,learnerText){
+  const band=confidenceBand(item);
+  const category=feedbackCategoryKey(item.category);
+  const sentence=sentenceContext(learnerText,item.fragment||'');
+  const lookupLabel=state.language==='zh'?`Pinyin · ${t('review.lookup')}`:t('review.lookup');
+  const canSave=item.suggestion&&String(item.suggestion).trim().length<=180;
+
+  return `<li class="o-issue o-disclosure feedback-category-${esc(category)}"
+      data-collapsible="always" data-open="false"
+      data-feedback-key="error-${index}" data-feedback-category="${esc(category)}">
+    <button class="o-disclosure__toggle o-issue-head" type="button">
+      <span class="o-issue-mark" data-band="${esc(band)}" aria-hidden="true">${index+1}</span>
+      <span class="o-issue-name">${esc(patternName(item))}</span>
+      <span class="o-chip o-chip--${esc(band)}">${esc(t('review.confidence_'+band))}</span>
+      ${oIcon('chevronUp')}
+    </button>
+    <div class="o-disclosure__body o-issue-body">
+      <blockquote>“${esc(item.fragment||sentence||t('review.evidence_unavailable'))}”</blockquote>
+      ${item.suggestion?diffMarkup(item.fragment||sentence,item.suggestion,state.language):''}
+      ${pinyinPlaceholder(item.suggestion||item.fragment,`error-${index}`)}
+      <p class="o-issue-why">${esc(feedbackExplanation(item))}</p>
+      <p class="o-issue-rule">${esc(feedbackRule(item))}</p>
+      <div class="o-issue-actions">
+        <button class="text-link feedback-lookup" type="button" data-lookup-feedback="${index}">${esc(lookupLabel)}</button>
+        ${canSave?`<button class="text-link feedback-save-library" type="button" data-save-library="${index}">${t('review.save_better')}</button>`:''}
+      </div>
+    </div>
+  </li>`;
+}
+
+function strengthRow(item,index){
+  const canSave=item.fragment&&String(item.fragment).trim().length<=180;
+  return `<li class="o-strength o-disclosure" data-collapsible="always" data-open="false"
+      data-feedback-key="strength-${index}">
+    <button class="o-disclosure__toggle o-strength-head" type="button">
+      <span class="o-strength-tick" aria-hidden="true">${oIcon('check')}</span>
+      <span>${esc(categoryLabel(item.category||'strength'))}</span>
+      ${oIcon('chevronUp')}
+    </button>
+    <div class="o-disclosure__body o-issue-body">
+      <blockquote>“${esc(item.fragment||'')}”</blockquote>
+      ${pinyinPlaceholder(item.fragment,`strength-${index}`)}
+      <p class="o-issue-why">${esc(
+        nativeLanguage(state.profile||{})==='vi'&&item.explanation_vi
+          ?item.explanation_vi
+          :categoryReason(item.category,state.profile||{})
+      )}</p>
+      <div class="o-issue-actions">
+        <button class="text-link feedback-lookup" type="button" data-lookup-strength="${index}">${state.language==='zh'?`Pinyin · ${t('review.lookup')}`:t('review.lookup')}</button>
+        ${canSave?`<button class="text-link feedback-save-library" type="button" data-save-strength="${index}">${t('review.save_useful')}</button>`:''}
+      </div>
+    </div>
+  </li>`;
+}
+
 export async function renderReview(root){
   if(typeof root._cleanupReviewSheet==='function')root._cleanupReviewSheet();
 
@@ -463,125 +608,132 @@ export async function renderReview(root){
       ?categoryReason(strengthEvidence[0].category,state.profile||{})
       :'Your work contains useful evidence of what is already working.');
 
-  root.innerHTML=`<section class="page review guidance-${esc(mode)}">
-    <div class="review-hero">
-      <div>
-        ${supportNote('review_intro',state.profile||{})}
-        <div class="guidance-row">
-          <span class="guidance-badge">${esc(guidanceLabel(mode))}</span>
-          ${helpTip(supportCopy('score_tip',state.profile||{}),t('help.review'))}
-        </div>
+  const visibleErrors=errors.slice(0,budget.visibleEvidence);
+  const visibleStrengths=strengthEvidence.slice(0,3);
+  const units=countUnits(learnerText,state.language);
+
+  root.innerHTML=`<div class="o-page guidance-${esc(mode)}">
+    <div class="o-review">
+      <div class="o-review-main">
+        ${reviewPromptBlock(result)}
+
+        <section class="o-card o-doc">
+          <div class="o-doc-tabs" role="tablist" aria-label="${attr(t('review.tab_review'))}">
+            <button class="o-doc-tab" type="button" role="tab" aria-selected="false" data-doc-tab="draft">${esc(t('review.tab_draft'))}</button>
+            <button class="o-doc-tab is-active" type="button" role="tab" aria-selected="true" data-doc-tab="review">${esc(t('review.tab_review'))}</button>
+            <span class="o-doc-count">${units} ${esc(unitLabel(state.language))}</span>
+            <button id="editDraftButton" class="o-btn o-btn--outline o-btn--compact" type="button">${oIcon('write')}<span>${esc(t('review.edit_draft'))}</span></button>
+          </div>
+
+          <div id="learnerTextEvidence" class="o-doc-body learner-text contextual ${state.language==='zh'?'cjk':''}" lang="${state.language==='zh'?'zh-Hans':'en'}" data-doc-view="review">${highlightedLearnerText(learnerText,visibleErrors,visibleStrengths,[])}</div>
+          <div class="o-doc-body o-doc-plain hidden ${state.language==='zh'?'cjk':''}" data-doc-view="draft">${esc(learnerText)}</div>
+
+          <div id="posLens" class="o-lens" data-state="off" aria-labelledby="posLensTitle">
+            <span class="o-lens-mark" aria-hidden="true">Aa</span>
+            <span class="o-lens-copy">
+              <strong id="posLensTitle">${esc(t('review.pos_title'))}</strong>
+              <small id="posLensStatus" aria-live="polite">${esc(t('review.pos_off'))}</small>
+            </span>
+            <button id="posLensToggle" class="o-btn o-btn--outline o-btn--compact" type="button" aria-pressed="false">${esc(t('review.pos_show'))}</button>
+          </div>
+          <div id="posLensLegend" class="hidden o-lens-legend">${posLegend()}</div>
+
+          <div class="o-doc-foot">
+            <button id="downloadFeedback" class="o-btn o-btn--outline" type="button">${oIcon('cloud')}<span>${esc(t('review.download_feedback'))}</span></button>
+            <button id="reviseButton" class="o-btn o-btn--primary" type="button"><span>${esc(t('review.revise_title'))}</span>${oIcon('arrowRight')}</button>
+          </div>
+        </section>
       </div>
-      <div class="review-benchmark">
-        <span class="section-title-row">${t('review.benchmark')} ${helpTip(supportCopy('benchmark_tip',state.profile||{}),t('help.benchmark'))}</span>
-        <strong>${result.overall!=null?esc(result.overall):'—'}</strong>
-        <span>${esc(benchmark||t('review.estimate_unavailable'))}</span>
-      </div>
-    </div>
 
-    <div class="section-rule"></div>
-
-    <div class="review-grid">
-      <section class="learner-evidence review-paper-surface visual-raised-surface" aria-labelledby="workHeading">
-        <span class="context-label">${t('review.work')}</span>
-        <h2 id="workHeading" style="font-size:28px;margin:8px 0 12px">${t('review.work_title')}</h2>
-        <p class="review-density-note">${t('review.highlight_note')}</p>
-        ${supportNote('lookup_tip',state.profile||{})}
-        ${feedbackCategoryLegend(errors.slice(0,budget.visibleEvidence))}
-
-        <div id="posLens" class="linguistic-lens-bar visual-section-surface" data-state="off" aria-labelledby="posLensTitle">
-          <span class="linguistic-lens-mark" aria-hidden="true">Aa</span>
-          <div class="linguistic-lens-copy">
-            <div class="section-title-row">
-              <span class="context-label">${t('review.pos_kicker')}</span>
-              ${helpTip(t('review.pos_help'),t('review.pos_title'))}
-            </div>
-            <strong id="posLensTitle">${t('review.pos_title')}</strong>
-            <p>${t('review.pos_intro')}</p>
-            ${posLegend('pos-preview')}
-            <small id="posLensStatus" aria-live="polite">${t('review.pos_off')}</small>
-          </div>
-          <button id="posLensToggle" class="button button-secondary linguistic-lens-toggle" type="button" aria-pressed="false">${t('review.pos_show')}</button>
-        </div>
-        <div id="posLensLegend" class="hidden">${posLegend()}</div>
-
-        <div id="learnerTextEvidence" class="learner-text contextual ${state.language==='zh'?'cjk':''}" lang="${state.language==='zh'?'zh-Hans':'en'}">${highlightedLearnerText(learnerText,errors.slice(0,budget.visibleEvidence),strengthEvidence.slice(0,3),[])}</div>
-
-        ${state.language==='zh'&&state.profile?.pinyin!=='off'?`<div class="review-pinyin-summary">
-          <div class="section-title-row">
-            <span class="context-label">${t('review.pinyin_title')}</span>
-            ${helpTip(t('profile.pinyin_desc'),t('profile.pinyin'))}
-          </div>
-          <p>${t('review.pinyin_desc')}</p>
-          <div class="review-pinyin-overview">
-            ${errors.slice(0,budget.visibleEvidence).map((item,index)=>{
-              const term=String(item.suggestion||item.fragment||'').trim();
-              if(!term)return '';
-              return `<div class="review-pinyin-overview-row"><span>${esc(term)}</span>${pinyinPlaceholder(term,`overview-error-${index}`)}</div>`;
-            }).join('')}
-            ${!errors.length?strengthEvidence.slice(0,2).map((item,index)=>{
-              const term=String(item.fragment||'').trim();
-              if(!term)return '';
-              return `<div class="review-pinyin-overview-row"><span>${esc(term)}</span>${pinyinPlaceholder(term,`overview-strength-${index}`)}</div>`;
-            }).join(''):''}
-          </div>
-        </div>`:''}
-
-        <button id="mobileFeedbackTrigger" class="mobile-feedback-trigger" type="button" aria-controls="reviewSide" aria-expanded="false">
-          <span>
-            <strong>${t('review.mobile_focus')}</strong>
-            <span>${esc(focusMetric?.label||t('review.selected_feedback'))} · ${t('review.evidence_count',{count:Math.min(errors.length,budget.visibleEvidence)})}</span>
-          </span>
-          <span class="trigger-arrow" aria-hidden="true">↑</span>
-        </button>
-      </section>
-
-      <div id="reviewSheetBackdrop" class="review-sheet-backdrop" aria-hidden="true"></div>
-
-      <aside id="reviewSide" class="review-side" aria-label="${esc(t('review.feedback_aria'))}">
-        <div class="mobile-sheet-close">
-          <button id="mobileSheetClose" type="button" aria-label="${esc(t('review.close_feedback'))}">×</button>
-        </div>
-
-        <section class="insight-block functional-surface focus-surface review-focus-hero visual-hero-surface">
-          <div class="section-title-row"><span class="context-label">${t('review.start_here')}</span>${helpTip(supportCopy("current_focus_tip",state.profile||{}),t('help.focus'))}</div>
-          <h2>${esc(focusMetric?.label||t('common.current_focus'))}</h2>
-          <p class="review-density-note">${t('review.showing_count',{count:Math.min(errors.length,budget.visibleEvidence)})}</p>
-          ${evidenceItems(errors,{
-            count:budget.visibleEvidence,
-            showRule:budget.showRule,
-            learnerText,
-          })}
+      <aside class="o-review-aside" aria-label="${attr(t('review.summary_title'))}">
+        <section class="o-card o-panel">
+          <h2 class="o-label">${esc(t('review.summary_title'))}${reviewInfo(t('review.summary_help'))}</h2>
+          <p class="o-score">${esc(Number.isFinite(Number(result.overall))?String(result.overall):'—')}</p>
+          <p class="o-score-band">${esc(scoreBand(result.overall))}${benchmark?` · ${esc(benchmark)}`:''}</p>
+          <p class="o-panel-copy">${esc(reviewSummaryText(result,focusMetric,strengthEvidence))}</p>
+          <button id="fullRubricButton" class="o-btn o-btn--outline o-btn--compact" type="button">${esc(t('review.view_full_rubric'))}</button>
         </section>
 
-        <section class="insight-block functional-surface strength-surface visual-section-surface">
-          <div class="section-title-row"><span class="context-label">${t('review.already_working')}</span>${helpTip(supportCopy('strength_tip',state.profile||{}),t('help.strength'))}</div>
-          <div class="strength-line">
-            <span class="semantic-dot" aria-hidden="true"></span>
-            <p>${esc(strength)}</p>
-          </div>
-          ${strengthEvidence.length
-            ?strengthEvidenceItems(strengthEvidence)
-            :`<p class="review-density-note" style="margin-top:12px">${t('review.no_strength_fragment')}</p>`}
+        <section class="o-card o-panel">
+          <h2 class="o-label">${esc(t('review.priority_issues'))}${reviewInfo(t('review.priority_help'))}</h2>
+          ${visibleErrors.length
+            ?`<ol class="o-issues">${visibleErrors.map((item,index)=>issueRow(item,index,learnerText)).join('')}</ol>`
+            :`<p class="o-panel-copy">${esc(t('review.no_issues'))}</p>`}
         </section>
+
+        ${visibleStrengths.length?`<section class="o-card o-panel">
+          <h2 class="o-label">${esc(t('review.strengths_title'))}</h2>
+          <ul class="o-strengths">${visibleStrengths.map((item,index)=>strengthRow(item,index)).join('')}</ul>
+        </section>`:''}
 
         ${practiceOutcomeBlock(result.practice_outcome)}
 
-        <section class="insight-block functional-surface next-action-surface visual-raised-surface">
-          <div class="section-title-row"><span class="context-label">${t('review.next_action')}</span>${helpTip(supportCopy('next_action_tip',state.profile||{}),t('help.next_action'))}</div>
-          <h2>${t('review.revise_title')}</h2>
-          <p>${t('review.revise_body')}</p>
-          ${supportNote('next_action_tip',state.profile||{})}
-          <div class="action-row" style="margin-top:18px">
-            <button id="reviseButton" class="button button-primary">${t('review.revise_title')}</button>
-            <button id="polishButton" class="button button-tertiary">${t('review.strong_compare')}</button>
-          </div>
+        <section class="o-card o-panel">
+          <h2 class="o-label">${esc(t('review.whats_next'))}</h2>
+          <p class="o-panel-copy">${esc(t('review.whats_next_body'))}</p>
+          <button id="startRevision" class="o-btn o-btn--outline" type="button">${esc(t('review.start_revision'))}</button>
+          <button id="polishButton" class="o-btn o-btn--outline o-btn--compact" type="button">${esc(t('review.strong_compare'))}</button>
         </section>
-
-        ${disclosure(result,budget,learnerText)}
       </aside>
     </div>
-  </section>`;
+  </div>`;
+
+  installDisclosures(root);
+
+  /* Draft / Review tabs. Both bodies stay in the DOM so switching does not
+     re-run the annotation pass or lose the lens state. */
+  root.querySelectorAll('[data-doc-tab]').forEach(tab=>{
+    tab.addEventListener('click',()=>{
+      const view=tab.dataset.docTab;
+      root.querySelectorAll('[data-doc-tab]').forEach(other=>{
+        const on=other===tab;
+        other.classList.toggle('is-active',on);
+        other.setAttribute('aria-selected',on?'true':'false');
+      });
+      root.querySelectorAll('[data-doc-view]').forEach(body=>{
+        body.classList.toggle('hidden',body.dataset.docView!==view);
+      });
+    });
+  });
+
+  root.querySelector('#editDraftButton').addEventListener('click',()=>{
+    saveDraft({text:learnerText,parentEssayId:result.id||null});
+    go('write');
+  });
+
+  const rubricDialog=()=>showDialog(t('write.rubric_title'),
+    `<p>${esc(t('write.rubric_intro'))}</p>${metricRows(metricsFrom(result))}`);
+  root.querySelector('#reviewRubric').addEventListener('click',rubricDialog);
+  root.querySelector('#fullRubricButton').addEventListener('click',rubricDialog);
+
+  /* The feedback the learner can keep. Built from the same evidence shown on
+     screen, so the file and the page never disagree. */
+  root.querySelector('#downloadFeedback').addEventListener('click',()=>{
+    const lines=[
+      `${t('review.summary_title')}: ${result.overall} ${scoreBand(result.overall)}`,
+      '',
+      result.prompt?`${t('write.prompt')}: ${result.prompt}`:'',
+      '',
+      learnerText,
+      '',
+      `${t('review.priority_issues')}:`,
+      ...visibleErrors.map((item,index)=>
+        `  ${index+1}. ${patternName(item)} [${t('review.confidence_'+confidenceBand(item))}]\n     “${item.fragment||''}”\n     ${item.suggestion?'→ '+item.suggestion:''}\n     ${feedbackExplanation(item)}`),
+      '',
+      `${t('review.strengths_title')}:`,
+      ...visibleStrengths.map(item=>`  · ${categoryLabel(item.category||'strength')} — “${item.fragment||''}”`),
+    ].filter(line=>line!==undefined);
+
+    const blob=new Blob([lines.join('\n')],{type:'text/plain;charset=utf-8'});
+    const url=URL.createObjectURL(blob);
+    const link=document.createElement('a');
+    link.href=url;
+    link.download=`${t('review.download_name')}-${result.id||'draft'}.txt`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  });
 
   bindEvidenceLinks(root);
   installMobileSheet(root);
@@ -674,7 +826,7 @@ export async function renderReview(root){
     });
   });
 
-  root.querySelector('#reviseButton').addEventListener('click',()=>{
+  const beginRevision=()=>{
     saveDraft({
       text:learnerText,
       prompt:result.prompt||state.draft.prompt||'',
@@ -683,7 +835,9 @@ export async function renderReview(root){
       practiceContext:result.practice_context||state.draft.practiceContext||state.draft.generatedTask?.personalization||null,
     });
     go('write');
-  });
+  };
+  root.querySelector('#reviseButton').addEventListener('click',beginRevision);
+  root.querySelector('#startRevision').addEventListener('click',beginRevision);
 
   root.querySelector('#polishButton').addEventListener('click',async()=>{
     const button=root.querySelector('#polishButton');
