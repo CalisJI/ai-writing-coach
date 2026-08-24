@@ -21,6 +21,14 @@ class ReadingGenerateIn(BaseModel):
         default="random",
         pattern=r"^(random|daily_life|work|science|culture|community)$",
     )
+    # The form the passage takes. A book excerpt, a news report and a short
+    # quotation are read differently, so the learner picks the form as well as
+    # the subject. The value steers generation; it is not stored, because a new
+    # column on reading_sessions would be a schema migration.
+    material: str = Field(
+        default="article",
+        pattern=r"^(article|book|news|quote)$",
+    )
     target_level: str = Field(default="", max_length=12)
     recycle_library: bool = True
 
@@ -129,6 +137,65 @@ def _topic_instruction(topic: str, goal: str, language: str) -> str:
     if goal == "work":
         return f"{base}. Prefer a realistic professional context."
     return base
+
+
+# Each form gets its own shape, register and opening move. None of them may
+# borrow a real author, outlet or masthead: the passage is written here, and
+# attributing it to someone real would be a fabricated source.
+_MATERIAL_EN = {
+    "article": (
+        "Form: a short explanatory article. Open with the idea, then develop it "
+        "in ordered paragraphs."
+    ),
+    "book": (
+        "Form: an excerpt from a longer book. Begin mid-thought, as if a chapter "
+        "is already under way, and end without wrapping the story up. Narrative or "
+        "reflective register, longer sentences, concrete detail. Invent the book; "
+        "do not name a real title, author or publisher, and do not present the "
+        "text as a quotation from a real work."
+    ),
+    "news": (
+        "Form: a news report. First paragraph carries what happened, who it "
+        "affects and when. Later paragraphs add detail and one piece of "
+        "attributed comment. Neutral register, short paragraphs. Invent the "
+        "event and any speaker; do not name a real outlet, journalist, company or "
+        "public figure, and do not present the text as real reporting."
+    ),
+    "quote": (
+        "Form: one short quotation followed by a paragraph of context. The "
+        "quotation is two or three sentences at most and stands on its own line "
+        "first. It is written for this exercise, so do not attribute it to any "
+        "real person, book or speech, and do not invent an attribution either. "
+        "The paragraph after it explains what the line means and where a learner "
+        "would meet that kind of language."
+    ),
+}
+
+_MATERIAL_ZH = {
+    "article": "\u5f62\u5f0f\uff1a\u4e00\u7bc7\u77ed\u7684\u8bf4\u660e\u6027\u6587\u7ae0\uff0c\u5f00\u5934\u70b9\u660e\u4e3b\u65e8\uff0c\u540e\u9762\u5206\u6bb5\u5c55\u5f00\u3002",
+    "book": (
+        "\u5f62\u5f0f\uff1a\u4e00\u672c\u4e66\u7684\u8282\u9009\u3002\u4ece\u4e2d\u95f4\u5199\u8d77\uff0c\u7ed3\u5c3e\u4e0d\u6536\u675f\u6545\u4e8b\uff0c\u53e5\u5b50\u8f83\u957f\uff0c\u7ec6\u8282\u5177\u4f53\u3002"
+        "\u4e66\u540d\u3001\u4f5c\u8005\u5747\u4e3a\u865a\u6784\uff0c\u4e0d\u5f97\u4f7f\u7528\u771f\u5b9e\u4f5c\u54c1\u6216\u771f\u5b9e\u4f5c\u8005\u3002"
+    ),
+    "news": (
+        "\u5f62\u5f0f\uff1a\u4e00\u5219\u65b0\u95fb\u62a5\u9053\u3002\u9996\u6bb5\u4ea4\u4ee3\u4e8b\u4ef6\u3001\u5f71\u54cd\u548c\u65f6\u95f4\uff0c\u540e\u6bb5\u8865\u5145\u7ec6\u8282\u4e0e\u4e00\u53e5\u5f15\u8bed\u3002"
+        "\u4e8b\u4ef6\u4e0e\u53d1\u8a00\u4eba\u5747\u4e3a\u865a\u6784\uff0c\u4e0d\u5f97\u51fa\u73b0\u771f\u5b9e\u5a92\u4f53\u3001\u673a\u6784\u6216\u516c\u4f17\u4eba\u7269\u3002"
+    ),
+    "quote": (
+        "\u5f62\u5f0f\uff1a\u4e00\u53e5\u77ed\u5f15\u6587\uff0c\u5355\u72ec\u6210\u884c\uff0c\u6700\u591a\u4e24\u4e09\u53e5\uff1b\u540e\u9762\u4e00\u6bb5\u89e3\u91ca\u5b83\u7684\u610f\u601d\u548c\u4f7f\u7528\u573a\u5408\u3002"
+        "\u5f15\u6587\u4e3a\u672c\u7ec3\u4e60\u800c\u5199\uff0c\u4e0d\u5f97\u5f52\u5230\u4efb\u4f55\u771f\u5b9e\u4eba\u7269\u6216\u4f5c\u54c1\uff0c\u4e5f\u4e0d\u8981\u7f16\u9020\u51fa\u5904\u3002"
+    ),
+}
+
+
+def _material_instruction(material: str, language: str) -> str:
+    table = _MATERIAL_ZH if language == "zh" else _MATERIAL_EN
+    return table.get(material, table["article"])
+
+
+# A quotation plus its context is a fraction of an article; asking for article
+# length would turn it back into an article.
+_MATERIAL_LENGTH_SCALE = {"article": 1.0, "book": 1.15, "news": 0.9, "quote": 0.45}
 
 
 def _schema(language: str) -> dict[str, Any]:
@@ -391,6 +458,10 @@ def create_reading_session(
     learner_profile = learner_profile or {}
     goal = str(learner_profile.get("goal") or "everyday")
     length, unit = _reading_length(language_code, target_level)
+    # A quotation plus its context is a fraction of an article, and a book
+    # excerpt runs a little longer; asking for one length for all four forms
+    # would flatten them back into the same thing.
+    length = max(60, round(length * _MATERIAL_LENGTH_SCALE.get(payload.material, 1.0)))
 
     library_terms = _select_library_terms(3) if payload.recycle_library else []
 
@@ -420,6 +491,7 @@ def create_reading_session(
             f"目标水平：{target_level}\n"
             f"长度：大约 {length} 个汉字\n"
             f"主题：{_topic_instruction(payload.topic, goal, language_code)}\n"
+            f"{_material_instruction(payload.material, language_code)}\n"
             f"{recycled_instruction}\n"
             "生成一篇完整阅读文章和四道理解题。题目应测试主旨、细节、推断或词义中的不同能力，"
             "但答案必须能由文章支持。"
@@ -437,6 +509,7 @@ def create_reading_session(
             f"Target level: {target_level}\n"
             f"Length: about {length} {unit}\n"
             f"Topic: {_topic_instruction(payload.topic, goal, language_code)}\n"
+            f"{_material_instruction(payload.material, language_code)}\n"
             f"{recycled_instruction}\n"
             "Generate one complete passage and four comprehension questions. "
             "Vary the questions across main idea, detail, inference, or meaning-in-context, "
@@ -485,7 +558,11 @@ def create_reading_session(
         "passage": passage, "questions": generated["questions"], "recycled_words": actual_recycled,
         "generation_mode": generation_mode,
     })
-    return _session_payload(row)
+    value = _session_payload(row)
+    # Echoed, not stored: reading_sessions has no column for the form, and
+    # adding one is a schema migration rather than something to slip in here.
+    value["material"] = payload.material
+    return value
 
 
 def get_reading_session(session_id: int) -> dict[str, Any]:
