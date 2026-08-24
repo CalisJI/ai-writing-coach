@@ -2,6 +2,7 @@ import {api} from '../api.js';
 import {go} from '../router.js?v=2.17.5';
 import {supportLanguage} from '../store.js';
 import {esc,errorBlock,loadingBlock,toast,runBusy} from '../components/primitives.js';
+import {oIcon} from '../orena/icons.js?v=2.17.5';
 import {
   hasGrammarLearningModel,
   renderGrammarLearningModel,
@@ -78,6 +79,12 @@ const COPY={
 };
 
 const copy=()=>COPY[supportLanguage()]||COPY.vi;
+const ORENA_GRAMMAR_COPY={
+  en:{back:'Back to grammar',inLesson:'In this lesson'},
+  vi:{back:'Quay lại ngữ pháp',inLesson:'Trong bài này'},
+  zh:{back:'返回语法课程',inLesson:'本课内容'},
+};
+const orenaGrammarCopy=()=>ORENA_GRAMMAR_COPY[supportLanguage()]||ORENA_GRAMMAR_COPY.vi;
 const grammarContext=detail=>grammarLanguageContext({
   interfaceLanguage:supportLanguage(),
   explanationLanguage:supportLanguage(),
@@ -300,7 +307,9 @@ function legacyLessonBody(detail,c){
 
 function lessonMarkup(detail,payload){
   const c=copy();
+  const ui=orenaGrammarCopy();
   const items=Array.isArray(payload.lessons)?payload.lessons:[];
+  const curriculumProgress=progressOf(items);
   const index=items.findIndex(item=>item.id===detail.id);
   const prev=index>0?items[index-1]:null;
   const next=index>=0&&index<items.length-1?items[index+1]:null;
@@ -309,6 +318,12 @@ function lessonMarkup(detail,payload){
   const objective=richLearning
     ?localizedText(detail.learning_model?.meaning?.summary,languageContext.explanationLanguage)
     :legacyObjective(detail);
+  const lessonContext=richLearning
+    ?[
+        localizedText(detail.learning_model?.hook?.prompt,languageContext.explanationLanguage),
+        localizedText(detail.learning_model?.meaning?.mental_model,languageContext.explanationLanguage),
+      ].filter((value,index,values)=>value&&value!==objective&&values.indexOf(value)===index).slice(0,2)
+    :[];
 
   return `<article class="grammar-lesson visual-raised-surface" data-grammar-lesson="${esc(detail.id)}">
     <header class="grammar-lesson-head">
@@ -316,6 +331,7 @@ function lessonMarkup(detail,payload){
         <span class="editorial-kicker">${esc(detail.level)} · ${esc(kindLabel(detail.kind))}</span>
         <h2>${esc(detail.title)}</h2>
         <p>${esc(objective)}</p>
+        ${lessonContext.map(value=>`<p class="grammar-lesson-context">${esc(value)}</p>`).join('')}
       </div>
       <span class="grammar-completion-chip ${detail.completed?'is-complete':''}">
         ${detail.completed?'✓ '+esc(c.complete):esc(detail.category||detail.module||'Grammar')}
@@ -330,20 +346,31 @@ function lessonMarkup(detail,payload){
       </main>
 
       <aside class="grammar-lesson-actions">
-        ${richLearning?`
-          <span class="context-label">${esc(c.learningActions)}</span>
-          <strong>${esc(c.learningEvidence)}</strong>
-          <p>${esc(c.learningEvidenceNote)}</p>
-        `:`
-          <span class="context-label">${esc(c.source)}</span>
-          <strong>${esc(sourceLabel(detail.source))}</strong>
-          <p>${esc(c.noMastery)}</p>
-          ${detail.source==='locked-syllabus-fallback'?`<p class="grammar-fallback-note">${esc(c.lessonUnavailable)}</p>`:''}
-        `}
-        ${detail.completed
-          ?`<button type="button" class="button button-secondary" data-grammar-uncomplete>${esc(c.undo)}</button>`
-          :`<button type="button" class="button button-primary" data-grammar-complete>${esc(c.mark)}</button>`}
-        <button type="button" class="button button-tertiary" data-grammar-writing>${esc(c.writeTransfer)}</button>
+        <section class="grammar-lesson-rail-card grammar-lesson-progress-card">
+          <div><span>${esc(c.progress)}</span><strong>${curriculumProgress.percent}%</strong></div>
+          <div class="grammar-lesson-progress-track" role="progressbar" aria-label="${esc(c.progress)}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${curriculumProgress.percent}">
+            <span style="width:${curriculumProgress.percent}%"></span>
+          </div>
+        </section>
+
+        ${richLearning?`<nav class="grammar-lesson-rail-card grammar-lesson-outline" data-grammar-lesson-outline aria-label="${esc(ui.inLesson)}"></nav>`:''}
+
+        <section class="grammar-lesson-rail-card grammar-lesson-evidence-card">
+          ${richLearning?`
+            <span class="context-label">${esc(c.learningActions)}</span>
+            <strong>${esc(c.learningEvidence)}</strong>
+            <p>${esc(c.learningEvidenceNote)}</p>
+          `:`
+            <span class="context-label">${esc(c.source)}</span>
+            <strong>${esc(sourceLabel(detail.source))}</strong>
+            <p>${esc(c.noMastery)}</p>
+            ${detail.source==='locked-syllabus-fallback'?`<p class="grammar-fallback-note">${esc(c.lessonUnavailable)}</p>`:''}
+          `}
+          ${detail.completed
+            ?`<button type="button" class="button button-secondary" data-grammar-uncomplete>${esc(c.undo)}</button>`
+            :`<button type="button" class="button button-primary" data-grammar-complete>${esc(c.mark)}</button>`}
+          <button type="button" class="button button-tertiary" data-grammar-writing>${esc(c.writeTransfer)}</button>
+        </section>
       </aside>
     </div>
 
@@ -352,6 +379,61 @@ function lessonMarkup(detail,payload){
       <button type="button" class="button button-secondary" data-grammar-neighbor="${esc(next?.id||'')}" ${next?'':'disabled'}>${esc(c.nextLesson)}</button>
     </footer>
   </article>`;
+}
+
+function lessonBackMarkup(){
+  return `<button type="button" class="button button-secondary grammar-back-button" data-grammar-back>${oIcon('arrowLeft')}<span>${esc(orenaGrammarCopy().back)}</span></button>`;
+}
+
+function bindOrenaLessonChrome(slot){
+  const outline=slot.querySelector('[data-grammar-lesson-outline]');
+  if(outline){
+    const sectionLabel=target=>target.querySelector(':scope > .grammar-learning-block-head h3')?.textContent?.trim()
+      ||target.querySelector(':scope > span')?.textContent?.trim()
+      ||orenaGrammarCopy().inLesson;
+    const stageTargets=[
+      '.grammar-learning-primary-pattern .grammar-learning-block',
+      '.grammar-learning-use-when',
+      '.grammar-learning-scene',
+      '.grammar-learning-contrast',
+      '.grammar-learning-common_mistake',
+      '.grammar-learning-micro_practice',
+    ].map(selector=>slot.querySelector(selector)).filter(Boolean).map(target=>({target,label:sectionLabel(target)}));
+    outline.innerHTML=`<strong>${esc(orenaGrammarCopy().inLesson)}</strong><ol>${stageTargets.map((item,index)=>`<li><button type="button" class="${index===0?'is-active':''}" data-grammar-outline-index="${index}"><span aria-hidden="true"></span>${esc(item.label)}</button></li>`).join('')}</ol>`;
+    outline.querySelectorAll('[data-grammar-outline-index]').forEach(button=>{
+      button.addEventListener('click',()=>{
+        const item=stageTargets[Number(button.dataset.grammarOutlineIndex)];
+        if(!item)return;
+        outline.querySelectorAll('button').forEach(candidate=>candidate.classList.toggle('is-active',candidate===button));
+        item.target.scrollIntoView({behavior:'smooth',block:'start'});
+      });
+    });
+  }
+
+  const collapsibleSelector=[
+    '.grammar-learning-use-when',
+    '.grammar-learning-scene',
+    '.grammar-learning-contrast',
+    '.grammar-learning-common_mistake',
+    '.grammar-learning-exception',
+  ].join(',');
+  slot.querySelectorAll(collapsibleSelector).forEach((section,index)=>{
+    const label=section.querySelector(':scope > .grammar-learning-block-head h3')?.textContent?.trim()
+      ||section.querySelector(':scope > span')?.textContent?.trim()
+      ||orenaGrammarCopy().inLesson;
+    const button=document.createElement('button');
+    button.type='button';
+    button.className='grammar-mobile-section-toggle';
+    button.setAttribute('aria-expanded','false');
+    button.innerHTML=`<span>${esc(label)}</span>${oIcon('chevronDown')}`;
+    section.classList.add('is-mobile-collapsible','is-collapsed');
+    section.dataset.grammarMobileSection=String(index);
+    section.prepend(button);
+    button.addEventListener('click',()=>{
+      const expanded=section.classList.toggle('is-collapsed')===false;
+      button.setAttribute('aria-expanded',String(expanded));
+    });
+  });
 }
 
 export async function renderGrammar(root){
@@ -368,6 +450,19 @@ export async function renderGrammar(root){
 
   root.innerHTML=overviewMarkup(payload);
   const slot=root.querySelector('#grammarLessonSlot');
+  const page=root.querySelector('.grammar-page');
+  let activeLessonId='';
+
+  const closeLesson=()=>{
+    const lessonId=activeLessonId;
+    activeLessonId='';
+    slot.innerHTML='';
+    page?.classList.remove('has-open-lesson');
+    page?.scrollIntoView({behavior:'smooth',block:'start'});
+    requestAnimationFrame(()=>root.querySelector(`[data-grammar-open="${CSS.escape(lessonId)}"]`)?.focus());
+  };
+
+  const bindBack=()=>slot.querySelector('[data-grammar-back]')?.addEventListener('click',closeLesson);
 
   const bindOverview=()=>{
     root.querySelectorAll('[data-grammar-open]').forEach(button=>{
@@ -388,23 +483,29 @@ export async function renderGrammar(root){
 
   const openLesson=async lessonId=>{
     if(!lessonId)return;
-    slot.innerHTML=`<section class="grammar-lesson visual-raised-surface">${loadingBlock(5)}<p>${esc(c.loading)}</p></section>`;
+    activeLessonId=lessonId;
+    page?.classList.add('has-open-lesson');
+    slot.innerHTML=`${lessonBackMarkup()}<section class="grammar-lesson visual-raised-surface">${loadingBlock(5)}<p>${esc(c.loading)}</p></section>`;
+    bindBack();
     slot.scrollIntoView({behavior:'smooth',block:'start'});
 
     let detail;
     try{
       detail=await api.grammarLesson(lessonId);
     }catch(error){
-      slot.innerHTML=errorBlock(error.message||String(error));
+      slot.innerHTML=`${lessonBackMarkup()}${errorBlock(error.message||String(error))}`;
+      bindBack();
       return;
     }
 
     const languageContext=grammarContext(detail);
 
-    slot.innerHTML=lessonMarkup(detail,payload);
+    slot.innerHTML=`${lessonBackMarkup()}${lessonMarkup(detail,payload)}`;
+    bindBack();
     if(hasGrammarLearningModel(detail.learning_model)){
       bindGrammarLearningInteractions(slot,languageContext);
     }
+    bindOrenaLessonChrome(slot);
 
     slot.querySelectorAll('[data-grammar-reveal]').forEach(button=>{
       button.addEventListener('click',()=>{
