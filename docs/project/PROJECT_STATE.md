@@ -8,7 +8,7 @@ historical narrative.
 - Product: Orena / BECOMING codebase
 - Repository: `CalisJI/ai-writing-coach`
 - Last verified application/runtime baseline:
-  `ee28edd71ef1284b53fdfe18ad99c2eae1cdd032`
+  `ee28eddd7c72905aca0133b7f5da8937f5448100`
 
 This SHA identifies the verified application/runtime baseline inherited by this
 governance checkpoint. Documentation-only or governance-only descendant commits
@@ -31,7 +31,7 @@ operational state.
 - Existing Writing practice context, Dictionary/Pinyin assistance, Review POS
   lens, Chinese Review Pinyin, EN/ZH behavior, and UI-03 shared primitives are
   preserved by the integration checkpoint.
-- Local automated evidence at `ee28edd71ef1284b53fdfe18ad99c2eae1cdd032`:
+- Local automated evidence at `ee28eddd7c72905aca0133b7f5da8937f5448100`:
   architecture/UI validators PASS; browser ESM graph PASS with 48 linked
   modules; Python regression `503 passed, 3 warnings`; JavaScript UI tests
   `27 passed, 2 known pre-existing failures`; Docker build PASS; isolated

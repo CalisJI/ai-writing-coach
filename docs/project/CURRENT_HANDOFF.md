@@ -1,7 +1,7 @@
 # Current Handoff
 
 **Application/runtime baseline:**
-`ee28edd71ef1284b53fdfe18ad99c2eae1cdd032`
+`ee28eddd7c72905aca0133b7f5da8937f5448100`
 
 This baseline is the locally verified Orena UI/UX `2.17.4` integration code
 checkpoint. It inherits the reviewed R5 Grammar Knowledge System closeout
@@ -28,7 +28,7 @@ baseline.
 
 Branch: `codex/orena-ui-ux-integration`
 
-Code checkpoint: `ee28edd71ef1284b53fdfe18ad99c2eae1cdd032`
+Code checkpoint: `ee28eddd7c72905aca0133b7f5da8937f5448100`
 
 Status: **LOCAL AUTOMATION PASS / INTERACTIVE VISUAL QA PENDING / NOT DEPLOYED**
 
