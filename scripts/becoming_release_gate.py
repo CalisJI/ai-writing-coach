@@ -105,6 +105,14 @@ def main() -> None:
         root / "static" / "becoming" / "screens" / "profile.js",
         root / "static" / "becoming" / "screens" / "onboarding.js",
         root / "BECOMING_FRONTEND_VERSION",
+        root / "static" / "becoming" / "tempo.css",
+        root / "static" / "becoming" / "tempo.js",
+        root / "static" / "becoming" / "orena" / "tokens.css",
+        root / "static" / "becoming" / "orena" / "shell.css",
+        root / "static" / "becoming" / "orena" / "shell.js",
+        root / "static" / "becoming" / "orena" / "home.css",
+        root / "static" / "becoming" / "orena" / "writing.css",
+        root / "static" / "becoming" / "orena" / "adopt.css",
         root / "scripts" / "validate_browser_esm_graph.mjs",
         root / "docs" / "BECOMING_UIUX_SKILL.md",
         root / "docs" / "BECOMING_DESIGN_TOKENS.json",
@@ -135,6 +143,10 @@ def main() -> None:
     theme_js = read("static/becoming/theme.js")
     theme_css = read("static/becoming/theme.css")
     visual_css = read("static/becoming/visual-alignment.css")
+    orena_tokens = read("static/becoming/orena/tokens.css")
+    orena_shell_css = read("static/becoming/orena/shell.css")
+    orena_home_css = read("static/becoming/orena/home.css")
+    orena_writing_css = read("static/becoming/orena/writing.css")
     router = read("static/becoming/router.js")
     primitives = read("static/becoming/components/primitives.js")
     dictionary = read("static/becoming/components/dictionary.js")
@@ -287,7 +299,8 @@ def main() -> None:
     ], "API client")
     if "api.practiceRecommendation()" not in screens["home"] or "api.nextPractice(" not in screens["home"]:
         errors.append("Home does not use the server personalized-practice engine")
-    if "practice_context:state.draft.practiceContext" not in screens["write"]:
+    compact_write = re.sub(r"\s+", "", screens["write"])
+    if "practice_context:state.draft.practiceContext" not in compact_write:
         errors.append("Writing does not submit persisted practice context")
     if "api.practiceOutcome(result.id)" not in screens["write"]:
         errors.append("Writing does not resolve immediate practice outcome")
@@ -940,11 +953,26 @@ def main() -> None:
     if template.find('/becoming-assets/visual-alignment.css') < template.find('/becoming-assets/phase8.css'):
         errors.append("visual-alignment.css must load after phase CSS so shared calibration wins without page-specific patches")
 
-    # Canonical product shell: same route IA, stronger composed desktop navigation.
+    # Canonical product shell: same route IA, Orena desktop rail and mobile drawer.
     require_contains(errors, template, [
-        'class="app-sidebar"', 'class="app-workspace"', 'class="nav-icon"',
+        'id="app" class="o-shell"', 'class="o-sidebar"', 'class="o-workspace"',
+        'class="o-nav-icon"', 'data-sidebar="expanded"', 'data-drawer="closed"',
+        'id="drawerToggle"', 'aria-controls="primaryNav"',
         'data-i18n-label', 'data-learning-language-label',
     ], "canonical product shell")
+    require_contains(errors, orena_tokens, [
+        '--o-sidebar-w:', '--o-header-h:', '--o-shadow-card:', '--o-motion:',
+    ], "Orena visual tokens")
+    require_contains(errors, orena_shell_css, [
+        '.o-shell{', '.o-sidebar{', '.o-workspace{', '.o-nav{',
+        '@media (max-width:1023px)', '.o-shell[data-drawer="open"]',
+    ], "Orena responsive shell")
+    require_contains(errors, orena_home_css, [
+        '.o-hero{', '.o-home-split{', '.o-journey{', '.o-stages{',
+    ], "Orena Home composition")
+    require_contains(errors, orena_writing_css, [
+        '.o-write{', '.o-editor{', '.o-review{', '.o-doc{',
+    ], "Orena Writing and Review composition")
     require_contains(errors, visual_css, [
         '--shell-sidebar-width:', '.app-sidebar{', '.app-workspace{',
         '.home-editorial-hero{', '.home-folio{', '.folio-spread{',
@@ -974,9 +1002,9 @@ def main() -> None:
         errors.append("canonical dark orange signal is not preserved")
 
     visual_screen_contracts = {
-        "home": ["home-folio", "folio-spread", "home-journey-panel", "home-stage-track"],
-        "write": ["writing-hero-surface", "visual-hero-surface"],
-        "review": ["review-focus-hero", "visual-hero-surface", "review-paper-surface"],
+        "home": ["o-hero", "o-journey", "o-stages"],
+        "write": ["o-write", "o-editor", "o-write-aside", "o-write-sticky"],
+        "review": ["o-review", "o-doc", "o-review-aside"],
         "reading": ["reading-hero-surface", "visual-hero-surface"],
         "library": ["library-recall-hero", "visual-hero-surface"],
         "journey": ["progress-hero", "visual-hero-surface", "progress-support-list"],
@@ -999,8 +1027,8 @@ def main() -> None:
         errors.append("dictionary/Pinyin lookup does not show immediate loading state before existing API call")
     if ".busy-spinner" not in app_css or "@keyframes becoming-spin" not in app_css:
         errors.append("shared visible busy indicator styles missing")
-    if "header-actions')?.classList.add('is-processing')" not in app_js:
-        errors.append("learning-language switch lacks visible processing state")
+    if "o-topbar-actions')?.classList.add('is-processing')" not in app_js:
+        errors.append("interface-language switch lacks visible processing state")
 
     # Chinese Review Pinyin: visible by default (auto/on), hidden only by explicit Profile setting.
     review = screens["review"]

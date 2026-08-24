@@ -74,6 +74,10 @@ function infoButton(text) {
   return `<button class="o-info" type="button" tabindex="0" data-tooltip="${attr(text)}" aria-label="${attr(t('chrome.details'))}">${oIcon('info')}</button>`;
 }
 
+function selectionLookupButton() {
+  return `<button id="lookupSelection" class="o-info" type="button" hidden data-tooltip="${attr(t('write.lookup_selection'))}" aria-label="${attr(t('write.lookup_selection'))}">${oIcon('info')}</button>`;
+}
+
 function savedLabel(savedAt) {
   if (!savedAt) return t('write.saved_never');
   const minutes = Math.floor((Date.now() - Number(savedAt)) / 60000);
@@ -171,7 +175,7 @@ function editorCard(config) {
       <div class="o-editor-foot">
         <span id="editorCount">${units} ${esc(unitLabel(state.language))}</span>
         <span class="o-editor-saved">
-          <button id="lookupSelection" class="o-info" type="button" hidden data-tooltip="${attr(t('write.lookup_selection'))}" aria-label="${attr(t('write.lookup_selection'))}">${oIcon('info')}</button>
+          ${selectionLookupButton()}
           ${oIcon('cloud')}
           <span id="savedStamp">${esc(savedLabel(state.draft.savedAt))}</span>
         </span>

@@ -73,12 +73,14 @@ async function enabledLens(language,text,annotations){
   assert.equal(view.nodes['#posLens'].classList.contains('active'),false);
   await Promise.all([view.nodes['#posLensToggle'].click(),view.nodes['#posLensToggle'].click()]);
   assert.equal(calls,1,'one lens lifecycle must make one linguistic API call');
+  const evidenceHtml=view.nodes['#learnerTextEvidence'].innerHTML;
   assert.match(
-    view.nodes['#learnerTextEvidence'].innerHTML,
-    new RegExp(`<mark class="evidence-mark error-mark"[^>]*data-feedback-key="error-0"[^>]*><span[^>]*>${annotations[0].fragment}</span></mark>`),
+    evidenceHtml,
+    new RegExp(`<mark class="evidence-mark error-mark [^"]+"[^>]*data-feedback-key="error-0"[^>]*><span[^>]*>${annotations[0].fragment}</span></mark>`),
     'the exact evidence fragment and feedback key must survive POS rendering',
   );
-  assert.match(view.nodes['#learnerTextEvidence'].innerHTML,/pos-token/);
+  assert.match(evidenceHtml,/data-feedback-category="[^"]+"/,'the category-coded evidence contract must survive POS rendering');
+  assert.match(evidenceHtml,/pos-token/);
   assert.equal(view.nodes['#posLensToggle'].attributes['aria-pressed'],'true');
   assert.equal(view.nodes['#posLens'].attributes['data-state'],'ready');
   assert.equal(view.nodes['#posLens'].classList.contains('active'),true);
@@ -115,14 +117,14 @@ assert.equal(unavailable.nodes['#posLens'].attributes['data-state'],'unavailable
 assert.doesNotMatch(unavailable.nodes['#learnerTextEvidence'].innerHTML,/pos-token/);
 
 const source=fs.readFileSync(new URL('../static/becoming/screens/review.js',import.meta.url),'utf8');
-const styles=fs.readFileSync(new URL('../static/becoming/phase3.css',import.meta.url),'utf8');
-assert.match(source,/id="posLens" class="linguistic-lens-bar/,'Review must visibly render the lens container');
+assert.match(source,/id="posLens" class="o-lens"/,'Review must visibly render the Orena lens container');
 assert.match(source,/posLegend\('pos-preview'\)/,'Review must show the compact POS preview while off');
 for(const group of ['noun','verb','modifier','connector','reference','number']){
   assert.match(source,new RegExp(`\\['${group}','review\\.pos_group_${group}'\\]`),`POS preview must include ${group}`);
 }
-assert.match(styles,/\.linguistic-lens-bar\.active\{/,'enabled lens must have a visible active treatment');
-assert.match(styles,/@media\(max-width:640px\)[\s\S]*\.linguistic-lens-toggle\{[\s\S]*grid-column:1\/-1;/,'narrow layout must wrap the toggle below the preview');
+const orenaStyles=fs.readFileSync(new URL('../static/becoming/orena/writing.css',import.meta.url),'utf8');
+assert.match(orenaStyles,/\.o-lens\.active\{/,'enabled Orena lens must have a visible active treatment');
+assert.match(orenaStyles,/@media \(max-width:1023px\)[\s\S]*\.o-lens>\.o-btn\{width:100%\}/,'narrow Orena layout must wrap the toggle below the preview');
 assert.equal((source.match(/function installLinguisticLens/g)||[]).length,1,'EN and ZH must share one lens implementation');
 assert.equal((source.match(/^  installLinguisticLens\(root,\{/gm)||[]).length,1,'Review must install the shared lens exactly once per render');
 

@@ -66,6 +66,14 @@
 
 .o-panel-head{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%}
 .o-panel-head .o-label{margin:0}
+.o-panel>.orena-section-heading{align-items:center;gap:12px;padding:0}
+.o-panel>.orena-section-heading h2{
+  margin:0;
+  color:var(--o-ink-muted);
+  font:700 var(--o-text-label)/1 var(--o-font);
+  letter-spacing:.08em;
+  text-transform:uppercase;
+}
 
 /* ========================================================== journey ====== */
 

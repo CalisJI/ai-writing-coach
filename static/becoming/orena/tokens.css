@@ -86,13 +86,13 @@
   /* --- depth -------------------------------------------------------------
      Measured off ORENA_APPLICATION_LIGHT.png rather than guessed, because the
      first pass got this wrong by guessing.
-   
+
      The finding that matters: in the light reference the canvas, the sidebar,
      a card, a card nested inside a card and the active nav pill are all the
      same colour (#FAF8F6..#FBFAF8). Nothing is separated by tone. Every bit of
      depth on that page is shadow. So these values carry the whole hierarchy
      and have to be real.
-   
+
      Below the primary button the canvas drops from lum 249 to 227 — about 9% —
      two or three pixels under the edge, and takes roughly 20px to recover.
      Beside the sidebar the same fall happens over 10px, which is the shape of

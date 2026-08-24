@@ -628,11 +628,33 @@ export async function renderReview(root){
           <div id="learnerTextEvidence" class="o-doc-body learner-text contextual ${state.language==='zh'?'cjk':''}" lang="${state.language==='zh'?'zh-Hans':'en'}" data-doc-view="review">${highlightedLearnerText(learnerText,visibleErrors,visibleStrengths,[])}</div>
           <div class="o-doc-body o-doc-plain hidden ${state.language==='zh'?'cjk':''}" data-doc-view="draft">${esc(learnerText)}</div>
 
+          ${state.language==='zh'&&state.profile?.pinyin!=='off'?`<section class="review-pinyin-summary o-review-pinyin-summary" aria-labelledby="reviewPinyinHeading">
+            <div class="section-title-row">
+              <span id="reviewPinyinHeading" class="context-label">${esc(t('review.pinyin_title'))}</span>
+              ${reviewInfo(t('profile.pinyin_desc'))}
+            </div>
+            <p>${esc(t('review.pinyin_desc'))}</p>
+            <div class="review-pinyin-overview">
+              ${visibleErrors.map((item,index)=>{
+                const term=String(item.suggestion||item.fragment||'').trim();
+                if(!term)return '';
+                return `<div class="review-pinyin-overview-row"><span>${esc(term)}</span>${pinyinPlaceholder(term,`overview-error-${index}`)}</div>`;
+              }).join('')}
+              ${!visibleErrors.length?visibleStrengths.slice(0,2).map((item,index)=>{
+                const term=String(item.fragment||'').trim();
+                if(!term)return '';
+                return `<div class="review-pinyin-overview-row"><span>${esc(term)}</span>${pinyinPlaceholder(term,`overview-strength-${index}`)}</div>`;
+              }).join(''):''}
+            </div>
+          </section>`:''}
+
           <div id="posLens" class="o-lens" data-state="off" aria-labelledby="posLensTitle">
             <span class="o-lens-mark" aria-hidden="true">Aa</span>
             <span class="o-lens-copy">
+              <span class="o-label">${esc(t('review.pos_kicker'))}</span>
               <strong id="posLensTitle">${esc(t('review.pos_title'))}</strong>
               <small id="posLensStatus" aria-live="polite">${esc(t('review.pos_off'))}</small>
+              ${posLegend('pos-preview')}
             </span>
             <button id="posLensToggle" class="o-btn o-btn--outline o-btn--compact" type="button" aria-pressed="false">${esc(t('review.pos_show'))}</button>
           </div>
