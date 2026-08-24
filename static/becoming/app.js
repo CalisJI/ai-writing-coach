@@ -4,7 +4,7 @@ import {currentRoute,go,syncNav} from './router.js?v=2.17.4';
 import {closeDialog,toast,setBusy,installTooltipLayer} from './components/primitives.js';
 import {installTheme,applyPalette,activePalette,storedPalette} from './theme.js';
 import {installTempo,applyTempo,storedTempo,tempoForStyle} from './tempo.js';
-import {t,applyChromeI18n,uiHtmlLang} from './domain/i18n.js';
+import {t,applyChromeI18n,uiHtmlLang,localeLabel} from './domain/i18n.js';
 import {screenContract} from './domain/screen-contract.js?v=2.17.4';
 import {applySkillNavigation,routeAvailable} from './domain/skill-release.js?v=2.17.4';
 import {renderOnboarding} from './screens/onboarding.js';
@@ -79,14 +79,22 @@ function languageDisplayName(code){
   return item?.native_name||item?.name||String(code||'').toUpperCase();
 }
 
+const INTERFACE_LANGUAGES=['vi','en','zh'];
+
+/* The header used to hold the LEARNING language. Nobody switches the language
+   they are studying several times a session, and in that position -- top
+   right, beside the theme toggle -- people read it as the interface language
+   instead, which is what a control there normally means. So the header now
+   holds the interface language, which is genuinely worth reaching quickly,
+   and the learning language moved to Profile where a rare, consequential
+   choice belongs. */
 function renderLanguages(){
   const select=document.getElementById('languageSelect');
-  const enabled=(state.languages||[]).filter(item=>item.enabled);
-  select.innerHTML=enabled.map(item=>{
-    const label=item.native_name||item.name||String(item.code||'').toUpperCase();
-    return `<option value="${item.code}" ${item.code===state.language?'selected':''}>${label}</option>`;
-  }).join('');
-  select.disabled=enabled.length<2;
+  if(!select)return;
+  const current=supportLanguage()||'vi';
+  select.innerHTML=INTERFACE_LANGUAGES.map(code=>
+    `<option value="${code}" ${code===current?'selected':''}>${localeLabel(code)}</option>`
+  ).join('');
 }
 
 
@@ -145,33 +153,11 @@ async function loadProfileForActiveLanguage({allowLegacyMigration=true}={}){
   return null;
 }
 
-async function changeLanguage(language){
-  if(!language || language===state.language)return;
-  await api.setLanguage(language);
-
-  const previousRoute=currentRoute();
-  activateLanguage(language,{allowLegacyMigration:false});
-  setDocumentLanguage();
-  renderLanguages();
-
-  const profile=await loadProfileForActiveLanguage({allowLegacyMigration:false});
-  toast(t('toast.learning_space',{space:languageDisplayName(language)}));
-
-  if(!profile){
-    go('onboarding');
-    return;
-  }
-
-  // A review belongs to the language evidence that created it.
-  // Never keep an English review alive inside the Chinese space (or vice versa).
-  if(previousRoute==='review'){
-    go('write');
-    return;
-  }
-
-  await renderCurrent();
-}
-
+/* changeLanguage lived here to serve the header's learning-language select.
+   The header now carries the interface language, and Profile owns the learning
+   language -- it dispatches `becoming:language-changed`, which the listener in
+   bootstrap() handles with the same steps. Keeping a second, unreachable copy
+   of the switch would read like the real entry point to anyone looking next. */
 async function renderCurrent(){
   if(typeof root._cleanupScreen==='function'){
     root._cleanupScreen();
@@ -228,11 +214,25 @@ async function renderCurrent(){
 function installHeaderEvents(){
   document.getElementById('languageSelect').addEventListener('change',async event=>{
     const select=event.currentTarget;
+    const value=select.value;
     select.disabled=true;
     select.setAttribute('aria-busy','true');
     document.querySelector('.header-actions')?.classList.add('is-processing');
     try{
-      await changeLanguage(select.value);
+      // Same full-shape save Profile uses: a partial patch would drop the
+      // fields it does not mention.
+      const saved=await api.saveLearnerProfile({
+        goal:state.profile?.goal??'everyday',
+        style:state.profile?.style??'guided',
+        pinyin:state.profile?.pinyin??'auto',
+        native_language:value,
+        theme_preset:state.profile?.theme_preset??activePalette(),
+      });
+      setSupportLanguage(saved.native_language||value);
+      saveProfile(saved);
+      applyChromeI18n();
+      renderLanguages();
+      await renderCurrent();
     }catch(error){
       toast(error.message||t('toast.switch_failed'));
       renderLanguages();
@@ -242,6 +242,7 @@ function installHeaderEvents(){
       document.querySelector('.header-actions')?.classList.remove('is-processing');
     }
   });
+
 
   const accountButton=document.getElementById('accountButton');
   const accountMenu=document.getElementById('accountMenu');
