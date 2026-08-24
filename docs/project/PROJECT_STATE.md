@@ -8,7 +8,7 @@ historical narrative.
 - Product: Orena / BECOMING codebase
 - Repository: `CalisJI/ai-writing-coach`
 - Last verified application/runtime baseline:
-  `91276425bce28b93d2ce449a2a61460ae44761dd`
+  `de2054fcdf702011be015a2357d0e92c0f3c6dfc`
 
 This SHA identifies the verified application/runtime baseline inherited by this
 governance checkpoint. Documentation-only or governance-only descendant commits
@@ -49,16 +49,23 @@ operational state.
   while leaving Pattern and evidence-producing practice visible. Stable Grammar
   Concept IDs, schema-v2 rendering, completion evidence, and EN/ZH content
   contracts remain unchanged.
+- Grammar checkpoint `de2054f` extends that frame into one shared visual
+  learning system for all `508 / 508` source-backed EN/ZH lessons. Pattern and
+  word-order parts, Use-when checks, contextual examples, nearby-form contrast,
+  incorrect/correct correction, exception boundaries, practice choices, memory
+  cues, and cross-skill transfer now have distinct Orena visual semantics.
+  Repeated explanatory copy is suppressed only at presentation time; Static
+  Grammar KB content and stable concept IDs are not rewritten.
 - Existing Writing practice context, Dictionary/Pinyin assistance, Review POS
   lens, Chinese Review Pinyin, EN/ZH behavior, and UI-03 shared primitives are
   preserved by the integration checkpoint.
-- Local automated evidence at `91276425bce28b93d2ce449a2a61460ae44761dd`:
+- Local automated evidence at `de2054fcdf702011be015a2357d0e92c0f3c6dfc`:
   architecture and UI-03 validators PASS; Profile and Grammar contracts PASS;
-  browser ESM graph PASS with 48 linked modules; JavaScript UI tests `29 passed,
-  2 known pre-existing failures`; Docker build PASS; isolated SQLite runtime
-  HTTP smoke PASS. The backend regression inherited from the preceding Profile
-  checkpoint remains `503 passed, 3 warnings` and was not rerun for this
-  CSS/JavaScript-only Grammar presentation change.
+  browser ESM graph PASS with 48 linked modules; JavaScript UI tests `30 passed,
+  2 known pre-existing failures`; Docker build PASS. The isolated runtime smoke
+  and backend regression were not rerun for this CSS/JavaScript-only Grammar
+  presentation change; the inherited backend result remains `503 passed, 3
+  warnings`.
 - Interactive Brave visual QA PASS at desktop and mobile reference dimensions,
   light/dark, and VI/ZH interface states. The verified desktop surfaces measured
   `830px + 26px + 294px`; mobile cards retained `12px` side gutters; opening a
@@ -73,6 +80,13 @@ operational state.
   console warnings/errors. Mobile measured a `353px` lesson surface inside a
   `373px` document and kept Pattern plus Quick Practice in the initial compact
   sequence.
+- The `de2054f` Grammar visual rereview used a read-only static harness loading
+  the production renderer, styles, and real EN/ZH knowledge files. It verified
+  balanced five/six-part formulas, no desktop or mobile horizontal overflow,
+  dark/light token parity, functional mobile disclosures, Chinese CJK font
+  fallback plus Pinyin, and no Unicode replacement characters. Full isolated
+  application-runtime browser smoke remains pending because the required
+  ephemeral Alembic initialization was not authorized at this checkpoint.
 
 ## Persistence
 
