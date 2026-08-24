@@ -1100,5 +1100,95 @@ html:root .header-actions{
     background:none;
     color:var(--color-accent-600);
   }
-  html:root .primary-nav a.active .nav-icon{color:inherit}
+
+}
+
+/* ============================================================
+   NAVIGATION — matched to the visual reference
+   ============================================================
+   The reference draws navigation as plain rows: an outline glyph and a label,
+   nothing else. The current destination is marked by a rule down the left
+   edge, a barely-there wash behind the row, and the glyph turning accent --
+   the label stays bright rather than colouring, so the row still reads as a
+   row.
+
+   What was there instead: every item wrapped its glyph in a 34px tile with a
+   border, a gradient and a drop shadow, and the active tile filled solid
+   accent. Nine embossed chips down a rail the reference draws as text -- and
+   on a phone the filled tile went accent-on-accent, so the active item lost
+   its glyph entirely and became a blank orange square. (That last part was
+   mine: a `color:inherit` override meant to tidy the bottom bar took out the
+   white the tile depended on.)
+*/
+html:root .nav-icon{
+  width:22px;
+  height:22px;
+  border:0;
+  border-radius:0;
+  background:none;
+  box-shadow:none;
+  color:var(--color-ink-muted);
+}
+
+html:root .nav-icon svg{width:20px;height:20px;stroke-width:1.7}
+
+html:root .primary-nav a{
+  position:relative;
+  border:0;
+  background:none;
+  box-shadow:none;
+  transform:none;
+}
+
+html:root .primary-nav a:hover{
+  transform:none;
+  background:var(--color-surface-muted);
+  box-shadow:none;
+  border:0;
+}
+
+html:root .primary-nav a:hover .nav-icon{color:var(--color-ink-strong)}
+
+html:root .primary-nav a.active{
+  transform:none;
+  border:0;
+  box-shadow:none;
+  background:color-mix(in srgb,var(--color-accent-600) 8%,transparent);
+  color:var(--color-ink-strong);
+}
+
+html:root .primary-nav a.active .nav-icon{
+  color:var(--color-accent-600);
+  background:none;
+  border:0;
+  box-shadow:none;
+}
+
+/* The rule down the left edge is the marker the reference uses. */
+html:root .primary-nav a.active::before{
+  content:"";
+  position:absolute;
+  left:0;
+  top:8px;
+  bottom:8px;
+  width:3px;
+  border-radius:0 3px 3px 0;
+  background:var(--color-accent-600);
+}
+
+/* On a phone the rail runs horizontally, so a left rule would point at
+   nothing. The glyph and label carry the state there instead. */
+@media(max-width:1000px){
+  html:root .primary-nav a.active{background:none}
+  html:root .primary-nav a.active::before{
+    left:50%;
+    right:auto;
+    top:0;
+    bottom:auto;
+    width:22px;
+    height:3px;
+    transform:translateX(-50%);
+    border-radius:0 0 3px 3px;
+  }
+  html:root .primary-nav a.active .nav-label{color:var(--color-accent-600)}
 }
