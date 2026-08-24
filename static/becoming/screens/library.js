@@ -26,7 +26,7 @@ const COPY={
     title:'Active Recall',lead:'Review and strengthen what you have learned.',
     itemsDue:'items due',reviewNow:'Review now',addWord:'Add a word',
     all:'All items',
-    types:{word:'Vocabulary',collocation:'Collocation',idiom:'Idiom',colloquial:'Set phrase',phrasalVerb:'Phrasal verb',separable:'Separable verb',measure:'Measure word',phrase:'Phrase'},
+    types:{word:'Vocabulary',collocation:'Collocation',idiom:'Idiom',colloquial:'Set phrase',phrasalVerb:'Phrasal verb',separable:'Separable verb',measure:'Measure word',proverb:'Proverb',xiehouyu:'Two-part saying',phrase:'Phrase'},
     filters:'Filters',sort:'Sort',
     colItem:'Item',colType:'Type',colMastery:'Mastery',colNext:'Next review',colLast:'Last reviewed',
     dueNow:'Due now',dueSoon:'Due soon',notDue:'Not due',
@@ -45,6 +45,7 @@ const COPY={
     sortNext:'Next review',sortAdded:'Recently added',sortAlpha:'A → Z',sortMastery:'Mastery',
     filterAll:'Everything',filterDue:'Due now',filterSoon:'Due soon',filterNew:'Not started',
     goalPrompt:'How many items do you want to review each day?',
+    categoryEmpty:'Nothing saved in this category yet.',
     tabTip:'Categories come from the label the dictionary saved with the entry. An entry with no label is filed by shape alone — one word, or a phrase — and is never guessed into a narrower category.',
     accuracyTip:'Successful recalls as a share of every recall you have marked. It is your own report, not a test score.',
     goalTip:'A target you set. Progress counts items you reviewed today.',
@@ -56,7 +57,7 @@ const COPY={
     title:'Ôn chủ động',lead:'Ôn lại và củng cố những gì bạn đã học.',
     itemsDue:'mục đến hạn',reviewNow:'Ôn ngay',addWord:'Thêm từ',
     all:'Tất cả',
-    types:{word:'Từ vựng',collocation:'Kết hợp từ',idiom:'Thành ngữ',colloquial:'Quán ngữ',phrasalVerb:'Cụm động từ',separable:'Động từ ly hợp',measure:'Lượng từ',phrase:'Cụm từ'},
+    types:{word:'Từ vựng',collocation:'Kết hợp từ',idiom:'Thành ngữ',colloquial:'Quán ngữ',phrasalVerb:'Cụm động từ',separable:'Động từ ly hợp',measure:'Lượng từ',proverb:'Tục ngữ',xiehouyu:'Câu hai vế',phrase:'Cụm từ'},
     filters:'Lọc',sort:'Sắp xếp',
     colItem:'Mục',colType:'Loại',colMastery:'Mức thuộc',colNext:'Ôn kế tiếp',colLast:'Ôn lần cuối',
     dueNow:'Đến hạn',dueSoon:'Sắp đến hạn',notDue:'Chưa tới hạn',
@@ -75,6 +76,7 @@ const COPY={
     sortNext:'Ôn kế tiếp',sortAdded:'Mới thêm',sortAlpha:'A → Z',sortMastery:'Mức thuộc',
     filterAll:'Tất cả',filterDue:'Đến hạn',filterSoon:'Sắp đến hạn',filterNew:'Chưa bắt đầu',
     goalPrompt:'Mỗi ngày bạn muốn ôn bao nhiêu mục?',
+    categoryEmpty:'Chưa lưu mục nào thuộc nhóm này.',
     tabTip:'Phân loại lấy từ nhãn mà từ điển lưu cùng mục. Mục không có nhãn thì chỉ xếp theo hình thức — một từ, hay một cụm — chứ không đoán vào nhóm hẹp hơn.',
     accuracyTip:'Số lần nhớ được chia cho tổng số lượt bạn đã tự đánh giá. Đây là bạn tự báo, không phải điểm kiểm tra.',
     goalTip:'Mục tiêu do bạn đặt. Tiến độ đếm số mục bạn đã ôn hôm nay.',
@@ -86,7 +88,7 @@ const COPY={
     title:'主动回忆',lead:'复习并巩固你学过的内容。',
     itemsDue:'项待复习',reviewNow:'现在复习',addWord:'添加词条',
     all:'全部',
-    types:{word:'单词',collocation:'搭配',idiom:'成语',colloquial:'惯用语',phrasalVerb:'动词短语',separable:'离合词',measure:'量词',phrase:'短语'},
+    types:{word:'单词',collocation:'搭配',idiom:'成语',colloquial:'惯用语',phrasalVerb:'动词短语',separable:'离合词',measure:'量词',proverb:'谚语',xiehouyu:'歇后语',phrase:'短语'},
     filters:'筛选',sort:'排序',
     colItem:'条目',colType:'类型',colMastery:'掌握度',colNext:'下次复习',colLast:'上次复习',
     dueNow:'已到期',dueSoon:'即将到期',notDue:'未到期',
@@ -105,6 +107,7 @@ const COPY={
     sortNext:'下次复习',sortAdded:'最近添加',sortAlpha:'A → Z',sortMastery:'掌握度',
     filterAll:'全部',filterDue:'已到期',filterSoon:'即将到期',filterNew:'尚未开始',
     goalPrompt:'你每天想复习多少项？',
+    categoryEmpty:'这个类别还没有保存的条目。',
     tabTip:'分类来自词典随条目一起保存的标注。没有标注的条目只按形式归类——单词或短语——不会猜到更窄的类别里。',
     accuracyTip:'回忆成功次数占你标记过的全部复习次数的比例。这是你的自评，不是考试成绩。',
     goalTip:'由你设定的目标。进度统计今天复习过的条目。',
@@ -144,7 +147,9 @@ const TYPE_RULES=[
   ['phrasalVerb',[/phrasal/i,/\u52a8\u8bcd\u77ed\u8bed/,/c\u1ee5m \u0111\u1ed9ng t\u1eeb/i]],
   ['collocation',[/collocat/i,/\u642d\u914d/,/k\u1ebft h\u1ee3p t\u1eeb/i]],
   ['idiom',[/idiom/i,/\u6210\u8bed/,/th\u00e0nh ng\u1eef/i]],
-  ['colloquial',[/\u60ef\u7528\u8bed/,/\u4fd7\u8bed/,/\u8c1a\u8bed/,/set\s*phrase/i,/qu\u00e1n ng\u1eef/i]],
+  ['xiehouyu',[/\u6b47\u540e\u8bed/,/allegorical/i]],
+  ['proverb',[/proverb/i,/saying/i,/\u8c1a\u8bed/,/\u4fd7\u8bed/,/t\u1ee5c ng\u1eef/i]],
+  ['colloquial',[/\u60ef\u7528\u8bed/,/set\s*phrase/i,/qu\u00e1n ng\u1eef/i]],
   ['phrase',[/phrase/i,/expression/i,/\u77ed\u8bed/,/c\u1ee5m t\u1eeb/i]],
 ];
 
@@ -170,14 +175,101 @@ function itemType(item){
 /* Only the categories this language actually uses are offered, and only when
    something is in them. An empty heading reads as a broken filter rather than
    as a category the learner has not met yet. */
-const TYPE_ORDER_EN=['word','collocation','idiom','phrasalVerb','phrase'];
-const TYPE_ORDER_ZH=['word','collocation','idiom','colloquial','separable','measure','phrase'];
+/* The full list for each language, in the order a learner meets them. Every
+   one is shown, empty or not: the row doubles as the answer to "what kinds of
+   thing does this language have?" for someone who has not met them yet. */
+const TYPE_ORDER_EN=['word','collocation','phrasalVerb','idiom','proverb','phrase'];
+const TYPE_ORDER_ZH=['word','collocation','measure','separable','idiom','colloquial','proverb','xiehouyu','phrase'];
 
 const NATIVE_TYPE_NAMES={
   word:'\u5355\u8bcd',collocation:'\u642d\u914d',idiom:'\u6210\u8bed',
-  colloquial:'\u60ef\u7528\u8bed',separable:'\u79bb\u5408\u8bcd',
-  measure:'\u91cf\u8bcd',phrase:'\u77ed\u8bed',
+  colloquial:'\u60ef\u7528\u8bed',proverb:'\u8c1a\u8bed',xiehouyu:'\u6b47\u540e\u8bed',
+  separable:'\u79bb\u5408\u8bcd',measure:'\u91cf\u8bcd',phrase:'\u77ed\u8bed',
 };
+
+/* What each category is, and one real example in the language being learned.
+   This is the part that teaches: a learner who has never heard of a separable
+   verb can read the filter and find out, without leaving the library. */
+const TYPE_INFO={
+  word:{
+    en:'A single word.',
+    vi:'M\u1ed9t t\u1eeb \u0111\u01a1n.',
+    zh:'\u5355\u4e2a\u8bcd\u3002',
+    ex:{},
+  },
+  collocation:{
+    en:'Words that habitually go together, where another near-synonym would sound wrong.',
+    vi:'Nh\u1eefng t\u1eeb quen \u0111i c\u00f9ng nhau; thay b\u1eb1ng t\u1eeb \u0111\u1ed3ng ngh\u0129a kh\u00e1c l\u00e0 nghe sai.',
+    zh:'\u4e60\u60ef\u4e0a\u642d\u914d\u5728\u4e00\u8d77\u7684\u8bcd\uff0c\u6362\u6210\u8fd1\u4e49\u8bcd\u5c31\u4e0d\u81ea\u7136\u3002',
+    ex:{en:'make a decision',zh:'\u6253\u7535\u8bdd'},
+  },
+  phrasalVerb:{
+    en:'A verb plus a particle that together mean something the verb alone does not.',
+    vi:'\u0110\u1ed9ng t\u1eeb \u0111i k\u00e8m gi\u1edbi t\u1eeb, ngh\u0129a kh\u00e1c v\u1edbi \u0111\u1ed9ng t\u1eeb \u0111\u1ee9ng m\u1ed9t m\u00ecnh.',
+    zh:'\u52a8\u8bcd\u52a0\u5c0f\u8bcd\uff0c\u5408\u8d77\u6765\u7684\u610f\u601d\u4e0d\u7b49\u4e8e\u52a8\u8bcd\u672c\u8eab\u3002',
+    ex:{en:'look forward to'},
+  },
+  idiom:{
+    en:'A fixed expression whose meaning is not the sum of its words.',
+    vi:'C\u1ee5m c\u1ed1 \u0111\u1ecbnh, ngh\u0129a kh\u00f4ng b\u1eb1ng t\u1ed5ng ngh\u0129a c\u1ee7a t\u1eebng t\u1eeb.',
+    zh:'\u56fa\u5b9a\u8bf4\u6cd5\uff0c\u610f\u601d\u4e0d\u7b49\u4e8e\u5b57\u9762\u76f8\u52a0\u3002',
+    ex:{en:'kick the bucket',zh:'\u4e00\u4e3e\u4e24\u5f97'},
+    note:{
+      en:'In Chinese these are the four-character set idioms.',
+      vi:'Trong ti\u1ebfng Trung \u0111\u00e2y l\u00e0 c\u00e1c th\u00e0nh ng\u1eef b\u1ed1n ch\u1eef.',
+      zh:'\u6c49\u8bed\u91cc\u591a\u4e3a\u56db\u5b57\u683c\u5f0f\u3002',
+    },
+  },
+  colloquial:{
+    en:'A colloquial set expression, usually three characters, used figuratively.',
+    vi:'C\u1ee5m kh\u1ea9u ng\u1eef c\u1ed1 \u0111\u1ecbnh, th\u01b0\u1eddng ba ch\u1eef, d\u00f9ng theo ngh\u0129a b\u00f3ng.',
+    zh:'\u53e3\u8bed\u91cc\u7684\u56fa\u5b9a\u8bf4\u6cd5\uff0c\u591a\u4e3a\u4e09\u5b57\uff0c\u7528\u6bd4\u55bb\u4e49\u3002',
+    ex:{zh:'\u8d70\u540e\u95e8'},
+  },
+  proverb:{
+    en:'A traditional saying that states experience or advice.',
+    vi:'C\u00e2u n\u00f3i truy\u1ec1n th\u1ed1ng \u0111\u00fac k\u1ebft kinh nghi\u1ec7m ho\u1eb7c l\u1eddi khuy\u00ean.',
+    zh:'\u6d41\u4f20\u4e0b\u6765\u7684\u8bdd\uff0c\u8bf4\u7684\u662f\u7ecf\u9a8c\u6216\u9053\u7406\u3002',
+    ex:{en:'Practice makes perfect.',zh:'\u719f\u80fd\u751f\u5de7'},
+  },
+  xiehouyu:{
+    en:'A two-part saying: the first half sets up an image, the second delivers the point.',
+    vi:'C\u00e2u hai v\u1ebf: v\u1ebf \u0111\u1ea7u n\u00eau h\u00ecnh \u1ea3nh, v\u1ebf sau n\u00f3i \u00fd.',
+    zh:'\u4e24\u90e8\u5206\uff1a\u524d\u4e00\u90e8\u5206\u6253\u6bd4\u65b9\uff0c\u540e\u4e00\u90e8\u5206\u8bf4\u610f\u601d\u3002',
+    ex:{zh:'\u732b\u54ed\u8001\u9f20\u2014\u2014\u5047\u6148\u60b2'},
+  },
+  separable:{
+    en:'A verb that splits apart when something is said about it.',
+    vi:'\u0110\u1ed9ng t\u1eeb t\u00e1ch \u0111\u01b0\u1ee3c ra khi c\u00f3 th\u00e0nh ph\u1ea7n ch\u00e8n v\u00e0o gi\u1eefa.',
+    zh:'\u53ef\u4ee5\u62c6\u5f00\u7528\u7684\u52a8\u8bcd\uff0c\u4e2d\u95f4\u80fd\u63d2\u5165\u5176\u4ed6\u6210\u5206\u3002',
+    ex:{zh:'\u5e2e\u5fd9 \u2192 \u5e2e\u4e86\u4e00\u4e2a\u5fd9'},
+  },
+  measure:{
+    en:'The word that goes between a number and a noun.',
+    vi:'T\u1eeb \u0111\u1ee9ng gi\u1eefa s\u1ed1 \u0111\u1ebfm v\u00e0 danh t\u1eeb.',
+    zh:'\u7528\u5728\u6570\u8bcd\u548c\u540d\u8bcd\u4e4b\u95f4\u7684\u8bcd\u3002',
+    ex:{zh:'\u4e00\u672c\u4e66'},
+  },
+  phrase:{
+    en:'Any other entry of more than one word.',
+    vi:'C\u00e1c m\u1ee5c nhi\u1ec1u h\u01a1n m\u1ed9t t\u1eeb c\u00f2n l\u1ea1i.',
+    zh:'\u5176\u4ed6\u591a\u4e8e\u4e00\u4e2a\u8bcd\u7684\u6761\u76ee\u3002',
+    ex:{},
+  },
+};
+
+/* One line a learner can act on: what the category is, then a real example in
+   the language they are studying. */
+function typeInfo(key){
+  const info=TYPE_INFO[key];
+  if(!info)return '';
+  const locale=uiLocale();
+  const text=info[locale]||info.en;
+  const note=state.language==='zh'&&info.note?` ${info.note[locale]||info.note.en}`:'';
+  const example=info.ex?.[state.language]||'';
+  return `${text}${note}${example?` ${EXAMPLE_LABEL[locale]||EXAMPLE_LABEL.en} ${example}`:''}`;
+}
+const EXAMPLE_LABEL={en:'For example:',vi:'V\u00ed d\u1ee5:',zh:'\u4f8b\uff1a'};
 
 function typeLabel(key){
   const names=copy().types||{};
@@ -408,9 +500,10 @@ export async function renderLibrary(root){
     groups[key]=(groups[key]||0)+1;
     return groups;
   },{});
-  /* The language's own order first, then anything the dictionary labelled that
-     the order does not name, so a category is never silently dropped. */
-  const typeTabs=[...typeOrder.filter(key=>byType[key]),
+  /* Every category the language has, whether or not this learner has met it,
+     then anything the dictionary labelled that the list does not name. An empty
+     category is still worth showing: it tells a learner the kind exists. */
+  const typeTabs=[...typeOrder,
     ...Object.keys(byType).filter(key=>!typeOrder.includes(key))];
 
   const counts={
@@ -455,8 +548,8 @@ export async function renderLibrary(root){
     const from=rows.length?((page-1)*PAGE_SIZE)+1:0;
     const to=Math.min(page*PAGE_SIZE,rows.length);
 
-    const tab=(key,label,count)=>`<button type="button" class="o-lib-tab ${view.tab===key?'is-active':''}" data-lib-tab="${key}" aria-pressed="${view.tab===key}">
-      <span>${esc(label)}</span><b>${count}</b>
+    const tab=(key,label,count,hint='')=>`<button type="button" class="o-lib-tab ${view.tab===key?'is-active':''} ${count?'':'is-empty'}" data-lib-tab="${key}" aria-pressed="${view.tab===key}"${hint?` title="${esc(hint)}"`:''}>
+      <span>${esc(label)}</span><b>${count||0}</b>
     </button>`;
 
     return `<section class="o-page library-page">
@@ -480,7 +573,7 @@ export async function renderLibrary(root){
       <div class="o-lib-toolbar">
         <div class="o-lib-tabs" role="group">
           ${tab('all',c.all,counts.all)}
-          ${typeTabs.map(key=>tab(key,typeLabel(key),byType[key])).join('')}
+          ${typeTabs.map(key=>tab(key,typeLabel(key),byType[key],typeInfo(key))).join('')}
           ${infoTip(c.tabTip)}
         </div>
         <div class="o-lib-tools">
@@ -520,7 +613,11 @@ export async function renderLibrary(root){
 
       <div class="o-lib-body">
         <section class="o-card o-lib-table-card">
-          ${slice.length?`<div class="o-lib-scroll"><table class="o-lib-table">
+          ${!slice.length&&view.tab!=='all'&&TYPE_INFO[view.tab]?`<div class="o-recall-empty o-category-empty">
+            <span class="o-type-chip o-type-chip--${esc(view.tab)}">${esc(typeLabel(view.tab))}</span>
+            <p>${esc(typeInfo(view.tab))}</p>
+            <strong>${esc(c.categoryEmpty)}</strong>
+          </div>`:slice.length?`<div class="o-lib-scroll"><table class="o-lib-table">
             <thead><tr>
               <th>${esc(c.colItem)}</th>
               <th>${esc(c.colType)}</th>

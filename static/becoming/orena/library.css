@@ -140,6 +140,18 @@
 .o-type-chip--phrasalVerb{background:color-mix(in srgb,var(--o-role-verb) 14%,transparent);color:var(--o-role-verb)}
 .o-type-chip--separable{background:color-mix(in srgb,var(--o-role-verb) 14%,transparent);color:var(--o-role-verb)}
 .o-type-chip--measure{background:color-mix(in srgb,var(--o-role-adjective) 15%,transparent);color:var(--o-role-adjective)}
+.o-type-chip--proverb{background:color-mix(in srgb,var(--o-role-noun) 13%,transparent);color:var(--o-role-noun)}
+.o-type-chip--xiehouyu{background:color-mix(in srgb,var(--o-attention) 14%,transparent);color:var(--o-attention)}
+
+/* A category nobody has saved into yet still belongs in the row - it is how a
+   learner finds out the kind exists. It is quieter, not hidden. */
+.o-lib-tab.is-empty{opacity:.62}
+.o-lib-tab.is-empty b{color:var(--o-ink-faint)}
+.o-lib-tab.is-empty:hover{opacity:1}
+
+.o-category-empty{gap:12px;max-width:44ch;margin:0 auto}
+.o-category-empty p{margin:0;font-size:var(--o-text-ui);color:var(--o-ink-muted);line-height:1.6}
+.o-category-empty strong{color:var(--o-ink-faint);font-weight:500;font-size:var(--o-text-meta)}
 
 .o-mastery{display:grid;gap:5px}
 .o-mastery-dots{display:flex;gap:4px}
