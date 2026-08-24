@@ -1,9 +1,9 @@
 # Current Handoff
 
 **Application/runtime baseline:**
-`ee28eddd7c72905aca0133b7f5da8937f5448100`
+`4f92ac6258fb83e2e2ec14e21557901aea3af218`
 
-This baseline is the locally verified Orena UI/UX `2.17.4` integration code
+This baseline is the locally verified Orena UI/UX `2.17.5` integration code
 checkpoint. It inherits the reviewed R5 Grammar Knowledge System closeout
 (PR #44). Documentation-only descendants may advance without changing this
 baseline.
@@ -24,11 +24,11 @@ baseline.
 - R1 — Production Staging + Cloudflare + Google OAuth: **CLOSED / PASS**
 - R0 — Product Release Architecture: **CLOSED**
 
-## Active cross-cutting integration — Orena UI/UX 2.17.4
+## Active cross-cutting integration — Orena UI/UX 2.17.5
 
 Branch: `codex/orena-ui-ux-integration`
 
-Code checkpoint: `ee28eddd7c72905aca0133b7f5da8937f5448100`
+Code checkpoint: `4f92ac6258fb83e2e2ec14e21557901aea3af218`
 
 Status: **LOCAL AUTOMATION PASS / INTERACTIVE VISUAL QA PENDING / NOT DEPLOYED**
 
@@ -37,11 +37,15 @@ Status: **LOCAL AUTOMATION PASS / INTERACTIVE VISUAL QA PENDING / NOT DEPLOYED**
   excluded as out of scope.
 - Orena shell, Home, Writing, Review, sign-in, responsive navigation,
   accessible select fields, learner mastheads, and bounded Listening UX are
-  present at frontend `2.17.4`.
+  present at frontend `2.17.5`.
+- Profile / Preferences now follows the supplied Orena-prod desktop,
+  light/dark, and mobile hierarchy while retaining the real EN/ZH learning
+  switch, interface language, goal, guidance, Pinyin, palette, account, and
+  evidence-derived Growth Rank contracts.
 - Integration fixes preserve Writing practice context, Dictionary/Pinyin,
   Review POS lens, Chinese Review Pinyin, and the UI-03 shared primitive
   contract.
-- Local evidence: `503 passed, 3 warnings`; JavaScript `27 passed` with two
+- Local evidence: `503 passed, 3 warnings`; JavaScript `28 passed` with two
   unchanged failures in protected R5/Speaking tests; ESM graph `48 modules`;
   architecture, UI-02, UI-03, Docker build, and isolated runtime smoke PASS.
 - Remaining evidence: interactive desktop/mobile, light/dark, EN/ZH browser
@@ -152,7 +156,7 @@ remains an explicit fallback path rather than a replacement media model.
 
 - PostgreSQL remains authoritative; SQLite remains frozen rollback/archive only.
 - Application version remains `1.4.0`.
-- BECOMING frontend version is `2.17.4`.
+- BECOMING frontend version is `2.17.5`.
 - Production staging remains behind the canonical Docker Cloudflare Tunnel and
   Google OAuth path already verified in R1.
 - No learner skill is PUBLIC.
@@ -254,7 +258,7 @@ Especially protect:
 - shared design tokens/layout primitives;
 - Journey, Review, Library/Active Recall behavior that already passes;
 - EN/ZH shared contracts;
-- current frontend version contract `2.17.4`.
+- current frontend version contract `2.17.5`.
 
 ## Stop conditions
 
