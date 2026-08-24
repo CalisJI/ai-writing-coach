@@ -40,6 +40,7 @@ assert.doesNotMatch(styles,/#[0-9a-f]{3,8}\b/i,'Grammar must consume shared Oren
 
 for(const stableRendererContract of [
   'data-grammar-learning-model="1"',
+  'data-grammar-visual-system="orena-grammar-v2"',
   'data-grammar-schema=',
   'data-target-language=',
   'data-interface-language=',
@@ -48,4 +49,54 @@ for(const stableRendererContract of [
   assert.ok(renderer.includes(stableRendererContract),'Protected renderer must retain '+stableRendererContract);
 }
 
-console.log('Orena Grammar visual and interaction contracts passed');
+for(const visualContract of [
+  '--grammar-accent:var(--o-role-noun)',
+  'grammar-use-check',
+  'grammar-example-mark',
+  'grammar-segment-connector',
+  'grammar-contrast-vs',
+  'grammar-mistake-row',
+  'grammar-micro-options',
+  'grammar-skill-name',
+]){
+  assert.ok(styles.includes(visualContract)||renderer.includes(visualContract),'Missing universal visual contract '+visualContract);
+}
+
+const {renderGrammarLearningModel}=await import(
+  new URL('../static/becoming/components/grammar-learning.js?test=orena-visual-508',import.meta.url)
+);
+const loadKnowledge=language=>JSON.parse(fs.readFileSync(
+  new URL(`../writing_coach/languages/${language}/grammar_knowledge.json`,import.meta.url),
+  'utf8'
+));
+
+let renderedLessons=0;
+for(const [language,file] of [['en','english'],['zh','chinese']]){
+  for(const lesson of loadKnowledge(file)){
+    const html=renderGrammarLearningModel(lesson.learning_model,{
+      interfaceLanguage:'vi',
+      explanationLanguage:'vi',
+      translationLanguage:'vi',
+      targetLanguage:language,
+    });
+    assert.match(html,/data-grammar-visual-system="orena-grammar-v2"/,lesson.id);
+    assert.match(html,/class="grammar-learning-primary-pattern"/,lesson.id);
+    assert.match(html,/data-grammar-block-type="use_when"/,lesson.id);
+    assert.match(html,/class="grammar-use-check"/,lesson.id);
+    assert.match(html,/class="grammar-example-mark"/,lesson.id);
+    assert.match(html,/data-contrast-count="[23]"/,lesson.id);
+    assert.match(html,/grammar-mistake-row is-incorrect/,lesson.id);
+    assert.match(html,/grammar-mistake-row is-correct/,lesson.id);
+    assert.match(html,/grammar-learning-micro_practice/,lesson.id);
+    for(const block of lesson.learning_model.blocks){
+      assert.ok(
+        html.includes(`data-grammar-block-type="${block.type}"`),
+        `${language}:${lesson.id} did not visually render ${block.type}`
+      );
+    }
+    renderedLessons++;
+  }
+}
+assert.equal(renderedLessons,508);
+
+console.log('Orena Grammar visual and interaction contracts passed (508/508 EN/ZH)');

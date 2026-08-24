@@ -318,12 +318,6 @@ function lessonMarkup(detail,payload){
   const objective=richLearning
     ?localizedText(detail.learning_model?.meaning?.summary,languageContext.explanationLanguage)
     :legacyObjective(detail);
-  const lessonContext=richLearning
-    ?[
-        localizedText(detail.learning_model?.hook?.prompt,languageContext.explanationLanguage),
-        localizedText(detail.learning_model?.meaning?.mental_model,languageContext.explanationLanguage),
-      ].filter((value,index,values)=>value&&value!==objective&&values.indexOf(value)===index).slice(0,2)
-    :[];
 
   return `<article class="grammar-lesson visual-raised-surface" data-grammar-lesson="${esc(detail.id)}">
     <header class="grammar-lesson-head">
@@ -331,7 +325,6 @@ function lessonMarkup(detail,payload){
         <span class="editorial-kicker">${esc(detail.level)} · ${esc(kindLabel(detail.kind))}</span>
         <h2>${esc(detail.title)}</h2>
         <p>${esc(objective)}</p>
-        ${lessonContext.map(value=>`<p class="grammar-lesson-context">${esc(value)}</p>`).join('')}
       </div>
       <span class="grammar-completion-chip ${detail.completed?'is-complete':''}">
         ${detail.completed?'✓ '+esc(c.complete):esc(detail.category||detail.module||'Grammar')}
@@ -388,7 +381,7 @@ function lessonBackMarkup(){
 function bindOrenaLessonChrome(slot){
   const outline=slot.querySelector('[data-grammar-lesson-outline]');
   if(outline){
-    const sectionLabel=target=>target.querySelector(':scope > .grammar-learning-block-head h3')?.textContent?.trim()
+    const sectionLabel=target=>target.querySelector(':scope > .grammar-learning-block-head h3, :scope > .grammar-compact-heading h3')?.textContent?.trim()
       ||target.querySelector(':scope > span')?.textContent?.trim()
       ||orenaGrammarCopy().inLesson;
     const stageTargets=[
@@ -418,7 +411,7 @@ function bindOrenaLessonChrome(slot){
     '.grammar-learning-exception',
   ].join(',');
   slot.querySelectorAll(collapsibleSelector).forEach((section,index)=>{
-    const label=section.querySelector(':scope > .grammar-learning-block-head h3')?.textContent?.trim()
+    const label=section.querySelector(':scope > .grammar-learning-block-head h3, :scope > .grammar-compact-heading h3')?.textContent?.trim()
       ||section.querySelector(':scope > span')?.textContent?.trim()
       ||orenaGrammarCopy().inLesson;
     const button=document.createElement('button');
