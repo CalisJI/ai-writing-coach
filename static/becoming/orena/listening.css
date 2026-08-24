@@ -1,0 +1,344 @@
+/* Orena visual system — Listening.
+ *
+ * Layout follows docs/visual-references/Orena-prod/ORENA-LISTENING-*: the
+ * player and what the learner has kept down the left, the transcript beside
+ * it, and the segment controls under the transcript.
+ *
+ * The column order matters beyond appearance. Only `.listening-learning-column`
+ * is replaced when the lesson is unchanged, so putting the player in the other
+ * column is what keeps the iframe alive across a re-render.
+ */
+
+.o-listen{
+  display:grid;
+  grid-template-columns:minmax(280px,348px) minmax(0,1fr);
+  gap:var(--o-gap);
+  align-items:start;
+}
+
+.o-listen-left{display:grid;gap:16px;align-content:start;min-width:0}
+.listening-learning-column{display:grid;gap:16px;min-width:0}
+
+/* Hiding the player gives the transcript the whole width, which is what a
+   learner reading along actually wants. */
+.o-listen[data-player-hidden]{grid-template-columns:minmax(0,1fr)}
+.o-listen[data-player-hidden] .o-player,
+.o-listen[data-player-hidden] .o-vocab{display:none}
+
+/* interactive-transcript.css still carries the previous layout for these same
+   elements at `.listening-workspace[data-listening-mode="follow"] .x`, which is
+   specificity (0,3,0). Those rules are the ones the smart-follow contract test
+   pins, so they stay in the file; these compound selectors are one step more
+   specific so the rebuilt geometry wins deterministically instead of by source
+   order. The old block goes when that test is re-pointed. */
+/* The old grid lives at `.listening-workspace[data-listening-mode="follow"]`,
+   which is (0,2,0) and beats a bare `.o-listen`. It also puts the wide column
+   first, which is the side the rebuild gives to the transcript. */
+.o-listen.listening-workspace[data-listening-mode]{
+  grid-template-columns:minmax(280px,348px) minmax(0,1fr);
+}
+.o-listen.listening-workspace[data-listening-mode][data-player-hidden]{
+  grid-template-columns:minmax(0,1fr);
+}
+
+.o-listen.listening-workspace[data-listening-mode] .listening-video.o-player{
+  position:sticky;
+  top:calc(var(--o-header-h) + var(--o-gap));
+  max-height:calc(100dvh - var(--o-header-h) - var(--o-gap) * 2);
+}
+/* `static` here was a bug: it undid the legacy sticky, but it also stopped
+   being a containing block, so the absolutely positioned iframe escaped to the
+   card and covered the transport. It has to stay positioned. */
+.o-listen.listening-workspace[data-listening-mode] .listening-video-frame{
+  position:relative;
+  top:auto;
+}
+.o-listen.listening-workspace[data-listening-mode] .listening-transcript{
+  display:grid;
+  max-height:none;
+}
+.o-listen.listening-workspace[data-listening-mode] .listening-learning-column{
+  display:grid;
+  gap:16px;
+}
+.o-listen.listening-workspace[data-listening-mode] .listening-practice-controls{
+  position:static;
+}
+
+/* ============================================================= player ==== */
+
+/* A sticky box taller than the viewport hides its own bottom, and the bottom
+   here is the transport. Capping it to the space actually available means the
+   controls are always reachable, whatever the window height. */
+.o-player{
+  position:sticky;
+  top:calc(var(--o-header-h) + var(--o-gap));
+  display:grid;
+  gap:14px;
+  padding:14px;
+  max-height:calc(100dvh - var(--o-header-h) - var(--o-gap) * 2);
+  overflow-y:auto;
+}
+
+.listening-video-frame{
+  position:relative;
+  aspect-ratio:16 / 9;
+  border-radius:var(--o-radius-field);
+  background:#000;
+  overflow:hidden;
+}
+.listening-video-frame iframe{position:absolute;inset:0;width:100%;height:100%;border:0;display:block}
+.listening-player-unavailable{display:grid;place-items:center;height:100%;padding:16px;color:var(--o-ink-muted);font-size:var(--o-text-ui);text-align:center}
+
+.o-player-track{display:grid;grid-template-columns:1fr auto auto;align-items:center;gap:10px}
+.o-player-bar{
+  grid-column:1 / -1;
+  height:4px;
+  border-radius:var(--o-radius-pill);
+  background:color-mix(in srgb,var(--o-ink) 12%,transparent);
+  overflow:hidden;
+}
+.o-player-bar > span{display:block;width:0;height:100%;border-radius:inherit;background:var(--o-accent);transition:width .2s linear}
+.o-player-time{font-size:var(--o-text-meta);color:var(--o-ink-muted);font-variant-numeric:tabular-nums}
+.o-player-time[data-duration]{margin-left:auto}
+
+/* interactive-transcript.css paints this caption as an overlay strip on the
+   video. In the rebuild it is a normal title block under the progress bar. */
+.o-listen.listening-workspace[data-listening-mode] .listening-media-caption.o-player-meta{
+  /* The legacy layer also hides this below 959px; the rebuilt card wants the
+     lesson title on a phone too, where there is no other place for it. */
+  display:grid;
+  position:static;
+  inset:auto;
+  padding:0;
+  background:none;
+  border-radius:0;
+  color:var(--o-ink);
+}
+.o-player-meta{display:grid;gap:2px}
+.o-player-meta h2{margin:0;font-size:var(--o-text-heading);font-weight:600;line-height:1.35}
+.o-player-meta span{font-size:var(--o-text-meta);color:var(--o-ink-muted)}
+
+.o-player-controls{display:flex;align-items:center;justify-content:center;gap:10px;padding-bottom:4px}
+.o-player-rate select{
+  min-height:34px;
+  padding:0 8px;
+  border:1px solid var(--o-border-strong);
+  border-radius:9px;
+  background:var(--o-surface);
+  color:var(--o-ink);
+  font:inherit;
+  font-size:var(--o-text-meta);
+}
+.o-player-play{
+  display:grid;
+  place-items:center;
+  width:52px;
+  height:52px;
+  border:0;
+  border-radius:var(--o-radius-pill);
+  background-color:var(--o-accent);
+  background-image:var(--o-accent-face);
+  color:var(--o-on-accent);
+  cursor:pointer;
+  box-shadow:var(--o-shadow-raised),var(--o-glow-accent),var(--o-rim-control);
+}
+.o-player-play svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+
+/* ========================================================= side panel ==== */
+
+.o-vocab{display:grid;gap:14px;padding:16px}
+.o-vocab-list{display:grid;gap:12px;margin:0;padding:0;list-style:none}
+.o-vocab-list li{display:grid;gap:2px}
+.o-vocab-word{font-size:var(--o-text-ui);font-weight:600}
+.o-vocab-gloss{font-size:var(--o-text-meta);color:var(--o-ink-muted)}
+
+/* ============================================================== tabs ===== */
+
+.o-tabs{display:flex;align-items:center;gap:6px;min-width:0;flex-wrap:wrap}
+.o-tab{
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+  min-height:38px;
+  padding:0 13px;
+  border:1px solid transparent;
+  border-radius:var(--o-radius-field);
+  background:transparent;
+  color:var(--o-ink-muted);
+  font:inherit;
+  font-size:var(--o-text-ui);
+  font-weight:500;
+  cursor:pointer;
+  white-space:nowrap;
+}
+.o-tab svg{width:17px;height:17px;flex:0 0 auto;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.o-tab:hover:not([disabled]):not(.is-active){background:color-mix(in srgb,var(--o-ink) 5%,transparent);color:var(--o-ink)}
+.o-tab.is-active{
+  border-color:color-mix(in srgb,var(--o-accent) 45%,transparent);
+  background:var(--o-accent-soft);
+  color:var(--o-accent);
+  font-weight:600;
+}
+.o-tab[disabled]{opacity:.45;cursor:not-allowed}
+
+.o-listen-modes{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 12px;flex-wrap:wrap}
+
+/* ========================================================= transcript ==== */
+
+.o-tcard{display:grid;grid-template-columns:minmax(0,1fr);overflow:hidden}
+
+.o-tcard-head{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  padding:12px 16px;
+  border-bottom:1px solid var(--o-border);
+  flex-wrap:wrap;
+}
+
+.o-switch{display:flex;align-items:center;gap:9px;margin-left:auto;font-size:var(--o-text-ui);color:var(--o-ink-muted);cursor:pointer}
+.o-switch input{position:absolute;opacity:0;width:0;height:0}
+.o-switch-track{
+  position:relative;
+  width:40px;
+  height:23px;
+  border-radius:var(--o-radius-pill);
+  background:color-mix(in srgb,var(--o-ink) 18%,transparent);
+  transition:background var(--o-motion);
+}
+.o-switch-track i{
+  position:absolute;
+  top:3px;
+  left:3px;
+  width:17px;
+  height:17px;
+  border-radius:var(--o-radius-pill);
+  background:#fff;
+  box-shadow:0 1px 2px rgba(0,0,0,.3);
+  transition:transform var(--o-motion);
+}
+.o-switch input:checked + .o-switch-track{background:var(--o-accent)}
+.o-switch input:checked + .o-switch-track i{transform:translateX(17px)}
+.o-switch input:focus-visible + .o-switch-track{outline:2px solid var(--o-focus-ring);outline-offset:2px}
+
+.listening-segments{
+  display:grid;
+  max-height:min(58vh,620px);
+  overflow-y:auto;
+  scroll-behavior:smooth;
+}
+
+.listening-segment{
+  display:grid;
+  border-bottom:1px solid color-mix(in srgb,var(--o-border) 60%,transparent);
+  transition:background-color .2s ease;
+}
+.listening-segment:last-child{border-bottom:0}
+.listening-segment-main{
+  display:grid;
+  grid-template-columns:52px minmax(0,1fr);
+  gap:14px;
+  align-items:start;
+  width:100%;
+  padding:12px 16px;
+  border:0;
+  background:transparent;
+  color:var(--o-ink);
+  font:inherit;
+  text-align:left;
+  cursor:pointer;
+}
+.listening-segment-main time{font-size:var(--o-text-meta);color:var(--o-ink-faint);font-variant-numeric:tabular-nums;padding-top:3px}
+.listening-segment-copy{display:grid;gap:5px;min-width:0;font-size:var(--o-text-body);line-height:1.7}
+.listening-token-line{font-weight:400}
+.listening-meaning-inline{font-size:var(--o-text-ui);color:var(--o-ink-muted)}
+
+.listening-segment:hover{background:color-mix(in srgb,var(--o-ink) 3%,transparent)}
+.listening-segment[aria-current="true"],
+.listening-segment.selected{background:var(--o-accent-soft)}
+.listening-segment[aria-current="true"] .listening-segment-main time{color:var(--o-accent);font-weight:600}
+.listening-segment-actions{display:flex;gap:10px;padding:0 16px 12px 82px;flex-wrap:wrap}
+
+.o-tcard-foot{
+  display:flex;
+  align-items:center;
+  gap:16px;
+  padding:12px 16px;
+  border-top:1px solid var(--o-border);
+  flex-wrap:wrap;
+}
+.o-legend--inline{display:flex;gap:16px;flex-wrap:wrap}
+.o-tcard-count{margin-left:auto;font-size:var(--o-text-ui);color:var(--o-ink-muted)}
+
+.listening-practice-controls{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:12px 16px;
+  border-top:1px solid var(--o-border);
+  flex-wrap:wrap;
+}
+.listening-practice-controls [data-next-segment]{margin-left:auto}
+
+.listening-shared-note{margin:0;padding:0 16px 14px;font-size:var(--o-text-meta);color:var(--o-ink-faint)}
+
+.generated-transcript-notice,
+.translation-not-required,
+.translation-status,
+.active-listening-playback-unavailable{
+  margin:0;
+  padding:10px 14px;
+  border:1px solid var(--o-border);
+  border-radius:var(--o-radius-field);
+  background:var(--o-surface-sunken);
+  font-size:var(--o-text-ui);
+  color:var(--o-ink-muted);
+}
+
+/* ============================================================ import ===== */
+
+/* Ready lessons collapse the form to one line: importing is how the screen
+   starts, not what it is for once a lesson is open. */
+.o-import{display:grid;gap:12px;padding:18px}
+.o-import[data-collapsed]{padding:0}
+.o-import[data-collapsed] > :not(.o-import-toggle){display:none}
+.o-import-toggle{
+  display:none;
+  width:100%;
+  min-height:44px;
+  padding:0 16px;
+  border:0;
+  border-radius:var(--o-radius-card);
+  background:transparent;
+  color:var(--o-ink-muted);
+  font:inherit;
+  font-size:var(--o-text-ui);
+  text-align:left;
+  cursor:pointer;
+}
+.o-import[data-collapsed] .o-import-toggle{display:block}
+.o-import-toggle:hover{color:var(--o-ink)}
+.o-import-row{display:flex;gap:12px;flex-wrap:wrap}
+.o-import-row .o-control{flex:1 1 320px}
+
+/* ============================================================= phone ===== */
+
+@media (max-width:1023px){
+  .o-listen{grid-template-columns:minmax(0,1fr);gap:16px}
+  .o-listen-left{gap:12px}
+
+  /* The player stays in view while the transcript scrolls beneath it: on a
+     phone the video is the thing being followed. */
+  .o-player{position:sticky;top:0;z-index:5;padding:10px;gap:10px}
+  .o-player-play{width:46px;height:46px}
+  .listening-segments{max-height:none}
+  .listening-segment-main{grid-template-columns:44px minmax(0,1fr);gap:10px;padding:10px 12px}
+  .listening-segment-actions{padding:0 12px 10px 66px}
+  .o-tcard-head,
+  .o-tcard-foot,
+  .listening-practice-controls{padding:10px 12px}
+  .o-switch{margin-left:0}
+  .listening-practice-controls .o-btn{flex:1 1 auto}
+  .listening-practice-controls [data-next-segment]{margin-left:0}
+}
