@@ -9,9 +9,18 @@
  * column is what keeps the iframe alive across a re-render.
  */
 
+/* tempo.css caps `.listening-page` at --layout-content-max (1440px). On a wide
+   monitor that left a quarter of the screen empty on the right, so the page
+   fills what it is given and the columns inside do the adapting. */
+.o-page.listening-page{max-width:none}
+
+/* The reference's player column is 348px of a 1145px content area - about 30%.
+   Pinning the pixel value made it a third of the width on a small laptop and a
+   sliver on a large monitor, so the share travels and the bounds stop it
+   becoming either. */
 .o-listen{
   display:grid;
-  grid-template-columns:minmax(280px,348px) minmax(0,1fr);
+  grid-template-columns:clamp(300px,30%,460px) minmax(0,1fr);
   gap:var(--o-gap);
   align-items:start;
 }
@@ -24,46 +33,6 @@
 .o-listen[data-player-hidden]{grid-template-columns:minmax(0,1fr)}
 .o-listen[data-player-hidden] .o-player,
 .o-listen[data-player-hidden] .o-vocab{display:none}
-
-/* interactive-transcript.css still carries the previous layout for these same
-   elements at `.listening-workspace[data-listening-mode="follow"] .x`, which is
-   specificity (0,3,0). Those rules are the ones the smart-follow contract test
-   pins, so they stay in the file; these compound selectors are one step more
-   specific so the rebuilt geometry wins deterministically instead of by source
-   order. The old block goes when that test is re-pointed. */
-/* The old grid lives at `.listening-workspace[data-listening-mode="follow"]`,
-   which is (0,2,0) and beats a bare `.o-listen`. It also puts the wide column
-   first, which is the side the rebuild gives to the transcript. */
-.o-listen.listening-workspace[data-listening-mode]{
-  grid-template-columns:minmax(280px,348px) minmax(0,1fr);
-}
-.o-listen.listening-workspace[data-listening-mode][data-player-hidden]{
-  grid-template-columns:minmax(0,1fr);
-}
-
-.o-listen.listening-workspace[data-listening-mode] .listening-video.o-player{
-  position:sticky;
-  top:calc(var(--o-header-h) + var(--o-gap));
-  max-height:calc(100dvh - var(--o-header-h) - var(--o-gap) * 2);
-}
-/* `static` here was a bug: it undid the legacy sticky, but it also stopped
-   being a containing block, so the absolutely positioned iframe escaped to the
-   card and covered the transport. It has to stay positioned. */
-.o-listen.listening-workspace[data-listening-mode] .listening-video-frame{
-  position:relative;
-  top:auto;
-}
-.o-listen.listening-workspace[data-listening-mode] .listening-transcript{
-  display:grid;
-  max-height:none;
-}
-.o-listen.listening-workspace[data-listening-mode] .listening-learning-column{
-  display:grid;
-  gap:16px;
-}
-.o-listen.listening-workspace[data-listening-mode] .listening-practice-controls{
-  position:static;
-}
 
 /* ============================================================= player ==== */
 
@@ -104,12 +73,10 @@
 
 /* interactive-transcript.css paints this caption as an overlay strip on the
    video. In the rebuild it is a normal title block under the progress bar. */
-.o-listen.listening-workspace[data-listening-mode] .listening-media-caption.o-player-meta{
-  /* The legacy layer also hides this below 959px; the rebuilt card wants the
-     lesson title on a phone too, where there is no other place for it. */
+/* The legacy layer still hides this below 959px; the rebuilt card wants the
+   lesson title on a phone too, where there is no other place for it. */
+.o-listen .listening-media-caption.o-player-meta{
   display:grid;
-  position:static;
-  inset:auto;
   padding:0;
   background:none;
   border-radius:0;
@@ -250,7 +217,7 @@
   cursor:pointer;
 }
 .listening-segment-main time{font-size:var(--o-text-meta);color:var(--o-ink-faint);font-variant-numeric:tabular-nums;padding-top:3px}
-.listening-segment-copy{display:grid;gap:5px;min-width:0;font-size:var(--o-text-body);line-height:1.7}
+.listening-segment-copy{display:grid;gap:5px;min-width:0;max-width:76ch;font-size:var(--o-text-body);line-height:1.7}
 .listening-token-line{font-weight:400}
 .listening-meaning-inline{font-size:var(--o-text-ui);color:var(--o-ink-muted)}
 
@@ -332,7 +299,11 @@
      phone the video is the thing being followed. */
   .o-player{position:sticky;top:0;z-index:5;padding:10px;gap:10px}
   .o-player-play{width:46px;height:46px}
-  .listening-segments{max-height:none}
+  /* The transcript keeps its own scroll on a phone. It has to: smart-follow
+     scrolls this container, so letting the page own the scroll instead would
+     silently kill following the audio. The height is stated rather than left
+     to whatever the flex chain happens to produce. */
+  .listening-segments{max-height:52dvh}
   .listening-segment-main{grid-template-columns:44px minmax(0,1fr);gap:10px;padding:10px 12px}
   .listening-segment-actions{padding:0 12px 10px 66px}
   .o-tcard-head,
