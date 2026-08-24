@@ -1,7 +1,7 @@
 # Current Handoff
 
 **Application/runtime baseline:**
-`b216ac1ed106f1ba26515bec8b916ff0b0d4ee66`
+`30876d939f8d3a5e9cab9a1a8d3e4112d81e4b45`
 
 This baseline is the locally verified Orena UI/UX `2.17.5` integration code
 checkpoint. It inherits the reviewed R5 Grammar Knowledge System closeout
@@ -28,9 +28,9 @@ baseline.
 
 Branch: `codex/orena-ui-ux-integration`
 
-Code checkpoint: `b216ac1ed106f1ba26515bec8b916ff0b0d4ee66`
+Code checkpoint: `30876d939f8d3a5e9cab9a1a8d3e4112d81e4b45`
 
-Status: **LOCAL AUTOMATION PASS / INTERACTIVE VISUAL REREVIEW PENDING / NOT DEPLOYED**
+Status: **LOCAL AUTOMATION + BRAVE VISUAL QA PASS / HUMAN ACCEPTANCE PENDING / NOT DEPLOYED**
 
 - Selected UI commits from `claude/work` are integrated over the latest
   `origin/main`; Claude-specific tooling and broad validator archival were
@@ -43,9 +43,11 @@ Status: **LOCAL AUTOMATION PASS / INTERACTIVE VISUAL REREVIEW PENDING / NOT DEPL
   switch, interface language, goal, guidance, Pinyin, palette, account, and
   evidence-derived Growth Rank contracts.
 - The failed first human review identified uneven row geometry and corrupted
-  glyph-based language flags. Checkpoint `b216ac1` replaces them with CSS-drawn
-  flag/icon primitives, aligns setting and account values to one shared control
-  track, and converts palette cards to the same compact selector row.
+  glyph-based language flags. Checkpoint `30876d9` carries forward the CSS-drawn
+  flags and shared control track from `b216ac1`, corrects the desktop frame and
+  column gap against Orena-prod, restores SVG strokes, adds balanced mobile
+  gutters and a centered Profile title, and prevents open mobile listboxes from
+  widening the document.
 - Integration fixes preserve Writing practice context, Dictionary/Pinyin,
   Review POS lens, Chinese Review Pinyin, and the UI-03 shared primitive
   contract.
@@ -53,8 +55,11 @@ Status: **LOCAL AUTOMATION PASS / INTERACTIVE VISUAL REREVIEW PENDING / NOT DEPL
   ESM graph (`48 modules`), Docker build, and isolated runtime smoke PASS;
   JavaScript `28 passed` with two unchanged failures in protected R5/Speaking
   tests. The inherited backend regression remains `503 passed, 3 warnings`.
-- Remaining evidence: interactive desktop/mobile, light/dark, EN/ZH browser
-  rereview. The configured Browser surface returned no available browser.
+- Brave rereview PASS at desktop/mobile reference dimensions in light/dark and
+  VI/ZH interface states. Desktop measured `830px + 26px + 294px`; mobile cards
+  retained `12px` side gutters; the open `190px` language panel retained
+  `scrollWidth == clientWidth` and `scrollX == 0`; no mojibake or console
+  warnings/errors were observed. Remaining gate: human screenshot acceptance.
 - No production runtime, PostgreSQL data, deployment, OAuth, Cloudflare,
   release state, application version, or public skill state changed.
 

@@ -8,7 +8,7 @@ historical narrative.
 - Product: Orena / BECOMING codebase
 - Repository: `CalisJI/ai-writing-coach`
 - Last verified application/runtime baseline:
-  `b216ac1ed106f1ba26515bec8b916ff0b0d4ee66`
+  `30876d939f8d3a5e9cab9a1a8d3e4112d81e4b45`
 
 This SHA identifies the verified application/runtime baseline inherited by this
 governance checkpoint. Documentation-only or governance-only descendant commits
@@ -36,23 +36,29 @@ operational state.
   aside. Existing goal, guidance, palette, EN/ZH, interface-language, and
   evidence-derived Growth Rank behavior remains connected.
 - Human review of the first Profile pass found uneven preference-row alignment
-  and mojibake in glyph-based language icons. Baseline `b216ac1` replaces those
-  glyphs with font-independent CSS flag/icon primitives, gives settings and
-  account values one shared control track, and moves palette selection into the
-  same compact row geometry. Interactive rereview remains pending.
+  and mojibake in glyph-based language icons. Baseline `30876d9` retains the
+  font-independent flags and shared control track from `b216ac1`, then corrects
+  the desktop content frame against the Orena-prod geometry, restores visible
+  stroke icons, gives mobile cards balanced gutters, centers the mobile route
+  title while preserving drawer navigation, and constrains listboxes so an open
+  menu cannot create horizontal page overflow.
 - Existing Writing practice context, Dictionary/Pinyin assistance, Review POS
   lens, Chinese Review Pinyin, EN/ZH behavior, and UI-03 shared primitives are
   preserved by the integration checkpoint.
-- Local automated evidence at `b216ac1ed106f1ba26515bec8b916ff0b0d4ee66`:
+- Local automated evidence at `30876d939f8d3a5e9cab9a1a8d3e4112d81e4b45`:
   architecture and UI-03 validators PASS; Profile contract PASS; browser ESM
   graph PASS with 48 linked modules; JavaScript UI tests `28 passed, 2 known
   pre-existing failures`; Docker build PASS; isolated SQLite runtime
   health/assets/product smoke PASS. The backend regression inherited from the
   preceding Profile checkpoint remains `503 passed, 3 warnings` and was not
   rerun for this CSS/JavaScript-only correction.
-- Interactive visual QA remains pending because no in-app or connected browser
-  was available. This checkpoint is not deployed and does not promote any
-  learner skill to PUBLIC.
+- Interactive Brave visual QA PASS at desktop and mobile reference dimensions,
+  light/dark, and VI/ZH interface states. The verified desktop surfaces measured
+  `830px + 26px + 294px`; mobile cards retained `12px` side gutters; opening a
+  `190px` language listbox left `scrollWidth == clientWidth` and `scrollX == 0`;
+  Chinese rendered without mojibake; and browser console warnings/errors were
+  zero. Human acceptance of the screenshots remains pending. This checkpoint
+  is not deployed and does not promote any learner skill to PUBLIC.
 
 ## Persistence
 
