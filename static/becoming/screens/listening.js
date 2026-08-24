@@ -908,7 +908,8 @@ function transportBar(model){
       <button type="button" class="o-icon-button" data-seek="5" aria-label="${esc(c.skipForward)}">${oIcon('skipForward')}</button>
     </div>
     <div class="o-transport-side">
-      <span class="o-transport-item is-static"><b>${(model.playbackRate||1).toFixed(2).replace(/0$/,'')}x</b><small>${esc(v.speed)}</small></span>
+      <button type="button" class="o-icon-button o-transport-mute" data-toggle-mute aria-label="${esc(c.mute)}" title="${esc(c.mute)}" aria-pressed="false">${oIcon('volume')}</button>
+      <button type="button" class="o-transport-item" data-cycle-rate><b>${(model.playbackRate||1).toFixed(2).replace(/0$/,'')}x</b><small>${esc(v.speed)}</small></button>
       <button type="button" class="o-transport-item is-loop-${loopState}" data-ab-loop>
         <b>AB</b><small>${esc(v.abLoop)}</small>
       </button>
@@ -1412,6 +1413,25 @@ export async function renderListening(root,{importMedia=api.importMedia,importSt
 
     /* --- listening v2 ------------------------------------------------- */
 
+    /* On a phone the player card's own control row is hidden, so the bar is
+       the only place left to change speed. Three steps, the same three the
+       select offers. */
+    root.querySelector('[data-cycle-rate]')?.addEventListener('click',event=>{
+      const rates=[0.75,1,1.25];
+      const next=rates[(rates.indexOf(controller.model.playbackRate||1)+1)%rates.length];
+      /* The player can refuse - it is an embedded frame and may not be ready -
+         so the label only moves when the rate actually changed. */
+      if(!setMediaPlaybackRate(root,controller.model.payload?.playback,next))return;
+      controller.setPlaybackRate(next);
+      const label=`${next.toFixed(2).replace(/0$/,'')}x`;
+      const strong=event.currentTarget.querySelector('b');
+      if(strong)strong.textContent=label;
+      /* The card's select is the same setting; leaving it behind would show two
+         different speeds for one player. */
+      const select=root.querySelector('#listeningPlaybackRate');
+      if(select)select.value=String(next);
+    });
+
     root.querySelector('[data-focus-mode]')?.addEventListener('click',event=>{
       const v=v2Text();
       const page=root.querySelector('.listening-page');
@@ -1490,9 +1510,12 @@ export async function renderListening(root,{importMedia=api.importMedia,importSt
     });
     root.querySelector('[data-reveal-answer]')?.addEventListener('click',()=>controller.revealPractice());
     root.querySelector('[data-retry-active]')?.addEventListener('click',()=>controller.retryPractice());
-    root.querySelector('[data-toggle-playback]')?.addEventListener('click',()=>{
+    /* The reference gives the player card and the pinned bar the same
+       controls, so both copies have to be bound - a single query left the
+       bar's play button dead. */
+    root.querySelectorAll('[data-toggle-playback]').forEach(button=>button.addEventListener('click',()=>{
       togglePlayback(root,controller.model.payload?.playback);
-    });
+    }));
     root.querySelector('[data-follow-playing]')?.addEventListener('click',()=>{
       controller.followPlaying();
       smartFollow.resumeNow();
@@ -1597,7 +1620,7 @@ export async function renderListening(root,{importMedia=api.importMedia,importSt
     root.querySelectorAll('[data-seek]').forEach(button=>button.addEventListener('click',()=>{
       seekBy(root,controller.model.payload?.playback,Number(button.dataset.seek));
     }));
-    root.querySelector('[data-toggle-mute]')?.addEventListener('click',event=>{
+    root.querySelectorAll('[data-toggle-mute]').forEach(control=>control.addEventListener('click',event=>{
       const button=event.currentTarget;
       const muted=toggleMute(root,controller.model.payload?.playback);
       if(muted===null)return;
@@ -1606,7 +1629,16 @@ export async function renderListening(root,{importMedia=api.importMedia,importSt
       const label=muted?text().unmute:text().mute;
       button.setAttribute('aria-label',label);
       button.title=label;
-    });
+      /* Both copies show the same state, so the one that was not clicked has to
+         be brought along. */
+      root.querySelectorAll('[data-toggle-mute]').forEach(other=>{
+        if(other===button)return;
+        other.setAttribute('aria-pressed',muted?'true':'false');
+        other.innerHTML=oIcon(muted?'volumeOff':'volume');
+        other.setAttribute('aria-label',label);
+        other.title=label;
+      });
+    }));
 
     /* Original / Meaning are one choice in the rebuilt transcript, so the tab
        sets both underlying toggles rather than flipping one of them. */
@@ -1785,15 +1817,13 @@ export async function renderListening(root,{importMedia=api.importMedia,importSt
 
     /* The play button shows what the player is doing, read from the player's
        own state rather than from a flag this screen keeps in parallel. */
-    const playButton=root.querySelector('[data-toggle-playback]');
-    if(playButton){
-      const playing=Number(event?.detail?.player_state)===1;
-      const wanted=playing?'pause':'play';
-      if(playButton.dataset.glyph!==wanted){
-        playButton.dataset.glyph=wanted;
-        playButton.innerHTML=oIcon(wanted);
-      }
-    }
+    const playing=Number(event?.detail?.player_state)===1;
+    const wanted=playing?'pause':'play';
+    root.querySelectorAll('[data-toggle-playback]').forEach(playButton=>{
+      if(playButton.dataset.glyph===wanted)return;
+      playButton.dataset.glyph=wanted;
+      playButton.innerHTML=oIcon(wanted);
+    });
   },{signal:viewAbort.signal});
   root._cleanupScreen=()=>{
     if(pollTimer)clearTimeout(pollTimer);
