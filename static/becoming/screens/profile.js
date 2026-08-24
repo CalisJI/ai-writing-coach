@@ -7,6 +7,7 @@ import {
 } from '../store.js';
 import {configFor} from '../language.js';
 import {
+  esc,
   toast,
   helpTip,
   loadingBlock,

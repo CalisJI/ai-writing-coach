@@ -15,6 +15,7 @@ const COPY={
     'chrome.journey':'Journey',
     'chrome.profile':'Profile',
     'chrome.learning_language':'Learning language',
+    'chrome.interface_language':'Interface language',
     'chrome.account':'Account',
     'chrome.switch_account':'Switch account',
     'chrome.sign_out':'Sign out',
@@ -130,7 +131,7 @@ const COPY={
     'home.your_work':'YOUR WORK',
     'home.recent':'Recent evidence',
     'home.journey':'See your journey',
-    'write.watchlist':'What keeps coming back','write.watchlist_note':'From evidence in essays already graded, not a prediction. Worth a second look while you write.','write.trend_down':'easing','write.trend_up':'rising','write.trend_flat':'steady',    'skill.write.name':'Write','skill.write.purpose':'Express one real idea with enough structure to practise on purpose.','skill.write.stat':'words in this draft','skill.read.name':'Read','skill.read.purpose':'One passage, four grounded questions, and the exact evidence behind each answer.','skill.read.stat':'passages kept',
+    'write.watchlist':'What keeps coming back','write.watchlist_note':'From evidence in essays already graded, not a prediction. Worth a second look while you write.','write.trend_down':'easing','write.trend_up':'rising','write.trend_flat':'steady',    'profile.learning_language':'Language you are learning','profile.learning_language_desc':'Each language keeps its own writing, evidence and progress. Switching moves you to that learning space.',    'skill.write.name':'Write','skill.write.purpose':'Express one real idea with enough structure to practise on purpose.','skill.write.stat':'words in this draft','skill.read.name':'Read','skill.read.purpose':'One passage, four grounded questions, and the exact evidence behind each answer.','skill.read.stat':'passages kept',
     'home.streak_days':'days in a row',
     'home.streak_day':'day in a row',
     'home.streak_note':'Consistency, not level. Written evidence on each of these days.',
@@ -265,6 +266,7 @@ const COPY={
     'chrome.journey':'Hành trình',
     'chrome.profile':'Hồ sơ',
     'chrome.learning_language':'Ngôn ngữ đang học',
+    'chrome.interface_language':'Ngôn ngữ hiển thị',
     'chrome.account':'Tài khoản',
     'chrome.switch_account':'Đổi tài khoản',
     'chrome.sign_out':'Đăng xuất',
@@ -380,7 +382,7 @@ const COPY={
     'home.your_work':'BÀI CỦA BẠN',
     'home.recent':'Bằng chứng gần đây',
     'home.journey':'Xem hành trình',
-    'write.watchlist':'Lỗi hay quay lại','write.watchlist_note':'Lấy từ bằng chứng trong các bài đã chấm, không phải dự đoán. Đáng liếc lại trong lúc viết.','write.trend_down':'đang giảm','write.trend_up':'đang tăng','write.trend_flat':'chưa đổi',    'skill.write.name':'Viết','skill.write.purpose':'Diễn đạt một ý thật, đủ cấu trúc để luyện có chủ đích.','skill.write.stat':'từ trong bản này','skill.read.name':'Đọc','skill.read.purpose':'Một bài đọc, bốn câu hỏi có căn cứ, và bằng chứng chính xác cho từng câu trả lời.','skill.read.stat':'bài đã lưu',
+    'write.watchlist':'Lỗi hay quay lại','write.watchlist_note':'Lấy từ bằng chứng trong các bài đã chấm, không phải dự đoán. Đáng liếc lại trong lúc viết.','write.trend_down':'đang giảm','write.trend_up':'đang tăng','write.trend_flat':'chưa đổi',    'profile.learning_language':'Ngôn ngữ bạn đang học','profile.learning_language_desc':'Mỗi ngôn ngữ giữ riêng bài viết, bằng chứng và tiến độ. Đổi là chuyển sang không gian học đó.',    'skill.write.name':'Viết','skill.write.purpose':'Diễn đạt một ý thật, đủ cấu trúc để luyện có chủ đích.','skill.write.stat':'từ trong bản này','skill.read.name':'Đọc','skill.read.purpose':'Một bài đọc, bốn câu hỏi có căn cứ, và bằng chứng chính xác cho từng câu trả lời.','skill.read.stat':'bài đã lưu',
     'home.streak_days':'ngày liên tục',
     'home.streak_day':'ngày liên tục',
     'home.streak_note':'Đây là sự đều đặn, không phải trình độ. Mỗi ngày này đều có bài viết thật.',
@@ -515,6 +517,7 @@ const COPY={
     'chrome.journey':'成长',
     'chrome.profile':'个人设置',
     'chrome.learning_language':'学习语言',
+    'chrome.interface_language':'界面语言',
     'chrome.account':'账户',
     'chrome.switch_account':'切换账户',
     'chrome.sign_out':'退出登录',
@@ -630,7 +633,7 @@ const COPY={
     'home.your_work':'你的作品',
     'home.recent':'近期证据',
     'home.journey':'查看成长',
-    'write.watchlist':'反复出现的问题','write.watchlist_note':'来自已批改作文中的证据，不是预测。写作时值得再看一眼。','write.trend_down':'在减少','write.trend_up':'在增加','write.trend_flat':'持平',    'skill.write.name':'写作','skill.write.purpose':'表达一个真实的想法，结构足以支撑有目的的练习。','skill.write.stat':'本稿字数','skill.read.name':'阅读','skill.read.purpose':'一篇文章，四个有据可循的问题，以及每个答案背后的确切依据。','skill.read.stat':'已保存篇目',
+    'write.watchlist':'反复出现的问题','write.watchlist_note':'来自已批改作文中的证据，不是预测。写作时值得再看一眼。','write.trend_down':'在减少','write.trend_up':'在增加','write.trend_flat':'持平',    'profile.learning_language':'你正在学习的语言','profile.learning_language_desc':'每种语言各自保留写作、证据和进度。切换即进入那个学习空间。',    'skill.write.name':'写作','skill.write.purpose':'表达一个真实的想法，结构足以支撑有目的的练习。','skill.write.stat':'本稿字数','skill.read.name':'阅读','skill.read.purpose':'一篇文章，四个有据可循的问题，以及每个答案背后的确切依据。','skill.read.stat':'已保存篇目',
     'home.streak_days':'天连续',
     'home.streak_day':'天连续',
     'home.streak_note':'这是坚持，不是水平。这些天里每天都有真实的写作记录。',
@@ -1800,10 +1803,10 @@ export function applyChromeI18n(){
   if(learnerRole)learnerRole.textContent=t('chrome.learner');
 
   const languageLabel=document.querySelector('[data-learning-language-label]');
-  if(languageLabel)languageLabel.textContent=t('chrome.learning_language');
+  if(languageLabel)languageLabel.textContent=t('chrome.interface_language');
 
   const select=document.getElementById('languageSelect');
-  if(select)select.setAttribute('aria-label',t('chrome.learning_language'));
+  if(select)select.setAttribute('aria-label',t('chrome.interface_language'));
 
   const account=document.getElementById('accountButton');
   if(account)account.setAttribute('aria-label',t('chrome.account'));
