@@ -76,6 +76,10 @@
   /* --- type --- */
   --o-font:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;
   --o-font-cjk:"Noto Sans SC",Inter,"PingFang SC","Microsoft YaHei",sans-serif;
+  /* Reading sets its passage in a serif, the way the reference does. Nothing
+     else in the product uses it: it is what separates the thing being read
+     from the interface around it. */
+  --o-font-serif:"Iowan Old Style","Palatino Linotype",Charter,Georgia,"Times New Roman",serif;
   --o-text-title:20px;
   --o-text-heading:17px;
   --o-text-body:15px;

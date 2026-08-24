@@ -44,6 +44,10 @@ const COPY={
     recycle:'Reuse my saved words',recycleDesc:'The passage is written to include words you have saved.',
     create:'Create a passage',createDisclaimer:'Passages are generated for practice, not published journalism.',
     recent:'Recent passages',unread:'Not checked yet',
+    lineSpacing:'Line spacing',collapse:'Collapse',expand:'Expand',
+    saveAll:'Save all key words',savedAll:'{n} words saved to your library',
+    viewAllWords:'View all words',
+
   },
   vi:{
     words:'từ',readTime:'đọc {n} phút',readTimeTip:'Ước tính theo khoảng 200 từ mỗi phút.',
@@ -67,6 +71,10 @@ const COPY={
     recycle:'Dùng lại từ tôi đã lưu',recycleDesc:'Bài đọc sẽ được viết sao cho có các từ bạn đã lưu.',
     create:'Tạo bài đọc',createDisclaimer:'Bài đọc được tạo để luyện tập, không phải báo chí xuất bản.',
     recent:'Bài đọc gần đây',unread:'Chưa kiểm tra',
+    lineSpacing:'Giãn dòng',collapse:'Thu gọn',expand:'Mở ra',
+    saveAll:'Lưu tất cả từ trọng tâm',savedAll:'Đã lưu {n} từ vào thư viện',
+    viewAllWords:'Xem tất cả từ',
+
   },
   zh:{
     words:'词',readTime:'约 {n} 分钟',readTimeTip:'按每分钟约 200 词估算。',
@@ -90,6 +98,10 @@ const COPY={
     recycle:'复用我保存的词',recycleDesc:'文章会尽量用上你保存过的词。',
     create:'生成文章',createDisclaimer:'文章为练习而生成，不是已发表的新闻报道。',
     recent:'最近的文章',unread:'尚未检查',
+    lineSpacing:'行距',collapse:'收起',expand:'展开',
+    saveAll:'保存全部重点词',savedAll:'已将 {n} 个词保存到词库',
+    viewAllWords:'查看全部词汇',
+
   },
 };
 const copy=()=>COPY[uiLocale()]||COPY.en;
@@ -109,6 +121,21 @@ function wordCount(passage){
   return state.language==='zh'
     ? [...text.replace(/\s+/g,'')].length
     : text.split(/\s+/).filter(Boolean).length;
+}
+
+/* The reference puts a photograph beside the title. These passages are
+   generated, so a photograph would be a picture of something that does not
+   exist. The tile is a deterministic gradient built from the title and the
+   topic's own icon: decoration that claims nothing, in the place the reference
+   reserves for it. */
+const TOPIC_ICONS={
+  random:'flag',daily_life:'home',work:'document',
+  science:'grammar',culture:'library',community:'journey',
+};
+function coverTile(session){
+  const seed=[...String(session.title||'')].reduce((total,ch)=>(total*31+ch.charCodeAt(0))%360,7);
+  const icon=TOPIC_ICONS[session.topic]||'read';
+  return `<span class="o-article-cover" style="--o-cover-hue:${seed}" aria-hidden="true">${oIcon(icon)}</span>`;
 }
 
 function infoTip(text){
@@ -169,7 +196,11 @@ function highlightedPassage(text,{recycled=[],evidence=[]}={}){
   let html='';
   for(const range of ranges){
     html+=paragraphs(source.slice(cursor,range.start));
-    const cls=range.kind==='evidence'?'o-mark o-mark--evidence':'o-mark o-mark--word';
+    /* Each saved word keeps one colour, in the passage and in the rail, so the
+       two can be read against each other at a glance. */
+    const cls=range.kind==='evidence'
+      ?'o-mark o-mark--evidence'
+      :`o-mark o-mark--word o-mark--w${range.index%4}`;
     const attr=range.kind==='evidence'
       ?` data-reading-evidence="${range.index}"`
       :` data-reading-word="${esc(source.slice(range.start,range.end))}"`;
@@ -185,6 +216,8 @@ function articleHeader(session,position){
   const words=wordCount(session.passage);
   const minutes=Math.max(1,Math.round(words/WORDS_PER_MINUTE));
   return `<section class="o-card o-article-head">
+    ${coverTile(session)}
+    <div class="o-article-text">
     <div class="o-article-crumbs">
       <span>${esc(t('skill.read.name'))}</span>${oIcon('chevronRight')}<span>${esc(labelTopic(session.topic))}</span>
     </div>
@@ -195,6 +228,7 @@ function articleHeader(session,position){
       <span class="o-band-chip">${esc(session.target_level)}</span>
       <span class="o-meta-item">${oIcon('document')}<span>${words} ${esc(c.words)}</span></span>
       <span class="o-meta-item">${oIcon('clock')}<span>${esc(fill(c.readTime,{n:minutes}))}</span>${infoTip(c.readTimeTip)}</span>
+    </div>
     </div>
   </section>`;
 }
@@ -208,9 +242,13 @@ function passageBlock(session,result){
   });
   return `<section class="o-card o-reader" data-font-step="${readFontStep()}">
     <div class="o-reader-bar">
+      <!-- The reference's undo and redo belong to an editor. A reader gets the
+           three controls that change how it reads. -->
       <div class="o-reader-tools">
         <button type="button" class="o-icon-button" data-font="-1" aria-label="${esc(c.fontSmaller)}" title="${esc(c.fontSmaller)}"><span class="o-font-a">A</span></button>
         <button type="button" class="o-icon-button" data-font="1" aria-label="${esc(c.fontLarger)}" title="${esc(c.fontLarger)}"><span class="o-font-a o-font-a--big">A</span></button>
+        <span class="o-reader-divider"></span>
+        <button type="button" class="o-icon-button" data-line-spacing aria-label="${esc(c.lineSpacing)}" title="${esc(c.lineSpacing)}">${oIcon('bulletList')}</button>
       </div>
       <button type="button" class="o-icon-button" data-reading-focus aria-label="${esc(c.focusMode)}" title="${esc(c.focusMode)}">${oIcon('chevronUp')}</button>
     </div>
@@ -219,6 +257,7 @@ function passageBlock(session,result){
     </div>
     <div class="o-reader-foot">
       <button type="button" class="o-btn o-btn--ghost o-btn--compact" data-reading-copy>${oIcon('document')}<span>${esc(c.share)}</span></button>
+      ${(session.recycled_words||[]).length?`<button type="button" class="o-btn o-btn--ghost o-btn--compact" data-reading-save-all>${oIcon('library')}<span>${esc(c.saveAll)}</span></button>`:''}
     </div>
   </section>`;
 }
@@ -281,29 +320,55 @@ function questionsBlock(session,result){
    words did this passage bring back. Both are real lookups - the first through
    the dictionary the product already runs, the second from the words the
    generator was told to reuse. */
+/* The saved words already carry their own meaning in the library, so the rail
+   shows it rather than the bare term - the reference puts a gloss under every
+   entry, and here it is the learner's own. */
+function savedMeaning(word){
+  const items=state.libraryVocabulary?.items||[];
+  const hit=items.find(item=>String(item.word||'').toLocaleLowerCase()===String(word).toLocaleLowerCase());
+  if(!hit)return '';
+  return (uiLocale()==='vi'?hit.translation_vi:'')||hit.definition||'';
+}
+
 function readerRail(session){
   const c=copy();
   const words=session.recycled_words||[];
   return `<aside class="o-reader-rail">
     <section class="o-card o-panel o-understanding">
-      <h2 class="o-label">${esc(c.understanding)}</h2>
-      <div data-understanding-slot>
+      <button type="button" class="o-panel-toggle" data-panel-toggle aria-expanded="true">
+        <span class="o-label">${esc(c.understanding)}</span>
+        ${oIcon('chevronUp')}
+      </button>
+      <div data-understanding-slot data-panel-body>
         <p class="o-panel-copy">${esc(c.selectPrompt)}</p>
       </div>
     </section>
 
     <section class="o-card o-panel o-keywords">
-      <h2 class="o-label">${esc(c.keyVocabulary)}<span class="o-count">${words.length}</span></h2>
-      ${words.length
-        ? `<ul class="o-keyword-list">
-            ${words.map(word=>`<li>
-              <button type="button" class="o-keyword" data-reading-word-jump="${esc(word)}">${esc(word)}</button>
-              <button type="button" class="o-icon-button" data-reading-say="${esc(word)}" aria-label="${esc(c.pronounce)}" title="${esc(c.pronounce)}">${oIcon('volume')}</button>
-            </li>`).join('')}
-          </ul>
-          <p class="o-panel-copy">${esc(c.fromLibrary)}</p>`
-        : `<p class="o-panel-copy">${esc(c.noVocabulary)}</p>`}
-      <button type="button" class="o-btn o-btn--outline o-btn--compact" data-reading-library>${oIcon('library')}<span>${esc(c.viewAll)}</span></button>
+      <button type="button" class="o-panel-toggle" data-panel-toggle aria-expanded="true">
+        <span class="o-label">${esc(c.keyVocabulary)}<span class="o-count">${words.length}</span></span>
+        ${oIcon('chevronUp')}
+      </button>
+      <div data-panel-body>
+        ${words.length
+          ? `<ul class="o-keyword-list">
+              ${words.map((word,index)=>{
+                const meaning=savedMeaning(word);
+                return `<li>
+                  <div>
+                    <button type="button" class="o-keyword o-keyword--w${index%4}" data-reading-word-jump="${esc(word)}">${esc(word)}</button>
+                    ${meaning?`<p>${esc(meaning)}</p>`:''}
+                  </div>
+                  <button type="button" class="o-icon-button" data-reading-say="${esc(word)}" aria-label="${esc(c.pronounce)}" title="${esc(c.pronounce)}">${oIcon('volume')}</button>
+                </li>`;
+              }).join('')}
+            </ul>
+            <p class="o-panel-copy">${esc(c.fromLibrary)}</p>`
+          : `<p class="o-panel-copy">${esc(c.noVocabulary)}</p>`}
+      </div>
+      <button type="button" class="o-row-button" data-reading-library>
+        <span>${esc(c.viewAllWords)}</span>${oIcon('chevronRight')}
+      </button>
     </section>
   </aside>`;
 }
@@ -373,6 +438,13 @@ export async function renderReading(root){
     return;
   }
   state.readingSessions=history.items||[];
+
+  /* The rail glosses each key word with the learner's own saved definition, so
+     the library has to be in hand before the rail is drawn. Its absence costs
+     the glosses and nothing else. */
+  if(!state.libraryVocabulary){
+    try{state.libraryVocabulary=await api.libraryVocabulary();}catch{}
+  }
 
   const session=state.readingSession;
   const result=state.readingResult;
@@ -498,6 +570,37 @@ export async function renderReading(root){
       view.lookup=null;
       view.status='idle';
       paintUnderstanding();
+    });
+
+    root.querySelectorAll('[data-panel-toggle]').forEach(button=>button.addEventListener('click',()=>{
+      const open=button.getAttribute('aria-expanded')!=='true';
+      button.setAttribute('aria-expanded',open?'true':'false');
+      button.parentElement.querySelector('[data-panel-body]')?.classList.toggle('hidden',!open);
+    }));
+
+    root.querySelector('[data-line-spacing]')?.addEventListener('click',()=>{
+      const next=(Number(reader.dataset.leading||0)+1)%3;
+      reader.dataset.leading=String(next);
+    });
+
+    root.querySelector('[data-reading-save-all]')?.addEventListener('click',async event=>{
+      const button=event.currentTarget;
+      const words=session.recycled_words||[];
+      try{
+        await runBusy(button,async()=>{
+          for(const word of words){
+            await api.saveLibraryVocabulary({
+              word,
+              definition:savedMeaning(word),
+              source_fragment:session.title||'',
+              source_kind:'dictionary',
+            });
+          }
+          toast(fill(c.savedAll,{n:words.length}));
+        },{label:t('busy.saving')});
+      }catch(error){
+        toast(error.message||t('library.save_failed'));
+      }
     });
 
     root.querySelectorAll('[data-font]').forEach(button=>button.addEventListener('click',()=>{

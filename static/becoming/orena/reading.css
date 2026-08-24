@@ -5,18 +5,37 @@
  * passage brought back.
  */
 
+/* The reference lays this out on a 1448px desktop. Past that the passage card
+   would keep growing and the measure would run away from the type size, so the
+   whole reading column stops at the width the design was drawn for. */
 .o-reading-grid{
   display:grid;
   grid-template-columns:minmax(0,1fr) var(--o-aside-w);
   gap:24px;
   align-items:start;
+  max-width:1200px;
 }
+.reading-page .o-reading-bottom{max-width:1200px}
 .o-reading-main{display:grid;gap:14px;min-width:0}
 .o-reader-rail{display:grid;gap:16px;min-width:0;position:sticky;top:calc(var(--o-header-h) + var(--o-gap))}
 
 /* ------------------------------------------------------- article head ---- */
 
-.o-article-head{display:grid;gap:9px;padding:22px 24px}
+/* Cover, then the article's own text column beside it. */
+.o-article-head{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:start;gap:18px;padding:22px 24px}
+.o-article-text{display:grid;gap:9px;min-width:0}
+.o-article-cover{
+  display:grid;place-items:center;
+  width:104px;height:82px;flex:0 0 auto;
+  border-radius:var(--o-radius-field);
+  /* Quiet enough to sit next to a headline without competing with it. */
+  background:linear-gradient(150deg,
+    hsl(var(--o-cover-hue) 34% 58%),
+    hsl(calc(var(--o-cover-hue) + 38) 32% 42%));
+  color:#fff;
+  box-shadow:var(--o-shadow-control),var(--o-rim-control);
+}
+.o-article-cover svg{width:30px;height:30px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;opacity:.92}
 .o-article-crumbs{display:flex;align-items:center;gap:6px;font-size:var(--o-text-meta);color:var(--o-ink-muted)}
 .o-article-crumbs svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .o-article-title{margin:0;font-size:clamp(23px,2.5vw,30px);font-weight:600;letter-spacing:-.02em;line-height:1.25}
@@ -40,35 +59,48 @@
 /* Four steps, stored per device. The measure stays readable at every one of
    them, so the column narrows as the type grows rather than running long. */
 .o-reader-text{
-  padding:30px 32px;
-  /* Wide enough to fill the card the way the reference does, capped so the
-     measure stays readable, and centred so growing the type narrows the column
-     instead of stranding it against the left edge. */
-  max-width:76ch;
-  margin:0 auto;
+  padding:32px 34px;
+  /* The reference sets its passage in a serif and lets it fill the card. That
+     is most of what makes it read as an article rather than as interface, so
+     the passage - and only the passage - leaves the interface family. */
+  font-family:var(--o-font-serif);
   font-size:18px;
   line-height:1.75;
   color:var(--o-ink);
+  /* Measured against the reference by counting characters, not pixels: its
+     lines hold about 68 of them. `ch` tracks the digit width rather than the
+     average letter in this serif, so the cap is stated in pixels and moves with
+     the type size below. */
+  max-width:640px;
 }
-.o-reader[data-font-step="0"] .o-reader-text{font-size:16px;line-height:1.7}
-.o-reader[data-font-step="1"] .o-reader-text{font-size:18px;line-height:1.75}
-.o-reader[data-font-step="2"] .o-reader-text{font-size:20px;line-height:1.8;max-width:62ch}
-.o-reader[data-font-step="3"] .o-reader-text{font-size:23px;line-height:1.85;max-width:56ch}
+.o-reader[data-font-step="0"] .o-reader-text{font-size:16px;line-height:1.7;max-width:572px}
+.o-reader[data-font-step="1"] .o-reader-text{font-size:18px;line-height:1.75;max-width:640px}
+.o-reader[data-font-step="2"] .o-reader-text{font-size:20px;line-height:1.8;max-width:706px}
+.o-reader[data-font-step="3"] .o-reader-text{font-size:23px;line-height:1.85;max-width:800px}
+/* Three leadings, cycled from the toolbar. */
+.o-reader[data-leading="1"] .o-reader-text{line-height:2}
+.o-reader[data-leading="2"] .o-reader-text{line-height:2.25}
 .o-reader-text.cjk{font-family:var(--o-font-cjk);line-height:1.95}
+.o-reader-divider{width:1px;height:20px;margin:0 5px;background:var(--o-border)}
 .o-reader-text p{margin:0 0 1.15em}
 .o-reader-text p:last-child{margin-bottom:0}
 
 /* Two kinds of mark, and they mean different things: a word the passage was
    written to reuse, and the sentence that supports an answer. */
 .o-mark{border-radius:3px;padding:1px 2px;background:none}
-.o-mark--word{
-  color:var(--o-role-noun);
-  border-bottom:1.5px solid color-mix(in srgb,var(--o-role-noun) 55%,transparent);
-  cursor:pointer;
-}
+.o-mark--word{cursor:pointer;border-bottom:1.5px solid currentColor}
+.o-mark--w0,.o-keyword--w0{color:var(--o-role-noun)}
+.o-mark--w1,.o-keyword--w1{color:var(--o-role-verb)}
+.o-mark--w2,.o-keyword--w2{color:var(--o-role-adjective)}
+.o-mark--w3,.o-keyword--w3{color:var(--o-role-adverb)}
+/* Evidence is a wash under the words, not a block over them: at 15% the text
+   inside it went unreadable in dark, which is the one place a highlight must
+   not make reading harder. */
 .o-mark--evidence{
-  background:color-mix(in srgb,var(--o-accent) 15%,transparent);
-  box-shadow:0 0 0 1px color-mix(in srgb,var(--o-accent) 28%,transparent);
+  background:color-mix(in srgb,var(--o-accent) 12%,transparent);
+  border-bottom:2px solid color-mix(in srgb,var(--o-accent) 60%,transparent);
+  box-shadow:none;
+  color:inherit;
 }
 .o-mark.is-active{
   background:color-mix(in srgb,var(--o-accent) 30%,transparent);
@@ -154,6 +186,24 @@
 .o-keywords{display:grid;gap:12px;padding:18px;justify-items:stretch}
 .o-understanding .o-label,
 .o-keywords .o-label{display:flex;align-items:center;gap:8px;margin:0;font-size:var(--o-text-body);font-weight:600;color:var(--o-ink)}
+.o-panel-toggle{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  width:100%;padding:0;border:0;background:transparent;color:var(--o-ink-muted);
+  font:inherit;cursor:pointer;
+}
+.o-panel-toggle svg{width:17px;height:17px;flex:0 0 auto;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;transition:transform var(--o-motion)}
+.o-panel-toggle[aria-expanded="false"] svg{transform:rotate(180deg)}
+.o-row-button{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  width:100%;padding:11px 13px;
+  border:1px solid var(--o-border);
+  border-radius:var(--o-radius-field);
+  background-color:var(--o-surface);
+  background-image:var(--o-sheen-control);
+  box-shadow:var(--o-shadow-control);
+  color:var(--o-ink);font:inherit;font-size:var(--o-text-ui);cursor:pointer;
+}
+.o-row-button svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;color:var(--o-ink-faint)}
 .o-count{
   display:inline-grid;place-items:center;
   min-width:22px;height:22px;padding:0 6px;
@@ -177,12 +227,16 @@
 }
 
 .o-keyword-list{display:grid;gap:10px;margin:0;padding:0;list-style:none}
-.o-keyword-list li{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.o-keyword-list li{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.o-keyword-list li > div{display:grid;gap:2px;min-width:0}
+.o-keyword-list li p{margin:0;font-size:var(--o-text-meta);color:var(--o-ink-muted);line-height:1.5}
+.o-keywords [data-panel-body] > .o-panel-copy{margin-top:12px;padding-top:12px;border-top:1px solid var(--o-border)}
 .o-keyword{
+  justify-self:start;
   padding:0;border:0;background:transparent;
-  color:var(--o-role-noun);font:inherit;font-size:var(--o-text-ui);font-weight:500;
+  font:inherit;font-size:var(--o-text-ui);font-weight:500;
   text-align:left;cursor:pointer;
-  border-bottom:1.5px solid color-mix(in srgb,var(--o-role-noun) 45%,transparent);
+  border-bottom:1.5px solid currentColor;
 }
 .o-keyword-list .o-icon-button{width:30px;height:30px;flex:0 0 auto}
 .o-keyword-list .o-icon-button svg{width:16px;height:16px}
@@ -232,10 +286,14 @@
 @media (max-width:1023px){
   .o-reading-grid{grid-template-columns:minmax(0,1fr);gap:16px}
   .o-reader-rail{position:static}
-  .o-article-head{padding:18px}
-  .o-reader-text{padding:22px 18px;max-width:none}
-  .o-reader[data-font-step="2"] .o-reader-text,
-  .o-reader[data-font-step="3"] .o-reader-text{max-width:none}
+  /* The cover keeps its column and shrinks; stacking it wastes the row. */
+  .o-article-head{padding:16px;gap:14px}
+  .o-article-cover{width:74px;height:66px}
+  .o-article-cover svg{width:24px;height:24px}
+  .o-article-meta{gap:10px}
+  .o-reader-text{padding:22px 18px}
+  .o-reader[data-font-step="3"] .o-reader-text{font-size:21px}
+  .o-reader-foot{flex-wrap:wrap}
   .o-comprehension{padding:18px}
   .o-reading-bottom{flex-wrap:wrap;gap:12px;padding:14px}
   .o-reading-progress{order:3;flex-basis:100%}
