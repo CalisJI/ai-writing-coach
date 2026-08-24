@@ -6,6 +6,7 @@ import {connectMediaPlayer,disconnectMediaPlayer,mediaPlayer,playbackAvailable,r
 import {t,uiLocale} from '../domain/i18n.js';
 import {countUnits} from '../language.js';
 import {oIcon} from '../orena/icons.js';
+import {installSelectEnhancements} from '../components/select-field.js';
 import {showDialog} from '../components/primitives.js';
 import {transcriptTokens} from '../domain/transcript-tokens.js';
 import {buildTranscriptDisplayUnits,displayUnitContains,displayUnitMeaning} from '../domain/transcript-display-units.js';
@@ -332,7 +333,7 @@ function workspace(payload,selectedId=null,model={}){
       <section class="listening-video o-card o-player">
         <div class="listening-video-frame">${mediaPlayer(payload.playback,payload.asset?.title).replace('Playback is unavailable for this source.',c.playback)}</div>
         <div class="o-player-track">
-          <div class="o-player-bar" role="progressbar" aria-label="${esc(payload.asset?.title||'')}"><span data-progress-fill></span></div>
+          <div class="o-player-bar" role="progressbar" aria-label="${esc(payload.asset?.title||'')}"><span data-progress-fill><i></i></span></div>
           <span class="o-player-time" data-elapsed>0:00</span>
           <span class="o-player-time" data-duration>—</span>
         </div>
@@ -340,14 +341,21 @@ function workspace(payload,selectedId=null,model={}){
           <h2>${esc(payload.asset?.title||'Media lesson')}</h2>
           <span>${esc(payload.asset?.source_provider||'media')}</span>
         </div>
+        <!-- Three groups, not five buttons in a row: the reference puts the rate
+             at one edge and the volume at the other, which only holds the play
+             button in the centre of the card if the sides are balanced. A row
+             of five centred as one group pushes play off-centre by however much
+             wider the rate control is than the volume icon. -->
         <div class="o-player-controls">
           <label class="o-player-rate" aria-label="${esc(c.speed)}" title="${esc(c.speed)}">
             <select id="listeningPlaybackRate">${[.75,1,1.25].map(value=>`<option value="${value}" ${value===rate?'selected':''}>${value.toFixed(2).replace(/0$/,'')}x</option>`).join('')}</select>
           </label>
-          <button type="button" class="o-icon-button" data-seek="-5" aria-label="${esc(c.skipBack)}" title="${esc(c.skipBack)}">${oIcon('undo')}</button>
-          <button type="button" class="o-player-play" data-toggle-playback aria-label="${esc(c.replay)}" title="${esc(c.replay)}">${oIcon('listen')}</button>
-          <button type="button" class="o-icon-button" data-seek="5" aria-label="${esc(c.skipForward)}" title="${esc(c.skipForward)}">${oIcon('redo')}</button>
-          <button type="button" class="o-icon-button" data-toggle-mute aria-label="${esc(c.mute)}" title="${esc(c.mute)}" aria-pressed="false">${oIcon('speak')}</button>
+          <span class="o-player-transport">
+            <button type="button" class="o-icon-button" data-seek="-5" aria-label="${esc(c.skipBack)}" title="${esc(c.skipBack)}">${oIcon('skipBack')}</button>
+            <button type="button" class="o-player-play" data-toggle-playback aria-label="${esc(c.replay)}" title="${esc(c.replay)}">${oIcon('play')}</button>
+            <button type="button" class="o-icon-button" data-seek="5" aria-label="${esc(c.skipForward)}" title="${esc(c.skipForward)}">${oIcon('skipForward')}</button>
+          </span>
+          <button type="button" class="o-icon-button o-player-volume" data-toggle-mute aria-label="${esc(c.mute)}" title="${esc(c.mute)}" aria-pressed="false">${oIcon('volume')}</button>
         </div>
       </section>
 
@@ -861,6 +869,12 @@ export async function renderListening(root,{importMedia=api.importMedia,importSt
       renderedAssetId=controller.model.status==='ready'?assetId:null;
     }
     mounted=true;
+    /* This screen re-renders itself on every controller change, and that path
+       does not go back through the router's post-render pass - so without this
+       the speed control is an upgraded listbox on first paint and a bare
+       select after the first import. Enhancement marks what it has done, so
+       calling it every time is both correct and cheap. */
+    installSelectEnhancements(root);
     bindImportForm();
     root.querySelector('[data-retry-translation]')?.addEventListener('click',()=>controller.retryTranslation());
     root.querySelector('#toggleOriginal')?.addEventListener('change',event=>controller.toggleOriginal(event.target.checked));
@@ -899,6 +913,7 @@ export async function renderListening(root,{importMedia=api.importMedia,importSt
       const muted=toggleMute(root,controller.model.payload?.playback);
       if(muted===null)return;
       button.setAttribute('aria-pressed',muted?'true':'false');
+      button.innerHTML=oIcon(muted?'volumeOff':'volume');
       const label=muted?text().unmute:text().mute;
       button.setAttribute('aria-label',label);
       button.title=label;
@@ -1049,6 +1064,18 @@ export async function renderListening(root,{importMedia=api.importMedia,importSt
     if(elapsedNode&&Number.isFinite(elapsed))elapsedNode.textContent=stamp(elapsed);
     const durationNode=root.querySelector('[data-duration]');
     if(durationNode&&Number.isFinite(total)&&total>0)durationNode.textContent=stamp(total);
+
+    /* The play button shows what the player is doing, read from the player's
+       own state rather than from a flag this screen keeps in parallel. */
+    const playButton=root.querySelector('[data-toggle-playback]');
+    if(playButton){
+      const playing=Number(event?.detail?.player_state)===1;
+      const wanted=playing?'pause':'play';
+      if(playButton.dataset.glyph!==wanted){
+        playButton.dataset.glyph=wanted;
+        playButton.innerHTML=oIcon(wanted);
+      }
+    }
   },{signal:viewAbort.signal});
   root._cleanupScreen=()=>{
     if(pollTimer)clearTimeout(pollTimer);

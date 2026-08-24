@@ -37,6 +37,14 @@ export const ORENA_ICONS = {
   rubric: `<svg ${STROKE}><path d="M4.4 6.6h4M4.4 12h4M4.4 17.4h4"/><path d="M11.4 6.6h8.2M11.4 12h8.2M11.4 17.4h8.2"/></svg>`,
   document: `<svg ${STROKE}><path d="M6.6 3.8h7l4.4 4.4v11.2a1 1 0 0 1-1 1H6.6a1 1 0 0 1-1-1V4.8a1 1 0 0 1 1-1Z"/><path d="M13 3.8v4.6h4.6M8.8 12.6h6M8.8 16h4"/></svg>`,
   flame: `<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 2.4c2.7 3.1 4 5.6 4 7.5 0 1.3-.6 2.4-1.8 3 .5-1.6.2-3.1-1-4.3.2 2.5-.8 4.1-3.1 5-1.6.7-2.5 1.9-2.5 3.6 0 2.5 2.1 4.5 4.8 4.5 3.3 0 5.8-2.5 5.8-6 0-4.3-2.1-8.7-6.2-13.3Z"/></svg>`,
+  volume: `<svg ${STROKE}><path d="M4 9.4v5.2h3.4l4.4 3.6V5.8L7.4 9.4Z"/><path d="M15.2 9.6a3.4 3.4 0 0 1 0 4.8M17.8 7a7 7 0 0 1 0 10"/></svg>`,
+  volumeOff: `<svg ${STROKE}><path d="M4 9.4v5.2h3.4l4.4 3.6V5.8L7.4 9.4Z"/><path d="m15.4 10 4.2 4.2M19.6 10l-4.2 4.2"/></svg>`,
+  play: `<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M8 5.2 19 12 8 18.8Z"/></svg>`,
+  pause: `<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M7.4 4.8h3.2v14.4H7.4zM13.4 4.8h3.2v14.4h-3.2z"/></svg>`,
+  /* Skip icons carry the number of seconds, as the reference draws them: the
+     arrow alone does not say how far it jumps. */
+  skipBack: `<svg ${STROKE}><path d="M12.4 4.6a7.4 7.4 0 1 1-7.2 9.2"/><path d="m8.4 1.4-3.4 3.2 3.4 3.2"/><text x="12.6" y="16.4" text-anchor="middle" font-size="10" font-weight="700" fill="currentColor" stroke="none">5</text></svg>`,
+  skipForward: `<svg ${STROKE}><path d="M11.6 4.6a7.4 7.4 0 1 0 7.2 9.2"/><path d="m15.6 1.4 3.4 3.2-3.4 3.2"/><text x="11.4" y="16.4" text-anchor="middle" font-size="10" font-weight="700" fill="currentColor" stroke="none">5</text></svg>`,
   flag: `<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 21V4.2c3.6-1.9 7.2 1.9 10.8 0v8.4c-3.6 1.9-7.2-1.9-10.8 0"/></svg>`,
   crown: `<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3.6 7.6 6.9 11l3.3-5.4a2 2 0 0 1 3.6 0L17.1 11l3.3-3.4a1 1 0 0 1 1.7.9l-1.7 8.3a1.2 1.2 0 0 1-1.2 1H4.8a1.2 1.2 0 0 1-1.2-1L1.9 8.5a1 1 0 0 1 1.7-.9Z"/></svg>`,
 
