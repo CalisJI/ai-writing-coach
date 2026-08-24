@@ -3,7 +3,7 @@ import {state,saveDraft} from '../store.js';
 import {go} from '../router.js';
 import {homeInsight,metricOverview} from '../domain/feedback.js';
 import {esc,errorBlock,loadingBlock,runBusy,sectionHeading,helpTip} from '../components/primitives.js';
-import {t,categoryLabel,masteryLabel,practiceModeLabel,topicLabel,unitLabel} from '../domain/i18n.js';
+import {t,categoryLabel,masteryLabel,practiceModeLabel,topicLabel,unitLabel,uiLocale} from '../domain/i18n.js';
 
 function sortedEssays(rows=[]){
   return [...rows].sort((a,b)=>String(b.created_at||'').localeCompare(String(a.created_at||'')));
@@ -181,30 +181,50 @@ function dashboardEvidence(essays=[],memory={}){
   };
 }
 
-/* Effort reward. `streak` is consecutive days with real written evidence,
-   computed server-side from essays.created_at. It reports behaviour only --
-   never proficiency -- so it stays inside UIUX contract rule 10 and
-   regression rule 16. A zero streak is not rendered: an empty reward is
-   discouraging and says nothing. */
-function streakMarkup(dashboard){
-  const days=Number(dashboard&&dashboard.streak)||0;
-  if(days<1)return '';
-  const ring=88;                                   // 2*pi*r for r=14
-  const offset=Math.round(ring*(1-Math.min(days,7)/7));
-  const label=days===1?t('home.streak_day'):t('home.streak_days');
-  const note=t('home.streak_note');
-  return `<div class="reward-surface home-streak" title="${esc(note)}">
-    <span class="reward-ring" style="--reward-ring-offset:${offset};--reward-ring-empty:${ring}" aria-hidden="true">
-      <svg width="34" height="34" viewBox="0 0 34 34">
-        <circle class="reward-ring-track" cx="17" cy="17" r="14"></circle>
-        <circle class="reward-ring-fill" cx="17" cy="17" r="14" stroke-dasharray="${ring}" stroke-dashoffset="${offset}"></circle>
-      </svg>
-    </span>
-    <span class="reward-text">
-      <span class="reward-value">${days}</span>
-      <span class="reward-label">${esc(label)}</span>
-    </span>
-  </div>`;
+/* The streak card, as the reference draws it: a flame, the count at display
+   size, and a week of dots underneath.
+ *
+ * The dots are the part that makes it a habit signal rather than a number.
+ * They come from the learner's own essay dates -- one filled dot per day that
+ * has written evidence -- so nothing here is decorative and nothing is
+ * invented. The week runs to today, so the last dot is always now.
+ */
+function streakCard(dashboard,essays=[]){
+  const days=Number(dashboard?.streak)||0;
+  const written=new Set(
+    (Array.isArray(essays)?essays:[])
+      .map(item=>String(item?.created_at||'').slice(0,10))
+      .filter(Boolean)
+  );
+
+  const today=new Date();
+  const week=[];
+  for(let back=6;back>=0;back--){
+    const day=new Date(today);
+    day.setDate(today.getDate()-back);
+    const iso=`${day.getFullYear()}-${String(day.getMonth()+1).padStart(2,'0')}-${String(day.getDate()).padStart(2,'0')}`;
+    week.push({
+      iso,
+      done:written.has(iso),
+      initial:day.toLocaleDateString(uiLocale()==='vi'?'vi-VN':uiLocale()==='zh'?'zh-CN':'en-US',{weekday:'narrow'}),
+    });
+  }
+  if(!days && !week.some(day=>day.done))return '';
+
+  return `<article class="home-streak-card visual-raised-surface">
+    <div class="home-streak-head">
+      <span class="context-label">${t('home.streak_title')}</span>
+      <svg class="home-streak-flame" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.7c2.6 3 3.9 5.4 3.9 7.2 0 1.3-.6 2.3-1.7 2.9.5-1.6.2-3-1-4.2.2 2.4-.8 4-3 4.9-1.6.6-2.5 1.8-2.5 3.4 0 2.4 2 4.4 4.7 4.4 3.2 0 5.6-2.4 5.6-5.8 0-4.2-2-8.4-6-12.8Z"/></svg>
+    </div>
+    <p class="home-streak-count"><strong>${esc(String(days))}</strong><span>${t('home.streak_days')}</span></p>
+    <p class="home-streak-note">${t('home.streak_note')}</p>
+    <ul class="home-streak-week">
+      ${week.map(day=>`<li class="${day.done?'is-done':''}">
+        <span class="home-streak-dot" aria-hidden="true"></span>
+        <span class="home-streak-day">${esc(day.initial)}</span>
+      </li>`).join('')}
+    </ul>
+  </article>`;
 }
 
 function writingDashboardMarkup(dashboard,essays,memory){
@@ -328,7 +348,14 @@ export async function renderHome(root){
     root.innerHTML=`<section class="page canonical-home">
       <section class="home-editorial-hero">
         <div class="home-editorial-copy">
-          ${streakMarkup(dashboard)}
+          <!-- The reference opens Home on a statement: an accent eyebrow over
+               one large editorial line, then a quiet lede. UI-02 had removed
+               it and left the grid column it lived in empty. Every word here
+               comes from homeInsight, which reads the learner's own dashboard
+               and memory -- so it is evidence, not a slogan. -->
+          <span class="home-hero-kicker">${esc(insight.kicker)}</span>
+          <h1 class="home-hero-title ${state.language==='zh'?'cjk':''}">${esc(insight.statement)}</h1>
+          <p class="home-hero-lede">${esc(insight.context)}</p>
           <div class="action-row home-hero-actions">
             <button id="homePrimary" class="button button-primary">${esc(personalized?t('home.practice_action'):insight.action)}</button>
             <button id="journeyLinkTop" class="button button-secondary" type="button">${t('home.journey')}</button>
@@ -342,6 +369,7 @@ export async function renderHome(root){
       <section class="home-composed-grid">
         ${journeyMarkup(essays,memory,currentEssay)}
         <aside class="home-signal-rail">
+          ${streakCard(dashboard,essays)}
           ${personalized?`<article class="home-signal-card visual-raised-surface home-next-practice">
             <span class="context-label">${t('home.today_signal')}</span>
             <strong>${esc(categoryLabel(recommendation.focus_category||recommendation.focus_label||'expression'))}</strong>
