@@ -8,7 +8,7 @@ historical narrative.
 - Product: Orena / BECOMING codebase
 - Repository: `CalisJI/ai-writing-coach`
 - Last verified application/runtime baseline:
-  `30876d939f8d3a5e9cab9a1a8d3e4112d81e4b45`
+  `91276425bce28b93d2ce449a2a61460ae44761dd`
 
 This SHA identifies the verified application/runtime baseline inherited by this
 governance checkpoint. Documentation-only or governance-only descendant commits
@@ -42,16 +42,23 @@ operational state.
   stroke icons, gives mobile cards balanced gutters, centers the mobile route
   title while preserving drawer navigation, and constrains listboxes so an open
   menu cannot create horizontal page overflow.
+- Opened Grammar lessons now use a focused Orena-prod workspace rather than
+  leaving the full 269-item curriculum visible below the lesson. The desktop
+  surface uses a bounded teaching column plus a truthful progress/outline rail;
+  mobile uses compact, accessible disclosure rows for informational sections
+  while leaving Pattern and evidence-producing practice visible. Stable Grammar
+  Concept IDs, schema-v2 rendering, completion evidence, and EN/ZH content
+  contracts remain unchanged.
 - Existing Writing practice context, Dictionary/Pinyin assistance, Review POS
   lens, Chinese Review Pinyin, EN/ZH behavior, and UI-03 shared primitives are
   preserved by the integration checkpoint.
-- Local automated evidence at `30876d939f8d3a5e9cab9a1a8d3e4112d81e4b45`:
-  architecture and UI-03 validators PASS; Profile contract PASS; browser ESM
-  graph PASS with 48 linked modules; JavaScript UI tests `28 passed, 2 known
-  pre-existing failures`; Docker build PASS; isolated SQLite runtime
-  health/assets/product smoke PASS. The backend regression inherited from the
-  preceding Profile checkpoint remains `503 passed, 3 warnings` and was not
-  rerun for this CSS/JavaScript-only correction.
+- Local automated evidence at `91276425bce28b93d2ce449a2a61460ae44761dd`:
+  architecture and UI-03 validators PASS; Profile and Grammar contracts PASS;
+  browser ESM graph PASS with 48 linked modules; JavaScript UI tests `29 passed,
+  2 known pre-existing failures`; Docker build PASS; isolated SQLite runtime
+  HTTP smoke PASS. The backend regression inherited from the preceding Profile
+  checkpoint remains `503 passed, 3 warnings` and was not rerun for this
+  CSS/JavaScript-only Grammar presentation change.
 - Interactive Brave visual QA PASS at desktop and mobile reference dimensions,
   light/dark, and VI/ZH interface states. The verified desktop surfaces measured
   `830px + 26px + 294px`; mobile cards retained `12px` side gutters; opening a
@@ -59,6 +66,13 @@ operational state.
   Chinese rendered without mojibake; and browser console warnings/errors were
   zero. Human acceptance of the screenshots remains pending. This checkpoint
   is not deployed and does not promote any learner skill to PUBLIC.
+- Grammar Brave QA additionally verified a `815px + 26px + 294px` desktop
+  lesson/rail frame at the measured viewport, no horizontal overflow, real
+  curriculum progress, a six-target lesson outline, functional Back navigation,
+  five accessible mobile disclosures, light/dark switching, and zero browser
+  console warnings/errors. Mobile measured a `353px` lesson surface inside a
+  `373px` document and kept Pattern plus Quick Practice in the initial compact
+  sequence.
 
 ## Persistence
 
