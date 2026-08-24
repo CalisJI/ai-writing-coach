@@ -1,11 +1,12 @@
 # Current Handoff
 
 **Application/runtime baseline:**
-`d88c8cb17b16412b8c8b0de6d5fe7ab8f4a69061`
+`ee28edd71ef1284b53fdfe18ad99c2eae1cdd032`
 
-This baseline is the reviewed merge of R5 Grammar Knowledge System closeout
-(PR #44). Documentation-only descendants may advance `main` without changing
-this baseline.
+This baseline is the locally verified Orena UI/UX `2.17.4` integration code
+checkpoint. It inherits the reviewed R5 Grammar Knowledge System closeout
+(PR #44). Documentation-only descendants may advance without changing this
+baseline.
 
 **Primary active program:**
 
@@ -22,6 +23,31 @@ this baseline.
 - M1 — Media Learning Foundation: **CLOSED / FOUNDATION COMPLETE**
 - R1 — Production Staging + Cloudflare + Google OAuth: **CLOSED / PASS**
 - R0 — Product Release Architecture: **CLOSED**
+
+## Active cross-cutting integration — Orena UI/UX 2.17.4
+
+Branch: `codex/orena-ui-ux-integration`
+
+Code checkpoint: `ee28edd71ef1284b53fdfe18ad99c2eae1cdd032`
+
+Status: **LOCAL AUTOMATION PASS / INTERACTIVE VISUAL QA PENDING / NOT DEPLOYED**
+
+- Selected UI commits from `claude/work` are integrated over the latest
+  `origin/main`; Claude-specific tooling and broad validator archival were
+  excluded as out of scope.
+- Orena shell, Home, Writing, Review, sign-in, responsive navigation,
+  accessible select fields, learner mastheads, and bounded Listening UX are
+  present at frontend `2.17.4`.
+- Integration fixes preserve Writing practice context, Dictionary/Pinyin,
+  Review POS lens, Chinese Review Pinyin, and the UI-03 shared primitive
+  contract.
+- Local evidence: `503 passed, 3 warnings`; JavaScript `27 passed` with two
+  unchanged failures in protected R5/Speaking tests; ESM graph `48 modules`;
+  architecture, UI-02, UI-03, Docker build, and isolated runtime smoke PASS.
+- Remaining evidence: interactive desktop/mobile, light/dark, EN/ZH browser
+  review. The configured Browser surface returned no available browser.
+- No production runtime, PostgreSQL data, deployment, OAuth, Cloudflare,
+  release state, application version, or public skill state changed.
 
 ## Newly completed
 
@@ -126,7 +152,7 @@ remains an explicit fallback path rather than a replacement media model.
 
 - PostgreSQL remains authoritative; SQLite remains frozen rollback/archive only.
 - Application version remains `1.4.0`.
-- BECOMING frontend version is `2.17.3`.
+- BECOMING frontend version is `2.17.4`.
 - Production staging remains behind the canonical Docker Cloudflare Tunnel and
   Google OAuth path already verified in R1.
 - No learner skill is PUBLIC.
@@ -228,7 +254,7 @@ Especially protect:
 - shared design tokens/layout primitives;
 - Journey, Review, Library/Active Recall behavior that already passes;
 - EN/ZH shared contracts;
-- current frontend version contract `2.17.3`.
+- current frontend version contract `2.17.4`.
 
 ## Stop conditions
 

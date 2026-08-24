@@ -8,7 +8,7 @@ historical narrative.
 - Product: Orena / BECOMING codebase
 - Repository: `CalisJI/ai-writing-coach`
 - Last verified application/runtime baseline:
-  `d88c8cb17b16412b8c8b0de6d5fe7ab8f4a69061`
+  `ee28edd71ef1284b53fdfe18ad99c2eae1cdd032`
 
 This SHA identifies the verified application/runtime baseline inherited by this
 governance checkpoint. Documentation-only or governance-only descendant commits
@@ -17,7 +17,28 @@ a reviewed change materially changes verified application, runtime, product, or
 operational state.
 
 - Application version: `1.4.0`
-- BECOMING frontend version: `2.17.3`
+- BECOMING frontend version: `2.17.4`
+
+## Orena UI/UX integration
+
+- Branch `codex/orena-ui-ux-integration` integrates the selected UI commits
+  from `claude/work` over `origin/main` and intentionally excludes the Claude
+  tool-configuration and historical-validator relocation commits.
+- Frontend `2.17.4` introduces the shared Orena shell, responsive desktop rail
+  and mobile drawer, rebuilt Home, Writing, Review, and sign-in surfaces,
+  shared light/dark Orena tokens, learner-data mastheads, custom accessible
+  select fields, and bounded Listening return/history improvements.
+- Existing Writing practice context, Dictionary/Pinyin assistance, Review POS
+  lens, Chinese Review Pinyin, EN/ZH behavior, and UI-03 shared primitives are
+  preserved by the integration checkpoint.
+- Local automated evidence at `ee28edd71ef1284b53fdfe18ad99c2eae1cdd032`:
+  architecture/UI validators PASS; browser ESM graph PASS with 48 linked
+  modules; Python regression `503 passed, 3 warnings`; JavaScript UI tests
+  `27 passed, 2 known pre-existing failures`; Docker build PASS; isolated
+  SQLite runtime health/readiness/product smoke PASS.
+- Interactive visual QA remains pending because no in-app or connected browser
+  was available. This checkpoint is not deployed and does not promote any
+  learner skill to PUBLIC.
 
 ## Persistence
 

@@ -384,3 +384,30 @@ language pair, and canonical transcript hash. Generic AI remains available only
 for explicit intelligence features, not normal Meaning generation.
 
 **Supersedes / Superseded by:** Narrows D-014 for Media Meaning; extends D-020.
+
+## D-022 — Orena UI migration uses one bounded shared namespace
+
+**Status:** Accepted
+
+**Decision:** Frontend `2.17.4` uses `static/becoming/orena/**` as a bounded,
+shared migration layer for the Orena shell and rebuilt Home, Writing, and Review
+surfaces. The `--o-*` tokens and `.o-*` primitives are shared contracts loaded
+after the legacy stylesheet stack. Screens not yet rebuilt are adopted through
+the shared compatibility layer rather than receiving copied page-local design
+systems.
+
+**Reason:** The reference-led interface requires a coherent responsive shell,
+depth, spacing, and interaction vocabulary while the protected Journey,
+Library, Grammar, Media Learning, and other stable screens remain operational.
+A namespaced migration boundary lets the product advance without a single
+high-risk rewrite or uncontrolled cascade conflicts.
+
+**Consequences:** New Orena work reuses the shared namespace, preserves EN/ZH,
+light/dark, accessibility, and existing learner-flow contracts, and must not
+duplicate tokens into screen-specific CSS. Legacy compatibility is transitional
+and may be removed only through a separately reviewed migration. This decision
+does not change backend, persistence, learner-skill release state, or production
+deployment.
+
+**Supersedes / Superseded by:** Extends the frontend invariant and OREN-16
+shared-primitives checkpoint; supersedes neither.
