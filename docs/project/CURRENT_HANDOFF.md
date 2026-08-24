@@ -1,7 +1,7 @@
 # Current Handoff
 
 **Application/runtime baseline:**
-`de2054fcdf702011be015a2357d0e92c0f3c6dfc`
+`93e18560c8d4113356d77bb7f87b269aee3fc245`
 
 This baseline is the locally verified Orena UI/UX `2.17.5` integration code
 checkpoint. It inherits the reviewed R5 Grammar Knowledge System closeout
@@ -28,7 +28,7 @@ baseline.
 
 Branch: `codex/orena-ui-ux-integration`
 
-Code checkpoint: `de2054fcdf702011be015a2357d0e92c0f3c6dfc`
+Code checkpoint: `93e18560c8d4113356d77bb7f87b269aee3fc245`
 
 Status: **LOCAL AUTOMATION + BRAVE VISUAL QA PASS / HUMAN ACCEPTANCE PENDING / NOT DEPLOYED**
 
@@ -48,47 +48,52 @@ Status: **LOCAL AUTOMATION + BRAVE VISUAL QA PASS / HUMAN ACCEPTANCE PENDING / N
   column gap against Orena-prod, restores SVG strokes, adds balanced mobile
   gutters and a centered Profile title, and prevents open mobile listboxes from
   widening the document.
-- Grammar opened lessons now follow the supplied Orena-prod hierarchy: focused
-  lesson header, Pattern, paired explanatory cards, full-width comparison and
-  mistake/practice stages, plus a truthful progress/outline/action rail. The
-  full curriculum is hidden only while a lesson is open and returns through a
-  functional Back control. Mobile keeps Pattern and practice visible and turns
-  five informational sections into accessible disclosure rows.
-- Checkpoint `de2054f` applies the reference's grammar-specific visual language
-  through the shared schema-v2 renderer across all `508 / 508` EN/ZH lessons:
-  balanced formula/word-order visuals, check-led Use-when and examples,
-  color-separated contrast cards, explicit wrong/correct correction, bounded
-  exceptions, structured practice options, memory cues, and skill-transfer
-  icons. Exact repeated explanatory text is hidden only in the presentation;
-  the knowledge files are unchanged.
+- Grammar checkpoint `93e1856` now matches the supplied Orena-prod lesson
+  composition rather than only borrowing its colours. The initial reading
+  layer is a compact Pattern ribbon and syntax track, paired When-to-use and
+  Examples cards, a two-sided Compare treatment with `vs.`, one flattened
+  Common-mistake correction row, Quick practice, and a truthful
+  `830px + 26px + 288px` progress/outline/action rail.
+- Secondary exception, personal-practice, recall, memory, transfer, and rare
+  visual blocks remain rendered inside a closed More-practice disclosure, so
+  no source-backed content or completion evidence is discarded. Completion
+  opens that disclosure before focusing missing evidence. The shared renderer
+  applies this composition to all `508 / 508` EN/ZH lessons.
+- Mobile moves Back and the active lesson title into the top bar, keeps the
+  bookmark, Pattern and Quick practice visible, and presents exactly four
+  compact disclosure rows for When to use, Examples, Compare and Common
+  mistake, matching the reference's initial hierarchy.
 - This Grammar presentation layer is scoped to the protected Grammar route. It
   does not change R5 curriculum content, stable concept IDs, Static Grammar KB,
   schema-v2 rendering, or completion-evidence semantics.
 - Integration fixes preserve Writing practice context, Dictionary/Pinyin,
   Review POS lens, Chinese Review Pinyin, and the UI-03 shared primitive
   contract.
-- Local evidence for the correction: Profile and Grammar contracts,
-  architecture, UI-03,
-  ESM graph (`48 modules`) and Docker build PASS; JavaScript `30 passed` with
-  two unchanged failures in protected R5/Speaking tests. Runtime smoke and the
-  backend suite were not rerun; the inherited backend result remains `503
-  passed, 3 warnings`.
+- Current Grammar evidence: Orena visual/interaction coverage PASS for `508 /
+  508`; eight additional renderer/UI/route/mobile checks PASS; browser ESM
+  graph PASS (`48 modules`); isolated Phase 1, curriculum, universal
+  architecture, and concept-specific audits PASS. The legacy full-rollout JS
+  assertion remains at its pre-existing `0 !== 505`, and the legacy rollout
+  audit still reports the pre-existing missing source-adapted marker. The
+  container image does not include pytest, so the backend suite was not rerun;
+  the inherited result remains `503 passed, 3 warnings`.
 - Brave rereview PASS at desktop/mobile reference dimensions in light/dark and
   VI/ZH interface states. Desktop measured `830px + 26px + 294px`; mobile cards
   retained `12px` side gutters; the open `190px` language panel retained
   `scrollWidth == clientWidth` and `scrollX == 0`; no mojibake or console
   warnings/errors were observed. Remaining gate: human screenshot acceptance.
-- Grammar Brave QA PASS in light/dark and desktop/mobile layouts: measured
-  desktop lesson/rail geometry `815px + 26px + 294px`; mobile `scrollWidth ==
-  clientWidth`, five disclosures toggled with correct `aria-expanded`, Back and
-  outline navigation worked, and console warnings/errors were zero.
-- The current `de2054f` rereview used a database-free, read-only browser harness
+- Grammar Brave QA PASS in EN/ZH, light/dark and desktop/mobile layouts:
+  desktop uses `830px + 26px + 288px`, the initial lesson is about `1,146px`
+  tall instead of the prior `3,170px`, the outline has six targets, mobile has
+  four disclosures, and horizontal overflow and console warnings/errors are
+  zero.
+- The current `93e1856` rereview used a database-free, read-only browser harness
   with the production renderer/CSS and real English and Chinese knowledge data.
-  It confirmed no horizontal overflow, correct CJK/Pinyin rendering without
-  replacement characters, responsive disclosure behavior, balanced long
-  formulas, and light/dark parity. Full isolated application-runtime browser
-  smoke is still pending because ephemeral Alembic initialization remains a
-  human gate and was not authorized.
+  It confirmed correct CJK rendering without replacement characters,
+  responsive disclosure behavior, meaningful syntax-track labels, balanced
+  long formulas, and light/dark parity. Port `8000` remains the active Claude
+  worktree lane and was deliberately not replaced; Codex visual QA runs at the
+  isolated static harness on `127.0.0.1:8010`.
 - No production runtime, PostgreSQL data, deployment, OAuth, Cloudflare,
   release state, application version, or public skill state changed.
 
