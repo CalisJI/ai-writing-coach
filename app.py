@@ -962,7 +962,7 @@ def dictionary_ai_fallback(word: str) -> dict[str, Any]:
                     "Examples must be original and natural. Do not claim an exact IPA if uncertain; use an empty "
                     "phonetic string instead. "
                     "When the entry is a multi-word lexical unit rather than a single word, name the unit in "
-                    "part_of_speech using exactly one of: idiom, phrasal verb, collocation, phrase. Use the "
+                    "part_of_speech using exactly one of: idiom, proverb, phrasal verb, collocation, phrase. Use the "
                     "ordinary word class (noun, verb, adjective, adverb) for single words. Never guess a "
                     "category to make an entry look richer."
                 ),
@@ -1052,9 +1052,10 @@ def chinese_dictionary_ai(word: str) -> dict[str, Any]:
                     "Do not invent etymology. Character breakdown is only a learning aid; give literal/common "
                     "character meanings, not false historical explanations. "
                     "Name the lexical category in part_of_speech using exactly one of the standard Chinese "
-                    "terms: 成语 (four-character set idiom), 惯用语 (colloquial set expression), 搭配 "
-                    "(collocation), 离合词 (separable verb), 量词 (measure word), 短语 (other multi-word "
-                    "phrase). For an ordinary single word use its word class (名词, 动词, 形容词, 副词). "
+                    "terms: 成语 (four-character set idiom), 惯用语 (colloquial set expression), 谚语 "
+                    "(proverb), 歇后语 (two-part allegorical saying), 搭配 (collocation), 离合词 "
+                    "(separable verb), 量词 (measure word), 短语 (other multi-word phrase). For an ordinary "
+                    "single word use its word class (名词, 动词, 形容词, 副词). "
                     "Never label an entry 成语 unless it really is one."
                 ),
             },
