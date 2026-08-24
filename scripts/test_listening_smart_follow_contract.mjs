@@ -31,17 +31,41 @@ assert.match(smartFollow,/clearTimeout\(resumeTimer\)/);
 assert.match(smartFollow,/setTimeout\(resume,SMART_FOLLOW_IDLE_MS\)/);
 assert.match(smartFollow,/resumeNow\(\)[\s\S]*resume\(\)/);
 
-assert.match(css,/listening-workspace\[data-listening-mode="follow"\] \.listening-video-frame\{\s*position:sticky/);
-assert.match(css,/grid-template-columns:minmax\(0,1\.3fr\) minmax\(360px,\.9fr\)/);
-assert.match(css,/@media \(max-width:959px\)[\s\S]*grid-template-columns:minmax\(0,1fr\)/);
-assert.match(css,/\.listening-workspace\[data-listening-mode="follow"\] \.listening-practice-controls\{\s*position:static/);
-assert.doesNotMatch(css,/\.listening-transcript \.listening-practice-controls\{\s*position:sticky/);
-assert.match(css,/\.listening-workspace\[data-listening-mode="follow"\] \.listening-transcript\{\s*display:flex[\s\S]*flex-direction:column/);
+// The layout these lines pinned lived in interactive-transcript.css and has
+// been replaced by orena/listening.css in the rebuild against
+// ORENA-LISTENING-*. Keeping it in two files meant every rebuilt rule had to
+// out-specify the old one, and that escalation then beat the rebuild's own
+// mobile rules, so the old block is gone rather than merely overridden.
+//
+// What these assertions were protecting is still protected, re-pointed at the
+// file that now owns it:
+//   - the player stays put while the transcript scrolls (sticky, both widths)
+//   - the transcript column can scroll independently
+//   - the segment controls do not float over the transcript
+//   - the two columns collapse to one on a narrow viewport
+const listenCss=readFileSync('static/becoming/orena/listening.css','utf8');
+
+// The player is pinned, and capped so a card taller than the window cannot
+// hide its own transport - the bug that made this rebuild necessary to check.
+assert.match(listenCss,/\.o-player\{[\s\S]*position:sticky/);
+assert.match(listenCss,/\.o-player\{[\s\S]*max-height:calc\(100dvh/);
+
+// Two columns that become one, and a player column that travels with the
+// viewport instead of being pinned to the reference's pixel width.
+assert.match(listenCss,/\.o-listen\{[\s\S]*grid-template-columns:clamp\(/);
+assert.match(listenCss,/@media \(max-width:1023px\)[\s\S]*\.o-listen\{[\s\S]*grid-template-columns:minmax\(0,1fr\)/);
+
+// The transcript scrolls on its own; the segment controls sit under it.
+assert.match(listenCss,/\.listening-segments\{[\s\S]*overflow-y:auto/);
+assert.doesNotMatch(listenCss,/\.listening-practice-controls\{[^}]*position:sticky/);
+
+// The frame has to stay a containing block, or the absolutely positioned
+// iframe escapes and covers the whole card.
+assert.match(listenCss,/\.listening-video-frame\{[\s\S]*position:relative/);
+
+// The offset variable is still read by the other transcript surfaces.
 assert.match(css,/--listening-sticky-offset:/);
-assert.match(css,/\.listening-video-frame\{[\s\S]*top:var\(--listening-sticky-offset\)/);
-assert.match(css,/@media \(max-width:959px\)\{[\s\S]*\.listening-video\{[\s\S]*top:var\(--listening-sticky-offset\)/);
 assert.doesNotMatch(css,/top:calc\(var\(--shell-topbar-height\) \+ var\(--space-3,12px\)\)/);
-assert.match(css,/\.listening-workspace\[data-listening-mode="follow"\] \.listening-video\{\s*position:sticky/);
 const listeningCss=readFileSync('static/becoming/listening.css','utf8');
 assert.match(listeningCss,/@media\(max-width:620px\)[\s\S]*grid-template-columns:repeat\(5,minmax\(0,1fr\)\)/);
 assert.doesNotMatch(listeningCss,/\[data-replay-current\][^}]*grid-column:1\/-1/);
