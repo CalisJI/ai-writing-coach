@@ -25,7 +25,8 @@ const COPY={
   en:{
     title:'Active Recall',lead:'Review and strengthen what you have learned.',
     itemsDue:'items due',reviewNow:'Review now',addWord:'Add a word',
-    all:'All items',vocabulary:'Vocabulary',phrases:'Phrases',
+    all:'All items',
+    types:{word:'Vocabulary',collocation:'Collocation',idiom:'Idiom',colloquial:'Set phrase',phrasalVerb:'Phrasal verb',separable:'Separable verb',measure:'Measure word',phrase:'Phrase'},
     filters:'Filters',sort:'Sort',
     colItem:'Item',colType:'Type',colMastery:'Mastery',colNext:'Next review',colLast:'Last reviewed',
     dueNow:'Due now',dueSoon:'Due soon',notDue:'Not due',
@@ -44,7 +45,7 @@ const COPY={
     sortNext:'Next review',sortAdded:'Recently added',sortAlpha:'A → Z',sortMastery:'Mastery',
     filterAll:'Everything',filterDue:'Due now',filterSoon:'Due soon',filterNew:'Not started',
     goalPrompt:'How many items do you want to review each day?',
-    tabTip:'A saved term counts as a phrase when it holds more than one word. Nothing else is inferred.',
+    tabTip:'Categories come from the label the dictionary saved with the entry. An entry with no label is filed by shape alone — one word, or a phrase — and is never guessed into a narrower category.',
     accuracyTip:'Successful recalls as a share of every recall you have marked. It is your own report, not a test score.',
     goalTip:'A target you set. Progress counts items you reviewed today.',
     focusTip:'Parts of speech with items due, taken from the saved entries.',
@@ -54,7 +55,8 @@ const COPY={
   vi:{
     title:'Ôn chủ động',lead:'Ôn lại và củng cố những gì bạn đã học.',
     itemsDue:'mục đến hạn',reviewNow:'Ôn ngay',addWord:'Thêm từ',
-    all:'Tất cả',vocabulary:'Từ vựng',phrases:'Cụm từ',
+    all:'Tất cả',
+    types:{word:'Từ vựng',collocation:'Kết hợp từ',idiom:'Thành ngữ',colloquial:'Quán ngữ',phrasalVerb:'Cụm động từ',separable:'Động từ ly hợp',measure:'Lượng từ',phrase:'Cụm từ'},
     filters:'Lọc',sort:'Sắp xếp',
     colItem:'Mục',colType:'Loại',colMastery:'Mức thuộc',colNext:'Ôn kế tiếp',colLast:'Ôn lần cuối',
     dueNow:'Đến hạn',dueSoon:'Sắp đến hạn',notDue:'Chưa tới hạn',
@@ -73,7 +75,7 @@ const COPY={
     sortNext:'Ôn kế tiếp',sortAdded:'Mới thêm',sortAlpha:'A → Z',sortMastery:'Mức thuộc',
     filterAll:'Tất cả',filterDue:'Đến hạn',filterSoon:'Sắp đến hạn',filterNew:'Chưa bắt đầu',
     goalPrompt:'Mỗi ngày bạn muốn ôn bao nhiêu mục?',
-    tabTip:'Một mục được tính là cụm từ khi nó gồm nhiều hơn một từ. Ngoài ra không suy đoán gì thêm.',
+    tabTip:'Phân loại lấy từ nhãn mà từ điển lưu cùng mục. Mục không có nhãn thì chỉ xếp theo hình thức — một từ, hay một cụm — chứ không đoán vào nhóm hẹp hơn.',
     accuracyTip:'Số lần nhớ được chia cho tổng số lượt bạn đã tự đánh giá. Đây là bạn tự báo, không phải điểm kiểm tra.',
     goalTip:'Mục tiêu do bạn đặt. Tiến độ đếm số mục bạn đã ôn hôm nay.',
     focusTip:'Các từ loại đang có mục đến hạn, lấy từ chính các mục đã lưu.',
@@ -83,7 +85,8 @@ const COPY={
   zh:{
     title:'主动回忆',lead:'复习并巩固你学过的内容。',
     itemsDue:'项待复习',reviewNow:'现在复习',addWord:'添加词条',
-    all:'全部',vocabulary:'词汇',phrases:'短语',
+    all:'全部',
+    types:{word:'单词',collocation:'搭配',idiom:'成语',colloquial:'惯用语',phrasalVerb:'动词短语',separable:'离合词',measure:'量词',phrase:'短语'},
     filters:'筛选',sort:'排序',
     colItem:'条目',colType:'类型',colMastery:'掌握度',colNext:'下次复习',colLast:'上次复习',
     dueNow:'已到期',dueSoon:'即将到期',notDue:'未到期',
@@ -102,7 +105,7 @@ const COPY={
     sortNext:'下次复习',sortAdded:'最近添加',sortAlpha:'A → Z',sortMastery:'掌握度',
     filterAll:'全部',filterDue:'已到期',filterSoon:'即将到期',filterNew:'尚未开始',
     goalPrompt:'你每天想复习多少项？',
-    tabTip:'保存的条目含多个词时算作短语，除此之外不做任何推断。',
+    tabTip:'分类来自词典随条目一起保存的标注。没有标注的条目只按形式归类——单词或短语——不会猜到更窄的类别里。',
     accuracyTip:'回忆成功次数占你标记过的全部复习次数的比例。这是你的自评，不是考试成绩。',
     goalTip:'由你设定的目标。进度统计今天复习过的条目。',
     focusTip:'当前有到期条目的词性，取自已保存的条目本身。',
@@ -112,15 +115,78 @@ const COPY={
 };
 const copy=()=>COPY[uiLocale()]||COPY.en;
 
-/* The reference's type column is Vocabulary / Phrase / Grammar. The service
-   stores no taxonomy, so only the distinction the saved term itself carries is
-   drawn: more than one word is a phrase. Grammar has no tab here because these
-   entries never come from R5 - a bucket that is always empty would read as a
-   product gap rather than an absent taxonomy. */
+/* Lexical categories.
+ *
+ * The service stores no taxonomy field, but it does store part_of_speech, which
+ * the learner dictionary fills in - and the dictionary is now asked to name the
+ * lexical unit there ("idiom", "collocation", and the standard Chinese terms)
+ * rather than only the word class. So a category is read off a real stored
+ * label first, and only falls back to what the saved string itself shows.
+ *
+ * The fallback deliberately stops at word / phrase. Whether a multi-word entry
+ * is an idiom or a collocation is not visible in its characters, and four
+ * Chinese characters are not automatically a set idiom - guessing would file
+ * entries under a heading that claims something nobody checked. Unlabelled
+ * entries stay in the honest bucket, and the tooltip says so.
+ *
+ * Chinese gets the categories learners meet in their own materials, because
+ * they are genuinely different things and one "phrases" bucket is what makes a
+ * library hard to search:
+ *   - the four-character set idioms (chengyu)
+ *   - colloquial set expressions (guanyongyu), usually three characters
+ *   - collocations (dapei)
+ *   - separable verbs (lihe ci), which split around their object
+ *   - measure words (liangci)
+ */
+const TYPE_RULES=[
+  ['measure',[/measure\s*word/i,/classifier/i,/\u91cf\u8bcd/,/l\u01b0\u1ee3ng t\u1eeb/i]],
+  ['separable',[/separable/i,/\u79bb\u5408\u8bcd/,/ly h\u1ee3p/i]],
+  ['phrasalVerb',[/phrasal/i,/\u52a8\u8bcd\u77ed\u8bed/,/c\u1ee5m \u0111\u1ed9ng t\u1eeb/i]],
+  ['collocation',[/collocat/i,/\u642d\u914d/,/k\u1ebft h\u1ee3p t\u1eeb/i]],
+  ['idiom',[/idiom/i,/\u6210\u8bed/,/th\u00e0nh ng\u1eef/i]],
+  ['colloquial',[/\u60ef\u7528\u8bed/,/\u4fd7\u8bed/,/\u8c1a\u8bed/,/set\s*phrase/i,/qu\u00e1n ng\u1eef/i]],
+  ['phrase',[/phrase/i,/expression/i,/\u77ed\u8bed/,/c\u1ee5m t\u1eeb/i]],
+];
+
+/* Order matters: the generic phrase term is a substring of the phrasal-verb
+   term, and "idiom" appears inside "idiomatic", so narrower rules go first. */
+function labelledType(item){
+  const label=String(item.part_of_speech||'').trim();
+  if(!label)return null;
+  for(const [key,patterns] of TYPE_RULES){
+    if(patterns.some(pattern=>pattern.test(label)))return key;
+  }
+  return null;
+}
+
 function itemType(item){
+  const labelled=labelledType(item);
+  if(labelled)return labelled;
   const word=String(item.word||'').trim();
   const multi=state.language==='zh'?[...word].length>3:/\s/.test(word);
-  return multi?'phrase':'vocabulary';
+  return multi?'phrase':'word';
+}
+
+/* Only the categories this language actually uses are offered, and only when
+   something is in them. An empty heading reads as a broken filter rather than
+   as a category the learner has not met yet. */
+const TYPE_ORDER_EN=['word','collocation','idiom','phrasalVerb','phrase'];
+const TYPE_ORDER_ZH=['word','collocation','idiom','colloquial','separable','measure','phrase'];
+
+const NATIVE_TYPE_NAMES={
+  word:'\u5355\u8bcd',collocation:'\u642d\u914d',idiom:'\u6210\u8bed',
+  colloquial:'\u60ef\u7528\u8bed',separable:'\u79bb\u5408\u8bcd',
+  measure:'\u91cf\u8bcd',phrase:'\u77ed\u8bed',
+};
+
+function typeLabel(key){
+  const names=copy().types||{};
+  const name=names[key]||key;
+  const native=NATIVE_TYPE_NAMES[key];
+  /* A learner of Chinese meets these categories under their Chinese names in
+     every textbook, so the Chinese term travels with the translated one. */
+  if(state.language==='zh'&&native&&uiLocale()!=='zh')return `${name} (${native})`;
+  return name;
 }
 
 const DAY=86400000;
@@ -195,7 +261,7 @@ function tableRow(item){
       </div>
       <div class="o-item-meaning">${esc(meaningOf(item))}</div>
     </td>
-    <td class="o-col-type"><span class="o-type-chip o-type-chip--${type}">${esc(type==='phrase'?c.phrases.replace(/s$/,''):c.vocabulary)}</span></td>
+    <td class="o-col-type"><span class="o-type-chip o-type-chip--${type}">${esc(typeLabel(type))}</span></td>
     <td class="o-col-mastery">${masteryCell(item)}</td>
     <td class="o-col-next">
       <div>${esc(shortDate(item.next_review_at)||'—')}</div>
@@ -336,10 +402,19 @@ export async function renderLibrary(root){
   const settings=readSettings();
   let goal=readGoal();
 
+  const typeOrder=state.language==='zh'?TYPE_ORDER_ZH:TYPE_ORDER_EN;
+  const byType=items.reduce((groups,item)=>{
+    const key=itemType(item);
+    groups[key]=(groups[key]||0)+1;
+    return groups;
+  },{});
+  /* The language's own order first, then anything the dictionary labelled that
+     the order does not name, so a category is never silently dropped. */
+  const typeTabs=[...typeOrder.filter(key=>byType[key]),
+    ...Object.keys(byType).filter(key=>!typeOrder.includes(key))];
+
   const counts={
     all:items.length,
-    vocabulary:items.filter(item=>itemType(item)==='vocabulary').length,
-    phrases:items.filter(item=>itemType(item)==='phrase').length,
     due:items.filter(item=>item.due).length,
     soon:items.filter(isSoon).length,
   };
@@ -358,7 +433,7 @@ export async function renderLibrary(root){
 
   const visible=()=>{
     let rows=items;
-    if(view.tab!=='all')rows=rows.filter(item=>itemType(item)===(view.tab==='phrases'?'phrase':'vocabulary'));
+    if(view.tab!=='all')rows=rows.filter(item=>itemType(item)===view.tab);
     if(view.filter==='due')rows=rows.filter(item=>item.due);
     else if(view.filter==='soon')rows=rows.filter(isSoon);
     else if(view.filter==='new')rows=rows.filter(item=>!Number(item.review_stage));
@@ -405,8 +480,7 @@ export async function renderLibrary(root){
       <div class="o-lib-toolbar">
         <div class="o-lib-tabs" role="group">
           ${tab('all',c.all,counts.all)}
-          ${tab('vocabulary',c.vocabulary,counts.vocabulary)}
-          ${tab('phrases',c.phrases,counts.phrases)}
+          ${typeTabs.map(key=>tab(key,typeLabel(key),byType[key])).join('')}
           ${infoTip(c.tabTip)}
         </div>
         <div class="o-lib-tools">

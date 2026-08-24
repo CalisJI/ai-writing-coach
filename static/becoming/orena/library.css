@@ -130,8 +130,16 @@
   font-size:var(--o-text-meta);
   white-space:nowrap;
 }
-.o-type-chip--vocabulary{background:color-mix(in srgb,var(--o-positive) 13%,transparent);color:var(--o-positive)}
+/* One colour per lexical category, borrowed from the word-role palette so the
+   library reads the same way the transcript lens does. */
+.o-type-chip--word{background:color-mix(in srgb,var(--o-positive) 13%,transparent);color:var(--o-positive)}
 .o-type-chip--phrase{background:color-mix(in srgb,var(--o-role-adverb) 15%,transparent);color:var(--o-role-adverb)}
+.o-type-chip--collocation{background:color-mix(in srgb,var(--o-role-noun) 15%,transparent);color:var(--o-role-noun)}
+.o-type-chip--idiom{background:color-mix(in srgb,var(--o-accent) 14%,transparent);color:var(--o-accent)}
+.o-type-chip--colloquial{background:color-mix(in srgb,var(--o-attention) 16%,transparent);color:var(--o-attention)}
+.o-type-chip--phrasalVerb{background:color-mix(in srgb,var(--o-role-verb) 14%,transparent);color:var(--o-role-verb)}
+.o-type-chip--separable{background:color-mix(in srgb,var(--o-role-verb) 14%,transparent);color:var(--o-role-verb)}
+.o-type-chip--measure{background:color-mix(in srgb,var(--o-role-adjective) 15%,transparent);color:var(--o-role-adjective)}
 
 .o-mastery{display:grid;gap:5px}
 .o-mastery-dots{display:flex;gap:4px}
