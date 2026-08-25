@@ -587,11 +587,9 @@ export async function renderReading(root){
         ${articleHeader(session,position)}
         ${passageBlock(session,result)}
         ${questionsBlock(session,result)}
-      </div>
-      ${readerRail(session)}
-    </div>
-
-    <div class="o-reading-bottom">
+        <!-- The bar belongs to the reading column, so it lines up with the
+             passage instead of centring on the whole page. -->
+        <div class="o-reading-bottom">
       <button type="button" class="o-btn o-btn--outline" data-reading-back>${oIcon('arrowLeft')}<span>${esc(c.backToLibrary)}</span></button>
       ${position?`<div class="o-reading-progress">
         <span>${esc(fill(c.position,position))}</span>
@@ -599,7 +597,10 @@ export async function renderReading(root){
       </div>`:''}
       <button type="button" class="o-btn o-btn--primary" data-reading-next>
         <span>${esc(result?c.another:c.nextPassage)}</span>${oIcon('arrowRight')}
-      </button>
+          </button>
+        </div>
+      </div>
+      ${readerRail(session)}
     </div>
   </section>`;
 
