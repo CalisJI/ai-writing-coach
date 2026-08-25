@@ -643,7 +643,7 @@
   width:26px;height:26px;
   border-radius:8px;
   background:var(--o-accent-tint);
-  border:1px solid var(--o-accent-edge);
+  border:1px solid var(--o-border);
   color:var(--o-accent);
   font-size:var(--o-text-meta);
   font-weight:600;
@@ -741,7 +741,7 @@
 .o-practice-head .o-tab{min-height:30px;padding:0 14px;border-radius:var(--o-radius-pill)}
 .o-practice-head .o-tab.is-active{
   background:var(--o-accent-soft);
-  border-color:var(--o-accent-edge);
+  border-color:var(--o-border);
 }
 
 /* The rail panels sit tighter than a page card: title, one line, one meter. */
@@ -880,7 +880,11 @@
 .o-mode-copy{display:grid;gap:1px;min-width:0}
 .o-mode-copy strong{font-size:var(--o-text-ui);font-weight:600;color:var(--o-ink)}
 .o-mode-copy small{font-size:var(--o-text-meta);color:var(--o-ink-muted);white-space:nowrap}
-.o-mode-card.is-active{border-color:var(--o-accent-edge);background:var(--o-accent-tint)}
+.o-mode-card.is-active{
+  border-color:var(--o-border);
+  background:var(--o-accent-tint);
+  box-shadow:var(--o-shadow-raised),var(--o-glow-accent),var(--o-rim);
+}
 .o-mode-card.is-active .o-mode-icon{background:color-mix(in srgb,var(--o-accent) 18%,transparent);color:var(--o-accent)}
 .o-mode-card.is-active .o-mode-copy strong{color:var(--o-accent)}
 .o-mode-card[disabled]{opacity:.45;cursor:not-allowed}

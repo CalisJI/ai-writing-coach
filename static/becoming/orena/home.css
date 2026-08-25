@@ -114,7 +114,11 @@
   color:var(--o-ink-muted);
 }
 .o-stage-tile svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
-.o-stage[data-state="done"] .o-stage-tile{color:var(--o-positive);border-color:color-mix(in srgb,var(--o-positive) 40%,var(--o-border))}
+/* A finished step keeps a neutral edge and says so with its tick. In the
+   reference only the live step is coloured, and it is coloured by being filled
+   - an outline around every finished thing is how a track ends up looking like
+   a row of coloured boxes. */
+.o-stage[data-state="done"] .o-stage-tile{color:var(--o-positive)}
 .o-stage[data-state="active"] .o-stage-tile{
   background-color:var(--o-accent);
   border-color:transparent;

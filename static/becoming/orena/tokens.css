@@ -15,10 +15,15 @@
 :root{
   /* --- surfaces (light) --------------------------------------------------
      canvas #FDFBF9, sidebar #FCF9F7, card #FFFFFF, border #E9E6E3 */
-  --o-canvas:#FDFBF9;
+  /* The canvas sits a real step below the cards, because that step is what
+     makes a card a card. At #FDFBF9 against white the difference was two
+     points of luminance and every surface had to borrow a border to exist -
+     which is how an interface ends up outlined in colour. The reference sets a
+     warm grey field and floats white cards on it. */
+  --o-canvas:#F2EFEA;
   --o-surface:#FFFFFF;
-  --o-surface-sunken:#FAF8F6;
-  --o-sidebar:#FCF9F7;
+  --o-surface-sunken:#F8F5F1;
+  --o-sidebar:#FFFFFF;
   --o-raised:#FFFFFF;
   --o-border:#E9E6E3;
   --o-border-strong:#DAD5D0;
@@ -156,11 +161,15 @@
 html[data-theme="dark"]{
   /* canvas #0B0D0F, card #0F1215, sidebar #111417, raised #13161A,
      border #2A2D30 — all sampled from the dark reference. */
-  --o-canvas:#0B0D0F;
-  --o-surface:#0F1215;
-  --o-surface-sunken:#0C0F12;
-  --o-sidebar:#111417;
-  --o-raised:#13161A;
+  /* Dark had the same problem from the other side: five points between the
+     canvas and a card. The reference goes near-black under distinctly lighter
+     surfaces, so depth comes from the step and the shadow rather than from an
+     outline. */
+  --o-canvas:#08090B;
+  --o-surface:#15181C;
+  --o-surface-sunken:#101316;
+  --o-sidebar:#0E1013;
+  --o-raised:#1A1E23;
   --o-border:#2A2D30;
   --o-border-strong:#3A3E43;
 

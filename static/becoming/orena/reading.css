@@ -213,7 +213,14 @@
   font-size:var(--o-text-ui);line-height:1.5;cursor:pointer;
 }
 .o-option input{accent-color:var(--o-accent);flex:0 0 auto;margin:0}
-.o-option.is-selected{border-color:var(--o-accent-edge);background:var(--o-accent-tint)}
+/* Selection is a lit, raised surface. The reference fills the active thing and
+   lets it glow; drawing a coloured line around it is the flat-design habit this
+   product does not have. */
+.o-option.is-selected{
+  border-color:var(--o-border);
+  background:var(--o-accent-tint);
+  box-shadow:var(--o-shadow-raised),var(--o-glow-accent),var(--o-rim);
+}
 .o-option.is-right{border-color:var(--o-positive);background:color-mix(in srgb,var(--o-positive) 10%,transparent)}
 .o-option.is-wrong{border-color:var(--o-critical);background:color-mix(in srgb,var(--o-critical) 10%,transparent)}
 
@@ -230,7 +237,7 @@
 .o-reading-result{
   display:grid;gap:8px;
   padding:16px 18px;
-  border:1px solid var(--o-accent-edge);
+  border:1px solid var(--o-border);
   border-radius:var(--o-radius-card);
   background:var(--o-accent-tint);
 }
@@ -430,9 +437,10 @@
 .o-material-face strong{font-size:var(--o-text-ui);font-weight:600}
 .o-material-face small{font-size:var(--o-text-meta);color:var(--o-ink-muted);line-height:1.5}
 .o-material-card input:checked + .o-material-face{
-  border-color:var(--o-accent-edge);
+  border-color:var(--o-border);
   background-color:var(--o-accent-tint);
-  background-image:none;
+  background-image:var(--o-sheen-control);
+  box-shadow:var(--o-shadow-raised),var(--o-glow-accent),var(--o-rim-control);
 }
 .o-material-card input:checked + .o-material-face .o-material-icon{background:color-mix(in srgb,var(--o-accent) 16%,transparent);color:var(--o-accent)}
 .o-material-card input:focus-visible + .o-material-face{outline:2px solid var(--o-focus-ring);outline-offset:2px}
