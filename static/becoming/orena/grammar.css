@@ -240,6 +240,49 @@ html[data-theme="dark"] .grammar-page{--color-informational:#9B84F0}
   background:color-mix(in srgb,var(--block-mark) 7%,var(--o-surface-sunken));
 }
 
+/* §19: the two blocks a learner reads together sit together. On a phone §20
+   stacks them, which is the natural collapse of a two-column pair. */
+.grammar-page .grammar-lesson-pair{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
+  gap:14px;
+  align-items:start;
+}
+
+/* §4 Level 2: one dominant teaching object. It is the thing that answers "how
+   does this grammar work?", so it is drawn heavier than the blocks that
+   support it. */
+.grammar-page .grammar-learning-block.is-primary-model{
+  border-left-width:4px;
+  background:var(--o-surface);
+  box-shadow:var(--o-shadow-raised),var(--o-rim);
+}
+#mainContent .grammar-page .is-primary-model .grammar-learning-block-head h3{
+  font-size:clamp(17px,1.7vw,21px);
+}
+
+/* §4 Level 4: the eight-step path is orientation, and it belongs in the support
+   column where it cannot outweigh the grammar. */
+.grammar-page .grammar-rail-path:empty{display:none}
+.grammar-page .grammar-rail-path .grammar-learning-flow{
+  /* One step per row. The lesson body lays this out as seven columns, which in
+     a 290px rail left twenty-six pixels per step and squeezed every name away. */
+  display:grid;grid-template-columns:minmax(0,1fr);gap:5px;justify-items:stretch;
+  padding:0;border:0;
+}
+.grammar-page .grammar-rail-path .grammar-learning-flow span{
+  width:100%;
+  justify-content:flex-start;
+  padding:6px 9px;
+  font-size:var(--o-text-meta);
+}
+/* The step name is the useful half. Left to the flex default it was squeezed
+   to nothing and the path read as a row of bare numbers. */
+.grammar-page .grammar-rail-path .grammar-learning-flow b{
+  flex:1 1 auto;min-width:0;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+
 /* ---- the pattern ---- */
 
 /* The pattern is the one thing a learner should still be able to picture an
