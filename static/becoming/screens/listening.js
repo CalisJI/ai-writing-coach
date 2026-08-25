@@ -611,11 +611,11 @@ function learningWorkspace(payload,selected,model,mode){
   return `${modeBar}
     <div class="o-listen-notices">${notices}</div>
     ${mode==='active'?activeWorkspace(payload,selected,model):followWorkspace(payload,selected,model)}
-    <div class="o-listen-mid">
+    <div class="o-listen-mid o-stick">
       ${currentSegmentPanel(payload,selected,model,mode)}
       ${vocabularyFocusPanel(payload,selected,mode,model)}
     </div>
-    <aside class="o-listen-right">
+    <aside class="o-listen-right o-stick">
       ${goalPanel()}
       ${sourcePanel(payload)}
       ${savedLessonsPanel()}

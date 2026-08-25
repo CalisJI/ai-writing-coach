@@ -412,7 +412,7 @@ function savedMeaning(word){
 function readerRail(session){
   const c=copy();
   const words=session.recycled_words||[];
-  return `<aside class="o-reader-rail">
+  return `<aside class="o-reader-rail o-stick">
     <section class="o-card o-panel o-understanding">
       <button type="button" class="o-panel-toggle" data-panel-toggle aria-expanded="true">
         <span class="o-label">${esc(c.understanding)}</span>
