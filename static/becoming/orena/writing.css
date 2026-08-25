@@ -122,6 +122,12 @@
   align-items:center;
   gap:9px;
   width:100%;
+  /* An <input> carries an intrinsic width of about twenty characters, and in
+     an auto-sized track that intrinsic width wins over `width:100%`. On a
+     390px phone the URL field on Listening measured 526px of min-content and
+     dragged the whole page 205px wider than the screen. A control is never
+     wider than the column holding it. */
+  min-width:0;
   min-height:46px;
   padding:0 13px;
   border:1px solid var(--o-border-strong);

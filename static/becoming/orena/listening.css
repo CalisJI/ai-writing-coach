@@ -358,8 +358,12 @@
 }
 .o-import[data-collapsed] .o-import-toggle{display:block}
 .o-import-toggle:hover{color:var(--o-ink)}
-.o-import-row{display:flex;gap:12px;flex-wrap:wrap}
-.o-import-row .o-control{flex:1 1 320px}
+/* The row wraps, but a wrapping flex row still reports its widest item as its
+   own minimum - so a 320px basis on the field made the card 526px wide and the
+   page 205px wider than a 390px phone. The basis is a preference for a roomy
+   field on a desktop, not a floor. */
+.o-import-row{display:flex;gap:12px;flex-wrap:wrap;min-width:0}
+.o-import-row .o-control{flex:1 1 320px;min-width:min(100%,14rem)}
 
 /* ============================================================= phone ===== */
 
