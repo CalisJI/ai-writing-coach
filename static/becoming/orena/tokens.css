@@ -112,6 +112,7 @@
     0 12px 24px -8px rgba(28,25,23,.14),
     0 28px 64px -12px rgba(28,25,23,.20);
   --o-shadow-sticky:0 -6px 20px -4px rgba(28,25,23,.10);
+
   --o-shadow-inset:inset 0 1px 3px rgba(28,25,23,.05);
 
   /* The lit top edge. In light it is almost nothing; the dark theme is where
@@ -189,6 +190,7 @@ html[data-theme="dark"]{
     0 16px 32px -12px rgba(0,0,0,.7),
     0 32px 72px -16px rgba(0,0,0,.8);
   --o-shadow-sticky:0 -8px 24px -6px rgba(0,0,0,.65);
+
   --o-shadow-inset:inset 0 1px 3px rgba(0,0,0,.5);
 
   /* Sampled: a 1px #414246 line along the top of a #111519 card, which is
