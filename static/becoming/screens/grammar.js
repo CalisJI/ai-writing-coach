@@ -1,5 +1,6 @@
 import {api} from '../api.js';
 import {go} from '../router.js?v=2.17.4';
+import {classifyArchetype,archetypeLabel} from '../domain/grammar-pedagogy.js';
 import {supportLanguage} from '../store.js';
 import {esc,errorBlock,loadingBlock,toast,runBusy} from '../components/primitives.js';
 import {
@@ -410,7 +411,9 @@ function lessonMarkup(detail,payload){
 
     <header class="grammar-lesson-head">
       <div>
-        <span class="editorial-kicker">${esc(detail.level)} · ${esc(kindLabel(detail.kind))}</span>
+        <!-- What kind of grammar this is, classified from the concept itself
+             rather than from the word "lesson", which every lesson is. -->
+        <span class="editorial-kicker">${esc(detail.level)} · ${esc(archetypeLabel(classifyArchetype(detail),supportLanguage()||'en'))}</span>
         <h2>${esc(detail.title)}</h2>
         <p>${esc(objective)}</p>
       </div>
