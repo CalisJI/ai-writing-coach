@@ -1,0 +1,352 @@
+/* ORENA-GRAMMAR-*: the curriculum, and one lesson read as a page.
+ *
+ * The reference for this screen was drawn from the system that already exists:
+ * its Pattern block, timeline, When-to-use list, Compare pair, Common mistake
+ * and Quick practice are the schema-v2 renderer's own block types. So nothing
+ * here rebuilds the lesson - `components/grammar-learning.js` still decides
+ * what a concept contains, and this file dresses what it produces.
+ *
+ * Two things the reference draws are absent, both for want of a source. There
+ * is no grammar streak: the product records one streak and it counts writing
+ * days. And there is no "add to review plan": spaced review exists for saved
+ * words in Library, not for grammar concepts. The rail carries what is real
+ * instead - where you are in the lesson, and what the lesson contains.
+ */
+
+.grammar-page{--o-grammar-rail:290px}
+
+/* ============================================================== overview === */
+
+.grammar-page .grammar-hero{
+  display:grid;
+  grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);
+  gap:24px;
+  align-items:center;
+  padding:24px;
+  border:1px solid var(--o-border);
+  border-radius:var(--o-radius-card);
+  background-color:var(--o-surface);
+  background-image:var(--o-sheen);
+  box-shadow:var(--o-shadow-card),var(--o-rim);
+}
+.grammar-page .grammar-progress-visual{display:grid;grid-template-columns:auto minmax(0,1fr);gap:20px;align-items:center;min-width:0}
+.grammar-page .grammar-progress-number{
+  display:flex;align-items:baseline;gap:2px;
+  color:var(--o-accent);
+  font-size:clamp(38px,5vw,54px);
+  font-weight:600;
+  line-height:1;
+  letter-spacing:-.03em;
+}
+.grammar-page .grammar-progress-number span{font-size:.42em;font-weight:500}
+.grammar-page .grammar-progress-copy{display:grid;gap:8px;min-width:0}
+.grammar-page .grammar-progress-copy h2{margin:0;font-size:var(--o-text-heading);font-weight:600;color:var(--o-ink)}
+.grammar-page .grammar-progress-copy p{margin:0;font-size:var(--o-text-meta);color:var(--o-ink-faint);line-height:1.5}
+.grammar-page .grammar-progress-track{height:6px;border-radius:var(--o-radius-pill);background:var(--o-surface-sunken);overflow:hidden}
+.grammar-page .grammar-progress-track span{display:block;height:100%;border-radius:inherit;background:var(--o-accent)}
+
+.grammar-page .grammar-next-card{
+  display:grid;gap:10px;align-content:start;
+  padding:18px;
+  border:1px solid var(--o-accent-edge);
+  border-radius:var(--o-radius-card);
+  background:var(--o-accent-tint);
+  min-width:0;
+}
+.grammar-page .grammar-next-card h2{margin:0;font-size:var(--o-text-body);font-weight:600;line-height:1.4;color:var(--o-ink)}
+.grammar-page .grammar-next-card p{margin:0;font-size:var(--o-text-meta);color:var(--o-ink-muted);line-height:1.5}
+.grammar-page .grammar-next-card p:empty{display:none}
+
+/* The level rail: one pill per level, each carrying its own progress. */
+.grammar-page .grammar-roadmap{display:grid;gap:12px;padding:0;border:0;background:none;box-shadow:none}
+.grammar-page .grammar-section-head h2{margin:0;font-size:var(--o-text-body);font-weight:600;color:var(--o-ink)}
+.grammar-page .grammar-section-head .context-label{display:none}
+.grammar-page .grammar-level-rail{display:flex;flex-wrap:wrap;gap:10px}
+.grammar-page .grammar-level-pill{
+  display:grid;gap:5px;justify-items:start;
+  min-width:104px;padding:11px 14px;
+  border:1px solid var(--o-border);
+  border-radius:var(--o-radius-field);
+  background:var(--o-surface);
+  color:var(--o-ink);font:inherit;cursor:pointer;
+  transition:border-color var(--o-motion),background var(--o-motion);
+}
+.grammar-page .grammar-level-pill:hover{border-color:var(--o-accent-edge);background:var(--o-accent-tint)}
+.grammar-page .grammar-level-pill strong{font-size:var(--o-text-ui);font-weight:600}
+.grammar-page .grammar-level-pill span{font-size:var(--o-text-meta);color:var(--o-ink-muted);font-variant-numeric:tabular-nums}
+.grammar-page .grammar-level-pill i{display:block;width:100%;height:4px;border-radius:var(--o-radius-pill);background:var(--o-surface-sunken);overflow:hidden}
+.grammar-page .grammar-level-pill i b{display:block;height:100%;border-radius:inherit;background:var(--o-accent)}
+
+/* ================================================================ lesson === */
+
+.grammar-page .grammar-lesson-slot:empty{display:none}
+
+.grammar-page .grammar-lesson{
+  display:grid;gap:18px;
+  padding:22px 24px;
+  border:1px solid var(--o-border);
+  border-radius:var(--o-radius-card);
+  background-color:var(--o-surface);
+  background-image:var(--o-sheen);
+  box-shadow:var(--o-shadow-card),var(--o-rim);
+}
+.grammar-page .grammar-back{justify-self:start}
+
+.grammar-page .grammar-lesson-head{
+  display:grid;grid-template-columns:minmax(0,1fr) auto;
+  align-items:start;gap:16px;
+}
+.grammar-page .grammar-lesson-head .editorial-kicker{
+  font-size:var(--o-text-label);font-weight:600;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--o-accent);
+}
+#mainContent .grammar-page .grammar-lesson-head h2{
+  margin:6px 0 4px;
+  font-size:clamp(24px,3vw,32px);
+  font-weight:600;line-height:1.2;letter-spacing:-.02em;
+}
+.grammar-page .grammar-lesson-head p{margin:0;font-size:var(--o-text-body);color:var(--o-ink-muted);line-height:1.55}
+.grammar-page .grammar-completion-chip{
+  padding:6px 11px;
+  border:1px solid var(--o-border);
+  border-radius:var(--o-radius-pill);
+  background:var(--o-surface-sunken);
+  font-size:var(--o-text-meta);color:var(--o-ink-muted);white-space:nowrap;
+}
+.grammar-page .grammar-completion-chip.is-complete{
+  border-color:color-mix(in srgb,var(--o-positive) 40%,var(--o-border));
+  background:color-mix(in srgb,var(--o-positive) 12%,transparent);
+  color:var(--o-positive);
+}
+
+/* Lesson body beside the rail, the way the reference splits them. */
+.grammar-page .grammar-lesson-layout{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) var(--o-grammar-rail);
+  gap:22px;
+  align-items:start;
+}
+.grammar-page .grammar-teach-column{display:grid;gap:16px;min-width:0}
+
+/* ---- the rail ---- */
+
+.grammar-page .grammar-lesson-actions{
+  display:grid;gap:14px;align-content:start;min-width:0;
+  position:sticky;top:calc(var(--o-header-h) + var(--o-gap));
+}
+.grammar-page .grammar-rail-block{
+  display:grid;gap:9px;
+  padding:16px;
+  border:1px solid var(--o-border);
+  border-radius:var(--o-radius-card);
+  background:var(--o-surface);
+  box-shadow:var(--o-shadow-card);
+}
+.grammar-page .grammar-rail-block .context-label{
+  font-size:var(--o-text-label);font-weight:600;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--o-ink-faint);
+}
+.grammar-page .grammar-rail-block strong{font-size:var(--o-text-ui);font-weight:600;color:var(--o-ink);line-height:1.4}
+.grammar-page .grammar-rail-block p,
+.grammar-page .grammar-rail-block small{margin:0;font-size:var(--o-text-meta);color:var(--o-ink-muted);line-height:1.5}
+.grammar-page .grammar-rail-meter{height:6px;border-radius:var(--o-radius-pill);background:var(--o-surface-sunken);overflow:hidden}
+.grammar-page .grammar-rail-meter i{display:block;height:100%;border-radius:inherit;background:var(--o-accent);transition:width var(--o-motion)}
+
+/* The outline: a dotted spine with the section you are reading marked. */
+.grammar-page .grammar-rail-outline ol{display:grid;gap:2px;margin:0;padding:0;list-style:none;counter-reset:none}
+.grammar-page .grammar-rail-outline li{position:relative;padding-left:20px}
+.grammar-page .grammar-rail-outline li::before{
+  content:"";position:absolute;left:4px;top:11px;
+  width:7px;height:7px;border-radius:50%;
+  background:var(--o-border-strong);
+}
+.grammar-page .grammar-rail-outline li:not(:last-child)::after{
+  content:"";position:absolute;left:7px;top:20px;bottom:-2px;
+  width:1px;background:var(--o-border);
+}
+.grammar-page .grammar-rail-outline button{
+  display:block;width:100%;padding:5px 0;
+  border:0;background:transparent;color:var(--o-ink-muted);
+  font:inherit;font-size:var(--o-text-meta);text-align:left;cursor:pointer;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.grammar-page .grammar-rail-outline li.is-current::before{background:var(--o-accent);box-shadow:0 0 0 3px var(--o-accent-tint)}
+.grammar-page .grammar-rail-outline li.is-current button{color:var(--o-ink);font-weight:600}
+.grammar-page .grammar-rail-outline button:hover{color:var(--o-accent)}
+
+/* ---- the blocks the renderer produces ---- */
+
+.grammar-page .grammar-learning-shell{display:grid;gap:16px}
+.grammar-page .grammar-learning-block,
+.grammar-page .grammar-teach-block,
+.grammar-page .grammar-guided-practice,
+.grammar-page .grammar-production{
+  display:grid;gap:10px;
+  padding:16px 18px;
+  border:1px solid var(--o-border);
+  border-radius:var(--o-radius-card);
+  background:var(--o-surface-sunken);
+}
+/* The reference marks each section with a short accent rule at its left. */
+.grammar-page .grammar-learning-block{position:relative;overflow:hidden}
+.grammar-page .grammar-learning-block::before{
+  content:"";position:absolute;left:0;top:16px;bottom:16px;width:3px;
+  border-radius:0 3px 3px 0;background:var(--o-accent);
+  opacity:.55;
+}
+.grammar-page .grammar-learning-block-head{display:grid;gap:4px}
+#mainContent .grammar-page .grammar-learning-block-head h3{
+  margin:0;font-size:var(--o-text-body);font-weight:600;color:var(--o-ink);line-height:1.35;
+}
+.grammar-page .grammar-learning-stage{
+  font-size:var(--o-text-label);font-weight:600;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--o-ink-faint);
+}
+.grammar-page .grammar-learning-block-head p{margin:0;font-size:var(--o-text-meta);color:var(--o-ink-muted);line-height:1.5}
+
+/* The pattern is the loudest thing on the page, as it is in the reference. */
+.grammar-page .grammar-learning-primary-pattern .grammar-learning-block{
+  background:var(--o-surface);
+  border-color:var(--o-border-strong);
+}
+.grammar-page .grammar-learning-primary-pattern .grammar-formula-line,
+.grammar-page .grammar-formula-line{
+  display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px;
+  padding:14px 16px;
+  border-radius:var(--o-radius-field);
+  background:var(--o-accent-tint);
+  color:var(--o-accent);
+  font-size:clamp(16px,2vw,20px);
+  font-weight:600;
+  text-align:center;
+}
+
+.grammar-page .grammar-learning-hook,
+.grammar-page .grammar-learning-meaning,
+.grammar-page .grammar-learning-use-when{
+  display:grid;gap:8px;
+  padding:16px 18px;
+  border:1px solid var(--o-border);
+  border-radius:var(--o-radius-card);
+  background:var(--o-surface-sunken);
+}
+#mainContent .grammar-page .grammar-learning-hook h3,
+#mainContent .grammar-page .grammar-learning-meaning h3{
+  margin:0;font-size:var(--o-text-body);font-weight:600;line-height:1.45;
+}
+.grammar-page .grammar-learning-hook span,
+.grammar-page .grammar-learning-use-when > span{
+  font-size:var(--o-text-label);font-weight:600;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--o-ink-faint);
+}
+.grammar-page .grammar-learning-meaning p{margin:0;font-size:var(--o-text-ui);color:var(--o-ink-muted);line-height:1.6}
+.grammar-page .grammar-learning-use-when ul,
+.grammar-page .grammar-learning-meaning ul{display:grid;gap:8px;margin:0;padding:0;list-style:none}
+.grammar-page .grammar-learning-use-when li,
+.grammar-page .grammar-learning-meaning li{
+  position:relative;padding-left:22px;
+  font-size:var(--o-text-ui);color:var(--o-ink-muted);line-height:1.55;
+}
+.grammar-page .grammar-learning-use-when li::before,
+.grammar-page .grammar-learning-meaning li::before{
+  content:"";position:absolute;left:0;top:7px;
+  width:11px;height:11px;border-radius:50%;
+  border:2px solid var(--o-accent);
+}
+
+/* The stage flow reads as a quiet index, not a second headline. */
+.grammar-page .grammar-learning-flow{display:flex;flex-wrap:wrap;gap:6px}
+.grammar-page .grammar-learning-flow span{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:5px 11px;
+  border:1px solid var(--o-border);
+  border-radius:var(--o-radius-pill);
+  background:var(--o-surface);
+  font-size:var(--o-text-meta);color:var(--o-ink-muted);
+}
+.grammar-page .grammar-learning-flow i{
+  display:grid;place-items:center;width:17px;height:17px;
+  border-radius:50%;background:var(--o-surface-sunken);
+  font-style:normal;font-size:10px;font-weight:600;color:var(--o-ink-faint);
+}
+.grammar-page .grammar-learning-flow b{font-weight:500}
+
+/* Compare, mistakes and practice keep their semantic colour and take the
+   card language around it. */
+.grammar-page .grammar-contrast-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px}
+.grammar-page .grammar-contrast-item{
+  display:grid;gap:6px;padding:13px 15px;
+  border:1px solid var(--o-border);
+  border-radius:var(--o-radius-field);
+  background:var(--o-surface);
+  font-size:var(--o-text-ui);line-height:1.55;
+}
+.grammar-page .grammar-common-mistake{
+  border-color:color-mix(in srgb,var(--o-critical) 32%,var(--o-border));
+  background:color-mix(in srgb,var(--o-critical) 8%,transparent);
+}
+.grammar-page .grammar-mistake-row{display:grid;gap:3px;padding:9px 0;font-size:var(--o-text-ui);line-height:1.55}
+.grammar-page .grammar-mistake-row + .grammar-mistake-row{border-top:1px solid var(--o-border)}
+.grammar-page .grammar-mistake-row.is-correct{color:var(--o-positive)}
+
+.grammar-page .grammar-micro-practice,
+.grammar-page .grammar-practice-card{
+  display:grid;gap:10px;padding:15px 16px;
+  border:1px solid var(--o-border);
+  border-radius:var(--o-radius-field);
+  background:var(--o-surface);
+}
+.grammar-page .grammar-micro-options,
+.grammar-page .grammar-builder-options{display:grid;gap:8px}
+.grammar-page .grammar-micro-options button,
+.grammar-page .grammar-builder-options button{
+  width:100%;padding:11px 13px;
+  border:1px solid var(--o-border);
+  border-radius:var(--o-radius-field);
+  background:var(--o-surface-sunken);
+  color:var(--o-ink);font:inherit;font-size:var(--o-text-ui);
+  text-align:left;cursor:pointer;
+  transition:border-color var(--o-motion),background var(--o-motion);
+}
+.grammar-page .grammar-micro-options button:hover,
+.grammar-page .grammar-builder-options button:hover{border-color:var(--o-accent-edge);background:var(--o-accent-tint)}
+
+.grammar-page .grammar-practice-attempt{display:grid;gap:6px;font-size:var(--o-text-meta);color:var(--o-ink-muted)}
+.grammar-page .grammar-practice-attempt textarea,
+.grammar-page .grammar-production textarea{
+  width:100%;min-width:0;padding:11px 13px;
+  border:1px solid var(--o-border-strong);
+  border-radius:var(--o-radius-field);
+  background:var(--o-surface);
+  color:var(--o-ink);font:inherit;font-size:var(--o-text-ui);
+  resize:vertical;
+}
+.grammar-page .grammar-practice-index{
+  font-size:var(--o-text-label);letter-spacing:.06em;text-transform:uppercase;color:var(--o-ink-faint);
+}
+
+.grammar-page .grammar-lesson-nav{display:flex;gap:10px;justify-content:space-between}
+
+/* ================================================================= phone === */
+
+@media (max-width:1023px){
+  .grammar-page .grammar-hero{grid-template-columns:minmax(0,1fr);padding:18px}
+  .grammar-page .grammar-progress-visual{grid-template-columns:minmax(0,1fr);gap:12px}
+  .grammar-page .grammar-lesson{padding:16px 14px;gap:14px}
+  .grammar-page .grammar-lesson-head{grid-template-columns:minmax(0,1fr)}
+  /* The rail follows the lesson on a phone rather than sitting beside it, and
+     it stops pinning: a pinned rail on a phone is a second scroll area over
+     the thing being read. */
+  .grammar-page .grammar-lesson-layout{grid-template-columns:minmax(0,1fr);gap:16px}
+  .grammar-page .grammar-lesson-actions{position:static}
+  .grammar-page .grammar-learning-block,
+  .grammar-page .grammar-teach-block,
+  .grammar-page .grammar-guided-practice,
+  .grammar-page .grammar-production,
+  .grammar-page .grammar-learning-hook,
+  .grammar-page .grammar-learning-meaning,
+  .grammar-page .grammar-learning-use-when{padding:14px}
+  .grammar-page .grammar-contrast-grid{grid-template-columns:minmax(0,1fr)}
+  .grammar-page .grammar-lesson-nav{flex-wrap:wrap}
+  .grammar-page .grammar-lesson-nav .button{flex:1 1 auto}
+}
