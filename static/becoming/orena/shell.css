@@ -468,11 +468,19 @@ body.onboarding-mode .o-drawer-toggle{visibility:hidden}
    short window, and better than squeezing a transcript down to two lines to
    keep a frame intact. */
 .o-fit{
-  min-height:calc(100dvh - var(--o-header-h) - var(--o-gutter) * 2);
+  /* The space the shell has already given this screen, rather than a guess at
+     it: subtracting the header and the gutters by hand missed the page heading
+     and left every screen fifty pixels too tall, which is a scrollbar for
+     nothing. */
+  min-height:100%;
   display:grid;
   align-content:start;
   gap:var(--o-gap);
 }
+/* A page that ends with the window does not need the long tail of padding a
+   scrolling page ends on: doubled against the top it reads as dead space. Two
+   classes, because the base page rule is in a sheet that loads later. */
+.o-page.o-fit{padding-bottom:var(--o-gap)}
 
 /* A panel that grows: capped as a share of the window, never as a fixed box. */
 .o-scroll{
