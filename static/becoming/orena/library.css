@@ -54,7 +54,7 @@
   font-variant-numeric:tabular-nums;
 }
 .o-lib-tab.is-active{
-  border-color:var(--o-accent-edge);
+  border-color:var(--o-border);
   background-color:var(--o-accent-tint);
   background-image:none;
   color:var(--o-accent);
@@ -186,7 +186,12 @@
   background:transparent;color:var(--o-ink-muted);
   font:inherit;font-size:var(--o-text-meta);cursor:pointer;
 }
-.o-pager-page.is-active{border-color:var(--o-accent-edge);background:var(--o-accent-tint);color:var(--o-accent);font-weight:600}
+.o-pager-page.is-active{
+  border-color:var(--o-border);
+  background:var(--o-accent-tint);
+  box-shadow:var(--o-shadow-control),var(--o-glow-accent);
+  color:var(--o-accent);font-weight:600;
+}
 .o-pager-gap{padding:0 2px;color:var(--o-ink-faint)}
 
 /* --------------------------------------------------------------- rail ---- */
@@ -286,7 +291,7 @@
 .o-recall{
   display:grid;gap:12px;justify-items:center;text-align:center;
   padding:26px 24px;
-  border:1px solid var(--o-accent-edge);
+  border:1px solid var(--o-border);
   border-radius:var(--o-radius-card);
   background-color:var(--o-surface);
   background-image:var(--o-sheen);

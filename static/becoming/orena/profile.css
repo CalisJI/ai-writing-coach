@@ -151,7 +151,7 @@
 }
 .profile-page .theme-choice:hover{border-color:var(--o-border-strong);transform:none}
 .profile-page .theme-choice.selected{
-  border-color:var(--o-accent-edge);
+  border-color:var(--o-border);
   background-image:none;
   background-color:var(--o-accent-tint);
   box-shadow:none;

@@ -45,7 +45,7 @@
 .o-band-chip{
   display:inline-grid;place-items:center;
   min-width:34px;height:28px;padding:0 9px;
-  border:1px solid var(--o-accent-edge);
+  border:1px solid var(--o-border);
   border-radius:8px;
   background:var(--o-accent-tint);
   color:var(--o-accent);

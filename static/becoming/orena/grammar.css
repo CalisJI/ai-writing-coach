@@ -69,9 +69,10 @@ html[data-theme="dark"] .grammar-page{--color-informational:#9B84F0}
 .grammar-page .grammar-next-card{
   display:grid;gap:10px;align-content:start;
   padding:18px;
-  border:1px solid var(--grammar-structure-edge);
+  border:1px solid var(--o-border);
   border-radius:var(--o-radius-card);
   background:var(--grammar-structure-tint);
+  box-shadow:var(--o-shadow-card),var(--o-rim);
   min-width:0;
 }
 .grammar-page .grammar-next-card h2{margin:0;font-size:var(--o-text-body);font-weight:600;line-height:1.4;color:var(--o-ink)}
@@ -292,9 +293,12 @@ html[data-theme="dark"] .grammar-page{--color-informational:#9B84F0}
 #mainContent .grammar-page .grammar-formula-plain{
   margin:0;
   padding:22px 24px;
-  border:1px solid var(--grammar-structure-edge);
+  border:0;
   border-radius:var(--o-radius-field);
   background:var(--grammar-structure-tint);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb,var(--grammar-structure) 22%,transparent),
+    inset 0 0 0 1px color-mix(in srgb,var(--grammar-structure) 10%,transparent);
   color:var(--grammar-structure);
   font-size:clamp(19px,2.5vw,29px);
   font-weight:600;
@@ -483,7 +487,7 @@ html[data-theme="dark"] .grammar-page{--color-informational:#9B84F0}
 .grammar-page .grammar-common-mistake{
   display:grid;gap:11px;max-width:none;
   padding:15px 16px;
-  border:1px solid color-mix(in srgb,var(--color-attention) 32%,var(--o-border));
+  border:1px solid var(--o-border);
   border-radius:var(--o-radius-field);
   background:var(--grammar-attention-tint);
 }
@@ -521,7 +525,7 @@ html[data-theme="dark"] .grammar-page{--color-informational:#9B84F0}
 .grammar-page .grammar-exception{
   display:grid;gap:9px;
   padding:15px 16px;
-  border:1px solid color-mix(in srgb,var(--color-attention) 30%,var(--o-border));
+  border:1px solid var(--o-border);
   border-radius:var(--o-radius-field);
   background:var(--grammar-attention-tint);
 }
@@ -597,13 +601,17 @@ html[data-theme="dark"] .grammar-page{--color-informational:#9B84F0}
 }
 .grammar-page .grammar-micro-options button:hover,
 .grammar-page .grammar-builder-options button:hover{
-  border-color:var(--grammar-structure-edge);
+  border-color:var(--o-border-strong);
   background:var(--grammar-structure-tint);
 }
 .grammar-page .grammar-micro-options button[aria-pressed="true"],
 .grammar-page .grammar-builder-options button[aria-pressed="true"]{
-  border-color:var(--grammar-structure);
+  border-color:var(--o-border);
   background:var(--grammar-structure-tint);
+  box-shadow:
+    var(--o-shadow-raised),
+    0 10px 24px -12px color-mix(in srgb,var(--grammar-structure) 55%,transparent),
+    var(--o-rim);
 }
 .grammar-page .grammar-micro-options button[aria-pressed="true"]::before,
 .grammar-page .grammar-builder-options button[aria-pressed="true"]::before{
@@ -653,9 +661,10 @@ html[data-theme="dark"] .grammar-page{--color-informational:#9B84F0}
 .grammar-page .grammar-memory-hook{
   display:grid;gap:6px;
   padding:14px 16px;
-  border:1px solid var(--grammar-structure-edge);
+  border:1px solid var(--o-border);
   border-radius:var(--o-radius-field);
   background:var(--grammar-structure-tint);
+  box-shadow:var(--o-shadow-card),var(--o-rim);
   font-size:var(--o-text-ui);line-height:1.55;
 }
 
@@ -729,17 +738,41 @@ html[data-theme="dark"] .grammar-page{--color-informational:#9B84F0}
 .grammar-page .grammar-exception > .is-exception,
 .grammar-page .grammar-learning-prompt.is-personal,
 .grammar-page .grammar-learning-prompt.is-recall{
-  border:1px solid color-mix(in srgb,var(--o-tone,var(--grammar-structure)) 30%,var(--o-border));
+  /* Neutral edge. Both reference screens draw every container this way - the
+     colour in them is a fill or a word, never an outline, and a tinted edge on
+     every block is the same habit wearing a subtler coat. The tone stays on the
+     stage label and the icon inside; depth is the surface step and the shadow. */
+  border:1px solid var(--o-border);
   box-shadow:
     var(--o-shadow-card),
-    0 10px 26px -14px color-mix(in srgb,var(--o-tone,var(--grammar-structure)) 60%,transparent),
+    0 12px 28px -18px color-mix(in srgb,var(--o-tone,var(--grammar-structure)) 45%,transparent),
     var(--o-rim);
 }
 /* The dominant object sits highest off the canvas - that is what makes it
    dominant, rather than a thicker stripe. */
 .grammar-page .grammar-learning-block.is-primary-model{
+  background-color:var(--o-raised);
   box-shadow:
     var(--o-shadow-raised),
-    0 16px 38px -16px color-mix(in srgb,var(--o-tone,var(--grammar-structure)) 70%,transparent),
+    0 18px 42px -18px color-mix(in srgb,var(--o-tone,var(--grammar-structure)) 55%,transparent),
     var(--o-rim);
 }
+
+/* The four transfer cards were the last outlined things in the lesson: a
+   three-pixel coloured rule across the top of each, one colour per skill. They
+   become four small raised cards, and the skill keeps its colour where the
+   reference puts colour - on the word. */
+.grammar-page .grammar-skill-transfer{gap:12px}
+.grammar-page .grammar-skill-transfer article{
+  padding:14px 15px;
+  border:1px solid var(--o-border);
+  border-top:1px solid var(--o-border);
+  border-radius:var(--o-radius-field);
+  background-color:var(--o-surface);
+  background-image:var(--o-sheen);
+  box-shadow:var(--o-shadow-card),var(--o-rim);
+}
+.grammar-page .grammar-skill-transfer article > *:first-child{color:var(--color-informational)}
+.grammar-page .grammar-skill-transfer article:nth-child(2) > *:first-child{color:var(--color-positive)}
+.grammar-page .grammar-skill-transfer article:nth-child(3) > *:first-child{color:var(--color-attention)}
+.grammar-page .grammar-skill-transfer article:nth-child(4) > *:first-child{color:var(--color-important)}

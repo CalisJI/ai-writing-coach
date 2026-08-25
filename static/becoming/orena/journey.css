@@ -31,7 +31,7 @@
 /* The focus card is the one the reference tints: it is what the learner is
    working on right now, and everything under it is context for it. */
 .o-journey-focus{
-  border-color:var(--o-accent-edge);
+  border-color:var(--o-border);
   background-color:var(--o-accent-tint);
   background-image:none;
 }
