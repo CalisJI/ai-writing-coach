@@ -1,8 +1,7 @@
 import {api} from '../api.js';
-import {go} from '../router.js?v=2.17.5';
+import {go} from '../router.js?v=2.17.4';
 import {supportLanguage} from '../store.js';
 import {esc,errorBlock,loadingBlock,toast,runBusy} from '../components/primitives.js';
-import {oIcon} from '../orena/icons.js?v=2.17.5';
 import {
   hasGrammarLearningModel,
   renderGrammarLearningModel,
@@ -10,11 +9,14 @@ import {
   grammarLearningCompletion,
   localizedText,
   grammarLanguageContext,
-} from '../components/grammar-learning.js?v=2.17.5';
+} from '../components/grammar-learning.js?v=2.17.4';
 
 const COPY={
   en:{
     kicker:'GRAMMAR · CURRICULUM',
+    backToGrammar:'Back to grammar',inThisLesson:'In this lesson',lessonPosition:'Where you are',
+    positionNote:'How far down the lesson you have read. It is a position, not a score.',
+
     title:'BUILD STRUCTURE YOU CAN ACTUALLY USE.',
     lead:'Move through one connected curriculum. Learn the target, compare nearby forms, practice it, then carry it into real writing.',
     progress:'Curriculum progress',complete:'completed',next:'Continue curriculum',
@@ -36,6 +38,9 @@ const COPY={
   },
   vi:{
     kicker:'NGỮ PHÁP · GIÁO TRÌNH',
+    backToGrammar:'Về danh sách ngữ pháp',inThisLesson:'Trong bài này',lessonPosition:'Bạn đang ở đâu',
+    positionNote:'Bạn đã đọc tới đâu trong bài. Đây là vị trí, không phải điểm số.',
+
     title:'XÂY CẤU TRÚC ĐỂ THẬT SỰ DÙNG ĐƯỢC.',
     lead:'Học theo một curriculum liền mạch. Hiểu đúng target, phân biệt cấu trúc gần nhau, luyện tập rồi đưa nó vào Writing thật.',
     progress:'Tiến độ curriculum',complete:'đã hoàn thành',next:'Học bài tiếp theo',
@@ -57,6 +62,9 @@ const COPY={
   },
   zh:{
     kicker:'语法 · 课程',
+    backToGrammar:'返回语法列表',inThisLesson:'本课内容',lessonPosition:'你在哪一段',
+    positionNote:'这是你在本课中读到的位置，不是分数。',
+
     title:'把语法结构学到真正能用。',
     lead:'沿着完整课程前进：理解当前目标、区分相近结构、完成练习，再把它迁移到真实写作。',
     progress:'课程进度',complete:'已完成',next:'继续下一课',
@@ -79,12 +87,6 @@ const COPY={
 };
 
 const copy=()=>COPY[supportLanguage()]||COPY.vi;
-const ORENA_GRAMMAR_COPY={
-  en:{back:'Back to grammar',inLesson:'In this lesson'},
-  vi:{back:'Quay lại ngữ pháp',inLesson:'Trong bài này'},
-  zh:{back:'返回语法课程',inLesson:'本课内容'},
-};
-const orenaGrammarCopy=()=>ORENA_GRAMMAR_COPY[supportLanguage()]||ORENA_GRAMMAR_COPY.vi;
 const grammarContext=detail=>grammarLanguageContext({
   interfaceLanguage:supportLanguage(),
   explanationLanguage:supportLanguage(),
@@ -138,9 +140,9 @@ function overviewMarkup(payload){
   const progress=progressOf(items);
   const next=nextIncomplete(items);
   const groups=groupByLevel(items,payload.levels||[]);
-  if(!items.length)return `<section class="page grammar-page">${errorBlock(c.empty)}</section>`;
+  if(!items.length)return `<section class="o-page grammar-page">${errorBlock(c.empty)}</section>`;
 
-  return `<section class="page grammar-page" data-grammar-ui>
+  return `<section class="o-page grammar-page" data-grammar-ui>
     <section class="grammar-hero visual-hero-surface">
       <div class="grammar-progress-visual" aria-label="${esc(c.progress)}">
         <div class="grammar-progress-number"><strong>${progress.percent}</strong><span>%</span></div>
@@ -305,11 +307,72 @@ function legacyLessonBody(detail,c){
     </section>`;
 }
 
+/* The reference lists the lesson's sections down the rail. The list is read
+   back off what actually rendered - the learning model decides which blocks a
+   concept has, so a hardcoded list would promise sections some lessons do not
+   contain. Clicking an entry moves to that section; the entry for whatever is
+   on screen is marked, and the meter beside it shows how far down the lesson
+   that is. */
+function wireLessonOutline(slot){
+  const list=slot.querySelector('[data-lesson-outline]');
+  const bar=slot.querySelector('[data-lesson-position-bar]');
+  const body=slot.querySelector('.grammar-teach-column');
+  if(!list||!body)return;
+
+  const sections=[...body.querySelectorAll(
+    '.grammar-learning-primary-pattern .grammar-learning-block,'
+    +'.grammar-learning-use-when,'
+    +'.grammar-learning-blocks > .grammar-learning-block,'
+    +'.grammar-teach-block,.grammar-guided-practice,.grammar-production',
+  )];
+  if(!sections.length){
+    list.closest('.grammar-rail-outline')?.remove();
+    return;
+  }
+
+  sections.forEach((section,index)=>{
+    if(!section.id)section.id=`grammar-section-${index}`;
+    /* The title first. A block's head opens with its stage label, so asking
+       for the first span instead gave every entry the stage name and three
+       sections in a row all read "Compare". Sections without a heading - the
+       when-to-use list - keep their own label. */
+    const heading=section.querySelector('h3,h4')
+      ||section.querySelector('.context-label,.grammar-learning-stage,span');
+    const label=(heading?.textContent||'').trim()||`${index+1}`;
+    const entry=document.createElement('li');
+    const button=document.createElement('button');
+    button.type='button';
+    button.textContent=label;
+    button.addEventListener('click',()=>section.scrollIntoView({behavior:'smooth',block:'start'}));
+    entry.appendChild(button);
+    list.appendChild(entry);
+  });
+
+  const entries=[...list.querySelectorAll('li')];
+  const mark=index=>{
+    entries.forEach((entry,i)=>entry.classList.toggle('is-current',i===index));
+    if(bar)bar.style.width=`${Math.round(((index+1)/sections.length)*100)}%`;
+  };
+  mark(0);
+
+  if(typeof IntersectionObserver!=='function')return;
+  const seen=new Map();
+  const observer=new IntersectionObserver(records=>{
+    records.forEach(record=>seen.set(record.target,record.intersectionRatio));
+    let best=-1,bestRatio=0;
+    sections.forEach((section,index)=>{
+      const ratio=seen.get(section)||0;
+      if(ratio>bestRatio){bestRatio=ratio;best=index;}
+    });
+    if(best>=0)mark(best);
+  },{rootMargin:'-25% 0px -55% 0px',threshold:[0,.25,.5,1]});
+  sections.forEach(section=>observer.observe(section));
+  slot._outlineObserver=observer;
+}
+
 function lessonMarkup(detail,payload){
   const c=copy();
-  const ui=orenaGrammarCopy();
   const items=Array.isArray(payload.lessons)?payload.lessons:[];
-  const curriculumProgress=progressOf(items);
   const index=items.findIndex(item=>item.id===detail.id);
   const prev=index>0?items[index-1]:null;
   const next=index>=0&&index<items.length-1?items[index+1]:null;
@@ -320,14 +383,16 @@ function lessonMarkup(detail,payload){
     :legacyObjective(detail);
 
   return `<article class="grammar-lesson visual-raised-surface" data-grammar-lesson="${esc(detail.id)}">
+    <button type="button" class="o-btn o-btn--outline o-btn--compact grammar-back" data-grammar-back>${esc(c.backToGrammar)}</button>
+
     <header class="grammar-lesson-head">
       <div>
-        <span class="editorial-kicker" aria-label="${esc(detail.level)} · ${esc(kindLabel(detail.kind))}">${esc(detail.level)}</span>
+        <span class="editorial-kicker">${esc(detail.level)} · ${esc(kindLabel(detail.kind))}</span>
         <h2>${esc(detail.title)}</h2>
         <p>${esc(objective)}</p>
       </div>
-      <span class="grammar-completion-chip ${detail.completed?'is-complete':''}" title="${detail.completed?esc(c.complete):esc(detail.category||detail.module||'Grammar')}">
-        ${oIcon(detail.completed?'check':'bookmark')}<span class="sr-only">${detail.completed?esc(c.complete):esc(detail.category||detail.module||'Grammar')}</span>
+      <span class="grammar-completion-chip ${detail.completed?'is-complete':''}">
+        ${detail.completed?'✓ '+esc(c.complete):esc(detail.category||detail.module||'Grammar')}
       </span>
     </header>
 
@@ -339,30 +404,35 @@ function lessonMarkup(detail,payload){
       </main>
 
       <aside class="grammar-lesson-actions">
-        <section class="grammar-lesson-rail-card grammar-lesson-progress-card">
-          <div><span>${esc(c.progress)}</span><strong>${curriculumProgress.percent}%</strong></div>
-          <div class="grammar-lesson-progress-track" role="progressbar" aria-label="${esc(c.progress)}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${curriculumProgress.percent}">
-            <span style="width:${curriculumProgress.percent}%"></span>
-          </div>
+        <!-- Position, not a score: the reference's percentage has no equivalent
+             here, and calling reading position "progress" would be a claim the
+             product cannot back. -->
+        <section class="grammar-rail-block grammar-rail-position">
+          <span class="context-label">${esc(c.lessonPosition)}</span>
+          <div class="grammar-rail-meter"><i data-lesson-position-bar style="width:0%"></i></div>
+          <small>${esc(c.positionNote)}</small>
         </section>
 
-        ${richLearning?`<nav class="grammar-lesson-rail-card grammar-lesson-outline" data-grammar-lesson-outline aria-label="${esc(ui.inLesson)}"></nav>`:''}
+        <section class="grammar-rail-block grammar-rail-outline">
+          <span class="context-label">${esc(c.inThisLesson)}</span>
+          <ol data-lesson-outline></ol>
+        </section>
 
-        <section class="grammar-lesson-rail-card grammar-lesson-evidence-card">
-          ${richLearning?`
-            <span class="context-label">${esc(c.learningActions)}</span>
-            <strong>${esc(c.learningEvidence)}</strong>
-            <p>${esc(c.learningEvidenceNote)}</p>
-          `:`
-            <span class="context-label">${esc(c.source)}</span>
-            <strong>${esc(sourceLabel(detail.source))}</strong>
-            <p>${esc(c.noMastery)}</p>
-            ${detail.source==='locked-syllabus-fallback'?`<p class="grammar-fallback-note">${esc(c.lessonUnavailable)}</p>`:''}
-          `}
-          ${detail.completed
-            ?`<button type="button" class="button button-secondary" data-grammar-uncomplete>${esc(c.undo)}</button>`
-            :`<button type="button" class="button button-primary" data-grammar-complete>${esc(c.mark)}</button>`}
-          <button type="button" class="button button-tertiary" data-grammar-writing>${esc(c.writeTransfer)}</button>
+        <section class="grammar-rail-block">
+        ${richLearning?`
+          <span class="context-label">${esc(c.learningActions)}</span>
+          <strong>${esc(c.learningEvidence)}</strong>
+          <p>${esc(c.learningEvidenceNote)}</p>
+        `:`
+          <span class="context-label">${esc(c.source)}</span>
+          <strong>${esc(sourceLabel(detail.source))}</strong>
+          <p>${esc(c.noMastery)}</p>
+          ${detail.source==='locked-syllabus-fallback'?`<p class="grammar-fallback-note">${esc(c.lessonUnavailable)}</p>`:''}
+        `}
+        ${detail.completed
+          ?`<button type="button" class="button button-secondary" data-grammar-uncomplete>${esc(c.undo)}</button>`
+          :`<button type="button" class="button button-primary" data-grammar-complete>${esc(c.mark)}</button>`}
+        <button type="button" class="button button-tertiary" data-grammar-writing>${esc(c.writeTransfer)}</button>
         </section>
       </aside>
     </div>
@@ -374,90 +444,20 @@ function lessonMarkup(detail,payload){
   </article>`;
 }
 
-function lessonBackMarkup(){
-  return `<button type="button" class="button button-secondary grammar-back-button" data-grammar-back>${oIcon('arrowLeft')}<span>${esc(orenaGrammarCopy().back)}</span></button>`;
-}
-
-function bindOrenaLessonChrome(slot){
-  const outline=slot.querySelector('[data-grammar-lesson-outline]');
-  if(outline){
-    const sectionLabel=target=>target.querySelector(':scope > .grammar-learning-block-head h3, :scope > .grammar-compact-heading h3')?.textContent?.trim()
-      ||target.querySelector(':scope > span')?.textContent?.trim()
-      ||orenaGrammarCopy().inLesson;
-    const stageTargets=[
-      '.grammar-learning-primary-pattern .grammar-learning-block',
-      '.grammar-learning-use-when',
-      '.grammar-learning-scene',
-      '.grammar-learning-contrast',
-      '.grammar-learning-common_mistake',
-      '.grammar-learning-micro_practice',
-    ].map(selector=>slot.querySelector(selector)).filter(Boolean).map(target=>({target,label:sectionLabel(target)}));
-    outline.innerHTML=`<strong>${esc(orenaGrammarCopy().inLesson)}</strong><ol>${stageTargets.map((item,index)=>`<li><button type="button" class="${index===0?'is-active':''}" data-grammar-outline-index="${index}"><span aria-hidden="true"></span>${esc(item.label)}</button></li>`).join('')}</ol>`;
-    outline.querySelectorAll('[data-grammar-outline-index]').forEach(button=>{
-      button.addEventListener('click',()=>{
-        const item=stageTargets[Number(button.dataset.grammarOutlineIndex)];
-        if(!item)return;
-        outline.querySelectorAll('button').forEach(candidate=>candidate.classList.toggle('is-active',candidate===button));
-        item.target.scrollIntoView({behavior:'smooth',block:'start'});
-      });
-    });
-  }
-
-  const collapsibleSelector=[
-    '.grammar-learning-use-when',
-    '.grammar-learning-scene',
-    '.grammar-learning-contrast',
-    '.grammar-learning-common_mistake',
-  ].join(',');
-  slot.querySelectorAll(collapsibleSelector).forEach((section,index)=>{
-    const label=section.querySelector(':scope > .grammar-learning-block-head h3, :scope > .grammar-compact-heading h3')?.textContent?.trim()
-      ||section.querySelector(':scope > span')?.textContent?.trim()
-      ||orenaGrammarCopy().inLesson;
-    const button=document.createElement('button');
-    button.type='button';
-    button.className='grammar-mobile-section-toggle';
-    button.setAttribute('aria-expanded','false');
-    button.innerHTML=`<span>${esc(label)}</span>${oIcon('chevronDown')}`;
-    section.classList.add('is-mobile-collapsible','is-collapsed');
-    section.dataset.grammarMobileSection=String(index);
-    section.prepend(button);
-    button.addEventListener('click',()=>{
-      const expanded=section.classList.toggle('is-collapsed')===false;
-      button.setAttribute('aria-expanded',String(expanded));
-    });
-  });
-}
-
 export async function renderGrammar(root){
   const c=copy();
-  const pageTitle=document.getElementById('pageTitle');
-  pageTitle?.removeAttribute('data-grammar-lesson-title');
-  root.innerHTML=`<section class="page grammar-page">${loadingBlock(6)}</section>`;
+  root.innerHTML=`<section class="o-page grammar-page">${loadingBlock(6)}</section>`;
 
   let payload;
   try{
     payload=await api.grammarLibrary();
   }catch(error){
-    root.innerHTML=`<section class="page grammar-page">${errorBlock(error.message||String(error))}</section>`;
+    root.innerHTML=`<section class="o-page grammar-page">${errorBlock(error.message||String(error))}</section>`;
     return;
   }
 
   root.innerHTML=overviewMarkup(payload);
   const slot=root.querySelector('#grammarLessonSlot');
-  const page=root.querySelector('.grammar-page');
-  let activeLessonId='';
-
-  const closeLesson=()=>{
-    const lessonId=activeLessonId;
-    activeLessonId='';
-    slot.innerHTML='';
-    page?.classList.remove('has-open-lesson');
-    pageTitle?.removeAttribute('data-grammar-lesson-title');
-    page?.scrollIntoView({behavior:'smooth',block:'start'});
-    requestAnimationFrame(()=>root.querySelector(`[data-grammar-open="${CSS.escape(lessonId)}"]`)?.focus());
-  };
-
-  const bindBack=()=>slot.querySelector('[data-grammar-back]')?.addEventListener('click',closeLesson);
 
   const bindOverview=()=>{
     root.querySelectorAll('[data-grammar-open]').forEach(button=>{
@@ -478,30 +478,31 @@ export async function renderGrammar(root){
 
   const openLesson=async lessonId=>{
     if(!lessonId)return;
-    activeLessonId=lessonId;
-    page?.classList.add('has-open-lesson');
-    slot.innerHTML=`${lessonBackMarkup()}<section class="grammar-lesson visual-raised-surface">${loadingBlock(5)}<p>${esc(c.loading)}</p></section>`;
-    bindBack();
+    slot.innerHTML=`<section class="grammar-lesson visual-raised-surface">${loadingBlock(5)}<p>${esc(c.loading)}</p></section>`;
     slot.scrollIntoView({behavior:'smooth',block:'start'});
 
     let detail;
     try{
       detail=await api.grammarLesson(lessonId);
     }catch(error){
-      slot.innerHTML=`${lessonBackMarkup()}${errorBlock(error.message||String(error))}`;
-      bindBack();
+      slot.innerHTML=errorBlock(error.message||String(error));
       return;
     }
 
     const languageContext=grammarContext(detail);
-    if(pageTitle)pageTitle.dataset.grammarLessonTitle=detail.title||c.lesson;
 
-    slot.innerHTML=`${lessonBackMarkup()}${lessonMarkup(detail,payload)}`;
-    bindBack();
+    slot._outlineObserver?.disconnect();
+    slot.innerHTML=lessonMarkup(detail,payload);
     if(hasGrammarLearningModel(detail.learning_model)){
       bindGrammarLearningInteractions(slot,languageContext);
     }
-    bindOrenaLessonChrome(slot);
+    wireLessonOutline(slot);
+
+    slot.querySelector('[data-grammar-back]')?.addEventListener('click',()=>{
+      slot._outlineObserver?.disconnect();
+      slot.innerHTML='';
+      root.querySelector('.grammar-curriculum-map')?.scrollIntoView({behavior:'smooth',block:'start'});
+    });
 
     slot.querySelectorAll('[data-grammar-reveal]').forEach(button=>{
       button.addEventListener('click',()=>{
@@ -532,8 +533,6 @@ export async function renderGrammar(root){
       if(learningCheck){
         if(!learningCheck.ready){
           toast(learningCheck.message);
-          const disclosure=learningCheck.focus?.closest('details');
-          if(disclosure)disclosure.open=true;
           learningCheck.focus?.focus();
           return;
         }

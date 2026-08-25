@@ -1,2333 +1,352 @@
-/* Orena Grammar lesson workspace.
+/* ORENA-GRAMMAR-*: the curriculum, and one lesson read as a page.
  *
- * R5 content, stable concept IDs, schema-v2 rendering and completion evidence
- * remain owned by the existing Grammar implementation. This layer only gives
- * an opened lesson the focused two-column hierarchy shown in Orena-prod and a
- * bounded mobile accordion treatment.
+ * The reference for this screen was drawn from the system that already exists:
+ * its Pattern block, timeline, When-to-use list, Compare pair, Common mistake
+ * and Quick practice are the schema-v2 renderer's own block types. So nothing
+ * here rebuilds the lesson - `components/grammar-learning.js` still decides
+ * what a concept contains, and this file dresses what it produces.
+ *
+ * Two things the reference draws are absent, both for want of a source. There
+ * is no grammar streak: the product records one streak and it counts writing
+ * days. And there is no "add to review plan": spaced review exists for saved
+ * words in Library, not for grammar concepts. The rail carries what is real
+ * instead - where you are in the lesson, and what the lesson contains.
  */
 
-#mainContent[data-screen-contract="grammar"] .grammar-page.has-open-lesson{
-  --grammar-accent:var(--o-role-noun);
-  --grammar-accent-soft:color-mix(in srgb,var(--grammar-accent) 10%,var(--o-surface));
-  --grammar-accent-edge:color-mix(in srgb,var(--grammar-accent) 34%,var(--o-border));
-  --grammar-success:var(--o-positive);
-  --grammar-danger:var(--o-critical);
-  --grammar-warning:var(--o-accent);
-  width:min(calc(100% - 52px),1152px);
-  margin-inline:auto;
-  padding:28px 0 64px;
-}
+.grammar-page{--o-grammar-rail:290px}
 
-#mainContent[data-screen-contract="grammar"] .grammar-page.has-open-lesson > :is(
-  .grammar-hero,
-  .grammar-roadmap,
-  .grammar-curriculum-map
-){
-  display:none;
-}
+/* ============================================================== overview === */
 
-#mainContent[data-screen-contract="grammar"] .grammar-page.has-open-lesson .grammar-lesson-slot{
+.grammar-page .grammar-hero{
   display:grid;
-  gap:18px;
-  min-width:0;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-back-button{
-  display:inline-flex;
+  grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);
+  gap:24px;
   align-items:center;
-  justify-content:center;
-  gap:9px;
-  width:max-content;
-  min-height:38px;
-  padding:0 13px;
-  border:1px solid var(--o-border);
-  border-radius:9px;
-  background-color:var(--o-surface);
-  background-image:var(--o-sheen-control);
-  color:var(--o-ink-muted);
-  box-shadow:var(--o-shadow-control),var(--o-rim-control);
-  font-family:var(--o-font);
-  font-size:var(--o-text-label);
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-back-button:hover{
-  border-color:var(--o-border-strong);
-  color:var(--o-ink);
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-back-button svg,
-#mainContent[data-screen-contract="grammar"] .grammar-mobile-section-toggle svg{
-  width:17px;
-  height:17px;
-  flex:0 0 auto;
-  fill:none;
-  stroke:currentColor;
-  stroke-width:1.8;
-  stroke-linecap:round;
-  stroke-linejoin:round;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-lesson.visual-raised-surface{
-  display:grid;
-  grid-template-columns:minmax(0,830px) minmax(260px,294px);
-  align-items:start;
-  gap:0 26px;
-  width:100%;
-  min-width:0;
-  padding:0;
-  overflow:visible;
-  border:0;
-  border-radius:0;
-  background:transparent;
-  box-shadow:none;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-lesson-head{
-  grid-column:1;
-  grid-row:1;
-  display:grid;
-  grid-template-columns:minmax(0,1fr) auto;
-  align-items:start;
-  gap:18px;
-  min-width:0;
-  padding:20px 20px 15px;
-  border:1px solid var(--o-border);
-  border-bottom:0;
-  border-radius:var(--o-radius-card) var(--o-radius-card) 0 0;
-  background-color:var(--o-surface);
-  background-image:var(--o-sheen);
-  box-shadow:var(--o-shadow-card),var(--o-rim);
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-lesson-head>div{
-  max-width:680px;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-lesson-head .editorial-kicker{
-  color:var(--grammar-accent);
-  font-family:var(--o-font);
-  font-size:11px;
-  font-weight:700;
-  letter-spacing:.045em;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-lesson-head h2{
-  margin:6px 0 4px;
-  color:var(--o-ink);
-  font-family:var(--o-font);
-  font-size:26px;
-  font-weight:650;
-  line-height:1.18;
-  letter-spacing:-.02em;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-lesson-head p{
-  max-width:660px;
-  margin:0;
-  color:var(--o-ink-muted);
-  font-family:var(--o-font);
-  font-size:var(--o-text-ui);
-  line-height:1.5;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-lesson-head .grammar-lesson-context{
-  margin-top:5px;
-  color:var(--o-ink-faint);
-  font-size:var(--o-text-meta);
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-completion-chip{
-  max-width:180px;
-  padding:6px 9px;
-  border:1px solid var(--o-border);
-  border-radius:var(--o-radius-pill);
-  background:var(--o-surface-sunken);
-  color:var(--o-ink-muted);
-  font-family:var(--o-font);
-  font-size:11px;
-  font-weight:600;
-  line-height:1.25;
-  text-align:center;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-completion-chip.is-complete{
-  border-color:color-mix(in srgb,var(--o-positive) 38%,var(--o-border));
-  background:color-mix(in srgb,var(--o-positive) 10%,var(--o-surface));
-  color:var(--o-positive);
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-lesson-layout{
-  display:contents;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-teach-column{
-  grid-column:1;
-  grid-row:2;
-  display:block;
-  min-width:0;
-  padding:0 20px 20px;
-  border:1px solid var(--o-border);
-  border-top:0;
-  border-radius:0 0 var(--o-radius-card) var(--o-radius-card);
-  background-color:var(--o-surface);
-  background-image:var(--o-sheen);
-  box-shadow:var(--o-shadow-card),var(--o-rim);
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-learning-shell{
-  display:grid;
-  grid-template-columns:repeat(2,minmax(0,1fr));
-  gap:12px;
-  min-width:0;
-  overflow:visible;
-}
-
-/* The lesson header owns the concise objective. Renderer-owned source nodes
-   remain in the DOM for the stable schema contract, without repeating the
-   same paragraphs inside the visual lesson. */
-#mainContent[data-screen-contract="grammar"] .grammar-learning-flow,
-#mainContent[data-screen-contract="grammar"] .grammar-learning-hook,
-#mainContent[data-screen-contract="grammar"] .grammar-learning-meaning{
-  display:none;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-learning-primary-pattern{
-  grid-column:1/-1;
-  min-width:0;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-learning-blocks{
-  display:contents;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-learning-use-when,
-#mainContent[data-screen-contract="grammar"] .grammar-learning-block{
-  box-sizing:border-box;
-  display:grid;
-  min-width:0;
-  max-width:100%;
-  gap:10px;
-  margin:0;
-  padding:15px;
-  border:1px solid var(--o-border);
-  border-radius:10px;
-  background-color:var(--o-surface);
-  box-shadow:none;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-learning-primary-pattern .grammar-learning-block{
-  padding:14px 15px 15px;
-  border-color:var(--grammar-accent-edge);
-  background:
-    linear-gradient(180deg,var(--grammar-accent-soft),transparent 80px),
-    var(--o-surface);
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-learning-use-when{
-  grid-column:1;
-  max-width:none;
-  align-content:start;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-learning-scene{
-  grid-column:2;
-  align-content:start;
-}
-
-#mainContent[data-screen-contract="grammar"] :is(
-  .grammar-learning-blocks > [data-learning-stage="pattern"],
-  .grammar-learning-contrast,
-  .grammar-learning-common_mistake,
-  .grammar-learning-exception,
-  .grammar-learning-micro_practice,
-  .grammar-learning-personal_practice,
-  .grammar-learning-recall,
-  .grammar-learning-memory_hook,
-  .grammar-learning-skill_transfer
-){
-  grid-column:1/-1;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-learning-block-head{
-  display:grid;
-  grid-template-columns:minmax(0,1fr);
-  gap:2px;
-  max-width:none;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-learning-block-head h3{
-  display:flex;
-  align-items:center;
-  gap:6px;
-  margin:0;
-  color:var(--o-ink);
-  font-family:var(--o-font);
-  font-size:var(--o-text-ui);
-  font-weight:600;
-  line-height:1.3;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-learning-block-head p{
-  margin:0;
-  color:var(--o-ink-muted);
-  font-family:var(--o-font);
-  font-size:var(--o-text-meta);
-  line-height:1.45;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-learning-primary-pattern .grammar-learning-block-head p{
-  display:none;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-learning-scene .grammar-learning-block-head p,
-#mainContent[data-screen-contract="grammar"] .grammar-learning-scene .grammar-scene-setup{
-  display:none;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-learning-stage{
-  display:flex;
-  align-items:center;
-  gap:7px;
-  width:max-content;
-  color:var(--grammar-accent);
-  font-family:var(--o-font);
-  font-size:10px;
-  font-weight:700;
-  line-height:1.25;
-  letter-spacing:.045em;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-learning-stage::before,
-#mainContent[data-screen-contract="grammar"] .grammar-compact-heading h3::before{
-  content:"";
-  width:3px;
-  height:16px;
-  flex:0 0 auto;
-  border-radius:var(--o-radius-pill);
-  background:var(--grammar-accent);
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-block-info{
-  display:inline-flex;
-  width:14px;
-  height:14px;
-  flex:0 0 auto;
-  color:var(--o-ink-faint);
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-block-info svg,
-#mainContent[data-screen-contract="grammar"] :is(
-  .grammar-use-check,
-  .grammar-example-mark,
-  .grammar-mistake-row>span,
-  .grammar-transform-arrow,
-  .grammar-exception-arrow,
-  .grammar-segment-connector,
-  .grammar-memory-hook>span,
-  .grammar-skill-name
-) svg{
-  width:100%;
-  height:100%;
-  fill:none;
-  stroke:currentColor;
-  stroke-width:1.9;
-  stroke-linecap:round;
-  stroke-linejoin:round;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-compact-heading h3{
-  display:flex;
-  align-items:center;
-  gap:7px;
-  margin:0;
-  color:var(--o-ink);
-  font-size:var(--o-text-ui);
-  font-weight:600;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-learning-use-when ul{
-  display:grid;
-  gap:10px;
-  margin:0;
-  padding:0;
-  list-style:none;
-  color:var(--o-ink-muted);
-  font-family:var(--o-font);
-  font-size:var(--o-text-label);
-  line-height:1.45;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-learning-use-when li{
-  display:grid;
-  grid-template-columns:18px minmax(0,1fr);
-  align-items:start;
-  gap:9px;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-use-check{
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  width:16px;
-  height:16px;
-  margin-top:1px;
-  padding:2px;
-  border:1px solid var(--grammar-accent-edge);
-  border-radius:50%;
-  background:var(--grammar-accent-soft);
-  color:var(--grammar-accent);
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-visual-canvas{
-  width:100%;
-  min-width:0;
-  max-width:100%;
-  padding:14px;
-  overflow:hidden;
-  border:1px solid var(--grammar-accent-edge);
-  border-radius:9px;
-  background:var(--grammar-accent-soft);
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-formula-line,
-#mainContent[data-screen-contract="grammar"] .grammar-sentence-flow{
-  display:flex;
-  flex-wrap:wrap;
-  align-items:stretch;
-  justify-content:center;
-  gap:7px;
-  width:100%;
-  min-width:0;
-  padding:0;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-formula-part,
-#mainContent[data-screen-contract="grammar"] .grammar-sentence-segment{
-  display:grid;
-  flex:1 1 108px;
-  align-content:center;
-  gap:3px;
-  min-width:0;
-  max-width:220px;
-  min-height:62px;
-  padding:9px 11px;
-  border:1px solid var(--o-border);
-  border-bottom:3px solid var(--grammar-accent);
-  border-radius:8px;
-  background:var(--o-surface);
-  color:var(--o-ink);
-  box-shadow:var(--o-shadow-control);
-  text-align:center;
-}
-
-#mainContent[data-screen-contract="grammar"] :is(.grammar-formula-part,.grammar-sentence-segment) b{
-  color:var(--grammar-accent);
-  font-family:var(--o-font);
-  font-size:16px;
-  line-height:1.25;
-  overflow-wrap:anywhere;
-}
-
-#mainContent[data-screen-contract="grammar"] [data-target-language="zh"] :is(
-  .grammar-formula-part,
-  .grammar-sentence-segment
-) b{
-  font-family:var(--o-font-cjk);
-  font-size:19px;
-}
-
-#mainContent[data-screen-contract="grammar"] :is(.grammar-formula-part,.grammar-sentence-segment) small{
-  color:var(--o-ink-muted);
-  font-size:10px;
-  font-weight:600;
-  line-height:1.25;
-  text-transform:none;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-formula-join{
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  width:16px;
-  flex:0 0 16px;
-  color:var(--grammar-accent);
-  font-size:18px;
-  font-weight:600;
-}
-
-/* Long source formulas are balanced into two equal rows instead of leaving a
-   single orphan token below a five-token first line. Short formulas retain
-   their explicit + connectors. */
-#mainContent[data-screen-contract="grammar"] .grammar-formula-line:is(
-  [data-part-count="5"],
-  [data-part-count="6"]
-){
-  display:grid;
-  grid-template-columns:repeat(6,minmax(0,1fr));
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-formula-line:is(
-  [data-part-count="5"],
-  [data-part-count="6"]
-) .grammar-formula-join{
-  display:none;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-formula-line:is(
-  [data-part-count="5"],
-  [data-part-count="6"]
-) .grammar-formula-part{
-  position:relative;
-  grid-column:span 2;
-  width:100%;
-  max-width:none;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-formula-line:is(
-  [data-part-count="5"],
-  [data-part-count="6"]
-) .grammar-formula-part:not(:first-child)::before{
-  content:"+";
-  position:absolute;
-  top:50%;
-  left:-10px;
-  color:var(--grammar-accent);
-  font-size:16px;
-  font-weight:700;
-  transform:translate(-50%,-50%);
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-formula-line:is(
-  [data-part-count="5"],
-  [data-part-count="6"]
-) .grammar-formula-part:nth-child(7)::before{
-  display:none;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-formula-line[data-part-count="5"] .grammar-formula-part:nth-child(7){
-  grid-column:2/span 2;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-segment-connector{
-  display:inline-flex;
-  align-self:center;
-  width:18px;
-  height:18px;
-  flex:0 0 18px;
-  color:var(--grammar-accent);
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-sentence-segment.is-inserted{
-  border-color:var(--grammar-accent-edge);
-  background:var(--grammar-accent-soft);
-  outline:2px solid color-mix(in srgb,var(--grammar-accent) 30%,transparent);
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-reading-aid{
-  color:var(--grammar-accent);
-  font-family:var(--o-font-cjk);
-  font-size:11px;
-  line-height:1.3;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-transformation{
-  display:grid;
-  grid-template-columns:minmax(0,1fr) 28px minmax(0,1fr);
-  align-items:stretch;
-  gap:10px;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-transform-state{
-  display:grid;
-  align-content:center;
-  gap:6px;
-  min-width:0;
-  min-height:78px;
-  padding:12px;
-  border:1px solid var(--o-border);
-  border-radius:8px;
-  background:var(--o-surface);
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-transform-state.is-after{
-  border-color:color-mix(in srgb,var(--grammar-success) 34%,var(--o-border));
-  background:color-mix(in srgb,var(--grammar-success) 7%,var(--o-surface));
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-transform-arrow{
-  display:inline-flex;
-  align-self:center;
-  width:22px;
-  height:22px;
-  color:var(--grammar-accent);
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-transform-steps{
-  grid-column:1/-1;
-  margin:0;
-  color:var(--o-ink-muted);
-  font-size:var(--o-text-meta);
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-timeline{
-  position:relative;
-  padding:18px 20px 14px;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-timeline-track{
-  top:39px;
-  left:12%;
-  right:12%;
-  background:var(--o-border-strong);
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-timeline ol{
-  position:relative;
-  z-index:1;
-  display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(90px,1fr));
-  gap:8px;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-timeline li{
-  display:grid;
-  justify-items:center;
-  gap:5px;
-  color:var(--o-ink-muted);
-  text-align:center;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-timeline-dot{
-  width:13px;
-  height:13px;
-  border:3px solid var(--o-surface);
-  background:var(--grammar-accent);
-  box-shadow:0 0 0 2px var(--grammar-accent-edge);
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-scene{
-  display:grid;
-  gap:8px;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-scene-setup{
-  margin:0;
-  color:var(--o-ink-muted);
-  font-size:var(--o-text-meta);
-  line-height:1.45;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-scene-line{
-  display:grid;
-  grid-template-columns:16px minmax(0,1fr);
-  align-items:start;
-  gap:8px;
-  min-width:0;
-  padding:8px 9px;
-  border:0;
-  border-radius:8px;
-  background:color-mix(in srgb,var(--grammar-success) 5%,var(--o-surface));
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-example-mark{
-  display:inline-flex;
-  width:14px;
-  height:14px;
-  margin-top:2px;
-  color:var(--grammar-success);
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-example-copy{
-  display:grid;
-  gap:2px;
-  min-width:0;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-scene-line strong{
-  color:var(--grammar-success);
-  font-size:var(--o-text-label);
-  line-height:1.35;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-scene-line em,
-#mainContent[data-screen-contract="grammar"] .grammar-scene-line small{
-  color:var(--o-ink-muted);
-  font-size:10px;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-contrast-grid{
-  position:relative;
-  display:grid;
-  grid-template-columns:repeat(3,minmax(0,1fr));
-  gap:10px;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-contrast-grid[data-contrast-count="2"]{
-  grid-template-columns:repeat(2,minmax(0,1fr));
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-contrast-item{
-  display:grid;
-  gap:5px;
-  min-width:0;
-  padding:12px;
-  border:1px solid var(--grammar-accent-edge);
-  border-left:3px solid var(--grammar-accent);
-  border-radius:8px;
-  background:var(--grammar-accent-soft);
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-contrast-item:nth-child(2){
-  border-color:color-mix(in srgb,var(--grammar-success) 30%,var(--o-border));
-  border-left-color:var(--grammar-success);
-  background:color-mix(in srgb,var(--grammar-success) 7%,var(--o-surface));
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-contrast-item:nth-child(3){
-  border-color:color-mix(in srgb,var(--o-role-adverb) 30%,var(--o-border));
-  border-left-color:var(--o-role-adverb);
-  background:color-mix(in srgb,var(--o-role-adverb) 7%,var(--o-surface));
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-contrast-item>span{
-  color:var(--o-ink-muted);
-  font-size:10px;
-  font-weight:700;
-  letter-spacing:.04em;
-  text-transform:uppercase;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-contrast-item>strong{
-  color:var(--o-ink);
-  font-size:var(--o-text-label);
-  line-height:1.4;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-contrast-item>p{
-  margin:0;
-  color:var(--o-ink-muted);
-  font-size:var(--o-text-meta);
-  line-height:1.45;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-contrast-vs{
-  position:absolute;
-  top:50%;
-  left:50%;
-  z-index:1;
-  display:grid;
-  place-items:center;
-  width:32px;
-  height:32px;
-  border:1px solid var(--o-border);
-  border-radius:50%;
-  background:var(--o-surface);
-  color:var(--o-ink-muted);
-  box-shadow:var(--o-shadow-control);
-  font-size:10px;
-  font-weight:700;
-  transform:translate(-50%,-50%);
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-common-mistake{
-  display:grid;
-  grid-template-columns:minmax(150px,.72fr) repeat(2,minmax(0,1fr));
-  align-items:stretch;
-  gap:10px;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-mistake-context{
-  grid-column:1;
-  margin:0;
-  color:var(--o-ink-muted);
-  font-size:var(--o-text-meta);
-  line-height:1.45;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-mistake-row{
-  display:grid;
-  grid-template-columns:20px minmax(0,1fr);
-  gap:7px;
-  align-items:start;
-  padding:11px;
-  border:1px solid var(--o-border);
-  border-radius:8px;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-mistake-row>span{
-  display:inline-flex;
-  width:17px;
-  height:17px;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-mistake-row>div{
-  display:grid;
-  gap:5px;
-  min-width:0;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-mistake-row small{
-  font-size:10px;
-  font-weight:700;
-  letter-spacing:.04em;
-  text-transform:uppercase;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-mistake-row strong{
-  color:var(--o-ink);
-  font-size:var(--o-text-label);
-  line-height:1.4;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-mistake-row.is-incorrect{
-  grid-column:2;
-  border-color:color-mix(in srgb,var(--grammar-danger) 28%,var(--o-border));
-  background:color-mix(in srgb,var(--grammar-danger) 7%,var(--o-surface));
-  color:var(--grammar-danger);
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-mistake-row.is-correct{
-  grid-column:3;
-  border-color:color-mix(in srgb,var(--grammar-success) 28%,var(--o-border));
-  background:color-mix(in srgb,var(--grammar-success) 7%,var(--o-surface));
-  color:var(--grammar-success);
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-mistake-why{
-  grid-column:1;
-  color:var(--o-ink-muted);
-  font-size:var(--o-text-meta);
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-exception{
-  display:grid;
-  grid-template-columns:minmax(0,1fr) 26px minmax(0,1fr);
-  align-items:stretch;
-  gap:10px;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-exception>div{
-  display:grid;
-  align-content:center;
-  gap:5px;
-  min-width:0;
-  padding:11px;
-  border:1px solid var(--o-border);
-  border-radius:8px;
-  background:var(--o-surface-sunken);
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-exception>div.is-exception{
-  border-color:color-mix(in srgb,var(--grammar-warning) 30%,var(--o-border));
-  background:color-mix(in srgb,var(--grammar-warning) 7%,var(--o-surface));
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-exception-arrow{
-  display:inline-flex;
-  align-self:center;
-  width:20px;
-  height:20px;
-  color:var(--grammar-warning);
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-exception>p{
-  grid-column:1/-1;
-  margin:0;
-  color:var(--o-ink-muted);
-  font-size:var(--o-text-meta);
-  line-height:1.45;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-micro-practice,
-#mainContent[data-screen-contract="grammar"] .grammar-learning-prompt,
-#mainContent[data-screen-contract="grammar"] .grammar-skill-transfer article{
-  display:grid;
-  gap:10px;
-  padding:12px;
-  border-color:var(--o-border);
-  border-radius:9px;
-  background:var(--o-surface-sunken);
-  color:var(--o-ink);
-  box-shadow:none;
-}
-
-#mainContent[data-screen-contract="grammar"] :is(
-  .grammar-micro-options button,
-  .grammar-reorder-tokens button,
-  .grammar-builder-options button
-){
-  min-height:38px;
-  padding:8px 10px;
-  border-color:var(--o-border-strong);
-  border-radius:8px;
-  background:var(--o-surface);
-  color:var(--o-ink);
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-micro-options{
-  display:grid;
-  grid-template-columns:repeat(2,minmax(0,1fr));
-  gap:9px;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-micro-options button{
-  display:grid;
-  grid-template-columns:24px minmax(0,1fr);
-  align-items:center;
-  gap:8px;
-  text-align:left;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-micro-options button>span{
-  display:grid;
-  place-items:center;
-  width:22px;
-  height:22px;
-  border:1px solid var(--o-border-strong);
-  border-radius:50%;
-  color:var(--o-ink-muted);
-  font-size:10px;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-micro-options button>b{
-  font-size:var(--o-text-label);
-  font-weight:500;
-}
-
-#mainContent[data-screen-contract="grammar"] :is(
-  .grammar-micro-options button,
-  .grammar-reorder-tokens button,
-  .grammar-builder-options button
-).is-selected{
-  border-color:var(--grammar-accent);
-  background:var(--grammar-accent-soft);
-  color:var(--grammar-accent);
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-micro-options button.is-selected>span{
-  border-color:var(--grammar-accent);
-  background:var(--grammar-accent);
-  color:var(--o-on-accent);
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-sentence-builder{
-  display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
-  gap:10px;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-sentence-builder fieldset{
-  min-width:0;
-  padding:10px;
-  border-color:var(--o-border);
-  border-radius:8px;
-  background:var(--o-surface-sunken);
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-builder-options{
-  display:grid;
-  gap:7px;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-inflection-table{
-  display:grid;
-  gap:8px;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-inflection-table article{
-  display:grid;
-  grid-template-columns:minmax(100px,.6fr) minmax(0,1.4fr);
-  gap:10px;
-  align-items:center;
-  min-width:0;
-  padding:10px;
-  border:1px solid var(--o-border);
-  border-radius:8px;
-  background:var(--o-surface-sunken);
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-inflection-table article>div{
-  display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(76px,1fr));
-  gap:7px;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-memory-hook{
-  display:grid;
-  grid-template-columns:30px minmax(0,1fr);
-  gap:10px;
-  align-items:start;
-  padding:12px;
-  border:1px solid var(--grammar-accent-edge);
-  border-radius:9px;
-  background:var(--grammar-accent-soft);
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-memory-hook>span{
-  display:inline-flex;
-  width:24px;
-  height:24px;
-  padding:4px;
-  border-radius:50%;
-  background:var(--grammar-accent);
-  color:var(--o-on-accent);
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-memory-hook p{
-  margin:4px 0 0;
-  color:var(--o-ink-muted);
-  font-size:var(--o-text-meta);
-  line-height:1.45;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-skill-transfer{
-  display:grid;
-  grid-template-columns:repeat(2,minmax(0,1fr));
-  gap:10px;
-  min-width:0;
-  max-width:100%;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-skill-transfer article,
-#mainContent[data-screen-contract="grammar"] .grammar-skill-name{
-  box-sizing:border-box;
-  min-width:0;
-  max-width:100%;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-skill-name{
-  display:flex;
-  align-items:center;
-  gap:7px;
-  color:var(--grammar-accent);
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-skill-transfer .grammar-skill-name>svg{
-  width:17px;
-  height:17px;
-  min-width:17px;
-  max-width:17px;
-  min-height:17px;
-  max-height:17px;
-  flex:0 0 17px;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-skill-name b{
-  min-width:0;
-  color:var(--o-ink);
-  font-size:var(--o-text-label);
-  overflow-wrap:anywhere;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-skill-transfer article>p{
-  margin:0;
-  color:var(--o-ink-muted);
-  font-size:var(--o-text-meta);
-  line-height:1.45;
-}
-
-#mainContent[data-screen-contract="grammar"] :is(textarea,select){
-  box-sizing:border-box;
-  width:100%;
-  min-width:0;
-  max-width:100%;
-  border-color:var(--o-border-strong);
-  border-radius:9px;
-  background:var(--o-surface);
-  color:var(--o-ink);
-  font-family:var(--o-font);
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-lesson-actions{
-  grid-column:2;
-  grid-row:1/span 2;
-  position:sticky;
-  top:calc(var(--o-header-h) + 28px);
-  display:grid;
-  gap:16px;
-  align-self:start;
-  min-width:0;
-  padding:0;
-  border:0;
-  border-radius:0;
-  background:transparent;
-  box-shadow:none;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-lesson-rail-card{
-  display:grid;
-  gap:12px;
-  padding:18px;
+  padding:24px;
   border:1px solid var(--o-border);
   border-radius:var(--o-radius-card);
   background-color:var(--o-surface);
   background-image:var(--o-sheen);
   box-shadow:var(--o-shadow-card),var(--o-rim);
 }
-
-#mainContent[data-screen-contract="grammar"] .grammar-lesson-progress-card>div:first-child{
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:12px;
-  color:var(--o-ink);
-  font-size:var(--o-text-label);
+.grammar-page .grammar-progress-visual{display:grid;grid-template-columns:auto minmax(0,1fr);gap:20px;align-items:center;min-width:0}
+.grammar-page .grammar-progress-number{
+  display:flex;align-items:baseline;gap:2px;
+  color:var(--o-accent);
+  font-size:clamp(38px,5vw,54px);
   font-weight:600;
+  line-height:1;
+  letter-spacing:-.03em;
 }
+.grammar-page .grammar-progress-number span{font-size:.42em;font-weight:500}
+.grammar-page .grammar-progress-copy{display:grid;gap:8px;min-width:0}
+.grammar-page .grammar-progress-copy h2{margin:0;font-size:var(--o-text-heading);font-weight:600;color:var(--o-ink)}
+.grammar-page .grammar-progress-copy p{margin:0;font-size:var(--o-text-meta);color:var(--o-ink-faint);line-height:1.5}
+.grammar-page .grammar-progress-track{height:6px;border-radius:var(--o-radius-pill);background:var(--o-surface-sunken);overflow:hidden}
+.grammar-page .grammar-progress-track span{display:block;height:100%;border-radius:inherit;background:var(--o-accent)}
 
-#mainContent[data-screen-contract="grammar"] .grammar-lesson-progress-card>div:first-child strong{
-  color:var(--o-ink-muted);
-  font-size:var(--o-text-meta);
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-lesson-progress-track{
-  height:4px;
-  overflow:hidden;
-  border-radius:var(--o-radius-pill);
-  background:var(--o-surface-sunken);
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-lesson-progress-track>span{
-  display:block;
-  height:100%;
-  border-radius:inherit;
-  background:var(--grammar-accent);
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-lesson-outline>strong{
-  color:var(--o-ink);
-  font-size:var(--o-text-label);
-  font-weight:650;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-lesson-outline ol{
-  display:grid;
-  gap:0;
-  margin:0;
-  padding:0;
-  list-style:none;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-lesson-outline li{
-  position:relative;
+.grammar-page .grammar-next-card{
+  display:grid;gap:10px;align-content:start;
+  padding:18px;
+  border:1px solid var(--o-accent-edge);
+  border-radius:var(--o-radius-card);
+  background:var(--o-accent-tint);
   min-width:0;
 }
+.grammar-page .grammar-next-card h2{margin:0;font-size:var(--o-text-body);font-weight:600;line-height:1.4;color:var(--o-ink)}
+.grammar-page .grammar-next-card p{margin:0;font-size:var(--o-text-meta);color:var(--o-ink-muted);line-height:1.5}
+.grammar-page .grammar-next-card p:empty{display:none}
 
-#mainContent[data-screen-contract="grammar"] .grammar-lesson-outline li:not(:last-child)::after{
-  content:"";
-  position:absolute;
-  top:24px;
-  bottom:-7px;
-  left:5px;
-  width:1px;
-  background:var(--o-border);
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-lesson-outline button{
-  position:relative;
-  z-index:1;
-  display:grid;
-  grid-template-columns:12px minmax(0,1fr);
-  align-items:center;
-  gap:9px;
-  width:100%;
-  min-height:34px;
-  padding:4px 0;
-  border:0;
-  background:transparent;
-  color:var(--o-ink-muted);
-  font-family:var(--o-font);
-  font-size:var(--o-text-meta);
-  line-height:1.3;
-  text-align:left;
-  cursor:pointer;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-lesson-outline button>span{
-  width:9px;
-  height:9px;
-  border:2px solid var(--o-surface);
-  border-radius:50%;
-  background:var(--o-border-strong);
-  box-shadow:0 0 0 1px var(--o-border);
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-lesson-outline button.is-active{
-  color:var(--o-ink);
-  font-weight:600;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-lesson-outline button.is-active>span{
-  background:var(--grammar-accent);
-  box-shadow:0 0 0 3px var(--grammar-accent-soft);
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-lesson-evidence-card>strong{
-  color:var(--o-ink);
-  font-size:var(--o-text-label);
-  line-height:1.45;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-lesson-evidence-card>p{
-  margin:0;
-  color:var(--o-ink-muted);
-  font-size:var(--o-text-meta);
-  line-height:1.5;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-lesson-evidence-card .button{
-  width:100%;
-  min-height:38px;
-  border-radius:9px;
-  font-size:var(--o-text-label);
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-lesson-evidence-card .button-primary{
-  background-color:var(--grammar-accent);
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-lesson-nav{
-  grid-column:1;
-  grid-row:3;
-  display:flex;
-  justify-content:space-between;
-  gap:12px;
-  margin-top:16px;
-  padding:14px;
+/* The level rail: one pill per level, each carrying its own progress. */
+.grammar-page .grammar-roadmap{display:grid;gap:12px;padding:0;border:0;background:none;box-shadow:none}
+.grammar-page .grammar-section-head h2{margin:0;font-size:var(--o-text-body);font-weight:600;color:var(--o-ink)}
+.grammar-page .grammar-section-head .context-label{display:none}
+.grammar-page .grammar-level-rail{display:flex;flex-wrap:wrap;gap:10px}
+.grammar-page .grammar-level-pill{
+  display:grid;gap:5px;justify-items:start;
+  min-width:104px;padding:11px 14px;
   border:1px solid var(--o-border);
-  border-radius:11px;
+  border-radius:var(--o-radius-field);
   background:var(--o-surface);
+  color:var(--o-ink);font:inherit;cursor:pointer;
+  transition:border-color var(--o-motion),background var(--o-motion);
+}
+.grammar-page .grammar-level-pill:hover{border-color:var(--o-accent-edge);background:var(--o-accent-tint)}
+.grammar-page .grammar-level-pill strong{font-size:var(--o-text-ui);font-weight:600}
+.grammar-page .grammar-level-pill span{font-size:var(--o-text-meta);color:var(--o-ink-muted);font-variant-numeric:tabular-nums}
+.grammar-page .grammar-level-pill i{display:block;width:100%;height:4px;border-radius:var(--o-radius-pill);background:var(--o-surface-sunken);overflow:hidden}
+.grammar-page .grammar-level-pill i b{display:block;height:100%;border-radius:inherit;background:var(--o-accent)}
+
+/* ================================================================ lesson === */
+
+.grammar-page .grammar-lesson-slot:empty{display:none}
+
+.grammar-page .grammar-lesson{
+  display:grid;gap:18px;
+  padding:22px 24px;
+  border:1px solid var(--o-border);
+  border-radius:var(--o-radius-card);
+  background-color:var(--o-surface);
+  background-image:var(--o-sheen);
   box-shadow:var(--o-shadow-card),var(--o-rim);
 }
+.grammar-page .grammar-back{justify-self:start}
 
-#mainContent[data-screen-contract="grammar"] .grammar-lesson-nav .button{
-  min-height:38px;
-  border-radius:9px;
-  font-size:var(--o-text-label);
+.grammar-page .grammar-lesson-head{
+  display:grid;grid-template-columns:minmax(0,1fr) auto;
+  align-items:start;gap:16px;
 }
-
-#mainContent[data-screen-contract="grammar"] .grammar-mobile-section-toggle{
-  display:none;
+.grammar-page .grammar-lesson-head .editorial-kicker{
+  font-size:var(--o-text-label);font-weight:600;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--o-accent);
 }
-
-@media(max-width:1120px){
-  #mainContent[data-screen-contract="grammar"] .grammar-lesson.visual-raised-surface{
-    grid-template-columns:minmax(0,1fr) 260px;
-  }
+#mainContent .grammar-page .grammar-lesson-head h2{
+  margin:6px 0 4px;
+  font-size:clamp(24px,3vw,32px);
+  font-weight:600;line-height:1.2;letter-spacing:-.02em;
 }
-
-@media(max-width:900px){
-  #mainContent[data-screen-contract="grammar"] .grammar-lesson.visual-raised-surface{
-    grid-template-columns:minmax(0,1fr);
-  }
-
-  #mainContent[data-screen-contract="grammar"] .grammar-lesson-actions{
-    grid-column:1;
-    grid-row:3;
-    position:static;
-    grid-template-columns:repeat(2,minmax(0,1fr));
-    margin-top:16px;
-  }
-
-  #mainContent[data-screen-contract="grammar"] .grammar-lesson-evidence-card{
-    grid-column:1/-1;
-  }
-
-  #mainContent[data-screen-contract="grammar"] .grammar-lesson-nav{
-    grid-row:4;
-  }
-}
-
-@media(max-width:720px){
-  .o-workspace:has(#mainContent[data-screen-contract="grammar"] .grammar-page.has-open-lesson) .o-topbar-brand{
-    display:none;
-  }
-
-  .o-workspace:has(#mainContent[data-screen-contract="grammar"] .grammar-page.has-open-lesson) .o-topbar-title{
-    position:absolute;
-    left:50%;
-    display:block;
-    width:max-content;
-    max-width:calc(100% - 184px);
-    transform:translateX(-50%);
-    overflow:hidden;
-    font-size:17px;
-    text-align:center;
-    text-overflow:ellipsis;
-    white-space:nowrap;
-  }
-
-  .o-workspace:has(#mainContent[data-screen-contract="grammar"] .grammar-page.has-open-lesson) .o-topbar-actions{
-    margin-left:auto;
-  }
-
-  .o-workspace:has(#mainContent[data-screen-contract="grammar"] .grammar-page.has-open-lesson) .o-page-heading{
-    display:none;
-  }
-
-  #mainContent[data-screen-contract="grammar"] .grammar-page.has-open-lesson{
-    width:calc(100% - 24px);
-    max-width:none;
-    padding:16px 0 96px;
-  }
-
-  #mainContent[data-screen-contract="grammar"] .grammar-page.has-open-lesson .grammar-lesson-slot{
-    gap:12px;
-  }
-
-  #mainContent[data-screen-contract="grammar"] .grammar-back-button{
-    min-height:34px;
-    padding:0 10px;
-    border-color:transparent;
-    background:transparent;
-    box-shadow:none;
-  }
-
-  #mainContent[data-screen-contract="grammar"] .grammar-lesson.visual-raised-surface{
-    display:grid;
-    grid-template-columns:minmax(0,1fr);
-    gap:0;
-  }
-
-  #mainContent[data-screen-contract="grammar"] .grammar-lesson-head{
-    grid-column:1;
-    grid-row:1;
-    grid-template-columns:minmax(0,1fr);
-    gap:8px;
-    padding:15px 14px 12px;
-    border-bottom:1px solid var(--o-border);
-    border-radius:11px;
-  }
-
-  #mainContent[data-screen-contract="grammar"] .grammar-lesson-head h2{
-    margin-top:5px;
-    font-size:23px;
-    line-height:1.18;
-  }
-
-  #mainContent[data-screen-contract="grammar"] .grammar-lesson-head p{
-    font-size:var(--o-text-label);
-    line-height:1.45;
-  }
-
-  #mainContent[data-screen-contract="grammar"] .grammar-lesson-head .grammar-lesson-context{
-    font-size:11px;
-  }
-
-  #mainContent[data-screen-contract="grammar"] .grammar-completion-chip{
-    justify-self:start;
-    max-width:100%;
-  }
-
-  #mainContent[data-screen-contract="grammar"] .grammar-teach-column{
-    grid-column:1;
-    grid-row:2;
-    margin-top:10px;
-    padding:0;
-    border:0;
-    border-radius:0;
-    background:transparent;
-    box-shadow:none;
-  }
-
-  #mainContent[data-screen-contract="grammar"] .grammar-learning-shell{
-    grid-template-columns:minmax(0,1fr);
-    gap:8px;
-  }
-
-  #mainContent[data-screen-contract="grammar"] .grammar-learning-primary-pattern,
-  #mainContent[data-screen-contract="grammar"] .grammar-learning-use-when,
-  #mainContent[data-screen-contract="grammar"] .grammar-learning-blocks,
-  #mainContent[data-screen-contract="grammar"] .grammar-learning-block{
-    grid-column:1;
-  }
-
-  #mainContent[data-screen-contract="grammar"] .grammar-learning-blocks{
-    display:grid;
-    grid-template-columns:minmax(0,1fr);
-    gap:8px;
-  }
-
-  #mainContent[data-screen-contract="grammar"] .grammar-learning-use-when,
-  #mainContent[data-screen-contract="grammar"] .grammar-learning-block{
-    padding:12px;
-    border-radius:9px;
-    background-color:var(--o-surface);
-    box-shadow:var(--o-shadow-card),var(--o-rim);
-  }
-
-  #mainContent[data-screen-contract="grammar"] .grammar-learning-primary-pattern .grammar-learning-block{
-    padding:12px;
-  }
-
-  #mainContent[data-screen-contract="grammar"] .grammar-mobile-section-toggle{
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    gap:12px;
-    width:100%;
-    min-height:30px;
-    padding:0;
-    border:0;
-    background:transparent;
-    color:var(--o-ink);
-    font-family:var(--o-font);
-    font-size:var(--o-text-label);
-    font-weight:600;
-    text-align:left;
-    cursor:pointer;
-  }
-
-  #mainContent[data-screen-contract="grammar"] .grammar-mobile-section-toggle svg{
-    color:var(--o-ink-muted);
-    transition:transform var(--o-motion);
-  }
-
-  #mainContent[data-screen-contract="grammar"] .grammar-mobile-section-toggle[aria-expanded="true"] svg{
-    transform:rotate(180deg);
-  }
-
-  #mainContent[data-screen-contract="grammar"] .is-mobile-collapsible.is-collapsed > :not(.grammar-mobile-section-toggle){
-    display:none!important;
-  }
-
-  #mainContent[data-screen-contract="grammar"] .is-mobile-collapsible:not(.is-collapsed) > .grammar-learning-block-head{
-    padding-top:8px;
-  }
-
-  #mainContent[data-screen-contract="grammar"] .is-mobile-collapsible:not(.is-collapsed) > .grammar-learning-block-head :is(.grammar-learning-stage,h3){
-    display:none;
-  }
-
-  #mainContent[data-screen-contract="grammar"] .grammar-learning-use-when.is-mobile-collapsible:not(.is-collapsed)>.grammar-compact-heading{
-    display:none;
-  }
-
-  #mainContent[data-screen-contract="grammar"] .grammar-visual-canvas{
-    padding:10px;
-  }
-
-  #mainContent[data-screen-contract="grammar"] .grammar-common-mistake,
-  #mainContent[data-screen-contract="grammar"] .grammar-contrast-grid,
-  #mainContent[data-screen-contract="grammar"] .grammar-skill-transfer,
-  #mainContent[data-screen-contract="grammar"] .grammar-transformation,
-  #mainContent[data-screen-contract="grammar"] .grammar-exception{
-    grid-template-columns:minmax(0,1fr);
-  }
-
-  #mainContent[data-screen-contract="grammar"] :is(
-    .grammar-transform-arrow,
-    .grammar-exception-arrow
-  ){
-    transform:rotate(90deg);
-  }
-
-  #mainContent[data-screen-contract="grammar"] .grammar-transform-steps,
-  #mainContent[data-screen-contract="grammar"] .grammar-exception>p{
-    grid-column:1;
-  }
-
-  #mainContent[data-screen-contract="grammar"] .grammar-mistake-context,
-  #mainContent[data-screen-contract="grammar"] .grammar-mistake-row.is-incorrect,
-  #mainContent[data-screen-contract="grammar"] .grammar-mistake-row.is-correct,
-  #mainContent[data-screen-contract="grammar"] .grammar-mistake-why{
-    grid-column:1;
-  }
-
-  #mainContent[data-screen-contract="grammar"] .grammar-lesson-actions{
-    grid-column:1;
-    grid-row:3;
-    display:grid;
-    grid-template-columns:minmax(0,1fr);
-    gap:10px;
-    margin-top:10px;
-  }
-
-  #mainContent[data-screen-contract="grammar"] :is(
-    .grammar-lesson-progress-card,
-    .grammar-lesson-outline
-  ){
-    display:none;
-  }
-
-  #mainContent[data-screen-contract="grammar"] .grammar-lesson-rail-card{
-    padding:14px;
-    border-radius:10px;
-  }
-
-  #mainContent[data-screen-contract="grammar"] .grammar-lesson-nav{
-    grid-column:1;
-    grid-row:4;
-    margin-top:10px;
-    padding:10px;
-    border-radius:10px;
-  }
-
-  #mainContent[data-screen-contract="grammar"] .grammar-lesson-nav .button{
-    flex:1 1 0;
-    min-width:0;
-  }
-}
-
-@media(max-width:430px){
-  #mainContent[data-screen-contract="grammar"] .grammar-page.has-open-lesson{
-    width:calc(100% - 20px);
-  }
-
-  #mainContent[data-screen-contract="grammar"] .grammar-lesson-head{
-    padding:14px 12px 12px;
-  }
-
-  #mainContent[data-screen-contract="grammar"] .grammar-lesson-head h2{
-    font-size:21px;
-  }
-
-  /* The lesson header already carries the complete learning objective. On a
-     phone the secondary context and category chip only repeat information and
-     push the actual pattern below the first screen. */
-  #mainContent[data-screen-contract="grammar"] .grammar-lesson-head .grammar-lesson-context,
-  #mainContent[data-screen-contract="grammar"] .grammar-completion-chip{
-    display:none;
-  }
-
-  #mainContent[data-screen-contract="grammar"] .grammar-learning-use-when,
-  #mainContent[data-screen-contract="grammar"] .grammar-learning-block{
-    padding:11px;
-  }
-
-  /* Keep short word-order formulas readable as one compact visual, matching
-     the product reference. Longer formulas still wrap naturally. */
-  #mainContent[data-screen-contract="grammar"] .grammar-word-order{
-    padding:8px;
-  }
-
-  #mainContent[data-screen-contract="grammar"] .grammar-sentence-flow{
-    display:grid;
-    grid-template-columns:repeat(2,minmax(0,1fr));
-    gap:7px;
-    padding:4px;
-  }
-
-  #mainContent[data-screen-contract="grammar"] .grammar-formula-line{
-    display:grid;
-    grid-template-columns:repeat(2,minmax(0,1fr));
-    gap:7px;
-  }
-
-  #mainContent[data-screen-contract="grammar"] :is(
-    .grammar-formula-join,
-    .grammar-segment-connector
-  ){
-    display:none;
-  }
-
-  #mainContent[data-screen-contract="grammar"] :is(
-    .grammar-sentence-segment,
-    .grammar-formula-part
-  ){
-    width:100%;
-    min-width:0;
-    max-width:none;
-    min-height:54px;
-    padding:7px 6px;
-  }
-
-  #mainContent[data-screen-contract="grammar"] .grammar-formula-part b{
-    font-size:14px;
-  }
-
-  #mainContent[data-screen-contract="grammar"] .grammar-sentence-segment b{
-    font-size:18px;
-  }
-
-  #mainContent[data-screen-contract="grammar"] .grammar-inflection-table article{
-    grid-template-columns:minmax(0,1fr);
-  }
-}
-
-@media(prefers-reduced-motion:reduce){
-  #mainContent[data-screen-contract="grammar"] .grammar-mobile-section-toggle svg{
-    transition:none;
-  }
-}
-
-/* Orena-prod reference pass.
-   The first reading layer is deliberately compact and visual. Deeper R5
-   practice remains available in the disclosure directly below it. */
-#mainContent[data-screen-contract="grammar"] .grammar-lesson.visual-raised-surface{
-  grid-template-columns:minmax(0,830px) 288px;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-lesson-head{
-  min-height:104px;
-  padding:20px 22px 14px;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-lesson-head>div{
-  max-width:700px;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-lesson-head .editorial-kicker{
-  display:inline-grid;
-  place-items:center;
-  align-self:start;
-  justify-self:start;
-  min-width:32px;
-  min-height:20px;
-  margin:0;
-  padding:2px 7px;
-  border:1px solid var(--grammar-accent-edge);
-  border-radius:6px;
-  background:var(--grammar-accent-soft);
-  color:var(--grammar-accent);
-  letter-spacing:.025em;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-lesson-head h2{
-  margin:7px 0 3px;
-  font-size:25px;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-lesson-head p{
-  line-height:1.42;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-completion-chip{
-  display:inline-grid;
-  place-items:center;
-  width:36px;
-  height:36px;
-  padding:0;
-  border-radius:9px;
-  background:var(--o-surface);
-  color:var(--grammar-accent);
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-completion-chip svg{
-  width:18px;
-  height:18px;
-  fill:none;
-  stroke:currentColor;
-  stroke-width:1.8;
-  stroke-linecap:round;
-  stroke-linejoin:round;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-teach-column{
-  padding:0 22px 22px;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-learning-shell{
-  gap:12px;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-learning-use-when,
-#mainContent[data-screen-contract="grammar"] .grammar-learning-block{
-  gap:8px;
-  padding:14px 15px;
-  border-radius:10px;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-learning-primary-pattern .grammar-learning-block{
-  gap:9px;
-  padding:14px 15px 13px;
-  background:var(--o-surface);
-}
-
-#mainContent[data-screen-contract="grammar"] :is(
-  .grammar-learning-primary-pattern,
-  .grammar-learning-blocks
-) .grammar-learning-stage{
-  display:none;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-learning-block-head{
-  gap:3px;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-learning-block-head h3,
-#mainContent[data-screen-contract="grammar"] .grammar-compact-heading h3{
-  font-size:14px;
-  font-weight:650;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-learning-block-head h3::before,
-#mainContent[data-screen-contract="grammar"] .grammar-compact-heading h3::before{
-  content:"";
-  width:3px;
-  height:16px;
-  flex:0 0 auto;
+.grammar-page .grammar-lesson-head p{margin:0;font-size:var(--o-text-body);color:var(--o-ink-muted);line-height:1.55}
+.grammar-page .grammar-completion-chip{
+  padding:6px 11px;
+  border:1px solid var(--o-border);
   border-radius:var(--o-radius-pill);
-  background:var(--grammar-accent);
+  background:var(--o-surface-sunken);
+  font-size:var(--o-text-meta);color:var(--o-ink-muted);white-space:nowrap;
+}
+.grammar-page .grammar-completion-chip.is-complete{
+  border-color:color-mix(in srgb,var(--o-positive) 40%,var(--o-border));
+  background:color-mix(in srgb,var(--o-positive) 12%,transparent);
+  color:var(--o-positive);
 }
 
-#mainContent[data-screen-contract="grammar"] .grammar-learning-primary-pattern .grammar-learning-block-head p{
-  display:none;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-visual-canvas{
-  padding:0;
-  overflow:visible;
-  border:0;
-  border-radius:0;
-  background:transparent;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-formula-line,
-#mainContent[data-screen-contract="grammar"] .grammar-sentence-flow{
+/* Lesson body beside the rail, the way the reference splits them. */
+.grammar-page .grammar-lesson-layout{
   display:grid;
-  gap:8px;
-  padding:0;
+  grid-template-columns:minmax(0,1fr) var(--o-grammar-rail);
+  gap:22px;
+  align-items:start;
 }
+.grammar-page .grammar-teach-column{display:grid;gap:16px;min-width:0}
 
-#mainContent[data-screen-contract="grammar"] .grammar-formula-line,
-#mainContent[data-screen-contract="grammar"] .grammar-formula-line:is(
-  [data-part-count="5"],
-  [data-part-count="6"]
-){
-  grid-template-columns:minmax(0,1fr);
+/* ---- the rail ---- */
+
+.grammar-page .grammar-lesson-actions{
+  display:grid;gap:14px;align-content:start;min-width:0;
+  position:sticky;top:calc(var(--o-header-h) + var(--o-gap));
 }
-
-#mainContent[data-screen-contract="grammar"] .grammar-formula-line>*{
-  grid-column:1/-1;
+.grammar-page .grammar-rail-block{
+  display:grid;gap:9px;
+  padding:16px;
+  border:1px solid var(--o-border);
+  border-radius:var(--o-radius-card);
+  background:var(--o-surface);
+  box-shadow:var(--o-shadow-card);
 }
-
-#mainContent[data-screen-contract="grammar"] .grammar-formula-line:is(
-  [data-part-count="5"],
-  [data-part-count="6"]
-) .grammar-formula-part::before{
-  display:none;
-  content:none;
+.grammar-page .grammar-rail-block .context-label{
+  font-size:var(--o-text-label);font-weight:600;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--o-ink-faint);
 }
+.grammar-page .grammar-rail-block strong{font-size:var(--o-text-ui);font-weight:600;color:var(--o-ink);line-height:1.4}
+.grammar-page .grammar-rail-block p,
+.grammar-page .grammar-rail-block small{margin:0;font-size:var(--o-text-meta);color:var(--o-ink-muted);line-height:1.5}
+.grammar-page .grammar-rail-meter{height:6px;border-radius:var(--o-radius-pill);background:var(--o-surface-sunken);overflow:hidden}
+.grammar-page .grammar-rail-meter i{display:block;height:100%;border-radius:inherit;background:var(--o-accent);transition:width var(--o-motion)}
 
-#mainContent[data-screen-contract="grammar"] .grammar-formula-line:is(
-  [data-part-count="5"],
-  [data-part-count="6"]
-) .grammar-pattern-track .grammar-formula-part:not(:first-child)::before{
-  display:none;
-  content:none;
+/* The outline: a dotted spine with the section you are reading marked. */
+.grammar-page .grammar-rail-outline ol{display:grid;gap:2px;margin:0;padding:0;list-style:none;counter-reset:none}
+.grammar-page .grammar-rail-outline li{position:relative;padding-left:20px}
+.grammar-page .grammar-rail-outline li::before{
+  content:"";position:absolute;left:4px;top:11px;
+  width:7px;height:7px;border-radius:50%;
+  background:var(--o-border-strong);
 }
-
-#mainContent[data-screen-contract="grammar"] .grammar-formula-line:is(
-  [data-part-count="5"],
-  [data-part-count="6"]
-) .grammar-pattern-track .grammar-formula-part{
-  grid-column:auto;
-  width:auto;
-  max-width:none;
+.grammar-page .grammar-rail-outline li:not(:last-child)::after{
+  content:"";position:absolute;left:7px;top:20px;bottom:-2px;
+  width:1px;background:var(--o-border);
 }
-
-#mainContent[data-screen-contract="grammar"] .grammar-pattern-ribbon{
-  display:flex;
-  align-items:stretch;
-  justify-content:center;
-  min-width:0;
-  min-height:54px;
-  overflow:hidden;
-  border:1px solid var(--grammar-accent-edge);
-  border-radius:9px;
-  background:var(--grammar-accent-soft);
-  color:var(--grammar-accent);
-  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--o-surface) 36%,transparent);
+.grammar-page .grammar-rail-outline button{
+  display:block;width:100%;padding:5px 0;
+  border:0;background:transparent;color:var(--o-ink-muted);
+  font:inherit;font-size:var(--o-text-meta);text-align:left;cursor:pointer;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
 }
+.grammar-page .grammar-rail-outline li.is-current::before{background:var(--o-accent);box-shadow:0 0 0 3px var(--o-accent-tint)}
+.grammar-page .grammar-rail-outline li.is-current button{color:var(--o-ink);font-weight:600}
+.grammar-page .grammar-rail-outline button:hover{color:var(--o-accent)}
 
-#mainContent[data-screen-contract="grammar"] .grammar-formula .grammar-pattern-ribbon{
-  display:grid;
-  place-items:center;
-  padding:11px 18px;
-  text-align:center;
-}
+/* ---- the blocks the renderer produces ---- */
 
-#mainContent[data-screen-contract="grammar"] .grammar-formula .grammar-pattern-ribbon strong{
-  color:inherit;
-  font-family:var(--o-font);
-  font-size:17px;
-  font-weight:650;
-  line-height:1.35;
-  overflow-wrap:anywhere;
-}
-
-#mainContent[data-screen-contract="grammar"] [data-target-language="zh"] .grammar-formula .grammar-pattern-ribbon strong{
-  font-family:var(--o-font-cjk);
-  font-size:19px;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-sentence-segment{
-  display:flex;
-  flex:1 1 0;
-  align-items:center;
-  justify-content:center;
-  gap:5px;
-  min-width:0;
-  max-width:none;
-  min-height:52px;
-  padding:10px 12px;
-  border:0;
-  border-radius:0;
-  background:transparent;
-  color:var(--grammar-accent);
-  box-shadow:none;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-sentence-segment.is-inserted{
-  border:0;
-  background:color-mix(in srgb,var(--grammar-accent) 12%,transparent);
-  outline:0;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-sentence-segment b,
-#mainContent[data-screen-contract="grammar"] [data-target-language="zh"] .grammar-sentence-segment b{
-  color:inherit;
-  font-size:18px;
-  font-weight:650;
-  line-height:1.25;
-}
-
-#mainContent[data-screen-contract="grammar"] [data-target-language="zh"] .grammar-sentence-segment b{
-  font-family:var(--o-font-cjk);
-  font-size:21px;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-segment-connector{
-  align-self:center;
-  width:17px;
-  height:17px;
-  flex:0 0 17px;
-  color:var(--grammar-accent);
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-formula-variants{
-  display:flex;
-  flex-wrap:wrap;
-  justify-content:center;
-  gap:6px;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-formula-variants span{
-  padding:4px 9px;
-  border:1px solid var(--grammar-accent-edge);
-  border-radius:var(--o-radius-pill);
-  background:var(--grammar-accent-soft);
-  color:var(--grammar-accent);
-  font-size:10px;
-  font-weight:600;
-  line-height:1.3;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-pattern-track{
-  position:relative;
-  display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(72px,1fr));
-  gap:6px;
-  margin:0 12px;
-  padding-top:10px;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-pattern-track::before{
-  content:"";
-  position:absolute;
-  top:4px;
-  right:6%;
-  left:6%;
-  height:1px;
-  background:var(--grammar-accent-edge);
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-pattern-track>span,
-#mainContent[data-screen-contract="grammar"] .grammar-formula-part{
-  position:relative;
-  display:grid;
-  justify-items:center;
-  align-content:start;
-  gap:2px;
-  min-width:0;
-  min-height:0;
-  padding:0 3px;
-  border:0;
-  border-radius:0;
-  background:transparent;
-  color:var(--o-ink-muted);
-  box-shadow:none;
-  text-align:center;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-pattern-track>span>i,
-#mainContent[data-screen-contract="grammar"] .grammar-formula-part>i{
-  position:relative;
-  z-index:1;
-  width:7px;
-  height:7px;
-  margin-top:-9px;
-  border:2px solid var(--o-surface);
-  border-radius:50%;
-  background:var(--grammar-accent);
-  box-shadow:0 0 0 1px var(--grammar-accent-edge);
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-pattern-track small,
-#mainContent[data-screen-contract="grammar"] .grammar-formula-part small{
-  color:var(--o-ink-muted);
-  font-size:9px;
-  font-weight:650;
-  line-height:1.25;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-pattern-track em{
-  color:var(--o-ink-faint);
-  font-size:9px;
-  line-height:1.2;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-formula-part b{
-  display:none;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-learning-use-when,
-#mainContent[data-screen-contract="grammar"] .grammar-learning-scene{
-  min-height:174px;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-learning-use-when ul{
-  gap:7px;
-  font-size:12px;
-  line-height:1.38;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-learning-use-when li{
-  grid-template-columns:16px minmax(0,1fr);
-  gap:8px;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-use-check{
-  width:15px;
-  height:15px;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-scene{
-  gap:4px;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-scene-dialogue{
-  display:grid;
-  gap:2px;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-scene-line{
-  grid-template-columns:15px minmax(0,1fr);
-  gap:7px;
-  padding:4px 2px;
-  background:transparent;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-scene-line strong{
-  color:var(--o-ink);
-  font-size:12px;
-  font-weight:550;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-scene-line em,
-#mainContent[data-screen-contract="grammar"] .grammar-scene-line small{
-  font-size:9px;
-  line-height:1.25;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-contrast-grid{
-  display:grid;
-  grid-template-columns:minmax(0,1fr);
-  gap:7px;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-contrast-pair{
-  position:relative;
-  display:grid;
-  grid-template-columns:repeat(2,minmax(0,1fr));
-  gap:12px;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-contrast-item{
-  gap:3px;
-  min-height:66px;
-  padding:9px 11px;
-  border:1px solid var(--grammar-accent-edge);
-  border-left:3px solid var(--grammar-accent);
-  background:var(--grammar-accent-soft);
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-contrast-pair .grammar-contrast-item:nth-child(2){
-  border-color:color-mix(in srgb,var(--grammar-success) 30%,var(--o-border));
-  border-left-color:var(--grammar-success);
-  background:color-mix(in srgb,var(--grammar-success) 7%,var(--o-surface));
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-contrast-item>strong{
-  font-size:12px;
-  line-height:1.34;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-contrast-item>p{
-  font-size:10px;
-  line-height:1.3;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-contrast-item.is-contrast-note{
-  display:grid;
-  grid-template-columns:minmax(92px,.32fr) minmax(0,1fr);
-  align-items:center;
-  min-height:0;
-  padding:6px 9px;
-  border:0;
-  border-radius:7px;
+.grammar-page .grammar-learning-shell{display:grid;gap:16px}
+.grammar-page .grammar-learning-block,
+.grammar-page .grammar-teach-block,
+.grammar-page .grammar-guided-practice,
+.grammar-page .grammar-production{
+  display:grid;gap:10px;
+  padding:16px 18px;
+  border:1px solid var(--o-border);
+  border-radius:var(--o-radius-card);
   background:var(--o-surface-sunken);
 }
+/* The reference marks each section with a short accent rule at its left. */
+.grammar-page .grammar-learning-block{position:relative;overflow:hidden}
+.grammar-page .grammar-learning-block::before{
+  content:"";position:absolute;left:0;top:16px;bottom:16px;width:3px;
+  border-radius:0 3px 3px 0;background:var(--o-accent);
+  opacity:.55;
+}
+.grammar-page .grammar-learning-block-head{display:grid;gap:4px}
+#mainContent .grammar-page .grammar-learning-block-head h3{
+  margin:0;font-size:var(--o-text-body);font-weight:600;color:var(--o-ink);line-height:1.35;
+}
+.grammar-page .grammar-learning-stage{
+  font-size:var(--o-text-label);font-weight:600;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--o-ink-faint);
+}
+.grammar-page .grammar-learning-block-head p{margin:0;font-size:var(--o-text-meta);color:var(--o-ink-muted);line-height:1.5}
 
-#mainContent[data-screen-contract="grammar"] .grammar-contrast-item.is-contrast-note>p,
-#mainContent[data-screen-contract="grammar"] .grammar-contrast-item.is-contrast-note>small{
-  grid-column:2;
+/* The pattern is the loudest thing on the page, as it is in the reference. */
+.grammar-page .grammar-learning-primary-pattern .grammar-learning-block{
+  background:var(--o-surface);
+  border-color:var(--o-border-strong);
+}
+.grammar-page .grammar-learning-primary-pattern .grammar-formula-line,
+.grammar-page .grammar-formula-line{
+  display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px;
+  padding:14px 16px;
+  border-radius:var(--o-radius-field);
+  background:var(--o-accent-tint);
+  color:var(--o-accent);
+  font-size:clamp(16px,2vw,20px);
+  font-weight:600;
+  text-align:center;
 }
 
-#mainContent[data-screen-contract="grammar"] .grammar-common-mistake{
-  grid-template-columns:minmax(150px,.8fr) repeat(2,minmax(0,1fr));
-  gap:8px;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-learning-common_mistake{
-  gap:6px;
-  padding:10px 14px;
-  border-color:color-mix(in srgb,var(--grammar-warning) 34%,var(--o-border));
-  background:color-mix(in srgb,var(--grammar-warning) 6%,var(--o-surface));
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-learning-common_mistake .grammar-learning-block-head h3,
-#mainContent[data-screen-contract="grammar"] .grammar-learning-common_mistake .grammar-learning-block-head h3::before{
-  color:var(--grammar-warning);
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-learning-common_mistake .grammar-learning-block-head h3::before{
-  background:var(--grammar-warning);
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-mistake-explanation{
-  display:grid;
-  align-content:center;
-  gap:4px;
-  min-width:0;
-  padding:4px 3px;
-  border-radius:8px;
-  background:transparent;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-mistake-context{
-  margin:0;
-  font-size:10px;
-  line-height:1.3;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-mistake-why{
-  color:var(--o-ink-muted);
-  font-size:10px;
-  line-height:1.3;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-mistake-why>strong{
-  color:var(--grammar-warning);
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-mistake-why p{
-  margin:1px 0 0;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-mistake-row{
-  grid-template-columns:17px minmax(0,1fr);
-  align-items:center;
-  gap:6px;
-  padding:4px 6px;
-  border-color:transparent;
-  background:transparent;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-mistake-row.is-incorrect,
-#mainContent[data-screen-contract="grammar"] .grammar-mistake-row.is-correct{
-  border-color:transparent;
-  background:transparent;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-mistake-row>span{
-  width:15px;
-  height:15px;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-mistake-row>div{
-  gap:3px;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-mistake-row strong{
-  font-size:11px;
-  line-height:1.3;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-learning-micro_practice .grammar-learning-block-head p{
-  display:none;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-micro-practice{
-  gap:8px;
-  padding:0;
-  background:transparent;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-micro-practice>p{
-  margin:0;
-  color:var(--o-ink-muted);
-  font-size:12px;
-  line-height:1.4;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-micro-practice>.button{
-  min-height:34px;
-  padding-block:6px;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-practice-input{
-  min-height:56px;
-  padding:9px 11px;
-  resize:vertical;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-learning-more{
-  grid-column:1/-1;
-  min-width:0;
+.grammar-page .grammar-learning-hook,
+.grammar-page .grammar-learning-meaning,
+.grammar-page .grammar-learning-use-when{
+  display:grid;gap:8px;
+  padding:16px 18px;
   border:1px solid var(--o-border);
-  border-radius:10px;
+  border-radius:var(--o-radius-card);
+  background:var(--o-surface-sunken);
+}
+#mainContent .grammar-page .grammar-learning-hook h3,
+#mainContent .grammar-page .grammar-learning-meaning h3{
+  margin:0;font-size:var(--o-text-body);font-weight:600;line-height:1.45;
+}
+.grammar-page .grammar-learning-hook span,
+.grammar-page .grammar-learning-use-when > span{
+  font-size:var(--o-text-label);font-weight:600;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--o-ink-faint);
+}
+.grammar-page .grammar-learning-meaning p{margin:0;font-size:var(--o-text-ui);color:var(--o-ink-muted);line-height:1.6}
+.grammar-page .grammar-learning-use-when ul,
+.grammar-page .grammar-learning-meaning ul{display:grid;gap:8px;margin:0;padding:0;list-style:none}
+.grammar-page .grammar-learning-use-when li,
+.grammar-page .grammar-learning-meaning li{
+  position:relative;padding-left:22px;
+  font-size:var(--o-text-ui);color:var(--o-ink-muted);line-height:1.55;
+}
+.grammar-page .grammar-learning-use-when li::before,
+.grammar-page .grammar-learning-meaning li::before{
+  content:"";position:absolute;left:0;top:7px;
+  width:11px;height:11px;border-radius:50%;
+  border:2px solid var(--o-accent);
+}
+
+/* The stage flow reads as a quiet index, not a second headline. */
+.grammar-page .grammar-learning-flow{display:flex;flex-wrap:wrap;gap:6px}
+.grammar-page .grammar-learning-flow span{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:5px 11px;
+  border:1px solid var(--o-border);
+  border-radius:var(--o-radius-pill);
+  background:var(--o-surface);
+  font-size:var(--o-text-meta);color:var(--o-ink-muted);
+}
+.grammar-page .grammar-learning-flow i{
+  display:grid;place-items:center;width:17px;height:17px;
+  border-radius:50%;background:var(--o-surface-sunken);
+  font-style:normal;font-size:10px;font-weight:600;color:var(--o-ink-faint);
+}
+.grammar-page .grammar-learning-flow b{font-weight:500}
+
+/* Compare, mistakes and practice keep their semantic colour and take the
+   card language around it. */
+.grammar-page .grammar-contrast-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px}
+.grammar-page .grammar-contrast-item{
+  display:grid;gap:6px;padding:13px 15px;
+  border:1px solid var(--o-border);
+  border-radius:var(--o-radius-field);
+  background:var(--o-surface);
+  font-size:var(--o-text-ui);line-height:1.55;
+}
+.grammar-page .grammar-common-mistake{
+  border-color:color-mix(in srgb,var(--o-critical) 32%,var(--o-border));
+  background:color-mix(in srgb,var(--o-critical) 8%,transparent);
+}
+.grammar-page .grammar-mistake-row{display:grid;gap:3px;padding:9px 0;font-size:var(--o-text-ui);line-height:1.55}
+.grammar-page .grammar-mistake-row + .grammar-mistake-row{border-top:1px solid var(--o-border)}
+.grammar-page .grammar-mistake-row.is-correct{color:var(--o-positive)}
+
+.grammar-page .grammar-micro-practice,
+.grammar-page .grammar-practice-card{
+  display:grid;gap:10px;padding:15px 16px;
+  border:1px solid var(--o-border);
+  border-radius:var(--o-radius-field);
   background:var(--o-surface);
 }
+.grammar-page .grammar-micro-options,
+.grammar-page .grammar-builder-options{display:grid;gap:8px}
+.grammar-page .grammar-micro-options button,
+.grammar-page .grammar-builder-options button{
+  width:100%;padding:11px 13px;
+  border:1px solid var(--o-border);
+  border-radius:var(--o-radius-field);
+  background:var(--o-surface-sunken);
+  color:var(--o-ink);font:inherit;font-size:var(--o-text-ui);
+  text-align:left;cursor:pointer;
+  transition:border-color var(--o-motion),background var(--o-motion);
+}
+.grammar-page .grammar-micro-options button:hover,
+.grammar-page .grammar-builder-options button:hover{border-color:var(--o-accent-edge);background:var(--o-accent-tint)}
 
-#mainContent[data-screen-contract="grammar"] .grammar-learning-more>summary{
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:12px;
-  min-height:44px;
-  padding:8px 14px;
-  color:var(--o-ink);
-  font-family:var(--o-font);
-  font-size:12px;
-  font-weight:650;
-  cursor:pointer;
-  list-style:none;
+.grammar-page .grammar-practice-attempt{display:grid;gap:6px;font-size:var(--o-text-meta);color:var(--o-ink-muted)}
+.grammar-page .grammar-practice-attempt textarea,
+.grammar-page .grammar-production textarea{
+  width:100%;min-width:0;padding:11px 13px;
+  border:1px solid var(--o-border-strong);
+  border-radius:var(--o-radius-field);
+  background:var(--o-surface);
+  color:var(--o-ink);font:inherit;font-size:var(--o-text-ui);
+  resize:vertical;
+}
+.grammar-page .grammar-practice-index{
+  font-size:var(--o-text-label);letter-spacing:.06em;text-transform:uppercase;color:var(--o-ink-faint);
 }
 
-#mainContent[data-screen-contract="grammar"] .grammar-learning-more>summary::-webkit-details-marker{
-  display:none;
-}
+.grammar-page .grammar-lesson-nav{display:flex;gap:10px;justify-content:space-between}
 
-#mainContent[data-screen-contract="grammar"] .grammar-learning-more>summary svg{
-  width:17px;
-  height:17px;
-  fill:none;
-  stroke:var(--o-ink-muted);
-  stroke-width:1.8;
-  stroke-linecap:round;
-  stroke-linejoin:round;
-  transition:transform var(--o-motion);
-}
+/* ================================================================= phone === */
 
-#mainContent[data-screen-contract="grammar"] .grammar-learning-more[open]>summary svg{
-  transform:rotate(180deg);
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-learning-more-content{
-  display:grid;
-  grid-template-columns:minmax(0,1fr);
-  gap:10px;
-  padding:0 12px 12px;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-learning-more-content .grammar-learning-block{
-  grid-column:1;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-lesson-actions{
-  gap:14px;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-lesson-rail-card{
-  gap:11px;
-  padding:16px;
-}
-
-#mainContent[data-screen-contract="grammar"] .grammar-lesson-outline button{
-  min-height:31px;
-}
-
-@media(max-width:1120px){
-  #mainContent[data-screen-contract="grammar"] .grammar-lesson.visual-raised-surface{
-    grid-template-columns:minmax(0,1fr) 260px;
-  }
-}
-
-@media(max-width:900px){
-  #mainContent[data-screen-contract="grammar"] .grammar-lesson.visual-raised-surface{
-    grid-template-columns:minmax(0,1fr);
-  }
-}
-
-@media(max-width:720px){
-  .o-workspace:has(#mainContent[data-screen-contract="grammar"] .grammar-page.has-open-lesson) .o-topbar-title[data-grammar-lesson-title]{
-    font-size:0;
-  }
-
-  .o-workspace:has(#mainContent[data-screen-contract="grammar"] .grammar-page.has-open-lesson) .o-topbar-title[data-grammar-lesson-title]::after{
-    content:attr(data-grammar-lesson-title);
-    font-size:17px;
-  }
-
-  #mainContent[data-screen-contract="grammar"] .grammar-page.has-open-lesson .grammar-lesson-slot{
-    padding-top:18px;
-  }
-
-  #mainContent[data-screen-contract="grammar"] .grammar-back-button{
-    position:fixed;
-    top:10px;
-    left:12px;
-    z-index:51;
-    width:34px;
-    min-height:34px;
-    padding:0;
-  }
-
-  #mainContent[data-screen-contract="grammar"] .grammar-back-button span{
-    display:none;
-  }
-
-  #mainContent[data-screen-contract="grammar"] .grammar-lesson-head{
-    grid-template-columns:minmax(0,1fr) 36px;
-    min-height:0;
-    gap:12px;
-    padding:8px 2px 10px;
-    border:0;
-    background:transparent;
-    box-shadow:none;
-  }
-
-  #mainContent[data-screen-contract="grammar"] .grammar-lesson-head>div{
-    grid-column:1;
-    grid-row:1;
-  }
-
-  #mainContent[data-screen-contract="grammar"] .grammar-lesson-head .grammar-completion-chip{
-    grid-column:2;
-    grid-row:1;
-    align-self:start;
-    justify-self:end;
-  }
-
-  #mainContent[data-screen-contract="grammar"] .grammar-teach-column{
-    padding:0;
-  }
-
-  #mainContent[data-screen-contract="grammar"] .grammar-learning-shell,
-  #mainContent[data-screen-contract="grammar"] .grammar-learning-blocks{
-    gap:8px;
-  }
-
-  #mainContent[data-screen-contract="grammar"] .grammar-learning-use-when,
-  #mainContent[data-screen-contract="grammar"] .grammar-learning-scene{
-    min-height:0;
-  }
-
-  #mainContent[data-screen-contract="grammar"] .grammar-learning-use-when,
-  #mainContent[data-screen-contract="grammar"] .grammar-learning-block{
-    padding:12px;
-  }
-
-  #mainContent[data-screen-contract="grammar"] .grammar-pattern-ribbon{
-    min-height:50px;
-  }
-
-  #mainContent[data-screen-contract="grammar"] .grammar-formula .grammar-pattern-ribbon{
-    padding:10px 12px;
-  }
-
-  #mainContent[data-screen-contract="grammar"] .grammar-formula .grammar-pattern-ribbon strong{
-    font-size:15px;
-  }
-
-  #mainContent[data-screen-contract="grammar"] .grammar-sentence-flow{
-    display:grid;
-    grid-template-columns:minmax(0,1fr);
-    gap:8px;
-    padding:0;
-  }
-
-  #mainContent[data-screen-contract="grammar"] .grammar-formula-line{
-    grid-template-columns:minmax(0,1fr);
-  }
-
-  #mainContent[data-screen-contract="grammar"] .grammar-sentence-flow .grammar-pattern-ribbon{
-    display:flex;
-  }
-
-  #mainContent[data-screen-contract="grammar"] .grammar-segment-connector{
-    display:inline-flex;
-  }
-
-  #mainContent[data-screen-contract="grammar"] .grammar-sentence-segment{
-    width:auto;
-    min-height:48px;
-    padding:8px 7px;
-  }
-
-  #mainContent[data-screen-contract="grammar"] .grammar-pattern-track{
-    grid-template-columns:repeat(auto-fit,minmax(56px,1fr));
-    margin-inline:5px;
-  }
-
-  #mainContent[data-screen-contract="grammar"] .grammar-contrast-pair,
-  #mainContent[data-screen-contract="grammar"] .grammar-common-mistake{
-    grid-template-columns:minmax(0,1fr);
-  }
-
-  #mainContent[data-screen-contract="grammar"] .grammar-contrast-vs{
-    top:50%;
-  }
-
-  #mainContent[data-screen-contract="grammar"] .grammar-mistake-explanation,
-  #mainContent[data-screen-contract="grammar"] .grammar-mistake-row.is-incorrect,
-  #mainContent[data-screen-contract="grammar"] .grammar-mistake-row.is-correct{
-    grid-column:1;
-  }
-
-  #mainContent[data-screen-contract="grammar"] .grammar-learning-more{
-    grid-column:1;
-  }
-}
-
-@media(max-width:430px){
-  #mainContent[data-screen-contract="grammar"] .grammar-lesson-head h2{
-    font-size:21px;
-  }
-
-  #mainContent[data-screen-contract="grammar"] .grammar-lesson-head .grammar-completion-chip{
-    display:inline-grid;
-  }
-
-  #mainContent[data-screen-contract="grammar"] .grammar-sentence-segment b,
-  #mainContent[data-screen-contract="grammar"] [data-target-language="zh"] .grammar-sentence-segment b{
-    font-size:17px;
-  }
-
-  #mainContent[data-screen-contract="grammar"] .grammar-contrast-item.is-contrast-note{
-    grid-template-columns:minmax(0,1fr);
-  }
-
-  #mainContent[data-screen-contract="grammar"] .grammar-contrast-item.is-contrast-note>p,
-  #mainContent[data-screen-contract="grammar"] .grammar-contrast-item.is-contrast-note>small{
-    grid-column:1;
-  }
-}
-
-@media(prefers-reduced-motion:reduce){
-  #mainContent[data-screen-contract="grammar"] .grammar-learning-more>summary svg{
-    transition:none;
-  }
+@media (max-width:1023px){
+  .grammar-page .grammar-hero{grid-template-columns:minmax(0,1fr);padding:18px}
+  .grammar-page .grammar-progress-visual{grid-template-columns:minmax(0,1fr);gap:12px}
+  .grammar-page .grammar-lesson{padding:16px 14px;gap:14px}
+  .grammar-page .grammar-lesson-head{grid-template-columns:minmax(0,1fr)}
+  /* The rail follows the lesson on a phone rather than sitting beside it, and
+     it stops pinning: a pinned rail on a phone is a second scroll area over
+     the thing being read. */
+  .grammar-page .grammar-lesson-layout{grid-template-columns:minmax(0,1fr);gap:16px}
+  .grammar-page .grammar-lesson-actions{position:static}
+  .grammar-page .grammar-learning-block,
+  .grammar-page .grammar-teach-block,
+  .grammar-page .grammar-guided-practice,
+  .grammar-page .grammar-production,
+  .grammar-page .grammar-learning-hook,
+  .grammar-page .grammar-learning-meaning,
+  .grammar-page .grammar-learning-use-when{padding:14px}
+  .grammar-page .grammar-contrast-grid{grid-template-columns:minmax(0,1fr)}
+  .grammar-page .grammar-lesson-nav{flex-wrap:wrap}
+  .grammar-page .grammar-lesson-nav .button{flex:1 1 auto}
 }
