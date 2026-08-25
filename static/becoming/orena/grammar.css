@@ -204,14 +204,15 @@ html[data-theme="dark"] .grammar-page{--color-informational:#9B84F0}
 .grammar-page .grammar-guided-practice,
 .grammar-page .grammar-production{
   --block-mark:var(--grammar-structure);
+  /* The tone is carried by the whole edge and by the light under the card, not
+     by a bar down one side. */
+  --o-tone:var(--block-mark);
   position:relative;
   display:grid;gap:12px;
-  padding:18px 20px 18px 22px;
-  border:1px solid var(--o-border);
-  border-left:3px solid var(--block-mark);
+  padding:18px 20px;
   border-radius:var(--o-radius-card);
-  background:var(--o-surface);
-  box-shadow:var(--o-shadow-card);
+  background-color:var(--o-surface);
+  background-image:var(--o-sheen);
 }
 /* Examples are evidence that the pattern works, so they carry the same green
    the product uses for a correct form everywhere else. Mistakes and
@@ -253,9 +254,8 @@ html[data-theme="dark"] .grammar-page{--color-informational:#9B84F0}
    does this grammar work?", so it is drawn heavier than the blocks that
    support it. */
 .grammar-page .grammar-learning-block.is-primary-model{
-  border-left-width:4px;
-  background:var(--o-surface);
-  box-shadow:var(--o-shadow-raised),var(--o-rim);
+  /* The dominant object sits highest off the canvas - that is what makes it
+     dominant, rather than a thicker stripe. */
 }
 #mainContent .grammar-page .is-primary-model .grammar-learning-block-head h3{
   font-size:clamp(17px,1.7vw,21px);
@@ -287,9 +287,6 @@ html[data-theme="dark"] .grammar-page{--color-informational:#9B84F0}
 
 /* The pattern is the one thing a learner should still be able to picture an
    hour later, so it is the loudest object on the page and it is one line. */
-.grammar-page .grammar-learning-primary-pattern .grammar-learning-block{
-  border-left-width:4px;
-}
 .grammar-page .grammar-formula-band{padding:0;background:none;border:0}
 /* Scoped past adopt.css, which colours every paragraph inside #mainContent. */
 #mainContent .grammar-page .grammar-formula-plain{
@@ -322,11 +319,10 @@ html[data-theme="dark"] .grammar-page{--color-informational:#9B84F0}
 .grammar-page .grammar-formula-part{
   display:grid;gap:4px;min-width:104px;
   padding:13px 16px;
-  border:1px solid var(--o-border);
-  border-top:4px solid var(--role-color,var(--grammar-structure));
+  --o-tone:var(--role-color,var(--grammar-structure));
   border-radius:var(--o-radius-field);
-  background:var(--o-surface);
-  box-shadow:var(--o-shadow-card);
+  background-color:var(--o-surface);
+  background-image:var(--o-sheen);
   text-align:center;
 }
 .grammar-page .grammar-formula-part b{font-size:clamp(17px,2vw,22px);font-weight:600;color:var(--o-ink)}
@@ -393,8 +389,9 @@ html[data-theme="dark"] .grammar-page{--color-informational:#9B84F0}
   background:var(--o-surface-sunken);
 }
 .grammar-page .grammar-learning-use-when{
-  border-left:3px solid var(--grammar-structure);
-  background:var(--o-surface);
+  --o-tone:var(--grammar-structure);
+  background-color:var(--o-surface);
+  background-image:var(--o-sheen);
 }
 #mainContent .grammar-page .grammar-learning-hook h3,
 #mainContent .grammar-page .grammar-learning-meaning h3{
@@ -439,18 +436,17 @@ html[data-theme="dark"] .grammar-page{--color-informational:#9B84F0}
 .grammar-page .grammar-contrast-item{
   display:grid;gap:7px;align-content:start;
   padding:15px 16px;
-  border:1px solid var(--grammar-structure-edge);
-  border-top:0;border-left:4px solid var(--grammar-structure);
+  --o-tone:var(--grammar-structure);
   border-radius:var(--o-radius-field);
-  background:var(--grammar-structure-tint);
+  background-color:var(--grammar-structure-tint);
+  background-image:var(--o-sheen);
   font-size:var(--o-text-ui);line-height:1.55;
 }
 /* The two sides of a comparison are two different things: the reference gives
    the second one its own colour rather than repeating the first. */
 .grammar-page .grammar-contrast-item:nth-child(even){
-  border-color:color-mix(in srgb,var(--color-positive) 34%,var(--o-border));
-  border-left-color:var(--color-positive);
-  background:var(--grammar-positive-tint);
+  --o-tone:var(--color-positive);
+  background-color:var(--grammar-positive-tint);
 }
 .grammar-page .grammar-contrast-item > span{
   font-size:var(--o-text-label);font-weight:600;letter-spacing:.06em;
@@ -537,6 +533,32 @@ html[data-theme="dark"] .grammar-page{--color-informational:#9B84F0}
 .grammar-page .grammar-exception strong{font-size:var(--o-text-ui);font-weight:500;color:var(--o-ink);line-height:1.5}
 .grammar-page .grammar-exception p{margin:0;font-size:var(--o-text-meta);color:var(--o-ink-muted);line-height:1.55}
 
+/* The last two stripes in the lesson come from the legacy sheet: an exception
+   marked with a four-pixel amber bar, and a personal-practice prompt with a
+   green one. Same treatment as everything else - the tone lifts the block
+   instead of running down its side. */
+.grammar-page .grammar-exception > .is-exception{
+  --o-tone:var(--color-attention);
+  padding:11px 13px;
+  border-radius:var(--o-radius-field);
+  background-color:var(--o-surface);
+  background-image:var(--o-sheen);
+}
+.grammar-page .grammar-learning-prompt.is-personal{
+  --o-tone:var(--color-positive);
+  padding:13px 15px;
+  border-radius:var(--o-radius-field);
+  background-color:var(--o-surface);
+  background-image:var(--o-sheen);
+}
+/* A dashed accent outline is the same idea in another costume. */
+.grammar-page .grammar-learning-prompt.is-recall{
+  --o-tone:var(--grammar-structure);
+  border-radius:var(--o-radius-field);
+  background-color:var(--o-surface);
+  background-image:var(--o-sheen);
+}
+
 /* ---- practice ---- */
 
 .grammar-page .grammar-micro-practice,
@@ -614,10 +636,10 @@ html[data-theme="dark"] .grammar-page{--color-informational:#9B84F0}
 .grammar-page .grammar-scene-line{
   display:grid;gap:3px;
   padding:12px 14px;
-  border:1px solid var(--o-border);
-  border-left:3px solid var(--color-positive);
+  --o-tone:var(--color-positive);
   border-radius:var(--o-radius-field);
-  background:var(--o-surface);
+  background-color:var(--o-surface);
+  background-image:var(--o-sheen);
 }
 .grammar-page .grammar-scene-line > span{
   font-size:var(--o-text-label);font-weight:600;letter-spacing:.06em;
@@ -680,4 +702,44 @@ html[data-theme="dark"] .grammar-page{--color-informational:#9B84F0}
   .grammar-page .grammar-formula-part{min-width:88px;padding:11px 12px}
   .grammar-page .grammar-lesson-nav{flex-wrap:wrap}
   .grammar-page .grammar-lesson-nav .button{flex:1 1 auto}
+}
+
+/* ------------------------------------------------- toned surfaces -------- */
+
+/* One rule owns how a block says what it is about.
+ *
+ * Orena marks meaning with light: the tone tints the whole edge and lifts the
+ * card off the canvas. A three-pixel coloured bar down one side is the default
+ * an interface reaches for before it has decided how it wants to look, and the
+ * reference set never uses one - ORENA_GRAMMAR_LESSON_DESIGN_SYSTEM §35 names
+ * "white background + rounded cards + purple borders" as what the reference is
+ * NOT.
+ *
+ * The colour mix lives here rather than in a token because custom properties
+ * are substituted at computed-value time: a token on :root that mixed
+ * `--o-tone` would resolve once, against the default accent, and every block
+ * would come out orange whatever tone it set. Declared here it resolves on the
+ * element that carries the tone.
+ */
+.grammar-page .grammar-learning-block,
+.grammar-page .grammar-learning-use-when,
+.grammar-page .grammar-contrast-item,
+.grammar-page .grammar-scene-line,
+.grammar-page .grammar-formula-part,
+.grammar-page .grammar-exception > .is-exception,
+.grammar-page .grammar-learning-prompt.is-personal,
+.grammar-page .grammar-learning-prompt.is-recall{
+  border:1px solid color-mix(in srgb,var(--o-tone,var(--grammar-structure)) 30%,var(--o-border));
+  box-shadow:
+    var(--o-shadow-card),
+    0 10px 26px -14px color-mix(in srgb,var(--o-tone,var(--grammar-structure)) 60%,transparent),
+    var(--o-rim);
+}
+/* The dominant object sits highest off the canvas - that is what makes it
+   dominant, rather than a thicker stripe. */
+.grammar-page .grammar-learning-block.is-primary-model{
+  box-shadow:
+    var(--o-shadow-raised),
+    0 16px 38px -16px color-mix(in srgb,var(--o-tone,var(--grammar-structure)) 70%,transparent),
+    var(--o-rim);
 }
