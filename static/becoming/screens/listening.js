@@ -747,7 +747,6 @@ function currentSegmentPanel(payload,selected,model,mode){
   const translations=new Map((payload.translations||[]).map(item=>[item.segment_id,item.translated_meaning]));
   const status=payload.translation?.status;
   const meaning=translations.get(segment.segment_id)||'';
-  const revealed=Boolean(model.revealedMeaning);
   const preparing=!status;
   const showOriginal=model.original!==false;
   const showMeaning=model.meaning!==false;
@@ -779,13 +778,8 @@ function currentSegmentPanel(payload,selected,model,mode){
          has asked not to see the words; printing them here would put them back. -->
     ${showOriginal?`<p class="o-segment-text ${state.language==='zh'?'cjk':''}" aria-label="${esc(segment.original_text)}">${transcriptTokenMarkup(segment.original_text)}</p>`:''}
     ${showOriginal&&segment.pinyin?`<p class="o-segment-pinyin">${esc(segment.pinyin)}</p>`:''}
-    ${showMeaning&&revealed&&meaning?`<p class="o-segment-meaning">${esc(meaning)}</p>`:''}
-    ${revealed||!showMeaning?'':`<div class="o-reveal">
-      <span class="o-reveal-ring" aria-hidden="true"><i>AI</i></span>
-      <span class="o-label">${esc(preparing?v.preparing:c.meaning)}</span>
-      <p>${esc(preparing?v.preparingBody:v.hiddenBody)}</p>
-      <button type="button" class="o-btn o-btn--outline o-btn--compact" data-reveal-meaning ${meaning?'':'disabled'}>${oIcon('info')}<span>${esc(v.revealMeaning)}</span></button>
-    </div>`}
+    ${showMeaning&&meaning?`<p class="o-segment-meaning">${esc(meaning)}</p>`:''}
+    ${showMeaning&&!meaning&&preparing?`<p class="o-panel-copy">${esc(v.preparingBody)}</p>`:''}
   </section>`;
 }
 
@@ -1455,13 +1449,6 @@ export async function renderListening(root,{importMedia=api.importMedia,importSt
       const on=page?.classList.toggle('is-focus');
       const button=event.currentTarget;
       button.querySelector('span')?.replaceChildren(document.createTextNode(on?v.leaveFocus:v.focusMode));
-    });
-
-    /* A prepared translation the learner has not asked to see yet. The state is
-       on the controller so a re-render does not quietly reveal it. */
-    root.querySelector('[data-reveal-meaning]')?.addEventListener('click',()=>{
-      controller.model.revealedMeaning=true;
-      controller.select(controller.model.selected);
     });
 
     root.querySelector('[data-edit-goals]')?.addEventListener('click',()=>{

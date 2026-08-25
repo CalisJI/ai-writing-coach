@@ -969,28 +969,6 @@
 .o-segment-pinyin{margin:0;font-size:var(--o-text-ui);color:var(--o-ink-muted)}
 .o-segment-meaning{margin:0;font-size:var(--o-text-ui);color:var(--o-ink-muted);line-height:1.6}
 
-/* The reveal, drawn as the reference draws it: a ring that reads as work in
-   progress, and a button that does nothing until there is something to show. */
-.o-reveal{
-  display:grid;justify-items:center;gap:9px;
-  margin-top:4px;padding:18px 16px;
-  border:1px dashed var(--o-border-strong);
-  border-radius:var(--o-radius-card);
-  background:var(--o-surface-sunken);
-  text-align:center;
-}
-.o-reveal-ring{
-  display:grid;place-items:center;
-  width:48px;height:48px;
-  border-radius:var(--o-radius-pill);
-  border:2px solid var(--o-accent);
-  color:var(--o-accent);
-  box-shadow:var(--o-glow-accent),inset 0 0 12px -4px var(--o-accent);
-}
-.o-reveal-ring i{font-style:normal;font-size:13px;font-weight:600;letter-spacing:.04em}
-.o-reveal .o-label{margin:0}
-.o-reveal p{margin:0;font-size:var(--o-text-meta);color:var(--o-ink-muted);line-height:1.55;max-width:34ch}
-
 .o-vocab-focus{display:grid;gap:10px;padding:18px 20px}
 .o-focus-words{display:grid;gap:10px;margin:0;padding:0;list-style:none}
 .o-focus-words li{display:grid;grid-template-columns:auto auto minmax(0,1fr) auto;align-items:baseline;gap:10px}
@@ -1029,14 +1007,18 @@
 
 /* ---- transport ---- */
 
-/* Pinned to the bottom of the viewport while the lesson scrolls past it, so
-   the page keeps a lane clear underneath and the bar sits above the cards. */
-.listening-page:has(.o-transport){padding-bottom:104px}
+/* The bar is the last thing on the page and it pins itself while the lesson
+   scrolls past. The page gives up its bottom gutter to it, so nothing empty is
+   left under the bar when the page reaches its end. */
+.listening-page:has(.o-transport){padding-bottom:0}
 .o-transport{
   grid-column:1 / -1;
+  /* Flush with the bottom of the window, not floating twelve pixels above it:
+     that offset plus the page gutter is what showed as an empty strip under the
+     bar once the page reached its end. */
   position:sticky;
   z-index:3;
-  bottom:12px;
+  bottom:0;
   display:grid;
   grid-template-columns:1fr auto 1fr;
   align-items:center;
@@ -1159,7 +1141,7 @@
   .o-transport{
     grid-template-columns:minmax(0,1fr) auto;
     justify-items:center;
-    gap:8px;padding:10px 14px;bottom:8px;
+    gap:8px;padding:10px 14px;bottom:0;
   }
   .o-transport-main{grid-column:1;justify-self:center;gap:14px;min-width:0}
   .o-transport-side{grid-column:2;justify-self:end;gap:0;min-width:0}
@@ -1169,5 +1151,5 @@
   .o-transport-play{width:56px;height:56px}
   .o-transport-play svg{width:24px;height:24px}
   .o-transport-item{padding:6px 10px;min-height:48px;justify-content:center}
-  .listening-page:has(.o-transport){padding-bottom:104px}
+
 }

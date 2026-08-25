@@ -12,13 +12,30 @@
 /* The passage and its rail travel together and the pair centres on the page,
    so the space left over is symmetric margin rather than a gap wedged between
    the two columns. */
+/* The reading column fills the height the shell gives it, so the passage box
+   is whatever the article header and the bottom bar have not used - a fixed
+   share of the viewport could not know about them, and overflowed the page by
+   exactly their height. The rail keeps to its content at the top. */
+.reading-page.o-fit{
+  /* A definite height, because a flexible row can only take what is left of a
+     height that is known - against a min-height the passage row just grew to
+     the text again. The height is the window minus the header, so it is the
+     screen's proportion and not a number copied off the reference. Content
+     that still does not fit (a short screen, once the passage floor applies)
+     overflows and the page scrolls, which is the intended fallback. */
+  height:calc(100dvh - var(--o-header-h));
+  align-content:stretch;
+}
 .o-reading-grid{
   display:grid;
   grid-template-columns:min(100%,41rem) var(--o-aside-w);
   justify-content:center;
   gap:24px;
-  align-items:start;
+  align-items:stretch;
+  min-height:0;
 }
+
+.o-reading-main{display:grid;grid-template-rows:auto minmax(0,1fr) auto;min-height:0}
 /* One column width for the whole reading stack. The passage needs a readable
    measure, so the surplus on a wide screen becomes page margin around a proper
    article column rather than an empty frame with the text shrunk inside it -
@@ -36,13 +53,33 @@
 }
 /* The passage and the questions are the part that grows, so they are the part
    that scrolls - the header above and the bar below hold still. */
-.o-reading-scroll{display:grid;gap:14px;align-content:start;padding-right:2px}
+/* Whatever is left between the header and the bar, never less than a few
+   lines: on a short screen the floor pushes the page past the window and the
+   page scrolls, which is better than a passage two lines tall. */
+.o-reading-main .o-reading-scroll{
+  display:grid;gap:14px;align-content:start;padding-right:2px;
+  max-height:none;min-height:min(260px,40dvh);
+}
 .o-reading-main > *{width:var(--o-read-w)}
-/* The rail travels with the passage rather than stretching to match it. A long
-   extract can be five screens; a rail stretched to that leaves four screens of
-   nothing under three small panels. */
-.o-reader-rail{display:grid;grid-auto-rows:min-content;gap:16px;min-width:0}
-.o-keywords [data-panel-body]{min-height:0}
+/* The rail reaches the bottom of the reading column instead of stopping short
+   of it and leaving a long strip of nothing beside the passage. The vocabulary
+   panel is the one that takes the slack, and its list scrolls inside it - it is
+   the panel that grows with the learner's library. A collapsed panel takes only
+   its header, so the slack moves to whatever is still open. */
+.o-reader-rail{
+  display:flex;flex-direction:column;gap:16px;min-width:0;min-height:0;
+  position:static;max-height:none;overflow:visible;
+}
+.o-reader-rail > .o-keywords{
+  flex:1 1 auto;min-height:0;overflow:hidden;
+  /* The slack goes to the word list, not to the gaps: left to itself the panel
+     shared it between header, list and footer and floated the heading into the
+     middle of the card. */
+  grid-template-rows:auto minmax(0,1fr) auto;
+  align-content:stretch;
+}
+.o-reader-rail > .o-keywords:has([data-panel-body].hidden){flex:0 0 auto}
+.o-keywords [data-panel-body]{min-height:0;overflow-y:auto;overscroll-behavior:contain}
 
 /* ------------------------------------------------------- article head ---- */
 
@@ -308,8 +345,15 @@
 /* -------------------------------------------------------------- phone ---- */
 
 @media (max-width:1023px){
+  /* On a phone the whole page scrolls, so the rows go back to their content
+     and nothing is boxed inside anything. */
+  .reading-page.o-fit{height:auto;align-content:start}
   .o-reading-grid{grid-template-columns:minmax(0,1fr);gap:16px}
-  .o-reader-rail{position:static}
+  .o-reading-main{grid-template-rows:auto}
+  .o-reading-main .o-reading-scroll{min-height:0}
+  .o-reader-rail{position:static;min-height:0}
+  .o-reader-rail > .o-keywords{flex:0 0 auto}
+  .o-keywords [data-panel-body]{overflow-y:visible}
   /* The cover keeps its column and shrinks; stacking it wastes the row. */
   .o-article-head{padding:16px;gap:14px}
   .o-article-cover{width:74px;height:66px}
