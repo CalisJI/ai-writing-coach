@@ -385,7 +385,13 @@
   .o-tcard-head,
   .o-tcard-foot,
   .listening-practice-controls{padding:10px 12px}
+  /* Tabs, the timing switch and the follow button do not fit one phone row.
+     Squeezed onto one, the switch's label was left a few characters wide and
+     broke across three lines under its own toggle. It wraps to its own line
+     instead, and the label stays whole. */
+  .o-tcard-head{flex-wrap:wrap;row-gap:8px}
   .o-switch{margin-left:0}
+  .o-switch > span:first-child{white-space:nowrap}
   .listening-practice-controls .o-btn{flex:1 1 auto}
   .listening-practice-controls [data-next-segment]{margin-left:0}
 }
@@ -1113,6 +1119,13 @@
   /* One column, but still placed by hand: letting auto-placement back in put
      the headline underneath the video again. */
   .o-listen:not([data-listening-mode="shadowing"]){grid-template-columns:minmax(0,1fr)}
+  /* Focus mode drops to two columns on a desktop, and that rule lives outside
+     any media query - so on a phone it beat the line above and squeezed the
+     lesson into the left half of the screen with nothing in the right. Focus
+     on a phone is still one column; what it removes is the rail, not width. */
+  .listening-page.is-focus .o-listen:not([data-listening-mode="shadowing"]){
+    grid-template-columns:minmax(0,1fr);
+  }
   .o-listen:not([data-listening-mode="shadowing"]) .o-listen-head{grid-column:1;grid-row:1}
   .o-listen-notices{grid-column:1;grid-row:2}
   .o-listen:not([data-listening-mode="shadowing"]) .o-listen-left{grid-column:1;grid-row:3}
