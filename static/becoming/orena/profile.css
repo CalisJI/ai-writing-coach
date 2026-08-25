@@ -178,8 +178,8 @@
 .o-about-tile{
   display:grid;place-items:center;
   width:38px;height:38px;flex:0 0 auto;
-  border-radius:11px;
-  background:var(--o-accent-tint);
+  border-radius:12px;
+  background-color:var(--o-accent-tint);
   color:var(--o-accent);
 }
 .o-about-tile svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}

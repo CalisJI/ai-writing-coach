@@ -18,7 +18,13 @@
   width:52px;height:52px;
   border-radius:var(--o-radius-field);
   background-color:var(--o-accent);
-  background-image:var(--o-accent-face);
+  background-image:linear-gradient(157deg,color-mix(in srgb,var(--o-accent) 82%,#fff) 0%,var(--o-accent) 100%);
+  border-color:transparent;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.38),
+    inset 0 -1px 1px rgba(0,0,0,.16),
+    0 2px 4px rgba(0,0,0,.20),
+    0 12px 24px -8px color-mix(in srgb,var(--o-accent) 58%,transparent);
   color:var(--o-on-accent);
   box-shadow:var(--o-shadow-control),var(--o-rim-control);
 }

@@ -28,6 +28,28 @@
   box-shadow:var(--o-shadow-card),var(--o-rim);
 }
 
+/* ------------------------------------------------------------- badges --- */
+
+/* Every small icon tile in the product is the same object: a struck face with a
+   lit top edge and a shadow beneath it. Flat squares of tinted colour are what
+   an interface produces before it decides its surfaces are physical; the
+   reference draws stage tiles and a milestone badge that catch light.
+ *
+ * A tile carrying an accent keeps its fill - it is the one lit thing on the
+ * screen - and takes the same rim and shadow so it sits in the same world. */
+.o-stage-tile,
+.o-journey-icon,
+.o-recall-icon,
+.o-about-tile,
+.o-prompt-tile,
+.o-mode-icon,
+.o-material-icon{
+  border:1px solid var(--o-badge-edge);
+  background-color:transparent;
+  background-image:var(--o-badge-face);
+  box-shadow:var(--o-badge-shadow);
+}
+
 .o-btn{
   display:inline-flex;
   align-items:center;
