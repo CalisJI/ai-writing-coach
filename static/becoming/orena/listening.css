@@ -872,10 +872,22 @@
 
 /* ---- three columns ---- */
 
+/* Proportions measured off the reference: player 576, middle 314, rail 254 in a
+   1130 content area. The whole grid stops at the width it was drawn for, so a
+   wide monitor does not blow the video up and starve the columns beside it. */
 .o-listen:not([data-listening-mode="shadowing"]){
-  grid-template-columns:minmax(0,1.25fr) minmax(0,.95fr) var(--o-aside-w);
+  grid-template-columns:minmax(0,1.55fr) minmax(0,.9fr) var(--o-aside-w);
   align-items:start;
+  max-width:1400px;
 }
+
+/* The reference puts the transcript directly under the player. The saved-words
+   and notes card used to sit between them, 500px of it, which pushed the
+   subtitles a whole screen below the video - you could see one or the other,
+   never both. Vocabulary now has its own panel in the middle column, so the
+   card and the player toggle come out of this layout. */
+.o-listen:not([data-listening-mode="shadowing"]) .o-vocab,
+.o-listen:not([data-listening-mode="shadowing"]) [data-toggle-player]{display:none}
 /* The player is the shell's first child and the header lives in the learning
    column, so auto-placement put the headline below the video. Every block is
    given its row outright. */
@@ -886,6 +898,20 @@
 .o-listen:not([data-listening-mode="shadowing"]) .o-listen-left{grid-row:3;grid-column:1}
 .o-listen:not([data-listening-mode="shadowing"]) .o-tcard,
 .o-listen:not([data-listening-mode="shadowing"]) .listening-active{grid-row:4;grid-column:1}
+/* Player and subtitles have to be readable together, which is the whole point
+   of a follow-along transcript. The list scrolls inside its own card and the
+   player card keeps its chrome tight, so the left column fits one screen. */
+.o-listen:not([data-listening-mode="shadowing"]) .listening-segments{max-height:min(26vh,300px)}
+/* The reference keeps the player card to about 420px by putting the title and
+   the transport on one line each and nothing else. Ours had a third row for the
+   provider, which is what tipped the column past a screen. */
+.o-listen:not([data-listening-mode="shadowing"]) .o-player{gap:8px;padding:10px 12px 12px}
+.o-listen:not([data-listening-mode="shadowing"]) .o-player-meta{
+  display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;
+}
+.o-listen:not([data-listening-mode="shadowing"]) .o-player-meta h2{font-size:var(--o-text-body)}
+.o-listen:not([data-listening-mode="shadowing"]) .o-player-track{gap:2px 10px}
+.o-listen:not([data-listening-mode="shadowing"]) .o-tcard{position:sticky;top:calc(var(--o-header-h) + var(--o-gap))}
 .o-listen-mid{display:grid;gap:14px;align-content:start;min-width:0;grid-row:3 / span 2;grid-column:2}
 .o-listen-right{display:grid;gap:14px;align-content:start;min-width:0;grid-row:3 / span 2;grid-column:3}
 .o-listen:not([data-listening-mode="shadowing"]) .o-transport{grid-row:5}
@@ -1010,6 +1036,16 @@
 .o-transport [data-previous-segment] svg{transform:rotate(-90deg)}
 .o-transport [data-next-segment] svg{transform:rotate(90deg)}
 
+/* The reference gives this screen one identity - the kicker and the headline -
+   and no import bar above them. The route title and the collapsed URL row were
+   costing 120px at the top of the page, which is why the subtitles sat below
+   the fold while the video was on screen. */
+.o-workspace:has(.o-listen-head) #pageHeading{display:none}
+.listening-page:has(.o-listen-head) #mediaImportForm{display:none}
+/* Not gone, just out of the way: "Add a video" in the saved-lessons panel
+   brings it back. */
+.listening-page.is-importing #mediaImportForm{display:grid}
+
 /* Focus mode drops everything that is not the lesson. */
 .listening-page.is-focus .o-listen-right,
 .listening-page.is-focus .o-listen-head-copy,
@@ -1026,10 +1062,25 @@
 }
 
 @media (max-width:1023px){
-  .o-listen-head{grid-template-columns:minmax(0,1fr);gap:16px}
-  .o-listen-head-side{justify-items:stretch}
-  .o-mode-switch{flex-direction:column}
-  .o-mode-copy small{white-space:normal}
+  /* Stacked, the three described cards ate half the screen before the video.
+     On a phone they become one row of name-under-icon. */
+  .o-listen-head{grid-template-columns:minmax(0,1fr);gap:12px}
+  .o-listen-head h1{font-size:clamp(24px,7vw,30px)}
+  .o-listen-head-side{justify-items:stretch;gap:10px}
+  .o-mode-switch{gap:4px;padding:4px}
+  .o-mode-card{flex:1 1 0;flex-direction:column;gap:5px;padding:9px 6px;text-align:center;min-width:0}
+  .o-mode-copy small{display:none}
+  .o-mode-copy strong{font-size:var(--o-text-meta)}
+  .o-mode-icon{width:30px;height:30px}
+  .o-mode-icon svg{width:16px;height:16px}
+
+  /* tempo.css lifts the transcript cap on small screens for the layout this
+     replaced. Here the list still scrolls inside its card, or the panels below
+     it end up two thousand pixels down the page. */
+  html:root .o-listen .listening-transcript .listening-segments{
+    max-height:min(46vh,420px);
+    overflow-y:auto;
+  }
   /* One column, but still placed by hand: letting auto-placement back in put
      the headline underneath the video again. */
   .o-listen:not([data-listening-mode="shadowing"]){grid-template-columns:minmax(0,1fr)}
