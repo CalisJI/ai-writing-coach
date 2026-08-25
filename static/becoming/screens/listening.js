@@ -56,7 +56,7 @@ const COPY={
     goalTip:'Minutes of playback this device has actually counted while a lesson was playing. It is not synced anywhere.',
     goalPrompt:'How many minutes a day do you want to listen?',
     sourceVideo:'Source video',viewOnProvider:'Open the source',
-    savedLessons:'Saved lessons',viewAll:'View all',noSaved:'Lessons you prepare appear here.',
+    savedLessons:'Saved lessons',viewAll:'View all',noSaved:'Lessons you prepare appear here.',newLesson:'Add a video',
     subtitles:'Subtitles',speed:'Speed',abLoop:'AB loop',shortcutsLabel:'Shortcuts',
     loopSetA:'Set loop start',loopSetB:'Set loop end',loopClear:'Clear loop',
     loopArmed:'Loop start set. Play on and set the end.',loopOn:'Looping this stretch.',loopOff:'Loop cleared.',
@@ -81,7 +81,7 @@ const COPY={
     goalTip:'Số phút phát mà thiết bị này thật sự đếm được khi bài đang chạy. Không đồng bộ đi đâu cả.',
     goalPrompt:'Mỗi ngày bạn muốn nghe bao nhiêu phút?',
     sourceVideo:'Nguồn video',viewOnProvider:'Mở nguồn',
-    savedLessons:'Bài đã lưu',viewAll:'Xem tất cả',noSaved:'Bài bạn chuẩn bị sẽ hiện ở đây.',
+    savedLessons:'Bài đã lưu',viewAll:'Xem tất cả',noSaved:'Bài bạn chuẩn bị sẽ hiện ở đây.',newLesson:'Thêm video',
     subtitles:'Phụ đề',speed:'Tốc độ',abLoop:'Lặp AB',shortcutsLabel:'Phím tắt',
     loopSetA:'Đặt điểm đầu',loopSetB:'Đặt điểm cuối',loopClear:'Xoá vòng lặp',
     loopArmed:'Đã đặt điểm đầu. Nghe tiếp rồi đặt điểm cuối.',loopOn:'Đang lặp đoạn này.',loopOff:'Đã xoá vòng lặp.',
@@ -106,7 +106,7 @@ const COPY={
     goalTip:'本设备在课程播放时真实计到的分钟数，不会同步到任何地方。',
     goalPrompt:'你每天想听多少分钟？',
     sourceVideo:'视频来源',viewOnProvider:'打开来源',
-    savedLessons:'已保存课程',viewAll:'查看全部',noSaved:'你准备的课程会出现在这里。',
+    savedLessons:'已保存课程',viewAll:'查看全部',noSaved:'你准备的课程会出现在这里。',newLesson:'添加视频',
     subtitles:'字幕',speed:'速度',abLoop:'AB 循环',shortcutsLabel:'快捷键',
     loopSetA:'设置起点',loopSetB:'设置终点',loopClear:'清除循环',
     loopArmed:'起点已设置，继续播放后设置终点。',loopOn:'正在循环这一段。',loopOff:'循环已清除。',
@@ -885,6 +885,11 @@ function savedLessonsPanel(){
           </li>`).join('')}
         </ul>`
       : `<p class="o-panel-copy">${esc(v.noSaved)}</p>`}
+    <!-- The import row is off the top of the page in this layout, so the way to
+         start a new lesson lives with the lessons. -->
+    <button type="button" class="o-row-button" data-new-lesson>
+      <span>${esc(v.newLesson)}</span>${oIcon('write')}
+    </button>
   </section>`;
 }
 
@@ -1430,6 +1435,15 @@ export async function renderListening(root,{importMedia=api.importMedia,importSt
          different speeds for one player. */
       const select=root.querySelector('#listeningPlaybackRate');
       if(select)select.value=String(next);
+    });
+
+    root.querySelector('[data-new-lesson]')?.addEventListener('click',()=>{
+      const page=root.querySelector('.listening-page');
+      page?.classList.add('is-importing');
+      const form=root.querySelector('#mediaImportForm');
+      form?.removeAttribute('data-collapsed');
+      root.querySelector('#mediaSourceUrl')?.focus();
+      form?.scrollIntoView({behavior:'smooth',block:'center'});
     });
 
     root.querySelector('[data-focus-mode]')?.addEventListener('click',event=>{
