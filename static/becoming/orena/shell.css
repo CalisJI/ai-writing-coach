@@ -453,39 +453,50 @@ body.onboarding-mode .o-drawer-toggle{visibility:hidden}
   .o-shell *::after{transition-duration:1ms !important;animation-duration:1ms !important}
 }
 
-/* ============================================ screens that fit the window = */
-/* Every reference screen holds still and shows all of its parts at once: the
-   frame is the window, and whatever is longer than its panel scrolls inside
-   that panel. A page that grows instead leaves one column running for
-   thousands of pixels while the next ends after two cards, which is where the
-   long empty stretches came from.
-   Opt-in, because the screens not yet rebuilt still expect a document that
-   scrolls. */
-.o-workspace:has(.o-fit){height:100vh;height:100dvh;min-height:0;overflow:hidden}
-.o-workspace:has(.o-fit) .o-main{min-height:0;overflow:hidden}
+/* ======================================== screens that hold their balance = */
+/* The references show every part at once and nothing is stranded. Two rules get
+   that without freezing the page:
+   
+   - the screen is at least as tall as the window, so a short one never leaves
+     the bottom of the screen empty;
+   - anything that can grow without limit is capped as a share of the window and
+     scrolls inside itself, so one column cannot run for thousands of pixels
+     while the next ends after two cards.
+   
+   Nothing is pinned to a pixel height or width. If the content still needs more
+   room than the window has, the page scrolls - which is the right answer on a
+   short window, and better than squeezing a transcript down to two lines to
+   keep a frame intact. */
 .o-fit{
-  height:100%;
-  min-height:0;
-  overflow:hidden;
+  min-height:calc(100dvh - var(--o-header-h) - var(--o-gutter) * 2);
   display:grid;
-  grid-template-rows:auto minmax(0,1fr);
+  align-content:start;
   gap:var(--o-gap);
 }
-/* Anything that scrolls inside the frame needs both of these: the min-height
-   so a grid or flex track will actually shrink, and the overflow so it takes
-   the scrolling on itself. */
-.o-scroll{min-height:0;overflow-y:auto;overscroll-behavior:contain}
 
-/* A frame that does not fit is worse than a page that scrolls, so the model
-   only applies when the window is tall enough to hold the parts, and never on a
-   phone. */
-/* 1000px is where the reference's own parts stop fitting: below it the video,
-   the transcript, the panels and the transport cannot all have usable room,
-   and squeezing the transcript to two lines to keep the frame is a worse
-   screen than one that scrolls. */
-@media (max-width:1023px),(max-height:1000px){
-  .o-workspace:has(.o-fit){height:auto;min-height:100dvh;overflow:visible}
-  .o-workspace:has(.o-fit) .o-main{overflow:visible}
-  .o-fit{height:auto;overflow:visible;grid-template-rows:none}
-  .o-scroll{overflow-y:visible}
+/* A panel that grows: capped as a share of the window, never as a fixed box. */
+.o-scroll{
+  min-height:0;
+  max-height:clamp(260px,58dvh,860px);
+  overflow-y:auto;
+  overscroll-behavior:contain;
+}
+
+/* A side column travels with the reader instead of stretching to match a much
+   longer neighbour, which is what leaves the long empty stretches. */
+.o-stick{
+  position:sticky;
+  top:calc(var(--o-header-h) + var(--o-gap));
+  max-height:calc(100dvh - var(--o-header-h) - var(--o-gap) * 2);
+  min-height:0;
+  overflow-y:auto;
+  overscroll-behavior:contain;
+}
+
+@media (max-width:1023px){
+  /* One column on a phone: nothing sticks and nothing is capped, because there
+     is no second column for it to fall out of step with. */
+  .o-fit{min-height:0}
+  .o-scroll{max-height:none;overflow-y:visible}
+  .o-stick{position:static;max-height:none;overflow-y:visible}
 }

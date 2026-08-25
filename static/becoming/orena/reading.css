@@ -17,8 +17,7 @@
   grid-template-columns:min(100%,41rem) var(--o-aside-w);
   justify-content:center;
   gap:24px;
-  align-items:stretch;
-  min-height:0;
+  align-items:start;
 }
 /* One column width for the whole reading stack. The passage needs a readable
    measure, so the surplus on a wide screen becomes page margin around a proper
@@ -29,22 +28,21 @@
      counted off the reference. */
   --o-read-w:min(100%,41rem);
   display:grid;
-  grid-template-rows:auto minmax(0,1fr) auto;
   gap:14px;
   min-width:0;
   min-height:0;
+  align-content:start;
   justify-items:center;
 }
 /* The passage and the questions are the part that grows, so they are the part
    that scrolls - the header above and the bar below hold still. */
 .o-reading-scroll{display:grid;gap:14px;align-content:start;padding-right:2px}
 .o-reading-main > *{width:var(--o-read-w)}
-/* The rail is exactly as tall as the column beside it. The vocabulary panel
-   takes whatever height is left and scrolls its own list, so a short word list
-   does not leave the bottom half of the rail empty. */
-.o-reader-rail{display:grid;grid-template-rows:auto minmax(0,1fr);gap:16px;min-width:0;min-height:0}
-.o-keywords{min-height:0;grid-template-rows:auto minmax(0,1fr) auto}
-.o-keywords [data-panel-body]{min-height:0;overflow-y:auto;overscroll-behavior:contain}
+/* The rail travels with the passage rather than stretching to match it. A long
+   extract can be five screens; a rail stretched to that leaves four screens of
+   nothing under three small panels. */
+.o-reader-rail{display:grid;grid-auto-rows:min-content;gap:16px;min-width:0}
+.o-keywords [data-panel-body]{min-height:0}
 
 /* ------------------------------------------------------- article head ---- */
 
