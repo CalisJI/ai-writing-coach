@@ -5,6 +5,8 @@ from __future__ import annotations
 from typing import Any
 
 from fastapi import APIRouter, HTTPException
+
+from writing_coach.core.errors import orena_http_error
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from writing_coach.core.request_context import current_language_code, current_user_key
@@ -224,9 +226,10 @@ def import_media(payload: MediaImportIn) -> dict[str, Any]:
             learning_language,
         )
     except MediaImportError as exc:
-        raise HTTPException(
+        raise orena_http_error(
             _STATUS_BY_CATEGORY[exc.category],
-            {"category": exc.category.value, "message": exc.learner_message},
+            exc.category.value,
+            exc.learner_message,
         ) from exc
 
     timing: MediaTimingEnrichment | None = None
@@ -279,12 +282,10 @@ def import_media(payload: MediaImportIn) -> dict[str, Any]:
 def import_media_status(payload: MediaImportStatusIn) -> dict[str, Any]:
     service = _media_fallback_service
     if service is None:
-        raise HTTPException(
+        raise orena_http_error(
             404,
-            {
-                "category": "media_job_unavailable",
-                "message": "This transcript job is no longer available.",
-            },
+            "media_job_unavailable",
+            "This transcript job is no longer available.",
         )
     try:
         result = service.poll(
@@ -293,12 +294,10 @@ def import_media_status(payload: MediaImportStatusIn) -> dict[str, Any]:
             learning_language=current_language_code(),
         )
     except KeyError as exc:
-        raise HTTPException(
+        raise orena_http_error(
             404,
-            {
-                "category": "media_job_unavailable",
-                "message": "This transcript job is unavailable or expired.",
-            },
+            "media_job_unavailable",
+            "This transcript job is unavailable or expired.",
         ) from exc
 
     if result.status == "ready":
@@ -344,12 +343,10 @@ def _media_object_for_translation(payload: MediaTranslationIn) -> MediaLearningO
         )
         return MediaLearningObject(asset=asset, transcript=transcript)
     except (MediaLearningContractError, ValueError) as exc:
-        raise HTTPException(
+        raise orena_http_error(
             422,
-            {
-                "category": "invalid_media_transcript",
-                "message": "The prepared media transcript is invalid.",
-            },
+            "invalid_media_transcript",
+            "The prepared media transcript is invalid.",
         ) from exc
 
 

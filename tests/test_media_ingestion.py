@@ -368,9 +368,14 @@ def test_api_maps_safe_error_category_without_provider_detail(
         )
 
     assert caught.value.status_code == 504
+    # The canonical envelope, spec 2.6: a stable category, the learner message,
+    # and an explicit answer to whether retrying is worth anything. A provider
+    # timeout is one of the few failures where it is.
     assert caught.value.detail == {
             "category": "provider_timeout",
             "message": "The media provider did not respond in time. Please try again.",
+            "retryable": True,
+            "context": {},
     }
 
 

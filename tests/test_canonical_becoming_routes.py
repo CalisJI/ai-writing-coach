@@ -7,9 +7,19 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def test_root_serves_becoming_not_legacy_template() -> None:
-    assert home() == (ROOT / "templates" / "becoming" / "index.html").read_text(encoding="utf-8")
-    assert home() != (ROOT / "templates" / "index.html").read_text(encoding="utf-8")
+    response = home()
+    body = response.body.decode("utf-8")
+    assert body == (ROOT / "templates" / "becoming" / "index.html").read_text(encoding="utf-8")
+    assert body != (ROOT / "templates" / "index.html").read_text(encoding="utf-8")
     assert BECOMING_ASSET_ROOT.name == "becoming"
+
+
+def test_root_document_is_not_cacheable() -> None:
+    # The shell names every stylesheet and module the app loads, so a cached
+    # copy keeps requesting yesterday's asset list and a sheet added since is
+    # simply never fetched. Every asset answers no-store; the document that
+    # names them has to as well.
+    assert home().headers["cache-control"] == "no-store, max-age=0"
 
 
 def test_becoming_aliases_canonicalize_to_root() -> None:
