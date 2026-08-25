@@ -15,7 +15,20 @@
   gap:24px;
   align-items:start;
 }
-.o-reading-main{display:grid;gap:14px;min-width:0}
+/* One column width for the whole reading stack. The passage needs a readable
+   measure, so the surplus on a wide screen becomes page margin around a proper
+   article column rather than an empty frame with the text shrunk inside it -
+   which is what capping only the text produced. */
+.o-reading-main{
+  /* 41rem holds about 68 characters at the default size, which is the measure
+     counted off the reference. */
+  --o-read-w:min(100%,41rem);
+  display:grid;
+  gap:14px;
+  min-width:0;
+  justify-items:center;
+}
+.o-reading-main > *{width:var(--o-read-w)}
 .o-reader-rail{display:grid;gap:16px;min-width:0;position:sticky;top:calc(var(--o-header-h) + var(--o-gap))}
 
 /* ------------------------------------------------------- article head ---- */
@@ -66,17 +79,13 @@
   font-size:18px;
   line-height:1.75;
   color:var(--o-ink);
-  /* Measured against the reference by counting characters, not pixels: its
-     lines hold about 68 of them. `ch` tracks the digit width rather than the
-     average letter in this serif, so the cap is stated in pixels and moves with
-     the type size below. */
-  max-width:640px;
-  margin-inline:auto;
 }
-.o-reader[data-font-step="0"] .o-reader-text{font-size:16px;line-height:1.7;max-width:572px}
-.o-reader[data-font-step="1"] .o-reader-text{font-size:18px;line-height:1.75;max-width:640px}
-.o-reader[data-font-step="2"] .o-reader-text{font-size:20px;line-height:1.8;max-width:706px}
-.o-reader[data-font-step="3"] .o-reader-text{font-size:23px;line-height:1.85;max-width:800px}
+/* The column is fixed, so a larger type size means fewer words to a line -
+   which is what a reader turning the size up is asking for. */
+.o-reader[data-font-step="0"] .o-reader-text{font-size:16px;line-height:1.7}
+.o-reader[data-font-step="1"] .o-reader-text{font-size:18px;line-height:1.75}
+.o-reader[data-font-step="2"] .o-reader-text{font-size:20px;line-height:1.8}
+.o-reader[data-font-step="3"] .o-reader-text{font-size:23px;line-height:1.85}
 /* Three leadings, cycled from the toolbar. */
 .o-reader[data-leading="1"] .o-reader-text{line-height:2}
 .o-reader[data-leading="2"] .o-reader-text{line-height:2.25}
@@ -245,7 +254,9 @@
 
 .o-reading-bottom{
   display:flex;align-items:center;gap:18px;
-  margin-top:16px;padding:14px 18px;
+  /* No width of its own: it takes the reading column's, like everything else
+     in the stack. */
+  margin:16px 0 0;padding:14px 18px;
   border:1px solid var(--o-border);
   border-radius:var(--o-radius-card);
   background-color:var(--o-surface);
@@ -291,6 +302,7 @@
   .o-article-cover{width:74px;height:66px}
   .o-article-cover svg{width:24px;height:24px}
   .o-article-meta{gap:10px}
+  .o-reading-main{--o-read-w:100%}
   .o-reader-text{padding:22px 18px}
   .o-reader[data-font-step="3"] .o-reader-text{font-size:21px}
   .o-reader-foot{flex-wrap:wrap}
