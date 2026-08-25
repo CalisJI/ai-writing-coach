@@ -1,13 +1,10 @@
 import {esc} from './primitives.js';
-import {oIcon} from '../orena/icons.js?v=2.17.5';
 
 const COPY={
   en:{
     notice:'Notice',understand:'Understand',pattern:'See the pattern',context:'See it in context',
     connect:'Connect',compare:'Compare',apply:'Apply',recall:'Recall',transfer:'Transfer',
-    flowLabel:'Grammar learning flow',patternTitle:'Pattern',useWhen:'When to use',examplesTitle:'Examples',
-    compareTitle:'Compare',mistakeTitle:'Common mistake',quickPractice:'Quick practice',morePractice:'More practice',
-    before:'Before',after:'After',incorrect:'Incorrect',
+    flowLabel:'Grammar learning flow',useWhen:'Use it when',before:'Before',after:'After',incorrect:'Incorrect',
     why:'Why?',corrected:'Corrected',rule:'Rule',exception:'Exception',contextLabel:'Context',
     selectedOrder:'Your order',hideReadingAid:'Hide reading aid',showReadingAid:'Show reading aid',
     yourAnswer:'Your answer',reveal:'Reveal',hide:'Hide',
@@ -16,9 +13,7 @@ const COPY={
   vi:{
     notice:'Nhận ra',understand:'Hiểu',pattern:'Nhìn ra mẫu',context:'Đặt vào ngữ cảnh',
     connect:'Liên hệ',compare:'Phân biệt',apply:'Áp dụng',recall:'Gợi nhớ',transfer:'Chuyển giao',
-    flowLabel:'Luồng học ngữ pháp',patternTitle:'Cấu trúc',useWhen:'Khi nào dùng',examplesTitle:'Ví dụ',
-    compareTitle:'So sánh',mistakeTitle:'Lỗi thường gặp',quickPractice:'Luyện tập nhanh',morePractice:'Luyện tập thêm',
-    before:'Trước',after:'Sau',incorrect:'Chưa đúng',
+    flowLabel:'Luồng học ngữ pháp',useWhen:'Dùng khi',before:'Trước',after:'Sau',incorrect:'Chưa đúng',
     why:'Vì sao?',corrected:'Sửa đúng',rule:'Quy tắc',exception:'Ngoại lệ',contextLabel:'Ngữ cảnh',
     selectedOrder:'Thứ tự của bạn',hideReadingAid:'Ẩn hỗ trợ đọc',showReadingAid:'Hiện hỗ trợ đọc',
     yourAnswer:'Câu trả lời của bạn',reveal:'Xem gợi ý',hide:'Ẩn gợi ý',
@@ -27,9 +22,7 @@ const COPY={
   zh:{
     notice:'发现',understand:'理解',pattern:'看出规律',context:'放进语境',
     connect:'联系语境',compare:'辨析',apply:'应用',recall:'主动回忆',transfer:'迁移',
-    flowLabel:'语法学习流程',patternTitle:'结构',useWhen:'使用场景',examplesTitle:'例句',
-    compareTitle:'对比',mistakeTitle:'常见错误',quickPractice:'快速练习',morePractice:'更多练习',
-    before:'变化前',after:'变化后',incorrect:'错误形式',
+    flowLabel:'语法学习流程',useWhen:'适用场景',before:'变化前',after:'变化后',incorrect:'错误形式',
     why:'为什么？',corrected:'正确形式',rule:'规则',exception:'例外',contextLabel:'语境',
     selectedOrder:'你的顺序',hideReadingAid:'隐藏读音辅助',showReadingAid:'显示读音辅助',
     yourAnswer:'你的回答',reveal:'查看提示',hide:'隐藏提示',
@@ -75,7 +68,6 @@ const SKILLS={
   vi:{writing:'Writing',speaking:'Speaking',reading:'Reading',listening:'Listening'},
   zh:{writing:'写作',speaking:'口语',reading:'阅读',listening:'听力'},
 };
-const SKILL_ICONS={writing:'write',speaking:'speak',reading:'read',listening:'listen'};
 
 const localeKey=value=>String(value||'').trim().replace(/_/g,'-');
 const baseLocale=value=>localeKey(value).split('-')[0];
@@ -126,11 +118,6 @@ const translationText=(value,context)=>localizedText(value,grammarLanguageContex
 const targetText=(value,context)=>localizedText(value,grammarLanguageContext(context).targetLanguage);
 const interfaceText=(value,context)=>localizedText(value,grammarLanguageContext(context).interfaceLanguage);
 
-function guideLabel(item,context){
-  const label=interfaceText(item?.label,context)||roleLabel(item?.role,context);
-  return /\d/.test(label)?targetText(item?.text,context):label;
-}
-
 function readingAidValue(item,context){
   const raw=item?.reading_aid ?? item?.transliteration ?? item?.pronunciation_guide ?? item?.pinyin;
   if(raw&&typeof raw==='object'&&!Array.isArray(raw)&&Object.prototype.hasOwnProperty.call(raw,'text')){
@@ -139,87 +126,122 @@ function readingAidValue(item,context){
   return targetText(raw,context)||explanationText(raw,context);
 }
 
-function frame(block,context,body,{surface=false,heading=''}={}){
+function frame(block,context,body,{surface=false}={}){
   const id=`grammar-learning-${safeId(block.id)}`;
   const instruction=explanationText(block.instruction,context);
-  return `<section class="grammar-learning-block grammar-learning-${esc(block.type)} ${surface?'is-visual-surface':''}" data-grammar-block-type="${esc(block.type)}" data-learning-stage="${esc(block.stage)}" aria-labelledby="${id}">
+  return `<section class="grammar-learning-block grammar-learning-${esc(block.type)} ${surface?'is-visual-surface':''}" data-learning-stage="${esc(block.stage)}" aria-labelledby="${id}">
     <header class="grammar-learning-block-head">
       <span class="grammar-learning-stage">${esc(stageLabel(block.stage,context))}</span>
-      <h3 id="${id}">${esc(heading||explanationText(block.title,context))}<span class="grammar-block-info" aria-hidden="true">${oIcon('info')}</span></h3>
+      <h3 id="${id}">${esc(explanationText(block.title,context))}</h3>
       ${instruction?`<p>${esc(instruction)}</p>`:''}
     </header>${body}</section>`;
 }
 
 function segments(payload,context,{insertion=false}={}){
   const items=Array.isArray(payload?.segments)?payload.segments:[];
-  return `<div class="grammar-sentence-flow" data-segment-count="${items.length}"><div class="grammar-pattern-ribbon" role="list">${items.map((item,index)=>{
+  return `<div class="grammar-sentence-flow" role="list">${items.map(item=>{
     const role=String(item.role||'segment');
     const aid=readingAidValue(item,context);
-    return `${index?`<i class="grammar-segment-connector" aria-hidden="true">${oIcon('arrowRight')}</i>`:''}<span class="grammar-sentence-segment role-${esc(safeId(role))} ${item.inserted?'is-inserted':''}" role="listitem" data-grammar-role="${esc(role)}">
+    const meaning=translationText(item.meaning,context);
+    return `<span class="grammar-sentence-segment role-${esc(safeId(role))} ${item.inserted?'is-inserted':''}" role="listitem" data-grammar-role="${esc(role)}">
       ${item.inserted||insertion?'<i class="grammar-insertion-pin" aria-hidden="true"></i>':''}
       <b>${esc(targetText(item.text,context))}</b>
       ${aid?`<span class="grammar-reading-aid" data-grammar-reading-aid>${esc(aid)}</span>`:''}
+      <small>${esc(interfaceText(item.label,context)||roleLabel(role,context))}</small>
+      ${meaning?`<em>${esc(meaning)}</em>`:''}
     </span>`;
-  }).join('')}</div><div class="grammar-pattern-track" role="list">${items.map(item=>{
-    const role=String(item.role||'segment');
-    const meaning=translationText(item.meaning,context);
-    return `<span role="listitem"><i aria-hidden="true"></i><small>${esc(guideLabel(item,context))}</small>${meaning?`<em>${esc(meaning)}</em>`:''}</span>`;
-  }).join('')}</div></div>`;
+  }).join('')}</div>`;
 }
 
-function formulaClauses(parts,context){
-  const clauses=[''];
-  for(const part of parts){
-    const fragments=targetText(part.text,context).split(/\s*;\s*/);
-    fragments.forEach((fragment,index)=>{
-      if(index>0)clauses.push('');
-      if(fragment){
-        const current=clauses.length-1;
-        clauses[current]+=(clauses[current]?' + ':'')+fragment;
-      }
-    });
-  }
-  return clauses.map(value=>value.trim()).filter(Boolean);
-}
+/* A word-level difference between two sentences. Used to point at what
+   actually changed between a wrong form and its correction, instead of leaving
+   the reader to find it: the marked words are derived from the two strings, so
+   nothing is asserted that the content did not already say. */
+export function markedDifference(from,to){
+  const split=value=>String(value||'').split(/(\s+)/);
+  const norm=token=>token.toLowerCase().replace(/[^\p{L}\p{N}']/gu,'');
+  const a=split(from), b=split(to);
+  const aWords=[], bWords=[];
+  a.forEach((token,index)=>{if(token.trim())aWords.push(index);});
+  b.forEach((token,index)=>{if(token.trim())bWords.push(index);});
+  const A=aWords.map(index=>norm(a[index]));
+  const B=bWords.map(index=>norm(b[index]));
 
-function primaryFormulaParts(parts,context){
-  const primary=[];
-  for(const part of parts){
-    const text=targetText(part.text,context);
-    const [first]=text.split(/\s*;\s*/);
-    if(first)primary.push({...part,text:first});
-    if(text.includes(';'))break;
+  /* A longest-common-subsequence, not a set difference: many corrections in
+     this curriculum change nothing but word order - "Like I this song." against
+     "I like this song." is the same four words - and a set difference finds no
+     change at all there. */
+  const n=A.length, m=B.length;
+  const dp=Array.from({length:n+1},()=>new Array(m+1).fill(0));
+  for(let i=n-1;i>=0;i--){
+    for(let j=m-1;j>=0;j--){
+      dp[i][j]=A[i]===B[j]?dp[i+1][j+1]+1:Math.max(dp[i+1][j],dp[i][j+1]);
+    }
   }
-  return primary;
+  const keptA=new Set(), keptB=new Set();
+  let i=0, j=0;
+  while(i<n&&j<m){
+    if(A[i]===B[j]){keptA.add(i);keptB.add(j);i+=1;j+=1;}
+    else if(dp[i+1][j]>=dp[i][j+1])i+=1;
+    else j+=1;
+  }
+
+  const paint=(tokens,wordIndexes,kept,variant)=>{
+    const position=new Map();
+    wordIndexes.forEach((tokenIndex,order)=>position.set(tokenIndex,order));
+    return tokens.map((token,index)=>{
+      const order=position.get(index);
+      if(order===undefined||kept.has(order))return esc(token);
+      return `<mark class="grammar-diff grammar-diff--${variant}">${esc(token)}</mark>`;
+    }).join('');
+  };
+
+  return {
+    from:paint(a,aWords,keptA,'out'),
+    to:paint(b,bWords,keptB,'in'),
+  };
 }
 
 export function GrammarFormula(block,context='en'){
   const parts=Array.isArray(block.payload?.parts)?block.payload.parts:[];
-  const clauses=formulaClauses(parts,context);
-  const primaryParts=primaryFormulaParts(parts,context);
-  return frame(block,context,`<div class="grammar-visual-canvas grammar-formula"><div class="grammar-formula-line" data-part-count="${parts.length}"><div class="grammar-pattern-ribbon"><strong>${esc(clauses[0]||'—')}</strong></div>${clauses.length>1?`<div class="grammar-formula-variants">${clauses.slice(1).map(clause=>`<span>${esc(clause)}</span>`).join('')}</div>`:''}<div class="grammar-pattern-track" role="list">${primaryParts.map(part=>{
+  /* Splitting a pattern into labelled parts is worth doing when the parts play
+     different grammatical roles. In this curriculum two thirds of the formulas
+     tag every part `marker` and label them "Part 1, Part 2, Part 3" - three
+     boxes of the same colour, carrying a sentence cut at arbitrary points, with
+     nothing to look at. When there is no distinction to draw, the pattern reads
+     as one line. */
+  const undifferentiated=parts.length>0&&parts.every(part=>!part.role||part.role==='marker');
+  if(undifferentiated){
+    /* Rejoined with the plus the parts were cut on, so the pattern reads the
+       way it was authored - "have + participle", not two fragments run
+       together. */
+    const line=parts.map(part=>`<span>${esc(targetText(part.text,context))}</span>`)
+      .join('<i class="grammar-formula-plus" aria-hidden="true">+</i>');
+    return frame(block,context,`<div class="grammar-visual-canvas grammar-formula grammar-formula-band"><p class="grammar-formula-plain">${line}</p></div>`,{surface:true});
+  }
+  return frame(block,context,`<div class="grammar-visual-canvas grammar-formula"><div class="grammar-formula-line">${parts.map((part,index)=>{
     const role=String(part.role||'part');
     const aid=readingAidValue(part,context);
-    return `<span class="grammar-formula-part role-${esc(safeId(role))}" role="listitem"><i aria-hidden="true"></i><b>${esc(part.text)}</b>${aid?`<span class="grammar-reading-aid" data-grammar-reading-aid>${esc(aid)}</span>`:''}<small>${esc(guideLabel(part,context))}</small></span>`;
-  }).join('')}</div></div></div>`,{surface:true,heading:copy(context).patternTitle});
+    return `${index?'<span class="grammar-formula-join" aria-hidden="true">+</span>':''}<span class="grammar-formula-part role-${esc(safeId(role))}"><b>${esc(targetText(part.text,context))}</b>${aid?`<span class="grammar-reading-aid" data-grammar-reading-aid>${esc(aid)}</span>`:''}<small>${esc(interfaceText(part.label,context)||roleLabel(role,context))}</small></span>`;
+  }).join('')}</div></div>`,{surface:true});
 }
 
 export function SemanticSentence(block,context='en'){
   return frame(block,context,`<div class="grammar-visual-canvas grammar-semantic-sentence">${segments(block.payload,context)}</div>`,{surface:true});
 }
 export function WordOrderFlow(block,context='en'){
-  return frame(block,context,`<div class="grammar-visual-canvas grammar-word-order">${segments(block.payload,context)}</div>`,{surface:true,heading:copy(context).patternTitle});
+  return frame(block,context,`<div class="grammar-visual-canvas grammar-word-order">${segments(block.payload,context)}<div class="grammar-flow-arrow" aria-hidden="true">→</div></div>`,{surface:true});
 }
 export function ParticleInsertion(block,context='en'){
-  return frame(block,context,`<div class="grammar-visual-canvas grammar-particle-insertion">${segments(block.payload,context,{insertion:true})}</div>`,{surface:true,heading:copy(context).patternTitle});
+  return frame(block,context,`<div class="grammar-visual-canvas grammar-particle-insertion">${segments(block.payload,context,{insertion:true})}</div>`,{surface:true});
 }
 export function AgreementMap(block,context='en'){
-  return frame(block,context,`<div class="grammar-visual-canvas grammar-agreement-map">${segments(block.payload,context)}</div>`,{surface:true,heading:copy(context).patternTitle});
+  return frame(block,context,`<div class="grammar-visual-canvas grammar-agreement-map">${segments(block.payload,context)}</div>`,{surface:true});
 }
 
 export function TransformationFlow(block,context='en'){
   const p=block.payload||{};
-  return frame(block,context,`<div class="grammar-visual-canvas grammar-transformation"><div class="grammar-transform-state is-before"><small>${esc(copy(context).before)}</small><strong>${esc(targetText(p.from,context))}</strong></div><span class="grammar-transform-arrow" aria-hidden="true">${oIcon('arrowRight')}</span><div class="grammar-transform-state is-after"><small>${esc(copy(context).after)}</small><strong>${esc(targetText(p.to,context))}</strong></div>${Array.isArray(p.steps)&&p.steps.length?`<ol class="grammar-transform-steps">${p.steps.map(step=>`<li>${esc(explanationText(step,context))}</li>`).join('')}</ol>`:''}</div>`,{surface:true});
+  return frame(block,context,`<div class="grammar-visual-canvas grammar-transformation"><div class="grammar-transform-state is-before"><small>${esc(copy(context).before)}</small><strong>${esc(targetText(p.from,context))}</strong></div><span class="grammar-transform-arrow" aria-hidden="true">→</span><div class="grammar-transform-state is-after"><small>${esc(copy(context).after)}</small><strong>${esc(targetText(p.to,context))}</strong></div>${Array.isArray(p.steps)&&p.steps.length?`<ol class="grammar-transform-steps">${p.steps.map(step=>`<li>${esc(explanationText(step,context))}</li>`).join('')}</ol>`:''}</div>`,{surface:true});
 }
 
 export function TimelineVisual(block,context='en'){
@@ -229,11 +251,10 @@ export function TimelineVisual(block,context='en'){
 
 export function ContrastCard(block,context='en'){
   const items=Array.isArray(block.payload?.items)?block.payload.items:[];
-  const itemMarkup=(item,index,extraClass='')=>{
+  return frame(block,context,`<div class="grammar-contrast-grid">${items.map((item,index)=>{
     const aid=readingAidValue(item,context);
-    return `<article class="grammar-contrast-item ${extraClass}" data-contrast-index="${index}"><span>${esc(interfaceText(item.label,context)||explanationText(item.label,context))}</span><strong>${esc(targetText(item.text,context))}</strong>${aid?`<small class="grammar-reading-aid" data-grammar-reading-aid>${esc(aid)}</small>`:''}${item.meaning?`<small>${esc(translationText(item.meaning,context))}</small>`:''}${item.note?`<p>${esc(explanationText(item.note,context))}</p>`:''}</article>`;
-  };
-  return frame(block,context,`<div class="grammar-contrast-grid" data-contrast-count="${items.length}"><div class="grammar-contrast-pair">${items.slice(0,2).map((item,index)=>itemMarkup(item,index)).join('')}${items.length>=2?'<span class="grammar-contrast-vs" aria-hidden="true">vs.</span>':''}</div>${items.slice(2).map((item,index)=>itemMarkup(item,index+2,'is-contrast-note')).join('')}</div>`,{heading:copy(context).compareTitle});
+    return `<article class="grammar-contrast-item" data-contrast-index="${index}"><span>${esc(interfaceText(item.label,context)||explanationText(item.label,context))}</span><strong>${esc(targetText(item.text,context))}</strong>${aid?`<small class="grammar-reading-aid" data-grammar-reading-aid>${esc(aid)}</small>`:''}${item.meaning?`<small>${esc(translationText(item.meaning,context))}</small>`:''}${item.note?`<p>${esc(explanationText(item.note,context))}</p>`:''}</article>`;
+  }).join('')}</div>`);
 }
 
 export function RealLifeScene(block,context='en'){
@@ -241,8 +262,8 @@ export function RealLifeScene(block,context='en'){
   const lines=Array.isArray(p.lines)?p.lines:[];
   return frame(block,context,`<div class="grammar-scene">${p.setup?`<p class="grammar-scene-setup">${esc(explanationText(p.setup,context))}</p>`:''}<div class="grammar-scene-dialogue">${lines.map(line=>{
     const aid=readingAidValue(line,context);
-    return `<div class="grammar-scene-line"><span class="grammar-example-mark" aria-hidden="true">${oIcon('check')}</span><div class="grammar-example-copy">${line.speaker?`<span>${esc(targetText(line.speaker,context)||explanationText(line.speaker,context))}</span>`:''}<strong>${esc(targetText(line.text,context))}</strong>${aid?`<small class="grammar-reading-aid" data-grammar-reading-aid>${esc(aid)}</small>`:''}${line.meaning?`<em>${esc(translationText(line.meaning,context))}</em>`:''}</div></div>`;
-  }).join('')}</div></div>`,{surface:true,heading:copy(context).examplesTitle});
+    return `<div class="grammar-scene-line">${line.speaker?`<span>${esc(targetText(line.speaker,context)||explanationText(line.speaker,context))}</span>`:''}<strong>${esc(targetText(line.text,context))}</strong>${aid?`<small class="grammar-reading-aid" data-grammar-reading-aid>${esc(aid)}</small>`:''}${line.meaning?`<em>${esc(translationText(line.meaning,context))}</em>`:''}</div>`;
+  }).join('')}</div></div>`,{surface:true});
 }
 
 export function SentenceBuilder(block,context='en'){
@@ -258,17 +279,23 @@ export function InflectionTable(block,context='en'){
 export function CommonMistake(block,context='en'){
   const p=block.payload||{};
   return frame(block,context,`<div class="grammar-common-mistake">
-    <div class="grammar-mistake-explanation">${p.context?`<p class="grammar-mistake-context"><strong>${esc(copy(context).contextLabel)}:</strong> ${esc(explanationText(p.context,context))}</p>`:''}<div class="grammar-mistake-why"><strong>${esc(copy(context).why)}</strong><p>${esc(explanationText(p.why,context))}</p></div></div>
-    <div class="grammar-mistake-row is-incorrect"><span aria-hidden="true">${oIcon('close')}</span><div><small>${esc(copy(context).incorrect)}</small><strong>${esc(targetText(p.incorrect,context))}</strong></div></div>
-    <div class="grammar-mistake-row is-correct"><span aria-hidden="true">${oIcon('check')}</span><div><small>${esc(copy(context).corrected)}</small><strong>${esc(targetText(p.correct,context))}</strong></div></div>
-  </div>`,{surface:true,heading:copy(context).mistakeTitle});
+    ${p.context?`<p class="grammar-mistake-context"><strong>${esc(copy(context).contextLabel)}:</strong> ${esc(explanationText(p.context,context))}</p>`:''}
+    ${(()=>{
+      const wrong=targetText(p.incorrect,context);
+      const right=targetText(p.correct,context);
+      const diff=markedDifference(wrong,right);
+      return `<div class="grammar-mistake-row is-incorrect"><span aria-hidden="true">×</span><div><small>${esc(copy(context).incorrect)}</small><strong>${diff.from}</strong></div></div>
+    <div class="grammar-mistake-why"><strong>${esc(copy(context).why)}</strong><p>${esc(explanationText(p.why,context))}</p></div>
+    <div class="grammar-mistake-row is-correct"><span aria-hidden="true">✓</span><div><small>${esc(copy(context).corrected)}</small><strong>${diff.to}</strong></div></div>`;
+    })()}
+  </div>`,{surface:true});
 }
 
 export function GrammarException(block,context='en'){
   const p=block.payload||{};
   return frame(block,context,`<div class="grammar-exception">
     <div><small>${esc(copy(context).rule)}</small><strong>${esc(explanationText(p.rule,context))}</strong></div>
-    <span class="grammar-exception-arrow" aria-hidden="true">${oIcon('arrowRight')}</span>
+    <span class="grammar-exception-arrow" aria-hidden="true">↳</span>
     <div class="is-exception"><small>${esc(copy(context).exception)}</small><strong>${esc(explanationText(p.exception,context))}</strong></div>
     <p><b>${esc(copy(context).why)}</b> ${esc(explanationText(p.why,context))}</p>
     ${p.context?`<p><b>${esc(copy(context).contextLabel)}</b> ${esc(explanationText(p.context,context))}</p>`:''}
@@ -286,7 +313,7 @@ export function MicroPractice(block,context='en'){
   const p=block.payload||{}, type=p.interaction;
   let body='';
   if(['choose','compare','classify','identify'].includes(type)){
-    body=`<div class="grammar-micro-practice" data-learning-interaction data-interaction-type="${esc(type)}" data-learning-evidence-stage="${esc(block.stage)}" data-learning-evidence-complete="false"><p>${esc(explanationText(p.prompt,context))}</p><div class="grammar-micro-options">${(p.options||[]).map((option,index)=>`<button type="button" aria-pressed="false" data-micro-choice><span aria-hidden="true">${String.fromCharCode(65+index)}</span><b>${esc(targetText(option,context))}</b></button>`).join('')}</div>${revealMarkup(p,context)}</div>`;
+    body=`<div class="grammar-micro-practice" data-learning-interaction data-interaction-type="${esc(type)}" data-learning-evidence-stage="${esc(block.stage)}" data-learning-evidence-complete="false"><p>${esc(explanationText(p.prompt,context))}</p><div class="grammar-micro-options">${(p.options||[]).map(option=>`<button type="button" aria-pressed="false" data-micro-choice>${esc(targetText(option,context))}</button>`).join('')}</div>${revealMarkup(p,context)}</div>`;
   }else if(['reorder','build'].includes(type)){
     body=`<div class="grammar-micro-practice" data-learning-interaction data-interaction-type="${esc(type)}" data-learning-evidence-stage="${esc(block.stage)}" data-learning-evidence-complete="false"><p>${esc(explanationText(p.prompt,context))}</p><div class="grammar-reorder-tokens">${(p.tokens||[]).map((token,index)=>`<button type="button" aria-pressed="false" data-reorder-token="${index}">${esc(targetText(token,context))}</button>`).join('')}</div><div class="grammar-reorder-result"><small>${esc(copy(context).selectedOrder)}</small><strong data-reorder-result></strong></div>${revealMarkup(p,context)}</div>`;
   }else if(type==='match'){
@@ -294,9 +321,9 @@ export function MicroPractice(block,context='en'){
     body=`<div class="grammar-micro-practice" data-learning-interaction data-interaction-type="match" data-learning-evidence-stage="${esc(block.stage)}" data-learning-evidence-complete="false"><p>${esc(explanationText(p.prompt,context))}</p><div class="grammar-match-grid">${pairs.map((pair,index)=>`<label class="grammar-match-row"><span>${esc(targetText(pair.left,context))}</span><select data-match-select="${index}"><option value="">—</option>${right.map(option=>`<option value="${esc(targetText(option,context))}">${esc(targetText(option,context))}</option>`).join('')}</select></label>`).join('')}</div>${revealMarkup(p,context)}</div>`;
   }else{
     const id=`grammar-micro-${safeId(block.id)}`;
-    body=`<div class="grammar-micro-practice" data-learning-interaction data-interaction-type="${esc(type)}"><p>${esc(explanationText(p.prompt,context))}</p><label class="sr-only" for="${id}">${esc(copy(context).yourAnswer)}</label><textarea class="grammar-practice-input" id="${id}" rows="2" maxlength="1200" data-learning-evidence-stage="${esc(block.stage)}" placeholder="${esc(targetText(p.placeholder,context)||interfaceText(p.placeholder,context))}"></textarea>${revealMarkup(p,context)}</div>`;
+    body=`<div class="grammar-micro-practice" data-learning-interaction data-interaction-type="${esc(type)}"><p>${esc(explanationText(p.prompt,context))}</p><label for="${id}">${esc(copy(context).yourAnswer)}</label><textarea id="${id}" rows="${type==='fill'?2:4}" maxlength="1200" data-learning-evidence-stage="${esc(block.stage)}" placeholder="${esc(targetText(p.placeholder,context)||interfaceText(p.placeholder,context))}"></textarea>${revealMarkup(p,context)}</div>`;
   }
-  return frame(block,context,body,{surface:true,heading:copy(context).quickPractice});
+  return frame(block,context,body,{surface:true});
 }
 
 function promptBlock(block,context,{recall=false,personal=false}={}){
@@ -312,14 +339,14 @@ export function RecallPrompt(block,context='en'){return promptBlock(block,contex
 
 export function MemoryHook(block,context='en'){
   const p=block.payload||{};
-  return frame(block,context,`<aside class="grammar-memory-hook"><span aria-hidden="true">${oIcon('info')}</span><div><strong>${esc(explanationText(p.cue,context))}</strong><p>${esc(explanationText(p.remember,context))}</p></div></aside>`);
+  return frame(block,context,`<aside class="grammar-memory-hook"><span aria-hidden="true">↻</span><div><strong>${esc(explanationText(p.cue,context))}</strong><p>${esc(explanationText(p.remember,context))}</p></div></aside>`);
 }
 
 export function SkillTransfer(block,context='en'){
   const map=block.payload?.skills||{};
   return frame(block,context,`<div class="grammar-skill-transfer">${Object.entries(map).map(([skill,prompt])=>{
     const id=`grammar-transfer-${safeId(block.id)}-${safeId(skill)}`;
-    return `<article><span class="grammar-skill-name">${oIcon(SKILL_ICONS[skill])}<b>${esc(skillLabel(skill,context))}</b></span><p>${esc(explanationText(prompt,context))}</p><label class="sr-only" for="${id}">${esc(copy(context).yourAnswer)}</label><textarea id="${id}" rows="3" maxlength="1000" data-learning-evidence-stage="${esc(block.stage)}"></textarea></article>`;
+    return `<article><span>${esc(skillLabel(skill,context))}</span><p>${esc(explanationText(prompt,context))}</p><label class="sr-only" for="${id}">${esc(copy(context).yourAnswer)}</label><textarea id="${id}" rows="3" maxlength="1000" data-learning-evidence-stage="${esc(block.stage)}"></textarea></article>`;
   }).join('')}</div>`);
 }
 
@@ -364,16 +391,7 @@ export function renderGrammarLearningModel(model,options={}){
   if(!hasGrammarLearningModel(model))return '';
   const context=grammarLanguageContext(options);
   const hook=model.hook||{}, meaning=model.meaning||{};
-  const repeatedMeaning=new Set([
-    explanationText(meaning.summary,context),
-    explanationText(meaning.mental_model,context),
-  ].filter(Boolean));
-  const useWhen=(Array.isArray(meaning.use_when)?meaning.use_when:[]).filter((item,index,items)=>{
-    const text=explanationText(item,context);
-    return Boolean(text)
-      &&!repeatedMeaning.has(text)
-      &&items.findIndex(candidate=>explanationText(candidate,context)===text)===index;
-  });
+  const useWhen=Array.isArray(meaning.use_when)?meaning.use_when:[];
   const blocks=Array.isArray(model.blocks)?model.blocks:[];
   const modern=Number(model.schema_version)>=2;
   const primaryIndex=modern?blocks.findIndex(block=>block?.stage==='pattern'):-1;
@@ -381,22 +399,13 @@ export function renderGrammarLearningModel(model,options={}){
   const remainingBlocks=primaryIndex>=0
     ?blocks.filter((_,index)=>index!==primaryIndex)
     :blocks;
-  const coreTypes=['scene','contrast','common_mistake','micro_practice'];
-  const coreBlocks=new Map();
-  const supplementalBlocks=[];
-  for(const block of remainingBlocks){
-    if(coreTypes.includes(block.type)&&!coreBlocks.has(block.type))coreBlocks.set(block.type,block);
-    else supplementalBlocks.push(block);
-  }
-  const coreMarkup=coreTypes.map(type=>coreBlocks.has(type)?renderBlock(coreBlocks.get(type),context):'').join('');
-  return `<div class="grammar-learning-shell" data-grammar-learning-model="1" data-grammar-visual-system="orena-grammar-v2" data-grammar-reference="orena-prod" data-grammar-schema="${esc(model.schema_version)}" data-target-language="${esc(context.targetLanguage)}" data-interface-language="${esc(context.interfaceLanguage)}" data-explanation-language="${esc(context.explanationLanguage)}" data-translation-language="${esc(context.translationLanguage)}">
+  return `<div class="grammar-learning-shell" data-grammar-learning-model="1" data-grammar-schema="${esc(model.schema_version)}" data-target-language="${esc(context.targetLanguage)}" data-interface-language="${esc(context.interfaceLanguage)}" data-explanation-language="${esc(context.explanationLanguage)}" data-translation-language="${esc(context.translationLanguage)}">
     <nav class="grammar-learning-flow" aria-label="${esc(copy(context).flowLabel)}">${(model.flow||[]).map((stage,index)=>`<span data-flow-stage="${esc(stage)}"><i>${index+1}</i><b>${esc(stageLabel(stage,context))}</b></span>`).join('')}</nav>
     <section class="grammar-learning-hook"><span>${esc(explanationText(hook.eyebrow,context)||stageLabel('notice',context))}</span><h3>${esc(explanationText(hook.prompt,context))}</h3>${hasReadingAid(model)?`<button type="button" class="button button-tertiary grammar-reading-aid-toggle" data-reading-aid-toggle aria-pressed="true">${esc(copy(context).hideReadingAid)}</button>`:''}</section>
     <section class="grammar-learning-meaning"><span class="grammar-learning-stage">${esc(stageLabel('understand',context))}</span><h3>${esc(explanationText(meaning.summary,context))}</h3><p>${esc(explanationText(meaning.mental_model,context))}</p>${!modern&&useWhen.length?`<ul>${useWhen.map(item=>`<li>${esc(explanationText(item,context))}</li>`).join('')}</ul>`:''}</section>
     ${primaryBlock?`<div class="grammar-learning-primary-pattern">${renderBlock(primaryBlock,context)}</div>`:''}
-    ${modern&&useWhen.length?`<section class="grammar-learning-use-when" data-grammar-block-type="use_when"><header class="grammar-compact-heading"><h3>${esc(copy(context).useWhen)}<span class="grammar-block-info" aria-hidden="true">${oIcon('info')}</span></h3></header><ul>${useWhen.map(item=>`<li><span class="grammar-use-check" aria-hidden="true">${oIcon('check')}</span><span>${esc(explanationText(item,context))}</span></li>`).join('')}</ul></section>`:''}
-    <div class="grammar-learning-blocks">${coreMarkup}</div>
-    ${supplementalBlocks.length?`<details class="grammar-learning-more"><summary><span>${esc(copy(context).morePractice)}</span>${oIcon('chevronDown')}</summary><div class="grammar-learning-more-content">${supplementalBlocks.map(block=>renderBlock(block,context)).join('')}</div></details>`:''}
+    ${modern&&useWhen.length?`<section class="grammar-learning-use-when"><span>${esc(copy(context).useWhen)}</span><ul>${useWhen.map(item=>`<li>${esc(explanationText(item,context))}</li>`).join('')}</ul></section>`:''}
+    <div class="grammar-learning-blocks">${remainingBlocks.map(block=>renderBlock(block,context)).join('')}</div>
   </div>`;
 }
 
@@ -407,8 +416,6 @@ function evidenceReady(node){
 }
 function focusEvidence(node){
   if(!node)return;
-  const disclosure=node.closest?.('details');
-  if(disclosure)disclosure.open=true;
   if(node.matches?.('textarea,input,select,button')){node.focus();return;}
   node.querySelector('textarea,input,select,button')?.focus();
 }
