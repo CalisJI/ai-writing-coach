@@ -6,6 +6,8 @@ from typing import Any
 
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 
+from writing_coach.core.errors import orena_http_error
+
 from writing_coach.speech_pronunciation import (
     SpeechPronunciationConversionFailed,
     SpeechPronunciationMalformed,
@@ -47,12 +49,10 @@ def _provider() -> SpeechAsrProvider:
 
 def _pronunciation_provider() -> SpeechPronunciationProvider:
     if _speech_pronunciation_provider is None:
-        raise HTTPException(
+        raise orena_http_error(
             503,
-            detail={
-                "category": "pronunciation_unconfigured",
-                "message": "Pronunciation assessment is not configured.",
-            },
+            "pronunciation_unconfigured",
+            "Pronunciation assessment is not configured.",
         )
     return _speech_pronunciation_provider
 
@@ -133,13 +133,11 @@ async def transcribe_speech(
             "speech_asr_rate_limited": "Speech recognition rate limit reached. Try again shortly.",
             "speech_asr_capacity": "Speech recognition capacity is temporarily unavailable.",
         }.get(category, "Speech recognition provider failed.")
-        raise HTTPException(
+        raise orena_http_error(
             502,
-            detail={
-                "category": category,
-                "message": public_message,
-                "provider_status": provider_status,
-            },
+            category,
+            public_message,
+            context={"provider_status": provider_status},
         ) from exc
 
     return {
@@ -210,28 +208,22 @@ async def assess_pronunciation(
     except SpeechPronunciationPayloadTooLarge as exc:
         raise HTTPException(413, "Audio recording is too large.") from exc
     except SpeechPronunciationTimedOut as exc:
-        raise HTTPException(
+        raise orena_http_error(
             504,
-            detail={
-                "category": "pronunciation_timeout",
-                "message": "Pronunciation assessment timed out.",
-            },
+            "pronunciation_timeout",
+            "Pronunciation assessment timed out.",
         ) from exc
     except SpeechPronunciationConversionFailed as exc:
-        raise HTTPException(
+        raise orena_http_error(
             422,
-            detail={
-                "category": "pronunciation_audio_unsupported",
-                "message": "The recorded audio could not be prepared for pronunciation assessment.",
-            },
+            "pronunciation_audio_unsupported",
+            "The recorded audio could not be prepared for pronunciation assessment.",
         ) from exc
     except SpeechPronunciationMalformed as exc:
-        raise HTTPException(
+        raise orena_http_error(
             502,
-            detail={
-                "category": "pronunciation_provider_malformed",
-                "message": "Pronunciation provider returned an unusable result.",
-            },
+            "pronunciation_provider_malformed",
+            "Pronunciation provider returned an unusable result.",
         ) from exc
     except SpeechPronunciationRequestFailed as exc:
         provider_status = getattr(exc, "status_code", None)
@@ -247,13 +239,11 @@ async def assess_pronunciation(
             "pronunciation_forbidden": "Pronunciation assessment is not permitted for this resource.",
             "pronunciation_rate_limited": "Pronunciation assessment rate limit reached. Try again shortly.",
         }.get(category, "Pronunciation assessment provider failed.")
-        raise HTTPException(
+        raise orena_http_error(
             502,
-            detail={
-                "category": category,
-                "message": public_message,
-                "provider_status": provider_status,
-            },
+            category,
+            public_message,
+            context={"provider_status": provider_status},
         ) from exc
 
     return {

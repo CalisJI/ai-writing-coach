@@ -23,7 +23,13 @@ async function request(url, options={}){
     const looksLikeHtml=typeof rawMessage==='string'&&/(<!doctype|<html[\\s>])/i.test(rawMessage);
     const message=looksLikeHtml ? `Request failed (${response.status}). Please try again.` : rawMessage;
     const error=new Error(typeof message==='string'&&message ? message : `Request failed (${response.status})`);
+    /* The canonical envelope, §2.6: a stable category the caller can branch on,
+       an explicit answer to whether retrying is worth anything, and a context
+       bag for anything a screen needs beyond the sentence. Screens must not
+       have to read the human text to decide what happened. */
     if(structured&&typeof detail.category==='string')error.category=detail.category;
+    if(structured&&typeof detail.retryable==='boolean')error.retryable=detail.retryable;
+    if(structured&&detail.context&&typeof detail.context==='object')error.context=detail.context;
     error.status=response.status;
     throw error;
   }
