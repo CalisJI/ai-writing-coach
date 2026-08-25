@@ -482,8 +482,16 @@ def startup() -> None:
 
 
 @app.get("/", response_class=HTMLResponse)
-def home() -> str:
-    return (ROOT / "templates" / "becoming" / "index.html").read_text(encoding="utf-8")
+def home() -> HTMLResponse:
+    # The shell carries the list of stylesheets and modules the app loads, so a
+    # cached copy of it keeps loading yesterday's asset list - a stylesheet
+    # added since is simply never requested, and the screen renders unstyled.
+    # Every asset already answers `no-store`; the document that names them has
+    # to as well.
+    return HTMLResponse(
+        (ROOT / "templates" / "becoming" / "index.html").read_text(encoding="utf-8"),
+        headers={"Cache-Control": "no-store, max-age=0"},
+    )
 
 
 

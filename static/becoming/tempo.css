@@ -1269,6 +1269,12 @@ html:root .primary-nav a.active::before{
   stroke-linecap:round;
   stroke-linejoin:round;
 }
+/* A flag is drawn in its own colours, not in the line style the stroke icons
+   share. Only the stroke is cleared: each shape carries its own `fill`
+   attribute, and `fill:revert` here would throw those away too - revert drops
+   every author declaration, presentation attributes included, and the flag
+   comes back black. */
+.orena-select-icon svg.o-flag *{stroke:none}
 
 .orena-select-value{
   flex:1 1 auto;

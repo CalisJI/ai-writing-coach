@@ -171,6 +171,24 @@ function copy(){
   return COPY[uiLocale()]||COPY.en;
 }
 
+/* The reference shows a flag inside the language control, so the control says
+   which language before it is read. These are drawn rather than emoji: the flag
+   emoji have no glyph on Windows and fall back to two letters in a box.
+ *
+ * A flag is a country and a language is not, which is why the fallback below is
+ * a globe: it is used for any language whose flag would be a guess. English is
+ * drawn as the reference draws it.
+ */
+const FLAGS={
+  en:`<svg class="o-flag" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect y="4" width="24" height="16" rx="2.6" fill="#F5F5F7"/><g fill="#D7362F"><rect y="4" width="24" height="2.3"/><rect y="8.6" width="24" height="2.3"/><rect y="13.2" width="24" height="2.3"/><rect y="17.7" width="24" height="2.3"/></g><path d="M0 6.6A2.6 2.6 0 0 1 2.6 4H11v7.2H0Z" fill="#2C3E8F"/></svg>`,
+  zh:`<svg class="o-flag" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect y="4" width="24" height="16" rx="2.6" fill="#DE2910"/><path d="m6.4 7 .85 2.5 2.6.03-2.1 1.55.77 2.5-2.12-1.5-2.12 1.5.77-2.5-2.1-1.55 2.6-.03z" fill="#FFDE00"/></svg>`,
+  vi:`<svg class="o-flag" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect y="4" width="24" height="16" rx="2.6" fill="#DA251D"/><path d="m12 7.4 1.28 3.75 3.95.05-3.18 2.33 1.17 3.78L12 15.05 8.78 17.3l1.17-3.78-3.18-2.33 3.95-.05z" fill="#FFDE00"/></svg>`,
+};
+
+function flagFor(code){
+  return FLAGS[code]||oIcon('globe');
+}
+
 /* An info affordance that is a real button, so a keyboard reaches it and the
    global tooltip layer announces it. */
 function info(text){
@@ -184,14 +202,15 @@ function optionMarkup(value,label,selected){
 
 /* Name, explanation, control. The label is a real <label for>, so the enhanced
    listbox inherits the name the native select already had. */
-function settingRow({id,label,tip,desc,options,value,icon}){
+function settingRow({id,label,tip,desc,options,value,icon,iconMarkup}){
+  const glyph=iconMarkup||(icon?oIcon(icon):'');
   return `<div class="o-set-row">
     <div class="o-set-copy">
       <span class="o-set-label"><label for="${attr(id)}">${esc(label)}</label>${tip?info(tip):''}</span>
       ${desc?`<p>${esc(desc)}</p>`:''}
     </div>
     <div class="o-set-control">
-      <select id="${attr(id)}" name="${attr(id)}"${icon?` data-icon="${attr(oIcon(icon))}"`:''}>
+      <select id="${attr(id)}" name="${attr(id)}"${glyph?` data-icon="${attr(glyph)}"`:''}>
         ${options.map(([optionValue,optionLabel])=>optionMarkup(optionValue,optionLabel,value)).join('')}
       </select>
     </div>
@@ -287,7 +306,7 @@ export async function renderProfile(root){
               id:'profileLanguage',
               label:t('profile.learning_language'),
               tip:t('profile.learning_language_desc'),
-              icon:'globe',
+              iconMarkup:flagFor(state.language),
               options:[['en','English'],['zh','中文']],
               value:state.language,
             })}
@@ -295,7 +314,7 @@ export async function renderProfile(root){
               id:'profileNativeLanguage',
               label:t('profile.interface_language'),
               tip:t('profile.interface_language_desc'),
-              icon:'globe',
+              iconMarkup:flagFor(profile.native_language||'vi'),
               options:NATIVE_LANGUAGES.map(value=>[value,localeLabel(value)]),
               value:profile.native_language||'vi',
             })}
