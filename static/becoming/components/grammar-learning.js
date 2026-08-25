@@ -1,3 +1,8 @@
+/* Pedagogy is decided one layer up (domain/grammar-pedagogy.js) and handed to
+   this renderer, which draws it. ORENA_GRAMMAR_LESSON_DESIGN_SYSTEM §26.3: the
+   renderer should not invent pedagogy. */
+import {deriveSegmentRole,isGenericLabel} from '../domain/grammar-pedagogy.js';
+
 import {esc} from './primitives.js';
 
 const COPY={
@@ -39,7 +44,8 @@ const ROLES={
     complement:'Complement',classifier:'Classifier',negation:'Negation',marker:'Marker',
     changed:'Changed',error:'Error',exception:'Exception',connector:'Connector',
     topic:'Topic',comment:'Comment',result:'Result',case:'Case',gender:'Gender',
-    agreement:'Agreement',stem:'Stem',ending:'Ending',honorific:'Honorific',register:'Register'
+    agreement:'Agreement',stem:'Stem',ending:'Ending',honorific:'Honorific',register:'Register',
+    agent:'Agent',patient:'Patient'
   },
   vi:{
     subject:'Chủ ngữ',verb:'Động từ',object:'Tân ngữ',noun:'Danh từ',pronoun:'Đại từ',
@@ -49,7 +55,8 @@ const ROLES={
     complement:'Bổ ngữ',classifier:'Lượng từ',negation:'Phủ định',marker:'Dấu hiệu',
     changed:'Phần thay đổi',error:'Phần sai',exception:'Ngoại lệ',connector:'Liên kết',
     topic:'Chủ đề',comment:'Thuyết minh',result:'Kết quả',case:'Cách',gender:'Giống',
-    agreement:'Hòa hợp',stem:'Thân từ',ending:'Đuôi từ',honorific:'Kính ngữ',register:'Sắc thái'
+    agreement:'Hòa hợp',stem:'Thân từ',ending:'Đuôi từ',honorific:'Kính ngữ',register:'Sắc thái',
+    agent:'Tác nhân',patient:'Đối thể'
   },
   zh:{
     subject:'主语',verb:'动词',object:'宾语',noun:'名词',pronoun:'代词',
@@ -59,7 +66,8 @@ const ROLES={
     classifier:'量词',negation:'否定',marker:'标记',changed:'变化部分',
     error:'错误部分',exception:'例外',connector:'连接',topic:'话题',comment:'说明',
     result:'结果',case:'格',gender:'语法性别',agreement:'一致关系',stem:'词干',
-    ending:'词尾',honorific:'敬语',register:'语体'
+    ending:'词尾',honorific:'敬语',register:'语体',
+    agent:'施事',patient:'受事'
   },
 };
 
@@ -140,14 +148,20 @@ function frame(block,context,body,{surface=false}={}){
 function segments(payload,context,{insertion=false}={}){
   const items=Array.isArray(payload?.segments)?payload.segments:[];
   return `<div class="grammar-sentence-flow" role="list">${items.map(item=>{
-    const role=String(item.role||'segment');
+    /* The curriculum files nearly every part under `marker` and labels it by
+       position, while writing what the part actually is into the part itself -
+       "S", "把", "specific O", "Patient". The role is read back off that, so a
+       disposal sentence draws as subject → 把 → object → result instead of four
+       identical grey boxes. */
+    const role=deriveSegmentRole(item.text,item.role);
+    const authoredLabel=interfaceText(item.label,context);
     const aid=readingAidValue(item,context);
     const meaning=translationText(item.meaning,context);
     return `<span class="grammar-sentence-segment role-${esc(safeId(role))} ${item.inserted?'is-inserted':''}" role="listitem" data-grammar-role="${esc(role)}">
       ${item.inserted||insertion?'<i class="grammar-insertion-pin" aria-hidden="true"></i>':''}
       <b>${esc(targetText(item.text,context))}</b>
       ${aid?`<span class="grammar-reading-aid" data-grammar-reading-aid>${esc(aid)}</span>`:''}
-      <small>${esc(interfaceText(item.label,context)||roleLabel(role,context))}</small>
+      <small>${esc(isGenericLabel(authoredLabel)||!authoredLabel?roleLabel(role,context):authoredLabel)}</small>
       ${meaning?`<em>${esc(meaning)}</em>`:''}
     </span>`;
   }).join('')}</div>`;
@@ -210,7 +224,8 @@ export function GrammarFormula(block,context='en'){
      boxes of the same colour, carrying a sentence cut at arbitrary points, with
      nothing to look at. When there is no distinction to draw, the pattern reads
      as one line. */
-  const undifferentiated=parts.length>0&&parts.every(part=>!part.role||part.role==='marker');
+  const derived=parts.map(part=>deriveSegmentRole(part.text,part.role));
+  const undifferentiated=parts.length>0&&derived.every(role=>!role||role==='marker');
   if(undifferentiated){
     /* Rejoined with the plus the parts were cut on, so the pattern reads the
        way it was authored - "have + participle", not two fragments run
@@ -220,9 +235,10 @@ export function GrammarFormula(block,context='en'){
     return frame(block,context,`<div class="grammar-visual-canvas grammar-formula grammar-formula-band"><p class="grammar-formula-plain">${line}</p></div>`,{surface:true});
   }
   return frame(block,context,`<div class="grammar-visual-canvas grammar-formula"><div class="grammar-formula-line">${parts.map((part,index)=>{
-    const role=String(part.role||'part');
+    const role=derived[index]||'part';
+    const authoredLabel=interfaceText(part.label,context);
     const aid=readingAidValue(part,context);
-    return `${index?'<span class="grammar-formula-join" aria-hidden="true">+</span>':''}<span class="grammar-formula-part role-${esc(safeId(role))}"><b>${esc(targetText(part.text,context))}</b>${aid?`<span class="grammar-reading-aid" data-grammar-reading-aid>${esc(aid)}</span>`:''}<small>${esc(interfaceText(part.label,context)||roleLabel(role,context))}</small></span>`;
+    return `${index?'<span class="grammar-formula-join" aria-hidden="true">+</span>':''}<span class="grammar-formula-part role-${esc(safeId(role))}"><b>${esc(targetText(part.text,context))}</b>${aid?`<span class="grammar-reading-aid" data-grammar-reading-aid>${esc(aid)}</span>`:''}<small>${esc(isGenericLabel(authoredLabel)||!authoredLabel?roleLabel(role,context):authoredLabel)}</small></span>`;
   }).join('')}</div></div>`,{surface:true});
 }
 

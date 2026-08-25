@@ -293,6 +293,40 @@ html[data-theme="dark"] .grammar-page{--color-informational:#9B84F0}
 }
 .grammar-page .grammar-formula-join{align-self:center;color:var(--o-ink-faint);font-size:20px;font-weight:600}
 
+/* Two roles the curriculum names in its own text and the shared role palette
+   did not have: who acts, and what is acted upon. They take the colours of the
+   grammatical positions they occupy. */
+.grammar-page .role-agent{--role-color:var(--color-informational)}
+.grammar-page .role-patient{--role-color:var(--color-important)}
+
+/* Chinese, per the design system §14.1: Hanzi first, Pinyin attached and
+   clearly smaller, support-language meaning last. Nothing here is a Chinese
+   variant of an English layout - it is the same block with the priority the
+   language needs. */
+.grammar-page .grammar-sentence-segment b,
+.grammar-page .grammar-formula-part b{line-height:1.4}
+.grammar-page[data-target-language="zh"] .grammar-sentence-segment b,
+.grammar-page[data-target-language="zh"] .grammar-formula-part b,
+.grammar-page [data-target-language="zh"] .grammar-sentence-segment b,
+.grammar-page [data-target-language="zh"] .grammar-formula-part b{
+  font-family:var(--o-font-cjk);
+  font-size:clamp(20px,2.2vw,26px);
+  line-height:1.5;
+}
+.grammar-page .grammar-reading-aid{
+  display:block;
+  font-size:var(--o-text-meta);
+  font-weight:500;
+  color:var(--o-ink-muted);
+  letter-spacing:.02em;
+}
+.grammar-page .grammar-sentence-segment em,
+.grammar-page .grammar-scene-line em{
+  display:block;
+  font-size:var(--o-text-meta);
+  color:var(--o-ink-faint);
+}
+
 /* ---- the timeline ---- */
 
 .grammar-page .grammar-timeline{position:relative;overflow:visible}
