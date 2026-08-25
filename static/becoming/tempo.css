@@ -1249,7 +1249,30 @@ html:root .primary-nav a.active::before{
   cursor:not-allowed;
 }
 
+/* Opt-in leading glyph (see select-field.js). It sits before the value, and
+   the value takes the slack so the chevron stays pinned to the right edge
+   whether or not an icon is present. */
+.orena-select-icon{
+  display:grid;
+  place-items:center;
+  flex:0 0 auto;
+  width:17px;
+  height:17px;
+  color:var(--color-ink-muted);
+}
+.orena-select-icon svg{
+  width:100%;
+  height:100%;
+  fill:none;
+  stroke:currentColor;
+  stroke-width:1.7;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+
 .orena-select-value{
+  flex:1 1 auto;
+  min-width:0;
   overflow:hidden;
   text-overflow:ellipsis;
   white-space:nowrap;

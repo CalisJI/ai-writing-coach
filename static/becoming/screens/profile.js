@@ -86,6 +86,11 @@ const COPY={
     plan:'Plan',
     switchAccount:'Switch account',
     signOut:'Sign out',
+    quickLinks:'Quick links',
+    linkJourney:'Your journey',
+    linkJourneyNote:'Where the evidence and progress these settings never touch actually live.',
+    linkLibrary:'Your library',
+    linkLibraryNote:'Every word you have saved, in both languages.',
     aboutTitle:'About your settings',
     aboutBody:'These preferences shape how Orena supports your learning.',
     about1:'You can change any of them at any time.',
@@ -115,6 +120,11 @@ const COPY={
     plan:'Gói',
     switchAccount:'Đổi tài khoản',
     signOut:'Đăng xuất',
+    quickLinks:'Lối tắt',
+    linkJourney:'Hành trình của bạn',
+    linkJourneyNote:'Nơi lưu bằng chứng và tiến trình mà các tùy chỉnh này không đụng tới.',
+    linkLibrary:'Thư viện của bạn',
+    linkLibraryNote:'Mọi từ bạn đã lưu, ở cả hai ngôn ngữ.',
     aboutTitle:'Về các tùy chỉnh này',
     aboutBody:'Các tùy chỉnh này quyết định cách Orena đồng hành cùng việc học của bạn.',
     about1:'Bạn có thể đổi lại bất cứ lúc nào.',
@@ -144,6 +154,11 @@ const COPY={
     plan:'方案',
     switchAccount:'切换账户',
     signOut:'退出登录',
+    quickLinks:'快速入口',
+    linkJourney:'你的学习历程',
+    linkJourneyNote:'这些设置不会改动的证据与进度都在这里。',
+    linkLibrary:'你的词汇库',
+    linkLibraryNote:'你保存过的所有词，两种语言都在。',
     aboutTitle:'关于这些设置',
     aboutBody:'这些偏好决定 Orena 以什么方式陪伴你的学习。',
     about1:'随时都可以再改。',
@@ -169,14 +184,14 @@ function optionMarkup(value,label,selected){
 
 /* Name, explanation, control. The label is a real <label for>, so the enhanced
    listbox inherits the name the native select already had. */
-function settingRow({id,label,tip,desc,options,value}){
+function settingRow({id,label,tip,desc,options,value,icon}){
   return `<div class="o-set-row">
     <div class="o-set-copy">
       <span class="o-set-label"><label for="${attr(id)}">${esc(label)}</label>${tip?info(tip):''}</span>
       ${desc?`<p>${esc(desc)}</p>`:''}
     </div>
     <div class="o-set-control">
-      <select id="${attr(id)}" name="${attr(id)}">
+      <select id="${attr(id)}" name="${attr(id)}"${icon?` data-icon="${attr(oIcon(icon))}"`:''}>
         ${options.map(([optionValue,optionLabel])=>optionMarkup(optionValue,optionLabel,value)).join('')}
       </select>
     </div>
@@ -272,6 +287,7 @@ export async function renderProfile(root){
               id:'profileLanguage',
               label:t('profile.learning_language'),
               tip:t('profile.learning_language_desc'),
+              icon:'globe',
               options:[['en','English'],['zh','中文']],
               value:state.language,
             })}
@@ -279,6 +295,7 @@ export async function renderProfile(root){
               id:'profileNativeLanguage',
               label:t('profile.interface_language'),
               tip:t('profile.interface_language_desc'),
+              icon:'globe',
               options:NATIVE_LANGUAGES.map(value=>[value,localeLabel(value)]),
               value:profile.native_language||'vi',
             })}
@@ -286,6 +303,7 @@ export async function renderProfile(root){
               id:'profileGoal',
               label:t('profile.current_goal'),
               desc:t('profile.current_goal_desc'),
+              icon:'flag',
               options:GOALS.map(value=>[value,t(`profile.goal.${value}`)]),
               value:profile.goal||'everyday',
             })}
@@ -299,6 +317,7 @@ export async function renderProfile(root){
               id:'profileStyle',
               label:t('profile.guidance_style'),
               desc:t('profile.guidance_style_desc'),
+              icon:'sliders',
               options:STYLES.map(value=>[value,t(`profile.style.${value}`)]),
               value:profile.style||'guided',
             })}
@@ -310,11 +329,6 @@ export async function renderProfile(root){
               options:PINYIN_MODES.map(([value,key])=>[value,splitOption(t(key)).head]),
               value:pinyinMode,
             }):''}
-            ${actionRow({
-              action:'redo-onboarding',
-              label:c.setupAgain,
-              desc:c.setupAgainDesc,
-            })}
           </div>
         </section>
 
@@ -325,6 +339,7 @@ export async function renderProfile(root){
               id:'profileMode',
               label:c.mode,
               desc:c.modeDesc,
+              icon:activeTheme()==='dark'?'moon':'sun',
               options:MODES.map(value=>[value,c[value]]),
               value:activeTheme(),
             })}
@@ -372,18 +387,53 @@ export async function renderProfile(root){
 
       </div>
 
-      <aside class="profile-identity-stack visual-identity-column o-stick">
+      <!-- Not pinned: with the links added, the rail is as long as the form, so
+           pinning it only bought a second scrollbar inside a column that was
+           already going to scroll with the page. -->
+      <aside class="profile-identity-stack visual-identity-column">
         ${growthRankFrame(rank)}
 
-        <section class="o-card o-about">
+<section class="o-card o-about">
           <div class="o-about-head">
-            <span class="o-about-tile" aria-hidden="true">${oIcon('rubric')}</span>
+            <span class="o-about-tile" aria-hidden="true">${oIcon('sliders')}</span>
             <h2>${esc(c.aboutTitle)}</h2>
           </div>
           <p>${esc(c.aboutBody)}</p>
           <ul class="o-about-points">
             ${[c.about1,c.about2,c.about3].map(line=>`<li>${oIcon('check')}<span>${esc(line)}</span></li>`).join('')}
           </ul>
+
+          <hr class="o-divider">
+
+          <!-- The reference closes this card with a list of links. Its three
+               (shortcuts, help centre, what's new) have no destination in this
+               product, so the list carries the ones that do - including the
+               setup run, which is a journey out of this screen rather than a
+               row of the form. -->
+          <h3 class="o-quick-title">${esc(c.quickLinks)}</h3>
+          <div class="o-quick">
+            <a class="o-quick-row" href="#/journey">
+              <span>
+                <strong>${esc(c.linkJourney)}</strong>
+                <small>${esc(c.linkJourneyNote)}</small>
+              </span>
+              ${oIcon('chevronRight')}
+            </a>
+            <a class="o-quick-row" href="#/library">
+              <span>
+                <strong>${esc(c.linkLibrary)}</strong>
+                <small>${esc(c.linkLibraryNote)}</small>
+              </span>
+              ${oIcon('chevronRight')}
+            </a>
+            <button type="button" class="o-quick-row" data-profile-action="redo-onboarding">
+              <span>
+                <strong>${esc(c.setupAgain)}</strong>
+                <small>${esc(c.setupAgainDesc)}</small>
+              </span>
+              ${oIcon('chevronRight')}
+            </button>
+          </div>
         </section>
       </aside>
     </div>
@@ -472,7 +522,18 @@ export async function renderProfile(root){
      the header button changes them too. They are not part of the server
      profile, so nothing is saved here. */
   onChange('profileMode',value=>{
-    applyTheme(value==='dark'?'dark':'light',{persist:true});
+    const mode=value==='dark'?'dark':'light';
+    applyTheme(mode,{persist:true});
+    /* The glyph inside the control is baked in at render time, and this change
+       does not re-render the screen - so it is swapped here, or the control
+       would keep showing a moon after the learner chose Light. */
+    const select=root.querySelector('#profileMode');
+    const glyph=oIcon(mode==='dark'?'moon':'sun');
+    if(select){
+      select.dataset.icon=glyph;
+      const painted=select.closest('.orena-select')?.querySelector('.orena-select-icon');
+      if(painted)painted.innerHTML=glyph;
+    }
   });
 
   root.querySelectorAll('input[name="profileTheme"]').forEach(input=>{

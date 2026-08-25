@@ -72,6 +72,19 @@ export function enhanceSelect(select) {
   button.setAttribute('aria-haspopup', 'listbox');
   button.setAttribute('aria-expanded', 'false');
 
+  /* An optional glyph inside the control, because several references draw one
+     there - a flag beside a language, a sun beside the theme. It is opt-in via
+     `data-icon` on the select and inert markup, so every existing select is
+     unaffected and the native fallback keeps working. */
+  let leading = null;
+  const iconMarkup = select.dataset.icon;
+  if (iconMarkup) {
+    leading = document.createElement('span');
+    leading.className = 'orena-select-icon';
+    leading.setAttribute('aria-hidden', 'true');
+    leading.innerHTML = iconMarkup;
+  }
+
   const value = document.createElement('span');
   value.className = 'orena-select-value';
 
@@ -83,6 +96,7 @@ export function enhanceSelect(select) {
   chevronPath.setAttribute('d', 'M2.5 4.75 6 8.25 9.5 4.75');
   chevron.appendChild(chevronPath);
 
+  if (leading) button.append(leading);
   button.append(value, chevron);
 
   const panel = document.createElement('div');

@@ -52,6 +52,14 @@ export const ORENA_ICONS = {
   flag: `<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 21V4.2c3.6-1.9 7.2 1.9 10.8 0v8.4c-3.6 1.9-7.2-1.9-10.8 0"/></svg>`,
   crown: `<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3.6 7.6 6.9 11l3.3-5.4a2 2 0 0 1 3.6 0L17.1 11l3.3-3.4a1 1 0 0 1 1.7.9l-1.7 8.3a1.2 1.2 0 0 1-1.2 1H4.8a1.2 1.2 0 0 1-1.2-1L1.9 8.5a1 1 0 0 1 1.7-.9Z"/></svg>`,
 
+  /* --- preferences ---
+     The Profile reference puts a glyph inside each control: a flag beside a
+     language, a balance beside the guidance style. A flag cannot stand for a
+     language here - English and Chinese are not countries - so the globe does
+     that work, and the sliders carry anything that is a setting. */
+  globe: `<svg ${STROKE}><circle cx="12" cy="12" r="8.2"/><path d="M3.8 12h16.4"/><path d="M12 3.8c2.1 2.3 3.2 5 3.2 8.2s-1.1 5.9-3.2 8.2c-2.1-2.3-3.2-5-3.2-8.2S9.9 6.1 12 3.8Z"/></svg>`,
+  sliders: `<svg ${STROKE}><path d="M4.4 7.4h10M17.2 7.4h2.4M4.4 16.6h2.4M9.8 16.6h9.8"/><circle cx="15.6" cy="7.4" r="2.2"/><circle cx="8.2" cy="16.6" r="2.2"/></svg>`,
+
   /* --- editor toolbar --- */
   undo: `<svg ${STROKE}><path d="M4.4 8.4h9.2a5.4 5.4 0 0 1 0 10.8H8.2"/><path d="m8 4.4-3.6 4 3.6 4"/></svg>`,
   redo: `<svg ${STROKE}><path d="M19.6 8.4h-9.2a5.4 5.4 0 0 0 0 10.8h5.4"/><path d="m16 4.4 3.6 4-3.6 4"/></svg>`,
