@@ -872,13 +872,25 @@
 
 /* ---- three columns ---- */
 
-/* Proportions measured off the reference: player 576, middle 314, rail 254 in a
-   1130 content area. The whole grid stops at the width it was drawn for, so a
-   wide monitor does not blow the video up and starve the columns beside it. */
+/* Proportions measured off the reference - player 576, middle 314, rail 254 in
+   its 1130 content area - expressed as ratios so they hold at any width. The
+   grid is deliberately not capped: pinning it to the mockup's pixel width
+   leaves a wide screen with dead space down one side. What did need a limit is
+   the video, and that is limited by its own height below. */
 .o-listen:not([data-listening-mode="shadowing"]){
   grid-template-columns:minmax(0,1.55fr) minmax(0,.9fr) var(--o-aside-w);
   align-items:start;
-  max-width:1400px;
+}
+
+/* A 16:9 frame in a column that keeps growing eventually pushes the transcript
+   off the screen again. The frame keeps its ratio and stops at a share of the
+   window height instead, centred in whatever width the column has. */
+.o-listen:not([data-listening-mode="shadowing"]) .listening-video-frame{
+  /* An explicit width, not a max-width: `margin-inline:auto` takes the grid
+     stretch away, and the frame has no intrinsic size of its own - the iframe
+     inside it is absolutely positioned - so it collapsed to zero. */
+  width:min(100%,calc(38vh * 16 / 9));
+  justify-self:center;
 }
 
 /* The reference puts the transcript directly under the player. The saved-words
