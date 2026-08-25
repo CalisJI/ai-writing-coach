@@ -284,7 +284,7 @@ function followWorkspace(payload,selected,{original,meaning,playbackRate,manualS
         <button type="button" class="o-tab ${original?'is-active':''}" data-transcript-view="original" aria-pressed="${Boolean(original)}">${esc(c.original)}</button>
         <button type="button" class="o-tab ${meaning?'is-active':''}" data-transcript-view="meaning" aria-pressed="${Boolean(meaning)}" ${meaningBlocked?'disabled':''}>${esc(c.meaning)}</button>
       </div>
-      <label class="o-switch">
+      <label class="o-switch-field">
         <span>${esc(c.wordTiming)}</span>
         <input id="toggleOriginal" type="checkbox" ${original?'checked':''}>
         <span class="o-switch-track" aria-hidden="true"><i></i></span>
