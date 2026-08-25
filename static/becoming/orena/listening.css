@@ -904,6 +904,64 @@
    column, so auto-placement put the headline below the video. Every block is
    given its row outright. */
 .o-listen:not([data-listening-mode="shadowing"]) .listening-learning-column{display:contents}
+/* The frame: header, notices, player, then one flexible row that the transcript
+   and the two side columns share, then the transport. Everything that can grow
+   scrolls inside its own box, so no column can run on while the next one ends
+   after two cards. */
+.listening-page.o-fit{grid-template-rows:auto minmax(0,1fr)}
+.listening-page.o-fit #listeningReady{min-height:0;display:grid}
+.o-listen:not([data-listening-mode="shadowing"]){
+  grid-template-rows:auto auto auto minmax(0,1fr) auto;
+  min-height:0;
+  height:100%;
+  /* Tighter rows inside a frame: every pixel of gap is a pixel the transcript
+     does not get. */
+  row-gap:12px;
+  /* `align-items:start` lets an item size to its content and spill out of its
+     row, which is why the transcript kept its full height and ran past the
+     transport. Inside the frame the items take the row they are given. */
+  align-items:stretch;
+}
+.listening-page.o-fit{gap:14px}
+.listening-page.o-fit .o-listen-head{gap:16px;margin-bottom:0}
+.listening-page.o-fit .o-listen-head h1{font-size:clamp(24px,2.3vw,32px)}
+.listening-page.o-fit .o-listen-head-copy{gap:4px}
+/* The transcript card is the flexible row, so it has to be able to shrink and
+   hand the shrinking on: the list inside it is the part that scrolls. Without
+   min-height:0 at every level a grid track refuses to go below its content and
+   the card simply overflows the frame. */
+.o-listen:not([data-listening-mode="shadowing"]) .o-tcard{
+  min-height:0;
+  grid-template-rows:auto minmax(0,1fr) auto auto;
+  align-content:stretch;
+}
+.o-listen:not([data-listening-mode="shadowing"]) .listening-segments{
+  max-height:min(32vh,340px);
+  min-height:0;
+}
+/* Inside the frame the list takes the row it is given instead of a cap. */
+.listening-page.o-fit .listening-segments{max-height:none;height:100%}
+/* The video takes a share of the frame rather than of the whole window, so the
+   transcript underneath it always has room left. */
+.o-listen:not([data-listening-mode="shadowing"]) .listening-video-frame{
+  width:min(100%,calc(18vh * 16 / 9));
+}
+.listening-page.o-fit .o-player{gap:6px;padding:8px 10px 10px}
+/* Inside the frame the transport is always on screen, so the player card
+   carrying a second copy of the same controls costs the transcript sixty
+   pixels for nothing. Volume moves to the bar with them. */
+.listening-page.o-fit .o-player-controls{display:none}
+.listening-page.o-fit .o-transport-mute{display:grid}
+
+/* The transcript is what Follow mode is for, so it gets the height that is
+   left. Its footer - the word-role legend, the word count, the download - and
+   its own previous/next pair are reference material and duplicates of the
+   transport; inside the frame they would cost the list every line it has. */
+.listening-page.o-fit .o-tcard-foot,
+.listening-page.o-fit .listening-practice-controls{display:none}
+.listening-page.o-fit .o-tcard{grid-template-rows:auto minmax(0,1fr)}
+.o-listen-mid,.o-listen-right{min-height:0;overflow-y:auto;overscroll-behavior:contain}
+
 .o-listen:not([data-listening-mode="shadowing"]) .o-listen-head{grid-row:1;grid-column:1 / -1}
 .o-listen-notices{grid-row:2;grid-column:1 / -1}
 .o-listen-notices:empty{display:none}

@@ -581,12 +581,17 @@ export async function renderReading(root){
     ?{n:index>=0?index+1:1,total:state.readingSessions.length}
     :null;
 
-  root.innerHTML=`<section class="o-page reading-page">
+  /* The frame is the window. The article header and the bar below stay put;
+     the passage and the questions scroll between them, so a page-long extract
+     never turns the screen into a scroll of its own. */
+  root.innerHTML=`<section class="o-page reading-page o-fit">
     <div class="o-reading-grid">
       <div class="o-reading-main">
         ${articleHeader(session,position)}
+        <div class="o-reading-scroll o-scroll">
         ${passageBlock(session,result)}
         ${questionsBlock(session,result)}
+        </div>
         <!-- The bar belongs to the reading column, so it lines up with the
              passage instead of centring on the whole page. -->
         <div class="o-reading-bottom">
