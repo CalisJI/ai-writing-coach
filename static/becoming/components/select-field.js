@@ -86,10 +86,21 @@ export function enhanceSelect(select) {
   button.setAttribute('aria-haspopup', 'listbox');
   button.setAttribute('aria-expanded', 'false');
 
+  /* An optional glyph inside the control, because several references draw one
+     there - a flag beside a language, a sun beside the theme. It is opt-in via
+     `data-icon` on the select and inert markup, so every existing select is
+     unaffected and the native fallback keeps working. */
+  const controlIcon = document.createElement('span');
+  controlIcon.className = 'orena-select-icon';
+  controlIcon.setAttribute('aria-hidden', 'true');
+
+  /* Option-level icons power language/palette choices elsewhere in the app,
+     while Profile supplies one control-level SVG through data-icon. Keep both
+     contracts in one leading slot and show the explicit control icon first. */
+  const optionIcon = iconElement(null);
+
   const value = document.createElement('span');
   value.className = 'orena-select-value';
-
-  const leading = iconElement(null);
 
   const chevron = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
   chevron.setAttribute('viewBox', '0 0 12 12');
@@ -99,7 +110,7 @@ export function enhanceSelect(select) {
   chevronPath.setAttribute('d', 'M2.5 4.75 6 8.25 9.5 4.75');
   chevron.appendChild(chevronPath);
 
-  button.append(leading, value, chevron);
+  button.append(controlIcon, optionIcon, value, chevron);
 
   const panel = document.createElement('div');
   panel.className = 'orena-select-panel';
@@ -148,10 +159,13 @@ export function enhanceSelect(select) {
   function syncButton() {
     const selected = select.options[select.selectedIndex];
     value.textContent = selected ? selected.textContent : '';
-    const selectedIcon = iconName(selected);
-    if (selectedIcon) leading.dataset.icon = selectedIcon;
-    else delete leading.dataset.icon;
-    leading.hidden = !selectedIcon;
+    const iconMarkup = select.dataset.icon || '';
+    controlIcon.innerHTML = iconMarkup;
+    controlIcon.hidden = !iconMarkup;
+    const selectedIcon = iconMarkup ? '' : iconName(selected);
+    if (selectedIcon) optionIcon.dataset.icon = selectedIcon;
+    else delete optionIcon.dataset.icon;
+    optionIcon.hidden = !selectedIcon;
     button.disabled = select.disabled;
     wrapper.classList.toggle('is-disabled', select.disabled);
   }

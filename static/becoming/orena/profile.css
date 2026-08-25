@@ -138,13 +138,18 @@
   padding:11px;
   border:1px solid var(--o-border);
   border-radius:var(--o-radius-field);
-  background:var(--o-surface-sunken);
-  transition:border-color var(--o-motion),background var(--o-motion);
+  /* Three legacy sheets paint this control with a gradient. A gradient is a
+     background-image, so setting only a colour leaves theirs showing through -
+     both states name the image explicitly and turn it off. */
+  background-image:none;
+  background-color:var(--o-surface-sunken);
+  transition:border-color var(--o-motion),background-color var(--o-motion);
 }
 .profile-page .theme-choice:hover{border-color:var(--o-border-strong);transform:none}
 .profile-page .theme-choice.selected{
   border-color:var(--o-accent-edge);
-  background:var(--o-accent-tint);
+  background-image:none;
+  background-color:var(--o-accent-tint);
   box-shadow:none;
 }
 .profile-page .theme-choice.selected strong{color:var(--o-accent)}
@@ -184,6 +189,43 @@
 }
 .o-about-points span{font-size:var(--o-text-meta);color:var(--o-ink-muted);line-height:1.5}
 
+/* The list the reference closes this card with. */
+.o-about .o-divider{margin:4px 0}
+#mainContent .o-quick-title{
+  margin:0;
+  font-size:var(--o-text-body);
+  font-weight:600;
+  color:var(--o-ink);
+  line-height:1.3;
+}
+.o-quick{display:grid;gap:2px}
+.o-quick-row{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  align-items:center;
+  gap:10px;
+  width:100%;
+  padding:9px 0;
+  border:0;
+  background:transparent;
+  color:inherit;
+  font:inherit;
+  text-align:left;
+  text-decoration:none;
+  cursor:pointer;
+}
+.o-quick-row + .o-quick-row{border-top:1px solid var(--o-border)}
+.o-quick-row > span{display:grid;gap:2px;min-width:0}
+.o-quick-row strong{font-size:var(--o-text-ui);font-weight:500;color:var(--o-ink)}
+.o-quick-row small{font-size:var(--o-text-meta);color:var(--o-ink-muted);line-height:1.45}
+.o-quick-row svg{
+  width:17px;height:17px;flex:0 0 auto;
+  fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;
+  color:var(--o-ink-faint);
+}
+.o-quick-row:hover strong,
+.o-quick-row:hover svg{color:var(--o-accent)}
+
 /* The rank frame is the screen's identity object and keeps its own visual
    language. It was drawn for a full-width section, though: in a 288px rail its
    centred layout ran to 618px - taller than the whole aside, which then had to
@@ -192,8 +234,27 @@
   margin:0;
   gap:12px;
   padding:18px;
+  /* Painted with the same surface as every other card in the rail. Left on its
+     legacy tokens it was a slightly different dark next to the one beside it,
+     which reads as two design systems in one column. The rank accent stays -
+     that colour is the one thing on the card carrying meaning. */
+  border:1px solid var(--o-border);
   border-radius:var(--o-radius-card);
+  background-color:var(--o-surface);
+  background-image:var(--o-sheen);
+  box-shadow:var(--o-shadow-card),var(--o-rim);
 }
+.profile-page .growth-rank::after{display:none}
+.profile-page .growth-rank-copy h2{color:var(--o-ink)}
+.profile-page .growth-rank-copy > p,
+.profile-page .growth-rank-copy small{color:var(--o-ink-muted)}
+.profile-page .rank-evidence-row{
+  border-top-color:var(--o-border);
+  border-bottom-color:var(--o-border);
+  color:var(--o-ink);
+  font-size:var(--o-text-meta);
+}
+.profile-page .rank-progress{background:var(--o-surface-sunken)}
 .profile-page .growth-rank-frame{width:52px;height:52px;margin:0}
 .profile-page .growth-rank-medallion{width:46px;height:46px}
 .profile-page .growth-rank-medallion span{font-size:17px}
