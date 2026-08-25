@@ -452,3 +452,40 @@ body.onboarding-mode .o-drawer-toggle{visibility:hidden}
   .o-shell *::before,
   .o-shell *::after{transition-duration:1ms !important;animation-duration:1ms !important}
 }
+
+/* ============================================ screens that fit the window = */
+/* Every reference screen holds still and shows all of its parts at once: the
+   frame is the window, and whatever is longer than its panel scrolls inside
+   that panel. A page that grows instead leaves one column running for
+   thousands of pixels while the next ends after two cards, which is where the
+   long empty stretches came from.
+   Opt-in, because the screens not yet rebuilt still expect a document that
+   scrolls. */
+.o-workspace:has(.o-fit){height:100vh;height:100dvh;min-height:0;overflow:hidden}
+.o-workspace:has(.o-fit) .o-main{min-height:0;overflow:hidden}
+.o-fit{
+  height:100%;
+  min-height:0;
+  overflow:hidden;
+  display:grid;
+  grid-template-rows:auto minmax(0,1fr);
+  gap:var(--o-gap);
+}
+/* Anything that scrolls inside the frame needs both of these: the min-height
+   so a grid or flex track will actually shrink, and the overflow so it takes
+   the scrolling on itself. */
+.o-scroll{min-height:0;overflow-y:auto;overscroll-behavior:contain}
+
+/* A frame that does not fit is worse than a page that scrolls, so the model
+   only applies when the window is tall enough to hold the parts, and never on a
+   phone. */
+/* 1000px is where the reference's own parts stop fitting: below it the video,
+   the transcript, the panels and the transport cannot all have usable room,
+   and squeezing the transcript to two lines to keep the frame is a worse
+   screen than one that scrolls. */
+@media (max-width:1023px),(max-height:1000px){
+  .o-workspace:has(.o-fit){height:auto;min-height:100dvh;overflow:visible}
+  .o-workspace:has(.o-fit) .o-main{overflow:visible}
+  .o-fit{height:auto;overflow:visible;grid-template-rows:none}
+  .o-scroll{overflow-y:visible}
+}

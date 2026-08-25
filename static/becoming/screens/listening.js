@@ -963,7 +963,10 @@ function listeningPage(model,viewId){
         <li>${esc(c.need3)}</li>
       </ul>
     </div>`;
-  return `<div class="o-page listening-page" data-listening-view="${viewId}">
+  /* Once a lesson is open the screen is a frame, not a document: the player,
+     the panels and the transport hold their places and the transcript scrolls
+     inside its own card. Before that it is an ordinary page. */
+  return `<div class="o-page listening-page ${ready?'o-fit':''}" data-listening-view="${viewId}">
     ${ready?'':intro}
     <form id="mediaImportForm" class="o-card o-import" novalidate ${ready?'data-collapsed':''}>
       ${ready?`<button type="button" class="o-import-toggle" data-expand-import>${esc(c.url)}</button>`:''}
