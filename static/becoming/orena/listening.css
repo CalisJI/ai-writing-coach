@@ -236,8 +236,13 @@
   flex-wrap:wrap;
 }
 
-.o-switch{display:flex;align-items:center;gap:9px;margin-left:auto;font-size:var(--o-text-ui);color:var(--o-ink-muted);cursor:pointer}
-.o-switch input{position:absolute;opacity:0;width:0;height:0}
+/* A switch that carries its own label, which is a different component from the
+   bare 44x26 toggle Library and Reading use. Both were called `.o-switch`, and
+   library.css loads after this file, so its `position:absolute` rules landed on
+   this label and printed it on top of the track. Same name, two components:
+   this one has its own. */
+.o-switch-field{display:flex;align-items:center;gap:9px;margin-left:auto;font-size:var(--o-text-ui);color:var(--o-ink-muted);cursor:pointer}
+.o-switch-field input{position:absolute;opacity:0;width:0;height:0}
 .o-switch-track{
   position:relative;
   width:40px;
@@ -257,9 +262,9 @@
   box-shadow:0 1px 2px rgba(0,0,0,.3);
   transition:transform var(--o-motion);
 }
-.o-switch input:checked + .o-switch-track{background:var(--o-accent)}
-.o-switch input:checked + .o-switch-track i{transform:translateX(17px)}
-.o-switch input:focus-visible + .o-switch-track{outline:2px solid var(--o-focus-ring);outline-offset:2px}
+.o-switch-field input:checked + .o-switch-track{background:var(--o-accent)}
+.o-switch-field input:checked + .o-switch-track i{transform:translateX(17px)}
+.o-switch-field input:focus-visible + .o-switch-track{outline:2px solid var(--o-focus-ring);outline-offset:2px}
 
 .listening-segments{
   display:grid;
@@ -390,8 +395,8 @@
      broke across three lines under its own toggle. It wraps to its own line
      instead, and the label stays whole. */
   .o-tcard-head{flex-wrap:wrap;row-gap:8px}
-  .o-switch{margin-left:0}
-  .o-switch > span:first-child{white-space:nowrap}
+  .o-switch-field{margin-left:0}
+  .o-switch-field > span:first-child{white-space:nowrap}
   .listening-practice-controls .o-btn{flex:1 1 auto}
   .listening-practice-controls [data-next-segment]{margin-left:0}
 }
