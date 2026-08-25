@@ -249,3 +249,67 @@ export function archetypeLabel(archetype,locale='en'){
   const table=ARCHETYPE_LABELS[locale]||ARCHETYPE_LABELS.en;
   return table[archetype]||table.general;
 }
+
+/* ---------------------------------------------------------- composition --- */
+
+/* Which question a block answers, per §16 "each visible block should answer one
+   question". The renderer emits blocks in the order the content was authored;
+   the lesson is composed from these slots instead, so every concept reads in
+   the order §19 lays out rather than in the order its JSON happened to list. */
+export const BLOCK_SLOT={
+  formula:'model',
+  word_order:'model',
+  timeline:'model',
+  semantic_sentence:'model',
+  transformation:'model',
+  sentence_builder:'practice',
+  scene:'examples',
+  contrast:'compare',
+  common_mistake:'mistake',
+  exception:'mistake',
+  micro_practice:'practice',
+  personal_practice:'practice',
+  recall:'recall',
+  memory_hook:'recall',
+  skill_transfer:'transfer',
+};
+
+/* §19 desktop and §20 mobile agree on the sequence; they differ only in that
+   the desktop pairs "when to use" with "examples" side by side. */
+export const LESSON_SLOT_ORDER=[
+  'model',
+  'use',
+  'examples',
+  'compare',
+  'mistake',
+  'practice',
+  'recall',
+  'transfer',
+  'extra',
+];
+
+/* §4 Level 2: one dominant teaching object that answers "how does this grammar
+   work?". The archetype names which visual would answer it best; if the concept
+   carries that block it leads, and otherwise the pattern does. Nothing is
+   conjured - a concept with no timeline simply leads with its pattern, and the
+   audit counts it as needing one. */
+export function primaryModelType(concept={}){
+  const blocks=Array.isArray(concept?.learning_model?.blocks)?concept.learning_model.blocks:[];
+  const present=new Set(blocks.map(block=>block?.type));
+  const wanted=VISUAL_BLOCK_TYPE[ARCHETYPE_PRIMARY_VISUAL[classifyArchetype(concept)]];
+  if(wanted&&present.has(wanted))return wanted;
+  const pattern=blocks.find(block=>block?.stage==='pattern');
+  if(pattern?.type)return pattern.type;
+  const model=blocks.find(block=>BLOCK_SLOT[block?.type]==='model');
+  return model?.type||'';
+}
+
+export function composeLesson(concept={}){
+  const archetype=classifyArchetype(concept);
+  return {
+    archetype,
+    primaryVisual:ARCHETYPE_PRIMARY_VISUAL[archetype],
+    primaryType:primaryModelType(concept),
+    order:LESSON_SLOT_ORDER,
+  };
+}

@@ -1,6 +1,11 @@
 import {api} from '../api.js';
 import {go} from '../router.js?v=2.17.4';
-import {classifyArchetype,archetypeLabel} from '../domain/grammar-pedagogy.js';
+import {
+  classifyArchetype,
+  archetypeLabel,
+  composeLesson,
+  BLOCK_SLOT,
+} from '../domain/grammar-pedagogy.js';
 import {supportLanguage} from '../store.js';
 import {esc,errorBlock,loadingBlock,toast,runBusy} from '../components/primitives.js';
 import {
@@ -337,16 +342,107 @@ function dropRepeatedText(slot){
   });
 }
 
+/* Compose the lesson the way ORENA_GRAMMAR_LESSON_DESIGN_SYSTEM §19 lays it
+   out, rather than in the order the content happened to be authored:
+ *
+ *     Level / Title / Meaning
+ *     PRIMARY VISUAL MODEL
+ *     When to use   |   Examples
+ *     Compare
+ *     Common mistake
+ *     Quick practice
+ *
+ * The renderer draws the blocks; which one leads and what sits beside what is a
+ * pedagogical decision, so it is made here from the plan the pedagogy layer
+ * produced (§26.2: the model decides block ordering; §26.3: the renderer does
+ * not invent pedagogy). Blocks are moved, never rebuilt - every handler bound
+ * inside them survives, because moving a node keeps its listeners.
+ */
+function composeLessonBody(slot,detail){
+  const shell=slot.querySelector('.grammar-learning-shell');
+  if(!shell)return;
+  const plan=composeLesson(detail);
+
+  const typeOf=node=>{
+    const match=[...node.classList].find(name=>
+      name.startsWith('grammar-learning-')
+      &&!['grammar-learning-block','grammar-learning-blocks'].includes(name));
+    return match?match.replace('grammar-learning-',''):'';
+  };
+
+  const blocks=[...shell.querySelectorAll('.grammar-learning-block')];
+  const useWhen=shell.querySelector('.grammar-learning-use-when');
+  const meaning=shell.querySelector('.grammar-learning-meaning');
+  const hook=shell.querySelector('.grammar-learning-hook');
+
+  /* The eight-step flow is the lesson path, which §4 puts in the support
+     column - it is orientation, not teaching, and at the top of the body it
+     pushed the concept model below the fold. */
+  const flow=shell.querySelector('.grammar-learning-flow');
+  const pathSlot=slot.querySelector('[data-lesson-path]');
+  if(flow&&pathSlot)pathSlot.appendChild(flow);
+
+  const buckets=new Map();
+  const put=(name,node)=>{
+    if(!node)return;
+    if(!buckets.has(name))buckets.set(name,[]);
+    buckets.get(name).push(node);
+  };
+
+  let primaryTaken=false;
+  for(const block of blocks){
+    const type=typeOf(block);
+    if(!primaryTaken&&type===plan.primaryType){
+      block.classList.add('is-primary-model');
+      put('model',block);
+      primaryTaken=true;
+      continue;
+    }
+    put(BLOCK_SLOT[type]==='model'?'extra':(BLOCK_SLOT[type]||'extra'),block);
+  }
+  put('use',useWhen);
+
+  /* §19 pairs the two blocks a learner reads together. The pair only forms when
+     both halves exist; a concept with no examples keeps a full-width rule
+     rather than an empty column beside it. */
+  const uses=buckets.get('use')||[];
+  const examples=buckets.get('examples')||[];
+  let pair=null;
+  if(uses.length&&examples.length){
+    pair=document.createElement('div');
+    pair.className='grammar-lesson-pair';
+    pair.append(uses.shift(),examples.shift());
+  }
+
+  const ordered=[];
+  if(meaning)ordered.push(meaning);
+  if(hook)ordered.push(hook);
+  ordered.push(...(buckets.get('model')||[]));
+  if(pair)ordered.push(pair);
+  for(const name of plan.order){
+    if(name==='model')continue;
+    ordered.push(...(buckets.get(name)||[]));
+  }
+
+  for(const node of ordered)shell.appendChild(node);
+  /* The renderer's own wrappers are empty once their children have moved. */
+  shell.querySelectorAll('.grammar-learning-blocks,.grammar-learning-primary-pattern')
+    .forEach(wrapper=>{if(!wrapper.children.length)wrapper.remove();});
+}
+
 function wireLessonOutline(slot){
   const list=slot.querySelector('[data-lesson-outline]');
   const bar=slot.querySelector('[data-lesson-position-bar]');
   const body=slot.querySelector('.grammar-teach-column');
   if(!list||!body)return;
 
+  /* Read after composition, so the outline lists the lesson in the order the
+     learner meets it. The blocks are flat by then - the renderer's wrappers are
+     gone - so this asks for the blocks themselves rather than for a path
+     through containers that no longer exist. */
   const sections=[...body.querySelectorAll(
-    '.grammar-learning-primary-pattern .grammar-learning-block,'
+    '.grammar-learning-block,'
     +'.grammar-learning-use-when,'
-    +'.grammar-learning-blocks > .grammar-learning-block,'
     +'.grammar-teach-block,.grammar-guided-practice,.grammar-production',
   )];
   if(!sections.length){
@@ -439,6 +535,8 @@ function lessonMarkup(detail,payload){
           <small>${esc(c.positionNote)}</small>
         </section>
 
+        <section class="grammar-rail-block grammar-rail-path" data-lesson-path></section>
+
         <section class="grammar-rail-block grammar-rail-outline">
           <span class="context-label">${esc(c.inThisLesson)}</span>
           <ol data-lesson-outline></ol>
@@ -523,6 +621,7 @@ export async function renderGrammar(root){
       bindGrammarLearningInteractions(slot,languageContext);
     }
     dropRepeatedText(slot);
+    composeLessonBody(slot,detail);
     wireLessonOutline(slot);
 
     slot.querySelector('[data-grammar-back]')?.addEventListener('click',()=>{
