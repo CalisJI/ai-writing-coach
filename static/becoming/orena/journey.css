@@ -44,11 +44,35 @@
   flex:0 0 auto;
 }
 .o-journey-icon svg{width:23px;height:23px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-.o-journey-icon--focus{background-color:var(--o-accent);background-image:var(--o-accent-face);box-shadow:var(--o-shadow-control),var(--o-rim-control)}
-.o-journey-icon--up{background:color-mix(in srgb,var(--o-positive) 16%,transparent);color:var(--o-positive)}
+.o-journey-icon--focus{
+  /* Struck in the accent rather than filled with it: a lit top edge, a contact
+     shadow and a coloured spill underneath. */
+  border-color:transparent;
+  background-color:var(--o-accent);
+  background-image:linear-gradient(157deg,color-mix(in srgb,var(--o-accent) 82%,#fff) 0%,var(--o-accent) 100%);
+  color:var(--o-on-accent);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.38),
+    inset 0 -1px 1px rgba(0,0,0,.16),
+    0 2px 4px rgba(0,0,0,.20),
+    0 12px 24px -8px color-mix(in srgb,var(--o-accent) 58%,transparent);
+}
+.o-journey-icon--up{
+  --o-tone:var(--o-positive);
+  background-image:linear-gradient(157deg,color-mix(in srgb,var(--o-tone) 30%,var(--o-surface)) 0%,color-mix(in srgb,var(--o-tone) 13%,var(--o-surface)) 100%);
+  color:var(--o-tone);
+}
 .o-journey-icon--up svg{fill:currentColor;stroke:none}
-.o-journey-icon--watch{background:color-mix(in srgb,var(--o-role-noun) 16%,transparent);color:var(--o-role-noun)}
-.o-journey-icon--done{background:color-mix(in srgb,var(--o-role-adverb) 16%,transparent);color:var(--o-role-adverb)}
+.o-journey-icon--watch{
+  --o-tone:var(--o-role-noun);
+  background-image:linear-gradient(157deg,color-mix(in srgb,var(--o-tone) 30%,var(--o-surface)) 0%,color-mix(in srgb,var(--o-tone) 13%,var(--o-surface)) 100%);
+  color:var(--o-tone);
+}
+.o-journey-icon--done{
+  --o-tone:var(--o-role-adverb);
+  background-image:linear-gradient(157deg,color-mix(in srgb,var(--o-tone) 30%,var(--o-surface)) 0%,color-mix(in srgb,var(--o-tone) 13%,var(--o-surface)) 100%);
+  color:var(--o-tone);
+}
 
 .o-journey-body{display:grid;gap:5px;min-width:0}
 .o-journey-body h2{margin:0;font-size:var(--o-text-heading);font-weight:600;letter-spacing:-.01em}

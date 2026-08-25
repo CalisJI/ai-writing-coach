@@ -25,8 +25,11 @@
   --o-surface-sunken:#F8F5F1;
   --o-sidebar:#FFFFFF;
   --o-raised:#FFFFFF;
-  --o-border:#E9E6E3;
-  --o-border-strong:#DAD5D0;
+  /* Barely there. With a real canvas underneath and a real shadow beneath, an
+     edge only has to stop the white from bleeding - it is not what holds the
+     card up, and at #E9E6E3 it was still drawing the card itself. */
+  --o-border:#EFECE7;
+  --o-border-strong:#DFDAD4;
 
   /* --- ink --- */
   --o-ink:#16161A;
@@ -73,9 +76,11 @@
   --o-aside-w:288px;
 
   /* Corner sweep on the reference cards runs y=107..123 -> 16px. */
-  --o-radius-card:16px;
-  --o-radius-field:12px;
-  --o-radius-chip:8px;
+  /* Softer than a rounded rectangle wants to be by default. The reference
+     draws objects, and an object's corner falls away gradually. */
+  --o-radius-card:20px;
+  --o-radius-field:15px;
+  --o-radius-chip:10px;
   --o-radius-pill:999px;
 
   /* --- type --- */
@@ -119,6 +124,17 @@
   --o-shadow-sticky:0 -6px 20px -4px rgba(28,25,23,.10);
 
   --o-shadow-inset:inset 0 1px 3px rgba(28,25,23,.05);
+
+  /* An icon tile is a small object with a face, a lit top edge and a shadow
+     under it - the reference's stage tiles and its milestone badge are struck
+     from metal, not filled with a flat colour. */
+  --o-badge-face:linear-gradient(157deg,#FFFFFF 0%,#F6F2ED 100%);
+  --o-badge-shadow:
+    inset 0 1px 0 rgba(255,255,255,.95),
+    inset 0 -1px 1px rgba(28,25,23,.07),
+    0 1px 2px rgba(28,25,23,.07),
+    0 7px 15px -5px rgba(28,25,23,.16);
+  --o-badge-edge:rgba(28,25,23,.10);
 
   /* The lit top edge. In light it is almost nothing; the dark theme is where
      it does the work. */
@@ -170,8 +186,8 @@ html[data-theme="dark"]{
   --o-surface-sunken:#101316;
   --o-sidebar:#0E1013;
   --o-raised:#1A1E23;
-  --o-border:#2A2D30;
-  --o-border-strong:#3A3E43;
+  --o-border:#22262A;
+  --o-border-strong:#343940;
 
   --o-ink:#F4F4F6;
   --o-ink-muted:#9A9AA6;
@@ -201,6 +217,14 @@ html[data-theme="dark"]{
   --o-shadow-sticky:0 -8px 24px -6px rgba(0,0,0,.65);
 
   --o-shadow-inset:inset 0 1px 3px rgba(0,0,0,.5);
+
+  --o-badge-face:linear-gradient(157deg,#262C34 0%,#171B20 100%);
+  --o-badge-shadow:
+    inset 0 1px 0 rgba(255,255,255,.13),
+    inset 0 -1px 1px rgba(0,0,0,.55),
+    0 2px 4px rgba(0,0,0,.6),
+    0 9px 20px -7px rgba(0,0,0,.85);
+  --o-badge-edge:rgba(255,255,255,.07);
 
   /* Sampled: a 1px #414246 line along the top of a #111519 card, which is
      white at .20. This single line is what makes a dark card read as a
