@@ -5,17 +5,16 @@
  * passage brought back.
  */
 
-/* The reference lays this out on a 1448px desktop. Past that the passage card
-   would keep growing and the measure would run away from the type size, so the
-   whole reading column stops at the width the design was drawn for. */
+/* The grid fills the screen it is on. Capping it at the reference's own desktop
+   width was the same mistake twice - it leaves dead space down one side of a
+   wide monitor. The passage keeps a readable measure by centring inside its
+   card, which is a typographic limit rather than a layout one. */
 .o-reading-grid{
   display:grid;
   grid-template-columns:minmax(0,1fr) var(--o-aside-w);
   gap:24px;
   align-items:start;
-  max-width:1200px;
 }
-.reading-page .o-reading-bottom{max-width:1200px}
 .o-reading-main{display:grid;gap:14px;min-width:0}
 .o-reader-rail{display:grid;gap:16px;min-width:0;position:sticky;top:calc(var(--o-header-h) + var(--o-gap))}
 
@@ -72,6 +71,7 @@
      average letter in this serif, so the cap is stated in pixels and moves with
      the type size below. */
   max-width:640px;
+  margin-inline:auto;
 }
 .o-reader[data-font-step="0"] .o-reader-text{font-size:16px;line-height:1.7;max-width:572px}
 .o-reader[data-font-step="1"] .o-reader-text{font-size:18px;line-height:1.75;max-width:640px}
