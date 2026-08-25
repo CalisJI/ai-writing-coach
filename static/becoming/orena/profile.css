@@ -44,16 +44,20 @@
   grid-template-columns:minmax(0,1fr) minmax(0,auto);
   align-items:center;
   gap:18px;
-  padding:11px 0;
-  min-height:52px;
+  padding:13px 0;
+  min-height:56px;
 }
-.o-set-copy{display:grid;gap:3px;min-width:0}
+.o-set-copy{display:grid;gap:4px;min-width:0}
 .o-set-label{
-  display:flex;align-items:center;gap:6px;
+  display:block;
   font-size:var(--o-text-ui);
   font-weight:500;
   color:var(--o-ink);
+  line-height:1.4;
 }
+/* Inline, so it sits after the last word instead of being pushed onto a line
+   of its own when the label wraps - which on a phone read as an empty row. */
+.o-set-label .o-info{display:inline-grid;vertical-align:-3px;margin-left:5px}
 /* A button may not contain a paragraph, so an action row explains itself with
    a span; both read the same. */
 .o-set-copy p,
@@ -302,7 +306,7 @@
     color:var(--o-ink-muted);
   }
   .o-set-body{
-    padding:4px 14px 6px;
+    padding:6px 16px 8px;
     border:1px solid var(--o-border);
     border-radius:var(--o-radius-card);
     background-color:var(--o-surface);
@@ -318,11 +322,15 @@
 }
 
 @media (max-width:520px){
+  /* Stacked, so each setting reads as label, explanation, control - with
+     enough space between them that two settings do not run together. */
   .o-set-row{
     grid-template-columns:minmax(0,1fr);
     align-items:start;
-    gap:9px;
+    gap:11px;
+    padding:15px 0;
   }
+  .o-set-copy{gap:5px}
   .o-set-control{justify-content:stretch;--o-set-control-w:100%}
   .o-set-value{justify-items:start;text-align:left}
   .o-set-action{grid-template-columns:minmax(0,1fr) auto}
