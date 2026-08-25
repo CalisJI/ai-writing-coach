@@ -242,8 +242,31 @@ html[data-theme="dark"] .grammar-page{--color-informational:#9B84F0}
 
 /* ---- the pattern ---- */
 
+/* The pattern is the one thing a learner should still be able to picture an
+   hour later, so it is the loudest object on the page and it is one line. */
 .grammar-page .grammar-learning-primary-pattern .grammar-learning-block{
   border-left-width:4px;
+}
+.grammar-page .grammar-formula-band{padding:0;background:none;border:0}
+/* Scoped past adopt.css, which colours every paragraph inside #mainContent. */
+#mainContent .grammar-page .grammar-formula-plain{
+  margin:0;
+  padding:22px 24px;
+  border:1px solid var(--grammar-structure-edge);
+  border-radius:var(--o-radius-field);
+  background:var(--grammar-structure-tint);
+  color:var(--grammar-structure);
+  font-size:clamp(19px,2.5vw,29px);
+  font-weight:600;
+  line-height:1.35;
+  letter-spacing:-.01em;
+  text-align:center;
+  text-wrap:balance;
+  display:flex;flex-wrap:wrap;align-items:baseline;justify-content:center;gap:10px;
+}
+.grammar-page .grammar-formula-plus{
+  font-style:normal;font-weight:500;
+  color:color-mix(in srgb,var(--grammar-structure) 60%,transparent);
 }
 .grammar-page .grammar-formula-line{
   display:flex;flex-wrap:wrap;align-items:stretch;justify-content:center;gap:12px;
@@ -361,6 +384,27 @@ html[data-theme="dark"] .grammar-page{--color-informational:#9B84F0}
 .grammar-page .grammar-contrast-item small,
 .grammar-page .grammar-contrast-item p{margin:0;font-size:var(--o-text-meta);color:var(--o-ink-muted);line-height:1.5}
 
+/* ---- what changed between a wrong form and a right one ---- */
+
+/* The reference marks the target inside the sentence rather than beside it.
+   Here the marks come from comparing the two sentences the content already
+   carries, so the eye lands on the single word that moved. */
+.grammar-page .grammar-diff{
+  padding:1px 5px;
+  border-radius:6px;
+  font-weight:700;
+}
+.grammar-page .grammar-diff--out{
+  background:color-mix(in srgb,var(--color-important) 20%,transparent);
+  color:var(--color-important);
+  text-decoration:line-through;
+  text-decoration-thickness:2px;
+}
+.grammar-page .grammar-diff--in{
+  background:color-mix(in srgb,var(--color-positive) 22%,transparent);
+  color:var(--color-positive);
+}
+
 /* ---- common mistake, exception ---- */
 
 .grammar-page .grammar-common-mistake{
@@ -391,7 +435,12 @@ html[data-theme="dark"] .grammar-page{--color-informational:#9B84F0}
 }
 .grammar-page .grammar-mistake-row.is-incorrect small{color:var(--color-important)}
 .grammar-page .grammar-mistake-row.is-correct small{color:var(--color-positive)}
-.grammar-page .grammar-mistake-row strong{display:block;margin-top:3px;font-size:var(--o-text-ui);font-weight:500;color:var(--o-ink);line-height:1.5}
+/* Set as an example, not as body copy: this pair is the second thing worth
+   remembering after the pattern. */
+.grammar-page .grammar-mistake-row strong{
+  display:block;margin-top:5px;
+  font-size:clamp(16px,1.5vw,19px);font-weight:500;color:var(--o-ink);line-height:1.5;
+}
 .grammar-page .grammar-mistake-why{display:grid;gap:3px}
 .grammar-page .grammar-mistake-why strong{font-size:var(--o-text-label);font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--o-ink-faint)}
 .grammar-page .grammar-mistake-why p{margin:0;font-size:var(--o-text-meta);color:var(--o-ink-muted);line-height:1.55}
@@ -497,7 +546,9 @@ html[data-theme="dark"] .grammar-page{--color-informational:#9B84F0}
   font-size:var(--o-text-label);font-weight:600;letter-spacing:.06em;
   text-transform:uppercase;color:var(--color-positive);
 }
-.grammar-page .grammar-scene-line strong{font-size:var(--o-text-ui);font-weight:500;color:var(--o-ink);line-height:1.55}
+.grammar-page .grammar-scene-line strong{
+  font-size:clamp(16px,1.4vw,18px);font-weight:500;color:var(--o-ink);line-height:1.55;
+}
 .grammar-page .grammar-scene-line em{font-style:normal;font-size:var(--o-text-meta);color:var(--o-ink-muted)}
 
 .grammar-page .grammar-memory-hook{

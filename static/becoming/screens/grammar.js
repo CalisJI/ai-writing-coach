@@ -313,6 +313,29 @@ function legacyLessonBody(detail,c){
    contain. Clicking an entry moves to that section; the entry for whatever is
    on screen is marked, and the meter beside it shows how far down the lesson
    that is. */
+/* The generated content repeats itself: for most concepts the opening prompt,
+   the summary under it and the scene's setup line are the same sentence, and
+   the setup line is often just the pattern again. Printing one sentence three
+   times is what makes a lesson read as a wall with no focal point, so a
+   duplicate is dropped rather than restyled. Only exact repeats go - nothing
+   that says something new is touched. */
+function dropRepeatedText(slot){
+  /* Whitespace is dropped entirely rather than collapsed: the pattern band sets
+     its plus signs as their own elements, so its text reads "have+participle"
+     where the sentence that repeats it reads "have + participle". */
+  const norm=node=>(node?.textContent||'').replace(/\s+/g,'').toLowerCase();
+  const pattern=norm(slot.querySelector('.grammar-formula-plain,.grammar-formula-line'));
+  const summary=norm(slot.querySelector('.grammar-learning-meaning h3'));
+
+  const hook=slot.querySelector('.grammar-learning-hook');
+  if(hook&&summary&&norm(hook.querySelector('h3'))===summary)hook.remove();
+
+  slot.querySelectorAll('.grammar-scene-setup').forEach(setup=>{
+    const text=norm(setup);
+    if(text&&(text===pattern||text===summary))setup.remove();
+  });
+}
+
 function wireLessonOutline(slot){
   const list=slot.querySelector('[data-lesson-outline]');
   const bar=slot.querySelector('[data-lesson-position-bar]');
@@ -496,6 +519,7 @@ export async function renderGrammar(root){
     if(hasGrammarLearningModel(detail.learning_model)){
       bindGrammarLearningInteractions(slot,languageContext);
     }
+    dropRepeatedText(slot);
     wireLessonOutline(slot);
 
     slot.querySelector('[data-grammar-back]')?.addEventListener('click',()=>{

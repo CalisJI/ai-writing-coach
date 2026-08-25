@@ -153,8 +153,72 @@ function segments(payload,context,{insertion=false}={}){
   }).join('')}</div>`;
 }
 
+/* A word-level difference between two sentences. Used to point at what
+   actually changed between a wrong form and its correction, instead of leaving
+   the reader to find it: the marked words are derived from the two strings, so
+   nothing is asserted that the content did not already say. */
+export function markedDifference(from,to){
+  const split=value=>String(value||'').split(/(\s+)/);
+  const norm=token=>token.toLowerCase().replace(/[^\p{L}\p{N}']/gu,'');
+  const a=split(from), b=split(to);
+  const aWords=[], bWords=[];
+  a.forEach((token,index)=>{if(token.trim())aWords.push(index);});
+  b.forEach((token,index)=>{if(token.trim())bWords.push(index);});
+  const A=aWords.map(index=>norm(a[index]));
+  const B=bWords.map(index=>norm(b[index]));
+
+  /* A longest-common-subsequence, not a set difference: many corrections in
+     this curriculum change nothing but word order - "Like I this song." against
+     "I like this song." is the same four words - and a set difference finds no
+     change at all there. */
+  const n=A.length, m=B.length;
+  const dp=Array.from({length:n+1},()=>new Array(m+1).fill(0));
+  for(let i=n-1;i>=0;i--){
+    for(let j=m-1;j>=0;j--){
+      dp[i][j]=A[i]===B[j]?dp[i+1][j+1]+1:Math.max(dp[i+1][j],dp[i][j+1]);
+    }
+  }
+  const keptA=new Set(), keptB=new Set();
+  let i=0, j=0;
+  while(i<n&&j<m){
+    if(A[i]===B[j]){keptA.add(i);keptB.add(j);i+=1;j+=1;}
+    else if(dp[i+1][j]>=dp[i][j+1])i+=1;
+    else j+=1;
+  }
+
+  const paint=(tokens,wordIndexes,kept,variant)=>{
+    const position=new Map();
+    wordIndexes.forEach((tokenIndex,order)=>position.set(tokenIndex,order));
+    return tokens.map((token,index)=>{
+      const order=position.get(index);
+      if(order===undefined||kept.has(order))return esc(token);
+      return `<mark class="grammar-diff grammar-diff--${variant}">${esc(token)}</mark>`;
+    }).join('');
+  };
+
+  return {
+    from:paint(a,aWords,keptA,'out'),
+    to:paint(b,bWords,keptB,'in'),
+  };
+}
+
 export function GrammarFormula(block,context='en'){
   const parts=Array.isArray(block.payload?.parts)?block.payload.parts:[];
+  /* Splitting a pattern into labelled parts is worth doing when the parts play
+     different grammatical roles. In this curriculum two thirds of the formulas
+     tag every part `marker` and label them "Part 1, Part 2, Part 3" - three
+     boxes of the same colour, carrying a sentence cut at arbitrary points, with
+     nothing to look at. When there is no distinction to draw, the pattern reads
+     as one line. */
+  const undifferentiated=parts.length>0&&parts.every(part=>!part.role||part.role==='marker');
+  if(undifferentiated){
+    /* Rejoined with the plus the parts were cut on, so the pattern reads the
+       way it was authored - "have + participle", not two fragments run
+       together. */
+    const line=parts.map(part=>`<span>${esc(targetText(part.text,context))}</span>`)
+      .join('<i class="grammar-formula-plus" aria-hidden="true">+</i>');
+    return frame(block,context,`<div class="grammar-visual-canvas grammar-formula grammar-formula-band"><p class="grammar-formula-plain">${line}</p></div>`,{surface:true});
+  }
   return frame(block,context,`<div class="grammar-visual-canvas grammar-formula"><div class="grammar-formula-line">${parts.map((part,index)=>{
     const role=String(part.role||'part');
     const aid=readingAidValue(part,context);
@@ -216,9 +280,14 @@ export function CommonMistake(block,context='en'){
   const p=block.payload||{};
   return frame(block,context,`<div class="grammar-common-mistake">
     ${p.context?`<p class="grammar-mistake-context"><strong>${esc(copy(context).contextLabel)}:</strong> ${esc(explanationText(p.context,context))}</p>`:''}
-    <div class="grammar-mistake-row is-incorrect"><span aria-hidden="true">×</span><div><small>${esc(copy(context).incorrect)}</small><strong>${esc(targetText(p.incorrect,context))}</strong></div></div>
+    ${(()=>{
+      const wrong=targetText(p.incorrect,context);
+      const right=targetText(p.correct,context);
+      const diff=markedDifference(wrong,right);
+      return `<div class="grammar-mistake-row is-incorrect"><span aria-hidden="true">×</span><div><small>${esc(copy(context).incorrect)}</small><strong>${diff.from}</strong></div></div>
     <div class="grammar-mistake-why"><strong>${esc(copy(context).why)}</strong><p>${esc(explanationText(p.why,context))}</p></div>
-    <div class="grammar-mistake-row is-correct"><span aria-hidden="true">✓</span><div><small>${esc(copy(context).corrected)}</small><strong>${esc(targetText(p.correct,context))}</strong></div></div>
+    <div class="grammar-mistake-row is-correct"><span aria-hidden="true">✓</span><div><small>${esc(copy(context).corrected)}</small><strong>${diff.to}</strong></div></div>`;
+    })()}
   </div>`,{surface:true});
 }
 
