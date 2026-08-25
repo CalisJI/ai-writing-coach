@@ -5,6 +5,7 @@ import {t,uiLocale} from '../domain/i18n.js';
 import {dictionaryResultMarkup} from '../components/dictionary.js';
 import {supportNote} from '../domain/support.js';
 import {oIcon} from '../orena/icons.js';
+import {installSelectEnhancements} from '../components/select-field.js';
 
 /* ORENA-LIBRARY-*: one Active Recall header, a filterable table of saved terms,
  * and a rail of review state.
@@ -718,6 +719,10 @@ export async function renderLibrary(root){
   const paint=()=>{
     root.innerHTML=html();
     bind();
+    /* Every repaint replaces the selects, and this path does not go back
+       through the router's post-render pass - without this the listbox
+       enhancement is lost and the native control comes back. */
+    installSelectEnhancements(root);
   };
 
   function bind(){

@@ -4,6 +4,7 @@ import {configFor} from '../language.js';
 import {esc,errorBlock,loadingBlock,toast,runBusy} from '../components/primitives.js';
 import {t,uiLocale} from '../domain/i18n.js';
 import {oIcon} from '../orena/icons.js';
+import {installSelectEnhancements} from '../components/select-field.js';
 
 /* ORENA-READING-*: one passage, read full width, with a rail that answers
  * questions about what is under the cursor.
@@ -608,6 +609,12 @@ export async function renderReading(root){
       ${readerRail(session)}
     </div>
   </section>`;
+
+
+  /* This screen re-renders itself when a preference changes, and that path does
+     not go back through the router's post-render pass - without this the
+     listbox enhancement is lost and the native select comes back. */
+  installSelectEnhancements(root);
 
   /* The position listener is on the window, so it has to come off when the
      learner leaves - otherwise every visit adds another one. */
