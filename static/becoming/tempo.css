@@ -374,7 +374,15 @@ html[data-theme="dark"]{
   display:flex;
   flex-direction:column;
   gap:var(--space-3);
+  /* A lesson title is one unbreakable line that ellipsises, which only works
+     if everything above it may shrink past its own min-content. Without this
+     the list reported 564px as its minimum and dragged the whole Listening
+     page 205px wider than a 390px phone - the masthead and the import card
+     were only stretching to match it. */
+  min-width:0;
 }
+.listening-history ul,
+.listening-history li{min-width:0}
 
 .listening-history ul{
   margin:0;

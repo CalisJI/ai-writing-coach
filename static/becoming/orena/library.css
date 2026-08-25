@@ -249,7 +249,12 @@
 .o-focus-list b{color:var(--o-ink-muted);font-weight:500;white-space:nowrap}
 
 .o-setting-row{display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:var(--o-text-ui)}
-.o-setting-row > span:first-child{white-space:nowrap}
+/* A one-line switch label should not wrap mid-phrase. A label that carries an
+   explanation under it is a different thing, and holding that on one line is
+   what pushed the Reading card fifty-five pixels past a 390px phone - the row
+   is a shared primitive and Reading reuses it. If :has() is unsupported the
+   rule drops and everything wraps, which is the safe direction to fail. */
+.o-setting-row > span:first-child:not(:has(small)){white-space:nowrap}
 /* Every part of the switch is positioned against the label rather than laid
    out inside it: as a flex item the track collapsed to zero height under the
    stylesheets this screen inherits, and a track that is not there reads as a
