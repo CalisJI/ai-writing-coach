@@ -12,6 +12,7 @@ import {showDialog} from '../components/primitives.js';
 import {transcriptTokens} from '../domain/transcript-tokens.js';
 import {buildTranscriptDisplayUnits,displayUnitContains,displayUnitMeaning} from '../domain/transcript-display-units.js';
 import {activeCanonicalSegment} from '../domain/transcript-playback.js';
+import {applyPlayingSegment} from '../components/interactive-transcript.js';
 import {
   MAX_LISTENING_EVALUATION_UNITS,
   MAX_LISTENING_RECONSTRUCTION_CHARS,
@@ -1365,8 +1366,50 @@ export async function renderListening(root,{importMedia=api.importMedia,importSt
       controller.pollPending();
     },2500);
   };
+  /* Follow mode advances a highlight, not a document.
+   *
+   * Rebuilding the learning column on every segment change threw the transcript
+   * away and built it again - the flicker, once per segment, top to bottom -
+   * and with it went the scroll position smart-follow measures from, so the
+   * highlight stopped advancing until something forced a full render. Toggling
+   * word timing was such a thing, which is why that made it move again.
+   *
+   * The spec is explicit about this (§2.4 Non-destructive rendering: "media
+   * playback → destroys learner text" is on its list of things never to allow).
+   * So the playing segment now moves a class and rewrites only the small panel
+   * that names the current segment. The transcript the learner is reading is
+   * never touched. */
+  const advancePlayingSegment=()=>{
+    const workspace=root.querySelector('.listening-workspace');
+    if(!workspace||workspace.dataset.listeningMode!=='follow')return false;
+    const transcript=workspace.querySelector('.listening-segments');
+    if(!transcript)return false;
+
+    applyPlayingSegment(root,controller.model.playingSegmentId);
+
+    const selected=controller.model.selected;
+    transcript.querySelectorAll('[data-segment-id]').forEach(node=>{
+      const aliases=String(node.dataset.canonicalSegmentIds||'').split(/\s+/).filter(Boolean);
+      const isCurrent=node.dataset.segmentId===selected||aliases.includes(selected);
+      if(isCurrent)node.setAttribute('aria-current','true');
+      else node.removeAttribute('aria-current');
+    });
+
+    /* The middle column names what is playing, so it does follow the playhead -
+       but it is a small panel with nothing to scroll, and rewriting it costs
+       the learner nothing. */
+    const mid=root.querySelector('.o-listen-mid');
+    if(mid){
+      const payload=controller.model.payload;
+      mid.innerHTML=currentSegmentPanel(payload,selected,controller.model,'follow')
+        +vocabularyFocusPanel(payload,selected,'follow',controller.model);
+    }
+    return true;
+  };
+
   const render=(_model,{playbackOnly=false,selectedChanged=false}={})=>{
     if(playbackOnly&&(controller.model.mode==='active'||(controller.model.mode==='shadowing'&&!selectedChanged)))return;
+    if(playbackOnly&&mounted&&advancePlayingSegment())return;
     if(mounted&&!root.querySelector(`[data-listening-view="${controller.viewId}"]`))return;
     const payload=controller.model.payload;
     const assetId=payload?.asset?.asset_id||null;
