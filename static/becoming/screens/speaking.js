@@ -248,7 +248,7 @@ const feedbackCopy=()=>FEEDBACK_COPY[uiLocale()]||FEEDBACK_COPY.en;
 function hasWeakPronunciationEvidence(word){
   if(!word||!word.word)return false;
   const weakWord=(typeof word.accuracy_score==='number'&&word.accuracy_score<80)
-    ||String(word.error_type||'None').toLowerCase()!=='none';
+    ||String(word.error_type||'None').trim().toLowerCase()!=='none';
   const weakPhoneme=Array.isArray(word.phonemes)&&word.phonemes.some(phoneme=>
     typeof phoneme?.accuracy_score==='number'&&phoneme.accuracy_score<80
   );

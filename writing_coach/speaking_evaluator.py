@@ -122,7 +122,7 @@ def _pronunciation_evidence(pronunciation: Any) -> tuple[dict[str, Any], dict[st
                 _value(raw_word, "accuracy_score"),
                 "pronunciation.words.accuracy_score",
             ),
-            "error_type": str(_value(raw_word, "error_type", "None") or "None")[:60],
+            "error_type": str(_value(raw_word, "error_type", "None") or "None").strip()[:60],
             "phonemes": phonemes,
         })
 

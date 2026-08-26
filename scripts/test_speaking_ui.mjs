@@ -74,7 +74,7 @@ const controller=createSpeakingController({
     },{
       word:'for',
       accuracy_score:99,
-      error_type:'None',
+      error_type:' None ',
       phonemes:[{phoneme:'ɔː',accuracy_score:98}],
     },{
       word:'idea',

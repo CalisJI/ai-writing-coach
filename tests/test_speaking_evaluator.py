@@ -96,7 +96,7 @@ def test_phoneme_only_weakness_is_actionable_without_flagging_clean_words() -> N
         {
             "word": "steady",
             "accuracy_score": 99,
-            "error_type": "None",
+            "error_type": " None ",
             "phonemes": [{"phoneme": "e", "accuracy_score": 98}],
         },
         {
