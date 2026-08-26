@@ -77,7 +77,7 @@ class FakeElement{
   async click(){return this.listeners.click?.({currentTarget:this});}
 }
 
-function fakeReviewRoot(){
+function fakeReviewRoot({openGrammar=[],practiceGrammar=[]}={}){
   const ids=[
     '#learnerTextEvidence','#posLensToggle','#posLensStatus','#posLensLegend','#posLens',
     '#editDraftButton','#reviewRubric','#fullRubricButton','#downloadFeedback',
@@ -88,7 +88,11 @@ function fakeReviewRoot(){
     nodes,
     innerHTML:'',
     querySelector:selector=>nodes.get(selector)||null,
-    querySelectorAll:()=>[],
+    querySelectorAll:selector=>{
+      if(selector==='[data-open-grammar]')return openGrammar;
+      if(selector==='[data-practice-grammar]')return practiceGrammar;
+      return [];
+    },
   };
 }
 
@@ -255,6 +259,43 @@ for(const locale of ['en','vi','zh']){
   assert.match(root.innerHTML,new RegExp(transferReasonCopy[locale]));
   assert.doesNotMatch(root.innerHTML,/Writing finding category:/);
 }
+
+const storedActionValues=new Map();
+globalThis.localStorage={
+  getItem:key=>storedActionValues.get(key)??null,
+  setItem:(key,value)=>storedActionValues.set(key,value),
+  removeItem:key=>storedActionValues.delete(key),
+};
+globalThis.location={hash:''};
+globalThis.window={dispatchEvent:()=>{}};
+globalThis.HashChangeEvent=class {};
+const openGrammarButton=new FakeElement();
+openGrammarButton.dataset.openGrammar='a1-agreement';
+const practiceGrammarButton=new FakeElement();
+practiceGrammarButton.dataset.practiceGrammar='a1-agreement';
+const actionRoot=fakeReviewRoot({
+  openGrammar:[openGrammarButton],
+  practiceGrammar:[practiceGrammarButton],
+});
+state.profile={native_language:'en'};
+state.supportLanguage='en';
+state.language='en';
+state.lastEvaluation=transferFixture;
+state.draft.text=transferFixture.text;
+api.grammarPractice=async grammarId=>({
+  grammar_id:grammarId,
+  prompt:'Write three sentences using the grammar focus.',
+  target_level:'B2',
+  practice_context:{grammar_id:grammarId,focus_category:'grammar'},
+});
+await renderReview(actionRoot);
+await openGrammarButton.click();
+assert.equal(storedActionValues.get('becoming.grammar-focus'),'a1-agreement');
+assert.equal(globalThis.location.hash,'#/grammar');
+await practiceGrammarButton.click();
+assert.equal(state.draft.prompt,'Write three sentences using the grammar focus.');
+assert.deepEqual(state.draft.practiceContext,{grammar_id:'a1-agreement',focus_category:'grammar'});
+assert.equal(globalThis.location.hash,'#/write');
 
 state.profile={native_language:'vi'};
 state.supportLanguage='vi';

@@ -803,6 +803,9 @@ export async function renderReview(root){
     if(!id)return;
     try{
       const task=await api.grammarPractice(id);
+      if(!task||typeof task!=='object'||typeof task.prompt!=='string'||!task.prompt.trim()){
+        throw new Error(t('review.practice_failed'));
+      }
       saveDraft({
         prompt:task.prompt||'',
         text:'',
