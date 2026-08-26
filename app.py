@@ -380,15 +380,30 @@ def heuristic_fallback(payload: EssayIn) -> dict[str, Any]:
         "naturalness": 52.0,
     }
     overall = weighted_overall(scores)
-    return {
+    errors: list[dict[str, Any]] = []
+    if not is_chinese():
+        for pattern, suggestion, explanation, rule in (
+            (r"\bI has\b", "I have", "The verb should agree with subject I.", "I goes with have."),
+            (r"\bhe have\b", "he has", "The verb should agree with subject he.", "He goes with has."),
+            (r"\bShe have\b", "She has", "The verb should agree with subject she.", "She goes with has."),
+        ):
+            match = re.search(pattern, text, flags=re.IGNORECASE)
+            if match:
+                errors.append({
+                    "category": "agreement", "fragment": match.group(0),
+                    "suggestion": suggestion, "explanation_vi": explanation,
+                    "mini_rule_vi": rule, "confidence": 0.99,
+                })
+    raw = {
         **scores,
         "cefr_estimate": app_cefr(overall),
         "summary_vi": "Chế độ dự phòng chỉ dùng để kiểm tra luồng ứng dụng. Hãy bật AI Coach để nhận đánh giá đầy đủ.",
         "strengths_vi": ["Bài viết có đủ nội dung để lưu vào hồ sơ tiến bộ."],
         "strength_evidence": [],
         "priorities_vi": ["Kết nối AI Coach để bật đánh giá đầy đủ."],
-        "errors": [],
+        "errors": errors,
     }
+    return validate_result({**raw, "__learner_text": text})
 
 
 def evaluate(payload: EssayIn) -> tuple[dict[str, Any], str]:

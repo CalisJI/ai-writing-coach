@@ -327,3 +327,15 @@ def test_app_writing_evaluator_path_keeps_its_capability_identity(monkeypatch: p
     assert result["strength_evidence"] == []
     assert result["errors"] == []
     assert result["_ai_provider"] == "test-provider"
+
+
+def test_heuristic_fallback_keeps_high_confidence_feedback_and_v2_envelope(monkeypatch: pytest.MonkeyPatch) -> None:
+    import app
+
+    monkeypatch.setattr(app, "is_chinese", lambda: False)
+    result = app.heuristic_fallback(app.EssayIn(text="I has a dog."))
+
+    assert result["schema_version"] == "writing-evaluation-v2"
+    assert result["errors"][0]["fragment"] == "I has"
+    assert result["errors"][0]["suggestion"] == "I have"
+    assert result["issues"][0]["span"] == {"start": 0, "end": 5}
