@@ -6,6 +6,7 @@ import {
   getSharedMediaSession,
   setSharedMediaSession,
 } from '../static/becoming/domain/shared-media-session.js';
+import {state} from '../static/becoming/store.js';
 
 // The recorder vendor probes AudioWorkletNode while the screen module loads.
 // Keep this contract test independent of a browser audio implementation.
@@ -104,6 +105,20 @@ assert.match(feedbackHtml,/o-pronunciation-phoneme/);
 assert.match(feedbackHtml,/role="img" aria-label="Listen, 74/);
 assert.match(feedbackHtml,/role="img" aria-label="ɪ, 68/);
 assert.match(feedbackHtml,/88/);
+
+state.supportLanguage='en';
+const englishFeedbackHtml=controller.html();
+assert.match(englishFeedbackHtml,/aria-label="Listen, 74 score"/);
+assert.match(englishFeedbackHtml,/aria-label="\u026a, 68 score"/);
+state.supportLanguage='vi';
+const vietnameseFeedbackHtml=controller.html();
+assert.match(vietnameseFeedbackHtml,/aria-label="Listen, 74 \u0111i\u1ec3m"/);
+assert.match(vietnameseFeedbackHtml,/aria-label="\u026a, 68 \u0111i\u1ec3m"/);
+state.supportLanguage='zh';
+const chineseFeedbackHtml=controller.html();
+assert.match(chineseFeedbackHtml,/aria-label="Listen, 74 \u5206\u6570"/);
+assert.match(chineseFeedbackHtml,/aria-label="\u026a, 68 \u5206\u6570"/);
+state.supportLanguage='en';
 
 assert.equal(controller.selectRelative(1),true);
 assert.equal(controller.model.selected,'segment-002');
