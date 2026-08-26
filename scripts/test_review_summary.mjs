@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
+import {api} from '../static/becoming/api.js';
 import {state} from '../static/becoming/store.js';
 import {evaluationNotice,renderReview,reviewSummaryText} from '../static/becoming/screens/review.js';
+import {categoryReason,categoryRule,supportCopy} from '../static/becoming/domain/support.js';
 
 const result={
   priorities_vi:['Sửa thì động từ trước khi đánh bóng từ vựng.','Giữ mạch ý rõ hơn.'],
@@ -70,7 +72,9 @@ class FakeElement{
     this.textContent='';
   }
   addEventListener(name,listener){this.listeners[name]=listener;}
+  removeAttribute(name){delete this.attributes[name];}
   setAttribute(name,value){this.attributes[name]=value;}
+  async click(){return this.listeners.click?.({currentTarget:this});}
 }
 
 function fakeReviewRoot(){
@@ -117,6 +121,66 @@ for(const locale of ['en','vi','zh']){
   assert.match(root.innerHTML,/data-review-evaluation-state="degraded"/);
   assert.match(root.innerHTML,new RegExp(renderedNoticeCopy[locale]));
 }
+
+const feedbackLocaleFixture={
+  ...renderFixture,
+  errors:[{
+    category:'grammar',
+    fragment:'I is',
+    suggestion:'I am',
+    explanation_vi:'Giải thích tiếng Việt cho lỗi này.',
+    mini_rule_vi:'Quy tắc tiếng Việt cho lỗi này.',
+    confidence:1,
+  }],
+  strength_evidence:[{
+    category:'grammar',
+    fragment:'I write clearly.',
+    explanation_vi:'Điểm mạnh tiếng Việt.',
+    confidence:1,
+  }],
+};
+for(const [profileLocale,uiLocale] of [['vi','en'],['en','vi'],['zh','en'],['en','zh']]){
+  state.profile={native_language:profileLocale};
+  state.supportLanguage=uiLocale;
+  state.language='en';
+  state.lastEvaluation=feedbackLocaleFixture;
+  state.draft.text=feedbackLocaleFixture.text;
+  const root=fakeReviewRoot();
+  await renderReview(root);
+  const expected=categoryReason('grammar',{native_language:uiLocale});
+  assert.ok(
+    root.innerHTML.includes(expected),
+    `Review feedback should follow the active ${uiLocale.toUpperCase()} UI locale when profile is ${profileLocale.toUpperCase()}`,
+  );
+}
+
+const dialogNodes={
+  dialogBackdrop:{classList:{remove:()=>{},add:()=>{}},setAttribute:()=>{}},
+  dialogTitle:{textContent:''},
+  dialogBody:{innerHTML:''},
+  dialogClose:{focus:()=>{}},
+};
+globalThis.document={
+  getElementById:id=>dialogNodes[id]||null,
+  body:{style:{}},
+};
+state.profile={native_language:'en'};
+state.supportLanguage='zh';
+state.lastEvaluation=feedbackLocaleFixture;
+state.draft.text=feedbackLocaleFixture.text;
+const zhRoot=fakeReviewRoot();
+api.improve=async()=>({corrected_text:'I am clear.',upgraded_text:'My writing is clear.'});
+await renderReview(zhRoot);
+await zhRoot.querySelector('#polishButton').click();
+assert.ok(
+  dialogNodes.dialogBody.innerHTML.includes(supportCopy('compare_tip',{native_language:'zh'})),
+  'the strong-version dialog tooltip should follow the active Chinese UI locale',
+);
+assert.ok(
+  zhRoot.innerHTML.includes(categoryReason('grammar',{native_language:'zh'}))
+    &&zhRoot.innerHTML.includes(categoryRule('grammar',{native_language:'zh'})),
+  'Chinese Review feedback should render both the localized explanation and reusable rule',
+);
 
 const transferFixture={
   ...renderFixture,

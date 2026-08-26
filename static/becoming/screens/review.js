@@ -5,7 +5,7 @@ import {metricsFrom,weakestMetric,benchmarkLabel,changedSegments} from '../domai
 import {guidanceMode,guidanceLabel,feedbackBudget} from '../domain/adaptive.js';
 import {highlightedLearnerText,bindEvidenceLinks,sentenceContext,feedbackCategoryKey} from '../domain/feedback-map.js';
 import {esc,errorBlock,loadingBlock,metricRows,showDialog,toast,helpTip,runBusy,spinner,setBusy} from '../components/primitives.js';
-import {supportCopy,supportNote,categoryReason,categoryRule,nativeLanguage} from '../domain/support.js';
+import {supportCopy,supportNote,categoryReason,categoryRule} from '../domain/support.js';
 import {openDictionary} from '../components/dictionary.js';
 import {t,uiLocale,categoryLabel,unitLabel} from '../domain/i18n.js';
 import {countUnits} from '../language.js';
@@ -16,6 +16,14 @@ import {installDisclosures} from '../orena/shell.js';
 function reviewInfo(text){
   if(!text)return '';
   return `<button class="o-info" type="button" tabindex="0" data-tooltip="${attr(text)}" aria-label="${attr(t('chrome.details'))}">${oIcon('info')}</button>`;
+}
+
+function reviewSupportProfile(){
+  const profile=state.profile||{};
+  const locale=uiLocale();
+  return profile.native_language===locale
+    ?profile
+    :{...profile,native_language:locale};
 }
 
 function grammarTransferBlock(result={}){
@@ -70,8 +78,9 @@ function diffMarkup(before='',after='',language='en'){
 }
 
 function feedbackExplanation(item={}){
-  const locale=nativeLanguage(state.profile||{});
-  const concrete=categoryReason(item.category,state.profile||{});
+  const locale=uiLocale();
+  const profile=reviewSupportProfile();
+  const concrete=categoryReason(item.category,profile);
   if(locale==='vi' && item.explanation_vi){
     const original=String(item.explanation_vi).trim();
     if(!original)return concrete;
@@ -82,8 +91,9 @@ function feedbackExplanation(item={}){
 }
 
 function feedbackRule(item={}){
-  const locale=nativeLanguage(state.profile||{});
-  const reusable=categoryRule(item.category,state.profile||{});
+  const locale=uiLocale();
+  const profile=reviewSupportProfile();
+  const reusable=categoryRule(item.category,profile);
   if(locale==='vi' && item.mini_rule_vi){
     const original=String(item.mini_rule_vi).trim();
     if(!original)return reusable;
@@ -154,7 +164,7 @@ function evidenceItems(errors=[],{
     return `<article class="evidence-item contextual feedback-category-${esc(category)}" tabindex="0" data-feedback-key="error-${index}" data-feedback-category="${esc(category)}">
       <div class="evidence-item-head">
         <span class="pattern-label">${esc(patternName(item))}</span>
-        ${helpTip(supportCopy('current_focus_tip',state.profile||{}),t('common.current_focus'))}
+        ${helpTip(supportCopy('current_focus_tip',reviewSupportProfile()),t('common.current_focus'))}
       </div>
       ${sentence?`<div class="feedback-sentence-context">
         <span>${t('review.sentence_context')}</span>
@@ -186,14 +196,14 @@ function strengthEvidenceItems(items=[]){
     <article class="strength-evidence-item" tabindex="0" data-feedback-key="strength-${index}">
       <div class="evidence-item-head">
         <span class="strength-evidence-label">${esc(categoryLabel(item.category||'strength'))}</span>
-        ${helpTip(supportCopy('strength_tip',state.profile||{}),t('review.already_working'))}
+        ${helpTip(supportCopy('strength_tip',reviewSupportProfile()),t('review.already_working'))}
       </div>
       <blockquote>“${esc(item.fragment||'')}”</blockquote>
       ${pinyinPlaceholder(item.fragment,`strength-${index}`)}
       <p>${esc(
-        nativeLanguage(state.profile||{})==='vi' && item.explanation_vi
+        uiLocale()==='vi' && item.explanation_vi
           ?item.explanation_vi
-          :categoryReason(item.category,state.profile||{})
+          :categoryReason(item.category,reviewSupportProfile())
       )}</p>
       <div class="feedback-item-actions">
         <button class="text-link feedback-lookup" type="button" data-lookup-strength="${index}">${state.language==='zh'?`Pinyin · ${t('review.lookup')}`:t('review.lookup')}</button>
@@ -580,9 +590,9 @@ function strengthRow(item,index){
       <blockquote>“${esc(item.fragment||'')}”</blockquote>
       ${pinyinPlaceholder(item.fragment,`strength-${index}`)}
       <p class="o-issue-why">${esc(
-        nativeLanguage(state.profile||{})==='vi'&&item.explanation_vi
+        uiLocale()==='vi'&&item.explanation_vi
           ?item.explanation_vi
-          :categoryReason(item.category,state.profile||{})
+          :categoryReason(item.category,reviewSupportProfile())
       )}</p>
       <div class="o-issue-actions">
         <button class="text-link feedback-lookup" type="button" data-lookup-strength="${index}">${state.language==='zh'?`Pinyin · ${t('review.lookup')}`:t('review.lookup')}</button>
@@ -632,7 +642,7 @@ export async function renderReview(root){
   const budget=feedbackBudget(mode);
   const errors=result.errors||[];
   const strengthEvidence=result.strength_evidence||[];
-  const locale=nativeLanguage(state.profile||{});
+  const locale=uiLocale();
   const benchmark=benchmarkLabel(result);
   // OREN-15 removed this screen's editorial header and, with it, the insight
   // object it came from -- but two non-editorial references to that object's
@@ -644,7 +654,7 @@ export async function renderReview(root){
 
   const strength=(locale==='vi'&&(result.strengths_vi||[])[0])
     ||(strengthEvidence[0]
-      ?categoryReason(strengthEvidence[0].category,state.profile||{})
+      ?categoryReason(strengthEvidence[0].category,reviewSupportProfile())
       :'Your work contains useful evidence of what is already working.');
 
   const visibleErrors=errors.slice(0,budget.visibleEvidence);
@@ -945,7 +955,7 @@ export async function renderReview(root){
           <div class="strong-version-intro">
             <div class="section-title-row">
               <span class="context-label">${t('review.strong_kicker')}</span>
-              ${helpTip(supportCopy('compare_tip',state.profile||{}),t('review.strong_compare'))}
+              ${helpTip(supportCopy('compare_tip',reviewSupportProfile()),t('review.strong_compare'))}
             </div>
             <p>${t('review.strong_body')}</p>
           </div>
