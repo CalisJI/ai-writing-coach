@@ -68,6 +68,7 @@ def main() -> None:
         root / "static" / "becoming" / "screens" / "listening.js",
         root / "static" / "becoming" / "screens" / "speaking.js",
         root / "static" / "becoming" / "speaking.css",
+        root / "static" / "becoming" / "orena" / "speaking.css",
         root / "writing_coach" / "speech_api.py",
         root / "writing_coach" / "speech_asr.py",
         root / "writing_coach" / "speech_pronunciation.py",
@@ -164,6 +165,7 @@ def main() -> None:
     listening_screen = read("static/becoming/screens/listening.js")
     speaking_screen = read("static/becoming/screens/speaking.js")
     speaking_css = read("static/becoming/speaking.css")
+    orena_speaking_css = read("static/becoming/orena/speaking.css")
     speech_api = read("writing_coach/speech_api.py")
     speech_asr = read("writing_coach/speech_asr.py")
     speech_pronunciation = read("writing_coach/speech_pronunciation.py")
@@ -626,6 +628,10 @@ def main() -> None:
     require_contains(errors, screen_contract, ["speak:{", "Record my voice"], "Speaking screen contract")
     if ".speaking-workspace" not in speaking_css or ".speaking-recorder" not in speaking_css:
         errors.append("Speaking Core product-visible layout styles missing")
+    require_contains(errors, orena_speaking_css, [
+        ".o-pronunciation-evidence", ".o-pronunciation-word-head",
+        ".o-pronunciation-phoneme",
+    ], "Orena Speaking pronunciation evidence styles")
 
     # Orena Phase 2 Grammar Learning Model foundation.
     grammar_learning_component = read("static/becoming/components/grammar-learning.js")

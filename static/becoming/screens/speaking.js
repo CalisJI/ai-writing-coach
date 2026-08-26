@@ -371,6 +371,7 @@ function feedbackRail(model){
         ${synthetic?`<p class="o-demo-banner" role="note">${esc(c.demo)}</p>`:''}
         ${metric(f.pronunciation,pron?.pron_score,bandNote('pron',pron?.pron_score),f.pronInfo)}
         ${metric(f.fluency,pron?.fluency_score,bandNote('fluency',pron?.fluency_score),f.fluencyInfo)}
+        ${pronunciationEvidence(model)}
         ${statusLine}
       </div>
 
@@ -413,6 +414,45 @@ function sourceCheck(model){
     </div>
     <p class="o-source-tokens">${evaluation.reference_alignment.map(item=>`<span class="o-token ${item.matched?'is-matched':'is-missing'}">${esc(item.token)}</span>`).join(' ')}</p>
     ${evaluation.extra_tokens.length?`<p class="o-source-extra"><strong>${esc(m.extra)}</strong> ${evaluation.extra_tokens.map(token=>`<span class="o-token is-extra">${esc(token)}</span>`).join(' ')}</p>`:''}
+  </div>`;
+}
+
+/* Provider evidence belongs below the headline scores: it answers which word
+   or sound needs another pass without pretending that a single ring explains
+   pronunciation. Synthetic demo payloads use the same shape and remain
+   visibly marked by the banner in feedbackRail. */
+function pronunciationEvidence(model){
+  const pron=model.pronunciation;
+  if(!pron||!Array.isArray(pron.words))return '';
+  const c=pronCopy();
+  const words=pron.words
+    .filter(word=>{
+      if(!word||!word.word)return false;
+      const weakWord=(typeof word.accuracy_score==='number'&&word.accuracy_score<80)
+        ||String(word.error_type||'None').toLowerCase()!=='none';
+      const weakPhoneme=Array.isArray(word.phonemes)&&word.phonemes.some(phoneme=>
+        typeof phoneme?.accuracy_score==='number'&&phoneme.accuracy_score<80
+      );
+      return weakWord||weakPhoneme;
+    })
+    .slice(0,4);
+  if(!words.length)return '';
+  return `<div class="o-pronunciation-evidence" data-speaking-pronunciation-evidence>
+    <h3>${esc(c.focus)}</h3>
+    <ul>
+      ${words.map(word=>`<li data-speaking-pronunciation-word>
+        <div class="o-pronunciation-word-head">
+          <strong>${esc(word.word)}</strong>
+          ${typeof word.accuracy_score==='number'?`<span>${Math.round(word.accuracy_score)}</span>`:''}
+        </div>
+        ${Array.isArray(word.phonemes)&&word.phonemes.length?`<div class="o-pronunciation-phonemes">
+          <span class="o-pronunciation-phoneme-label">${esc(c.phonemes)}</span>
+          ${word.phonemes.slice(0,8).map(phoneme=>`<span class="o-pronunciation-phoneme">
+            ${esc(phoneme.phoneme)}${typeof phoneme.accuracy_score==='number'?` <b>${Math.round(phoneme.accuracy_score)}</b>`:''}
+          </span>`).join('')}
+        </div>`:''}
+      </li>`).join('')}
+    </ul>
   </div>`;
 }
 

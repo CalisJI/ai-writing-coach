@@ -65,7 +65,17 @@ const controller=createSpeakingController({
     fluency_score:82,
     completeness_score:96,
     prosody_score:84,
-    words:[],
+    words:[{
+      word:'Listen',
+      accuracy_score:74,
+      error_type:'Mispronunciation',
+      phonemes:[{phoneme:'ɪ',accuracy_score:68}],
+    },{
+      word:'for',
+      accuracy_score:99,
+      error_type:'None',
+      phonemes:[{phoneme:'ɔː',accuracy_score:98}],
+    }],
   }),
 });
 
@@ -85,7 +95,13 @@ assert.equal(await controller.assessPronunciation(),true);
 assert.equal(controller.model.pronunciationStatus,'ready');
 assert.equal(controller.model.pronunciation?.pron_score,88);
 assert.match(controller.html(),/data-speaking-pronunciation/);
-assert.match(controller.html(),/88/);
+assert.match(controller.html(),/data-speaking-pronunciation-evidence/);
+const feedbackHtml=controller.html();
+assert.equal((feedbackHtml.match(/data-speaking-pronunciation-word/g)||[]).length,1);
+assert.match(feedbackHtml,/<strong>Listen<\/strong>/);
+assert.doesNotMatch(feedbackHtml,/<strong>for<\/strong>/);
+assert.match(feedbackHtml,/o-pronunciation-phoneme/);
+assert.match(feedbackHtml,/88/);
 
 assert.equal(controller.selectRelative(1),true);
 assert.equal(controller.model.selected,'segment-002');
