@@ -220,13 +220,47 @@ function selectControl(id, options, current) {
   </select>`;
 }
 
+function normalizedWatchlist(value){
+  if(!Array.isArray(value))return [];
+  const permittedCategories=new Set([
+    'article','tense','agreement','word_choice','word_form','preposition',
+    'sentence_structure','punctuation','coherence','task','naturalness',
+    'spelling','other','word_order','particle','aspect','complement',
+    'measure_word','ba_sentence','bei_sentence','conjunction',
+    'character_choice','collocation','redundancy','register',
+  ]);
+  const numberValue=raw=>{
+    if(typeof raw==='number'&&Number.isFinite(raw))return raw;
+    if(typeof raw==='string'&&raw.trim()!==''){
+      const parsed=Number(raw);
+      if(Number.isFinite(parsed))return parsed;
+    }
+    return null;
+  };
+  return value
+    .filter(item=>item&&typeof item==='object'&&!Array.isArray(item))
+    .map(item=>{
+      const category=typeof item.category==='string'?item.category.trim():'';
+      const status=typeof item.status==='string'?item.status.trim().toLowerCase():'';
+      const total=numberValue(item.total);
+      const older=numberValue(item.older);
+      const newer=numberValue(item.newer);
+      if(!permittedCategories.has(category)||status!=='recurring'
+        ||total===null||!Number.isInteger(total)||total<=0
+        ||older===null||!Number.isInteger(older)||older<0
+        ||newer===null||!Number.isInteger(newer)||newer<0
+        ||total!==older+newer||total<3||older<1||newer<older)return null;
+      return {...item,category,status,total,older,newer};
+    })
+    .filter(Boolean)
+    .sort((a,b)=>b.total-a.total)
+    .slice(0,4);
+}
+
 function asidePanel(config, adaptiveMode) {
   const support = supportState();
   const scaffold = writingScaffold(adaptiveMode, state.language);
-  const watchlist = (state.dashboard?.error_memory || [])
-    .filter(item => item && item.status === 'recurring' && Number(item.total) > 0)
-    .sort((a, b) => Number(b.total) - Number(a.total))
-    .slice(0, 4);
+  const watchlist = normalizedWatchlist(state.dashboard?.error_memory);
 
   return `<aside class="o-card o-write-aside o-disclosure" data-open="true" aria-label="${attr(t('write.setup_panel'))}">
     ${disclosureHead('write.setup_panel')}

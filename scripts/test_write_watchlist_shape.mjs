@@ -1,0 +1,82 @@
+import assert from 'node:assert/strict';
+import {state} from '../static/becoming/store.js';
+import {renderWrite} from '../static/becoming/screens/write.js';
+
+class FakeElement{
+  constructor(){
+    this.dataset={};
+    this.listeners={};
+    this.innerHTML='';
+    this.innerText='';
+    this.textContent='';
+    this.hidden=false;
+    this.classList={toggle:()=>{},add:()=>{},remove:()=>{}};
+  }
+  addEventListener(name,listener){this.listeners[name]=listener;}
+  removeEventListener(){}
+  contains(){return false;}
+  focus(){}
+  setAttribute(){}
+}
+
+const ids=[
+  '#writingEditor','#editorCount','#savedStamp','#lookupSelection','#blockFormat',
+  '#practiceMode','#practiceLevel','#practiceLength','#practiceTopic','#practiceAudience',
+  '#clearDraft','#reviewDraft','#reviewDraftMobile','#viewRubric',
+];
+const nodes=new Map(ids.map(id=>[id,new FakeElement()]));
+const root={
+  innerHTML:'',
+  querySelector:selector=>nodes.get(selector)||null,
+  querySelectorAll:()=>[],
+};
+
+globalThis.document={
+  addEventListener:()=>{},
+  removeEventListener:()=>{},
+  querySelector:()=>null,
+  execCommand:()=>{},
+};
+globalThis.window={
+  getSelection:()=>null,
+  setInterval:()=>1,
+  clearInterval:()=>{},
+};
+
+state.language='en';
+state.supportLanguage='en';
+state.profile={native_language:'en'};
+state.draft={
+  ...state.draft,
+  mode:'free',level:'B2',length:150,text:'',html:'',prompt:'',
+  generatedTask:null,practiceContext:null,parentEssayId:null,
+};
+
+state.dashboard={error_memory:[
+  {category:'article',status:'recurring',total:4,older:2,newer:2},
+  {category:'word_choice',status:'recurring',total:3,older:1,newer:2},
+]};
+await renderWrite(root);
+assert.match(root.innerHTML,/What keeps coming back/);
+assert.doesNotMatch(root.innerHTML,/\[object Object\]|undefined/);
+
+for(const malformed of [
+  null,{},
+  [{category:{},status:'recurring',total:{},older:1,newer:1}],
+  [{category:'article',status:'recurring',total:4,older:3,newer:2}],
+  [{category:'article',status:'recurring',total:4,older:3,newer:1}],
+  [{category:'article',status:'recurring',total:2,older:1,newer:1}],
+  [{category:'untrusted',status:'recurring',total:4,older:2,newer:2}],
+  [{category:'article',status:'recurring',total:-1,older:1,newer:1}],
+  [{category:'article',status:'recurring',total:1.5,older:1,newer:1}],
+  [{category:'article',status:'recurring',total:1,older:1.5,newer:1}],
+]){
+  state.dashboard={error_memory:malformed};
+  await renderWrite(root);
+  assert.doesNotMatch(root.innerHTML,/What keeps coming back/,
+    'Writing must omit malformed watchlist records');
+  assert.doesNotMatch(root.innerHTML,/\[object Object\]|undefined/,
+    'Writing must not render malformed watchlist values');
+}
+
+console.log('Writing watchlist shape contract: PASS');
