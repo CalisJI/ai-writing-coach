@@ -6,9 +6,12 @@ const source=fs.readFileSync(
   'utf8'
 );
 
-assert.match(source,/noiseSuppression:\{ideal:true\}/);
+// Keep the microphone signal raw for the optional RNNoise pipeline. Asking
+// the browser for a second noise gate or auto-gain stage would make the
+// enhanced and native-fallback paths behave differently.
+assert.match(source,/noiseSuppression:\{ideal:false\}/);
 assert.match(source,/echoCancellation:\{ideal:true\}/);
-assert.match(source,/autoGainControl:\{ideal:true\}/);
+assert.match(source,/autoGainControl:\{ideal:false\}/);
 assert.match(source,/channelCount:\{ideal:1\}/);
 assert.match(source,/getSettings\?\.\(\)/);
 assert.match(source,/input_settings:inputSettings/);
