@@ -116,13 +116,16 @@ def _pronunciation_evidence(pronunciation: Any) -> tuple[dict[str, Any], dict[st
                     "pronunciation.words.phonemes.accuracy_score",
                 ),
             })
+        error_type = str(_value(raw_word, "error_type", "None") or "None").strip()[:60]
+        if error_type.casefold() == "none":
+            error_type = "None"
         words.append({
             "word": word,
             "accuracy_score": _score(
                 _value(raw_word, "accuracy_score"),
                 "pronunciation.words.accuracy_score",
             ),
-            "error_type": str(_value(raw_word, "error_type", "None") or "None").strip()[:60],
+            "error_type": error_type,
             "phonemes": phonemes,
         })
 

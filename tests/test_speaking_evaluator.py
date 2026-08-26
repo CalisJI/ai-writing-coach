@@ -96,7 +96,7 @@ def test_phoneme_only_weakness_is_actionable_without_flagging_clean_words() -> N
         {
             "word": "steady",
             "accuracy_score": 99,
-            "error_type": " None ",
+            "error_type": " NONE ",
             "phonemes": [{"phoneme": "e", "accuracy_score": 98}],
         },
         {
@@ -116,6 +116,7 @@ def test_phoneme_only_weakness_is_actionable_without_flagging_clean_words() -> N
     )
 
     assert result["next_steps"] == [{"kind": "focus_words", "words": ["idea"]}]
+    assert result["evidence"]["pronunciation"]["words"][0]["error_type"] == "None"
 
 
 @pytest.mark.parametrize(
