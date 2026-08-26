@@ -485,7 +485,9 @@ function confidenceBand(item={}){
 }
 
 export function reviewSummaryText(result,focusMetric,strengthEvidence){
-  const locale=nativeLanguage(state.profile||{});
+  // Follow the active interface locale, which can briefly differ from the
+  // persisted profile while a learner switches language settings.
+  const locale=uiLocale();
   const priorities=locale==='vi'
     ?(Array.isArray(result.priorities_vi)
       ?result.priorities_vi

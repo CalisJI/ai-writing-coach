@@ -25,6 +25,14 @@ for(const locale of ['en','zh']){
 }
 
 state.profile={native_language:'vi'};
+state.supportLanguage='en';
+assert.notEqual(
+  reviewSummaryText(result,null,[]),
+  result.priorities_vi[0],
+  'Review summary must follow the active UI locale when profile persistence lags',
+);
+
+state.profile={native_language:'vi'};
 state.supportLanguage='vi';
 assert.equal(
   reviewSummaryText({priorities_vi:[]},null,[]),
