@@ -60,6 +60,7 @@ def grammar_links_for_issues(
             seen_grammar_ids.add(grammar_id)
             links.append({
                 "issue_id": issue.get("id"),
+                "category": category,
                 "grammar_id": grammar_id,
                 "title": lesson.get("title", ""),
                 "level": lesson.get("level", ""),

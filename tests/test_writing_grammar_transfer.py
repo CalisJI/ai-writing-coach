@@ -19,6 +19,7 @@ def test_transfer_links_agreement_to_matching_static_lesson():
     )
     assert links == [{
         "issue_id": "issue-1",
+        "category": "agreement",
         "grammar_id": "a1-agreement",
         "title": "Subject verb agreement",
         "level": "A1",

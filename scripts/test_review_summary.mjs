@@ -108,6 +108,43 @@ for(const locale of ['en','vi','zh']){
   assert.match(root.innerHTML,new RegExp(renderedNoticeCopy[locale]));
 }
 
+const transferFixture={
+  ...renderFixture,
+  errors:[{
+    id:'issue-1',
+    category:'agreement',
+    fragment:'I write',
+    suggestion:'I wrote',
+    explanation_vi:'',
+    mini_rule_vi:'',
+    confidence:1,
+  }],
+  grammar_links:[{
+    issue_id:'issue-1',
+    category:'agreement',
+    grammar_id:'a1-agreement',
+    title:'Subject verb agreement',
+    level:'A1',
+    reason:'Writing finding category: agreement',
+  }],
+};
+const transferReasonCopy={
+  en:'Linked from the Grammar finding in this review.',
+  vi:'Được liên kết từ nhận xét Ngữ pháp trong bài này.',
+  zh:'本次点评中的语法问题已关联到这里。',
+};
+for(const locale of ['en','vi','zh']){
+  state.profile={native_language:locale};
+  state.supportLanguage=locale;
+  state.language='en';
+  state.lastEvaluation=transferFixture;
+  state.draft.text=transferFixture.text;
+  const root=fakeReviewRoot();
+  await renderReview(root);
+  assert.match(root.innerHTML,new RegExp(transferReasonCopy[locale]));
+  assert.doesNotMatch(root.innerHTML,/Writing finding category:/);
+}
+
 state.profile={native_language:'vi'};
 state.supportLanguage='vi';
 const invalidResponseFallback={
