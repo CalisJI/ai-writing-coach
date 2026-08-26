@@ -60,8 +60,15 @@ def _content_evidence(content_match: Any) -> tuple[float | None, list[str], list
     else:
         score, missing, extra = content_match, [], []
 
-    normalized_missing = [str(item).strip() for item in missing if str(item).strip()]
-    normalized_extra = [str(item).strip() for item in extra if str(item).strip()]
+    def token_list(value: Any, field: str) -> list[str]:
+        if value is None:
+            return []
+        if not isinstance(value, Sequence) or isinstance(value, (str, bytes, bytearray)):
+            raise SpeakingEvaluationInvalid(f"{field} must be a list.")
+        return [str(item).strip() for item in value if str(item).strip()]
+
+    normalized_missing = token_list(missing, "missing_tokens")
+    normalized_extra = token_list(extra, "extra_tokens")
     return _score(score, "content_match"), normalized_missing[:20], normalized_extra[:20]
 
 

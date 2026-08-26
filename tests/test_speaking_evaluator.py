@@ -97,6 +97,7 @@ def test_synthetic_demo_is_explicitly_non_assessment() -> None:
         ({"language": "en", "reference_text": "x" * 1201}, "reference_text"),
         ({"language": "en", "transcription_confidence": 101}, "transcription_confidence"),
         ({"language": "en", "content_match": True}, "content_match"),
+        ({"language": "en", "content_match": {"missing_tokens": "word"}}, "missing_tokens"),
     ],
 )
 def test_rejects_unsafe_or_unsupported_payloads(kwargs: dict, message: str) -> None:
