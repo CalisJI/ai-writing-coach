@@ -262,7 +262,9 @@ function practiceOutcomeBlock(outcome){
   ]);
   if(!supported.has(key))return '';
 
-  const evidence=(outcome.strength_evidence||[])[0]||(outcome.error_evidence||[])[0]||'';
+  const evidence=normalizedSupportList(outcome.strength_evidence)[0]
+    ||normalizedSupportList(outcome.error_evidence)[0]
+    ||'';
   return `<section class="insight-block practice-check status-${esc(key)}">
     <span class="context-label">${t(`outcome.${key}.kicker`)}</span>
     <h2>${t(`outcome.${key}.title`)}</h2>

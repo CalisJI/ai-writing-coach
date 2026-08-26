@@ -195,6 +195,28 @@ for(const locale of ['en','vi','zh']){
   }
 }
 
+for(const locale of ['en','vi','zh']){
+  state.profile={native_language:locale};
+  state.supportLanguage=locale;
+  state.lastEvaluation={
+    ...renderFixture,
+    practice_outcome:{
+      status:'transferred',
+      focus_label:'Grammar transfer',
+      strength_evidence:[null,{}],
+      error_evidence:[{}],
+    },
+  };
+  state.draft.text=renderFixture.text;
+  const malformedOutcomeRoot=fakeReviewRoot();
+  await renderReview(malformedOutcomeRoot);
+  assert.doesNotMatch(
+    malformedOutcomeRoot.innerHTML,
+    /\[object Object\]/,
+    `Review ${locale.toUpperCase()} must not render malformed practice outcome evidence`,
+  );
+}
+
 const dialogNodes={
   dialogBackdrop:{classList:{remove:()=>{},add:()=>{}},setAttribute:()=>{}},
   dialogTitle:{textContent:''},
