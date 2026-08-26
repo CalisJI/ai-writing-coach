@@ -40,9 +40,55 @@ function recentRows(rows=[]){
     </button>`).join('')}</div>`;
 }
 
+const HOME_MASTERY_STAGES=new Set(['Emerging','Developing','Stable','Mastered']);
+
+function normalizedHomeMemory(memory){
+  if(!memory||typeof memory!=='object'||Array.isArray(memory))return {strengths:[],revision_wins:[]};
+  const numberValue=value=>{
+    if(typeof value==='number'&&Number.isFinite(value))return value;
+    if(typeof value==='string'&&value.trim()!==''){
+      const parsed=Number(value);
+      if(Number.isFinite(parsed))return parsed;
+    }
+    return null;
+  };
+  const countValue=value=>{
+    const parsed=numberValue(value);
+    return parsed!==null&&Number.isInteger(parsed)&&parsed>=0?parsed:null;
+  };
+  const strengths=Array.isArray(memory.strengths)
+    ?memory.strengths
+      .filter(item=>item&&typeof item==='object'&&!Array.isArray(item))
+      .map(item=>{
+        const evidenceCount=countValue(item.evidence_count);
+        const seriesCount=countValue(item.series_count);
+        const category=typeof item.category==='string'?item.category.trim():'';
+        const stage=typeof item.stage==='string'?item.stage.trim():'';
+        if(!category||!HOME_MASTERY_STAGES.has(stage)||evidenceCount===null||seriesCount===null)return null;
+        return {...item,category,stage,evidence_count:evidenceCount,series_count:seriesCount,
+          example:typeof item.example==='string'?item.example.trim():''};
+      })
+      .filter(Boolean)
+    :[];
+  const wins=Array.isArray(memory.revision_wins)
+    ?memory.revision_wins
+      .filter(item=>item&&typeof item==='object'&&!Array.isArray(item))
+      .map(item=>{
+        const overallDelta=numberValue(item.overall_delta);
+        const errorDelta=numberValue(item.error_delta);
+        const revisions=countValue(item.revisions);
+        if(overallDelta===null||errorDelta===null||revisions===null||revisions<2)return null;
+        return {...item,overall_delta:overallDelta,error_delta:errorDelta,revisions};
+      })
+      .filter(Boolean)
+    :[];
+  return {strengths,revision_wins:wins};
+}
+
 function memorySignal(memory){
-  const strength=(memory?.strengths||[])[0];
-  const win=(memory?.revision_wins||[])[0];
+  const safe=normalizedHomeMemory(memory);
+  const strength=safe.strengths[0];
+  const win=safe.revision_wins[0];
 
   if(strength){
     return `<article class="home-signal-card visual-raised-surface">

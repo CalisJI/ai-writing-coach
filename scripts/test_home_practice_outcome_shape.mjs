@@ -12,7 +12,8 @@ const root={
 
 api.dashboard=async()=>({essay_count:0,streak:0,metrics:{}});
 api.essays=async()=>[];
-api.learningMemory=async()=>({patterns:[],strengths:[],focus:null,revision_wins:[]});
+let latestMemory={patterns:[],strengths:[],focus:null,revision_wins:[]};
+api.learningMemory=async()=>latestMemory;
 api.practiceRecommendation=async()=>null;
 api.libraryVocabulary=async()=>[];
 
@@ -66,6 +67,30 @@ for(const locale of ['en','vi','zh']){
       /\[object Object\]/,
       `Home ${locale.toUpperCase()} must not render malformed outcome fields`,
     );
+  }
+}
+
+for(const locale of ['en','vi','zh']){
+  state.supportLanguage=locale;
+  const beforeNowCopy={en:'Before and now',vi:'Trước và nay',zh:'之前与现在'};
+  for(const malformed of [
+    {strengths:null,revision_wins:null},
+    {strengths:[null,{}],revision_wins:[null,{}]},
+    {strengths:[{category:{},stage:{},evidence_count:{},series_count:1}],revision_wins:[]},
+    {strengths:[{category:'grammar',stage:'Stable',evidence_count:-1,series_count:1}],revision_wins:[]},
+    {strengths:[{category:'grammar',stage:'Stable',evidence_count:1.5,series_count:1}],revision_wins:[]},
+    {strengths:[],revision_wins:[{overall_delta:{},error_delta:0,revisions:1}]},
+    {strengths:[],revision_wins:[{overall_delta:1,error_delta:-1,revisions:0}]},
+    {strengths:[],revision_wins:[{overall_delta:1,error_delta:-1,revisions:1}]},
+  ]){
+    latestMemory=malformed;
+    await renderHome(root);
+    assert.doesNotMatch(root.innerHTML,/\[object Object\]/,
+      `Home ${locale.toUpperCase()} must not render malformed learning-memory records`);
+    assert.doesNotMatch(root.innerHTML,/undefined/,
+      `Home ${locale.toUpperCase()} must not render undefined memory values`);
+    assert.doesNotMatch(root.innerHTML,new RegExp(beforeNowCopy[locale]),
+      `Home ${locale.toUpperCase()} must omit revision wins with fewer than two revisions`);
   }
 }
 
