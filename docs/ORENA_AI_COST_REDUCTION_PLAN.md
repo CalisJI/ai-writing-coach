@@ -1,7 +1,7 @@
 # Orena — AI cost reduction plan
 
-**Status:** APPROVED 2026-08-26. **P0 is implemented** (D-023); P1, P2, P2b, P3
-and P4 remain to do.
+**Status:** APPROVED 2026-08-26. **P0 and P2 are implemented** (D-023, D-024);
+P1, P2b, P3 and P4 remain to do.
 **Written:** 2026-08-26, against `claude/work`.
 **Goal:** stop paying a language model to do work that a dataset or a free API
 already does exactly, so the AI budget is spent where a model is genuinely the
@@ -201,8 +201,20 @@ result is labelled as model-generated rather than dictionary-sourced.
 
 ### P2 — Groq becomes the translation default; local stays an explicit backup
 
-**Effort: small. Removes the 37-second local generation and the broken Marian
-service at the same time.**
+**DONE.** Decision Log D-024.
+
+Verified end to end against the real API: a three-segment Chinese batch came back
+in **1.43 s** with natural Vietnamese, and the quota headers were captured. The
+engine is chosen once at startup by `MEDIA_TRANSLATION_PROVIDER`, and Groq is
+also registered in the AI provider catalog so capabilities can be routed to it.
+
+**One correction to what this plan said.** It specified
+`reasoning_effort: "low"`. Measurement afterwards showed that is wrong to encode:
+under `response_format: json_object` it is unnecessary, and the other Groq models
+reject it outright with HTTP 400 — `qwen/qwen3.6-27b` accepts only
+`none`/`default`, and `groq/compound` refuses it entirely. So the request sets
+the JSON response format, which is what actually prevents the empty-string
+answer, and sends no reasoning parameter at all.
 
 The direction taken is **no local model as the production default** — production
 has no GPU — with **Groq for translation**, and the local translator **kept as an

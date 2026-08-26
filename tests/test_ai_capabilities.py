@@ -81,11 +81,13 @@ def test_static_text_provider_definitions_need_no_credentials_or_network(monkeyp
         "OPENAI_BASE_URL",
         "DEEPSEEK_API_KEY",
         "DEEPSEEK_BASE_URL",
+        "GROQ_API_KEY",
+        "GROQ_BASE_URL",
     ):
         monkeypatch.delenv(variable, raising=False)
 
     definitions = provider_definitions()
-    assert {definition.id for definition in definitions} == {"ollama", "openai", "deepseek"}
+    assert {definition.id for definition in definitions} == {"ollama", "openai", "deepseek", "groq"}
 
     speech_operations = {
         AIOperation.SPEECH_RECOGNITION,
