@@ -255,6 +255,10 @@ def _normalize_errors(
                 "confidence": round(confidence, 2),
             }
         )
+    # Review presents issues as confidence-prioritized feedback. Python's
+    # stable sort keeps provider order for equal-confidence findings while
+    # ensuring the learner sees the strongest evidence first.
+    output.sort(key=lambda item: item["confidence"], reverse=True)
     return output
 
 

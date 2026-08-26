@@ -193,6 +193,25 @@ def test_error_duplicates_collapse_by_exact_category_and_fragment_in_first_valid
     ]
 
 
+def test_errors_are_prioritized_by_confidence_with_stable_ties() -> None:
+    result = _normalize(
+        {
+            "errors": [
+                _error(category="agreement", fragment="I has", confidence=0.8),
+                _error(category="article", fragment="a dog", confidence=0.95),
+                _error(category="word_order", fragment="I has a dog.", confidence=0.95),
+            ]
+        },
+        learner_text=LEARNER_TEXT,
+    )
+
+    assert [(item["category"], item["confidence"]) for item in result["errors"]] == [
+        ("article", 0.95),
+        ("word_order", 0.95),
+        ("agreement", 0.8),
+    ]
+
+
 def test_strength_duplicates_collapse_by_exact_category_and_fragment_in_first_valid_order() -> None:
     first = _strength(explanation_vi="first")
     result = _normalize(
