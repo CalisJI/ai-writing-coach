@@ -76,6 +76,7 @@ def main() -> None:
         root / "scripts" / "test_shadowing_practice.mjs",
         root / "scripts" / "test_speaking_core.mjs",
         root / "scripts" / "test_speaking_groq_flow.mjs",
+        root / "scripts" / "test_speaking_ui.mjs",
         root / "scripts" / "test_speaking_rnnoise_contract.mjs",
         root / "scripts" / "test_speaking_voice_enhancement_contract.mjs",
         root / "scripts" / "test_speech_api_bounds.py",
