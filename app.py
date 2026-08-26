@@ -1,4 +1,5 @@
 import json
+import hashlib
 import random
 import os
 import re
@@ -132,6 +133,7 @@ class EssayIn(BaseModel):
     target_cefr: str = Field(default="B2", min_length=2, max_length=12)
     parent_essay_id: int | None = Field(default=None, ge=1)
     practice_context: PracticeContextIn | None = None
+    learning_language: str | None = Field(default=None, min_length=2, max_length=8)
 
 
 class TaskGenerateIn(BaseModel):
@@ -417,6 +419,41 @@ def row_to_dict(row: dict[str, Any], detail: bool = False) -> dict[str, Any]:
             if isinstance(d["module_data"].get("practice"), dict)
             else None
         )
+        d["schema_version"] = "writing-evaluation-v2"
+        d["text_hash"] = hashlib.sha256(str(d.get("text", "")).encode("utf-8")).hexdigest()
+        d["summary"] = {
+            "headline": d["strengths_vi"][0] if d["strengths_vi"] else "",
+            "interpretation": d.get("summary_vi", ""),
+        }
+        dimension_keys = tuple(active_rubric_weights())
+        d["dimensions"] = {key: d[key] for key in dimension_keys if key in d}
+        d["issues"] = [
+            {
+                "id": item.get("id", f"issue-{index + 1}"),
+                "category": item.get("category", "other"),
+                "priority": "high" if index == 0 else "medium",
+                "span": item.get("span", {"start": 0, "end": 0}),
+                "quote": item.get("quote", item.get("fragment", "")),
+                "why": item.get("why", item.get("explanation_vi", "")),
+                "how": item.get("how", item.get("mini_rule_vi", "")),
+                "suggestion": item.get("suggestion", ""),
+                "examples": item.get("examples", []),
+            }
+            for index, item in enumerate(d["errors"])
+            if isinstance(item, dict)
+        ]
+        d["strengths"] = [
+            {
+                "id": item.get("id", f"strength-{index + 1}"),
+                "category": item.get("category", "strength"),
+                "span": item.get("span", {"start": 0, "end": 0}),
+                "quote": item.get("quote", item.get("fragment", "")),
+                "why": item.get("explanation_vi", ""),
+            }
+            for index, item in enumerate(d["strength_evidence"])
+            if isinstance(item, dict)
+        ]
+        d["next_actions"] = d["priorities_vi"]
     else:
         d.pop("strengths_json", None)
         d.pop("priorities_json", None)
@@ -1430,6 +1467,9 @@ def api_delete_vocabulary(word: str) -> dict[str, Any]:
 
 @app.post("/api/evaluate")
 def api_evaluate(payload: EssayIn) -> dict[str, Any]:
+    active_language = active_grammar_language_code()
+    if payload.learning_language and payload.learning_language.lower() not in {active_language, "zh" if active_language == "zh" else "en"}:
+        raise HTTPException(status_code=409, detail="language_scope_mismatch")
     previous: dict[str, Any] | None = None
     series_id: int | None = None
     revision_no = 1

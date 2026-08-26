@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import math
 import re
+import hashlib
 from collections.abc import Callable, Mapping, Sequence
 from typing import Any
 
@@ -13,6 +14,7 @@ CONFIDENCE_THRESHOLD = 0.75
 MAX_LEARNER_LIST_ITEMS = 6
 MAX_STRENGTH_EVIDENCE_ITEMS = 6
 MAX_ERROR_ITEMS = 20
+EVALUATION_SCHEMA_VERSION = "writing-evaluation-v2"
 
 
 def contains_cjk(text: str) -> bool:
@@ -45,7 +47,8 @@ def normalize_writing_evaluation(
     routing, persistence, or web-framework behavior.  The caller supplies the
     current rubric, proficiency policy, and learner text explicitly.
     """
-    result: dict[str, Any] = {}
+    text_hash = hashlib.sha256((learner_text or "").encode("utf-8")).hexdigest()
+    result: dict[str, Any] = {"schema_version": EVALUATION_SCHEMA_VERSION, "text_hash": text_hash}
     for key in rubric_weights:
         result[key] = _normalized_score(raw.get(key, 0))
 
@@ -71,7 +74,50 @@ def normalize_writing_evaluation(
         allow_cjk=allow_cjk,
         learner_text=learner_text,
     )
+    result["summary"] = {
+        "headline": result["strengths_vi"][0] if result["strengths_vi"] else "",
+        "interpretation": result["summary_vi"],
+    }
+    result["dimensions"] = {key: result[key] for key in rubric_weights}
+    result["issues"] = [_issue_envelope(item, index) for index, item in enumerate(result["errors"])]
+    result["strengths"] = [
+        {
+            "id": f"strength-{index + 1}",
+            "category": item["category"],
+            "span": item["span"],
+            "quote": item["fragment"],
+            "why": item["explanation_vi"],
+        }
+        for index, item in enumerate(result["strength_evidence"])
+    ]
+    result["next_actions"] = result["priorities_vi"]
     return result
+
+
+def _issue_envelope(item: Mapping[str, Any], index: int) -> dict[str, Any]:
+    return {
+        "id": item["id"],
+        "category": item["category"],
+        "priority": "high" if index == 0 else "medium",
+        "span": item["span"],
+        "quote": item["fragment"],
+        "why": item["explanation_vi"],
+        "how": item["mini_rule_vi"],
+        "suggestion": item["suggestion"],
+        "examples": [],
+    }
+
+
+def _evidence_span(learner_text: str, fragment: str) -> dict[str, int]:
+    start = learner_text.find(fragment)
+    if start < 0:
+        return {"start": 0, "end": 0}
+    return {"start": start, "end": start + len(fragment)}
+
+
+def _evidence_id(category: str, fragment: str, span: Mapping[str, int]) -> str:
+    raw = f"{category}|{span['start']}|{span['end']}|{fragment}"
+    return "issue-" + hashlib.sha1(raw.encode("utf-8")).hexdigest()[:16]
 
 
 def _normalized_score(value: Any) -> float:
@@ -148,10 +194,14 @@ def _normalize_strength_evidence(
         if identity in seen:
             continue
         seen.add(identity)
+        span = _evidence_span(learner_text, fragment)
         output.append(
             {
+                "id": f"strength-{len(output) + 1}",
                 "category": category,
                 "fragment": fragment,
+                "quote": fragment,
+                "span": span,
                 "explanation_vi": explanation,
                 "confidence": round(confidence, 2),
             }
@@ -191,10 +241,14 @@ def _normalize_errors(
         if identity in seen:
             continue
         seen.add(identity)
+        span = _evidence_span(learner_text, fragment)
         output.append(
             {
+                "id": _evidence_id(category, fragment, span),
                 "category": category,
                 "fragment": fragment,
+                "quote": fragment,
+                "span": span,
                 "explanation_vi": explanation,
                 "suggestion": suggestion,
                 "mini_rule_vi": rule,

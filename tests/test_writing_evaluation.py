@@ -102,7 +102,9 @@ def test_valid_and_invalid_chinese_levels_use_the_same_shared_implementation() -
 
 def test_strength_evidence_requires_exact_fragment_category_and_confidence() -> None:
     accepted = _normalize({"strength_evidence": [_strength()]})
-    assert accepted["strength_evidence"] == [_strength()]
+    assert accepted["strength_evidence"][0]["category"] == "grammar"
+    assert accepted["strength_evidence"][0]["fragment"] == LEARNER_TEXT
+    assert accepted["strength_evidence"][0]["span"] == {"start": 0, "end": len(LEARNER_TEXT)}
 
     rejected = _normalize(
         {
@@ -129,7 +131,9 @@ def test_strength_evidence_is_bounded() -> None:
 
 def test_errors_require_exact_evidence_meaningful_suggestion_and_confidence() -> None:
     accepted = _normalize({"errors": [_error()]})
-    assert accepted["errors"] == [_error()]
+    assert accepted["errors"][0]["category"] == "agreement"
+    assert accepted["errors"][0]["span"] == {"start": 0, "end": len(LEARNER_TEXT)}
+    assert accepted["issues"][0]["id"] == accepted["errors"][0]["id"]
 
     rejected = _normalize(
         {
@@ -183,7 +187,10 @@ def test_error_duplicates_collapse_by_exact_category_and_fragment_in_first_valid
             ]
         }
     )
-    assert result["errors"] == [first, _error(category="article", explanation_vi="different category")]
+    assert [(item["category"], item["fragment"], item["explanation_vi"]) for item in result["errors"]] == [
+        ("agreement", LEARNER_TEXT, "first"),
+        ("article", LEARNER_TEXT, "different category"),
+    ]
 
 
 def test_strength_duplicates_collapse_by_exact_category_and_fragment_in_first_valid_order() -> None:
@@ -197,9 +204,9 @@ def test_strength_duplicates_collapse_by_exact_category_and_fragment_in_first_va
             ]
         }
     )
-    assert result["strength_evidence"] == [
-        first,
-        _strength(category="vocabulary", explanation_vi="different category"),
+    assert [(item["category"], item["fragment"], item["explanation_vi"]) for item in result["strength_evidence"]] == [
+        ("grammar", LEARNER_TEXT, "first"),
+        ("vocabulary", LEARNER_TEXT, "different category"),
     ]
 
 
@@ -251,7 +258,7 @@ def test_chinese_policy_allows_cjk_learner_facing_content() -> None:
 
 def test_response_shape_is_backward_compatible_and_excludes_internal_learner_text() -> None:
     result = _normalize({"__learner_text": "must not appear"})
-    assert set(result) == {
+    assert set(result) >= {
         "grammar",
         "vocabulary",
         "cefr_estimate",
@@ -260,7 +267,15 @@ def test_response_shape_is_backward_compatible_and_excludes_internal_learner_tex
         "priorities_vi",
         "strength_evidence",
         "errors",
+        "schema_version",
+        "text_hash",
+        "summary",
+        "dimensions",
+        "issues",
+        "strengths",
+        "next_actions",
     }
+    assert "__learner_text" not in result
 
 
 def test_app_validate_result_delegates_to_the_extracted_contract(monkeypatch: pytest.MonkeyPatch) -> None:

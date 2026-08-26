@@ -283,9 +283,16 @@ def test_app_uses_shared_builders_once_and_preserves_normalizer_and_capability(
     assert captured["generation"]["schema"] == _english_schema()
     assert [message["role"] for message in captured["generation"]["messages"]] == ["system", "user"]
     assert "<LEARNER_TEXT>" in captured["generation"]["messages"][1]["content"]
-    assert set(result) == {
+    assert set(result) >= {
         *RUBRIC_KEYS,
         *SHARED_RESULT_FIELDS,
+        "schema_version",
+        "text_hash",
+        "summary",
+        "dimensions",
+        "issues",
+        "strengths",
+        "next_actions",
         "_runtime",
         "_ai_provider",
         "_ai_model",
