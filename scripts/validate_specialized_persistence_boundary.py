@@ -4,7 +4,7 @@ def req(ok,msg):
     if not ok: raise SystemExit('Specialized persistence boundary validation FAILED: '+msg)
 def text(rel): return (ROOT/rel).read_text(encoding='utf-8')
 req((ROOT/'VERSION').read_text().strip() == '1.4.0','VERSION must be v1.4.0')
-req((ROOT/'BECOMING_FRONTEND_VERSION').read_text().strip()=='2.15.7','frontend must remain 2.15.7')
+req((ROOT/'BECOMING_FRONTEND_VERSION').read_text().strip()=='2.17.5','frontend must remain 2.17.5')
 app=text('app.py'); repo=text('writing_coach/persistence/specialized_repository.py')
 for name in ['becoming_memory.py','becoming_outcomes.py','becoming_library.py','becoming_reading.py','becoming_linguistics.py']:
     src=text('writing_coach/'+name)
@@ -15,7 +15,8 @@ for name in ['becoming_memory.py','becoming_library.py','becoming_reading.py']:
     src=text('writing_coach/'+name)
     for forbidden in ['import sqlite3','sqlite3.Connection','CREATE TABLE','ALTER TABLE','PRAGMA']:
         req(forbidden not in src,name+' still owns SQLite schema detail: '+forbidden)
-req('SQLiteSpecializedLearningRepository(_learning_repository.connect)' in app,'SQLite specialized repository must remain active')
+req('_specialized_learning_repository = _persistence_runtime.specialized_learning_repository' in app,'specialized repository must come from the authoritative runtime boundary')
+req('SQLiteSpecializedLearningRepository(_learning_repository.connect)' not in app,'runtime must not pin the specialized repository to SQLite')
 core_init=app.find('_learning_repository.initialize(schema_version=SCHEMA_VERSION)')
 specialized_init=app.find('_specialized_learning_repository.initialize()')
 cache_init=app.find('_learning_cache.initialize()')
@@ -37,6 +38,6 @@ req((ROOT/'docs/SPECIALIZED_PERSISTENCE_BOUNDARY.md').exists(),'missing boundary
 print('BECOMING specialized persistence boundary validation OK')
 print('Memory / Outcomes / Active Recall / Reading / Linguistics: repository-bound')
 print('Specialized SQLite schema ownership: repository-bound')
-print('SQLite specialized repository: ACTIVE')
-print('PostgreSQL specialized repository: READY / NOT SELECTED')
-print('Runtime cutover: NOT ENABLED')
+print('SQLite specialized repository: FROZEN ROLLBACK / ARCHIVE ONLY')
+print('PostgreSQL specialized repository: AUTHORITATIVE')
+print('Runtime cutover: COMPLETE')
