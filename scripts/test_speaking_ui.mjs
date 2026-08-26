@@ -81,6 +81,16 @@ const controller=createSpeakingController({
       accuracy_score:99,
       error_type:'None',
       phonemes:[{phoneme:'i',accuracy_score:68}],
+    },{
+      word:'omission',
+      accuracy_score:70,
+      error_type:'Omission',
+      phonemes:[{phoneme:'ə',accuracy_score:70}],
+    },{
+      word:'insertion',
+      accuracy_score:70,
+      error_type:'Insertion',
+      phonemes:[{phoneme:'ɪ',accuracy_score:70}],
     }],
   }),
 });
@@ -103,11 +113,14 @@ assert.equal(controller.model.pronunciation?.pron_score,88);
 assert.match(controller.html(),/data-speaking-pronunciation/);
 assert.match(controller.html(),/data-speaking-pronunciation-evidence/);
 const feedbackHtml=controller.html();
-assert.equal((feedbackHtml.match(/data-speaking-pronunciation-word/g)||[]).length,2);
+assert.equal((feedbackHtml.match(/data-speaking-pronunciation-word/g)||[]).length,4);
 assert.match(feedbackHtml,/<strong>Listen<\/strong>/);
 assert.doesNotMatch(feedbackHtml,/<strong>for<\/strong>/);
 assert.match(feedbackHtml,/<strong>idea<\/strong>/);
+assert.match(feedbackHtml,/<strong>omission<\/strong>/);
+assert.match(feedbackHtml,/<strong>insertion<\/strong>/);
 assert.match(feedbackHtml,/o-pronunciation-phoneme/);
+assert.match(feedbackHtml,/o-pronunciation-word-reason/);
 assert.match(feedbackHtml,/role="img" aria-label="Listen, 74/);
 assert.match(feedbackHtml,/role="img" aria-label="ɪ, 68/);
 assert.match(feedbackHtml,/88/);
@@ -117,16 +130,38 @@ const englishFeedbackHtml=controller.html();
 assert.match(englishFeedbackHtml,/aria-label="Listen, 74 score"/);
 assert.match(englishFeedbackHtml,/aria-label="\u026a, 68 score"/);
 assert.match(englishFeedbackHtml,/aria-label="idea, 99 score"/);
-assert.match(englishFeedbackHtml,/Focus on: Listen, idea/);
+assert.match(englishFeedbackHtml,/Focus on: Listen, idea, omission, insertion/);
+assert.match(englishFeedbackHtml,/Mispronunciation/);
+assert.match(englishFeedbackHtml,/Omission/);
+assert.match(englishFeedbackHtml,/Insertion/);
 state.supportLanguage='vi';
 const vietnameseFeedbackHtml=controller.html();
 assert.match(vietnameseFeedbackHtml,/aria-label="Listen, 74 \u0111i\u1ec3m"/);
 assert.match(vietnameseFeedbackHtml,/aria-label="\u026a, 68 \u0111i\u1ec3m"/);
+assert.match(vietnameseFeedbackHtml,/Ph\u00e1t \u00e2m sai/);
 state.supportLanguage='zh';
 const chineseFeedbackHtml=controller.html();
 assert.match(chineseFeedbackHtml,/aria-label="Listen, 74 \u5206\u6570"/);
 assert.match(chineseFeedbackHtml,/aria-label="\u026a, 68 \u5206\u6570"/);
+assert.match(chineseFeedbackHtml,/\u53d1\u97f3\u9519\u8bef/);
 state.supportLanguage='en';
+
+const syntheticController=createSpeakingController({
+  session,
+  recorder,
+  pronunciationAssess:async()=>({
+    score_kind:'synthetic_demo',
+    pron_score:76,
+    accuracy_score:74,
+    fluency_score:78,
+    completeness_score:100,
+    words:[{word:'Demo',accuracy_score:62,error_type:'SyntheticDemo',phonemes:[]}],
+  }),
+});
+assert.equal(await syntheticController.assessPronunciation(),true);
+const syntheticFeedbackHtml=syntheticController.html();
+assert.match(syntheticFeedbackHtml,/o-demo-banner/);
+assert.doesNotMatch(syntheticFeedbackHtml,/o-pronunciation-word-reason/);
 
 assert.equal(controller.selectRelative(1),true);
 assert.equal(controller.model.selected,'segment-002');

@@ -120,6 +120,7 @@ const PRON_COPY={
     assess:'Assess pronunciation',busy:'Assessing pronunciation...',title:'Pronunciation',
     overall:'Pronunciation',accuracy:'Accuracy',fluency:'Fluency',completeness:'Completeness',
     prosody:'Prosody',focus:'Words to focus on',phonemes:'Sounds',score:'score',
+    mispronunciation:'Mispronunciation',omission:'Omission',insertion:'Insertion',
     unavailable:'Pronunciation scoring is not configured on this environment.',
     failed:'Pronunciation assessment is temporarily unavailable. Your recording and content match still work.',
     demo:'DEMO score — UI testing only. Your pronunciation quality is not being judged.',
@@ -129,6 +130,7 @@ const PRON_COPY={
     assess:'Chấm phát âm',busy:'Đang chấm phát âm...',title:'Phát âm',
     overall:'Tổng quan',accuracy:'Độ chính xác',fluency:'Độ trôi chảy',completeness:'Độ đầy đủ',
     prosody:'Ngữ điệu',focus:'Từ cần tập trung',phonemes:'Âm',score:'điểm',
+    mispronunciation:'Phát âm sai',omission:'Bỏ sót',insertion:'Nói thêm',
     unavailable:'Môi trường này chưa cấu hình dịch vụ chấm phát âm.',
     failed:'Tạm thời chưa chấm được phát âm. Lượt ghi và khớp nội dung vẫn hoạt động.',
     demo:'Điểm DEMO — chỉ để test giao diện. Chất lượng phát âm của bạn chưa được chấm.',
@@ -138,6 +140,7 @@ const PRON_COPY={
     assess:'评估发音',busy:'正在评估发音…',title:'发音',
     overall:'发音总分',accuracy:'准确度',fluency:'流利度',completeness:'完整度',
     prosody:'韵律',focus:'需要重点练习的词',phonemes:'音素',score:'分数',
+    mispronunciation:'发音错误',omission:'遗漏',insertion:'多说',
     unavailable:'当前环境尚未配置发音评分服务。',
     failed:'暂时无法完成发音评估。录音和内容匹配仍可继续使用。',
     demo:'DEMO 分数——仅用于界面测试，并未真正评估你的发音质量。',
@@ -145,6 +148,17 @@ const PRON_COPY={
   },
 };
 const pronCopy=()=>PRON_COPY[uiLocale()]||PRON_COPY.en;
+
+function pronunciationErrorLabel(errorType,c){
+  const raw=String(errorType||'None').trim();
+  const key=raw.toLowerCase();
+  if(!raw||key==='none')return '';
+  return {
+    mispronunciation:c.mispronunciation,
+    omission:c.omission,
+    insertion:c.insertion,
+  }[key]||'';
+}
 
 /* The rail in the reference is a column of scored rings with a one-line verdict
    and a short note under each. Every number here comes from a service: the
@@ -446,6 +460,7 @@ function pronunciationEvidence(model){
           <strong>${esc(word.word)}</strong>
           ${typeof word.accuracy_score==='number'?`<span role="img" aria-label="${esc(`${word.word}, ${Math.round(word.accuracy_score)} ${c.score}`)}">${Math.round(word.accuracy_score)}</span>`:''}
         </div>
+        ${pronunciationErrorLabel(word.error_type,c)?`<small class="o-pronunciation-word-reason">${esc(pronunciationErrorLabel(word.error_type,c))}</small>`:''}
         ${Array.isArray(word.phonemes)&&word.phonemes.length?`<div class="o-pronunciation-phonemes">
           <span class="o-pronunciation-phoneme-label">${esc(c.phonemes)}</span>
           ${word.phonemes.slice(0,8).map(phoneme=>`<span class="o-pronunciation-phoneme"${typeof phoneme.accuracy_score==='number'?` role="img" aria-label="${esc(`${phoneme.phoneme}, ${Math.round(phoneme.accuracy_score)} ${c.score}`)}"`:''}>

@@ -290,6 +290,7 @@ a.o-btn.is-disabled{opacity:.45;pointer-events:none}
 .o-pronunciation-word-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
 .o-pronunciation-word-head strong{font-size:var(--o-text-ui);font-weight:600}
 .o-pronunciation-word-head>span{font-size:var(--o-text-meta);color:var(--o-attention);font-variant-numeric:tabular-nums}
+.o-pronunciation-word-reason{font-size:var(--o-text-meta);color:var(--o-critical);line-height:1.4}
 .o-pronunciation-phonemes{display:flex;align-items:center;flex-wrap:wrap;gap:6px}
 .o-pronunciation-phoneme-label{font-size:var(--o-text-meta);color:var(--o-ink-faint)}
 .o-pronunciation-phoneme{padding:3px 7px;border-radius:var(--o-radius-pill);background:var(--o-surface-muted);color:var(--o-ink-muted);font-size:var(--o-text-meta);font-variant-numeric:tabular-nums}
