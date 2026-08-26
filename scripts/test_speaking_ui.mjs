@@ -76,6 +76,11 @@ const controller=createSpeakingController({
       accuracy_score:99,
       error_type:'None',
       phonemes:[{phoneme:'ɔː',accuracy_score:98}],
+    },{
+      word:'idea',
+      accuracy_score:99,
+      error_type:'None',
+      phonemes:[{phoneme:'i',accuracy_score:68}],
     }],
   }),
 });
@@ -98,9 +103,10 @@ assert.equal(controller.model.pronunciation?.pron_score,88);
 assert.match(controller.html(),/data-speaking-pronunciation/);
 assert.match(controller.html(),/data-speaking-pronunciation-evidence/);
 const feedbackHtml=controller.html();
-assert.equal((feedbackHtml.match(/data-speaking-pronunciation-word/g)||[]).length,1);
+assert.equal((feedbackHtml.match(/data-speaking-pronunciation-word/g)||[]).length,2);
 assert.match(feedbackHtml,/<strong>Listen<\/strong>/);
 assert.doesNotMatch(feedbackHtml,/<strong>for<\/strong>/);
+assert.match(feedbackHtml,/<strong>idea<\/strong>/);
 assert.match(feedbackHtml,/o-pronunciation-phoneme/);
 assert.match(feedbackHtml,/role="img" aria-label="Listen, 74/);
 assert.match(feedbackHtml,/role="img" aria-label="ɪ, 68/);
@@ -110,6 +116,8 @@ state.supportLanguage='en';
 const englishFeedbackHtml=controller.html();
 assert.match(englishFeedbackHtml,/aria-label="Listen, 74 score"/);
 assert.match(englishFeedbackHtml,/aria-label="\u026a, 68 score"/);
+assert.match(englishFeedbackHtml,/aria-label="idea, 99 score"/);
+assert.match(englishFeedbackHtml,/Focus on: Listen, idea/);
 state.supportLanguage='vi';
 const vietnameseFeedbackHtml=controller.html();
 assert.match(vietnameseFeedbackHtml,/aria-label="Listen, 74 \u0111i\u1ec3m"/);

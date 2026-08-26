@@ -245,6 +245,16 @@ const FEEDBACK_COPY={
 };
 const feedbackCopy=()=>FEEDBACK_COPY[uiLocale()]||FEEDBACK_COPY.en;
 
+function hasWeakPronunciationEvidence(word){
+  if(!word||!word.word)return false;
+  const weakWord=(typeof word.accuracy_score==='number'&&word.accuracy_score<80)
+    ||String(word.error_type||'None').toLowerCase()!=='none';
+  const weakPhoneme=Array.isArray(word.phonemes)&&word.phonemes.some(phoneme=>
+    typeof phoneme?.accuracy_score==='number'&&phoneme.accuracy_score<80
+  );
+  return weakWord||weakPhoneme;
+}
+
 const stamp=ms=>`${Math.floor(ms/60000)}:${String(Math.floor(ms/1000)%60).padStart(2,'0')}`;
 const transcriptTokenMarkup=value=>transcriptTokens(value).map(token=>token.word
   ?`<span class="transcript-token">${esc(token.text)}</span>`
@@ -330,8 +340,7 @@ function feedbackLists(model){
   if(typeof evaluation?.content_match==='number'&&evaluation.content_match>=85)highlights.push(f.hlOnTopic);
 
   const weakWords=(Array.isArray(pron?.words)?pron.words:[])
-    .filter(word=>(typeof word.accuracy_score==='number'&&word.accuracy_score<80)
-      ||String(word.error_type||'None').toLowerCase()!=='none')
+    .filter(hasWeakPronunciationEvidence)
     .map(word=>word.word)
     .filter(Boolean)
     .slice(0,4);
@@ -426,15 +435,7 @@ function pronunciationEvidence(model){
   if(!pron||!Array.isArray(pron.words))return '';
   const c=pronCopy();
   const words=pron.words
-    .filter(word=>{
-      if(!word||!word.word)return false;
-      const weakWord=(typeof word.accuracy_score==='number'&&word.accuracy_score<80)
-        ||String(word.error_type||'None').toLowerCase()!=='none';
-      const weakPhoneme=Array.isArray(word.phonemes)&&word.phonemes.some(phoneme=>
-        typeof phoneme?.accuracy_score==='number'&&phoneme.accuracy_score<80
-      );
-      return weakWord||weakPhoneme;
-    })
+    .filter(hasWeakPronunciationEvidence)
     .slice(0,4);
   if(!words.length)return '';
   return `<div class="o-pronunciation-evidence" data-speaking-pronunciation-evidence>
