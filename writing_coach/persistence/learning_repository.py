@@ -228,6 +228,7 @@ class SQLiteLearningRepository:
 
     def create_essay(self, values: dict[str, Any]) -> dict[str, Any]:
         practice_context = values.get("practice_context")
+        grammar_links = values.get("grammar_links") or []
         with self.connect() as conn:
             cur = conn.execute(
                 """
@@ -248,10 +249,10 @@ class SQLiteLearningRepository:
                 ),
             )
             essay_id = int(cur.lastrowid)
-            if practice_context is not None:
+            if practice_context is not None or grammar_links:
                 conn.execute(
                     "UPDATE essays SET module_data_json = ? WHERE id = ?",
-                    (json.dumps({"practice": practice_context}, ensure_ascii=False), essay_id),
+                    (json.dumps({"practice": practice_context, "grammar_links": grammar_links}, ensure_ascii=False), essay_id),
                 )
             series_id = int(values.get("series_id") or essay_id)
             if values.get("series_id") is None:
@@ -536,7 +537,7 @@ class PostgresLearningRepository:
                 task_achievement=float(values["task_achievement"]), naturalness=float(values["naturalness"]), overall=float(values["overall"]),
                 level_estimate=values["cefr_estimate"], evaluator=values["evaluator"], summary_vi=values["summary_vi"],
                 strengths=json.loads(values["strengths_json"]), priorities=json.loads(values["priorities_json"]),
-                errors=json.loads(values["errors_json"]), module_data={"practice": values["practice_context"]} if values.get("practice_context") else {},
+                errors=json.loads(values["errors_json"]), module_data={"practice": values["practice_context"], "grammar_links": values.get("grammar_links") or []} if (values.get("practice_context") or values.get("grammar_links")) else {},
                 strength_evidence=json.loads(values["strength_evidence_json"]),
             )
             session.add(essay)

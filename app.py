@@ -41,6 +41,7 @@ from writing_coach.writing_evaluator_contract import (
     build_writing_evaluator_request,
     build_writing_evaluator_schema,
 )
+from writing_coach.writing_grammar_transfer import grammar_links_for_issues
 from writing_coach.writing_analytics import parse_persisted_error_events
 from auth_support import APP_ENV, AUTH_ENABLED, current_db_path, install_auth, require_admin, AUTH_DB_PATH, configure_auth_repository
 from writing_coach.product.api import router as product_router
@@ -433,6 +434,11 @@ def row_to_dict(row: dict[str, Any], detail: bool = False) -> dict[str, Any]:
             d["module_data"].get("practice")
             if isinstance(d["module_data"].get("practice"), dict)
             else None
+        )
+        d["grammar_links"] = (
+            d["module_data"].get("grammar_links")
+            if isinstance(d["module_data"].get("grammar_links"), list)
+            else []
         )
         d["schema_version"] = "writing-evaluation-v2"
         d["text_hash"] = hashlib.sha256(str(d.get("text", "")).encode("utf-8")).hexdigest()
@@ -1536,6 +1542,9 @@ def api_evaluate(payload: EssayIn) -> dict[str, Any]:
         revision_no = _learning_repository.next_revision_no(series_id)
 
     result, evaluator = evaluate(payload)
+    result["grammar_links"] = grammar_links_for_issues(
+        result.get("errors", []), active_grammar_knowledge_by_id()
+    )
     overall = weighted_overall(result)
     word_count = writing_unit_count(payload.text)
     now = datetime.now().astimezone().isoformat(timespec="seconds")
@@ -1571,6 +1580,7 @@ def api_evaluate(payload: EssayIn) -> dict[str, Any]:
         "revision_no": revision_no,
         "parent_id": payload.parent_essay_id,
         "practice_context": practice_context,
+        "grammar_links": result["grammar_links"],
     })
     essay_id = int(created["id"])
     series_id = int(created["series_id"])
