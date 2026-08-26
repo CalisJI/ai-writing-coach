@@ -1814,6 +1814,7 @@ def grammar_targeted_practice(grammar_id: str) -> dict[str, Any]:
         "grammar_id": grammar_id,
         "title": title,
         "level": level,
+        "target_level": level,
         "prompt": target,
         "practice_blueprint": blueprint,
         "practice_context": context,

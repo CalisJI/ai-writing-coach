@@ -729,7 +729,15 @@ export async function renderReview(root){
     if(!id)return;
     try{
       const task=await api.grammarPractice(id);
-      saveDraft({prompt:task.prompt||'',practiceContext:task.practice_context||null,generatedTask:null,parentEssayId:null});
+      saveDraft({
+        prompt:task.prompt||'',
+        text:'',
+        html:'',
+        level:task.target_level||task.practice_context?.target_level||state.draft.level,
+        practiceContext:task.practice_context||null,
+        generatedTask:null,
+        parentEssayId:null,
+      });
       go('write');
     }catch(error){ toast(error.message||String(error)); }
   }));

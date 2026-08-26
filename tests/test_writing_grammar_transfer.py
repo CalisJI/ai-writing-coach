@@ -32,3 +32,21 @@ def test_transfer_omits_uncertain_categories():
         [{"id": "issue-1", "category": "word_choice"}],
         {"lesson": {"title": "Vocabulary", "quick_reference": {"lookup_tags": ["words"]}}},
     ) == []
+
+
+def test_transfer_deduplicates_a_lesson_seen_in_multiple_issues():
+    knowledge = {
+        "a1-agreement": {
+            "title": "Subject verb agreement",
+            "level": "A1",
+            "quick_reference": {"lookup_tags": ["agreement"]},
+        },
+    }
+    links = grammar_links_for_issues(
+        [
+            {"id": "issue-1", "category": "agreement"},
+            {"id": "issue-2", "category": "agreement"},
+        ],
+        knowledge,
+    )
+    assert [item["grammar_id"] for item in links] == ["a1-agreement"]

@@ -38,7 +38,9 @@ def grammar_links_for_issues(
 ) -> list[dict[str, Any]]:
     """Return conservative lesson recommendations for categorized findings."""
     links: list[dict[str, Any]] = []
-    seen: set[tuple[str, str]] = set()
+    # A lesson may match several findings in the same essay; recommend it once
+    # and let the lesson itself cover the shared pattern.
+    seen_grammar_ids: set[str] = set()
     for issue in issues:
         category = str(issue.get("category") or "").casefold().strip()
         signals = CATEGORY_SIGNALS.get(category, ())
@@ -53,10 +55,9 @@ def grammar_links_for_issues(
                 score = max(len(signal) for signal in matched)
                 matches.append((score, str(grammar_id), lesson))
         for _, grammar_id, lesson in sorted(matches, key=lambda item: (-item[0], item[1]))[:limit_per_issue]:
-            key = (str(issue.get("id") or issue.get("quote") or ""), grammar_id)
-            if key in seen:
+            if grammar_id in seen_grammar_ids:
                 continue
-            seen.add(key)
+            seen_grammar_ids.add(grammar_id)
             links.append({
                 "issue_id": issue.get("id"),
                 "grammar_id": grammar_id,
