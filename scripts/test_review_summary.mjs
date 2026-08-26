@@ -50,6 +50,16 @@ for(const locale of ['en','vi','zh']){
   assert.equal(evaluationNotice({evaluator:'ollama:model'}),'');
 }
 
+assert.equal(
+  reviewSummaryText({priorities_vi:{message:'provider payload shape changed'}},null,[]),
+  reviewSummaryText({priorities_vi:[]},null,[]),
+  'Vietnamese Review summary must ignore malformed priority objects instead of rendering [object Object]',
+);
+assert.doesNotMatch(
+  reviewSummaryText({priorities_vi:{message:'provider payload shape changed'}},null,[]),
+  /\[object Object\]/,
+);
+
 class FakeElement{
   constructor(){
     this.dataset={};

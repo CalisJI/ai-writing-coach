@@ -500,7 +500,8 @@ export function reviewSummaryText(result,focusMetric,strengthEvidence){
   const priorities=locale==='vi'
     ?(Array.isArray(result.priorities_vi)
       ?result.priorities_vi
-      :String(result.priorities_vi||'').trim()?[String(result.priorities_vi).trim()]:[])
+      :(typeof result.priorities_vi==='string'&&result.priorities_vi.trim()
+        ?[result.priorities_vi.trim()]:[]))
     :[];
   const written=priorities.find(item=>typeof item==='string'&&item.trim())||'';
   if(written)return written.trim();
