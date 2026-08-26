@@ -166,6 +166,13 @@ assert.equal(await syntheticController.assessPronunciation(),true);
 const syntheticFeedbackHtml=syntheticController.html();
 assert.match(syntheticFeedbackHtml,/o-demo-banner/);
 assert.doesNotMatch(syntheticFeedbackHtml,/o-pronunciation-word-reason/);
+for(const locale of ['en','vi','zh']){
+  state.supportLanguage=locale;
+  const localizedSyntheticFeedbackHtml=syntheticController.html();
+  assert.match(localizedSyntheticFeedbackHtml,/o-demo-banner/);
+  assert.doesNotMatch(localizedSyntheticFeedbackHtml,/o-pronunciation-word-reason/);
+}
+state.supportLanguage='en';
 
 assert.equal(controller.selectRelative(1),true);
 assert.equal(controller.model.selected,'segment-002');
