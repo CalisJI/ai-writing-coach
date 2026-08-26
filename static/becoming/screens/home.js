@@ -72,14 +72,48 @@ function memorySignal(memory){
   </article>`;
 }
 
-function practiceOutcomeSignal(outcome){
-  if(!outcome)return '';
-  const key=String(outcome.status||'');
-  const supported=new Set([
+const PRACTICE_OUTCOME_STATUSES=new Set([
     'improved','transferred','held','still_working',
     'needs_attention','not_observed','needs_more_evidence',
-  ]);
-  if(!supported.has(key))return '';
+]);
+
+function normalizedPracticeOutcome(outcome){
+  if(!outcome||typeof outcome!=='object'||Array.isArray(outcome))return null;
+  const status=typeof outcome.status==='string'?outcome.status.trim().toLowerCase():'';
+  if(!PRACTICE_OUTCOME_STATUSES.has(status))return null;
+  const numberValue=value=>{
+    if(typeof value==='number'&&Number.isFinite(value))return value;
+    if(typeof value==='string'&&value.trim()!==''){
+      const parsed=Number(value);
+      if(Number.isFinite(parsed))return parsed;
+    }
+    return null;
+  };
+  const issueCount=numberValue(outcome.issue_count);
+  const revisionNo=numberValue(outcome.revision_no);
+  if(
+    issueCount===null||!Number.isInteger(issueCount)||issueCount<0
+    ||revisionNo===null||!Number.isInteger(revisionNo)||revisionNo<1
+  )return null;
+  let previous=null;
+  if(outcome.previous_issue_count!=null){
+    previous=numberValue(outcome.previous_issue_count);
+    if(previous===null||!Number.isInteger(previous)||previous<0)return null;
+  }
+  return {
+    ...outcome,
+    status,
+    focus_label:typeof outcome.focus_label==='string'?outcome.focus_label.trim():'',
+    previous_issue_count:previous,
+    issue_count:issueCount,
+    revision_no:revisionNo,
+  };
+}
+
+function practiceOutcomeSignal(outcome){
+  outcome=normalizedPracticeOutcome(outcome);
+  if(!outcome)return '';
+  const key=outcome.status;
 
   return `<article class="home-signal-card practice-outcome-signal status-${esc(key)} visual-raised-surface">
     <span class="context-label">${t(`outcome.${key}.kicker`)}</span>
