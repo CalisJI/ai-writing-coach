@@ -465,12 +465,42 @@ def row_to_dict(row: dict[str, Any], detail: bool = False) -> dict[str, Any]:
     return d
 
 
-def revision_delta(current: dict[str, Any], previous: dict[str, Any] | None) -> dict[str, float]:
+def _issue_key(item: dict[str, Any]) -> tuple[str, str]:
+    return (str(item.get("category", "other")), str(item.get("fragment", item.get("quote", ""))))
+
+
+def revision_delta(current: dict[str, Any], previous: dict[str, Any] | None) -> dict[str, Any]:
     if not previous:
         return {}
-    out: dict[str, float] = {}
+    out: dict[str, Any] = {}
     for key in [*active_rubric_weights().keys(), "overall"]:
         out[key] = round(float(current[key]) - float(previous[key]), 1)
+    current_items = {
+        _issue_key(item): item
+        for item in current.get("errors", [])
+        if isinstance(item, dict)
+    }
+    previous_items = {
+        _issue_key(item): item
+        for item in previous.get("errors", [])
+        if isinstance(item, dict)
+    }
+    current_keys = set(current_items)
+    previous_keys = set(previous_items)
+    changed: list[dict[str, Any]] = []
+    for category in sorted({key[0] for key in current_keys} & {key[0] for key in previous_keys}):
+        old = next((key for key in previous_keys if key[0] == category), None)
+        new = next((key for key in current_keys if key[0] == category), None)
+        if old and new and old != new:
+            changed.append({"before": previous_items[old], "after": current_items[new]})
+            previous_keys.discard(old)
+            current_keys.discard(new)
+    out["issues"] = {
+        "removed": [previous_items[key] for key in sorted(previous_keys - current_keys)],
+        "persistent": [current_items[key] for key in sorted(current_keys & previous_keys)],
+        "new": [current_items[key] for key in sorted(current_keys - previous_keys)],
+        "changed": changed,
+    }
     return out
 
 
@@ -1477,7 +1507,13 @@ def api_evaluate(payload: EssayIn) -> dict[str, Any]:
     if payload.parent_essay_id:
         previous = _learning_repository.get_essay(payload.parent_essay_id)
         if not previous:
-            raise HTTPException(404, "Parent essay not found")
+            category = _learning_repository.classify_essay_scope(payload.parent_essay_id)
+            raise orena_http_error(
+                404,
+                category,
+                "The earlier writing version is unavailable in this learning scope.",
+                context={"parent_essay_id": payload.parent_essay_id},
+            )
         series_id = int(previous["series_id"] or previous["id"])
         revision_no = _learning_repository.next_revision_no(series_id)
 

@@ -18,6 +18,7 @@ from writing_coach.persistence.models import (
 
 class LearningRepository(Protocol):
     def get_essay(self, essay_id: int) -> dict[str, Any] | None: ...
+    def classify_essay_scope(self, essay_id: int) -> str: ...
     def list_essays(self, limit: int = 200, *, ascending: bool = False) -> list[dict[str, Any]]: ...
     def list_latest_series(self) -> list[dict[str, Any]]: ...
     def list_series_revisions(self, series_id: int) -> list[dict[str, Any]]: ...
@@ -161,6 +162,15 @@ class SQLiteLearningRepository:
     def get_essay(self, essay_id: int) -> dict[str, Any] | None:
         with self.connect() as conn:
             return self._dict(conn.execute("SELECT * FROM essays WHERE id = ?", (essay_id,)).fetchone())
+
+    def classify_essay_scope(self, essay_id: int) -> str:
+        with self.connect() as conn:
+            row = conn.execute("SELECT language_code FROM essays WHERE id = ?", (essay_id,)).fetchone()
+        if row is None:
+            return "parent_essay_not_found"
+        if str(row["language_code"] or "en").casefold() != current_language_code().casefold():
+            return "language_scope_mismatch"
+        return "parent_essay_not_found"
 
     def list_essays(self, limit: int = 200, *, ascending: bool = False) -> list[dict[str, Any]]:
         order = "ASC" if ascending else "DESC"
@@ -457,6 +467,18 @@ class PostgresLearningRepository:
                 return None
             revision = session.scalar(select(EssayRevision).where(EssayRevision.essay_id == essay.id))
             return self._essay_payload(essay, revision)
+
+    def classify_essay_scope(self, essay_id: int) -> str:
+        uid, lang = self._scope()
+        with Session(self.engine) as session:
+            essay = session.scalar(select(Essay).where(Essay.legacy_id == essay_id))
+            if essay is None:
+                return "parent_essay_not_found"
+            if essay.user_id != uid:
+                return "essay_scope_mismatch"
+            if str(essay.language_code or "").casefold() != lang:
+                return "language_scope_mismatch"
+            return "parent_essay_not_found"
 
     def list_essays(self, limit: int = 200, *, ascending: bool = False) -> list[dict[str, Any]]:
         with Session(self.engine) as session:

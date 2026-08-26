@@ -589,7 +589,7 @@ export async function renderWrite(root) {
           // A locally remembered parent essay can go stale (deleted, or from a
           // different learning-language scope). Recover by saving the
           // learner's text as a fresh entry instead of losing it.
-          if (requestedParentId && error.status === 404) {
+          if (requestedParentId && error.status === 404 && error.category === 'parent_essay_not_found') {
             saveDraft({parentEssayId: null});
             toast(t('write.parent_missing_retry'));
             result = await evaluateOnce(null);
