@@ -262,15 +262,16 @@ function revisionList(groups=[]){
 function grammarOutcomeCard(outcome, language='en'){
   if(!outcome?.grammar_id)return '';
   const label=language==='zh'?'语法练习进度':language==='vi'?'Tiến độ luyện ngữ pháp':'Grammar practice progress';
+  const status=statusLabel(outcome.status);
   const body=language==='zh'
-    ?`最近的针对性课程是 ${outcome.focus_label||outcome.grammar_title||outcome.grammar_id}。当前状态为 ${outcome.status}，还有 ${outcome.issue_count??0} 个问题。`
+    ?`最近的针对性课程是 ${outcome.focus_label||outcome.grammar_title||outcome.grammar_id}。当前状态为 ${status}，还有 ${outcome.issue_count??0} 个问题。`
     :language==='vi'
-      ?`Bài luyện gần nhất là ${outcome.focus_label||outcome.grammar_title||outcome.grammar_id}. Mẫu này đang ở trạng thái ${outcome.status} với ${outcome.issue_count??0} lỗi.`
-      :`Your latest targeted lesson is ${outcome.focus_label||outcome.grammar_title||outcome.grammar_id}. The pattern is ${outcome.status} after ${outcome.issue_count??0} issue(s).`;
+      ?`Bài luyện gần nhất là ${outcome.focus_label||outcome.grammar_title||outcome.grammar_id}. Mẫu này đang ở trạng thái ${status} với ${outcome.issue_count??0} lỗi.`
+      :`Your latest targeted lesson is ${outcome.focus_label||outcome.grammar_title||outcome.grammar_id}. The pattern is ${status} after ${outcome.issue_count??0} issue(s).`;
   return `<section class="o-card o-journey-grammar-outcome">
     <span class="o-label">${esc(label)}</span>
     <p class="o-panel-copy">${esc(body)}</p>
-    <div class="practice-check-meta"><span>${esc(outcome.focus_label||outcome.grammar_title||outcome.grammar_id)}</span><span>${esc(outcome.revision_no||1)} · ${esc(statusLabel(outcome.status))}</span></div>
+    <div class="practice-check-meta"><span>${esc(outcome.focus_label||outcome.grammar_title||outcome.grammar_id)}</span><span>${esc(outcome.revision_no||1)} · ${esc(status)}</span></div>
   </section>`;
 }
 
@@ -482,7 +483,7 @@ export async function renderJourney(root){
     <div class="o-journey-body-grid">
       <div class="o-journey-main">
         ${focusCard(focus)}
-        ${grammarOutcomeCard(practiceOutcomes?.latest,state.language)}
+        ${grammarOutcomeCard(practiceOutcomes?.latest,uiLocale())}
         ${improving
           ? patternCard({kind:'up',icon:'flame',kicker:c.recentImprovement,pattern:improving,tone:'strong',trendLabel:c.occurrence})
           : leadStrength
