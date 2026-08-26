@@ -17,6 +17,20 @@ baseline.
 - R6 — Speaking Core: **IN PROGRESS / INTERNAL / SECONDARY**
 - R2 — AI Capability Control Plane: **HUMAN GATE / READY, NOT PRODUCT-BLOCKING**
 
+**Current working lane (2026-08-26):**
+
+- Writing learner-flow work is checkpointed through `5b17c8b` (grammar
+  practice progress is visible in Journey); the branch is now auditing the
+  bounded R6 Speaking Core before opening the planned R7 evaluation scope.
+- Speaking Core contract coverage is green, including local recording,
+  RNNoise/native fallback, transient ASR, deterministic content matching, and
+  provider pronunciation boundaries. The stale input-filter contract was
+  aligned with the intentional raw-signal constraints in `28fc825`.
+- Browser QA reaches the truthful Speaking empty state when no prepared media
+  lesson exists. Full record → ASR → feedback browser acceptance still needs a
+  prepared local media fixture; no provider credentials or production data are
+  used for this checkpoint.
+
 **Closed programs protected from casual rewrite:**
 
 - R5 — Grammar Knowledge System: **CLOSED**
