@@ -175,6 +175,22 @@ for(const locale of ['en','vi','zh']){
   }
 }
 
+for(const locale of ['en','vi','zh']){
+  for(const malformed of [null,{}]){
+    state.profile={native_language:locale};
+    state.supportLanguage=locale;
+    state.lastEvaluation={...renderFixture,grammar_links:[malformed]};
+    state.draft.text=renderFixture.text;
+    const malformedTransferRoot=fakeReviewRoot();
+    await renderReview(malformedTransferRoot);
+    assert.doesNotMatch(
+      malformedTransferRoot.innerHTML,
+      /data-open-grammar=/,
+      `Review ${locale.toUpperCase()} must ignore malformed ${malformed===null?'null':'object'} Grammar links`,
+    );
+  }
+}
+
 const dialogNodes={
   dialogBackdrop:{classList:{remove:()=>{},add:()=>{}},setAttribute:()=>{}},
   dialogTitle:{textContent:''},

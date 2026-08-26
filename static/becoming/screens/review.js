@@ -48,12 +48,28 @@ function normalizedSupportList(value){
     .map(item=>item.trim());
 }
 
+function normalizedGrammarLinks(value){
+  if(!Array.isArray(value))return [];
+  return value
+    .filter(link=>link&&typeof link==='object'&&!Array.isArray(link))
+    .map(link=>({
+      ...link,
+      issue_id:typeof link.issue_id==='string'?link.issue_id.trim():'',
+      category:typeof link.category==='string'?link.category.trim():'',
+      grammar_id:typeof link.grammar_id==='string'?link.grammar_id.trim():'',
+      title:typeof link.title==='string'?link.title.trim():'',
+      level:typeof link.level==='string'?link.level.trim():'',
+      reason:typeof link.reason==='string'?link.reason.trim():'',
+    }))
+    .filter(link=>link.grammar_id);
+}
+
 function grammarTransferBlock(result={}){
-  const links=Array.isArray(result.grammar_links)?result.grammar_links:[];
+  const links=normalizedGrammarLinks(result.grammar_links);
   if(!links.length)return '';
   const issueCategories=new Map(
-    (Array.isArray(result.errors)?result.errors:[])
-      .filter(item=>item&&item.id)
+    normalizedEvidenceItems(result.errors)
+      .filter(item=>typeof item.id==='string'&&item.id.trim())
       .map(item=>[item.id,item.category]),
   );
   return `<section class="o-card o-panel review-grammar-transfer">
