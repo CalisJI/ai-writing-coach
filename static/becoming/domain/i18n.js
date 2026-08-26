@@ -2189,19 +2189,19 @@ const CATEGORY_KEYS={
 Object.assign(COPY.en,{
   'category.grammar':'Grammar','category.verb_tense':'Verb tense','category.vocabulary':'Vocabulary','category.collocation':'Collocation','category.naturalness':'Naturalness','category.coherence':'Coherence','category.task_achievement':'Task achievement','category.expression':'Expression','category.strength':'Strength',
   'stage.Emerging':'Emerging','stage.Developing':'Developing','stage.Stable':'Stable','stage.Mastered':'Mastered',
-  'status.recurring':'Recurring','status.improving':'Improving','status.resolved':'Resolved','status.active':'Active','status.historical':'Historical',
+  'status.recurring':'Recurring','status.improving':'Improving','status.resolved':'Resolved','status.active':'Active','status.historical':'Historical','status.new':'New','status.watch':'Watch',
   'status.improved':'Improved','status.transferred':'Transferred','status.held':'Held steady','status.still_working':'Still working','status.needs_attention':'Needs attention','status.not_observed':'Not observed','status.needs_more_evidence':'Needs more evidence',
 });
 Object.assign(COPY.vi,{
   'category.grammar':'Ngữ pháp','category.verb_tense':'Thì động từ','category.vocabulary':'Từ vựng','category.collocation':'Kết hợp từ','category.naturalness':'Độ tự nhiên','category.coherence':'Mạch lạc','category.task_achievement':'Đáp ứng yêu cầu','category.expression':'Cách diễn đạt','category.strength':'Điểm mạnh',
   'stage.Emerging':'Mới hình thành','stage.Developing':'Đang phát triển','stage.Stable':'Ổn định','stage.Mastered':'Thành thạo',
-  'status.recurring':'Lặp lại','status.improving':'Đang cải thiện','status.resolved':'Đã ổn định','status.active':'Đang hoạt động','status.historical':'Lịch sử',
+  'status.recurring':'Lặp lại','status.improving':'Đang cải thiện','status.resolved':'Đã ổn định','status.active':'Đang hoạt động','status.historical':'Lịch sử','status.new':'Mới','status.watch':'Cần theo dõi',
   'status.improved':'Đã cải thiện','status.transferred':'Đã chuyển giao','status.held':'Được duy trì','status.still_working':'Đang tiếp tục luyện','status.needs_attention':'Cần chú ý','status.not_observed':'Chưa quan sát được','status.needs_more_evidence':'Cần thêm bằng chứng',
 });
 Object.assign(COPY.zh,{
   'category.grammar':'语法','category.verb_tense':'动词时态','category.vocabulary':'词汇','category.collocation':'搭配','category.naturalness':'自然度','category.coherence':'连贯性','category.task_achievement':'任务完成度','category.expression':'表达','category.strength':'优势',
   'stage.Emerging':'初现','stage.Developing':'发展中','stage.Stable':'稳定','stage.Mastered':'已掌握',
-  'status.recurring':'重复出现','status.improving':'正在改善','status.resolved':'已稳定','status.active':'活跃','status.historical':'历史',
+  'status.recurring':'重复出现','status.improving':'正在改善','status.resolved':'已稳定','status.active':'活跃','status.historical':'历史','status.new':'新出现','status.watch':'需要留意',
   'status.improved':'已改善','status.transferred':'已迁移','status.held':'保持稳定','status.still_working':'仍在练习','status.needs_attention':'需要关注','status.not_observed':'尚未观察到','status.needs_more_evidence':'需要更多证据',
 });
 

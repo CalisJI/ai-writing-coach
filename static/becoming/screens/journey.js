@@ -307,6 +307,96 @@ function grammarOutcomeCard(outcome, language='en'){
   </section>`;
 }
 
+const JOURNEY_PATTERN_STATUSES=new Set([
+  'recurring','improving','resolved','active','historical','new','watch',
+]);
+const JOURNEY_MASTERY_STAGES=new Set(['Emerging','Developing','Stable','Mastered']);
+
+function normalizedJourneyMemory(memory){
+  if(!memory||typeof memory!=='object'||Array.isArray(memory)){
+    return {patterns:[],strengths:[],revision_wins:[],focus:null,mastery_note:''};
+  }
+  const numberValue=value=>{
+    if(typeof value==='number'&&Number.isFinite(value))return value;
+    if(typeof value==='string'&&value.trim()!==''){
+      const parsed=Number(value);
+      if(Number.isFinite(parsed))return parsed;
+    }
+    return null;
+  };
+  const countValue=value=>{
+    const parsed=numberValue(value);
+    return parsed!==null&&Number.isInteger(parsed)&&parsed>=0?parsed:null;
+  };
+  const textValue=value=>typeof value==='string'?value.trim():'';
+  const patterns=Array.isArray(memory.patterns)
+    ?memory.patterns
+      .filter(item=>item&&typeof item==='object'&&!Array.isArray(item))
+      .map(item=>{
+        const counts=[item.total,item.older,item.newer,item.series_count].map(countValue);
+        if(counts.some(value=>value===null))return null;
+        return {
+          ...item,
+          category:textValue(item.category),
+          status:textValue(item.status).toLowerCase(),
+          suggestion:textValue(item.suggestion),
+          example:textValue(item.example),
+          total:counts[0],
+          older:counts[1],
+          newer:counts[2],
+          series_count:counts[3],
+        };
+      })
+      .filter(Boolean)
+      .filter(item=>item.category&&JOURNEY_PATTERN_STATUSES.has(item.status))
+    :[];
+  const strengths=Array.isArray(memory.strengths)
+    ?memory.strengths
+      .filter(item=>item&&typeof item==='object'&&!Array.isArray(item))
+      .map(item=>{
+        const counts=[item.evidence_count,item.series_count].map(countValue);
+        if(counts.some(value=>value===null))return null;
+        return {
+          ...item,
+          category:textValue(item.category),
+          stage:textValue(item.stage),
+          example:textValue(item.example),
+          evidence_count:counts[0],
+          series_count:counts[1],
+        };
+      })
+      .filter(Boolean)
+      .filter(item=>item.category&&JOURNEY_MASTERY_STAGES.has(item.stage))
+    :[];
+  const wins=Array.isArray(memory.revision_wins)
+    ?memory.revision_wins
+      .filter(item=>item&&typeof item==='object'&&!Array.isArray(item))
+      .map(item=>{
+        const overallDelta=numberValue(item.overall_delta);
+        const errorDelta=numberValue(item.error_delta);
+        const latestDate=textValue(item.latest_date);
+        if(overallDelta===null||errorDelta===null||!latestDate)return null;
+        return {...item,
+          overall_delta:overallDelta,
+          error_delta:errorDelta,
+          latest_date:latestDate,
+        };
+      })
+      .filter(Boolean)
+    :[];
+  const focus=memory.focus&&typeof memory.focus==='object'&&!Array.isArray(memory.focus)
+    ?patterns.find(item=>item.category===textValue(memory.focus.category))||null
+    :null;
+  return {
+    ...memory,
+    patterns,
+    strengths,
+    revision_wins:wins,
+    focus,
+    mastery_note:textValue(memory.mastery_note),
+  };
+}
+
 /* Where the learner stands overall. The reference leaves no room for it in the
    main column, but dropping the benchmark and the count of reliable strengths
    would lose two facts the memory holds, so they sit under the target. */
@@ -461,6 +551,7 @@ export async function renderJourney(root){
     root.innerHTML=`<section class="o-page">${errorBlock(error.message)}</section>`;
     return;
   }
+  memory=normalizedJourneyMemory(memory);
   state.dashboard=dashboard;
   state.essays=essays;
   state.memory=memory;

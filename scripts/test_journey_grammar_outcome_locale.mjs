@@ -18,12 +18,13 @@ api.essays=async()=>[{
   created_at:'2026-01-01T00:00:00Z',
   prompt:'A short practice task',
 }];
-api.learningMemory=async()=>({
+let latestMemory={
   patterns:[],
   strengths:[],
   focus:null,
   revision_wins:[],
-});
+};
+api.learningMemory=async()=>latestMemory;
 api.practiceRecommendation=async()=>null;
 let latestOutcome={
     grammar_id:'a1-agreement',
@@ -76,6 +77,57 @@ for(const locale of ['en','vi','zh']){
       /\[object Object\]/,
       `Journey ${locale.toUpperCase()} must not render malformed object values`,
     );
+  }
+}
+
+for(const locale of ['en','vi','zh']){
+  state.supportLanguage=locale;
+  for(const malformed of [
+    {patterns:null,strengths:null,revision_wins:null,focus:null},
+    {patterns:[null,{}],strengths:[null,{}],revision_wins:[null,{}],focus:{}},
+    {patterns:[{category:{},status:{},total:{},older:-1,newer:0}],strengths:[{category:{},stage:{},evidence_count:{}}],revision_wins:[{overall_delta:{}}],focus:null},
+    {patterns:[{category:'grammar',status:'recurring',total:-1,older:1,newer:0,series_count:1}],strengths:[],revision_wins:[],focus:null},
+    {patterns:[{category:'grammar',status:'recurring',total:1,older:0.5,newer:0,series_count:1}],strengths:[],revision_wins:[],focus:null},
+    {patterns:[],strengths:[{category:'grammar',stage:'Stable',evidence_count:1.5,series_count:1}],revision_wins:[],focus:null},
+  ]){
+    latestMemory=malformed;
+    await renderJourney(root);
+    assert.doesNotMatch(
+      root.innerHTML,
+      /\[object Object\]/,
+      `Journey ${locale.toUpperCase()} must not render malformed learning-memory records`,
+    );
+    assert.doesNotMatch(root.innerHTML,/o-journey-focus|o-journey-row--(?:up|watch)/,
+      `Journey ${locale.toUpperCase()} must omit semantically invalid memory records`);
+  }
+}
+
+const patternShape={
+  category:'grammar',status:'improving',total:2,older:2,newer:1,series_count:2,
+};
+const patternStatusCopy={
+  vi:{new:'Mới',watch:'Cần theo dõi'},
+  zh:{new:'新出现',watch:'需要留意'},
+};
+for(const locale of ['vi','zh']){
+  state.profile={native_language:locale};
+  state.supportLanguage=locale;
+  for(const status of ['new','watch']){
+    latestMemory={
+      patterns:[
+        patternShape,
+        {...patternShape,category:'vocabulary',status},
+      ],
+      strengths:[],
+      focus:{category:'grammar'},
+      revision_wins:[],
+    };
+    await renderJourney(root);
+    assert.match(root.innerHTML,new RegExp(patternStatusCopy[locale][status]),
+      `Journey ${locale.toUpperCase()} should localize the ${status} pattern status`);
+    const learnerMarkup=root.innerHTML.replace(/\bclass="[^"]*"/g,'');
+    assert.doesNotMatch(learnerMarkup,new RegExp(`\\b${status}\\b`),
+      `Journey ${locale.toUpperCase()} must not expose raw ${status} status`);
   }
 }
 
