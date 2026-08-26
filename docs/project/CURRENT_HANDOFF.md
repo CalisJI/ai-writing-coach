@@ -32,10 +32,11 @@ Code checkpoint: `6c93d05b3cb1c79c2986af0ab4a83cf664eae3a9`
 
 Status: **LOCAL AUTOMATION + BRAVE VISUAL QA PASS / HUMAN ACCEPTANCE PENDING / NOT DEPLOYED**
 
-- The next `43` application commits from local `claude/work`
-  (`732e970..04bfb97`) are integrated over the prior verified checkpoint.
-  Claude-specific tool configuration and broad historical-validator relocation
-  remain excluded as out of scope.
+- Every previously missing commit from local `claude/work` is now integrated,
+  including the `606f24c` Claude tooling checkpoint, `0053152`
+  validator-governance checkpoint, and the `43` application commits through
+  `04bfb97`. Claude hooks/settings are present and historical release gates are
+  archived under `scripts/archive/release-gates/`.
 - Frontend `2.17.5` now has dedicated Orena presentation layers for Home,
   Writing, Review, Reading, Listening, Speaking, Grammar, Library, Journey,
   Profile, onboarding, and sign-in while retaining one shared shell, token,
@@ -83,11 +84,9 @@ Status: **LOCAL AUTOMATION + BRAVE VISUAL QA PASS / HUMAN ACCEPTANCE PENDING / N
 - The one-off QA runtime was removed. Port `8000`, the active Claude worktree,
   PostgreSQL data, production runtime, deployment, OAuth, Cloudflare, release
   state, application/frontend versions, and public skill state were not changed.
-- The retained direct scripts `validate_journey_flat_v2156.py` and
-  `validate_chinese_library.py` still encode obsolete frontend/count baselines;
-  their pre-existing failures were confirmed before integration. They were not
-  weakened or relocated during this sync and should be retired only in an
-  explicitly scoped validator-governance change.
+- Former one-shot release gates are retained as historical evidence under
+  `scripts/archive/release-gates/`. Surviving validators assert current
+  contracts; no validator was weakened to make this sync pass.
 
 ## Newly completed
 

@@ -21,10 +21,11 @@ operational state.
 
 ## Orena UI/UX integration
 
-- Branch `codex/orena-ui-ux-integration` now includes the next `43` application
-  commits from local `claude/work` (`732e970..04bfb97`) over the prior verified
-  integration. Claude-specific tool configuration and broad historical-
-  validator relocation remain deliberately excluded.
+- Branch `codex/orena-ui-ux-integration` now includes every previously missing
+  commit from local `claude/work`: the `606f24c` Claude tooling checkpoint,
+  `0053152` validator-governance checkpoint, and the `43` application commits
+  through `04bfb97`. Claude tooling/hooks are present and historical release
+  gates are archived; no source commit remains intentionally excluded.
 - Frontend `2.17.5` keeps one shared Orena shell, token, primitive, responsive,
   EN/ZH, accessibility, and light/dark contract. Dedicated Orena presentation
   layers now cover Home, Writing, Review, Reading, Listening, Speaking,
@@ -89,6 +90,10 @@ operational state.
 - This checkpoint is not deployed and does not promote any learner skill to
   PUBLIC. Application version `1.4.0` and frontend version `2.17.5` are
   unchanged.
+- The former one-shot release gates now live under
+  `scripts/archive/release-gates/` as historical evidence. The surviving
+  validators assert current contracts; no validator was weakened to make this
+  batch pass.
 
 ## Persistence
 
