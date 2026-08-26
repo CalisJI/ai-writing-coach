@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {state} from '../static/becoming/store.js';
-import {evaluationNotice,reviewSummaryText} from '../static/becoming/screens/review.js';
+import {evaluationNotice,renderReview,reviewSummaryText} from '../static/becoming/screens/review.js';
 
 const result={
   priorities_vi:['Sửa thì động từ trước khi đánh bóng từ vựng.','Giữ mạch ý rõ hơn.'],
@@ -40,6 +40,64 @@ for(const locale of ['en','vi','zh']){
   assert.match(notice,new RegExp(noticeCopy[locale]));
   assert.doesNotMatch(notice,/unavailable/i);
   assert.equal(evaluationNotice({evaluator:'ollama:model'}),'');
+}
+
+class FakeElement{
+  constructor(){
+    this.dataset={};
+    this.attributes={};
+    this.classList={toggle:()=>{}};
+    this.listeners={};
+    this.innerHTML='';
+    this.textContent='';
+  }
+  addEventListener(name,listener){this.listeners[name]=listener;}
+  setAttribute(name,value){this.attributes[name]=value;}
+}
+
+function fakeReviewRoot(){
+  const ids=[
+    '#learnerTextEvidence','#posLensToggle','#posLensStatus','#posLensLegend','#posLens',
+    '#editDraftButton','#reviewRubric','#fullRubricButton','#downloadFeedback',
+    '#reviseButton','#startRevision','#polishButton',
+  ];
+  const nodes=new Map(ids.map(id=>[id,new FakeElement()]));
+  return {
+    nodes,
+    innerHTML:'',
+    querySelector:selector=>nodes.get(selector)||null,
+    querySelectorAll:()=>[],
+  };
+}
+
+const renderFixture={
+  evaluator:'fallback-demo',
+  text:'I write a short practice sentence.',
+  overall:62,
+  grammar:62,
+  vocabulary:62,
+  coherence:62,
+  task_achievement:62,
+  naturalness:62,
+  errors:[],
+  strength_evidence:[],
+  priorities_vi:[],
+};
+const renderedNoticeCopy={
+  en:'Limited review',
+  vi:'Đánh giá giới hạn',
+  zh:'评估受限',
+};
+for(const locale of ['en','vi','zh']){
+  state.profile={native_language:locale};
+  state.supportLanguage=locale;
+  state.language='en';
+  state.lastEvaluation=renderFixture;
+  state.draft.text=renderFixture.text;
+  const root=fakeReviewRoot();
+  await renderReview(root);
+  assert.match(root.innerHTML,/data-review-evaluation-state="degraded"/);
+  assert.match(root.innerHTML,new RegExp(renderedNoticeCopy[locale]));
 }
 
 state.profile={native_language:'vi'};
