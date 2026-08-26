@@ -71,7 +71,9 @@ def main() -> None:
         root / "writing_coach" / "speech_api.py",
         root / "writing_coach" / "speech_asr.py",
         root / "writing_coach" / "speech_pronunciation.py",
+        root / "writing_coach" / "speaking_evaluator.py",
         root / "tests" / "test_speech_pronunciation.py",
+        root / "tests" / "test_speaking_evaluator.py",
         root / "scripts" / "test_m3_pronunciation_contract.mjs",
         root / "scripts" / "test_shadowing_practice.mjs",
         root / "scripts" / "test_speaking_core.mjs",
@@ -165,6 +167,7 @@ def main() -> None:
     speech_api = read("writing_coach/speech_api.py")
     speech_asr = read("writing_coach/speech_asr.py")
     speech_pronunciation = read("writing_coach/speech_pronunciation.py")
+    speaking_evaluator = read("writing_coach/speaking_evaluator.py")
     skill_registry = read("writing_coach/core/skill_registry.py")
     platform_api = read("writing_coach/core/platform_api.py")
     rank_domain = read("static/becoming/domain/rank.js")
@@ -599,6 +602,11 @@ def main() -> None:
         "Pronunciation-Assessment", "pcm_s16le", "zh-CN", "en-US",
         "DemoPronunciationProvider", "synthetic_demo", "PRONUNCIATION_PROVIDER",
     ], "Azure pronunciation assessment adapter")
+    require_contains(errors, speaking_evaluator, [
+        "build_speaking_evaluation", "LANGUAGE_LOCALES", "transcription_confidence",
+        "deterministic_reference_alignment", '"proficiency": None',
+        '"synthetic_demo"',
+    ], "R7 per-take Speaking evaluation contract")
     for forbidden in [
         "fetch(", "FormData", "XMLHttpRequest",
         "SpeechRecognition", "pronunciation_evaluator",

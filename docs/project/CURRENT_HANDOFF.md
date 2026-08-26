@@ -20,8 +20,8 @@ baseline.
 **Current working lane (2026-08-26):**
 
 - Writing learner-flow work is checkpointed through `5b17c8b` (grammar
-  practice progress is visible in Journey); the branch is now auditing the
-  bounded R6 Speaking Core before opening the planned R7 evaluation scope.
+  practice progress is visible in Journey); the branch has closed the bounded
+  R6 Speaking Core audit and started the R7 evaluation contract slice.
 - Speaking Core contract coverage is green, including local recording,
   RNNoise/native fallback, transient ASR, deterministic content matching, and
   provider pronunciation boundaries. The stale input-filter contract was
@@ -30,6 +30,11 @@ baseline.
   lesson exists. Full record → ASR → feedback browser acceptance still needs a
   prepared local media fixture; no provider credentials or production data are
   used for this checkpoint.
+- R7 now has an internal `speaking_evaluator` contract that normalizes one take
+  into separate transcription-confidence, content-match, pronunciation,
+  fluency, and explicitly-unassessed proficiency dimensions. It preserves
+  word/phoneme evidence and synthetic-demo provenance, but does not yet expose
+  a public route, persist attempts, or activate the reserved AI capability.
 
 **Closed programs protected from casual rewrite:**
 
