@@ -143,6 +143,21 @@ def _pronunciation_evidence(pronunciation: Any) -> tuple[dict[str, Any], dict[st
     }, scores
 
 
+def _has_weak_pronunciation_evidence(word: Mapping[str, Any]) -> bool:
+    """Return whether a word or one of its phonemes needs another pass."""
+
+    weak_word = (
+        word.get("accuracy_score") is not None and word["accuracy_score"] < 80
+    ) or str(word.get("error_type", "None")).casefold() != "none"
+    weak_phoneme = any(
+        isinstance(phoneme, Mapping)
+        and phoneme.get("accuracy_score") is not None
+        and phoneme["accuracy_score"] < 80
+        for phoneme in word.get("phonemes", [])
+    )
+    return weak_word or weak_phoneme
+
+
 def build_speaking_evaluation(
     *,
     language: str,
@@ -200,8 +215,7 @@ def build_speaking_evaluation(
     weak_words = [
         item["word"]
         for item in pronunciation_evidence["words"]
-        if (item["accuracy_score"] is not None and item["accuracy_score"] < 80)
-        or item["error_type"].casefold() != "none"
+        if _has_weak_pronunciation_evidence(item)
     ][:4]
     if weak_words:
         next_steps.append({"kind": "focus_words", "words": weak_words})

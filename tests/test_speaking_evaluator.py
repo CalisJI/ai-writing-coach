@@ -90,6 +90,34 @@ def test_synthetic_demo_is_explicitly_non_assessment() -> None:
     assert result["dimensions"]["proficiency"] is None
 
 
+def test_phoneme_only_weakness_is_actionable_without_flagging_clean_words() -> None:
+    pronunciation = _pronunciation()
+    pronunciation["words"] = [
+        {
+            "word": "steady",
+            "accuracy_score": 99,
+            "error_type": "None",
+            "phonemes": [{"phoneme": "e", "accuracy_score": 98}],
+        },
+        {
+            "word": "idea",
+            "accuracy_score": 99,
+            "error_type": "None",
+            "phonemes": [{"phoneme": "i", "accuracy_score": 68}],
+        },
+    ]
+
+    result = build_speaking_evaluation(
+        language="en",
+        reference_text="A steady idea.",
+        transcript_text="A steady idea.",
+        content_match=100,
+        pronunciation=pronunciation,
+    )
+
+    assert result["next_steps"] == [{"kind": "focus_words", "words": ["idea"]}]
+
+
 @pytest.mark.parametrize(
     ("kwargs", "message"),
     [
