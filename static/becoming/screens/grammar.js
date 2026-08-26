@@ -717,4 +717,12 @@ export async function renderGrammar(root){
   };
 
   bindOverview();
+  try{
+    const focusId=localStorage.getItem('becoming.grammar-focus');
+    if(focusId){
+      localStorage.removeItem('becoming.grammar-focus');
+      const opener=root.querySelector(`[data-grammar-open="${CSS.escape(focusId)}"]`);
+      opener?.click();
+    }
+  }catch{}
 }

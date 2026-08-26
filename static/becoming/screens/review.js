@@ -18,6 +18,19 @@ function reviewInfo(text){
   return `<button class="o-info" type="button" tabindex="0" data-tooltip="${attr(text)}" aria-label="${attr(t('chrome.details'))}">${oIcon('info')}</button>`;
 }
 
+function grammarTransferBlock(result={}){
+  const links=Array.isArray(result.grammar_links)?result.grammar_links:[];
+  if(!links.length)return '';
+  return `<section class="o-card o-panel review-grammar-transfer">
+    <h2 class="o-label">${esc(t('review.grammar_transfer'))}</h2>
+    <ul class="o-issues">${links.slice(0,4).map(link=>`<li class="o-issue">
+      <div class="o-issue-head"><strong>${esc(link.title||link.grammar_id||'Grammar')}</strong><span>${esc(link.level||'')}</span></div>
+      <p class="o-panel-copy">${esc(link.reason||'')}</p>
+      <button type="button" class="o-btn o-btn--outline o-btn--compact" data-open-grammar="${attr(link.grammar_id||'')}">${esc(t('review.open_grammar'))}</button>
+    </li>`).join('')}</ul>
+  </section>`;
+}
+
 function patternName(item={}){
   return categoryLabel(item.category||'expression');
 }
@@ -690,6 +703,8 @@ export async function renderReview(root){
 
         ${practiceOutcomeBlock(result.practice_outcome)}
 
+        ${grammarTransferBlock(result)}
+
         <section class="o-card o-panel">
           <h2 class="o-label">${esc(t('review.whats_next'))}</h2>
           <p class="o-panel-copy">${esc(t('review.whats_next_body'))}</p>
@@ -701,6 +716,12 @@ export async function renderReview(root){
   </div>`;
 
   installDisclosures(root);
+  root.querySelectorAll('[data-open-grammar]').forEach(button=>button.addEventListener('click',()=>{
+    const lessonId=button.dataset.openGrammar;
+    if(!lessonId)return;
+    try{ localStorage.setItem('becoming.grammar-focus',lessonId); }catch{}
+    go('grammar');
+  }));
 
   /* Draft / Review tabs. Both bodies stay in the DOM so switching does not
      re-run the annotation pass or lose the lens state. */

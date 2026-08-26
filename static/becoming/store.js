@@ -92,6 +92,7 @@ export const state={
   readingSessions:[],
   essays:[],
   lastEvaluation:null,
+  grammarFocusId:null,
 };
 
 export function saveProfile(profile,{cache=true}={}){
