@@ -227,6 +227,8 @@ def derive_practice_outcome(
         "focus_family": focus_family,
         "focus_category": str(context.get("focus_category") or "expression"),
         "focus_label": str(context.get("focus_label") or "Expression"),
+        "grammar_id": str(context.get("grammar_id") or ""),
+        "grammar_title": str(context.get("grammar_title") or ""),
         "issue_count": issue_count,
         "previous_issue_count": previous_issue_count,
         "strength_count": strength_count,

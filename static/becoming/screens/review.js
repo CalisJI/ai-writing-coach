@@ -218,6 +218,7 @@ function practiceOutcomeBlock(outcome){
       <span>${esc(outcome.focus_label||t('common.current_focus'))}</span>
       <span>${t('outcome.revision')} ${esc(outcome.revision_no||1)}</span>
     </div>
+    ${outcome.grammar_id?`<button type="button" class="o-btn o-btn--outline o-btn--compact" data-outcome-grammar="${attr(outcome.grammar_id)}">${esc(t('review.open_grammar'))}</button>`:''}
     ${evidence?`<blockquote>“${esc(evidence)}”</blockquote>`:''}
   </section>`;
 }
@@ -731,6 +732,12 @@ export async function renderReview(root){
       saveDraft({prompt:task.prompt||'',practiceContext:task.practice_context||null,generatedTask:null,parentEssayId:null});
       go('write');
     }catch(error){ toast(error.message||String(error)); }
+  }));
+  root.querySelectorAll('[data-outcome-grammar]').forEach(button=>button.addEventListener('click',()=>{
+    const id=button.dataset.outcomeGrammar;
+    if(!id)return;
+    try{ localStorage.setItem('becoming.grammar-focus',id); }catch{}
+    go('grammar');
   }));
 
   /* Draft / Review tabs. Both bodies stay in the DOM so switching does not
