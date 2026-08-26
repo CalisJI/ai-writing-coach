@@ -508,7 +508,13 @@ html[data-theme="dark"] :is(.dialog,.modal,[role="dialog"]){
    -------------------------------------------------------------------------- */
 
 .bc12-dialog{
-  overflow:hidden;
+  /* `hidden` clips a child to the rounded corners, but it also makes a dialog
+     taller than the window unreachable - the bottom of the content simply
+     cannot be scrolled to. That is invisible on a tall desktop window and
+     total on a phone. `auto` on the block axis keeps the corner clipping and
+     gives the content back. */
+  overflow-y:auto;
+  overflow-x:hidden;
 }
 
 .bc12-comparison-grid{
