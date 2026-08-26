@@ -48,6 +48,15 @@ function normalizedSupportList(value){
     .map(item=>item.trim());
 }
 
+function normalizedPriorityList(value){
+  if(Array.isArray(value)){
+    return value
+      .filter(item=>typeof item==='string'&&item.trim())
+      .map(item=>item.trim());
+  }
+  return typeof value==='string'&&value.trim()?[value.trim()]:[];
+}
+
 function normalizedGrammarLinks(value){
   if(!Array.isArray(value))return [];
   return value
@@ -319,7 +328,7 @@ function practiceOutcomeBlock(outcome){
 
 function disclosure(result,budget,learnerText=''){
   const metrics=metricsFrom(result);
-  const priorities=(result.priorities_vi||[]).slice(1);
+  const priorities=normalizedPriorityList(result.priorities_vi).slice(1);
   const errors=result.errors||[];
   const extra=errors.slice(
     budget.visibleEvidence,
@@ -582,13 +591,8 @@ export function reviewSummaryText(result,focusMetric,strengthEvidence){
   // Follow the active interface locale, which can briefly differ from the
   // persisted profile while a learner switches language settings.
   const locale=uiLocale();
-  const priorities=locale==='vi'
-    ?(Array.isArray(result.priorities_vi)
-      ?result.priorities_vi
-      :(typeof result.priorities_vi==='string'&&result.priorities_vi.trim()
-        ?[result.priorities_vi.trim()]:[]))
-    :[];
-  const written=priorities.find(item=>typeof item==='string'&&item.trim())||'';
+  const priorities=locale==='vi'?normalizedPriorityList(result.priorities_vi):[];
+  const written=priorities[0]||'';
   if(written)return written.trim();
   const strong=strengthEvidence[0]?categoryLabel(strengthEvidence[0].category):'';
   const focus=focusMetric?categoryLabel(focusMetric.key||focusMetric):'';

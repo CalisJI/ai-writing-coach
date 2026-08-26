@@ -126,6 +126,24 @@ for(const locale of ['en','vi','zh']){
   assert.match(root.innerHTML,new RegExp(renderedNoticeCopy[locale]));
 }
 
+for(const locale of ['en','vi','zh']){
+  state.profile={native_language:locale};
+  state.supportLanguage=locale;
+  state.language='en';
+  state.lastEvaluation={
+    ...renderFixture,
+    priorities_vi:{message:'provider payload shape changed'},
+  };
+  state.draft.text=renderFixture.text;
+  const malformedPriorityRoot=fakeReviewRoot();
+  await renderReview(malformedPriorityRoot);
+  assert.doesNotMatch(
+    malformedPriorityRoot.innerHTML,
+    /\[object Object\]/,
+    `Review ${locale.toUpperCase()} must not render malformed priority payloads`,
+  );
+}
+
 const feedbackLocaleFixture={
   ...renderFixture,
   errors:[{
