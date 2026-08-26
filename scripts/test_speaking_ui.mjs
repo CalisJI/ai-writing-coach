@@ -139,11 +139,15 @@ const vietnameseFeedbackHtml=controller.html();
 assert.match(vietnameseFeedbackHtml,/aria-label="Listen, 74 \u0111i\u1ec3m"/);
 assert.match(vietnameseFeedbackHtml,/aria-label="\u026a, 68 \u0111i\u1ec3m"/);
 assert.match(vietnameseFeedbackHtml,/Ph\u00e1t \u00e2m sai/);
+assert.match(vietnameseFeedbackHtml,/B\u1ecf s\u00f3t/);
+assert.match(vietnameseFeedbackHtml,/N\u00f3i th\u00eam/);
 state.supportLanguage='zh';
 const chineseFeedbackHtml=controller.html();
 assert.match(chineseFeedbackHtml,/aria-label="Listen, 74 \u5206\u6570"/);
 assert.match(chineseFeedbackHtml,/aria-label="\u026a, 68 \u5206\u6570"/);
 assert.match(chineseFeedbackHtml,/\u53d1\u97f3\u9519\u8bef/);
+assert.match(chineseFeedbackHtml,/\u9057\u6f0f/);
+assert.match(chineseFeedbackHtml,/\u591a\u8bf4/);
 state.supportLanguage='en';
 
 const syntheticController=createSpeakingController({
