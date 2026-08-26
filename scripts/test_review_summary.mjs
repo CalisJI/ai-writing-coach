@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {state} from '../static/becoming/store.js';
-import {reviewSummaryText} from '../static/becoming/screens/review.js';
+import {evaluationNotice,reviewSummaryText} from '../static/becoming/screens/review.js';
 
 const result={
   priorities_vi:['Sửa thì động từ trước khi đánh bóng từ vựng.','Giữ mạch ý rõ hơn.'],
@@ -31,5 +31,14 @@ assert.equal(
   'Bài này đã được đọc theo toàn bộ tiêu chí. Bằng chứng bên dưới dẫn đúng chữ bạn viết.',
   'Vietnamese Review summary should keep its honest fallback when no priority exists',
 );
+
+const noticeCopy={en:'Limited review',vi:'Đánh giá giới hạn',zh:'评估受限'};
+for(const locale of ['en','vi','zh']){
+  state.supportLanguage=locale;
+  const notice=evaluationNotice({evaluator:'fallback-demo'});
+  assert.match(notice,/data-review-evaluation-state="degraded"/);
+  assert.match(notice,new RegExp(noticeCopy[locale]));
+  assert.equal(evaluationNotice({evaluator:'ollama:model'}),'');
+}
 
 console.log('Review summary priority contract: PASS');

@@ -499,6 +499,13 @@ export function reviewSummaryText(result,focusMetric,strengthEvidence){
   return t('review.summary_plain');
 }
 
+export function evaluationNotice(result={}){
+  if(String(result.evaluator||'').trim().toLowerCase()!=='fallback-demo')return '';
+  return `<section class="o-card o-panel o-review-notice" data-review-evaluation-state="degraded" role="status">
+    <span class="o-label">${esc(t('review.fallback_notice'))}</span>
+  </section>`;
+}
+
 function reviewPromptBlock(result){
   const text=String(result.prompt||state.draft.prompt||'').trim();
   const level=result.target_cefr||state.draft.level||'';
@@ -636,6 +643,7 @@ export async function renderReview(root){
     <div class="o-review">
       <div class="o-review-main">
         ${reviewPromptBlock(result)}
+        ${evaluationNotice(result)}
 
         <section class="o-card o-doc">
           <div class="o-doc-tabs" role="tablist" aria-label="${attr(t('review.tab_review'))}">
