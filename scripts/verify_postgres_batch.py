@@ -7,7 +7,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 
 COMMANDS = [
-    [sys.executable, str(ROOT / "scripts" / "validate_postgres_foundation.py")],
+    [sys.executable, str(ROOT / "scripts" / "archive" / "release-gates" / "validate_postgres_foundation.py")],
     [sys.executable, "-m", "writing_coach.becoming_memory_selftest"],
     [sys.executable, "-m", "writing_coach.becoming_practice_selftest"],
     [sys.executable, "-m", "writing_coach.becoming_outcomes_selftest"],

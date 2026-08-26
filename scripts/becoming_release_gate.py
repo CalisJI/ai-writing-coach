@@ -1106,7 +1106,7 @@ def main() -> None:
         root / "writing_coach" / "persistence" / "importer.py",
         root / "writing_coach" / "persistence" / "product_repository.py",
         root / "scripts" / "postgres_shadow.py",
-        root / "scripts" / "validate_postgres_foundation.py",
+        root / "scripts" / "archive" / "release-gates" / "validate_postgres_foundation.py",
         root / "docs" / "POSTGRES_FOUNDATION.md",
     ]
     for path in postgres_required:
@@ -1176,7 +1176,7 @@ def main() -> None:
         root / "writing_coach" / "persistence" / "platform_repository.py",
         root / "writing_coach" / "persistence" / "read_compare.py",
         root / "scripts" / "persistence_readiness.py",
-        root / "scripts" / "validate_persistence_readiness.py",
+        root / "scripts" / "archive" / "release-gates" / "validate_persistence_readiness.py",
         root / "docs" / "PERSISTENCE_RUNTIME_READINESS.md",
     ]
     for path in readiness_required:
