@@ -90,8 +90,8 @@ function savedLabel(savedAt) {
    paragraphs so an existing draft survives the change instead of arriving as
    one run-on block. */
 function draftHtml() {
-  if (state.draft.html) return state.draft.html;
-  const text = String(state.draft.text || '');
+  if (typeof state.draft.html === 'string' && state.draft.html) return state.draft.html;
+  const text = typeof state.draft.text === 'string' ? state.draft.text : '';
   if (!text.trim()) return '';
   return text.split(/\n{2,}/)
     .map(block => `<p>${esc(block).replace(/\n/g, '<br>')}</p>`)
@@ -100,7 +100,19 @@ function draftHtml() {
 
 function promptText() {
   const task = state.draft.generatedTask;
-  return String(task?.instruction || task?.prompt || state.draft.prompt || '').trim();
+  const taskObject = task && typeof task === 'object' && !Array.isArray(task) ? task : null;
+  const instruction = typeof taskObject?.instruction === 'string' ? taskObject.instruction.trim() : '';
+  const prompt = typeof taskObject?.prompt === 'string' ? taskObject.prompt.trim() : '';
+  if (instruction || prompt) return instruction || prompt;
+  return typeof state.draft.prompt === 'string' ? state.draft.prompt.trim() : '';
+}
+
+function personalizationLabel(task) {
+  const personalization = task && typeof task === 'object' && !Array.isArray(task)
+    ? task.personalization : null;
+  return personalization && typeof personalization === 'object' && !Array.isArray(personalization)
+    && typeof personalization.focus_label === 'string'
+    ? personalization.focus_label.trim() : '';
 }
 
 function promptCard(config) {
@@ -109,13 +121,14 @@ function promptCard(config) {
   const band = bandLabel(level);
   const task = state.draft.generatedTask;
   const canGenerate = !['free', 'custom'].includes(state.draft.mode);
+  const focusLabel = personalizationLabel(task);
 
   return `<article class="o-card o-prompt">
     <span class="o-prompt-tile" aria-hidden="true">${oIcon('document')}</span>
     <div class="o-prompt-body">
       <span class="o-prompt-kicker">${esc(t('write.prompt'))}</span>
       <p class="o-prompt-text">${text ? esc(text) : esc(t('write.no_prompt'))}</p>
-      ${task?.personalization ? `<p class="o-prompt-kicker">${esc(t('write.memory_guided'))} · ${esc(task.personalization.focus_label || '')}</p>` : ''}
+      ${focusLabel ? `<p class="o-prompt-kicker">${esc(t('write.memory_guided'))} · ${esc(focusLabel)}</p>` : ''}
       <div class="o-prompt-foot">
         <span class="o-chip">${esc(level)}</span>
         ${band ? `<span class="o-prompt-level">${esc(band)}</span>` : ''}

@@ -49,7 +49,8 @@ state.profile={native_language:'en'};
 state.draft={
   ...state.draft,
   mode:'free',level:'B2',length:150,text:'',html:'',prompt:'',
-  generatedTask:null,practiceContext:null,parentEssayId:null,
+  generatedTask:{instruction:'Write about a useful habit.',personalization:{focus_label:'Articles'}},
+  practiceContext:null,parentEssayId:null,
 };
 
 state.dashboard={error_memory:[
@@ -58,7 +59,19 @@ state.dashboard={error_memory:[
 ]};
 await renderWrite(root);
 assert.match(root.innerHTML,/What keeps coming back/);
+assert.match(root.innerHTML,/Write about a useful habit/);
+assert.match(root.innerHTML,/Articles/);
 assert.doesNotMatch(root.innerHTML,/\[object Object\]|undefined/);
+
+state.draft.generatedTask={instruction:{bad:true},prompt:{bad:true},personalization:{focus_label:{bad:true}}};
+state.draft.prompt={bad:true};
+state.draft.text={bad:true};
+state.draft.html={bad:true};
+await renderWrite(root);
+assert.doesNotMatch(root.innerHTML,/\[object Object\]|undefined/,
+  'Writing must not stringify malformed prompt payloads');
+assert.doesNotMatch(root.innerHTML,/Articles|Write about a useful habit/,
+  'Writing must omit malformed generated-task text');
 
 for(const malformed of [
   null,{},
