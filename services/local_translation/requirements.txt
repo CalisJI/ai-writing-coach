@@ -2,4 +2,7 @@ fastapi>=0.115
 uvicorn[standard]>=0.30
 transformers>=4.48,<5
 sentencepiece>=0.2,<0.3
+# transformers converts the Marian SentencePiece model through protobuf, so the
+# tokenizer raises ImportError without it and every translation returns 500.
+protobuf>=4.25
 torch>=2.5,<3
