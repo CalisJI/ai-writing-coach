@@ -57,7 +57,8 @@ def test_migration_dry_run_writes_nothing_and_lists_exact_current_rows() -> None
     repository = FakeRepository(legacy())
     report = migration.migrate_capability_configs(repository, dry_run=True)
     assert repository.writes == [] and repository.configs == {}
-    assert len(report["would_create"]) == 8
+    # Seven configurable capabilities: writing_linguistic is deterministic.
+    assert len(report["would_create"]) == 7
     assert not {"reading_evaluator", "speech_asr", "pronunciation_evaluator", "speaking_evaluator"} & set(report["would_create"])
 
 
@@ -91,12 +92,12 @@ def test_migration_is_idempotent_and_does_not_overwrite_existing_rows() -> None:
     first = migration.migrate_capability_configs(repository, dry_run=False)
     assert repository.configs["writing_evaluator"] == existing
     assert "writing_evaluator" in first["skipped_existing"]
-    assert len(repository.writes) == 7
+    assert len(repository.writes) == 6
 
     second = migration.migrate_capability_configs(repository, dry_run=False)
     assert second["created"] == []
-    assert len(second["skipped_existing"]) == 8
-    assert len(repository.writes) == 7
+    assert len(second["skipped_existing"]) == 7
+    assert len(repository.writes) == 6
 
 
 def test_migration_seeds_only_approved_fallback_policies() -> None:
@@ -114,7 +115,6 @@ def test_migration_seeds_only_approved_fallback_policies() -> None:
     }
     assert set(repository.configs) - fallback == {
         "writing_evaluator",
-        "writing_linguistic",
         "writing_improver",
         "learner_dictionary",
         "learner_translation",
@@ -127,7 +127,8 @@ def test_preflight_requires_every_explicit_row_and_ignores_legacy_selection() ->
         preflight.validate_persisted_capabilities(repository)
     migration.migrate_capability_configs(repository, dry_run=False)
     report = preflight.validate_persisted_capabilities(repository)
-    assert report["ok"] is True and report["explicit_row_count"] == 8
+    # Seven, not eight: writing_linguistic is deterministic and has no row.
+    assert report["ok"] is True and report["explicit_row_count"] == 7
 
 
 @pytest.mark.parametrize(

@@ -251,7 +251,7 @@ configure_becoming_memory(_specialized_learning_repository)
 configure_becoming_outcomes(_specialized_learning_repository)
 configure_becoming_library(_specialized_learning_repository)
 configure_becoming_reading(_specialized_learning_repository, generate_structured)
-configure_becoming_linguistics(_specialized_learning_repository, generate_structured)
+configure_becoming_linguistics(_specialized_learning_repository)
 
 def weighted_overall(result: dict[str, Any]) -> float:
     return calculate_weighted_overall(result, active_rubric_weights())

@@ -85,11 +85,15 @@ _DEFINITIONS = (
         configurable=True,
         implemented=True,
     ),
+    # Segmentation and part-of-speech tagging are a solved deterministic problem
+    # (jieba, NLTK). This capability was provider-backed until the local tagger
+    # replaced it; it stays in the catalog as a named workload, the way
+    # reading_evaluator does, but nothing routes it to a provider.
     _definition(
         "writing_linguistic",
-        operation=AIOperation.STRUCTURED_TEXT_GENERATION,
-        provider_backed=True,
-        configurable=True,
+        operation=AIOperation.DETERMINISTIC,
+        provider_backed=False,
+        configurable=False,
         implemented=True,
     ),
     _definition(

@@ -251,7 +251,7 @@ def main() -> None:
         ("configure_becoming_outcomes(db)", "configure_becoming_outcomes(_learning_repository.connect)", "configure_becoming_outcomes(_specialized_learning_repository)"),
         ("configure_becoming_library(db)", "configure_becoming_library(_learning_repository.connect)", "configure_becoming_library(_specialized_learning_repository)"),
         ("configure_becoming_reading(db, generate_structured)", "configure_becoming_reading(_learning_repository.connect, generate_structured)", "configure_becoming_reading(_specialized_learning_repository, generate_structured)"),
-        ("configure_becoming_linguistics(db, generate_structured)", "configure_becoming_linguistics(_learning_repository.connect, generate_structured)", "configure_becoming_linguistics(_specialized_learning_repository, generate_structured)"),
+        ("configure_becoming_linguistics(db, generate_structured)", "configure_becoming_linguistics(_learning_repository.connect, generate_structured)", "configure_becoming_linguistics(_specialized_learning_repository)"),
     ]
     for old_needle, core_needle, specialized_needle in adapter_contracts:
         if old_needle not in app and core_needle not in app and specialized_needle not in app:

@@ -1,6 +1,7 @@
 # Orena — AI cost reduction plan
 
-**Status:** PROPOSED — decisions in §7 taken 2026-08-26; no code written yet.
+**Status:** APPROVED 2026-08-26. **P0 is implemented** (D-023); P1, P2, P2b, P3
+and P4 remain to do.
 **Written:** 2026-08-26, against `claude/work`.
 **Goal:** stop paying a language model to do work that a dataset or a free API
 already does exactly, so the AI budget is spent where a model is genuinely the
@@ -85,7 +86,22 @@ alone** — for facts that have been written down in free dictionaries for years
 
 ### P0 — `writing_linguistic` → the annotator this repo already has
 
-**Effort: small. Removes 2 800 output tokens per essay.**
+**DONE.** Removed 2 800 output tokens per essay. Decision Log D-023.
+
+The tagger now lives in `writing_coach/linguistic_annotation.py`, shared by the
+Review lens and the Listening transcript, and `writing_linguistic` is
+deterministic in the catalog. Measured against the AI annotations cached in
+eleven real learner essays: **92% identical spans, 82% label agreement on those
+spans**, and 67 of the 259 disagreements are the local tagger being more
+specific. Neither tagger has a gold standard here, so this is a change of engine
+rather than a measured loss — and Writing and Listening now agree with each
+other, which they did not before.
+
+One wart is recorded rather than fixed: a sentence-final word arrives with its
+period attached, because `TreebankWordTokenizer` only splits it after sentence
+tokenization. That is the behaviour the Listening transcript has always had, and
+changing it would move every token boundary on a CLOSED M1 surface, so it needs
+its own change.
 
 `becoming_linguistics.py` asks a model to segment text and tag parts of speech.
 `media_interaction.py:163-230` already does exactly that, deterministically:
