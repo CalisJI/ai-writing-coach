@@ -454,3 +454,42 @@ payload shape are unchanged, so no frontend contract moves.
 **Supersedes / Superseded by:** Extends the deterministic-capability precedent
 set by `reading_evaluator`. Supersedes no earlier decision.
 
+## D-024 — Groq is the default translation provider; local Marian is the backup
+
+**Status:** Accepted
+
+**Decision:** Shared-media translation defaults to Groq through
+`GroqTranslationProvider`, which implements the same `TranslationProvider`
+boundary the local service does. Groq is also registered as a provider in the AI
+capability catalog, so provider-backed capabilities can be routed to it. The
+local Marian service is retained as the backup for a deployment with no external
+dependency. The engine is chosen once at startup by
+`MEDIA_TRANSLATION_PROVIDER`, defaulting to `groq` when `GROQ_API_KEY` is set
+and `local` otherwise.
+
+**Reason:** D-021 established a provider-neutral translation boundary whose
+default was the local Marian service, and that service has never worked: it is
+missing `protobuf`, and three of its four models were never provisioned.
+Measured against this account's key, Groq translates a three-segment batch in
+1.43 s with natural Vietnamese, where the local `qwen3:8b` needed 37 s for a
+single dictionary entry. Production has no GPU, which rules out a local model as
+the default.
+
+**Consequences:** Translation becomes a third-party runtime dependency bounded
+by a free-tier quota that is **per API key, so per product rather than per
+learner** — the response headers report 1 000 requests and 8 000 tokens a
+minute, and the provider records them in `last_quota` so an admin surface can
+report the budget before it is exhausted. Surfacing that is not yet built.
+Two behaviours were established by measurement and are encoded with their
+reasons: `response_format: json_object` is required, because without it a
+reasoning model spends its whole budget thinking and returns an empty string
+rather than an error; and `reasoning_effort` is deliberately not sent, because
+it is unnecessary in JSON mode and other Groq models reject it with HTTP 400.
+A failure raises and stops — selecting the other provider is an operator action,
+never an automatic switch, per the AI Platform invariant against
+provider-to-provider fallback.
+
+**Supersedes / Superseded by:** Extends D-021 by changing its default provider.
+D-021's provider-neutral boundary and its rule that playback readiness does not
+depend on translation readiness both stand.
+

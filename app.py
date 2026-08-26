@@ -56,7 +56,12 @@ from writing_coach.media_providers.supadata import SupadataTranscriptClient
 from writing_coach.media_providers.youtube import YouTubeMediaProviderAdapter
 from writing_coach.media_providers.youtube_audio import YtDlpYouTubeAudioUrlResolver
 from writing_coach.media_timing import MediaTimingService
-from writing_coach.media_translation import LocalHttpTranslationProvider, MediaTranslationService
+from writing_coach.media_translation import (
+    GroqTranslationProvider,
+    LocalHttpTranslationProvider,
+    MediaTranslationService,
+    resolve_translation_provider_id,
+)
 from writing_coach.speech_api import (
     configure_speech_asr,
     configure_speech_pronunciation,
@@ -222,13 +227,32 @@ configure_media_ingestion(
         source_language_supported=is_enabled,
     )
 )
-configure_media_translation(
-    MediaTranslationService(
-        LocalHttpTranslationProvider(
-            os.getenv("LOCAL_TRANSLATION_URL", "http://local-translator:8090")
-        )
+# Which engine translates shared media, resolved once here and never re-decided
+# per request. Groq is the default because it answers in about a second where
+# the local Marian service needed thirty-seven; the local service is kept as the
+# backup for a deployment with no external dependency. Switching between them is
+# an operator decision -- there is no automatic failover when one fails
+# (ARCHITECTURE_INVARIANTS.md, AI Platform).
+_GROQ_API_KEY = os.getenv("GROQ_API_KEY", "").strip()
+try:
+    _media_translation_provider_id = resolve_translation_provider_id(
+        os.getenv("MEDIA_TRANSLATION_PROVIDER", ""), groq_key=_GROQ_API_KEY
+    )
+except ValueError as exc:
+    raise RuntimeError(str(exc)) from exc
+
+_media_translation_provider = (
+    GroqTranslationProvider(
+        _GROQ_API_KEY,
+        model=os.getenv("GROQ_TRANSLATION_MODEL", "openai/gpt-oss-120b"),
+        base_url=os.getenv("GROQ_BASE_URL", "https://api.groq.com/openai/v1"),
+    )
+    if _media_translation_provider_id == "groq"
+    else LocalHttpTranslationProvider(
+        os.getenv("LOCAL_TRANSLATION_URL", "http://local-translator:8090")
     )
 )
+configure_media_translation(MediaTranslationService(_media_translation_provider))
 configure_media_timing(
     MediaTimingService(
         YtDlpYouTubeAudioUrlResolver(),

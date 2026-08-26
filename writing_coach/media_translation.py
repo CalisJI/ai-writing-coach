@@ -6,6 +6,7 @@ from collections import OrderedDict
 from dataclasses import dataclass, replace
 from enum import StrEnum
 import hashlib
+import json
 import re
 from typing import Protocol
 
@@ -120,8 +121,171 @@ class LocalHttpTranslationProvider:
         return translated
 
 
+TRANSLATION_PROVIDER_IDS = ("groq", "local")
+
+
+def resolve_translation_provider_id(configured: str, *, groq_key: str) -> str:
+    """Which engine translates, decided once from configuration.
+
+    An empty value means "not configured", not "invalid": compose passes every
+    optional variable through as an empty string, and `os.getenv(name, default)`
+    only falls back when the name is absent entirely. Getting that wrong stops
+    the application from importing at all.
+    """
+    chosen = str(configured or "").strip().casefold()
+    if not chosen:
+        chosen = "groq" if str(groq_key or "").strip() else "local"
+    if chosen not in TRANSLATION_PROVIDER_IDS:
+        raise ValueError(
+            "MEDIA_TRANSLATION_PROVIDER must be "
+            + " or ".join(repr(item) for item in TRANSLATION_PROVIDER_IDS)
+            + "."
+        )
+    if chosen == "groq" and not str(groq_key or "").strip():
+        raise ValueError("MEDIA_TRANSLATION_PROVIDER='groq' requires GROQ_API_KEY.")
+    return chosen
+
+
+class GroqTranslationProvider:
+    """Translation through Groq's OpenAI-compatible chat API.
+
+    The default provider since P2 of the AI cost plan. Measured against this
+    account, a batch answers in about a second where the local model needed
+    thirty-seven seconds a segment.
+
+    Two things learned by measurement rather than from documentation, and both
+    encoded here:
+
+    - `response_format: json_object` is what keeps a reasoning model from
+      spending its whole token budget thinking and returning an empty string.
+      Without it, `openai/gpt-oss-*` answers "" and no error.
+    - `reasoning_effort` is deliberately **not** sent. It is unnecessary in JSON
+      mode, and other Groq models reject it outright with HTTP 400
+      (`qwen3.6` accepts only `none`/`default`; `groq/compound` refuses it), so
+      sending it would break the moment the model is changed.
+
+    A failure raises `TranslationProviderError` and stops there. Choosing another
+    provider is an operator decision, never something this class does on its own
+    (`ARCHITECTURE_INVARIANTS.md`: no provider-to-provider fallback).
+    """
+
+    engine_id = "groq"
+
+    _LANGUAGE_NAMES = {
+        "vi": "Vietnamese",
+        "en": "English",
+        "zh": "Simplified Chinese",
+    }
+
+    def __init__(
+        self,
+        api_key: str,
+        *,
+        model: str = "openai/gpt-oss-120b",
+        base_url: str = "https://api.groq.com/openai/v1",
+        timeout_seconds: float = 90.0,
+    ) -> None:
+        self._api_key = str(api_key or "").strip()
+        self._model = str(model or "").strip()
+        self._url = str(base_url or "").rstrip("/") + "/chat/completions"
+        self._timeout = timeout_seconds
+        self.model_version = self._model
+        # The last response's quota headers, so an admin surface can report the
+        # budget before it runs out rather than after.
+        self.last_quota: dict[str, str] = {}
+
+    @property
+    def configured(self) -> bool:
+        return bool(self._api_key and self._model)
+
+    def _language_name(self, code: str) -> str:
+        return self._LANGUAGE_NAMES.get(code, code)
+
+    def _prompt(self, source_language: str, target_language: str, segments: TranslationBatch) -> str:
+        lines = "\n".join(
+            f"{segment.segment_id}\t{segment.original_text}" for segment in segments
+        )
+        return (
+            f"Translate each {self._language_name(source_language)} line into natural "
+            f"{self._language_name(target_language)} for a language learner.\n"
+            "Each input line is an id, a tab, then the text. Translate the text only.\n"
+            "Return every id exactly once, unchanged.\n\n"
+            f"{lines}"
+        )
+
+    def translate_batch(
+        self,
+        source_language: str,
+        target_language: str,
+        segments: TranslationBatch,
+    ) -> dict[str, str]:
+        if not self.configured:
+            raise TranslationProviderError("Groq translation is not configured.")
+
+        body = {
+            "model": self._model,
+            "messages": [
+                {
+                    "role": "system",
+                    "content": (
+                        "You translate transcript lines for a language-learning product. "
+                        "Return JSON only, shaped "
+                        '{"translations": [{"segment_id": "...", "translated_meaning": "..."}]}. '
+                        "Translate meaning, not word by word. Never add commentary."
+                    ),
+                },
+                {"role": "user", "content": self._prompt(source_language, target_language, segments)},
+            ],
+            "stream": False,
+            "temperature": 0.0,
+            "response_format": {"type": "json_object"},
+            "max_tokens": 8000,
+        }
+
+        try:
+            response = requests.post(
+                self._url,
+                json=body,
+                headers={"Authorization": f"Bearer {self._api_key}"},
+                timeout=self._timeout,
+            )
+            self.last_quota = {
+                key.lower(): value
+                for key, value in response.headers.items()
+                if key.lower().startswith("x-ratelimit-")
+            }
+            response.raise_for_status()
+            envelope = response.json()
+            content = envelope["choices"][0]["message"]["content"]
+            data = json.loads(content)
+        except (requests.RequestException, ValueError, KeyError, IndexError, TypeError) as exc:
+            raise TranslationProviderError("Groq translation is unavailable.") from exc
+
+        items = data.get("translations") if isinstance(data, dict) else None
+        if not isinstance(items, list):
+            raise TranslationProviderError("Groq translation returned invalid data.")
+
+        wanted = {segment.segment_id for segment in segments}
+        translated: dict[str, str] = {}
+        for item in items:
+            if not isinstance(item, dict):
+                raise TranslationProviderError("Groq translation returned invalid data.")
+            segment_id = item.get("segment_id")
+            meaning = item.get("translated_meaning")
+            if (
+                not isinstance(segment_id, str)
+                or segment_id not in wanted
+                or segment_id in translated
+                or not isinstance(meaning, str)
+                or not meaning.strip()
+            ):
+                raise TranslationProviderError("Groq translation returned invalid data.")
+            translated[segment_id] = meaning.strip()
+        return translated
+
+
 class MediaTranslationService:
-    """Translate canonical segments through a free local provider and bounded cache."""
+    """Translate canonical segments through a configured provider and bounded cache."""
 
     def __init__(self, provider: TranslationProvider) -> None:
         self._provider = provider

@@ -65,6 +65,14 @@ _PROVIDER_DEFINITIONS = (
         supported_operations=_STRUCTURED_TEXT_OPERATIONS,
         supported_option_keys=_TEXT_OPTION_KEYS,
     ),
+    ProviderDefinition(
+        id="groq",
+        name="Groq API",
+        kind="cloud",
+        secret_mode="server-managed",
+        supported_operations=_STRUCTURED_TEXT_OPERATIONS,
+        supported_option_keys=_TEXT_OPTION_KEYS,
+    ),
 )
 _PROVIDER_CATALOG = MappingProxyType(
     {definition.id: definition for definition in _PROVIDER_DEFINITIONS}
@@ -313,6 +321,14 @@ class OpenAICompatibleProvider:
             if any(word in lowered for word in blocked):
                 return False
             return bool(lowered.startswith("gpt-") or re.match(r"^o\d", lowered))
+        if self.model_filter == "groq-text":
+            # Groq serves speech, text-to-speech and prompt-classification models
+            # from the same catalog endpoint. Only chat models belong in a
+            # structured-text picker; whisper is reached through the speech
+            # adapter, not through here.
+            lowered = model.casefold()
+            blocked = ("whisper", "orpheus", "prompt-guard", "safeguard", "tts")
+            return not any(word in lowered for word in blocked)
         return True
 
     def list_models(self) -> list[str]:
@@ -528,5 +544,18 @@ def build_providers() -> dict[str, Any]:
             default_base_url="https://api.deepseek.com",
             models_env="DEEPSEEK_MODELS",
             default_models=("deepseek-v4-flash", "deepseek-v4-pro"),
+        ),
+        # Groq speaks the OpenAI chat API, so it needs no adapter of its own.
+        # Measured against this account: a structured translation answers in
+        # about a second, where the local model needed thirty-seven.
+        "groq": OpenAICompatibleProvider(
+            provider_id="groq",
+            name="Groq API",
+            api_key_env="GROQ_API_KEY",
+            base_url_env="GROQ_BASE_URL",
+            default_base_url="https://api.groq.com/openai/v1",
+            models_env="GROQ_MODELS",
+            default_models=(),
+            model_filter="groq-text",
         ),
     }
