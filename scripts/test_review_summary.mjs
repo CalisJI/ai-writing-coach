@@ -203,6 +203,8 @@ for(const locale of ['en','vi','zh']){
     practice_outcome:{
       status:'transferred',
       focus_label:'Grammar transfer',
+      issue_count:0,
+      revision_no:2,
       strength_evidence:[null,{}],
       error_evidence:[{}],
     },
@@ -215,6 +217,40 @@ for(const locale of ['en','vi','zh']){
     /\[object Object\]/,
     `Review ${locale.toUpperCase()} must not render malformed practice outcome evidence`,
   );
+}
+
+for(const locale of ['en','vi','zh']){
+  for(const {value,rendered} of [
+    {value:null,rendered:false},
+    {value:{},rendered:false},
+    {value:{status:{},issue_count:{},revision_no:{},focus_label:{}},rendered:false},
+    {value:{status:'unknown',issue_count:0,revision_no:1},rendered:false},
+    {value:{status:'improved',previous_issue_count:2,issue_count:-1,revision_no:2},rendered:false},
+    {value:{status:'improved',previous_issue_count:2,issue_count:0.5,revision_no:2},rendered:false},
+    {value:{status:'improved',previous_issue_count:2,issue_count:0,revision_no:0},rendered:false},
+    {value:{status:'improved',previous_issue_count:2,issue_count:0,revision_no:1.5},rendered:false},
+    {value:{status:'improved',focus_label:{},issue_count:0,revision_no:2},rendered:true},
+  ]){
+    state.profile={native_language:locale};
+    state.supportLanguage=locale;
+    state.language='en';
+    state.lastEvaluation={
+      ...renderFixture,
+      practice_outcome:value,
+    };
+    state.draft.text=renderFixture.text;
+    const outcomeRoot=fakeReviewRoot();
+    await renderReview(outcomeRoot);
+    if(rendered){
+      assert.match(outcomeRoot.innerHTML,/practice-check status-improved/,
+        `Review ${locale.toUpperCase()} should retain a safe valid-status outcome`);
+    }else{
+      assert.doesNotMatch(outcomeRoot.innerHTML,/practice-check status-/,
+        `Review ${locale.toUpperCase()} must omit malformed practice outcomes`);
+    }
+    assert.doesNotMatch(outcomeRoot.innerHTML,/\[object Object\]/,
+      `Review ${locale.toUpperCase()} must not render malformed outcome fields`);
+  }
 }
 
 const dialogNodes={
