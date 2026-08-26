@@ -348,6 +348,25 @@ def test_app_writing_evaluator_path_keeps_its_capability_identity(monkeypatch: p
     assert result["_ai_provider"] == "test-provider"
 
 
+def test_invalid_provider_response_uses_the_same_explicit_demo_fallback(monkeypatch: pytest.MonkeyPatch) -> None:
+    import app
+    from writing_coach.ai.base import AIProviderResponseInvalid
+
+    def invalid_provider(_payload: Any) -> dict[str, Any]:
+        raise AIProviderResponseInvalid("provider returned incomplete JSON")
+
+    monkeypatch.setattr(app, "evaluate_with_ai", invalid_provider)
+    monkeypatch.setattr(app, "ALLOW_FALLBACK", True)
+
+    result, evaluator = app.evaluate(app.EssayIn(text=LEARNER_TEXT, prompt="Test prompt"))
+
+    assert evaluator == "fallback-demo"
+    assert result["schema_version"] == "writing-evaluation-v2"
+    assert result["errors"][0]["fragment"] == "I has"
+    assert "Kết nối AI Coach" not in result["priorities_vi"][0]
+    assert "chưa tạo được đánh giá đầy đủ" in result["priorities_vi"][0]
+
+
 def test_heuristic_fallback_keeps_high_confidence_feedback_and_v2_envelope(monkeypatch: pytest.MonkeyPatch) -> None:
     import app
 

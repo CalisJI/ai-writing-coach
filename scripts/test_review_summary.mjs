@@ -38,7 +38,21 @@ for(const locale of ['en','vi','zh']){
   const notice=evaluationNotice({evaluator:'fallback-demo'});
   assert.match(notice,/data-review-evaluation-state="degraded"/);
   assert.match(notice,new RegExp(noticeCopy[locale]));
+  assert.doesNotMatch(notice,/unavailable/i);
   assert.equal(evaluationNotice({evaluator:'ollama:model'}),'');
 }
+
+state.profile={native_language:'vi'};
+state.supportLanguage='vi';
+const invalidResponseFallback={
+  evaluator:'fallback-demo',
+  priorities_vi:['Dùng phần bằng chứng này như bản xem thử; hãy chạy lại khi AI Coach tạo được đánh giá đầy đủ.'],
+};
+assert.equal(
+  reviewSummaryText(invalidResponseFallback,null,[]),
+  invalidResponseFallback.priorities_vi[0],
+  'Vietnamese invalid-response fallback should render provider-neutral degraded guidance',
+);
+assert.doesNotMatch(reviewSummaryText(invalidResponseFallback,null,[]),/Kết nối AI Coach|Bật AI Coach/i);
 
 console.log('Review summary priority contract: PASS');

@@ -398,10 +398,10 @@ def heuristic_fallback(payload: EssayIn) -> dict[str, Any]:
     raw = {
         **scores,
         "cefr_estimate": app_cefr(overall),
-        "summary_vi": "Chế độ dự phòng chỉ dùng để kiểm tra luồng ứng dụng. Hãy bật AI Coach để nhận đánh giá đầy đủ.",
+        "summary_vi": "Đánh giá cục bộ tạm thời vì AI Coach chưa tạo được đánh giá đầy đủ có thể sử dụng. Phần điểm và bằng chứng này chỉ để kiểm tra luồng.",
         "strengths_vi": ["Bài viết có đủ nội dung để lưu vào hồ sơ tiến bộ."],
         "strength_evidence": [],
-        "priorities_vi": ["Kết nối AI Coach để bật đánh giá đầy đủ."],
+        "priorities_vi": ["Dùng phần bằng chứng này như bản xem thử; hãy chạy lại khi AI Coach tạo được đánh giá đầy đủ."],
         "errors": errors,
     }
     return validate_result({**raw, "__learner_text": text})
