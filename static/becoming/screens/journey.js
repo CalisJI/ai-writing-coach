@@ -259,8 +259,40 @@ function revisionList(groups=[]){
   }).join('')}</ul>`;
 }
 
+const GRAMMAR_OUTCOME_STATUSES=new Set([
+  'improved','transferred','held','still_working',
+  'needs_attention','not_observed','needs_more_evidence',
+]);
+
+function normalizedGrammarOutcome(outcome){
+  if(!outcome||typeof outcome!=='object'||Array.isArray(outcome))return null;
+  const grammarId=typeof outcome.grammar_id==='string'?outcome.grammar_id.trim():'';
+  const status=typeof outcome.status==='string'?outcome.status.trim().toLowerCase():'';
+  if(!grammarId||!GRAMMAR_OUTCOME_STATUSES.has(status))return null;
+  const focusLabel=typeof outcome.focus_label==='string'?outcome.focus_label.trim():'';
+  const grammarTitle=typeof outcome.grammar_title==='string'?outcome.grammar_title.trim():'';
+  const numericValue=(value,fallback)=>{
+    if(typeof value==='number'&&Number.isFinite(value))return value;
+    if(typeof value==='string'&&value.trim()!==''){
+      const parsed=Number(value);
+      if(Number.isFinite(parsed))return parsed;
+    }
+    return fallback;
+  };
+  return {
+    ...outcome,
+    grammar_id:grammarId,
+    status,
+    focus_label:focusLabel,
+    grammar_title:grammarTitle,
+    issue_count:Math.max(0,Math.floor(numericValue(outcome.issue_count,0))),
+    revision_no:Math.max(1,Math.floor(numericValue(outcome.revision_no,1))),
+  };
+}
+
 function grammarOutcomeCard(outcome, language='en'){
-  if(!outcome?.grammar_id)return '';
+  outcome=normalizedGrammarOutcome(outcome);
+  if(!outcome)return '';
   const label=language==='zh'?'语法练习进度':language==='vi'?'Tiến độ luyện ngữ pháp':'Grammar practice progress';
   const status=statusLabel(outcome.status);
   const body=language==='zh'

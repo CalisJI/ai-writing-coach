@@ -25,15 +25,14 @@ api.learningMemory=async()=>({
   revision_wins:[],
 });
 api.practiceRecommendation=async()=>null;
-api.practiceOutcomes=async()=>({
-  latest:{
+let latestOutcome={
     grammar_id:'a1-agreement',
     focus_label:'Agreement practice',
     status:'improved',
     issue_count:0,
     revision_no:2,
-  },
-});
+};
+api.practiceOutcomes=async()=>({latest:latestOutcome});
 
 state.language='en';
 state.profile={native_language:'en'};
@@ -58,5 +57,26 @@ for(const [locale,label] of [
 }
 state.supportLanguage='zh';
 assert.doesNotMatch(root.innerHTML,/Grammar practice progress/);
+
+for(const locale of ['en','vi','zh']){
+  state.supportLanguage=locale;
+  for(const malformed of [null,{},
+    {grammar_id:{},status:'improved',issue_count:{},revision_no:{}},
+    {grammar_id:'a1-agreement',status:'unknown'},
+  ]){
+    latestOutcome=malformed;
+    await renderJourney(root);
+    assert.doesNotMatch(
+      root.innerHTML,
+      /o-journey-grammar-outcome/,
+      `Journey ${locale.toUpperCase()} must omit malformed Grammar outcomes`,
+    );
+    assert.doesNotMatch(
+      root.innerHTML,
+      /\[object Object\]/,
+      `Journey ${locale.toUpperCase()} must not render malformed object values`,
+    );
+  }
+}
 
 console.log('Journey Grammar outcome locale contract: PASS');
