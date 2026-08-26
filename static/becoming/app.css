@@ -1329,7 +1329,8 @@ body.onboarding-mode .language-select{visibility:hidden}
   line-height:1.5;
 }
 
-.dictionary-writing{
+.dictionary-writing,
+.hanzi-stroke{
   margin-top:var(--space-3);
   padding-top:var(--space-4);
   border-top:1px solid var(--color-border-subtle);
@@ -1360,6 +1361,19 @@ body.onboarding-mode .language-select{visibility:hidden}
   margin-bottom:var(--space-2);
 }
 
+/* The 米 grid. One definition, because the copy cell, the writing box and the
+   step thumbnails are all the same ruled square at different sizes. */
+.hanzi-cell,
+.hanzi-stroke-writer,
+.hanzi-step{
+  border:1px solid var(--color-border-strong);
+  background:
+    linear-gradient(45deg,transparent calc(50% - .5px),var(--color-border-subtle) 50%,transparent calc(50% + .5px)),
+    linear-gradient(-45deg,transparent calc(50% - .5px),var(--color-border-subtle) 50%,transparent calc(50% + .5px)),
+    linear-gradient(90deg,transparent calc(50% - .5px),var(--color-border-subtle) 50%,transparent calc(50% + .5px)),
+    linear-gradient(transparent calc(50% - .5px),var(--color-border-subtle) 50%,transparent calc(50% + .5px));
+}
+
 .hanzi-cell{
   width:64px;
   height:64px;
@@ -1367,12 +1381,6 @@ body.onboarding-mode .language-select{visibility:hidden}
   display:grid;
   place-items:center;
   overflow:hidden;
-  border:1px solid var(--color-border-strong);
-  background:
-    linear-gradient(45deg,transparent calc(50% - .5px),var(--color-border-subtle) 50%,transparent calc(50% + .5px)),
-    linear-gradient(-45deg,transparent calc(50% - .5px),var(--color-border-subtle) 50%,transparent calc(50% + .5px)),
-    linear-gradient(90deg,transparent calc(50% - .5px),var(--color-border-subtle) 50%,transparent calc(50% + .5px)),
-    linear-gradient(transparent calc(50% - .5px),var(--color-border-subtle) 50%,transparent calc(50% + .5px));
   color:var(--color-ink-strong);
   font-family:var(--font-cjk);
   font-size:34px;
@@ -1380,6 +1388,213 @@ body.onboarding-mode .language-select{visibility:hidden}
 
 .hanzi-grid-row.practice .hanzi-cell span{
   opacity:.12;
+}
+
+/* The per-character row. A Chinese entry is a word; these are the characters
+   inside it, each one a way into its own entry -- so a learner who tapped a
+   segmented subtitle word is not stuck with the whole group. */
+.dictionary-characters{
+  margin-top:var(--space-3);
+  padding-top:var(--space-4);
+  border-top:1px solid var(--color-border-subtle);
+}
+
+.dictionary-char-row{
+  display:flex;
+  flex-wrap:wrap;
+  gap:var(--space-2);
+}
+
+.dictionary-char{
+  min-height:44px;
+  display:grid;
+  gap:2px;
+  justify-items:start;
+  padding:var(--space-2) var(--space-3);
+  border:1px solid var(--color-border-strong);
+  border-radius:var(--radius-control);
+  background:var(--color-surface);
+  text-align:left;
+  cursor:pointer;
+}
+
+.dictionary-char:hover{
+  border-color:var(--color-accent-600);
+  background:var(--color-accent-100);
+}
+
+.dictionary-char-hanzi{
+  color:var(--color-ink-strong);
+  font-size:var(--font-size-h3);
+  line-height:1.15;
+}
+
+.dictionary-char-pinyin{
+  color:var(--color-informational);
+  font-size:var(--font-size-meta);
+}
+
+.dictionary-char-meaning{
+  max-width:22ch;
+  color:var(--color-ink-muted);
+  font-size:var(--font-size-meta);
+  line-height:1.4;
+}
+
+/* ---------------------------------------------- stroke-order practice --- */
+
+.hanzi-stroke-loading{
+  padding:var(--space-4) 0;
+}
+
+.hanzi-stroke-tabs{
+  display:flex;
+  flex-wrap:wrap;
+  gap:var(--space-2);
+  margin-bottom:var(--space-3);
+}
+
+.hanzi-char-tab{
+  min-width:44px;
+  min-height:44px;
+  padding:0 var(--space-2);
+  border:1px solid var(--color-border-strong);
+  border-radius:var(--radius-control);
+  background:var(--color-surface);
+  color:var(--color-ink-strong);
+  font-family:var(--font-cjk);
+  font-size:var(--font-size-h3);
+  line-height:1;
+}
+
+.hanzi-char-tab.is-active{
+  border-color:var(--color-accent-600);
+  background:var(--color-accent-100);
+}
+
+.hanzi-stroke-stage{
+  display:flex;
+  flex-wrap:wrap;
+  align-items:flex-start;
+  gap:var(--space-4);
+}
+
+/* The writing box is a fixed square: hanzi-writer sizes its SVG from the
+   element's measured width, so this cannot be a flexible track. */
+.hanzi-stroke-writer{
+  width:200px;
+  height:200px;
+  flex:0 0 auto;
+  touch-action:none;
+}
+
+/* Matches the renderer's own padding, so swapping the preview for the live
+   writer does not make the character jump. */
+.hanzi-preview{
+  display:block;
+  width:100%;
+  height:100%;
+  padding:6px;
+  box-sizing:border-box;
+  fill:var(--color-ink-strong);
+}
+
+.hanzi-stroke-controls{
+  flex:1 1 200px;
+  display:grid;
+  gap:var(--space-3);
+  align-content:start;
+}
+
+.hanzi-stroke-count{
+  margin:0;
+  color:var(--color-ink-muted);
+  font-size:var(--font-size-meta);
+  text-transform:uppercase;
+  letter-spacing:.06em;
+}
+
+.hanzi-stroke-buttons{
+  display:flex;
+  flex-wrap:wrap;
+  gap:var(--space-2);
+}
+
+.hanzi-stroke-status{
+  margin:0;
+  min-height:2.6em;
+  color:var(--color-ink);
+  font-size:var(--font-size-ui);
+  line-height:1.5;
+}
+
+.hanzi-steps-block{
+  margin-top:var(--space-4);
+}
+
+.hanzi-steps-label{
+  display:block;
+  margin-bottom:var(--space-2);
+  color:var(--color-ink-strong);
+  font-size:var(--font-size-ui);
+  font-weight:700;
+}
+
+.hanzi-steps{
+  display:flex;
+  flex-wrap:wrap;
+  gap:var(--space-2);
+  margin:0;
+  padding:0;
+  list-style:none;
+}
+
+.hanzi-step{
+  position:relative;
+  display:block;
+  width:52px;
+  height:52px;
+  padding:0;
+  cursor:pointer;
+}
+
+.hanzi-step:hover{
+  border-color:var(--color-accent-600);
+}
+
+.hanzi-step svg{
+  display:block;
+  width:100%;
+  height:100%;
+}
+
+/* Strokes already written recede; the stroke this step adds is the one being
+   taught, so it carries the accent. Both are tokens, so the diagram inverts
+   with the theme instead of being pinned to a light background. */
+.hanzi-step-past{
+  fill:var(--color-ink-muted);
+  opacity:.45;
+}
+
+.hanzi-step-current{
+  fill:var(--color-accent-600);
+}
+
+.hanzi-step-index{
+  position:absolute;
+  right:1px;
+  bottom:0;
+  color:var(--color-ink-muted);
+  font-size:10px;
+  font-variant-numeric:tabular-nums;
+  line-height:1;
+}
+
+.hanzi-stroke-missing{
+  margin:var(--space-3) 0 0;
+  color:var(--color-attention);
+  font-size:var(--font-size-meta);
+  line-height:1.5;
 }
 
 @media(max-width:680px){

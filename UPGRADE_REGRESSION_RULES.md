@@ -342,6 +342,13 @@ Hanzi writing grids may support character-shape tracing.
 
 Never claim verified stroke order unless verified stroke data exists.
 
+Verified stroke data now exists for 9,565 characters: the vendored Make Me a
+Hanzi pack in `writing_coach/languages/chinese/stroke_data/`, served by
+`GET /api/chinese/stroke-order` (see Decision Log D-022). The rule above is
+unchanged and still binding — a character outside that pack falls back to the
+shape-copying grid and states that no stroke order is available. Stroke order
+must never be produced by an AI capability.
+
 ## 34. Writing progress presentation
 Writing progress uses real essay/revision/memory evidence inside Journey.
 

@@ -63,6 +63,7 @@ export const api={
   practiceOutcome:(id)=>request(`/api/practice-outcome/${encodeURIComponent(id)}`),
   practiceOutcomes:(limit=20)=>request(`/api/practice-outcomes?limit=${encodeURIComponent(limit)}`),
   dictionary:(word)=>request(`/api/dictionary?word=${encodeURIComponent(word)}`),
+  chineseStrokeOrder:(word)=>request(`/api/chinese/stroke-order?word=${encodeURIComponent(word)}`),
   libraryVocabulary:()=>request('/api/library/vocabulary'),
   saveLibraryVocabulary:(payload)=>request('/api/library/vocabulary',{
     method:'POST',

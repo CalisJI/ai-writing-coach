@@ -9,6 +9,7 @@ from typing import Any
 from urllib.parse import quote
 
 import requests
+from writing_coach.languages.chinese import stroke_order as chinese_stroke_order
 from writing_coach.languages.runtime import (
     active_error_categories,
     active_levels,
@@ -63,6 +64,7 @@ from writing_coach.speech_api import (
 )
 from writing_coach.speech_asr import GroqSpeechAsrProvider
 from writing_coach.speech_pronunciation import build_speech_pronunciation_provider
+from writing_coach.core.errors import orena_http_error
 from writing_coach.core.platform_api import router as platform_router
 from writing_coach.core.language_registry import is_enabled
 from writing_coach.ai.base import AICapabilityError, AIProviderError, AIProviderUnavailable
@@ -1356,6 +1358,25 @@ def api_translate(payload: TranslateIn) -> dict[str, Any]:
 @app.get("/api/dictionary")
 def api_dictionary(word: str) -> dict[str, Any]:
     return lookup_dictionary(word)
+
+
+@app.get("/api/chinese/stroke-order")
+def api_chinese_stroke_order(word: str) -> dict[str, Any]:
+    """Verified stroke order for the Han characters in `word`.
+
+    Deterministic and offline: this reads the vendored Make Me a Hanzi pack and
+    never calls a provider, so it needs no AI capability and cannot degrade. A
+    character the pack does not carry comes back in `unavailable` rather than
+    being invented (`UPGRADE_REGRESSION_RULES.md` §33).
+    """
+    try:
+        return chinese_stroke_order.stroke_order_for(word)
+    except chinese_stroke_order.StrokeDataUnavailable as exc:
+        raise orena_http_error(
+            503,
+            "stroke_data_unavailable",
+            "Stroke-order data is not installed on this server.",
+        ) from exc
 
 
 @app.get("/api/vocabulary")

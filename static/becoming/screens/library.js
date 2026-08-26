@@ -2,7 +2,7 @@ import {api} from '../api.js';
 import {state} from '../store.js';
 import {esc,errorBlock,loadingBlock,toast,runBusy} from '../components/primitives.js';
 import {t,uiLocale} from '../domain/i18n.js';
-import {dictionaryResultMarkup} from '../components/dictionary.js';
+import {dictionaryResultMarkup,mountDictionaryResult} from '../components/dictionary.js';
 import {supportNote} from '../domain/support.js';
 import {oIcon} from '../orena/icons.js';
 import {installSelectEnhancements} from '../components/select-field.js';
@@ -818,6 +818,10 @@ export async function renderLibrary(root){
         await runBusy(submit,async()=>{
           view.lookup=await api.dictionary(term);
           resultSlot.innerHTML=lookupCard(view.lookup);
+          /* The shared dictionary card is only half-rendered as markup: the
+             stroke section is a placeholder and the character chips need their
+             delegated click. Both are finished here. */
+          mountDictionaryResult(resultSlot);
         },{label:t('busy.looking_up')});
 
         root.querySelector('#saveLookup')?.addEventListener('click',async saveEvent=>{
