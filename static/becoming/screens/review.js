@@ -27,6 +27,7 @@ function grammarTransferBlock(result={}){
       <div class="o-issue-head"><strong>${esc(link.title||link.grammar_id||'Grammar')}</strong><span>${esc(link.level||'')}</span></div>
       <p class="o-panel-copy">${esc(link.reason||'')}</p>
       <button type="button" class="o-btn o-btn--outline o-btn--compact" data-open-grammar="${attr(link.grammar_id||'')}">${esc(t('review.open_grammar'))}</button>
+      <button type="button" class="o-btn o-btn--primary o-btn--compact" data-practice-grammar="${attr(link.grammar_id||'')}">${esc(t('review.practice_grammar'))}</button>
     </li>`).join('')}</ul>
   </section>`;
 }
@@ -721,6 +722,15 @@ export async function renderReview(root){
     if(!lessonId)return;
     try{ localStorage.setItem('becoming.grammar-focus',lessonId); }catch{}
     go('grammar');
+  }));
+  root.querySelectorAll('[data-practice-grammar]').forEach(button=>button.addEventListener('click',async()=>{
+    const id=button.dataset.practiceGrammar;
+    if(!id)return;
+    try{
+      const task=await api.grammarPractice(id);
+      saveDraft({prompt:task.prompt||'',practiceContext:task.practice_context||null,generatedTask:null,parentEssayId:null});
+      go('write');
+    }catch(error){ toast(error.message||String(error)); }
   }));
 
   /* Draft / Review tabs. Both bodies stay in the DOM so switching does not

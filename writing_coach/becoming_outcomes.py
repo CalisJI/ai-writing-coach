@@ -26,6 +26,8 @@ class PracticeContextIn(BaseModel):
     reason: str = Field(default="", max_length=1600)
     evidence: str = Field(default="", max_length=600)
     focus_instruction: str = Field(default="", max_length=1600)
+    grammar_id: str = Field(default="", max_length=160)
+    grammar_title: str = Field(default="", max_length=240)
 
 
 def configure_becoming_outcomes(repository: SpecializedLearningRepository) -> None:

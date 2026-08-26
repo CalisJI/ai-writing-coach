@@ -1782,6 +1782,43 @@ def becoming_practice_next(payload: PracticeNextIn) -> dict[str, Any]:
     personalized["prompt"] = task_as_prompt(personalized, target_level)
     personalized["target_level"] = target_level
     return personalized
+
+
+@app.get("/api/grammar/{grammar_id}/practice", name="grammar_targeted_practice")
+def grammar_targeted_practice(grammar_id: str) -> dict[str, Any]:
+    """Build a small practice brief from one authoritative R5 lesson."""
+    lesson = active_grammar_by_id().get(grammar_id)
+    if not lesson:
+        raise HTTPException(404, "Grammar lesson not found")
+    language = active_profile().code
+    title = str(lesson.get("title") or grammar_id)
+    level = str(lesson.get("level") or ("HSK4" if language == "zh" else "B2"))
+    blueprint = lesson.get("practice_blueprint") if isinstance(lesson.get("practice_blueprint"), dict) else {}
+    target = "请写 3-5 句，使用本课的语法重点。" if language == "zh" else "Write 3–5 sentences using the grammar focus from this lesson."
+    context = {
+        "intent": "repair",
+        "focus_category": "grammar",
+        "focus_label": title,
+        "focus_family": "grammar",
+        "task_type": "story",
+        "topic": "grammar transfer",
+        "target_level": level,
+        "action_label": "Practice this grammar",
+        "reason": "Targeted practice selected from a Writing finding and the static Grammar curriculum.",
+        "evidence": "",
+        "focus_instruction": target,
+        "grammar_id": grammar_id,
+        "grammar_title": title,
+    }
+    return {
+        "grammar_id": grammar_id,
+        "title": title,
+        "level": level,
+        "prompt": target,
+        "practice_blueprint": blueprint,
+        "practice_context": context,
+        "source": "static-grammar-kb",
+    }
 # === BECOMING PERSONALIZED PRACTICE ROUTES END ===
 
 # === BECOMING PRACTICE OUTCOME ROUTES START ===
