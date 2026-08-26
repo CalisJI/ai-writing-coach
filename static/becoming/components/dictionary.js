@@ -1,7 +1,47 @@
 import {api} from '../api.js';
 import {state} from '../store.js';
-import {esc,showDialog,showLoadingDialog,updateDialog,toast} from './primitives.js';
+import {esc,attr,showDialog,showLoadingDialog,updateDialog,toast} from './primitives.js';
+import {hanziStrokeMarkup,mountHanziStroke} from './hanzi-stroke.js';
 import {t,uiHtmlLang,uiLocale} from '../domain/i18n.js';
+
+const HAN=/[\u3400-\u4DBF\u4E00-\u9FFF]/u;
+
+/* Chinese is segmented into words before the learner ever sees it, so a tap on
+   a subtitle opens the whole word - useful, but it buries the single character
+   a learner may actually be asking about. The backend already returns a
+   per-character breakdown on every Chinese entry and nothing rendered it; these
+   chips are that data, and each one opens the character's own full entry.
+   No extra provider call is made to build them. */
+function characterChips(payload,{showPhonetic=true}={}){
+  const word=String(payload.word||'');
+  const characters=Array.isArray(payload.characters)?payload.characters:[];
+  /* A single-character entry is already the thing itself. */
+  if([...word].filter(char=>HAN.test(char)).length<2||!characters.length)return '';
+
+  const chips=characters
+    .filter(item=>item&&HAN.test(String(item.hanzi||'')))
+    .map(item=>{
+      const hanzi=String(item.hanzi);
+      const pinyin=String(item.pinyin||'');
+      const meaning=String(item.meaning_vi||'');
+      return `<button type="button" class="dictionary-char" data-dict-char="${attr(hanzi)}"
+        aria-label="${attr(t('dictionary.character_lookup',{char:hanzi}))}">
+        <span class="dictionary-char-hanzi cjk">${esc(hanzi)}</span>
+        ${showPhonetic&&pinyin?`<span class="dictionary-char-pinyin">${esc(pinyin)}</span>`:''}
+        ${uiLocale()==='vi'&&meaning?`<span class="dictionary-char-meaning">${esc(meaning)}</span>`:''}
+      </button>`;
+    }).join('');
+
+  if(!chips)return '';
+
+  return `<section class="dictionary-characters" aria-label="${attr(t('dictionary.characters'))}">
+    <div class="dictionary-subhead">
+      <span>${esc(t('dictionary.characters'))}</span>
+      <small>${esc(t('dictionary.characters_hint'))}</small>
+    </div>
+    <div class="dictionary-char-row">${chips}</div>
+  </section>`;
+}
 
 function firstDefinition(payload={}){
   const definitions=Array.isArray(payload.definitions)?payload.definitions:[];
@@ -11,29 +51,6 @@ function firstDefinition(payload={}){
     partOfSpeech:String(first?.part_of_speech||payload.part_of_speech||''),
     example:String(first?.example||''),
   };
-}
-
-function hanCharacters(value=''){
-  return [...String(value||'')].filter(char=>/[\u3400-\u4DBF\u4E00-\u9FFF]/u.test(char));
-}
-
-function writingGrid(word=''){
-  const chars=hanCharacters(word).slice(0,8);
-  if(!chars.length)return '';
-
-  return `<section class="dictionary-writing" aria-label="${esc(t('dictionary.writing'))}">
-    <div class="dictionary-subhead">
-      <span>${esc(t('dictionary.writing'))}</span>
-      <small>${esc(t('dictionary.writing_hint'))}</small>
-    </div>
-    <div class="hanzi-grid-row">
-      ${chars.map(char=>`<div class="hanzi-cell reference" aria-label="${esc(char)}"><span>${esc(char)}</span></div>`).join('')}
-    </div>
-    <div class="hanzi-grid-row practice" aria-hidden="true">
-      ${chars.map(char=>`<div class="hanzi-cell"><span>${esc(char)}</span></div>`).join('')}
-    </div>
-    <p class="dictionary-writing-note">${esc(t('dictionary.writing_note'))}</p>
-  </section>`;
 }
 
 export function dictionaryResultMarkup(payload={},{
@@ -61,12 +78,35 @@ export function dictionaryResultMarkup(payload={},{
     ${uiLocale()==='vi'&&payload.usage_note_vi?`<div class="library-note">${esc(payload.usage_note_vi)}</div>`:''}
     ${first.example?`<blockquote>“${esc(first.example)}”</blockquote>`:''}
 
-    ${language==='zh'&&includeWriting?writingGrid(title):''}
+    ${language==='zh'?characterChips(payload,{showPhonetic}):''}
+
+    ${/* Stroke order and the tracing box. A placeholder here, because this
+         function returns a string; callers finish it with mountHanziStroke. */
+      language==='zh'&&includeWriting?hanziStrokeMarkup(title):''}
 
     <p class="dictionary-helper" lang="${esc(uiHtmlLang())}">
       ${esc(t('dictionary.lookup_tip'))}
     </p>
   </div>`;
+}
+
+let charListenerInstalled=false;
+
+/* The one place a rendered dictionary card is finished off. The chips travel
+   inside a markup string that four screens render, so the click is delegated
+   rather than wired per card - but from here, not at import time: these modules
+   are also loaded under Node by the contract tests, where there is no document. */
+export function mountDictionaryResult(root=document){
+  mountHanziStroke(root);
+
+  if(charListenerInstalled)return;
+  charListenerInstalled=true;
+  document.addEventListener('click',event=>{
+    const chip=event.target instanceof Element?event.target.closest('[data-dict-char]'):null;
+    if(!chip)return;
+    event.preventDefault();
+    openDictionary(chip.dataset.dictChar,{language:'zh'});
+  });
 }
 
 export async function openDictionary(term,{
@@ -88,6 +128,7 @@ export async function openDictionary(term,{
       pinyinMode:state.profile?.pinyin||'auto',
       includeWriting:true,
     }),{title:title||t('dictionary.title')});
+    mountDictionaryResult(document.getElementById('dialogBody'));
     return payload;
   }catch(error){
     updateDialog(`<div class="error-state" role="alert">${esc(error.message||t('dictionary.failed'))}</div>`,{

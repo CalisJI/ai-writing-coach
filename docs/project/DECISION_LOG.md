@@ -411,3 +411,39 @@ deployment.
 
 **Supersedes / Superseded by:** Extends the frontend invariant and OREN-16
 shared-primitives checkpoint; supersedes neither.
+
+## D-023 — Hanzi stroke order is vendored data, never generated
+
+**Status:** Accepted
+
+**Decision:** Chinese stroke order is served from a glyph dataset vendored into
+the repository (Make Me a Hanzi, redistributed as `hanzi-writer-data`, Arphic
+Public License) through a deterministic Chinese language adapter,
+`writing_coach/languages/chinese/stroke_order.py`, and the route
+`GET /api/chinese/stroke-order`. No AI capability produces stroke data, and no
+runtime CDN is consulted. A character the pack does not carry is reported as
+unavailable; the learner then gets a shape-copying grid that makes no claim
+about stroke order.
+
+**Reason:** `UPGRADE_REGRESSION_RULES.md` §33 already forbade claiming verified
+stroke order without verified stroke data, which left the Chinese dictionary
+with a grid that could only show a finished character. Stroke order is exact,
+per-character geometry: a language model cannot produce it truthfully, so the
+only honest way to offer the feature is to ship real glyph data. Bundling it
+rather than fetching per character from a CDN keeps the feature working offline
+and in networks where public CDNs are unreachable — which includes the learner
+population this feature is for.
+
+**Consequences:** The repository carries ~14 MB of vendored stroke data
+(9,565 characters) plus `ARPHICPL.TXT`, retained unaltered as the licence
+requires, and a `README.md` carrying the §2a modification notice for the
+container-format change. `scripts/build_hanzi_stroke_pack.py` rebuilds the pack
+from the upstream package and `--check` verifies the committed one against its
+recorded digest. The renderer, `hanzi-writer` (MIT), is vendored under
+`static/becoming/vendor/` and imported lazily, so an English learner never
+downloads it. The stroke-order route needs no AI capability and cannot degrade
+with a provider. The numbered step diagram is built from the payload rather than
+by the renderer, so it survives a failed vendor import.
+
+**Supersedes / Superseded by:** Satisfies the condition `UPGRADE_REGRESSION_RULES.md`
+§33 left open. Supersedes no earlier decision.
