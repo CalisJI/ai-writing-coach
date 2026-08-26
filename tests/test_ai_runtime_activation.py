@@ -15,7 +15,6 @@ from writing_coach.persistence.platform_repository import CapabilityConfigRecord
 
 EXPECTED_CAPABILITIES = {
     "writing_evaluator",
-    "writing_linguistic",
     "reading_generator",
     "writing_task_generator",
     "writing_improver",
@@ -82,7 +81,7 @@ def test_static_activation_readiness_passes_with_exact_atomic_contract(monkeypat
         "rollback_mode": "legacy",
         "backend": "postgresql",
         "validated_capabilities": sorted(EXPECTED_CAPABILITIES),
-        "capability_count": 8,
+        "capability_count": 7,
         "static_validation": "pass",
         "live_validation": "not_executed",
         "requires_human_activation": True,

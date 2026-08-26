@@ -478,3 +478,36 @@ versions, deployment, and learner-skill release state are unchanged.
 **Supersedes / Superseded by:** Supersedes D-022 only for migration completion
 and screen ownership. Retains D-022's bounded namespace and shared-contract
 requirements.
+
+## D-025 — Segmentation and part-of-speech tagging are deterministic
+
+**Status:** Accepted
+
+**Decision:** `writing_linguistic` is a deterministic capability, not a
+provider-backed one. Word segmentation and part-of-speech tagging for EN and ZH
+are performed locally by `writing_coach/linguistic_annotation.py` (NLTK for
+English, jieba for Chinese, pypinyin for contextual readings), shared by the
+Writing/Review parts-of-speech lens and the Listening interactive transcript.
+
+**Reason:** The repository carried two implementations of one job. The
+transcript already tagged locally and for free; `becoming_linguistics` asked a
+model for the same result at 2 800 output tokens an essay. The local tagger's
+label set is a superset of the eleven labels the prompt requested — it also
+separates `proper_noun`, `classifier`, `auxiliary` and `interjection`, which the
+prompt collapsed into `other`. Measured against the AI annotations cached in
+eleven real learner essays: 92% of local annotations land on the identical span,
+and 82% of those agree on the label; of the disagreements, 67 are the local
+tagger being more specific. Neither tagger was ever validated against a gold
+standard, so this is a change of engine, not a documented loss of accuracy — and
+it makes Writing and Listening agree with each other, which they did not before.
+
+**Consequences:** `writing_linguistic` leaves the configurable provider catalog,
+so capability migration seeds seven explicit rows instead of eight and
+activation readiness reports seven capabilities. No production rows exist to
+orphan: the runtime carries no capability-config table and R2 activation remains
+an unexecuted human gate. `configure_becoming_linguistics` no longer takes a
+generator. The annotation cache, the literal-span validation, and the public
+payload shape are unchanged, so no frontend contract moves.
+
+**Supersedes / Superseded by:** Extends the deterministic-capability precedent
+set by `reading_evaluator`. Supersedes no earlier decision.

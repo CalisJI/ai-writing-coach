@@ -74,7 +74,9 @@ entry, and corresponding current-state and handoff updates.
 
 - The AI Control Plane owns AI infrastructure and AI workload configuration;
   it is not a general product-domain registry.
-- `reading_evaluator` is deterministic and not provider-configurable.
+- `reading_evaluator` and `writing_linguistic` are deterministic and not
+  provider-configurable. Word segmentation and part-of-speech tagging are a
+  solved local problem; a provider must never be routed either workload.
 - Speech capabilities are reserved and unimplemented until Speaking work
   explicitly implements them.
 - Capability configuration and diagnostics never persist or expose credentials.

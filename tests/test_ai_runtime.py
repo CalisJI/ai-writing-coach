@@ -229,21 +229,26 @@ def test_reading_capability_errors_do_not_use_builtin_fallback(
 
 
 @pytest.mark.parametrize("language_code", ["en", "zh"])
-def test_linguistics_injected_generator_binds_the_shared_capability_key(
-    language_code: str,
-) -> None:
-    calls: list[dict[str, Any]] = []
-
-    def generate(**kwargs: Any) -> dict[str, Any]:
-        calls.append(kwargs)
-        fragment = "I" if language_code == "en" else "我"
-        return {"annotations": [{"fragment": fragment, "pos": "pronoun"}]}
-
-    configure_becoming_linguistics(SpecializedRepository(language_code), generate)
+def test_linguistics_annotates_without_any_provider(language_code: str) -> None:
+    # Segmentation and tagging are deterministic. This is the whole point of the
+    # capability being local: there is nothing to configure and nothing to fail.
+    configure_becoming_linguistics(SpecializedRepository(language_code))
     result = linguistic_annotations_for_essay(1)
 
-    assert calls[0]["capability_key"] == "writing_linguistic"
     assert result["language_code"] == language_code
+    assert result["annotations"], "the local tagger produced nothing"
+    assert all(item["pos"] for item in result["annotations"])
+
+
+def test_linguistics_annotations_quote_the_learner_text_exactly() -> None:
+    # Offsets have to index back into the source, or the Review lens highlights
+    # the wrong words.
+    configure_becoming_linguistics(SpecializedRepository("en"))
+    result = linguistic_annotations_for_essay(1)
+    source = SpecializedRepository("en").get_linguistic_essay(1)["text"]
+
+    for item in result["annotations"]:
+        assert source[item["start"]:item["end"]] == item["fragment"]
 
 
 @pytest.mark.parametrize(
@@ -263,18 +268,18 @@ def test_reading_uses_capability_runtime_without_legacy_selection(
     assert provider.calls[0]["model"] == "capability-model"
 
 
-def test_linguistics_uses_capability_runtime_without_legacy_selection(
+def test_linguistics_never_reaches_a_provider_in_either_runtime_mode(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setenv("AI_RUNTIME_MODE", "capability")
     provider = Provider()
     install(monkeypatch, Repository(config()), provider)
     monkeypatch.setattr(platform, "active_selection", lambda: pytest.fail("legacy routing used"))
-    configure_becoming_linguistics(SpecializedRepository(), platform.generate_structured)
+    configure_becoming_linguistics(SpecializedRepository())
 
     linguistic_annotations_for_essay(1)
 
-    assert provider.calls[0]["model"] == "capability-model"
+    assert provider.calls == []
 
 
 @pytest.mark.parametrize("runtime_config", [None, config(enabled=False)])
@@ -337,8 +342,11 @@ def test_workloads_pass_product_wide_explicit_capabilities() -> None:
         "writing_improver", "learner_dictionary", "learner_translation"
     }
     assert "grammar_lesson_generator" not in ai_json_capabilities
-    assert values | ai_json_capabilities | {"reading_generator", "writing_linguistic"} == {
-        "writing_evaluator", "writing_linguistic", "reading_generator",
+    assert "writing_linguistic" not in values | ai_json_capabilities, (
+        "writing_linguistic is deterministic; nothing should route it to a provider"
+    )
+    assert values | ai_json_capabilities | {"reading_generator"} == {
+        "writing_evaluator", "reading_generator",
         "writing_task_generator", "writing_improver", "learner_dictionary",
         "learner_translation",
     }

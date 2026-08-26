@@ -32,7 +32,7 @@ req('configure_becoming_memory(_specialized_learning_repository)' in app,'memory
 req('configure_becoming_outcomes(_specialized_learning_repository)' in app,'outcomes not wired to repository')
 req('configure_becoming_library(_specialized_learning_repository)' in app,'library not wired to repository')
 req('configure_becoming_reading(_specialized_learning_repository, generate_structured)' in app,'reading not wired to repository')
-req('configure_becoming_linguistics(_specialized_learning_repository, generate_structured)' in app,'linguistics not wired to repository')
+req('configure_becoming_linguistics(_specialized_learning_repository)' in app,'linguistics not wired to repository')
 req((ROOT/'docs/SPECIALIZED_PERSISTENCE_BOUNDARY.md').exists(),'missing boundary doc')
 print('BECOMING specialized persistence boundary validation OK')
 print('Memory / Outcomes / Active Recall / Reading / Linguistics: repository-bound')
