@@ -291,6 +291,12 @@ class UserIsolationMiddleware(BaseHTTPMiddleware):
             user_token = _user_key.set("legacy")
             language_token = _language_key.set(requested_language)
             try:
+                # Local development still uses per-language SQLite scopes.  A
+                # language switch can therefore point the request at a new
+                # database path after startup; initialize that scope before
+                # any handler attempts to read or write it.
+                if _db_initializer is not None:
+                    _db_initializer()
                 return await call_next(request)
             finally:
                 _language_key.reset(language_token)
