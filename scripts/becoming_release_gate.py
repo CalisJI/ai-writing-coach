@@ -1006,9 +1006,9 @@ def main() -> None:
         "home": ["o-hero", "o-journey", "o-stages"],
         "write": ["o-write", "o-editor", "o-write-aside", "o-write-sticky"],
         "review": ["o-review", "o-doc", "o-review-aside"],
-        "reading": ["reading-hero-surface", "visual-hero-surface"],
-        "library": ["library-recall-hero", "visual-hero-surface"],
-        "journey": ["progress-hero", "visual-hero-surface", "progress-support-list"],
+        "reading": ["o-reader", "o-reading-grid", "data-reading-rail"],
+        "library": ["o-recall-head", "o-lib-body", "o-lib-rail"],
+        "journey": ["o-journey-focus", "o-journey-body-grid", "o-target"],
         "profile": ["visual-identity-column"],
         "onboarding": ["visual-onboarding-stage"],
     }
@@ -1056,8 +1056,9 @@ def main() -> None:
         "profileTheme", "THEME_PALETTES.map", "applyPalette", "theme_preset",
     ], "Profile theme preference")
     require_contains(errors, orena_profile_css, [
-        "--o-profile-control-track", '[data-icon^="palette-"]',
-    ], "Profile compact theme selector visual system")
+        ".profile-page .theme-choice-grid", ".profile-page .theme-choice.selected",
+        ".profile-page .theme-swatch",
+    ], "Profile palette selector visual system")
 
     # Growth Rank: original evidence-derived identity frame, not activity XP or external benchmark.
     require_contains(errors, rank_domain, [

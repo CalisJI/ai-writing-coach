@@ -1,5 +1,5 @@
 import {api} from '../api.js';
-import {go} from '../router.js?v=2.17.4';
+import {go} from '../router.js?v=2.17.5';
 import {
   classifyArchetype,
   archetypeLabel,
@@ -8,6 +8,7 @@ import {
 } from '../domain/grammar-pedagogy.js';
 import {supportLanguage} from '../store.js';
 import {esc,errorBlock,loadingBlock,toast,runBusy} from '../components/primitives.js';
+import {oIcon} from '../orena/icons.js';
 import {
   hasGrammarLearningModel,
   renderGrammarLearningModel,
@@ -15,7 +16,7 @@ import {
   grammarLearningCompletion,
   localizedText,
   grammarLanguageContext,
-} from '../components/grammar-learning.js?v=2.17.4';
+} from '../components/grammar-learning.js?v=2.17.5';
 
 const COPY={
   en:{
@@ -503,14 +504,14 @@ function lessonMarkup(detail,payload){
     :legacyObjective(detail);
 
   return `<article class="grammar-lesson visual-raised-surface" data-grammar-lesson="${esc(detail.id)}">
-    <button type="button" class="o-btn o-btn--outline o-btn--compact grammar-back" data-grammar-back>${esc(c.backToGrammar)}</button>
+    <button type="button" class="o-btn o-btn--outline o-btn--compact grammar-back grammar-back-button" data-grammar-back>${oIcon('arrowLeft')}<span>${esc(c.backToGrammar)}</span></button>
 
     <header class="grammar-lesson-head">
       <div>
         <!-- What kind of grammar this is, classified from the concept itself
              rather than from the word "lesson", which every lesson is. -->
         <span class="editorial-kicker">${esc(detail.level)} · ${esc(archetypeLabel(classifyArchetype(detail),supportLanguage()||'en'))}</span>
-        <h2>${esc(detail.title)}</h2>
+        <h2 data-grammar-lesson-title>${esc(detail.title)}</h2>
         <p>${esc(objective)}</p>
       </div>
       <span class="grammar-completion-chip ${detail.completed?'is-complete':''}">
@@ -525,7 +526,7 @@ function lessonMarkup(detail,payload){
           :legacyLessonBody(detail,c)}
       </main>
 
-      <aside class="grammar-lesson-actions">
+      <aside class="grammar-lesson-actions grammar-lesson-rail-card">
         <!-- Position, not a score: the reference's percentage has no equivalent
              here, and calling reading position "progress" would be a claim the
              product cannot back. -->
@@ -537,7 +538,7 @@ function lessonMarkup(detail,payload){
 
         <section class="grammar-rail-block grammar-rail-path" data-lesson-path></section>
 
-        <section class="grammar-rail-block grammar-rail-outline">
+        <section class="grammar-rail-block grammar-rail-outline grammar-lesson-outline" data-grammar-lesson-outline>
           <span class="context-label">${esc(c.inThisLesson)}</span>
           <ol data-lesson-outline></ol>
         </section>
@@ -570,6 +571,7 @@ function lessonMarkup(detail,payload){
 
 export async function renderGrammar(root){
   const c=copy();
+  document.getElementById('pageTitle')?.removeAttribute('data-grammar-lesson-title');
   root.innerHTML=`<section class="o-page grammar-page">${loadingBlock(6)}</section>`;
 
   let payload;
@@ -582,10 +584,32 @@ export async function renderGrammar(root){
 
   root.innerHTML=overviewMarkup(payload);
   const slot=root.querySelector('#grammarLessonSlot');
+  const page=root.querySelector('.grammar-page');
+  const pageTitle=document.getElementById('pageTitle');
+  let activeLessonId='';
+  let activeLessonOpener=null;
+
+  const lessonBackMarkup=()=>`<button type="button" class="o-btn o-btn--outline o-btn--compact grammar-back grammar-back-button" data-grammar-back>${oIcon('arrowLeft')}<span>${esc(c.backToGrammar)}</span></button>`;
+  const closeLesson=()=>{
+    const lessonId=activeLessonId;
+    const opener=activeLessonOpener;
+    activeLessonId='';
+    activeLessonOpener=null;
+    slot._outlineObserver?.disconnect();
+    slot.innerHTML='';
+    page?.classList.remove('has-open-lesson');
+    pageTitle?.removeAttribute('data-grammar-lesson-title');
+    page?.scrollIntoView({behavior:'smooth',block:'start'});
+    const target=opener?.isConnected
+      ?opener
+      :root.querySelector(`[data-grammar-open="${CSS.escape(lessonId)}"]`);
+    target?.focus({preventScroll:true});
+  };
+  const bindBack=()=>slot.querySelector('[data-grammar-back]')?.addEventListener('click',closeLesson);
 
   const bindOverview=()=>{
     root.querySelectorAll('[data-grammar-open]').forEach(button=>{
-      button.addEventListener('click',()=>openLesson(button.dataset.grammarOpen));
+      button.addEventListener('click',()=>openLesson(button.dataset.grammarOpen,button));
     });
     root.querySelectorAll('[data-grammar-level]').forEach(button=>{
       button.addEventListener('click',()=>{
@@ -600,35 +624,36 @@ export async function renderGrammar(root){
     });
   };
 
-  const openLesson=async lessonId=>{
+  const openLesson=async (lessonId,opener=null)=>{
     if(!lessonId)return;
-    slot.innerHTML=`<section class="grammar-lesson visual-raised-surface">${loadingBlock(5)}<p>${esc(c.loading)}</p></section>`;
+    activeLessonId=lessonId;
+    if(opener)activeLessonOpener=opener;
+    page?.classList.add('has-open-lesson');
+    slot.innerHTML=`${lessonBackMarkup()}<section class="grammar-lesson visual-raised-surface">${loadingBlock(5)}<p>${esc(c.loading)}</p></section>`;
+    bindBack();
     slot.scrollIntoView({behavior:'smooth',block:'start'});
 
     let detail;
     try{
       detail=await api.grammarLesson(lessonId);
     }catch(error){
-      slot.innerHTML=errorBlock(error.message||String(error));
+      slot.innerHTML=`${lessonBackMarkup()}${errorBlock(error.message||String(error))}`;
+      bindBack();
       return;
     }
 
     const languageContext=grammarContext(detail);
+    if(pageTitle)pageTitle.dataset.grammarLessonTitle=detail.title||c.lesson;
 
     slot._outlineObserver?.disconnect();
     slot.innerHTML=lessonMarkup(detail,payload);
+    bindBack();
     if(hasGrammarLearningModel(detail.learning_model)){
       bindGrammarLearningInteractions(slot,languageContext);
     }
     dropRepeatedText(slot);
     composeLessonBody(slot,detail);
     wireLessonOutline(slot);
-
-    slot.querySelector('[data-grammar-back]')?.addEventListener('click',()=>{
-      slot._outlineObserver?.disconnect();
-      slot.innerHTML='';
-      root.querySelector('.grammar-curriculum-map')?.scrollIntoView({behavior:'smooth',block:'start'});
-    });
 
     slot.querySelectorAll('[data-grammar-reveal]').forEach(button=>{
       button.addEventListener('click',()=>{

@@ -137,7 +137,7 @@ function readingAidValue(item,context){
 function frame(block,context,body,{surface=false}={}){
   const id=`grammar-learning-${safeId(block.id)}`;
   const instruction=explanationText(block.instruction,context);
-  return `<section class="grammar-learning-block grammar-learning-${esc(block.type)} ${surface?'is-visual-surface':''}" data-learning-stage="${esc(block.stage)}" aria-labelledby="${id}">
+  return `<section class="grammar-learning-block grammar-learning-${esc(block.type)} ${surface?'is-visual-surface':''}" data-grammar-block-type="${esc(block.type)}" data-learning-stage="${esc(block.stage)}" aria-labelledby="${id}">
     <header class="grammar-learning-block-head">
       <span class="grammar-learning-stage">${esc(stageLabel(block.stage,context))}</span>
       <h3 id="${id}">${esc(explanationText(block.title,context))}</h3>
@@ -415,7 +415,7 @@ export function renderGrammarLearningModel(model,options={}){
   const remainingBlocks=primaryIndex>=0
     ?blocks.filter((_,index)=>index!==primaryIndex)
     :blocks;
-  return `<div class="grammar-learning-shell" data-grammar-learning-model="1" data-grammar-schema="${esc(model.schema_version)}" data-target-language="${esc(context.targetLanguage)}" data-interface-language="${esc(context.interfaceLanguage)}" data-explanation-language="${esc(context.explanationLanguage)}" data-translation-language="${esc(context.translationLanguage)}">
+  return `<div class="grammar-learning-shell" data-grammar-learning-model="1" data-grammar-visual-system="orena-grammar-v2" data-grammar-reference="orena-prod" data-grammar-schema="${esc(model.schema_version)}" data-target-language="${esc(context.targetLanguage)}" data-interface-language="${esc(context.interfaceLanguage)}" data-explanation-language="${esc(context.explanationLanguage)}" data-translation-language="${esc(context.translationLanguage)}">
     <nav class="grammar-learning-flow" aria-label="${esc(copy(context).flowLabel)}">${(model.flow||[]).map((stage,index)=>`<span data-flow-stage="${esc(stage)}"><i>${index+1}</i><b>${esc(stageLabel(stage,context))}</b></span>`).join('')}</nav>
     <section class="grammar-learning-hook"><span>${esc(explanationText(hook.eyebrow,context)||stageLabel('notice',context))}</span><h3>${esc(explanationText(hook.prompt,context))}</h3>${hasReadingAid(model)?`<button type="button" class="button button-tertiary grammar-reading-aid-toggle" data-reading-aid-toggle aria-pressed="true">${esc(copy(context).hideReadingAid)}</button>`:''}</section>
     <section class="grammar-learning-meaning"><span class="grammar-learning-stage">${esc(stageLabel('understand',context))}</span><h3>${esc(explanationText(meaning.summary,context))}</h3><p>${esc(explanationText(meaning.mental_model,context))}</p>${!modern&&useWhen.length?`<ul>${useWhen.map(item=>`<li>${esc(explanationText(item,context))}</li>`).join('')}</ul>`:''}</section>

@@ -332,6 +332,33 @@
   }
   .o-set-copy{gap:5px}
   .o-set-control{justify-content:stretch;--o-set-control-w:100%}
+  .o-set-control .orena-select-panel{
+    left:auto;
+    right:0;
+    width:max(100%,190px);
+    min-width:0;
+    max-width:calc(100vw - 32px);
+    box-sizing:border-box;
+  }
   .o-set-value{justify-items:start;text-align:left}
   .o-set-action{grid-template-columns:minmax(0,1fr) auto}
+}
+
+@media (max-width:720px){
+  .o-workspace:has(#mainContent[data-screen-contract="profile"]) .o-topbar-brand{display:none}
+  .o-workspace:has(#mainContent[data-screen-contract="profile"]) .o-topbar-title{
+    position:absolute;
+    left:50%;
+    display:block;
+    width:max-content;
+    max-width:calc(100% - 184px);
+    transform:translateX(-50%);
+    overflow:hidden;
+    font-size:17px;
+    text-align:center;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+  }
+  .o-workspace:has(#mainContent[data-screen-contract="profile"]) .o-topbar-actions{margin-left:auto}
+  .o-workspace:has(#mainContent[data-screen-contract="profile"]) .o-page-heading{display:none}
 }

@@ -14,7 +14,7 @@ import {
 } from '../components/primitives.js';
 import {configFor} from '../language.js';
 import {go} from '../router.js';
-import {installSelectEnhancements} from '../components/select-field.js';
+import {installSelectEnhancements,syncSelectField} from '../components/select-field.js';
 import {t,localeLabel,applyChromeI18n,uiLocale} from '../domain/i18n.js';
 import {
   applyPalette,
@@ -269,6 +269,7 @@ function statusMarkup(){
 }
 
 export async function renderProfile(root){
+  if(typeof root._cleanupProfile==='function')root._cleanupProfile();
   root.innerHTML=`<section class="o-page">${loadingBlock(3)}</section>`;
 
   let memory={};
@@ -504,6 +505,13 @@ export async function renderProfile(root){
     root.querySelector(`#${id}`)?.addEventListener('change',event=>handler(event.currentTarget.value));
   }
 
+  function restoreSelect(id,value){
+    const select=root.querySelector(`#${id}`);
+    if(!select)return;
+    select.value=value;
+    syncSelectField(select);
+  }
+
   onChange('profileLanguage',async value=>{
     setSaving(t('busy.switching'));
     try{
@@ -512,29 +520,40 @@ export async function renderProfile(root){
       window.dispatchEvent(new CustomEvent('becoming:language-changed',{detail:{language:value}}));
     }catch(error){
       toast(error.message||t('toast.switch_failed'));
+      restoreSelect('profileLanguage',state.language);
     }finally{
       clearSaving();
     }
   });
 
-  onChange('profileGoal',value=>persistProfile({goal:value},'toast.goal_saved'));
-  onChange('profileStyle',value=>persistProfile({style:value},'toast.guidance_saved'));
+  onChange('profileGoal',async value=>{
+    const previous=state.profile?.goal||'everyday';
+    try{await persistProfile({goal:value},'toast.goal_saved');}
+    catch{restoreSelect('profileGoal',previous);}
+  });
+  onChange('profileStyle',async value=>{
+    const previous=state.profile?.style||'guided';
+    try{await persistProfile({style:value},'toast.guidance_saved');}
+    catch{restoreSelect('profileStyle',previous);}
+  });
 
   onChange('profilePinyin',async value=>{
+    const previous=state.profile?.pinyin||'auto';
     try{
       await persistProfile({pinyin:value},'toast.pinyin_saved');
       /* The row's explanation belongs to the chosen mode, so it is re-read
          from the same string the control was built from. */
       await renderProfile(root);
-    }catch{}
+    }catch{restoreSelect('profilePinyin',previous);}
   });
 
   onChange('profileNativeLanguage',async value=>{
+    const previous=state.profile?.native_language||state.supportLanguage||'vi';
     try{
       await persistProfile({native_language:value},'toast.interface_saved');
       await renderProfile(root);
       applyChromeI18n();
-    }catch{}
+    }catch{restoreSelect('profileNativeLanguage',previous);}
   });
 
   /* Light and dark are a display preference held on this device, which is why
@@ -555,6 +574,23 @@ export async function renderProfile(root){
     }
   });
 
+  const syncProfileMode=()=>{
+    const mode=activeTheme();
+    const select=root.querySelector('#profileMode');
+    if(!select)return;
+    select.value=mode;
+    select.dataset.icon=oIcon(mode==='dark'?'moon':'sun');
+    syncSelectField(select);
+  };
+  window.addEventListener('becoming:theme-changed',syncProfileMode);
+  const cleanupProfile=()=>{
+    window.removeEventListener('becoming:theme-changed',syncProfileMode);
+    if(root._cleanupProfile===cleanupProfile)delete root._cleanupProfile;
+    if(root._cleanupScreen===cleanupProfile)delete root._cleanupScreen;
+  };
+  root._cleanupProfile=cleanupProfile;
+  root._cleanupScreen=cleanupProfile;
+
   root.querySelectorAll('input[name="profileTheme"]').forEach(input=>{
     input.addEventListener('change',async()=>{
       const previous=activePalette();
@@ -569,6 +605,13 @@ export async function renderProfile(root){
         });
       }catch{
         applyPalette(previous,{persist:true});
+        input.checked=input.value===previous;
+        root.querySelectorAll('.theme-choice').forEach(label=>{
+          const option=label.querySelector('input');
+          const selected=option?.value===previous;
+          if(option)option.checked=selected;
+          label.classList.toggle('selected',selected);
+        });
       }
     });
   });
