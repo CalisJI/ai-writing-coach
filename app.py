@@ -1513,8 +1513,11 @@ def api_delete_vocabulary(word: str) -> dict[str, Any]:
 @app.post("/api/evaluate")
 def api_evaluate(payload: EssayIn) -> dict[str, Any]:
     active_language = active_grammar_language_code()
-    if payload.learning_language and payload.learning_language.lower() not in {active_language, "zh" if active_language == "zh" else "en"}:
-        raise HTTPException(status_code=409, detail="language_scope_mismatch")
+    if payload.learning_language:
+        requested_language = payload.learning_language.casefold().replace("_", "-")
+        active_scope = active_language.casefold().replace("_", "-")
+        if requested_language != active_scope and requested_language.split("-", 1)[0] != active_scope.split("-", 1)[0]:
+            raise HTTPException(status_code=409, detail="language_scope_mismatch")
     previous: dict[str, Any] | None = None
     series_id: int | None = None
     revision_no = 1

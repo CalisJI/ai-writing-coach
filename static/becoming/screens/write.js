@@ -575,6 +575,7 @@ export async function renderWrite(root) {
       prompt: promptText(),
       text,
       target_cefr: state.draft.level,
+      learning_language: state.language,
       parent_essay_id: parentEssayId || null,
       practice_context: state.draft.practiceContext || state.draft.generatedTask?.personalization || null,
     });
