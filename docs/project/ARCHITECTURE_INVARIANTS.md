@@ -26,11 +26,13 @@ entry, and corresponding current-state and handoff updates.
   parity, shared tokens, and the established visual identity.
 - Journey, Review, Library / Active Recall UI, shared layout primitives,
   gutters, spacing, overflow, and container-width primitives are protected.
-- `static/becoming/orena/**` is the shared frontend `2.17.5` migration layer
-  for the Orena shell, Home, Writing, Review, and Profile. Its `--o-*` tokens and `.o-*`
-  primitives remain shared; new screens must not copy them into page-local
-  systems. Stable legacy screens are adopted through the bounded shared layer
-  and are not implicitly authorized for wholesale rebuild.
+- `static/becoming/orena/**` is the bounded frontend `2.17.5` presentation layer
+  for the shared Orena shell and learner screens. Its `--o-*` tokens and `.o-*`
+  primitives remain shared; dedicated screen styles may compose them but must
+  not copy shared tokens, layout primitives, or responsive contracts into new
+  page-local systems. D-024 completes the approved screen migration without
+  relaxing protected domain, persistence, EN/ZH, accessibility, or learner-flow
+  contracts.
 - `docs/visual-references/**` remains untouched unless explicitly scoped.
 
 ## Multilingual product

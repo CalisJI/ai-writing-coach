@@ -387,7 +387,7 @@ for explicit intelligence features, not normal Meaning generation.
 
 ## D-022 — Orena UI migration uses one bounded shared namespace
 
-**Status:** Accepted
+**Status:** Superseded by D-024
 
 **Decision:** Frontend `2.17.4` uses `static/becoming/orena/**` as a bounded,
 shared migration layer for the Orena shell and rebuilt Home, Writing, and Review
@@ -409,8 +409,8 @@ and may be removed only through a separately reviewed migration. This decision
 does not change backend, persistence, learner-skill release state, or production
 deployment.
 
-**Supersedes / Superseded by:** Extends the frontend invariant and OREN-16
-shared-primitives checkpoint; supersedes neither.
+**Supersedes / Superseded by:** Extended the frontend invariant and OREN-16
+shared-primitives checkpoint; superseded by D-024 for completed screen scope.
 
 ## D-023 — Hanzi stroke order is vendored data, never generated
 
@@ -447,3 +447,34 @@ by the renderer, so it survives a failed vendor import.
 
 **Supersedes / Superseded by:** Satisfies the condition `UPGRADE_REGRESSION_RULES.md`
 §33 left open. Supersedes no earlier decision.
+
+## D-024 — Orena completes the bounded learner-screen migration
+
+**Status:** Accepted
+
+**Decision:** Frontend `2.17.5` completes the bounded Orena presentation
+migration across Home, Writing, Review, Reading, Listening, Speaking, Grammar,
+Library, Journey, Profile, onboarding, and sign-in. Dedicated screen layers may
+compose the shared `static/becoming/orena/**` tokens and primitives. They do not
+own or replace domain models, stable identifiers, persistence boundaries,
+learner evidence, release state, or shared EN/ZH behavior.
+
+**Reason:** The explicitly requested resynchronization with `claude/work`
+provided a coherent second migration slice for the remaining learner screens,
+Grammar pedagogy presentation, Profile settings, and shared supporting
+contracts. Keeping these screens indefinitely behind a compatibility-only
+layer would leave two visual ownership models. Selective integration plus full
+regression, release-gate, and responsive runtime verification establishes one
+reviewable frontend boundary without reopening closed product systems.
+
+**Consequences:** New visual work continues through shared Orena tokens and
+primitives, with screen-local CSS limited to genuine screen composition.
+Journey, Review, Library / Active Recall, Grammar, Media Learning, shared
+layout, and overflow contracts remain protected and require focused validation
+when touched. R5 Static Grammar KB, stable Grammar Concept IDs, schema-v2
+models, completion semantics, PostgreSQL authority, application/frontend
+versions, deployment, and learner-skill release state are unchanged.
+
+**Supersedes / Superseded by:** Supersedes D-022 only for migration completion
+and screen ownership. Retains D-022's bounded namespace and shared-contract
+requirements.

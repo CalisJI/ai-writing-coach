@@ -1,7 +1,7 @@
 # Current Handoff
 
 **Application/runtime baseline:**
-`93e18560c8d4113356d77bb7f87b269aee3fc245`
+`79f5c5da8812c5c5c7b3472cd747dc434304cf22`
 
 This baseline is the locally verified Orena UI/UX `2.17.5` integration code
 checkpoint. It inherits the reviewed R5 Grammar Knowledge System closeout
@@ -28,74 +28,64 @@ baseline.
 
 Branch: `codex/orena-ui-ux-integration`
 
-Code checkpoint: `93e18560c8d4113356d77bb7f87b269aee3fc245`
+Code checkpoint: `79f5c5da8812c5c5c7b3472cd747dc434304cf22`
 
 Status: **LOCAL AUTOMATION + BRAVE VISUAL QA PASS / HUMAN ACCEPTANCE PENDING / NOT DEPLOYED**
 
-- Selected UI commits from `claude/work` are integrated over the latest
-  `origin/main`; Claude-specific tooling and broad validator archival were
-  excluded as out of scope.
-- Orena shell, Home, Writing, Review, sign-in, responsive navigation,
-  accessible select fields, learner mastheads, and bounded Listening UX are
-  present at frontend `2.17.5`.
-- Profile / Preferences now follows the supplied Orena-prod desktop,
-  light/dark, and mobile hierarchy while retaining the real EN/ZH learning
-  switch, interface language, goal, guidance, Pinyin, palette, account, and
-  evidence-derived Growth Rank contracts.
-- The failed first human review identified uneven row geometry and corrupted
-  glyph-based language flags. Checkpoint `30876d9` carries forward the CSS-drawn
-  flags and shared control track from `b216ac1`, corrects the desktop frame and
-  column gap against Orena-prod, restores SVG strokes, adds balanced mobile
-  gutters and a centered Profile title, and prevents open mobile listboxes from
-  widening the document.
-- Grammar checkpoint `93e1856` now matches the supplied Orena-prod lesson
-  composition rather than only borrowing its colours. The initial reading
-  layer is a compact Pattern ribbon and syntax track, paired When-to-use and
-  Examples cards, a two-sided Compare treatment with `vs.`, one flattened
-  Common-mistake correction row, Quick practice, and a truthful
-  `830px + 26px + 288px` progress/outline/action rail.
-- Secondary exception, personal-practice, recall, memory, transfer, and rare
-  visual blocks remain rendered inside a closed More-practice disclosure, so
-  no source-backed content or completion evidence is discarded. Completion
-  opens that disclosure before focusing missing evidence. The shared renderer
-  applies this composition to all `508 / 508` EN/ZH lessons.
-- Mobile moves Back and the active lesson title into the top bar, keeps the
-  bookmark, Pattern and Quick practice visible, and presents exactly four
-  compact disclosure rows for When to use, Examples, Compare and Common
-  mistake, matching the reference's initial hierarchy.
-- This Grammar presentation layer is scoped to the protected Grammar route. It
-  does not change R5 curriculum content, stable concept IDs, Static Grammar KB,
-  schema-v2 rendering, or completion-evidence semantics.
-- Integration fixes preserve Writing practice context, Dictionary/Pinyin,
-  Review POS lens, Chinese Review Pinyin, and the UI-03 shared primitive
-  contract.
-- Current Grammar evidence: Orena visual/interaction coverage PASS for `508 /
-  508`; eight additional renderer/UI/route/mobile checks PASS; browser ESM
-  graph PASS (`48 modules`); isolated Phase 1, curriculum, universal
-  architecture, and concept-specific audits PASS. The legacy full-rollout JS
-  assertion remains at its pre-existing `0 !== 505`, and the legacy rollout
-  audit still reports the pre-existing missing source-adapted marker. The
-  container image does not include pytest, so the backend suite was not rerun;
-  the inherited result remains `503 passed, 3 warnings`.
-- Brave rereview PASS at desktop/mobile reference dimensions in light/dark and
-  VI/ZH interface states. Desktop measured `830px + 26px + 294px`; mobile cards
-  retained `12px` side gutters; the open `190px` language panel retained
-  `scrollWidth == clientWidth` and `scrollX == 0`; no mojibake or console
-  warnings/errors were observed. Remaining gate: human screenshot acceptance.
-- Grammar Brave QA PASS in EN/ZH, light/dark and desktop/mobile layouts:
-  desktop uses `830px + 26px + 288px`, the initial lesson is about `1,146px`
-  tall instead of the prior `3,170px`, the outline has six targets, mobile has
-  four disclosures, and horizontal overflow and console warnings/errors are
-  zero.
-- The current `93e1856` rereview used a database-free, read-only browser harness
-  with the production renderer/CSS and real English and Chinese knowledge data.
-  It confirmed correct CJK rendering without replacement characters,
-  responsive disclosure behavior, meaningful syntax-track labels, balanced
-  long formulas, and light/dark parity. Port `8000` remains the active Claude
-  worktree lane and was deliberately not replaced; Codex visual QA runs at the
-  isolated static harness on `127.0.0.1:8010`.
-- No production runtime, PostgreSQL data, deployment, OAuth, Cloudflare,
-  release state, application version, or public skill state changed.
+- The next `41` application commits from local `claude/work`
+  (`732e970..c22d068`) are integrated over the prior verified checkpoint.
+  Claude-specific tool configuration and broad historical-validator relocation
+  remain excluded as out of scope.
+- Frontend `2.17.5` now has dedicated Orena presentation layers for Home,
+  Writing, Review, Reading, Listening, Speaking, Grammar, Library, Journey,
+  Profile, onboarding, and sign-in while retaining one shared shell, token,
+  primitive, responsive, EN/ZH, accessibility, and light/dark contract.
+- Profile retains real learning/interface language, goal, guidance, three-state
+  Pinyin, palette, account, and evidence-derived Growth Rank behavior. Failed
+  writes restore truthful control state; shared theme changes stay synchronized;
+  mobile listboxes are viewport-bounded and the route title remains centered.
+- Grammar now composes the source schema-v2 learning model through a
+  deterministic pedagogy layer. All `508 / 508` EN/ZH lessons choose a real
+  primary block and render every source block with type traceability. The
+  focused lesson workspace preserves the bounded teaching column, `26px` gap,
+  `288px` rail, one-column mobile reflow, active mobile title, Back action,
+  completion evidence, and exact opener-focus restoration.
+- R5 remains CLOSED: no Static Grammar KB record, stable Grammar Concept ID,
+  schema-v2 language context, completion meaning, or Grammar runtime-AI contract
+  changed.
+- Chinese Dictionary now exposes deterministic stroke-order practice from the
+  vendored `9,565`-character data pack through read-only
+  `GET /api/chinese/stroke-order`. No AI provider or runtime CDN is involved.
+- Media and speech routes with semantic categories now use the canonical error
+  envelope; the frontend exposes category, retryability, context, and HTTP
+  status. The AI cost-reduction document remains a proposal, not runtime or
+  billing activation.
+- Local verification at the code checkpoint: release gate PASS for frontend
+  `2.17.5`; architecture PASS; full regression `518 passed, 3 warnings`, no
+  failures or skips; browser ESM graph PASS (`50 modules`); all nine CI Node
+  media contracts PASS; Profile and Grammar contracts PASS (`508 / 508` EN/ZH);
+  error-envelope, Hanzi contract, Hanzi-pack digest, and Grammar pedagogy audits
+  PASS.
+- One earlier full-regression attempt inherited `POSTGRES_RUNTIME_URL` from
+  Compose and produced `517 passed, 1 failed`; clearing that environment-only
+  contamination produced the final `518 passed`. No application logic was
+  changed to hide the environment failure.
+- Interactive Brave QA used an isolated current-branch runtime with temporary
+  `/tmp` SQLite. Home, Profile, and Grammar were inspected at desktop and mobile
+  breakpoints with no horizontal overflow or browser console error. Profile
+  kept its two-column/single-column hierarchy and bounded open listbox; Grammar
+  kept the desktop teaching/rail split, mobile one-column flow, ten traced
+  source blocks, active mobile title, and verified Back-focus restoration.
+  Screenshot capture timed out in the browser integration, so human visual
+  acceptance remains pending.
+- The one-off QA runtime was removed. Port `8000`, the active Claude worktree,
+  PostgreSQL data, production runtime, deployment, OAuth, Cloudflare, release
+  state, application/frontend versions, and public skill state were not changed.
+- The retained direct scripts `validate_journey_flat_v2156.py` and
+  `validate_chinese_library.py` still encode obsolete frontend/count baselines;
+  their pre-existing failures were confirmed before integration. They were not
+  weakened or relocated during this sync and should be retired only in an
+  explicitly scoped validator-governance change.
 
 ## Newly completed
 

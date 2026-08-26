@@ -8,7 +8,7 @@ historical narrative.
 - Product: Orena / BECOMING codebase
 - Repository: `CalisJI/ai-writing-coach`
 - Last verified application/runtime baseline:
-  `93e18560c8d4113356d77bb7f87b269aee3fc245`
+  `79f5c5da8812c5c5c7b3472cd747dc434304cf22`
 
 This SHA identifies the verified application/runtime baseline inherited by this
 governance checkpoint. Documentation-only or governance-only descendant commits
@@ -21,77 +21,60 @@ operational state.
 
 ## Orena UI/UX integration
 
-- Branch `codex/orena-ui-ux-integration` integrates the selected UI commits
-  from `claude/work` over `origin/main` and intentionally excludes the Claude
-  tool-configuration and historical-validator relocation commits.
-- Frontend `2.17.5` includes the shared Orena shell, responsive desktop rail
-  and mobile drawer, rebuilt Home, Writing, Review, and sign-in surfaces,
-  shared light/dark Orena tokens, learner-data mastheads, custom accessible
-  select fields, bounded Listening return/history improvements, and the
-  first Orena-prod-matched Profile / Preferences screen.
-- Profile now follows the supplied Orena-prod light, dark, desktop, and mobile
-  hierarchy through a dedicated `static/becoming/orena/profile.css` layer:
-  grouped learning/experience/appearance/account settings, accessible
-  listboxes, a Pinyin switch, truthful account rows, and a compact explanatory
-  aside. Existing goal, guidance, palette, EN/ZH, interface-language, and
-  evidence-derived Growth Rank behavior remains connected.
-- Human review of the first Profile pass found uneven preference-row alignment
-  and mojibake in glyph-based language icons. Baseline `30876d9` retains the
-  font-independent flags and shared control track from `b216ac1`, then corrects
-  the desktop content frame against the Orena-prod geometry, restores visible
-  stroke icons, gives mobile cards balanced gutters, centers the mobile route
-  title while preserving drawer navigation, and constrains listboxes so an open
-  menu cannot create horizontal page overflow.
-- Opened Grammar lessons now use a focused Orena-prod workspace rather than
-  leaving the full 269-item curriculum visible below the lesson. The desktop
-  surface uses a bounded teaching column plus a truthful progress/outline rail;
-  mobile uses compact, accessible disclosure rows for informational sections
-  while leaving Pattern and evidence-producing practice visible. Stable Grammar
-  Concept IDs, schema-v2 rendering, completion evidence, and EN/ZH content
-  contracts remain unchanged.
-- Grammar checkpoint `93e1856` applies the supplied Orena-prod composition to
-  all `508 / 508` source-backed EN/ZH lessons: one formula/word-order ribbon
-  with a visual syntax track, paired When-to-use and Examples cards, opposing
-  Compare cards with `vs.`, a compact Common-mistake correction row, and Quick
-  practice. Secondary exception, personal-practice, recall, memory, transfer,
-  and rare visual blocks remain available inside More practice; completion
-  opens the disclosure before focusing missing evidence. Static Grammar KB
-  content and stable concept IDs are not rewritten.
-- Mobile exposes the active lesson title and Back action in the top bar, keeps
-  bookmark, Pattern and Quick practice visible, and collapses exactly four
-  informational sections in the same initial order as Orena-prod.
-- Existing Writing practice context, Dictionary/Pinyin assistance, Review POS
-  lens, Chinese Review Pinyin, EN/ZH behavior, and UI-03 shared primitives are
-  preserved by the integration checkpoint.
-- Local automated evidence at `93e18560c8d4113356d77bb7f87b269aee3fc245`:
-  Orena visual/interaction coverage PASS for `508 / 508`; eight additional
-  renderer/UI/route/mobile checks PASS; browser ESM graph PASS with 48 linked
-  modules; isolated Phase 1, curriculum, universal-architecture, and
-  concept-specific audits PASS. The two legacy rollout checks retain their
-  pre-existing failures (`0 !== 505` and a missing source-adapted marker). The
-  container image has no pytest, so backend regression was not rerun; the
-  inherited result remains `503 passed, 3 warnings`.
-- Interactive Brave visual QA PASS at desktop and mobile reference dimensions,
-  light/dark, and VI/ZH interface states. The verified desktop surfaces measured
-  `830px + 26px + 294px`; mobile cards retained `12px` side gutters; opening a
-  `190px` language listbox left `scrollWidth == clientWidth` and `scrollX == 0`;
-  Chinese rendered without mojibake; and browser console warnings/errors were
-  zero. Human acceptance of the screenshots remains pending. This checkpoint
-  is not deployed and does not promote any learner skill to PUBLIC.
-- Grammar Brave QA additionally verified a `830px + 26px + 288px` desktop
-  lesson/rail frame at the measured viewport, no horizontal overflow, real
-  curriculum progress, a six-target lesson outline, functional Back navigation,
-  four accessible mobile disclosures, light/dark switching, and zero browser
-  console warnings/errors. The initial desktop lesson content now measures
-  about `1,146px` tall rather than the prior `3,170px`; mobile keeps Pattern and
-  Quick practice in the initial compact sequence.
-- The `93e1856` Grammar visual rereview used a read-only static harness loading
-  the production renderer, styles, and real EN/ZH knowledge files. It verified
-  balanced long formulas, no desktop or mobile horizontal overflow, dark/light
-  token parity, functional mobile disclosures, Chinese CJK font fallback, and
-  no Unicode replacement characters. Port `8000` continues to serve the active
-  Claude worktree and was not disturbed; Codex visual QA uses the isolated
-  static harness on `127.0.0.1:8010`.
+- Branch `codex/orena-ui-ux-integration` now includes the next `41` application
+  commits from local `claude/work` (`732e970..c22d068`) over the prior verified
+  integration. Claude-specific tool configuration and broad historical-
+  validator relocation remain deliberately excluded.
+- Frontend `2.17.5` keeps one shared Orena shell, token, primitive, responsive,
+  EN/ZH, accessibility, and light/dark contract. Dedicated Orena presentation
+  layers now cover Home, Writing, Review, Reading, Listening, Speaking,
+  Grammar, Library, Journey, Profile, onboarding, and sign-in; this completes
+  the bounded screen migration accepted in D-024.
+- Profile uses grouped learning, learning-experience, appearance, and account
+  settings with accessible custom select fields, three-state Pinyin, palette
+  cards, truthful rollback after failed saves, evidence-derived Growth Rank,
+  bounded mobile listboxes, and centered mobile chrome. Theme changes made in
+  shared chrome remain synchronized with the Profile control.
+- Grammar uses a deterministic pedagogy composition layer over the existing
+  schema-v2 source models. Every one of the `508 / 508` EN/ZH lessons retains
+  its stable Grammar Concept ID and source blocks, exposes block-type
+  traceability, and renders a real primary model, formula/word-order treatment,
+  contextual use, examples, contrasts, mistakes, practice, recall, and transfer
+  where present. Open lessons use a focused workspace with a bounded teaching
+  column and `288px` rail; mobile uses one column, the active lesson title and a
+  fixed Back action. Back restores focus to the exact control that opened the
+  lesson.
+- The Chinese learner dictionary now has deterministic stroke-order practice
+  backed by a vendored `9,565`-character, `14.1 MB` data pack and lazy-loaded
+  renderer. `GET /api/chinese/stroke-order` is read-only, uses no AI or runtime
+  CDN, and reports unavailable glyphs truthfully. D-023 records the durable
+  data and licensing decision.
+- Media and speech routes that already expose semantic error categories now
+  build the canonical `{category, message, retryable, context}` error envelope;
+  the frontend request wrapper exposes those fields without branching on prose.
+  `docs/ORENA_AI_COST_REDUCTION_PLAN.md` is a proposal only; it does not activate
+  a provider, billing, quota, subscription, deployment, or runtime cutover.
+- Local automated evidence at
+  `79f5c5da8812c5c5c7b3472cd747dc434304cf22`: release gate PASS at frontend
+  `2.17.5`; architecture PASS; full regression `518 passed, 3 warnings` with no
+  failures or skips; browser ESM graph PASS with `50` linked modules; all nine
+  CI Node media contracts PASS; Profile and Grammar contracts PASS, including
+  `508 / 508` EN/ZH lessons; canonical error-envelope, Hanzi route/renderer, and
+  Hanzi-pack digest checks PASS; Grammar pedagogy audit PASS for EN `269` and ZH
+  `239`.
+- Interactive Brave QA against an isolated current-branch runtime verified the
+  Home, Profile, and Grammar flows at desktop and mobile breakpoints. Profile
+  retained its two-column desktop hierarchy and single-column mobile layout;
+  its open listbox stayed inside the viewport. Grammar retained its teaching /
+  `26px` gap / `288px` rail layout on desktop, recomposed to one column on
+  mobile, exposed ten traced source blocks, produced no horizontal overflow,
+  and restored focus after Back. No browser console error was observed.
+  Screenshot capture timed out in the browser integration, so human visual
+  acceptance remains pending. The QA container used temporary `/tmp` SQLite,
+  was removed after testing, and did not touch PostgreSQL or port `8000`.
+- This checkpoint is not deployed and does not promote any learner skill to
+  PUBLIC. Application version `1.4.0` and frontend version `2.17.5` are
+  unchanged.
 
 ## Persistence
 
