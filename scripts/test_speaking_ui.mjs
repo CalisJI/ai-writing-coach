@@ -101,6 +101,8 @@ assert.equal((feedbackHtml.match(/data-speaking-pronunciation-word/g)||[]).lengt
 assert.match(feedbackHtml,/<strong>Listen<\/strong>/);
 assert.doesNotMatch(feedbackHtml,/<strong>for<\/strong>/);
 assert.match(feedbackHtml,/o-pronunciation-phoneme/);
+assert.match(feedbackHtml,/role="img" aria-label="Listen, 74/);
+assert.match(feedbackHtml,/role="img" aria-label="ɪ, 68/);
 assert.match(feedbackHtml,/88/);
 
 assert.equal(controller.selectRelative(1),true);
