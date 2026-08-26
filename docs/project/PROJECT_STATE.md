@@ -8,7 +8,7 @@ historical narrative.
 - Product: Orena / BECOMING codebase
 - Repository: `CalisJI/ai-writing-coach`
 - Last verified application/runtime baseline:
-  `79f5c5da8812c5c5c7b3472cd747dc434304cf22`
+  `6c93d05b3cb1c79c2986af0ab4a83cf664eae3a9`
 
 This SHA identifies the verified application/runtime baseline inherited by this
 governance checkpoint. Documentation-only or governance-only descendant commits
@@ -21,8 +21,8 @@ operational state.
 
 ## Orena UI/UX integration
 
-- Branch `codex/orena-ui-ux-integration` now includes the next `41` application
-  commits from local `claude/work` (`732e970..c22d068`) over the prior verified
+- Branch `codex/orena-ui-ux-integration` now includes the next `43` application
+  commits from local `claude/work` (`732e970..04bfb97`) over the prior verified
   integration. Claude-specific tool configuration and broad historical-
   validator relocation remain deliberately excluded.
 - Frontend `2.17.5` keeps one shared Orena shell, token, primitive, responsive,
@@ -49,19 +49,33 @@ operational state.
   renderer. `GET /api/chinese/stroke-order` is read-only, uses no AI or runtime
   CDN, and reports unavailable glyphs truthfully. D-023 records the durable
   data and licensing decision.
+- Writing/Review POS annotation and Listening transcript annotation now share
+  one deterministic local implementation (`NLTK`/`jieba`/`pypinyin`) through
+  `writing_coach/linguistic_annotation.py`. `writing_linguistic` is no longer
+  provider-backed; its cache and public payload shape are unchanged. D-025
+  records this decision.
+- Shared-media translation keeps the provider-neutral boundary but selects
+  Groq when `GROQ_API_KEY` is configured, with local Marian retained when no
+  external key is present or when explicitly selected. Selection occurs once
+  from `MEDIA_TRANSLATION_PROVIDER`; malformed/failed responses stop without
+  provider failover. Quota headers are captured for a future admin surface.
+  D-026 supersedes D-021's local default. No production key, activation, or
+  deployment was changed in this sync.
 - Media and speech routes that already expose semantic error categories now
   build the canonical `{category, message, retryable, context}` error envelope;
   the frontend request wrapper exposes those fields without branching on prose.
-  `docs/ORENA_AI_COST_REDUCTION_PLAN.md` is a proposal only; it does not activate
-  a provider, billing, quota, subscription, deployment, or runtime cutover.
+  `docs/ORENA_AI_COST_REDUCTION_PLAN.md` now records implemented P0/P2 slices;
+  Groq selection remains configuration-driven and does not activate billing,
+  quota enforcement, subscription enforcement, deployment, or production
+  capability-mode cutover.
 - Local automated evidence at
-  `79f5c5da8812c5c5c7b3472cd747dc434304cf22`: release gate PASS at frontend
-  `2.17.5`; architecture PASS; full regression `518 passed, 3 warnings` with no
+  `6c93d05b3cb1c79c2986af0ab4a83cf664eae3a9`: release gate PASS at frontend
+  `2.17.5`; architecture PASS; full regression `561 passed, 3 warnings` with no
   failures or skips; browser ESM graph PASS with `50` linked modules; all nine
   CI Node media contracts PASS; Profile and Grammar contracts PASS, including
   `508 / 508` EN/ZH lessons; canonical error-envelope, Hanzi route/renderer, and
   Hanzi-pack digest checks PASS; Grammar pedagogy audit PASS for EN `269` and ZH
-  `239`.
+  `239`; focused linguistic/translation/capability coverage PASS (`101 tests`).
 - Interactive Brave QA against an isolated current-branch runtime verified the
   Home, Profile, and Grammar flows at desktop and mobile breakpoints. Profile
   retained its two-column desktop hierarchy and single-column mobile layout;
@@ -271,7 +285,7 @@ Legacy global admin mutation and provider-test endpoints remain transitional
 and deprecated.
 
 Capability-aware learner runtime support is implemented behind one central
-`LEGACY` / `CAPABILITY` mode. All eight provider-backed workloads pass explicit,
+`LEGACY` / `CAPABILITY` mode. Seven provider-backed workloads pass explicit,
 product-wide capability identities. `LEGACY` remains the default and current
 production behavior; production has **not** been activated to `CAPABILITY`.
 In `CAPABILITY` mode, routing resolves the exact persisted provider/model and
@@ -282,7 +296,6 @@ does not fall back to `active_selection()`.
 Configurable, implemented, provider-backed capabilities:
 
 - `writing_evaluator`
-- `writing_linguistic`
 - `reading_generator`
 - `writing_task_generator`
 - `writing_improver`
@@ -293,6 +306,11 @@ Configurable, implemented, provider-backed capabilities:
 Deterministic capability:
 
 - `reading_evaluator`
+- `writing_linguistic`
+
+The `learner_translation` provider catalog includes Groq and local Marian. The
+runtime selects the configured engine once at startup; it never silently fails
+over between providers.
 
 Reserved in the R2 control plane and not activated:
 

@@ -368,7 +368,7 @@ shown only when true word timestamps exist.
 
 ## D-021 — Media Meaning uses isolated local machine translation
 
-**Status:** Accepted
+**Status:** Superseded by D-026
 
 **Decision:** Normal Media Meaning translation uses a provider-neutral boundary
 whose default provider is an isolated local Marian service. Canonical transcript
@@ -383,7 +383,8 @@ in bounded batches. Completed translations are cached by engine version,
 language pair, and canonical transcript hash. Generic AI remains available only
 for explicit intelligence features, not normal Meaning generation.
 
-**Supersedes / Superseded by:** Narrows D-014 for Media Meaning; extends D-020.
+**Supersedes / Superseded by:** Narrows D-014 for Media Meaning; extends D-020;
+superseded by D-026 for the default provider selection.
 
 ## D-022 — Orena UI migration uses one bounded shared namespace
 

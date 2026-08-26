@@ -1,7 +1,7 @@
 # Current Handoff
 
 **Application/runtime baseline:**
-`79f5c5da8812c5c5c7b3472cd747dc434304cf22`
+`6c93d05b3cb1c79c2986af0ab4a83cf664eae3a9`
 
 This baseline is the locally verified Orena UI/UX `2.17.5` integration code
 checkpoint. It inherits the reviewed R5 Grammar Knowledge System closeout
@@ -28,12 +28,12 @@ baseline.
 
 Branch: `codex/orena-ui-ux-integration`
 
-Code checkpoint: `79f5c5da8812c5c5c7b3472cd747dc434304cf22`
+Code checkpoint: `6c93d05b3cb1c79c2986af0ab4a83cf664eae3a9`
 
 Status: **LOCAL AUTOMATION + BRAVE VISUAL QA PASS / HUMAN ACCEPTANCE PENDING / NOT DEPLOYED**
 
-- The next `41` application commits from local `claude/work`
-  (`732e970..c22d068`) are integrated over the prior verified checkpoint.
+- The next `43` application commits from local `claude/work`
+  (`732e970..04bfb97`) are integrated over the prior verified checkpoint.
   Claude-specific tool configuration and broad historical-validator relocation
   remain excluded as out of scope.
 - Frontend `2.17.5` now has dedicated Orena presentation layers for Home,
@@ -58,18 +58,20 @@ Status: **LOCAL AUTOMATION + BRAVE VISUAL QA PASS / HUMAN ACCEPTANCE PENDING / N
   `GET /api/chinese/stroke-order`. No AI provider or runtime CDN is involved.
 - Media and speech routes with semantic categories now use the canonical error
   envelope; the frontend exposes category, retryability, context, and HTTP
-  status. The AI cost-reduction document remains a proposal, not runtime or
-  billing activation.
+  status. Shared-media translation now selects Groq when configured, while
+  local Marian remains an explicit no-key/override path; failures never trigger
+  provider failover. `writing_linguistic` is deterministic local annotation,
+  shared by Writing/Review and Listening.
 - Local verification at the code checkpoint: release gate PASS for frontend
-  `2.17.5`; architecture PASS; full regression `518 passed, 3 warnings`, no
+  `2.17.5`; architecture PASS; full regression `561 passed, 3 warnings`, no
   failures or skips; browser ESM graph PASS (`50 modules`); all nine CI Node
   media contracts PASS; Profile and Grammar contracts PASS (`508 / 508` EN/ZH);
-  error-envelope, Hanzi contract, Hanzi-pack digest, and Grammar pedagogy audits
-  PASS.
+  error-envelope, Hanzi contract, Hanzi-pack digest, Grammar pedagogy, and
+  linguistic/translation capability audits PASS.
 - One earlier full-regression attempt inherited `POSTGRES_RUNTIME_URL` from
   Compose and produced `517 passed, 1 failed`; clearing that environment-only
-  contamination produced the final `518 passed`. No application logic was
-  changed to hide the environment failure.
+  contamination was required before the current final `561 passed` result. No
+  application logic was changed to hide the environment failure.
 - Interactive Brave QA used an isolated current-branch runtime with temporary
   `/tmp` SQLite. Home, Profile, and Grammar were inspected at desktop and mobile
   breakpoints with no horizontal overflow or browser console error. Profile

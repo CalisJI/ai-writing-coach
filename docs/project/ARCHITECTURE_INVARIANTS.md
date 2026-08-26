@@ -81,6 +81,8 @@ entry, and corresponding current-state and handoff updates.
   explicitly implements them.
 - Capability configuration and diagnostics never persist or expose credentials.
 - No provider-to-provider fallback or silent paid-provider failover.
+- Shared-media translation may select Groq or local Marian once from explicit
+  configuration; a provider failure must stop rather than silently fail over.
 - Static configuration validation remains separate from live provider/model
   testing.
 - Learner `generate_structured()` remains on legacy `active_selection()` until
