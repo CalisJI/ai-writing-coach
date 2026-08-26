@@ -26,6 +26,28 @@ function reviewSupportProfile(){
     :{...profile,native_language:locale};
 }
 
+function normalizedEvidenceItems(value){
+  if(!Array.isArray(value))return [];
+  return value
+    .filter(item=>item&&typeof item==='object'&&!Array.isArray(item))
+    .map(item=>({
+      ...item,
+      category:typeof item.category==='string'?item.category.trim():'',
+      fragment:typeof item.fragment==='string'?item.fragment.trim():'',
+      explanation_vi:typeof item.explanation_vi==='string'?item.explanation_vi.trim():'',
+      mini_rule_vi:typeof item.mini_rule_vi==='string'?item.mini_rule_vi.trim():'',
+      suggestion:typeof item.suggestion==='string'?item.suggestion.trim():'',
+    }))
+    .filter(item=>item.category&&item.fragment);
+}
+
+function normalizedSupportList(value){
+  if(!Array.isArray(value))return [];
+  return value
+    .filter(item=>typeof item==='string'&&item.trim())
+    .map(item=>item.trim());
+}
+
 function grammarTransferBlock(result={}){
   const links=Array.isArray(result.grammar_links)?result.grammar_links:[];
   if(!links.length)return '';
@@ -640,8 +662,9 @@ export async function renderReview(root){
   const level=result.target_cefr||state.draft.level||'';
   const mode=guidanceMode(state.profile||{},state.language,level);
   const budget=feedbackBudget(mode);
-  const errors=result.errors||[];
-  const strengthEvidence=result.strength_evidence||[];
+  const errors=normalizedEvidenceItems(result.errors);
+  const strengthEvidence=normalizedEvidenceItems(result.strength_evidence);
+  const strengthsVi=normalizedSupportList(result.strengths_vi);
   const locale=uiLocale();
   const benchmark=benchmarkLabel(result);
   // OREN-15 removed this screen's editorial header and, with it, the insight
@@ -652,7 +675,7 @@ export async function renderReview(root){
   // restoring a header the UI-02 contract forbids.
   const focusMetric=weakestMetric(metricsFrom(result));
 
-  const strength=(locale==='vi'&&(result.strengths_vi||[])[0])
+  const strength=(locale==='vi'&&strengthsVi[0])
     ||(strengthEvidence[0]
       ?categoryReason(strengthEvidence[0].category,reviewSupportProfile())
       :'Your work contains useful evidence of what is already working.');

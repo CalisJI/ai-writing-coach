@@ -154,6 +154,27 @@ for(const [profileLocale,uiLocale] of [['vi','en'],['en','vi'],['zh','en'],['en'
   );
 }
 
+for(const locale of ['en','vi','zh']){
+  for(const malformed of [null,{}]){
+    state.profile={native_language:locale};
+    state.supportLanguage=locale;
+    state.lastEvaluation={
+      ...renderFixture,
+      errors:[malformed],
+      strength_evidence:[malformed],
+      strengths_vi:[malformed],
+    };
+    state.draft.text=renderFixture.text;
+    const malformedEvidenceRoot=fakeReviewRoot();
+    await renderReview(malformedEvidenceRoot);
+    assert.doesNotMatch(
+      malformedEvidenceRoot.innerHTML,
+      /data-feedback-key="(?:error|strength)-/,
+      `Review ${locale.toUpperCase()} must ignore malformed ${malformed===null?'null':'object'} evidence entries`,
+    );
+  }
+}
+
 const dialogNodes={
   dialogBackdrop:{classList:{remove:()=>{},add:()=>{}},setAttribute:()=>{}},
   dialogTitle:{textContent:''},
