@@ -287,6 +287,48 @@ try{
   assert.match(reviewRoot.innerHTML,/建立/);
   assert.match(reviewRoot.innerHTML,/养成/);
   assert.match(reviewRoot.innerHTML,/81/);
+
+  // R3 degraded-state contract: when the backend returns its explicit local
+  // fallback evaluator, the active Write -> Review flow must preserve that
+  // provenance and render the localized learner notice rather than a normal
+  // provider-backed review.
+  const degradedCases=[
+    {locale:'en',level:'B2',prompt:evaluation.prompt,text:learnerText,fixture:evaluation,notice:'Limited review'},
+    {locale:'zh',level:'HSK4',prompt:zhEvaluation.prompt,text:zhLearnerText,fixture:zhEvaluation,notice:'\\u8bc4\\u4f30\\u53d7\\u9650'},
+  ];
+  for(const [index,item] of degradedCases.entries()){
+    state.language=item.locale;
+    state.supportLanguage=item.locale;
+    state.profile={native_language:item.locale};
+    state.draft={
+      ...state.draft,
+      mode:'free',level:item.level,length:item.locale==='zh'?80:150,text:'',html:'',prompt:item.prompt,
+      generatedTask:null,practiceContext:null,parentEssayId:null,
+    };
+    globalThis.location.hash='#/write';
+    api.evaluate=async payload=>({
+      ...item.fixture,
+      id:415+index,
+      evaluator:'fallback-demo',
+      text:payload.text,
+    });
+    await renderWrite(writeRoot);
+    writeRoot.querySelector('#writingEditor').innerText=item.text;
+    await writeRoot.querySelector('#reviewDraft').listeners.click({
+      currentTarget:writeRoot.querySelector('#reviewDraft'),
+    });
+    assert.equal(state.lastEvaluation.evaluator,'fallback-demo',
+      `${item.locale.toUpperCase()} Write must preserve degraded evaluator provenance for Review`);
+    await renderReview(reviewRoot);
+    assert.match(reviewRoot.innerHTML,/data-review-evaluation-state="degraded"/,
+      `${item.locale.toUpperCase()} Review must expose degraded state from Write`);
+    assert.match(reviewRoot.innerHTML,new RegExp(item.notice),
+      `${item.locale.toUpperCase()} Review must show localized degraded guidance`);
+    assert.match(reviewRoot.innerHTML,/data-feedback-key="error-0"/,
+      `${item.locale.toUpperCase()} degraded Review must retain available evidence`);
+    assert.doesNotMatch(reviewRoot.innerHTML,/\bunavailable\b/i,
+      `${item.locale.toUpperCase()} fallback Review must not claim provider unavailability`);
+  }
 }finally{
   api.evaluate=originalEvaluate;
   api.practiceOutcome=originalPracticeOutcome;
