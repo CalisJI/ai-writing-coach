@@ -160,6 +160,7 @@ function practiceOutcomeSignal(outcome){
   outcome=normalizedPracticeOutcome(outcome);
   if(!outcome)return '';
   const key=outcome.status;
+  const grammarId=typeof outcome.grammar_id==='string'?outcome.grammar_id.trim():'';
 
   return `<article class="home-signal-card practice-outcome-signal status-${esc(key)} visual-raised-surface">
     <span class="context-label">${t(`outcome.${key}.kicker`)}</span>
@@ -170,6 +171,10 @@ function practiceOutcomeSignal(outcome){
       focus:outcome.focus_label||t('common.current_focus'),
     })}</p>
     <small>${esc(outcome.focus_label||t('common.current_focus'))} · ${t('outcome.revision')} ${esc(outcome.revision_no||1)}</small>
+    ${grammarId?`<div class="action-row">
+      <button type="button" class="o-btn o-btn--outline o-btn--compact" data-home-open-grammar="${attr(grammarId)}">${esc(t('review.open_grammar'))}</button>
+      <button type="button" class="o-btn o-btn--primary o-btn--compact" data-home-practice-grammar="${attr(grammarId)}">${esc(t('review.practice_grammar'))}</button>
+    </div>`:''}
   </article>`;
 }
 
@@ -637,6 +642,36 @@ export async function renderHome(root){
     root.querySelector('#journeyLinkTop')?.addEventListener('click',()=>go('journey'));
     root.querySelector('#dashboardJourneyLink')?.addEventListener('click',()=>go('journey'));
     root.querySelector('#writingDashboardJourneyLink')?.addEventListener('click',()=>go('journey'));
+
+    root.querySelectorAll('[data-home-open-grammar]').forEach(button=>button.addEventListener('click',()=>{
+      const id=button.dataset.homeOpenGrammar;
+      if(!id)return;
+      try{ localStorage.setItem('becoming.grammar-focus',id); }catch{}
+      go('grammar');
+    }));
+    root.querySelectorAll('[data-home-practice-grammar]').forEach(button=>button.addEventListener('click',async()=>{
+      const id=button.dataset.homePracticeGrammar;
+      if(!id)return;
+      try{
+        await runBusy(button,async()=>{
+          const task=await api.grammarPractice(id);
+          if(!task||typeof task!=='object'||typeof task.prompt!=='string'||!task.prompt.trim()){
+            throw new Error(t('review.practice_failed'));
+          }
+          const context=task.practice_context&&typeof task.practice_context==='object'
+            ?task.practice_context:null;
+          saveDraft({
+            prompt:task.prompt.trim(),text:'',html:'',
+            savedAt:null,
+            mode:context?.task_type||state.draft.mode,
+            topic:context?.topic||state.draft.topic,
+            level:task.target_level||context?.target_level||state.draft.level,
+            practiceContext:context,generatedTask:null,parentEssayId:null,
+          });
+          go('write');
+        },{label:t('busy.creating')});
+      }catch(error){ root.insertAdjacentHTML('afterbegin',errorBlock(error.message||t('review.practice_failed'))); }
+    }));
 
     async function openEssay(id){
       try{

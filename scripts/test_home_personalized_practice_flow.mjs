@@ -15,6 +15,7 @@ class FakeElement{
   addEventListener(name,listener){this.listeners[name]=listener;}
   removeAttribute(){}
   setAttribute(){}
+  async click(){return this.listeners.click?.({currentTarget:this});}
 }
 
 const root={
@@ -24,7 +25,15 @@ const root={
     if(!this.nodes.has(selector))this.nodes.set(selector,new FakeElement());
     return this.nodes.get(selector);
   },
-  querySelectorAll(){return [];},
+  querySelectorAll(selector){
+    if(!selector.includes('home-practice-grammar'))return [];
+    const match=this.innerHTML.match(/data-home-practice-grammar="([^"]+)"/);
+    if(!match)return [];
+    const button=this.nodes.get(selector)||new FakeElement();
+    button.dataset.homePracticeGrammar=match[1];
+    this.nodes.set(selector,button);
+    return [button];
+  },
 };
 
 globalThis.document={
@@ -49,6 +58,7 @@ const original={
   practiceOutcomes:api.practiceOutcomes,
   libraryVocabulary:api.libraryVocabulary,
   nextPractice:api.nextPractice,
+  grammarPractice:api.grammarPractice,
 };
 
 const fixtures={
@@ -86,7 +96,10 @@ try{
   api.dashboard=async()=>({essay_count:0,streak:0,metrics:{}});
   api.essays=async()=>[];
   api.learningMemory=async()=>({patterns:[],strengths:[],focus:null,revision_wins:[]});
-  api.practiceOutcomes=async()=>({latest:null});
+  api.practiceOutcomes=async()=>({latest:{
+    status:'improved',previous_issue_count:2,issue_count:0,revision_no:2,
+    focus_label:'Grammar transfer',grammar_id:'a1-complete-sentences-and-basic-word-order',
+  }});
   api.libraryVocabulary=async()=>[];
 
   for(const locale of ['en','zh']){
@@ -111,6 +124,32 @@ try{
     globalThis.location.hash='#/home';
     root.nodes.clear();
     await renderHome(root);
+    const grammarButton=root.querySelectorAll('[data-home-practice-grammar]')[0];
+    assert.ok(grammarButton,
+      `${locale.toUpperCase()} Home must render Grammar practice from the latest outcome`);
+    assert.ok(root.innerHTML.includes(locale==='zh'?'立即练习':'Practice now'),
+      `${locale.toUpperCase()} Home must localize the Grammar practice action`);
+    let grammarPracticeId=null;
+    api.grammarPractice=async id=>{
+      grammarPracticeId=id;
+      return {
+        prompt:locale==='zh'?'请使用本课语法重点写三句话。':'Write three sentences using this grammar focus.',
+        target_level:locale==='zh'?'HSK1':'A1',
+        practice_context:{intent:'repair',focus_family:'grammar',focus_category:'grammar',
+          task_type:'story',topic:'grammar transfer',target_level:locale==='zh'?'HSK1':'A1',
+          grammar_id:id},
+      };
+    };
+    await grammarButton.click();
+    assert.equal(grammarPracticeId,'a1-complete-sentences-and-basic-word-order',
+      `${locale.toUpperCase()} Home must request the linked Grammar lesson practice`);
+    assert.equal(state.draft.practiceContext?.grammar_id,grammarPracticeId,
+      `${locale.toUpperCase()} Home must preserve Grammar practice context`);
+    assert.equal(state.draft.savedAt,null,
+      `${locale.toUpperCase()} Home Grammar practice must clear stale saved-state`);
+    assert.equal(globalThis.location.hash,'#/write',
+      `${locale.toUpperCase()} Home Grammar practice must open Write`);
+    globalThis.location.hash='#/home';
     assert.match(root.innerHTML,/id="homePrimary"/,
       `${locale.toUpperCase()} Home must render the personalized Practice action`);
     const primary=root.querySelector('#homePrimary');
