@@ -40,6 +40,12 @@ require approval and must remain consistent with `PROJECT_STATE.md` and
 | R10 | Reading Completion → separate public release | PLANNED |
 | R11 | Listening Completion → separate public release | PLANNED |
 | R12 | Retention & Growth | PLANNED |
+| R13 | Platform Admin Completion | PLANNED / POST-R12 PLATFORM TRACK |
+| R14 | AI Usage, Cost, Quota & Provider Operations | PLANNED / POST-R12 PLATFORM TRACK |
+| R15 | SaaS Plans, Entitlements & Usage Policy | PLANNED / POST-R12 PLATFORM TRACK |
+| R16 | Advanced Learning Intelligence | PLANNED / POST-R12 PRODUCT TRACK |
+| R17 | Product Analytics & Operational Observability | PLANNED / POST-R12 PLATFORM TRACK |
+| R18 | Mobile/API Readiness | PLANNED / POST-R12 PLATFORM TRACK |
 
 ## Current execution order
 
@@ -265,6 +271,218 @@ R12 focuses on return-to-practice, useful progress visibility, habit support,
 onboarding/activation, and growth without weakening learning quality,
 accessibility, multilingual behavior, or the closed contracts established by
 earlier stages.
+
+
+## Post-R12 roadmap extension — preserve existing product sequence
+
+The stages below extend the roadmap without renumbering, rewriting, merging, or
+changing the meaning of R0–R12. They formalize platform and advanced-product work
+that already exists in repository code, architecture, or supporting plans but is
+not yet represented as a canonical stage.
+
+The extension follows these rules:
+
+- **R0–R12 remain structurally unchanged.** Their scope, ordering, completion
+  meaning, and human gates are preserved.
+- **No extension stage may reopen a CLOSED subsystem by default.** It consumes
+  existing contracts and adds only the missing product/platform layer.
+- **The current learner-product execution order is unchanged.** R13–R18 do not
+  preempt R3/R4/R6/R7/R8 unless they fix a concrete blocker.
+- **Production mutation remains human-gated.** Admin completion must not silently
+  activate production providers, paid services, capability mode, billing, or
+  release state.
+- **EN/ZH parity remains product-wide.** Platform controls are shared; learner
+  behavior exposed by advanced features must preserve the multilingual
+  invariant.
+
+### Extended execution relationship
+
+The existing primary path remains:
+
+`R3 → R4 → finish remaining R6 core gaps → R7 → R8`
+
+Then the existing post-R8 learner roadmap remains:
+
+`R9 → R10 → R11 → R12`
+
+R13–R18 are the canonical post-R12 extension. They may be implemented in
+dependency-aware order rather than treated as one rigid serial chain. The
+default dependency order is:
+
+`R13 → R14 → R15`
+
+and:
+
+`R16`
+
+and:
+
+`R17 → R18`
+
+Cross-stage work is allowed only when it is a bounded prerequisite, shared
+contract, or verified blocker.
+
+## R13 — Platform Admin Completion
+
+**PLANNED / POST-R12 PLATFORM TRACK.**
+
+R13 completes the current Platform Admin surface so it matches the capability-
+centric R2 architecture instead of the older one-global-model UI.
+
+Existing foundations to preserve include:
+
+- administrator-only access and server-side secrets;
+- capability-centric admin APIs;
+- provider/model configuration persistence;
+- capability-level model testing;
+- product-wide provider catalog;
+- legacy/capability runtime separation;
+- the R2 human gate for production activation.
+
+R13 completion requires:
+
+- present a capability matrix rather than one model for the whole product;
+- show provider, model, readiness, and runtime state per configurable capability;
+- allow safe capability-level provider/model configuration;
+- preserve deterministic capabilities as deterministic, not provider-backed;
+- surface reserved/unimplemented capabilities truthfully;
+- expose test/health status without leaking credentials;
+- distinguish saved configuration from active production runtime;
+- require explicit human approval for production activation/mutation;
+- preserve auditability of admin-side changes;
+- align the Admin UI with the current canonical admin API contract.
+
+R13 must not redesign the R2 control plane or silently migrate production state.
+
+## R14 — AI Usage, Cost, Quota & Provider Operations
+
+**PLANNED / POST-R12 PLATFORM TRACK.**
+
+R14 makes AI runtime economics and provider health observable before learners are
+affected.
+
+Existing foundations to consume include:
+
+- per-capability provider/model configuration;
+- captured provider quota/rate-limit metadata where available;
+- the provider-neutral translation/evaluation boundaries;
+- deterministic/local replacements already adopted for high-volume paths;
+- the existing AI cost-reduction plan.
+
+Expected outcomes:
+
+- requests, tokens, latency, errors, and quota visibility by capability;
+- provider/model health and failure-rate visibility;
+- consumed/remaining quota when providers expose it;
+- threshold-based operational warnings;
+- clear exhausted/degraded states;
+- operator-visible cost/usage trends;
+- no silent paid-provider failover;
+- explicit operator selection of backup provider where supported;
+- safe test tooling that does not mutate learner runtime.
+
+R14 is observability and operations work. It must not activate billing or paid
+providers automatically.
+
+## R15 — SaaS Plans, Entitlements & Usage Policy
+
+**PLANNED / POST-R12 PLATFORM TRACK.**
+
+R15 turns existing account/product foundations into explicit product-plan and
+entitlement behavior.
+
+Expected outcomes:
+
+- canonical Free/Premium-or-later plan model;
+- feature entitlements separated from UI-only badges;
+- usage limits expressed in product policy rather than scattered conditionals;
+- capability-aware limits where AI cost materially differs;
+- truthful exhausted-limit behavior;
+- account/product state available to learner UI and Admin;
+- no feature unlocked only in one language;
+- billing/provider integration behind explicit human-approved production gates;
+- regression coverage for entitlement boundaries and downgrade/upgrade states.
+
+R15 must not hard-code business rules into individual skills where a shared
+entitlement contract is sufficient.
+
+## R16 — Advanced Learning Intelligence
+
+**PLANNED / POST-R12 PRODUCT TRACK.**
+
+R16 formalizes advanced learner-facing intelligence that is currently distributed
+across Writing, Review, Grammar, Dictionary, Media, Journey, and supporting
+design documents.
+
+R16 consumes existing stable systems rather than creating parallel ones.
+
+Expected outcomes may include:
+
+- contextual dictionary meaning using the learner's actual sentence/segment;
+- adaptive practice selection from verified learner evidence;
+- error-memory-driven review;
+- cross-skill transfer of trustworthy evidence;
+- personalized next-practice recommendations;
+- adaptive difficulty from demonstrated performance, not target-level forcing;
+- context-aware explanations that remain grounded in stable dictionary/Grammar
+  sources;
+- smart review scheduling that preserves the R12 retention model;
+- EN/ZH behavior through shared contracts plus genuine language adapters.
+
+R16 must not duplicate R5 Grammar content, replace shared Media Learning, or
+invent unsupported proficiency claims.
+
+## R17 — Product Analytics & Operational Observability
+
+**PLANNED / POST-R12 PLATFORM TRACK.**
+
+R17 provides product and operational visibility without changing learner-facing
+scoring semantics.
+
+Expected outcomes:
+
+- active learner/session trends;
+- skill usage and completion funnels;
+- return-to-practice and retention measures;
+- provider reliability and AI error-rate visibility;
+- learner-facing failure/degraded-state counts;
+- cost-per-capability and cost-per-active-user views where data is available;
+- release/readiness evidence summaries;
+- privacy-respecting event boundaries;
+- admin-only operational dashboards where appropriate.
+
+Analytics must not redefine learning mastery or fabricate progress from product
+engagement alone.
+
+## R18 — Mobile/API Readiness
+
+**PLANNED / POST-R12 PLATFORM TRACK.**
+
+R18 prepares Orena's existing web/server product contracts for a mobile client
+without forking the product model.
+
+Existing architectural direction to preserve:
+
+- authoritative server-side datasets;
+- stable authenticated APIs;
+- shared EN/ZH contracts;
+- server-managed provider secrets;
+- shared Media Learning assets;
+- PostgreSQL authority.
+
+Expected outcomes:
+
+- stable mobile-consumable API contracts;
+- compressed API responses where appropriate;
+- cache policy for immutable/versioned dictionary and stroke data;
+- response shaping that avoids unnecessary payloads;
+- mobile-safe authentication/session behavior;
+- resumable media/learning state where product requirements demand it;
+- graceful poor-network/degraded behavior;
+- no duplication of large server datasets in the client by default;
+- compatibility tests for web and mobile consumers of shared contracts.
+
+R18 must not create a second mobile-only learning architecture.
 
 ## Multilingual roadmap principle
 
