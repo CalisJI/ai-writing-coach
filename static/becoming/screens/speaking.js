@@ -149,6 +149,13 @@ const PRON_COPY={
 };
 const pronCopy=()=>PRON_COPY[uiLocale()]||PRON_COPY.en;
 
+const EVALUATION_COPY={
+  en:{title:'Take evaluation',intro:'This summary describes this recording only.',transcription:'Transcription confidence',content:'Content match',pronunciation:'Pronunciation',fluency:'Fluency',proficiency:'Proficiency',notAssessed:'Not assessed',busy:'Preparing the take summary...',failed:'The full take summary is unavailable. The local feedback above is still available.'},
+  vi:{title:'Đánh giá lượt ghi',intro:'Bản tóm tắt này chỉ mô tả lượt ghi hiện tại.',transcription:'Độ tin cậy nhận dạng',content:'Khớp nội dung',pronunciation:'Phát âm',fluency:'Độ trôi chảy',proficiency:'Năng lực tổng quát',notAssessed:'Chưa đánh giá',busy:'Đang chuẩn bị tóm tắt lượt ghi...',failed:'Chưa thể tạo tóm tắt đầy đủ. Nhận xét cục bộ ở trên vẫn dùng được.'},
+  zh:{title:'本次录音评估',intro:'这份摘要只描述本次录音。',transcription:'识别置信度',content:'内容匹配',pronunciation:'发音',fluency:'流利度',proficiency:'整体能力',notAssessed:'未评估',busy:'正在准备本次录音摘要…',failed:'暂时无法生成完整摘要。上方的本地反馈仍然可用。'},
+};
+const evaluationCopy=()=>EVALUATION_COPY[uiLocale()]||EVALUATION_COPY.en;
+
 function pronunciationErrorLabel(errorType,c){
   const raw=String(errorType||'None').trim();
   const key=raw.toLowerCase();
@@ -403,6 +410,8 @@ function feedbackRail(model){
       ${metric(f.transcriptMatch,evaluation?.content_match,bandNote('match',evaluation?.content_match),f.matchInfo,
         evaluation?`data-speaking-match-band="${esc(evaluation.result_band)}"`:'')}
 
+      ${speakingEvaluationBlock(model)}
+
       ${highlights.length?`<div class="o-feedback-list">
         <h3>${esc(f.highlights)}</h3>
         <ul>${highlights.map(item=>`<li class="is-good">${oIcon('check')}<span>${esc(item)}</span></li>`).join('')}</ul>
@@ -417,6 +426,32 @@ function feedbackRail(model){
         :`<p class="o-feedback-note">${esc(f.runFeedback)}</p>`}
     </section>
   </aside>`;
+}
+
+function speakingEvaluationBlock(model){
+  const copy=evaluationCopy();
+  if(model.speakingEvaluationStatus==='loading'){
+    return `<section class="o-speaking-evaluation" data-speaking-evaluation-state="loading" role="status"><h3>${esc(copy.title)}</h3><p>${esc(copy.busy)}</p></section>`;
+  }
+  if(model.speakingEvaluationStatus==='error'){
+    return `<section class="o-speaking-evaluation" data-speaking-evaluation-state="error" role="status"><h3>${esc(copy.title)}</h3><p>${esc(model.speakingEvaluationErrorMessage||copy.failed)}</p></section>`;
+  }
+  const evaluation=model.speakingEvaluation;
+  if(!evaluation||!evaluation.dimensions||typeof evaluation.dimensions!=='object')return '';
+  const dimensions=evaluation.dimensions;
+  const rows=[
+    ['transcription',dimensions.transcription_confidence],
+    ['content',dimensions.content_match],
+    ['pronunciation',dimensions.pronunciation],
+    ['fluency',dimensions.fluency],
+  ].filter(([,value])=>typeof value==='number'&&Number.isFinite(value));
+  return `<section class="o-speaking-evaluation" data-speaking-evaluation data-speaking-evaluation-state="ready">
+    <h3>${esc(copy.title)}</h3>
+    <p>${esc(copy.intro)}</p>
+    <dl>${rows.map(([key,value])=>`<div><dt>${esc(copy[key])}</dt><dd>${Math.round(value)}</dd></div>`).join('')}
+      <div><dt>${esc(copy.proficiency)}</dt><dd>${esc(copy.notAssessed)}</dd></div>
+    </dl>
+  </section>`;
 }
 
 /* The source check keeps its own block under the transcript, where the
@@ -503,7 +538,7 @@ function emptyPage(){
   </section>`;
 }
 
-export function createSpeakingController({session,recorder=createLocalAudioRecorder(),transcribe=api.transcribeSpeech,pronunciationAssess=api.assessPronunciation,onChange=()=>{}}={}){
+export function createSpeakingController({session,recorder=createLocalAudioRecorder(),transcribe=api.transcribeSpeech,pronunciationAssess=api.assessPronunciation,evaluateSpeaking=api.evaluateSpeaking,onChange=()=>{}}={}){
   const payload=session?.payload||null;
   const segments=payload?.transcript?.segments||[];
   const ids=segments.map(segment=>segment.segment_id);
@@ -519,13 +554,48 @@ export function createSpeakingController({session,recorder=createLocalAudioRecor
     asrError:'',
     asrErrorMessage:'',
     evaluation:null,
+    speakingEvaluationStatus:'idle',
+    speakingEvaluation:null,
+    speakingEvaluationErrorMessage:'',
     pronunciationStatus:'idle',
     pronunciation:null,
     pronunciationError:'',
     pronunciationErrorMessage:'',
   };
   let pronunciationGeneration=0;
+  let speakingEvaluationGeneration=0;
+  let asrGeneration=0;
   const changed=()=>onChange({...model});
+
+  async function refreshSpeakingEvaluation(selectedSegment=segments.find(item=>item.segment_id===model.selected)){
+    if(!selectedSegment||!model.asrTranscript||typeof evaluateSpeaking!=='function')return false;
+    const generation=++speakingEvaluationGeneration;
+    model.speakingEvaluationStatus='loading';
+    model.speakingEvaluation=null;
+    model.speakingEvaluationErrorMessage='';
+    changed();
+    try{
+      const result=await evaluateSpeaking({
+        language:session.learning_language,
+        reference_text:selectedSegment.original_text||'',
+        transcript_text:model.asrTranscript,
+        content_match:model.evaluation,
+        pronunciation:model.pronunciation,
+        transcription_confidence:null,
+      });
+      if(generation!==speakingEvaluationGeneration)return false;
+      model.speakingEvaluation=result;
+      model.speakingEvaluationStatus='ready';
+      changed();
+      return true;
+    }catch(error){
+      if(generation!==speakingEvaluationGeneration)return false;
+      model.speakingEvaluationStatus='error';
+      model.speakingEvaluationErrorMessage=typeof error?.message==='string'?error.message:'';
+      changed();
+      return false;
+    }
+  }
 
   return {
     model,
@@ -664,6 +734,8 @@ export function createSpeakingController({session,recorder=createLocalAudioRecor
       if(recorder.snapshot().status==='recording')return false;
       recorder.discard();
       pronunciationGeneration++;
+      speakingEvaluationGeneration++;
+      asrGeneration++;
       model.pronunciationStatus='idle';
       model.pronunciation=null;
       model.pronunciationError='';
@@ -674,6 +746,9 @@ export function createSpeakingController({session,recorder=createLocalAudioRecor
       model.asrWords=[];
       model.asrError='';
       model.evaluation=null;
+      model.speakingEvaluationStatus='idle';
+      model.speakingEvaluation=null;
+      model.speakingEvaluationErrorMessage='';
       selectSharedMediaSegment(session.learning_language,segmentId);
       changed();
       return true;
@@ -691,6 +766,8 @@ export function createSpeakingController({session,recorder=createLocalAudioRecor
     },
     async startRecording(){
       pronunciationGeneration++;
+      speakingEvaluationGeneration++;
+      asrGeneration++;
       model.pronunciationStatus='idle';
       model.pronunciation=null;
       model.pronunciationError='';
@@ -700,16 +777,23 @@ export function createSpeakingController({session,recorder=createLocalAudioRecor
       model.asrWords=[];
       model.asrError='';
       model.evaluation=null;
+      model.speakingEvaluationStatus='idle';
+      model.speakingEvaluation=null;
+      model.speakingEvaluationErrorMessage='';
       const started=await recorder.start();
       changed();
       return started;
     },
     async stopRecording(){
+      const takeGeneration=++asrGeneration;
+      const takeSegmentId=model.selected;
+      const takeSegment=segments.find(item=>item.segment_id===takeSegmentId);
       const result=await recorder.stop();
       if(!result||!model.selected){
         changed();
         return false;
       }
+      if(takeGeneration!==asrGeneration||model.selected!==takeSegmentId||!takeSegment)return false;
 
       model.attempts[model.selected]=(model.attempts[model.selected]||0)+1;
       model.asrStatus='loading';
@@ -727,17 +811,19 @@ export function createSpeakingController({session,recorder=createLocalAudioRecor
           session.learning_language,
           `speaking-take.${extension}`,
         );
+        if(takeGeneration!==asrGeneration||model.selected!==takeSegmentId)return false;
         model.asrTranscript=typeof response?.text==='string'?response.text.trim():'';
         model.asrWords=Array.isArray(response?.words)?response.words:[];
         model.asrStatus='ready';
         if(model.asrTranscript){
-          const selectedSegment=segments.find(item=>item.segment_id===model.selected);
-          model.evaluation=evaluateSpeechTranscript(selectedSegment?.original_text||'',model.asrTranscript);
+          model.evaluation=evaluateSpeechTranscript(takeSegment.original_text||'',model.asrTranscript);
         }else{
           model.asrError='empty_transcript';
           model.evaluation=null;
         }
+        await refreshSpeakingEvaluation(takeSegment);
       }catch(error){
+        if(takeGeneration!==asrGeneration||model.selected!==takeSegmentId)return false;
         model.asrStatus='error';
         model.asrError=error?.category||String(error?.status||'speech_asr_failed');
         model.asrErrorMessage=typeof error?.message==='string'?error.message:'';
@@ -751,6 +837,7 @@ export function createSpeakingController({session,recorder=createLocalAudioRecor
       if(!recording.blob||!selectedSegment||model.pronunciationStatus==='loading')return false;
 
       const generation=++pronunciationGeneration;
+      speakingEvaluationGeneration++;
       model.pronunciationStatus='loading';
       model.pronunciation=null;
       model.pronunciationError='';
@@ -769,6 +856,7 @@ export function createSpeakingController({session,recorder=createLocalAudioRecor
         if(generation!==pronunciationGeneration)return false;
         model.pronunciation=response;
         model.pronunciationStatus='ready';
+        await refreshSpeakingEvaluation();
       }catch(error){
         if(generation!==pronunciationGeneration)return false;
         model.pronunciationStatus=error?.category==='pronunciation_unconfigured'?'unavailable':'error';
@@ -782,6 +870,8 @@ export function createSpeakingController({session,recorder=createLocalAudioRecor
       const discarded=recorder.discard();
       if(discarded){
         pronunciationGeneration++;
+        speakingEvaluationGeneration++;
+        asrGeneration++;
         model.pronunciationStatus='idle';
         model.pronunciation=null;
         model.pronunciationError='';
@@ -791,6 +881,9 @@ export function createSpeakingController({session,recorder=createLocalAudioRecor
         model.asrWords=[];
         model.asrError='';
         model.evaluation=null;
+        model.speakingEvaluationStatus='idle';
+        model.speakingEvaluation=null;
+        model.speakingEvaluationErrorMessage='';
         changed();
       }
       return discarded;

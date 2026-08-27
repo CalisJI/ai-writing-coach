@@ -27,6 +27,8 @@ const session=getSharedMediaSession('en');
 assert.ok(session);
 
 let take=null;
+const evaluationPayloads=[];
+let evaluatorAvailable=true;
 const recorder={
   snapshot(){
     return {
@@ -93,23 +95,55 @@ const controller=createSpeakingController({
       phonemes:[{phoneme:'ɪ',accuracy_score:70}],
     }],
   }),
+  evaluateSpeaking:async payload=>{
+    if(!evaluatorAvailable)throw {message:'Evaluator unavailable'};
+    evaluationPayloads.push(payload);
+    return {
+      language:payload.language,
+      dimensions:{
+        transcription_confidence:null,
+        content_match:100,
+        pronunciation:payload.pronunciation?88:null,
+        fluency:payload.pronunciation?82:null,
+        proficiency:null,
+      },
+      evidence:{reference_text:payload.reference_text,transcript_text:payload.transcript_text},
+    };
+  },
 });
 
 assert.match(controller.html(),/data-speaking-core/);
 assert.match(controller.html(),/Listen for the first complete idea\./);
 assert.match(controller.html(),/data-speaking-record/);
+state.supportLanguage='en';
 
 assert.equal(await controller.startRecording(),true);
 assert.equal(await controller.stopRecording(),true);
 assert.equal(controller.model.asrStatus,'ready');
 assert.equal(controller.model.evaluation?.content_match,100);
+assert.equal(controller.model.speakingEvaluationStatus,'ready');
+assert.equal(controller.model.speakingEvaluation?.dimensions.content_match,100);
+assert.equal(evaluationPayloads.length,1);
+assert.deepEqual(evaluationPayloads[0],{
+  language:'en',
+  reference_text:'Listen for the first complete idea.',
+  transcript_text:'Listen for the first complete idea.',
+  content_match:controller.model.evaluation,
+  pronunciation:null,
+  transcription_confidence:null,
+});
 assert.match(controller.html(),/data-speaking-content-match/);
+assert.match(controller.html(),/data-speaking-evaluation-state="ready"/);
+assert.match(controller.html(),/Take evaluation/);
 assert.match(controller.html(),/Listen for the first complete idea\./);
 assert.match(controller.html(),/data-speaking-pronunciation-action/);
 
 assert.equal(await controller.assessPronunciation(),true);
 assert.equal(controller.model.pronunciationStatus,'ready');
 assert.equal(controller.model.pronunciation?.pron_score,88);
+assert.equal(evaluationPayloads.length,2);
+assert.equal(evaluationPayloads[1].pronunciation.pron_score,88);
+assert.equal(controller.model.speakingEvaluation?.dimensions.pronunciation,88);
 assert.match(controller.html(),/data-speaking-pronunciation/);
 assert.match(controller.html(),/data-speaking-pronunciation-evidence/);
 const feedbackHtml=controller.html();
@@ -136,6 +170,7 @@ assert.match(englishFeedbackHtml,/Omission/);
 assert.match(englishFeedbackHtml,/Insertion/);
 state.supportLanguage='vi';
 const vietnameseFeedbackHtml=controller.html();
+assert.match(vietnameseFeedbackHtml,/Đánh giá lượt ghi/);
 assert.match(vietnameseFeedbackHtml,/aria-label="Listen, 74 \u0111i\u1ec3m"/);
 assert.match(vietnameseFeedbackHtml,/aria-label="\u026a, 68 \u0111i\u1ec3m"/);
 assert.match(vietnameseFeedbackHtml,/Ph\u00e1t \u00e2m sai/);
@@ -143,12 +178,22 @@ assert.match(vietnameseFeedbackHtml,/B\u1ecf s\u00f3t/);
 assert.match(vietnameseFeedbackHtml,/N\u00f3i th\u00eam/);
 state.supportLanguage='zh';
 const chineseFeedbackHtml=controller.html();
+assert.match(chineseFeedbackHtml,/本次录音评估/);
 assert.match(chineseFeedbackHtml,/aria-label="Listen, 74 \u5206\u6570"/);
 assert.match(chineseFeedbackHtml,/aria-label="\u026a, 68 \u5206\u6570"/);
 assert.match(chineseFeedbackHtml,/\u53d1\u97f3\u9519\u8bef/);
 assert.match(chineseFeedbackHtml,/\u9057\u6f0f/);
 assert.match(chineseFeedbackHtml,/\u591a\u8bf4/);
 state.supportLanguage='en';
+
+evaluatorAvailable=false;
+assert.equal(await controller.startRecording(),true);
+assert.equal(await controller.stopRecording(),true);
+assert.equal(controller.model.speakingEvaluationStatus,'error');
+assert.match(controller.html(),/data-speaking-evaluation-state="error"/);
+assert.match(controller.html(),/Evaluator unavailable/);
+assert.match(controller.html(),/data-speaking-content-match/);
+evaluatorAvailable=true;
 
 const syntheticController=createSpeakingController({
   session,
@@ -182,6 +227,41 @@ assert.match(controller.html(),/The same segment can support shadowing later\./)
 
 assert.equal(controller.discardRecording(),true);
 assert.equal(controller.model.evaluation,null);
+
+let resolveTranscript;
+let raceTake=null;
+const raceRecorder={
+  snapshot(){
+    return {status:raceTake?'ready':'idle',error:null,url:raceTake?.url||null,blob:raceTake?.blob||null,mime_type:'audio/webm',supported:true};
+  },
+  async start(){
+    raceTake={url:'blob:race-take',blob:new Blob(['race take'],{type:'audio/webm'}),mime_type:'audio/webm',size:9};
+    return true;
+  },
+  async stop(){return raceTake;},
+  discard(){raceTake=null;return true;},
+  cleanup(){},
+};
+const raceEvaluationPayloads=[];
+const raceController=createSpeakingController({
+  session,
+  recorder:raceRecorder,
+  transcribe:async()=>new Promise(resolve=>{resolveTranscript=resolve;}),
+  evaluateSpeaking:async payload=>{
+    raceEvaluationPayloads.push(payload);
+    return {dimensions:{content_match:100,proficiency:null}};
+  },
+});
+await raceController.startRecording();
+const pendingRaceStop=raceController.stopRecording();
+while(!resolveTranscript)await new Promise(resolve=>setTimeout(resolve,0));
+assert.equal(raceController.select('segment-002'),true);
+resolveTranscript({text:'Listen for the first complete idea.',words:[]});
+assert.equal(await pendingRaceStop,false);
+assert.equal(raceController.model.asrStatus,'idle');
+assert.equal(raceController.model.asrTranscript,'');
+assert.equal(raceEvaluationPayloads.length,0,
+  'Speaking must ignore a take whose ASR completes after its segment changed');
 clearSharedMediaSession('en');
 
 console.log('Speaking UI fixture record -> ASR -> match -> feedback: PASS');
