@@ -609,7 +609,7 @@ export async function renderHome(root){
       const button=root.querySelector('#homePrimary');
       try{
         await runBusy(button,async()=>{
-          const task=await api.nextPractice({target_level:state.draft.level||recommendation.target_level||''});
+          const task=await api.nextPractice({target_level:recommendation.target_level||state.draft.level||''});
           const personalization=task.personalization||recommendation;
           saveDraft({
             mode:task.task_type||personalization.task_type||'opinion',
@@ -620,6 +620,8 @@ export async function renderHome(root){
             generatedTask:task,
             practiceContext:personalization,
             text:'',
+            html:'',
+            savedAt:null,
             parentEssayId:null,
           });
           state.practiceRecommendation=personalization;
