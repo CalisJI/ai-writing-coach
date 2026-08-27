@@ -535,9 +535,9 @@ const targetedPracticeCases=[
     context:{
       intent:'repair',focus_category:'grammar',focus_family:'grammar',
       focus_label:'SVO cơ bản',
-      task_type:'story',topic:'grammar transfer',target_level:'HSK1',
-      action_label:'Practice this grammar',
-      reason:'Targeted practice selected from a Writing finding and the static Grammar curriculum.',
+      task_type:'story',topic:'语法迁移练习',target_level:'HSK1',
+      action_label:'练习这个语法',
+      reason:'根据你的 Writing 发现和静态 Grammar 课程选择的针对性练习。',
       evidence:'',
       focus_instruction:'请写 3-5 句，使用本课的语法重点。',
       grammar_id:'zh-hsk1-1-svo-c-b-n',
@@ -592,6 +592,10 @@ try{
     await practiceButton.click();
     assert.deepEqual(state.draft.practiceContext,item.context,
       `${item.locale.toUpperCase()} Grammar practice must preserve backend-valid context`);
+    assert.equal(state.draft.mode,item.context.task_type,
+      `${item.locale.toUpperCase()} Grammar practice must carry its task type into Write`);
+    assert.equal(state.draft.topic,item.context.topic,
+      `${item.locale.toUpperCase()} Grammar practice must carry its localized topic into Write`);
 
     const writeRoot=fakeWriteRoot();
     state.dashboard={error_memory:[]};

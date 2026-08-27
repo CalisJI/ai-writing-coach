@@ -165,10 +165,10 @@ def test_targeted_grammar_practice_carries_evidence_into_bilingual_prompt(monkey
         "focus_label": lesson["title"],
         "focus_family": "grammar",
         "task_type": "story",
-        "topic": "grammar transfer",
+        "topic": "语法迁移练习",
         "target_level": "HSK1",
-        "action_label": "Practice this grammar",
-        "reason": "Targeted practice selected from a Writing finding and the static Grammar curriculum.",
+        "action_label": "练习这个语法",
+        "reason": "根据你的 Writing 发现和静态 Grammar 课程选择的针对性练习。",
         "evidence": "我每天写",
         "focus_instruction": result["prompt"],
         "grammar_id": grammar_id,
@@ -207,3 +207,6 @@ def test_targeted_grammar_practice_uses_real_english_lesson_contract(monkeypatch
     assert context["evidence"] == "I write"
     assert context["focus_instruction"] == result["prompt"]
     assert result["prompt"].endswith('Pay special attention to this evidence from your writing: “I write”.')
+    assert context["action_label"] == "Practice this grammar"
+    assert context["reason"] == "Targeted practice selected from a Writing finding and the static Grammar curriculum."
+    assert context["topic"] == "grammar transfer"

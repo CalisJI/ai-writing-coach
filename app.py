@@ -1822,16 +1822,24 @@ def grammar_targeted_practice(
         )
     else:
         target = base_target
+    if language == "zh":
+        action_label = "练习这个语法"
+        reason = "根据你的 Writing 发现和静态 Grammar 课程选择的针对性练习。"
+        topic = "语法迁移练习"
+    else:
+        action_label = "Practice this grammar"
+        reason = "Targeted practice selected from a Writing finding and the static Grammar curriculum."
+        topic = "grammar transfer"
     context = {
         "intent": "repair",
         "focus_category": "grammar",
         "focus_label": title,
         "focus_family": "grammar",
         "task_type": "story",
-        "topic": "grammar transfer",
+        "topic": topic,
         "target_level": level,
-        "action_label": "Practice this grammar",
-        "reason": "Targeted practice selected from a Writing finding and the static Grammar curriculum.",
+        "action_label": action_label,
+        "reason": reason,
         "evidence": evidence,
         "focus_instruction": target,
         "grammar_id": grammar_id,
