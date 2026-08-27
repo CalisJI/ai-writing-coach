@@ -166,6 +166,10 @@ state.draft.topic='daily life';
 await renderWrite(root);
 assert.match(root.innerHTML,/id="practiceTopic"[^>]*value="日常生活"/,
   'Chinese Write must localize canonical practice topics in the setup control');
+nodes.get('#practiceTopic').value='日常生活';
+await nodes.get('#practiceTopic').listeners.input();
+assert.equal(state.draft.topic,'daily life',
+  'Chinese Write must preserve canonical topic values after localized input');
 state.draft.topic='我的旅行计划';
 await renderWrite(root);
 assert.match(root.innerHTML,/id="practiceTopic"[^>]*value="我的旅行计划"/,

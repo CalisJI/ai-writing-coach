@@ -134,7 +134,13 @@ function draftFieldText(value) {
 }
 
 function draftTopicValue(value) {
-  return draftFieldText(value).trim() || 'random';
+  const topic=draftFieldText(value).trim();
+  if(!topic)return 'random';
+  const config=configFor(state.language);
+  const canonical=config.topics.find(candidate=>
+    candidate===topic||topicLabel(candidate)===topic,
+  );
+  return canonical||topic;
 }
 
 function draftParentEssayIdValue(value) {
@@ -650,7 +656,7 @@ export async function renderWrite(root) {
   });
 
   topic.addEventListener('input', () => {
-    saveDraft({topic: topic.value.trim() || 'random', generatedTask: null, practiceContext: null});
+    saveDraft({topic: draftTopicValue(topic.value), generatedTask: null, practiceContext: null});
   });
 
   audience.addEventListener('input', () => saveDraft({audience: audience.value}));
