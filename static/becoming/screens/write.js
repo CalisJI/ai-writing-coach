@@ -126,6 +126,10 @@ function draftTopicValue(value) {
   return draftFieldText(value).trim() || 'random';
 }
 
+function draftParentEssayIdValue(value) {
+  return typeof value === 'number' && Number.isInteger(value) && value > 0 ? value : null;
+}
+
 function personalizationLabel(task) {
   const personalization = task && typeof task === 'object' && !Array.isArray(task)
     ? task.personalization : null;
@@ -690,7 +694,7 @@ export async function renderWrite(root) {
     try {
       await runBusy(button, async () => {
         let result;
-        const requestedParentId = state.draft.parentEssayId || null;
+        const requestedParentId = draftParentEssayIdValue(state.draft.parentEssayId);
         try {
           result = await evaluateOnce(requestedParentId);
         } catch (error) {

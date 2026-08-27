@@ -98,6 +98,7 @@ state.draft.topic='random';
 state.draft.practiceContext={intent:{bad:true}};
 await renderWrite(root);
 nodes.get('#writingEditor').innerText='A sufficiently long learner draft.';
+state.draft.parentEssayId='7';
 const originalEvaluate=api.evaluate;
 let evaluationPayload=null;
 api.evaluate=async payload=>{
@@ -105,6 +106,8 @@ api.evaluate=async payload=>{
   return {id:7};
 };
 await nodes.get('#reviewDraft').listeners.click({currentTarget:nodes.get('#reviewDraft')});
+assert.equal(evaluationPayload.parent_essay_id,null,
+  'Writing must not send malformed parent references to evaluation');
 const validPracticeContext={
   intent:'repair',focus_category:'article',focus_label:'Article',focus_family:'grammar',
   focus_status:'recurring',task_type:'email',topic:'work',target_level:'B2',
