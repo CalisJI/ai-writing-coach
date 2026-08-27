@@ -112,6 +112,7 @@ const controller=createSpeakingController({
         proficiency:null,
       },
       evidence:{reference_text:payload.reference_text,transcript_text:payload.transcript_text},
+      highlights:['on_source_line','clear_pronunciation','toString'],
       next_steps:[{kind:'focus_words',words:['Listen']},{kind:'fluency',words:[]},{kind:'toString',words:['UNSUPPORTED_NEXT_STEP']}],
     };
   },
@@ -145,16 +146,21 @@ assert.match(controller.html(),/data-speaking-next-steps/);
 assert.match(controller.html(),/Revisit these words: Listen/);
 assert.doesNotMatch(controller.html(),/UNSUPPORTED_NEXT_STEP|toString/,
   'Unknown next-step kinds must not render inherited object properties');
+assert.match(controller.html(),/data-speaking-evaluation-highlights/);
+assert.match(controller.html(),/You stayed with the source line/);
+assert.match(controller.html(),/Pronunciation was clear/);
 assert.match(controller.html(),/data-speaking-pronunciation-action/);
 
-for(const [locale,copy] of [
-  ['vi','Luyện tập tiếp theo'],
-  ['zh','下一步练习'],
+for(const [locale,copy,highlight] of [
+  ['vi','Luyện tập tiếp theo','Bạn bám sát câu gốc'],
+  ['zh','下一步练习','你紧跟原句练习'],
 ]){
   state.supportLanguage=locale;
   const localizedEvaluationHtml=controller.html();
   assert.match(localizedEvaluationHtml,new RegExp(copy));
+  assert.match(localizedEvaluationHtml,new RegExp(highlight));
   assert.doesNotMatch(localizedEvaluationHtml,/Revisit these words/);
+  assert.doesNotMatch(localizedEvaluationHtml,/You stayed with the source line/);
 }
 state.supportLanguage='en';
 
