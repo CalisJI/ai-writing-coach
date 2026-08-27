@@ -1,0 +1,193 @@
+import assert from 'node:assert/strict';
+import {api} from '../static/becoming/api.js';
+import {state} from '../static/becoming/store.js';
+import {renderWrite} from '../static/becoming/screens/write.js';
+import {renderReview} from '../static/becoming/screens/review.js';
+
+class FakeElement{
+  constructor(){
+    this.dataset={};
+    this.listeners={};
+    this.innerHTML='';
+    this.innerText='';
+    this.textContent='';
+    this.hidden=false;
+    this.disabled=false;
+    this.classList={toggle:()=>{},add:()=>{},remove:()=>{}};
+  }
+  addEventListener(name,listener){this.listeners[name]=listener;}
+  removeEventListener(){}
+  contains(){return false;}
+  focus(){}
+  setAttribute(){}
+  removeAttribute(){}
+  querySelector(){return null;}
+}
+
+function fakeRoot(ids){
+  const nodes=new Map(ids.map(id=>[id,new FakeElement()]));
+  return {
+    nodes,
+    innerHTML:'',
+    querySelector:selector=>nodes.get(selector)||null,
+    querySelectorAll:()=>[],
+  };
+}
+
+const writeRoot=fakeRoot([
+  '#writingEditor','#editorCount','#savedStamp','#lookupSelection','#blockFormat',
+  '#practiceMode','#practiceLevel','#practiceLength','#practiceTopic','#practiceAudience',
+  '#clearDraft','#reviewDraft','#reviewDraftMobile','#viewRubric','#generateBrief',
+]);
+
+const reviewIds=[
+  '#learnerTextEvidence','#posLensToggle','#posLensStatus','#posLensLegend','#posLens',
+  '#editDraftButton','#reviewRubric','#fullRubricButton','#downloadFeedback',
+  '#reviseButton','#startRevision','#polishButton',
+];
+const reviewRoot=fakeRoot(reviewIds);
+
+globalThis.document={
+  addEventListener:()=>{},
+  removeEventListener:()=>{},
+  querySelector:()=>null,
+  querySelectorAll:()=>[],
+  getElementById:()=>null,
+  execCommand:()=>{},
+  body:{style:{},classList:{add:()=>{},remove:()=>{}}},
+};
+const storage=new Map();
+globalThis.localStorage={
+  getItem:key=>storage.get(key)||null,
+  setItem:(key,value)=>storage.set(key,String(value)),
+  removeItem:key=>storage.delete(key),
+};
+globalThis.location={hash:'#/write'};
+globalThis.window={
+  getSelection:()=>null,
+  setInterval:()=>1,
+  clearInterval:()=>{},
+  dispatchEvent:()=>{},
+};
+globalThis.requestAnimationFrame=callback=>callback();
+
+state.language='en';
+state.supportLanguage='en';
+state.profile={native_language:'en'};
+state.dashboard={error_memory:[]};
+state.draft={
+  ...state.draft,
+  mode:'free',level:'B2',length:150,text:'',html:'',prompt:'Write about a useful habit.',
+  generatedTask:null,practiceContext:null,parentEssayId:null,
+};
+
+const learnerText='I is building a useful writing habit every day.';
+const zhLearnerText='我每天建立一个有用的写作习惯。';
+const evaluation={
+  id:412,
+  evaluator:'ollama:writing-evaluator',
+  prompt:'Write about a useful habit.',
+  text:learnerText,
+  target_cefr:'B2',
+  overall:78,
+  grammar:64,
+  vocabulary:82,
+  coherence:80,
+  task_achievement:76,
+  naturalness:79,
+  errors:[{
+    category:'grammar',fragment:'I is',suggestion:'I am',
+    explanation_vi:'Động từ cần hòa hợp với chủ ngữ.',
+    mini_rule_vi:'I đi với am.',confidence:0.98,
+  }],
+  strength_evidence:[{
+    category:'coherence',fragment:'every day',
+    explanation_vi:'Ý tưởng có mốc thời gian rõ.',confidence:0.94,
+  }],
+  priorities_vi:['Sửa hòa hợp chủ ngữ - động từ trước.'],
+};
+const zhEvaluation={
+  ...evaluation,
+  prompt:'写一段关于有用习惯的文字。',
+  text:zhLearnerText,
+  target_cefr:'HSK4',
+  overall:81,
+  errors:[{
+    category:'grammar',fragment:'建立',suggestion:'养成',
+    explanation_vi:'动词选择使表达更自然。',
+    mini_rule_vi:'习惯通常与养成搭配。',confidence:0.96,
+  }],
+  strength_evidence:[{
+    category:'coherence',fragment:'每天',
+    explanation_vi:'时间频率表达清楚。',confidence:0.93,
+  }],
+};
+
+const originalEvaluate=api.evaluate;
+let submittedPayload=null;
+api.evaluate=async payload=>{
+  submittedPayload=payload;
+  return state.language==='zh'?{...zhEvaluation}:{...evaluation};
+};
+
+try{
+  await renderWrite(writeRoot);
+  writeRoot.querySelector('#writingEditor').innerText=learnerText;
+  await writeRoot.querySelector('#reviewDraft').listeners.click({
+    currentTarget:writeRoot.querySelector('#reviewDraft'),
+  });
+
+  assert.equal(submittedPayload.text,learnerText,
+    'Write submit must forward the learner text to evaluation');
+  assert.equal(submittedPayload.target_cefr,'B2');
+  assert.equal(submittedPayload.learning_language,'en');
+  assert.equal(state.lastEvaluation.id,evaluation.id,
+    'Write submit must retain the evaluator result for Review');
+  assert.equal(globalThis.location.hash,'#/review',
+    'Write submit must route the completed evaluation to Review');
+
+  await renderReview(reviewRoot);
+  assert.match(reviewRoot.innerHTML,/data-feedback-key="error-0"/,
+    'Review must render the evaluator error evidence from the submitted result');
+  assert.match(reviewRoot.innerHTML,/I is/);
+  assert.match(reviewRoot.innerHTML,/change-after">am/,
+    'Review must render the evaluator correction alongside the learner fragment');
+  assert.match(reviewRoot.innerHTML,/data-feedback-key="strength-0"/,
+    'Review must render strength evidence from the same evaluation result');
+  assert.match(reviewRoot.innerHTML,/78/,
+    'Review must render the evaluator score from the completed Write flow');
+  assert.doesNotMatch(reviewRoot.innerHTML,/data-review-evaluation-state="degraded"/,
+    'Provider-backed evaluations must not be labelled as degraded');
+
+  // The same submit-and-render contract must hold for Chinese, not only for
+  // the English fixture above.
+  state.language='zh';
+  state.supportLanguage='zh';
+  state.profile={native_language:'zh'};
+  state.draft={
+    ...state.draft,
+    mode:'free',level:'HSK4',length:80,text:'',html:'',prompt:zhEvaluation.prompt,
+    generatedTask:null,practiceContext:null,parentEssayId:null,
+  };
+  globalThis.location.hash='#/write';
+  await renderWrite(writeRoot);
+  writeRoot.querySelector('#writingEditor').innerText=zhLearnerText;
+  await writeRoot.querySelector('#reviewDraft').listeners.click({
+    currentTarget:writeRoot.querySelector('#reviewDraft'),
+  });
+  assert.equal(submittedPayload.learning_language,'zh',
+    'The shared Write submit flow must send Chinese learner language');
+  assert.equal(submittedPayload.target_cefr,'HSK4');
+  assert.equal(state.lastEvaluation.id,zhEvaluation.id);
+  assert.equal(globalThis.location.hash,'#/review');
+  await renderReview(reviewRoot);
+  assert.match(reviewRoot.innerHTML,/data-feedback-key="error-0"/,
+    'Chinese Review must render evaluator error evidence');
+  assert.match(reviewRoot.innerHTML,/建立/);
+  assert.match(reviewRoot.innerHTML,/养成/);
+  assert.match(reviewRoot.innerHTML,/81/);
+}finally{
+  api.evaluate=originalEvaluate;
+}
+
+console.log('Writing -> Evaluate -> Review evidence flow: PASS');
