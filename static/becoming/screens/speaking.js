@@ -86,11 +86,20 @@ const COPY={
 
 const copy=()=>COPY[uiLocale()]||COPY.en;
 const ASR_COPY={
-  en:{busy:'Transcribing your take...',result:'What Orena heard',failed:'Could not transcribe this take. You can still play it back and retry.'},
-  vi:{busy:'Đang nhận dạng lượt nói...',result:'Orena nghe được',failed:'Chưa thể nhận dạng lượt nói này. Bạn vẫn có thể nghe lại và thử lại.'},
-  zh:{busy:'正在识别这次录音…',result:'Orena 听到的内容',failed:'暂时无法识别这次录音。你仍然可以回放并重试。'},
+  en:{busy:'Transcribing your take...',result:'What Orena heard',failed:'Could not transcribe this take. You can still play it back and retry.',unconfigured:'Speech recognition is not configured on this environment.',access:'Speech recognition access is not available in this environment. Please contact the administrator.',invalid:'This recording request is not valid.',large:'This recording is too large.',timeout:'Speech recognition timed out. Try again shortly.',malformed:'Speech recognition returned no usable transcript.'},
+  vi:{busy:'Đang nhận dạng lượt nói...',result:'Orena nghe được',failed:'Chưa thể nhận dạng lượt nói này. Bạn vẫn có thể nghe lại và thử lại.',unconfigured:'Môi trường này chưa cấu hình dịch vụ nhận dạng lời nói.',access:'Môi trường này không có quyền dùng dịch vụ nhận dạng lời nói. Hãy liên hệ quản trị viên.',invalid:'Yêu cầu nhận dạng lượt ghi này không hợp lệ.',large:'Lượt ghi này quá lớn.',timeout:'Nhận dạng lời nói đã hết thời gian. Hãy thử lại sau ít phút.',malformed:'Dịch vụ nhận dạng không trả về bản ghi lời nói dùng được.'},
+  zh:{busy:'正在识别这次录音…',result:'Orena 听到的内容',failed:'暂时无法识别这次录音。你仍然可以回放并重试。',unconfigured:'当前环境尚未配置语音识别服务。',access:'当前环境没有语音识别权限，请联系管理员。',invalid:'这次录音请求无效。',large:'这次录音文件过大。',timeout:'语音识别超时，请稍后重试。',malformed:'语音识别没有返回可用的文字。'},
 };
 const asrCopy=()=>ASR_COPY[uiLocale()]||ASR_COPY.en;
+function asrErrorMessage(category,c){
+  if(category==='speech_asr_unconfigured')return c.unconfigured;
+  if(category==='speech_asr_invalid_language'||category==='speech_asr_invalid_request'||category==='speech_asr_unprocessable_audio')return c.invalid;
+  if(category==='speech_asr_payload_too_large')return c.large;
+  if(category==='speech_asr_timeout')return c.timeout;
+  if(category==='speech_asr_auth'||category==='speech_asr_forbidden')return c.access;
+  if(category==='speech_asr_provider_malformed')return c.malformed;
+  return c.failed;
+}
 const MATCH_COPY={
   en:{
     match:'Content match',missing:'Try these again',extra:'Extra words heard',
@@ -122,6 +131,11 @@ const PRON_COPY={
     prosody:'Prosody',focus:'Words to focus on',phonemes:'Sounds',score:'score',
     mispronunciation:'Mispronunciation',omission:'Omission',insertion:'Insertion',
     unavailable:'Pronunciation scoring is not configured on this environment.',
+    invalid:'This pronunciation request is not valid. Check the segment and try again.',
+    large:'This recording is too large for pronunciation assessment. Record a shorter take.',
+    unsupported:'This recording format could not be prepared. Try recording again.',
+    retry:'Pronunciation assessment could not finish. Try again shortly.',
+    blocked:'Pronunciation assessment is unavailable for this resource.',
     failed:'Pronunciation assessment is temporarily unavailable. Your recording and content match still work.',
     demo:'DEMO score — UI testing only. Your pronunciation quality is not being judged.',
     disclaimer:'Provider-backed scores apply only to this recorded segment, not global proficiency.',
@@ -132,6 +146,11 @@ const PRON_COPY={
     prosody:'Ngữ điệu',focus:'Từ cần tập trung',phonemes:'Âm',score:'điểm',
     mispronunciation:'Phát âm sai',omission:'Bỏ sót',insertion:'Nói thêm',
     unavailable:'Môi trường này chưa cấu hình dịch vụ chấm phát âm.',
+    invalid:'Yêu cầu chấm phát âm này không hợp lệ. Hãy kiểm tra đoạn luyện tập và thử lại.',
+    large:'Lượt ghi này quá lớn để chấm phát âm. Hãy ghi một lượt ngắn hơn.',
+    unsupported:'Không thể chuẩn bị định dạng lượt ghi này. Hãy ghi lại.',
+    retry:'Chưa thể hoàn tất chấm phát âm. Hãy thử lại sau ít phút.',
+    blocked:'Không thể chấm phát âm cho tài nguyên này.',
     failed:'Tạm thời chưa chấm được phát âm. Lượt ghi và khớp nội dung vẫn hoạt động.',
     demo:'Điểm DEMO — chỉ để test giao diện. Chất lượng phát âm của bạn chưa được chấm.',
     disclaimer:'Điểm từ provider chỉ áp dụng cho đoạn ghi này, không phải năng lực tổng quát.',
@@ -142,12 +161,26 @@ const PRON_COPY={
     prosody:'韵律',focus:'需要重点练习的词',phonemes:'音素',score:'分数',
     mispronunciation:'发音错误',omission:'遗漏',insertion:'多说',
     unavailable:'当前环境尚未配置发音评分服务。',
+    invalid:'这次发音评估请求无效，请检查练习片段后重试。',
+    large:'这次录音过大，无法完成发音评估。请录制更短的片段。',
+    unsupported:'无法处理这次录音格式，请重新录制。',
+    retry:'发音评估未能完成，请稍后重试。',
+    blocked:'当前资源无法使用发音评估。',
     failed:'暂时无法完成发音评估。录音和内容匹配仍可继续使用。',
     demo:'DEMO 分数——仅用于界面测试，并未真正评估你的发音质量。',
     disclaimer:'服务商评分仅针对本次录音片段，不代表整体语言能力。',
   },
 };
 const pronCopy=()=>PRON_COPY[uiLocale()]||PRON_COPY.en;
+function pronunciationErrorMessage(category,c){
+  if(category==='pronunciation_unconfigured')return c.unavailable;
+  if(category==='pronunciation_invalid_language'||category==='pronunciation_reference_invalid'||category==='pronunciation_invalid_request')return c.invalid;
+  if(category==='pronunciation_payload_too_large')return c.large;
+  if(category==='pronunciation_audio_unsupported')return c.unsupported;
+  if(category==='pronunciation_timeout'||category==='pronunciation_rate_limited')return c.retry;
+  if(category==='pronunciation_auth'||category==='pronunciation_forbidden')return c.blocked;
+  return c.failed;
+}
 
 const EVALUATION_COPY={
   en:{title:'Take evaluation',intro:'This summary describes this recording only.',transcription:'Transcription confidence',content:'Content match',pronunciation:'Pronunciation',fluency:'Fluency',proficiency:'Proficiency',notAssessed:'Not assessed',busy:'Preparing the take summary...',failed:'The full take summary is unavailable. The local feedback above is still available.'},
@@ -387,7 +420,7 @@ function feedbackRail(model){
     : model.pronunciationStatus==='unavailable'
       ? `<p class="o-metric-note o-metric-note--warn" data-speaking-pronunciation-status role="status">${esc(c.unavailable)}</p>`
       : model.pronunciationStatus==='error'
-        ? `<p class="o-metric-note o-metric-note--warn" data-speaking-pronunciation-status role="alert">${esc(model.pronunciationErrorMessage||c.failed)}</p>`
+        ? `<p class="o-metric-note o-metric-note--warn" data-speaking-pronunciation-status role="alert">${esc(pronunciationErrorMessage(model.pronunciationError,c))}</p>`
         : '';
 
   return `<aside class="o-speak-rail">
@@ -625,7 +658,7 @@ export function createSpeakingController({session,recorder=createLocalAudioRecor
               .map(line=>`<p>${transcriptTokenMarkup(line)}</p>`)
               .join('')}</div>`
           : model.asrError
-            ? `<p class="o-transcript-status o-transcript-status--warn" role="alert">${esc(model.asrErrorMessage||a.failed)}</p>`
+            ? `<p class="o-transcript-status o-transcript-status--warn" role="alert">${esc(asrErrorMessage(model.asrError,a))}</p>`
             : `<p class="o-transcript-status">${esc(c.transcriptEmpty)}</p>`;
 
       return `<section class="o-page speaking-page" data-speaking-core>

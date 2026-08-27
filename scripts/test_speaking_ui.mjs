@@ -268,6 +268,106 @@ assert.equal(raceEvaluationPayloads.length,0,
   'Speaking must ignore a take whose ASR completes after its segment changed');
 clearSharedMediaSession('en');
 
+// Canonical speech categories must become learner-locale copy at the screen
+// boundary; backend English messages must never leak into VI/ZH feedback.
+let errorTake=null;
+let asrErrorCategory='speech_asr_timeout';
+let pronunciationErrorCategory='pronunciation_provider_malformed';
+const errorRecorder={
+  snapshot(){return {status:errorTake?'ready':'idle',error:null,url:errorTake?.url||null,blob:errorTake?.blob||null,mime_type:'audio/webm',supported:true};},
+  async start(){errorTake={url:'blob:error-take',blob:new Blob(['error take'],{type:'audio/webm'}),mime_type:'audio/webm',size:10};return true;},
+  async stop(){return errorTake;},
+  discard(){errorTake=null;return true;},
+  cleanup(){},
+};
+const errorController=createSpeakingController({
+  session,
+  recorder:errorRecorder,
+  transcribe:async()=>{throw {category:asrErrorCategory,message:`SERVER ENGLISH ASR ${asrErrorCategory}`};},
+  pronunciationAssess:async()=>{throw {category:pronunciationErrorCategory,message:`SERVER ENGLISH PRONUNCIATION ${pronunciationErrorCategory}`};},
+});
+await errorController.startRecording();
+assert.equal(await errorController.stopRecording(),true);
+assert.equal(errorController.model.asrStatus,'error');
+for(const [locale,copy] of [
+  ['en','Speech recognition timed out. Try again shortly.'],
+  ['vi','Nhận dạng lời nói đã hết thời gian. Hãy thử lại sau ít phút.'],
+  ['zh','语音识别超时，请稍后重试。'],
+]){
+  state.supportLanguage=locale;
+  const errorHtml=errorController.html();
+  assert.match(errorHtml,new RegExp(copy));
+  assert.doesNotMatch(errorHtml,/SERVER ENGLISH ASR/,
+    `${locale.toUpperCase()} Speaking must not leak backend error text`);
+}
+for(const category of ['speech_asr_auth','speech_asr_forbidden']){
+  asrErrorCategory=category;
+  await errorController.startRecording();
+  assert.equal(await errorController.stopRecording(),true);
+  assert.equal(errorController.model.asrStatus,'error');
+  for(const [locale,copy,retryCopy] of [
+    ['en','Speech recognition access is not available in this environment. Please contact the administrator.','Speech recognition timed out. Try again shortly.'],
+    ['vi','Môi trường này không có quyền dùng dịch vụ nhận dạng lời nói. Hãy liên hệ quản trị viên.','Nhận dạng lời nói đã hết thời gian. Hãy thử lại sau ít phút.'],
+    ['zh','当前环境没有语音识别权限，请联系管理员。','语音识别超时，请稍后重试。'],
+  ]){
+    state.supportLanguage=locale;
+    const errorHtml=errorController.html();
+    assert.match(errorHtml,new RegExp(copy));
+    assert.doesNotMatch(errorHtml,new RegExp(retryCopy));
+    assert.doesNotMatch(errorHtml,/SERVER ENGLISH ASR/,
+      `${locale.toUpperCase()} Speaking must not offer retry guidance for ${category}`);
+  }
+}
+asrErrorCategory='speech_asr_timeout';
+assert.equal(await errorController.assessPronunciation(),false);
+assert.equal(errorController.model.pronunciationStatus,'error');
+for(const [locale,copy] of [
+  ['en','Pronunciation assessment is temporarily unavailable. Your recording and content match still work.'],
+  ['vi','Tạm thời chưa chấm được phát âm. Lượt ghi và khớp nội dung vẫn hoạt động.'],
+  ['zh','暂时无法完成发音评估。录音和内容匹配仍可继续使用。'],
+]){
+  state.supportLanguage=locale;
+  const errorHtml=errorController.html();
+  assert.match(errorHtml,new RegExp(copy));
+  assert.doesNotMatch(errorHtml,/SERVER ENGLISH PRONUNCIATION/,
+    `${locale.toUpperCase()} Speaking must not leak pronunciation error text`);
+}
+for(const scenario of [
+  {
+    category:'pronunciation_timeout',
+    copy:{en:'Pronunciation assessment could not finish. Try again shortly.',vi:'Chưa thể hoàn tất chấm phát âm. Hãy thử lại sau ít phút.',zh:'发音评估未能完成，请稍后重试。'},
+  },
+  {
+    category:'pronunciation_rate_limited',
+    copy:{en:'Pronunciation assessment could not finish. Try again shortly.',vi:'Chưa thể hoàn tất chấm phát âm. Hãy thử lại sau ít phút.',zh:'发音评估未能完成，请稍后重试。'},
+  },
+  {
+    category:'pronunciation_payload_too_large',
+    copy:{en:'This recording is too large for pronunciation assessment. Record a shorter take.',vi:'Lượt ghi này quá lớn để chấm phát âm. Hãy ghi một lượt ngắn hơn.',zh:'这次录音过大，无法完成发音评估。请录制更短的片段。'},
+  },
+  {
+    category:'pronunciation_audio_unsupported',
+    copy:{en:'This recording format could not be prepared. Try recording again.',vi:'Không thể chuẩn bị định dạng lượt ghi này. Hãy ghi lại.',zh:'无法处理这次录音格式，请重新录制。'},
+  },
+  {
+    category:'pronunciation_invalid_request',
+    copy:{en:'This pronunciation request is not valid. Check the segment and try again.',vi:'Yêu cầu chấm phát âm này không hợp lệ. Hãy kiểm tra đoạn luyện tập và thử lại.',zh:'这次发音评估请求无效，请检查练习片段后重试。'},
+  },
+]){
+  pronunciationErrorCategory=scenario.category;
+  assert.equal(await errorController.assessPronunciation(),false);
+  assert.equal(errorController.model.pronunciationStatus,'error');
+  for(const locale of ['en','vi','zh']){
+    state.supportLanguage=locale;
+    const errorHtml=errorController.html();
+    assert.match(errorHtml,new RegExp(scenario.copy[locale]));
+    assert.doesNotMatch(errorHtml,/SERVER ENGLISH PRONUNCIATION/,
+      `${locale.toUpperCase()} Speaking must not leak ${scenario.category}`);
+  }
+}
+pronunciationErrorCategory='pronunciation_provider_malformed';
+state.supportLanguage='en';
+
 // The same record → ASR → content-match path must remain executable for a
 // Chinese source lesson, not only have Chinese labels around an English take.
 const zhPayload=structuredClone(MEDIA_LEARNING_ZH_FIXTURE);
