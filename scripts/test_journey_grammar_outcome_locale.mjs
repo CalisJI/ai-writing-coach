@@ -114,10 +114,19 @@ let latestOutcome={
     issue_count:0,
     revision_no:2,
 };
-api.practiceOutcomes=async()=>({latest:latestOutcome});
+let practiceHistoryItems=[
+  latestOutcome,
+  {grammar_id:'a1-agreement',focus_label:'Agreement practice',status:'still_working',issue_count:1,revision_no:1},
+];
+api.practiceOutcomes=async()=>({latest:latestOutcome,items:practiceHistoryItems});
 
 state.language='en';
 state.profile={native_language:'en'};
+const historyStatusCopy={
+  en:'The pattern is still active.',
+  vi:'Mẫu này vẫn đang xuất hiện.',
+  zh:'这个模式仍然活跃。',
+};
 for(const [locale,label] of [
   ['en','Grammar practice progress'],
   ['vi','Tiến độ luyện ngữ pháp'],
@@ -136,10 +145,19 @@ for(const [locale,label] of [
       `Journey ${locale.toUpperCase()} Grammar outcome must not expose the raw status enum`,
     );
   }
+  assert.ok(
+    root.innerHTML.includes(locale==='en'?'Recent practice outcomes':locale==='vi'?'Các kết quả luyện tập gần đây':'最近的练习结果'),
+    `Journey ${locale.toUpperCase()} should show the localized practice outcome history`,
+  );
+  assert.ok(root.innerHTML.includes(historyStatusCopy[locale]),
+    `Journey ${locale.toUpperCase()} should localize each historical outcome`);
+  if(locale!=='en')assert.doesNotMatch(root.innerHTML,/still_working/,
+    `Journey ${locale.toUpperCase()} must not expose raw historical status enums`);
 }
 state.supportLanguage='zh';
 assert.doesNotMatch(root.innerHTML,/Grammar practice progress/);
 
+practiceHistoryItems=[];
 for(const locale of ['en','vi','zh']){
   state.supportLanguage=locale;
   for(const malformed of [null,{},

@@ -47,6 +47,8 @@ const COPY={
 
     seenIn:'Seen in {total} places across {series} pieces',
     stageIn:'{stage} · {evidence} pieces of evidence',
+    practiceHistory:'Recent practice outcomes',
+    practiceHistoryBody:'These checks stay attached to the pieces where you practised the target.',
   },
   vi:{
     title:'Hành trình học của bạn',lead:'Câu chuyện về tiến bộ, trọng tâm và bước kế tiếp.',
@@ -79,6 +81,8 @@ const COPY={
 
     seenIn:'Gặp {total} lần trong {series} bài',
     stageIn:'{stage} · {evidence} lần có bằng chứng',
+    practiceHistory:'Các kết quả luyện tập gần đây',
+    practiceHistoryBody:'Các lần kiểm tra này vẫn gắn với những bài bạn đã luyện đúng trọng tâm.',
   },
   zh:{
     title:'你的学习历程',lead:'关于进步、重点和下一步的记录。',
@@ -111,6 +115,8 @@ const COPY={
 
     seenIn:'在 {series} 篇中共出现 {total} 次',
     stageIn:'{stage} · {evidence} 处证据',
+    practiceHistory:'最近的练习结果',
+    practiceHistoryBody:'这些检查会保留在你练习该重点的对应作品旁。',
   },
 };
 const copy=()=>COPY[uiLocale()]||COPY.en;
@@ -306,6 +312,54 @@ function grammarOutcomeCard(outcome, language='en'){
     <span class="o-label">${esc(label)}</span>
     <p class="o-panel-copy">${esc(body)}</p>
     <div class="practice-check-meta"><span>${esc(outcome.focus_label||outcome.grammar_title||outcome.grammar_id)}</span><span>${esc(outcome.revision_no||1)} · ${esc(status)}</span></div>
+  </section>`;
+}
+
+const PRACTICE_OUTCOME_STATUSES=new Set([
+  'improved','transferred','held','still_working',
+  'needs_attention','not_observed','needs_more_evidence',
+]);
+
+function normalizedJourneyPracticeOutcome(outcome){
+  if(!outcome||typeof outcome!=='object'||Array.isArray(outcome))return null;
+  const status=typeof outcome.status==='string'?outcome.status.trim().toLowerCase():'';
+  if(!PRACTICE_OUTCOME_STATUSES.has(status))return null;
+  const integer=(value,min)=>{
+    if(typeof value!=='number'||!Number.isFinite(value)||!Number.isInteger(value)||value<min)return null;
+    return value;
+  };
+  const issueCount=integer(outcome.issue_count,0);
+  const revisionNo=integer(outcome.revision_no,1);
+  if(issueCount===null||revisionNo===null)return null;
+  let previous=null;
+  if(outcome.previous_issue_count!=null){
+    previous=integer(outcome.previous_issue_count,0);
+    if(previous===null)return null;
+  }
+  const focus=typeof outcome.focus_label==='string'?outcome.focus_label.trim():'';
+  if(!focus)return null;
+  return {status,issue_count:issueCount,revision_no:revisionNo,previous_issue_count:previous,focus_label:focus};
+}
+
+function practiceOutcomeHistory(items){
+  const outcomes=(Array.isArray(items)?items:[])
+    .map(normalizedJourneyPracticeOutcome).filter(Boolean);
+  if(outcomes.length<2)return '';
+  const c=copy();
+  return `<section class="o-card o-journey-practice-history" data-practice-outcome-history>
+    <span class="o-label">${esc(c.practiceHistory)}</span>
+    <p class="o-panel-copy">${esc(c.practiceHistoryBody)}</p>
+    <ol class="o-practice-history-list">
+      ${outcomes.slice(0,5).map(outcome=>`<li>
+        <div><strong>${esc(outcome.focus_label)}</strong><span class="o-chip">${esc(t(`outcome.${outcome.status}.title`))}</span></div>
+        <p>${esc(t(`outcome.${outcome.status}.body`,{
+          previous:outcome.previous_issue_count??'—',
+          count:outcome.issue_count,
+          focus:outcome.focus_label,
+        }))}</p>
+        <small>${esc(t('outcome.revision'))} ${esc(outcome.revision_no)}</small>
+      </li>`).join('')}
+    </ol>
   </section>`;
 }
 
@@ -609,6 +663,7 @@ export async function renderJourney(root){
       <div class="o-journey-main">
         ${focusCard(focus)}
         ${grammarOutcomeCard(practiceOutcomes?.latest,uiLocale())}
+        ${practiceOutcomeHistory(practiceOutcomes?.items)}
         ${improving
           ? patternCard({kind:'up',icon:'flame',kicker:c.recentImprovement,pattern:improving,tone:'strong',trendLabel:c.occurrence})
           : leadStrength

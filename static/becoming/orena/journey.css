@@ -186,6 +186,18 @@
 .o-revision-row .o-icon-button{width:32px;height:32px}
 .o-revision-row .o-icon-button svg{width:16px;height:16px}
 
+/* A short, evidence-backed history keeps earlier practice checks visible after
+   the latest outcome moves on. It deliberately reuses the Journey card and
+   chip primitives rather than inventing a second progress treatment. */
+.o-journey-practice-history{display:grid;gap:10px;padding:20px 24px}
+.o-journey-practice-history .o-panel-copy{margin:0;color:var(--o-ink-muted);font-size:var(--o-text-meta);line-height:1.5}
+.o-practice-history-list{display:grid;gap:8px;margin:0;padding:0;list-style:none}
+.o-practice-history-list li{display:grid;gap:4px;padding:10px 12px;border:1px solid var(--o-border);border-radius:var(--o-radius-field);background:var(--o-surface-sunken)}
+.o-practice-history-list li>div{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.o-practice-history-list strong{font-size:var(--o-text-ui);font-weight:600}
+.o-practice-history-list p{margin:0;color:var(--o-ink-muted);font-size:var(--o-text-meta);line-height:1.5}
+.o-practice-history-list small{color:var(--o-ink-faint);font-size:var(--o-text-meta);font-variant-numeric:tabular-nums}
+
 /* ------------------------------------------------------------- rail ------ */
 
 .o-journey-rail{display:grid;gap:16px;min-width:0}
