@@ -60,7 +60,11 @@ export const api={
     headers:JSON_HEADERS,
     body:JSON.stringify(payload||{}),
   }),
-  grammarPractice:(id)=>request(`/api/grammar/${encodeURIComponent(id)}/practice`),
+  grammarPractice:(id,evidence='')=>{
+    const value=typeof evidence==='string'?evidence.trim():'';
+    const suffix=value?`?evidence=${encodeURIComponent(value)}`:'';
+    return request(`/api/grammar/${encodeURIComponent(id)}/practice${suffix}`);
+  },
   practiceOutcome:(id)=>request(`/api/practice-outcome/${encodeURIComponent(id)}`),
   practiceOutcomes:(limit=20)=>request(`/api/practice-outcomes?limit=${encodeURIComponent(limit)}`),
   dictionary:(word)=>request(`/api/dictionary?word=${encodeURIComponent(word)}`),

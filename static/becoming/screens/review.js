@@ -69,6 +69,7 @@ function normalizedGrammarLinks(value){
       title:typeof link.title==='string'?link.title.trim():'',
       level:typeof link.level==='string'?link.level.trim():'',
       reason:typeof link.reason==='string'?link.reason.trim():'',
+      evidence:typeof link.evidence==='string'?link.evidence.trim():'',
     }))
     .filter(link=>link.grammar_id);
 }
@@ -91,7 +92,7 @@ function grammarTransferBlock(result={}){
           :link.reason||''
       )}</p>
       <button type="button" class="o-btn o-btn--outline o-btn--compact" data-open-grammar="${attr(link.grammar_id||'')}">${esc(t('review.open_grammar'))}</button>
-      <button type="button" class="o-btn o-btn--primary o-btn--compact" data-practice-grammar="${attr(link.grammar_id||'')}">${esc(t('review.practice_grammar'))}</button>
+      <button type="button" class="o-btn o-btn--primary o-btn--compact" data-practice-grammar="${attr(link.grammar_id||'')}" data-practice-evidence="${attr(link.evidence||'')}">${esc(t('review.practice_grammar'))}</button>
     </li>`).join('')}</ul>
   </section>`;
 }
@@ -843,7 +844,7 @@ export async function renderReview(root){
     const id=button.dataset.practiceGrammar;
     if(!id)return;
     try{
-      const task=await api.grammarPractice(id);
+      const task=await api.grammarPractice(id,button.dataset.practiceEvidence||'');
       if(!task||typeof task!=='object'||typeof task.prompt!=='string'||!task.prompt.trim()){
         throw new Error(t('review.practice_failed'));
       }

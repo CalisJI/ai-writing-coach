@@ -89,7 +89,7 @@ from writing_coach.becoming_outcomes import PracticeContextIn, configure_becomin
 from writing_coach.becoming_library import LibraryVocabularyIn, VocabularyReviewIn, configure_becoming_library, delete_library_vocabulary, list_library_vocabulary, review_library_vocabulary, save_library_vocabulary
 from writing_coach.becoming_linguistics import configure_becoming_linguistics, linguistic_annotations_for_essay
 from writing_coach.becoming_reading import ReadingAnswerIn, ReadingGenerateIn, configure_becoming_reading, create_reading_session, get_reading_session, list_reading_sessions, submit_reading_answers
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
@@ -1787,7 +1787,10 @@ def becoming_practice_next(payload: PracticeNextIn) -> dict[str, Any]:
 
 
 @app.get("/api/grammar/{grammar_id}/practice", name="grammar_targeted_practice")
-def grammar_targeted_practice(grammar_id: str) -> dict[str, Any]:
+def grammar_targeted_practice(
+    grammar_id: str,
+    evidence: str = Query(default="", max_length=600),
+) -> dict[str, Any]:
     """Build a small practice brief from one authoritative R5 lesson."""
     lesson = active_grammar_by_id().get(grammar_id)
     if not lesson:
@@ -1796,7 +1799,16 @@ def grammar_targeted_practice(grammar_id: str) -> dict[str, Any]:
     title = str(lesson.get("title") or grammar_id)
     level = str(lesson.get("level") or ("HSK4" if language == "zh" else "B2"))
     blueprint = lesson.get("practice_blueprint") if isinstance(lesson.get("practice_blueprint"), dict) else {}
-    target = "请写 3-5 句，使用本课的语法重点。" if language == "zh" else "Write 3–5 sentences using the grammar focus from this lesson."
+    evidence = evidence.strip() if isinstance(evidence, str) else ""
+    base_target = "请写 3-5 句，使用本课的语法重点。" if language == "zh" else "Write 3–5 sentences using the grammar focus from this lesson."
+    if evidence:
+        target = (
+            f"{base_target} 请特别留意你之前写过的这段表达：“{evidence}”。"
+            if language == "zh"
+            else f'{base_target} Pay special attention to this evidence from your writing: “{evidence}”.'
+        )
+    else:
+        target = base_target
     context = {
         "intent": "repair",
         "focus_category": "grammar",
@@ -1807,7 +1819,7 @@ def grammar_targeted_practice(grammar_id: str) -> dict[str, Any]:
         "target_level": level,
         "action_label": "Practice this grammar",
         "reason": "Targeted practice selected from a Writing finding and the static Grammar curriculum.",
-        "evidence": "",
+        "evidence": evidence,
         "focus_instruction": target,
         "grammar_id": grammar_id,
         "grammar_title": title,

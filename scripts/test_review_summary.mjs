@@ -317,6 +317,7 @@ const transferFixture={
     title:'Subject verb agreement',
     level:'A1',
     reason:'Writing finding category: agreement',
+    evidence:'I write',
   }],
 };
 const transferReasonCopy={
@@ -349,6 +350,7 @@ const openGrammarButton=new FakeElement();
 openGrammarButton.dataset.openGrammar='a1-agreement';
 const practiceGrammarButton=new FakeElement();
 practiceGrammarButton.dataset.practiceGrammar='a1-agreement';
+practiceGrammarButton.dataset.practiceEvidence='I write';
 const actionRoot=fakeReviewRoot({
   openGrammar:[openGrammarButton],
   practiceGrammar:[practiceGrammarButton],
@@ -358,12 +360,16 @@ state.supportLanguage='en';
 state.language='en';
 state.lastEvaluation=transferFixture;
 state.draft.text=transferFixture.text;
-api.grammarPractice=async grammarId=>({
+let practiceEvidence='';
+api.grammarPractice=async (grammarId,evidence)=>{
+  practiceEvidence=evidence;
+  return {
   grammar_id:grammarId,
   prompt:'Write three sentences using the grammar focus.',
   target_level:'B2',
   practice_context:{grammar_id:grammarId,focus_category:'grammar'},
-});
+  };
+};
 await renderReview(actionRoot);
 await openGrammarButton.click();
 assert.equal(storedActionValues.get('becoming.grammar-focus'),'a1-agreement');
@@ -371,6 +377,7 @@ assert.equal(globalThis.location.hash,'#/grammar');
 await practiceGrammarButton.click();
 assert.equal(state.draft.prompt,'Write three sentences using the grammar focus.');
 assert.deepEqual(state.draft.practiceContext,{grammar_id:'a1-agreement',focus_category:'grammar'});
+assert.equal(practiceEvidence,'I write');
 assert.equal(globalThis.location.hash,'#/write');
 
 state.profile={native_language:'vi'};

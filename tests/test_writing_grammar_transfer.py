@@ -24,6 +24,7 @@ def test_transfer_links_agreement_to_matching_static_lesson():
         "title": "Subject verb agreement",
         "level": "A1",
         "reason": "Writing finding category: agreement",
+        "evidence": "I has",
         "source": "static-grammar-kb",
     }]
 
@@ -135,3 +136,20 @@ def test_target_level_precedes_stronger_advanced_signal():
     )
 
     assert [item["grammar_id"] for item in links] == ["hsk2-aspect", "hsk6-aspect"]
+
+
+def test_targeted_grammar_practice_carries_evidence_into_bilingual_prompt(monkeypatch):
+    import app
+    from types import SimpleNamespace
+
+    monkeypatch.setattr(
+        app,
+        "active_grammar_by_id",
+        lambda: {"zh-aspect": {"title": "体与补语", "level": "HSK2", "practice_blueprint": {}}},
+    )
+    monkeypatch.setattr(app, "active_profile", lambda: SimpleNamespace(code="zh"))
+
+    result = app.grammar_targeted_practice("zh-aspect", evidence="我昨天去过了北京")
+
+    assert result["practice_context"]["evidence"] == "我昨天去过了北京"
+    assert "我昨天去过了北京" in result["prompt"]

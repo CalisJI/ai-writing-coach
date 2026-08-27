@@ -104,6 +104,13 @@ def grammar_links_for_issues(
                 "title": lesson.get("title", ""),
                 "level": lesson.get("level", ""),
                 "reason": f"Writing finding category: {category}",
+                "evidence": (
+                    issue.get("fragment").strip()
+                    if isinstance(issue.get("fragment"), str) and issue.get("fragment").strip()
+                    else issue.get("quote").strip()
+                    if isinstance(issue.get("quote"), str) and issue.get("quote").strip()
+                    else ""
+                ),
                 "source": "static-grammar-kb",
             })
     return links
