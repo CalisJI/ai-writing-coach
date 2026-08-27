@@ -4,10 +4,36 @@ import {state} from '../static/becoming/store.js';
 import {renderJourney} from '../static/becoming/screens/journey.js';
 
 globalThis.location={hash:'#/journey'};
+const storage=new Map();
+globalThis.localStorage={
+  getItem:key=>storage.get(key)||null,
+  setItem:(key,value)=>storage.set(key,String(value)),
+  removeItem:key=>storage.delete(key),
+};
+globalThis.window={dispatchEvent:()=>{}};
 const revisionButtons=new Map();
+const journeyStartButton={
+  dataset:{journeyStart:''},
+  listeners:{},
+  innerHTML:'',
+  textContent:'Start practice',
+  disabled:false,
+  classList:{toggle:()=>{},add:()=>{},remove:()=>{}},
+  addEventListener(name,listener){this.listeners[name]=listener;},
+  setAttribute(){},
+  removeAttribute(){},
+  querySelector(){return null;},
+  async click(){return this.listeners.click?.({currentTarget:this});},
+};
 const root={
   innerHTML:'',
-  querySelector:()=>null,
+  insertAdjacentHTML() {},
+  querySelector:selector=>{
+    if(selector==='[data-journey-start]'&&root.innerHTML.includes('data-journey-start')){
+      return journeyStartButton;
+    }
+    return null;
+  },
   querySelectorAll:selector=>{
     if(selector!=='[data-journey-essay]')return [];
     const ids=[...root.innerHTML.matchAll(/data-journey-essay="([^"]+)"/g)]
@@ -199,5 +225,42 @@ assert.equal(state.lastEvaluation.id,12,
 assert.equal(state.draft.parentEssayId,12,
   'Journey revision navigation must preserve the Review parent essay id');
 assert.equal(globalThis.location?.hash,'#/review');
+
+const targetRecommendation={
+  intent:'repair',
+  focus_family:'grammar',
+  focus_label:'Articles',
+  focus_instruction:'Practice articles before your next draft.',
+  reason:'Repeated article evidence in recent writing.',
+  target_level:'B2',
+  task_type:'opinion',
+  topic:'work',
+  word_target:120,
+};
+const targetTask={
+  ...targetRecommendation,
+  prompt:'Write about a work habit using clear articles.',
+  personalization:targetRecommendation,
+};
+api.practiceRecommendation=async()=>targetRecommendation;
+api.nextPractice=async()=>targetTask;
+latestMemory={
+  patterns:[],
+  strengths:[],
+  focus:{category:'article'},
+  revision_wins:[],
+};
+await renderJourney(root);
+assert.ok(root.innerHTML.includes('data-journey-start'),
+  'Journey must render the targeted Practice start control');
+const renderedStart=root.querySelector('[data-journey-start]');
+assert.ok(renderedStart,
+  'Journey target control must be available from the rendered markup');
+await renderedStart.click();
+assert.equal(state.draft.prompt,targetTask.prompt,
+  'Journey target action must transfer the generated practice prompt to Write');
+assert.deepEqual(state.draft.practiceContext,targetRecommendation,
+  'Journey target action must preserve recommendation context for evaluation');
+assert.equal(globalThis.location.hash,'#/write');
 
 console.log('Journey Grammar outcome locale contract: PASS');
