@@ -1,7 +1,7 @@
 import {api} from '../api.js';
 import {state,saveDraft} from '../store.js';
 import {go} from '../router.js';
-import {esc,errorBlock,loadingBlock,runBusy} from '../components/primitives.js';
+import {esc,attr,errorBlock,loadingBlock,runBusy} from '../components/primitives.js';
 import {t,uiLocale,categoryLabel,masteryLabel,statusLabel} from '../domain/i18n.js';
 import {oIcon} from '../orena/icons.js';
 
@@ -49,6 +49,7 @@ const COPY={
     stageIn:'{stage} · {evidence} pieces of evidence',
     practiceHistory:'Recent practice outcomes',
     practiceHistoryBody:'These checks stay attached to the pieces where you practised the target.',
+    openLesson:'Open Grammar lesson',
   },
   vi:{
     title:'Hành trình học của bạn',lead:'Câu chuyện về tiến bộ, trọng tâm và bước kế tiếp.',
@@ -83,6 +84,7 @@ const COPY={
     stageIn:'{stage} · {evidence} lần có bằng chứng',
     practiceHistory:'Các kết quả luyện tập gần đây',
     practiceHistoryBody:'Các lần kiểm tra này vẫn gắn với những bài bạn đã luyện đúng trọng tâm.',
+    openLesson:'Mở bài học Ngữ pháp',
   },
   zh:{
     title:'你的学习历程',lead:'关于进步、重点和下一步的记录。',
@@ -117,6 +119,7 @@ const COPY={
     stageIn:'{stage} · {evidence} 处证据',
     practiceHistory:'最近的练习结果',
     practiceHistoryBody:'这些检查会保留在你练习该重点的对应作品旁。',
+    openLesson:'打开语法课程',
   },
 };
 const copy=()=>COPY[uiLocale()]||COPY.en;
@@ -312,6 +315,7 @@ function grammarOutcomeCard(outcome, language='en'){
     <span class="o-label">${esc(label)}</span>
     <p class="o-panel-copy">${esc(body)}</p>
     <div class="practice-check-meta"><span>${esc(outcome.focus_label||outcome.grammar_title||outcome.grammar_id)}</span><span>${esc(outcome.revision_no||1)} · ${esc(status)}</span></div>
+    <button type="button" class="o-btn o-btn--outline o-btn--compact" data-outcome-grammar="${attr(outcome.grammar_id)}">${esc(copy().openLesson)}</button>
   </section>`;
 }
 
@@ -725,6 +729,15 @@ export async function renderJourney(root){
         level:essay.target_cefr||state.draft.level,
       };
       go('review');
+    });
+  });
+
+  root.querySelectorAll('[data-outcome-grammar]').forEach(button=>{
+    button.addEventListener('click',()=>{
+      const id=button.dataset.outcomeGrammar;
+      if(!id)return;
+      try{ localStorage.setItem('becoming.grammar-focus',id); }catch{}
+      go('grammar');
     });
   });
 

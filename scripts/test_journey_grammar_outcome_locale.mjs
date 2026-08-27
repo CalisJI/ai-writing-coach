@@ -21,6 +21,7 @@ globalThis.document={
   execCommand:()=>{},
 };
 const revisionButtons=new Map();
+const outcomeButtons=new Map();
 const journeyStartButton={
   dataset:{journeyStart:''},
   listeners:{},
@@ -44,6 +45,21 @@ const root={
     return null;
   },
   querySelectorAll:selector=>{
+    if(selector==='[data-outcome-grammar]'){
+      const ids=[...root.innerHTML.matchAll(/data-outcome-grammar="([^"]+)"/g)]
+        .map(match=>match[1]);
+      return ids.map(id=>{
+        if(!outcomeButtons.has(id)){
+          outcomeButtons.set(id,{
+            dataset:{outcomeGrammar:id},
+            listeners:{},
+            addEventListener(name,listener){this.listeners[name]=listener;},
+            async click(){return this.listeners.click?.({currentTarget:this});},
+          });
+        }
+        return outcomeButtons.get(id);
+      });
+    }
     if(selector!=='[data-journey-essay]')return [];
     const ids=[...root.innerHTML.matchAll(/data-journey-essay="([^"]+)"/g)]
       .map(match=>match[1]);
@@ -138,6 +154,9 @@ for(const [locale,label] of [
     root.innerHTML.includes(label),
     `Journey Grammar outcome should follow the active ${locale.toUpperCase()} UI locale`,
   );
+  const outcomeButton=root.querySelectorAll('[data-outcome-grammar]')[0];
+  assert.equal(outcomeButton?.dataset.outcomeGrammar,'a1-agreement',
+    `Journey ${locale.toUpperCase()} Grammar outcome must link its lesson`);
   if(locale!=='en'){
     assert.doesNotMatch(
       root.innerHTML,
@@ -154,6 +173,11 @@ for(const [locale,label] of [
   if(locale!=='en')assert.doesNotMatch(root.innerHTML,/still_working/,
     `Journey ${locale.toUpperCase()} must not expose raw historical status enums`);
 }
+await root.querySelectorAll('[data-outcome-grammar]')[0].click();
+assert.equal(storage.get('becoming.grammar-focus'),'a1-agreement',
+  'Journey Grammar outcome must persist the linked lesson before opening Grammar');
+assert.equal(globalThis.location.hash,'#/grammar',
+  'Journey Grammar outcome must open the linked Grammar lesson');
 state.supportLanguage='zh';
 assert.doesNotMatch(root.innerHTML,/Grammar practice progress/);
 
