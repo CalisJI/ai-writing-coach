@@ -380,10 +380,21 @@ function asidePanel(config, adaptiveMode) {
 
 export async function renderWrite(root) {
   const config = configFor(state.language);
-  if (!config.levels.includes(state.draft.level)) {
+  const modeValues = new Set(config.modes.map(([value]) => value));
+  const invalidLevel = !config.levels.includes(state.draft.level);
+  const invalidMode = !modeValues.has(state.draft.mode);
+  const invalidLength = !config.lengths.includes(state.draft.length);
+  if (invalidLevel) {
     saveDraft({
       level: config.defaultLevel, length: config.defaultLength,
       mode: 'free', prompt: '', generatedTask: null, practiceContext: null,
+    });
+  } else if (invalidMode || invalidLength) {
+    saveDraft({
+      level: state.draft.level,
+      length: invalidLength ? config.defaultLength : state.draft.length,
+      mode: invalidMode ? 'free' : state.draft.mode,
+      prompt: '', generatedTask: null, practiceContext: null,
     });
   }
 

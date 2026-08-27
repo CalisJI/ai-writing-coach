@@ -37,6 +37,12 @@ globalThis.document={
   querySelector:()=>null,
   execCommand:()=>{},
 };
+const storage=new Map();
+globalThis.localStorage={
+  getItem:key=>storage.get(key)||null,
+  setItem:(key,value)=>storage.set(key,String(value)),
+  removeItem:key=>storage.delete(key),
+};
 globalThis.window={
   getSelection:()=>null,
   setInterval:()=>1,
@@ -81,6 +87,28 @@ assert.match(root.innerHTML,/id="practiceAudience"[^>]*value=""/,
   'Writing must clear malformed audience values in the rendered control');
 assert.match(root.innerHTML,/id="customPrompt"[^>]*><\/textarea>/,
   'Writing must clear malformed custom prompt values in the rendered control');
+
+state.draft.generatedTask={instruction:'Stale generated brief'};
+state.draft.prompt='Stale custom prompt';
+state.draft.practiceContext={focus_category:'article'};
+state.draft.mode={bad:true};
+state.draft.length={bad:true};
+state.draft.topic={bad:true};
+await renderWrite(root);
+assert.match(root.innerHTML,/option value="free" selected/,
+  'Writing must select a safe default mode for malformed drafts');
+assert.match(root.innerHTML,/option value="150" selected/,
+  'Writing must select a safe default length for malformed drafts');
+assert.doesNotMatch(root.innerHTML,/\[object Object\]|undefined/,
+  'Writing must not expose malformed draft selections');
+assert.equal(state.draft.generatedTask,null,
+  'Writing must clear stale generated tasks after selection fallback');
+assert.equal(state.draft.prompt,'',
+  'Writing must clear stale prompts after selection fallback');
+assert.equal(state.draft.practiceContext,null,
+  'Writing must clear stale practice context after selection fallback');
+assert.doesNotMatch(root.innerHTML,/Stale generated brief|Stale custom prompt/,
+  'Writing must omit cleared stale task copy');
 
 state.draft.savedAt={bad:true};
 await renderWrite(root);
