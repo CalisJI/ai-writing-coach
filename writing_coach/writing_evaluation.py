@@ -145,7 +145,9 @@ def _normalized_confidence(value: Any) -> float:
 
 
 def _bounded_text(value: Any, limit: int) -> str:
-    return str(value)[:limit].strip()
+    if not isinstance(value, str):
+        return ""
+    return value[:limit].strip()
 
 
 def _clean_learner_list(

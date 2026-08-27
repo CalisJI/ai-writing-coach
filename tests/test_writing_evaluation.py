@@ -121,6 +121,26 @@ def test_strength_evidence_requires_exact_fragment_category_and_confidence() -> 
     assert rejected["strength_evidence"] == []
 
 
+def test_learner_facing_text_fields_reject_non_string_provider_values() -> None:
+    result = _normalize(
+        {
+            "summary_vi": {"message": "not learner copy"},
+            "strengths_vi": [{"message": "not learner copy"}, None, 7],
+            "priorities_vi": [{"message": "not learner copy"}, False],
+            "strength_evidence": [_strength(explanation_vi={"message": "not learner copy"})],
+            "errors": [_error(explanation_vi={"message": "not learner copy"}, mini_rule_vi=["not learner copy"])],
+        }
+    )
+
+    assert result["summary_vi"] == ""
+    assert result["strengths_vi"] == []
+    assert result["priorities_vi"] == []
+    assert result["strength_evidence"][0]["explanation_vi"] == ""
+    assert result["errors"][0]["explanation_vi"] == ""
+    assert result["errors"][0]["mini_rule_vi"] == ""
+    assert "not learner copy" not in repr(result)
+
+
 def test_strength_evidence_is_bounded() -> None:
     fragments = [f"good {index}" for index in range(8)]
     result = _normalize(
