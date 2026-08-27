@@ -238,7 +238,7 @@ api.grammarPractice=async (id,evidence)=>{
       focus_label:'Articles',task_type:'story',topic:'grammar transfer',target_level:'B2'},
   };
 };
-state.draft={...state.draft,mode:'free',topic:'random',level:'A1',text:'',html:''};
+state.draft={...state.draft,mode:'free',topic:'random',level:'A1',text:'',html:'',savedAt:1700000000000};
 state.supportLanguage='en';
 globalThis.location.hash='#/journey';
 await renderJourney(root);
@@ -253,6 +253,8 @@ assert.equal(state.draft.prompt,'Write three sentences using this grammar.',
   'Journey Grammar practice must transfer the generated prompt to Write');
 assert.equal(state.draft.practiceContext?.focus_family,'grammar',
   'Journey Grammar practice must preserve the targeted practice context');
+assert.equal(state.draft.savedAt,null,
+  'Journey Grammar practice must clear stale saved-state before Write');
 assert.equal(globalThis.location.hash,'#/write',
   'Journey Grammar practice must open Write');
 state.draft={...state.draft,prompt:'',practiceContext:null};

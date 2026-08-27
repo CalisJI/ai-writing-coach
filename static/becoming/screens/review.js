@@ -887,6 +887,7 @@ export async function renderReview(root){
         prompt:task.prompt||'',
         text:'',
         html:'',
+        savedAt:null,
         mode:task.practice_context?.task_type||state.draft.mode,
         topic:task.practice_context?.topic||state.draft.topic,
         level:task.target_level||task.practice_context?.target_level||state.draft.level,

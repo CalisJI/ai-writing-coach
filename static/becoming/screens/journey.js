@@ -782,6 +782,7 @@ export async function renderJourney(root){
             ?task.practice_context:null;
           saveDraft({
             prompt:task.prompt.trim(),text:'',html:'',
+            savedAt:null,
             mode:context?.task_type||state.draft.mode,
             topic:context?.topic||state.draft.topic,
             level:task.target_level||context?.target_level||state.draft.level,

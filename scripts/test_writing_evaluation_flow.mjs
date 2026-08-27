@@ -257,7 +257,7 @@ try{
   state.draft={
     ...state.draft,
     mode:'free',level:'B2',length:150,text:'',html:'',prompt:evaluation.prompt,
-    generatedTask:null,practiceContext,parentEssayId:practiceParentEssayId,
+    generatedTask:null,practiceContext,parentEssayId:practiceParentEssayId,savedAt:1700000000000,
   };
   globalThis.location.hash='#/write';
   await renderWrite(writeRoot);
@@ -289,6 +289,8 @@ try{
   assert.equal(state.draft.prompt,'Practice this grammar again.');
   assert.equal(state.draft.practiceContext?.grammar_id,'a1-article');
   assert.equal(state.draft.practiceContext?.evidence,'I has a book');
+  assert.equal(state.draft.savedAt,null,
+    'Review Grammar practice must clear stale saved-state before Write');
   assert.equal(globalThis.location.hash,'#/write');
   api.practiceOutcome=originalPracticeOutcome;
 
