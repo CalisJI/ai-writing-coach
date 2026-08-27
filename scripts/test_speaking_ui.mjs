@@ -100,7 +100,7 @@ const controller=createSpeakingController({
     }],
   }),
   evaluateSpeaking:async payload=>{
-    if(!evaluatorAvailable)throw {message:'Evaluator unavailable'};
+    if(!evaluatorAvailable)throw {category:'speaking_evaluation_invalid',message:'SERVER SPEAKING EVALUATION DETAIL'};
     evaluationPayloads.push(payload);
     return {
       language:payload.language,
@@ -195,8 +195,19 @@ assert.equal(await controller.startRecording(),true);
 assert.equal(await controller.stopRecording(),true);
 assert.equal(controller.model.speakingEvaluationStatus,'error');
 assert.match(controller.html(),/data-speaking-evaluation-state="error"/);
-assert.match(controller.html(),/Evaluator unavailable/);
 assert.match(controller.html(),/data-speaking-content-match/);
+for(const [locale,copy] of [
+  ['en','This recording evaluation request is not valid. The local feedback above is still available.'],
+  ['vi','Yêu cầu đánh giá lượt ghi này không hợp lệ. Nhận xét cục bộ ở trên vẫn dùng được.'],
+  ['zh','这次录音评估请求无效。上方的本地反馈仍然可用。'],
+]){
+  state.supportLanguage=locale;
+  const evaluationErrorHtml=controller.html();
+  assert.match(evaluationErrorHtml,new RegExp(copy));
+  assert.doesNotMatch(evaluationErrorHtml,/SERVER SPEAKING EVALUATION DETAIL/,
+    `${locale.toUpperCase()} Speaking must not leak evaluator error text`);
+}
+state.supportLanguage='en';
 evaluatorAvailable=true;
 
 const syntheticController=createSpeakingController({

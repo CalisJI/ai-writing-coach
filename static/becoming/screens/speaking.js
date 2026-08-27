@@ -187,11 +187,14 @@ function pronunciationErrorMessage(category,c){
 }
 
 const EVALUATION_COPY={
-  en:{title:'Take evaluation',intro:'This summary describes this recording only.',transcription:'Transcription confidence',content:'Content match',pronunciation:'Pronunciation',fluency:'Fluency',proficiency:'Proficiency',notAssessed:'Not assessed',busy:'Preparing the take summary...',failed:'The full take summary is unavailable. The local feedback above is still available.'},
-  vi:{title:'Đánh giá lượt ghi',intro:'Bản tóm tắt này chỉ mô tả lượt ghi hiện tại.',transcription:'Độ tin cậy nhận dạng',content:'Khớp nội dung',pronunciation:'Phát âm',fluency:'Độ trôi chảy',proficiency:'Năng lực tổng quát',notAssessed:'Chưa đánh giá',busy:'Đang chuẩn bị tóm tắt lượt ghi...',failed:'Chưa thể tạo tóm tắt đầy đủ. Nhận xét cục bộ ở trên vẫn dùng được.'},
-  zh:{title:'本次录音评估',intro:'这份摘要只描述本次录音。',transcription:'识别置信度',content:'内容匹配',pronunciation:'发音',fluency:'流利度',proficiency:'整体能力',notAssessed:'未评估',busy:'正在准备本次录音摘要…',failed:'暂时无法生成完整摘要。上方的本地反馈仍然可用。'},
+  en:{title:'Take evaluation',intro:'This summary describes this recording only.',transcription:'Transcription confidence',content:'Content match',pronunciation:'Pronunciation',fluency:'Fluency',proficiency:'Proficiency',notAssessed:'Not assessed',busy:'Preparing the take summary...',invalid:'This recording evaluation request is not valid. The local feedback above is still available.',failed:'The full take summary is unavailable. The local feedback above is still available.'},
+  vi:{title:'Đánh giá lượt ghi',intro:'Bản tóm tắt này chỉ mô tả lượt ghi hiện tại.',transcription:'Độ tin cậy nhận dạng',content:'Khớp nội dung',pronunciation:'Phát âm',fluency:'Độ trôi chảy',proficiency:'Năng lực tổng quát',notAssessed:'Chưa đánh giá',busy:'Đang chuẩn bị tóm tắt lượt ghi...',invalid:'Yêu cầu đánh giá lượt ghi này không hợp lệ. Nhận xét cục bộ ở trên vẫn dùng được.',failed:'Chưa thể tạo tóm tắt đầy đủ. Nhận xét cục bộ ở trên vẫn dùng được.'},
+  zh:{title:'本次录音评估',intro:'这份摘要只描述本次录音。',transcription:'识别置信度',content:'内容匹配',pronunciation:'发音',fluency:'流利度',proficiency:'整体能力',notAssessed:'未评估',busy:'正在准备本次录音摘要…',invalid:'这次录音评估请求无效。上方的本地反馈仍然可用。',failed:'暂时无法生成完整摘要。上方的本地反馈仍然可用。'},
 };
 const evaluationCopy=()=>EVALUATION_COPY[uiLocale()]||EVALUATION_COPY.en;
+function speakingEvaluationErrorMessage(category,copy){
+  return category==='speaking_evaluation_invalid'?copy.invalid:copy.failed;
+}
 
 function pronunciationErrorLabel(errorType,c){
   const raw=String(errorType||'None').trim();
@@ -471,7 +474,7 @@ function speakingEvaluationBlock(model){
     return `<section class="o-speaking-evaluation" data-speaking-evaluation-state="loading" role="status"><h3>${esc(copy.title)}</h3><p>${esc(copy.busy)}</p></section>`;
   }
   if(model.speakingEvaluationStatus==='error'){
-    return `<section class="o-speaking-evaluation" data-speaking-evaluation-state="error" role="status"><h3>${esc(copy.title)}</h3><p>${esc(model.speakingEvaluationErrorMessage||copy.failed)}</p></section>`;
+    return `<section class="o-speaking-evaluation" data-speaking-evaluation-state="error" role="status"><h3>${esc(copy.title)}</h3><p>${esc(speakingEvaluationErrorMessage(model.speakingEvaluationErrorCategory,copy))}</p></section>`;
   }
   const evaluation=model.speakingEvaluation;
   if(!evaluation||!evaluation.dimensions||typeof evaluation.dimensions!=='object')return '';
@@ -593,6 +596,7 @@ export function createSpeakingController({session,recorder=createLocalAudioRecor
     evaluation:null,
     speakingEvaluationStatus:'idle',
     speakingEvaluation:null,
+    speakingEvaluationErrorCategory:'',
     speakingEvaluationErrorMessage:'',
     pronunciationStatus:'idle',
     pronunciation:null,
@@ -609,6 +613,7 @@ export function createSpeakingController({session,recorder=createLocalAudioRecor
     const generation=++speakingEvaluationGeneration;
     model.speakingEvaluationStatus='loading';
     model.speakingEvaluation=null;
+    model.speakingEvaluationErrorCategory='';
     model.speakingEvaluationErrorMessage='';
     changed();
     try{
@@ -628,6 +633,7 @@ export function createSpeakingController({session,recorder=createLocalAudioRecor
     }catch(error){
       if(generation!==speakingEvaluationGeneration)return false;
       model.speakingEvaluationStatus='error';
+      model.speakingEvaluationErrorCategory=typeof error?.category==='string'?error.category:'';
       model.speakingEvaluationErrorMessage=typeof error?.message==='string'?error.message:'';
       changed();
       return false;
@@ -785,6 +791,7 @@ export function createSpeakingController({session,recorder=createLocalAudioRecor
       model.evaluation=null;
       model.speakingEvaluationStatus='idle';
       model.speakingEvaluation=null;
+      model.speakingEvaluationErrorCategory='';
       model.speakingEvaluationErrorMessage='';
       selectSharedMediaSegment(session.learning_language,segmentId);
       changed();
@@ -816,6 +823,7 @@ export function createSpeakingController({session,recorder=createLocalAudioRecor
       model.evaluation=null;
       model.speakingEvaluationStatus='idle';
       model.speakingEvaluation=null;
+      model.speakingEvaluationErrorCategory='';
       model.speakingEvaluationErrorMessage='';
       const started=await recorder.start();
       changed();
@@ -920,6 +928,7 @@ export function createSpeakingController({session,recorder=createLocalAudioRecor
         model.evaluation=null;
         model.speakingEvaluationStatus='idle';
         model.speakingEvaluation=null;
+        model.speakingEvaluationErrorCategory='';
         model.speakingEvaluationErrorMessage='';
         changed();
       }
