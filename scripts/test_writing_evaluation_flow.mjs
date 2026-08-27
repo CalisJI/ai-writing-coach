@@ -159,6 +159,56 @@ try{
   assert.doesNotMatch(reviewRoot.innerHTML,/data-review-evaluation-state="degraded"/,
     'Provider-backed evaluations must not be labelled as degraded');
 
+  // R4 revision loop: Review must hand the evaluated essay back to Write with
+  // its lineage, and the next evaluation must preserve that parent reference
+  // so Review can show a truthful before/after delta.
+  await reviewRoot.querySelector('#reviseButton').listeners.click({
+    currentTarget:reviewRoot.querySelector('#reviseButton'),
+  });
+  assert.equal(globalThis.location.hash,'#/write');
+  assert.equal(state.draft.parentEssayId,evaluation.id,
+    'Revision must retain the evaluated essay as its parent');
+  assert.equal(state.draft.text,learnerText);
+  assert.equal(state.draft.prompt,evaluation.prompt);
+
+  const revisedText='I am building a useful writing habit every day.';
+  const revisedEvaluation={
+    ...evaluation,
+    id:413,
+    text:revisedText,
+    overall:86,
+    errors:[],
+    delta:{overall:8,issues:{
+      removed:[{fragment:'I is'}],
+      persistent:[],
+      new:[],
+      changed:[],
+    }},
+  };
+  const beforeRevisionEvaluate=api.evaluate;
+  api.evaluate=async payload=>{
+    submittedPayload=payload;
+    return payload.parent_essay_id===evaluation.id
+      ?{...revisedEvaluation}
+      :beforeRevisionEvaluate(payload);
+  };
+  await renderWrite(writeRoot);
+  writeRoot.querySelector('#writingEditor').innerText=revisedText;
+  await writeRoot.querySelector('#reviewDraft').listeners.click({
+    currentTarget:writeRoot.querySelector('#reviewDraft'),
+  });
+  assert.equal(submittedPayload.parent_essay_id,evaluation.id,
+    'Revision submit must send the original essay id as parent reference');
+  assert.equal(state.lastEvaluation.id,revisedEvaluation.id);
+  assert.equal(globalThis.location.hash,'#/review');
+  await renderReview(reviewRoot);
+  assert.match(reviewRoot.innerHTML,/Revision evidence/,
+    'Review must expose revision evidence after a linked re-evaluation');
+  assert.match(reviewRoot.innerHTML,/Resolved/,
+    'Review must label the resolved issue in the revision delta');
+  assert.match(reviewRoot.innerHTML,/“I is”/,
+    'Review must retain the exact resolved learner fragment');
+
   // The same submit-and-render contract must hold for Chinese, not only for
   // the English fixture above.
   state.language='zh';
