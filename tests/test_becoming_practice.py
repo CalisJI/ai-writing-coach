@@ -4,6 +4,42 @@ from writing_coach.becoming_practice import (
 )
 
 
+def _run_next_practice(language, profile, memory, target_level):
+    import app
+    from writing_coach.core.request_context import LANGUAGE_CODE_CTX
+
+    originals = {
+        "get_learner_profile": app.get_learner_profile,
+        "get_learning_memory": app.get_learning_memory,
+        "generate_practice_task": app.generate_practice_task,
+    }
+    language_token = LANGUAGE_CODE_CTX.set(language)
+    generated_payload = None
+    try:
+        app.get_learner_profile = lambda: profile
+        app.get_learning_memory = lambda: memory
+
+        def fake_task(payload):
+            nonlocal generated_payload
+            generated_payload = payload
+            return {
+                "title": "Targeted practice task",
+                "instruction": "Write a focused response.",
+                "checklist": ["Use the target pattern.", "Add one example."],
+                "word_target": payload.word_target,
+                "task_type": payload.task_type,
+                "topic": payload.topic,
+            }
+
+        app.generate_practice_task = fake_task
+        result = app.becoming_practice_next(app.PracticeNextIn(target_level=target_level))
+        return result, generated_payload
+    finally:
+        for name, value in originals.items():
+            setattr(app, name, value)
+        LANGUAGE_CODE_CTX.reset(language_token)
+
+
 def test_english_focus_recommendation_builds_backend_valid_targeted_task_context():
     recommendation = build_practice_recommendation(
         language="en",
@@ -81,3 +117,47 @@ def test_personalize_generated_task_keeps_focus_instruction_and_bounded_checklis
     ]
     assert personalized["personalization"] == recommendation
     assert personalized["prompt"] == task["prompt"]
+
+
+def test_next_practice_endpoint_preserves_english_recommendation_context():
+    result, generated = _run_next_practice(
+        "en",
+        {"goal": "everyday", "style": "guided"},
+        {"focus": {"category": "article", "status": "watch", "example": "I bought car."}},
+        "B2",
+    )
+
+    assert result["target_level"] == "B2"
+    assert result["task_type"] == "story"
+    assert result["topic"] == "daily life"
+    assert result["word_target"] == 150
+    assert generated.target_cefr == "B2"
+    assert generated.task_type == "story"
+    assert generated.topic == "daily life"
+    assert generated.word_target == 150
+    assert result["personalization"]["intent"] == "repair"
+    assert result["personalization"]["focus_family"] == "grammar"
+    assert "Prioritize Article" in result["personalization"]["focus_instruction"]
+    assert result["personalization"]["focus_instruction"] in result["prompt"]
+
+
+def test_next_practice_endpoint_preserves_chinese_recommendation_context():
+    result, generated = _run_next_practice(
+        "zh",
+        {"goal": "exam", "style": "guided"},
+        {"focus": {"category": "aspect", "status": "improving", "example": "我昨天去了学校。"}},
+        "HSK3",
+    )
+
+    assert result["target_level"] == "HSK3"
+    assert result["task_type"] == "hsk"
+    assert result["topic"] == "random"
+    assert result["word_target"] == 80
+    assert generated.target_cefr == "HSK3"
+    assert generated.task_type == "hsk"
+    assert generated.topic == "random"
+    assert generated.word_target == 80
+    assert result["personalization"]["intent"] == "reinforce"
+    assert result["personalization"]["focus_family"] == "grammar"
+    assert "\u91cd\u70b9" in result["personalization"]["focus_instruction"]
+    assert result["personalization"]["focus_instruction"] in result["prompt"]
