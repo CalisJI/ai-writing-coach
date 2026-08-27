@@ -70,6 +70,28 @@ for(const locale of ['en','vi','zh']){
   }
 }
 
+const focusStatusCopy={
+  en:'Improving',
+  vi:'\u0110ang c\u1ea3i thi\u1ec7n',
+  zh:'\u6b63\u5728\u6539\u5584',
+};
+latestMemory={
+  patterns:[],
+  strengths:[],
+  focus:{category:'grammar',status:'improving',total:3,series_count:2},
+  revision_wins:[],
+};
+for(const locale of ['en','vi','zh']){
+  state.supportLanguage=locale;
+  await renderHome(root);
+  assert.match(root.innerHTML,/class="writing-dashboard/,
+    `Home ${locale.toUpperCase()} should render the Writing dashboard`);
+  assert.match(root.innerHTML,new RegExp(focusStatusCopy[locale]),
+    `Home ${locale.toUpperCase()} should localize the dashboard focus status`);
+  assert.doesNotMatch(root.innerHTML,/\bimproving\b/,
+    `Home ${locale.toUpperCase()} must not leak the raw focus status enum`);
+}
+
 for(const locale of ['en','vi','zh']){
   state.supportLanguage=locale;
   const beforeNowCopy={en:'Before and now',vi:'Trước và nay',zh:'之前与现在'};

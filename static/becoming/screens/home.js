@@ -4,7 +4,7 @@ import {state,saveDraft} from '../store.js';
 import {go} from '../router.js';
 import {homeInsight,metricOverview} from '../domain/feedback.js';
 import {attr,esc,errorBlock,loadingBlock,runBusy,sectionHeading,helpTip} from '../components/primitives.js';
-import {t,categoryLabel,masteryLabel,practiceModeLabel,topicLabel,unitLabel,uiLocale} from '../domain/i18n.js';
+import {t,categoryLabel,masteryLabel,statusLabel,practiceModeLabel,topicLabel,unitLabel,uiLocale} from '../domain/i18n.js';
 
 function sortedEssays(rows=[]){
   return [...rows].sort((a,b)=>String(b.created_at||'').localeCompare(String(a.created_at||'')));
@@ -324,7 +324,7 @@ function writingDashboardMarkup(dashboard,essays,memory){
         <h2 id="writingDashboardHeading">${t('home.dashboard_title')}</h2>
         <p>${t('home.dashboard_body')}</p>
       </div>
-      <button id="dashboardJourneyLink" class="button button-secondary" type="button">${t('home.dashboard_open')} <span aria-hidden="true">→</span></button>
+      <button id="writingDashboardJourneyLink" class="button button-secondary" type="button">${t('home.dashboard_open')} <span aria-hidden="true">→</span></button>
     </div>
 
     <div class="writing-dashboard-layout">
@@ -332,7 +332,7 @@ function writingDashboardMarkup(dashboard,essays,memory){
         <span>${t('home.dashboard_focus')}</span>
         <strong>${esc(focusLabel)}</strong>
         <p>${focus
-          ?`${esc(focus.status||'')} · ${esc(focus.total||0)} ${t('common.evidence')} · ${esc(focus.series_count||1)} ${t('common.writing_series')}`
+          ?`${esc(statusLabel(focus.status||''))} · ${esc(focus.total||0)} ${t('common.evidence')} · ${esc(focus.series_count||1)} ${t('common.writing_series')}`
           :t('home.dashboard_collecting')}</p>
         <div class="dashboard-level-chip">
           <span>${t('home.dashboard_level')}</span>
@@ -570,6 +570,7 @@ export async function renderHome(root){
     root.innerHTML=`<div class="o-page">
       <div class="o-home">
         ${homeHero(insight,personalized,currentEssay)}
+        ${writingDashboardMarkup(dashboard,essays,memory)}
 
         <div class="o-home-split">
           ${homeJourney(essays,currentEssay)}
@@ -635,6 +636,7 @@ export async function renderHome(root){
     root.querySelector('#journeyLink')?.addEventListener('click',()=>go('journey'));
     root.querySelector('#journeyLinkTop')?.addEventListener('click',()=>go('journey'));
     root.querySelector('#dashboardJourneyLink')?.addEventListener('click',()=>go('journey'));
+    root.querySelector('#writingDashboardJourneyLink')?.addEventListener('click',()=>go('journey'));
 
     async function openEssay(id){
       try{
