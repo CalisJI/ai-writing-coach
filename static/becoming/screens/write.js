@@ -388,6 +388,9 @@ export async function renderWrite(root) {
   const invalidMode = !modeValues.has(state.draft.mode);
   const invalidLength = !config.lengths.includes(state.draft.length);
   const invalidTopic = state.draft.topic !== 'random' && typeof state.draft.topic !== 'string';
+  const parentEssayId = state.draft.parentEssayId;
+  const invalidParentEssayId = parentEssayId != null
+    && (typeof parentEssayId !== 'number' || !Number.isInteger(parentEssayId) || parentEssayId <= 0);
   if (invalidLevel) {
     saveDraft({
       level: config.defaultLevel, length: config.defaultLength,
@@ -403,6 +406,7 @@ export async function renderWrite(root) {
       prompt: '', generatedTask: null, practiceContext: null,
     });
   }
+  if (invalidParentEssayId) saveDraft({parentEssayId: null});
 
   // Home populates state.dashboard, but a learner can land on Write directly.
   // A failure here must never block writing.

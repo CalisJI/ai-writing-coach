@@ -91,6 +91,7 @@ assert.match(root.innerHTML,/id="customPrompt"[^>]*><\/textarea>/,
 state.draft.generatedTask={instruction:'Stale generated brief'};
 state.draft.prompt='Stale custom prompt';
 state.draft.practiceContext={focus_category:'article'};
+state.draft.parentEssayId={bad:true};
 state.draft.mode={bad:true};
 state.draft.length={bad:true};
 state.draft.topic={bad:true};
@@ -109,6 +110,8 @@ assert.equal(state.draft.practiceContext,null,
   'Writing must clear stale practice context after selection fallback');
 assert.equal(state.draft.topic,'random',
   'Writing must normalize malformed topics before task generation');
+assert.equal(state.draft.parentEssayId,null,
+  'Writing must clear malformed parent essay references before evaluation');
 assert.doesNotMatch(root.innerHTML,/Stale generated brief|Stale custom prompt/,
   'Writing must omit cleared stale task copy');
 
