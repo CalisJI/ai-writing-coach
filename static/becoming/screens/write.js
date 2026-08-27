@@ -130,6 +130,15 @@ function draftParentEssayIdValue(value) {
   return typeof value === 'number' && Number.isInteger(value) && value > 0 ? value : null;
 }
 
+function evaluatorLanguageValue(value) {
+  return value === 'zh' ? 'zh' : 'en';
+}
+
+function evaluatorLevelValue(value, language) {
+  const config = configFor(evaluatorLanguageValue(language));
+  return config.levels.includes(value) ? value : config.defaultLevel;
+}
+
 function personalizationLabel(task) {
   const personalization = task && typeof task === 'object' && !Array.isArray(task)
     ? task.personalization : null;
@@ -685,8 +694,8 @@ export async function renderWrite(root) {
     const evaluateOnce = parentEssayId => api.evaluate({
       prompt: promptText(),
       text,
-      target_cefr: state.draft.level,
-      learning_language: state.language,
+      target_cefr: evaluatorLevelValue(state.draft.level, state.language),
+      learning_language: evaluatorLanguageValue(state.language),
       parent_essay_id: parentEssayId || null,
       practice_context: practiceContext,
     });

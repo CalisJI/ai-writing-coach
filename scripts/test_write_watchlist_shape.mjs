@@ -99,6 +99,8 @@ state.draft.practiceContext={intent:{bad:true}};
 await renderWrite(root);
 nodes.get('#writingEditor').innerText='A sufficiently long learner draft.';
 state.draft.parentEssayId='7';
+state.draft.level='not-a-level';
+state.language='not-a-language';
 const originalEvaluate=api.evaluate;
 let evaluationPayload=null;
 api.evaluate=async payload=>{
@@ -108,6 +110,11 @@ api.evaluate=async payload=>{
 await nodes.get('#reviewDraft').listeners.click({currentTarget:nodes.get('#reviewDraft')});
 assert.equal(evaluationPayload.parent_essay_id,null,
   'Writing must not send malformed parent references to evaluation');
+assert.equal(evaluationPayload.target_cefr,'B2',
+  'Writing must fall back to the configured evaluator level');
+assert.equal(evaluationPayload.learning_language,'en',
+  'Writing must fall back to a supported evaluator language');
+state.language='en';
 const validPracticeContext={
   intent:'repair',focus_category:'article',focus_label:'Article',focus_family:'grammar',
   focus_status:'recurring',task_type:'email',topic:'work',target_level:'B2',
