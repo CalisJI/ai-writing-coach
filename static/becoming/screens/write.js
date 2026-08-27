@@ -384,16 +384,19 @@ export async function renderWrite(root) {
   const invalidLevel = !config.levels.includes(state.draft.level);
   const invalidMode = !modeValues.has(state.draft.mode);
   const invalidLength = !config.lengths.includes(state.draft.length);
+  const invalidTopic = state.draft.topic !== 'random' && typeof state.draft.topic !== 'string';
   if (invalidLevel) {
     saveDraft({
       level: config.defaultLevel, length: config.defaultLength,
-      mode: 'free', prompt: '', generatedTask: null, practiceContext: null,
+      mode: 'free', topic: invalidTopic ? 'random' : state.draft.topic,
+      prompt: '', generatedTask: null, practiceContext: null,
     });
-  } else if (invalidMode || invalidLength) {
+  } else if (invalidMode || invalidLength || invalidTopic) {
     saveDraft({
       level: state.draft.level,
       length: invalidLength ? config.defaultLength : state.draft.length,
       mode: invalidMode ? 'free' : state.draft.mode,
+      topic: invalidTopic ? 'random' : state.draft.topic,
       prompt: '', generatedTask: null, practiceContext: null,
     });
   }

@@ -107,8 +107,18 @@ assert.equal(state.draft.prompt,'',
   'Writing must clear stale prompts after selection fallback');
 assert.equal(state.draft.practiceContext,null,
   'Writing must clear stale practice context after selection fallback');
+assert.equal(state.draft.topic,'random',
+  'Writing must normalize malformed topics before task generation');
 assert.doesNotMatch(root.innerHTML,/Stale generated brief|Stale custom prompt/,
   'Writing must omit cleared stale task copy');
+
+state.draft.level='not-a-level';
+state.draft.mode='free';
+state.draft.length=150;
+state.draft.topic='travel';
+await renderWrite(root);
+assert.equal(state.draft.topic,'travel',
+  'Writing must preserve valid topics during level fallback');
 
 state.draft.savedAt={bad:true};
 await renderWrite(root);
