@@ -112,6 +112,7 @@ const controller=createSpeakingController({
         proficiency:null,
       },
       evidence:{reference_text:payload.reference_text,transcript_text:payload.transcript_text},
+      next_steps:[{kind:'focus_words',words:['Listen']},{kind:'fluency',words:[]},{kind:'toString',words:['UNSUPPORTED_NEXT_STEP']}],
     };
   },
 });
@@ -140,7 +141,22 @@ assert.match(controller.html(),/data-speaking-content-match/);
 assert.match(controller.html(),/data-speaking-evaluation-state="ready"/);
 assert.match(controller.html(),/Take evaluation/);
 assert.match(controller.html(),/Listen for the first complete idea\./);
+assert.match(controller.html(),/data-speaking-next-steps/);
+assert.match(controller.html(),/Revisit these words: Listen/);
+assert.doesNotMatch(controller.html(),/UNSUPPORTED_NEXT_STEP|toString/,
+  'Unknown next-step kinds must not render inherited object properties');
 assert.match(controller.html(),/data-speaking-pronunciation-action/);
+
+for(const [locale,copy] of [
+  ['vi','Luyện tập tiếp theo'],
+  ['zh','下一步练习'],
+]){
+  state.supportLanguage=locale;
+  const localizedEvaluationHtml=controller.html();
+  assert.match(localizedEvaluationHtml,new RegExp(copy));
+  assert.doesNotMatch(localizedEvaluationHtml,/Revisit these words/);
+}
+state.supportLanguage='en';
 
 assert.equal(await controller.assessPronunciation(),true);
 assert.equal(controller.model.pronunciationStatus,'ready');

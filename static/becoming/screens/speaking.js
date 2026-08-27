@@ -187,13 +187,31 @@ function pronunciationErrorMessage(category,c){
 }
 
 const EVALUATION_COPY={
-  en:{title:'Take evaluation',intro:'This summary describes this recording only.',transcription:'Transcription confidence',content:'Content match',pronunciation:'Pronunciation',fluency:'Fluency',proficiency:'Proficiency',notAssessed:'Not assessed',busy:'Preparing the take summary...',invalid:'This recording evaluation request is not valid. The local feedback above is still available.',failed:'The full take summary is unavailable. The local feedback above is still available.'},
-  vi:{title:'Đánh giá lượt ghi',intro:'Bản tóm tắt này chỉ mô tả lượt ghi hiện tại.',transcription:'Độ tin cậy nhận dạng',content:'Khớp nội dung',pronunciation:'Phát âm',fluency:'Độ trôi chảy',proficiency:'Năng lực tổng quát',notAssessed:'Chưa đánh giá',busy:'Đang chuẩn bị tóm tắt lượt ghi...',invalid:'Yêu cầu đánh giá lượt ghi này không hợp lệ. Nhận xét cục bộ ở trên vẫn dùng được.',failed:'Chưa thể tạo tóm tắt đầy đủ. Nhận xét cục bộ ở trên vẫn dùng được.'},
-  zh:{title:'本次录音评估',intro:'这份摘要只描述本次录音。',transcription:'识别置信度',content:'内容匹配',pronunciation:'发音',fluency:'流利度',proficiency:'整体能力',notAssessed:'未评估',busy:'正在准备本次录音摘要…',invalid:'这次录音评估请求无效。上方的本地反馈仍然可用。',failed:'暂时无法生成完整摘要。上方的本地反馈仍然可用。'},
+  en:{title:'Take evaluation',intro:'This summary describes this recording only.',transcription:'Transcription confidence',content:'Content match',pronunciation:'Pronunciation',fluency:'Fluency',proficiency:'Proficiency',notAssessed:'Not assessed',busy:'Preparing the take summary...',nextSteps:'Next practice',focusWords:'Revisit these words',missingTokens:'Repeat the missing words',fluencyStep:'Try the line again at an even pace',completeLine:'Repeat the full line once more',invalid:'This recording evaluation request is not valid. The local feedback above is still available.',failed:'The full take summary is unavailable. The local feedback above is still available.'},
+  vi:{title:'Đánh giá lượt ghi',intro:'Bản tóm tắt này chỉ mô tả lượt ghi hiện tại.',transcription:'Độ tin cậy nhận dạng',content:'Khớp nội dung',pronunciation:'Phát âm',fluency:'Độ trôi chảy',proficiency:'Năng lực tổng quát',notAssessed:'Chưa đánh giá',busy:'Đang chuẩn bị tóm tắt lượt ghi...',nextSteps:'Luyện tập tiếp theo',focusWords:'Ôn lại những từ này',missingTokens:'Lặp lại những từ còn thiếu',fluencyStep:'Thử lại câu với nhịp đều hơn',completeLine:'Lặp lại toàn bộ câu thêm một lần',invalid:'Yêu cầu đánh giá lượt ghi này không hợp lệ. Nhận xét cục bộ ở trên vẫn dùng được.',failed:'Chưa thể tạo tóm tắt đầy đủ. Nhận xét cục bộ ở trên vẫn dùng được.'},
+  zh:{title:'本次录音评估',intro:'这份摘要只描述本次录音。',transcription:'识别置信度',content:'内容匹配',pronunciation:'发音',fluency:'流利度',proficiency:'整体能力',notAssessed:'未评估',busy:'正在准备本次录音摘要…',nextSteps:'下一步练习',focusWords:'重新练习这些词',missingTokens:'重复练习遗漏的词',fluencyStep:'以更均匀的节奏再试一次',completeLine:'再完整重复一遍',invalid:'这次录音评估请求无效。上方的本地反馈仍然可用。',failed:'暂时无法生成完整摘要。上方的本地反馈仍然可用。'},
 };
 const evaluationCopy=()=>EVALUATION_COPY[uiLocale()]||EVALUATION_COPY.en;
 function speakingEvaluationErrorMessage(category,copy){
   return category==='speaking_evaluation_invalid'?copy.invalid:copy.failed;
+}
+function speakingEvaluationSteps(evaluation,copy){
+  const labels=Object.assign(Object.create(null),{
+    focus_words:copy.focusWords,
+    missing_tokens:copy.missingTokens,
+    fluency:copy.fluencyStep,
+    complete_line:copy.completeLine,
+  });
+  if(!Array.isArray(evaluation?.next_steps))return [];
+  return evaluation.next_steps.map(step=>{
+    if(!step||typeof step!=='object')return '';
+    const label=labels[step.kind];
+    if(!label)return '';
+    const words=Array.isArray(step.words)
+      ?step.words.filter(word=>typeof word==='string'&&word.trim()).map(word=>word.trim()).slice(0,5)
+      :[];
+    return words.length?`${label}: ${words.join(', ')}`:label;
+  }).filter(Boolean).slice(0,4);
 }
 
 function pronunciationErrorLabel(errorType,c){
@@ -479,6 +497,7 @@ function speakingEvaluationBlock(model){
   const evaluation=model.speakingEvaluation;
   if(!evaluation||!evaluation.dimensions||typeof evaluation.dimensions!=='object')return '';
   const dimensions=evaluation.dimensions;
+  const nextSteps=speakingEvaluationSteps(evaluation,copy);
   const rows=[
     ['transcription',dimensions.transcription_confidence],
     ['content',dimensions.content_match],
@@ -490,7 +509,7 @@ function speakingEvaluationBlock(model){
     <p>${esc(copy.intro)}</p>
     <dl>${rows.map(([key,value])=>`<div><dt>${esc(copy[key])}</dt><dd>${Math.round(value)}</dd></div>`).join('')}
       <div><dt>${esc(copy.proficiency)}</dt><dd>${esc(copy.notAssessed)}</dd></div>
-    </dl>
+    </dl>${nextSteps.length?`<div class="o-speaking-next-steps" data-speaking-next-steps><h4>${esc(copy.nextSteps)}</h4><ul>${nextSteps.map(step=>`<li>${esc(step)}</li>`).join('')}</ul></div>`:''}
   </section>`;
 }
 
