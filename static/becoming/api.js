@@ -144,6 +144,11 @@ export const api={
       body:form,
     });
   },
+  evaluateSpeaking:(payload)=>request('/api/speech/evaluation',{
+    method:'POST',
+    headers:JSON_HEADERS,
+    body:JSON.stringify(payload||{}),
+  }),
   essays:()=>request('/api/essays'),
   essay:(id)=>request(`/api/essays/${encodeURIComponent(id)}`),
   linguisticAnnotations:(id)=>request(`/api/essays/${encodeURIComponent(id)}/linguistic-annotations`,{

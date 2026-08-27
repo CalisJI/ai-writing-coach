@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
+from pydantic import BaseModel
 
 from writing_coach.core.errors import orena_http_error
 
@@ -23,6 +24,10 @@ from writing_coach.speech_asr import (
     SpeechAsrProvider,
     SpeechAsrRequestFailed,
     SpeechAsrTimedOut,
+)
+from writing_coach.speaking_evaluator import (
+    SpeakingEvaluationInvalid,
+    build_speaking_evaluation,
 )
 
 
@@ -59,6 +64,19 @@ def _pronunciation_provider() -> SpeechPronunciationProvider:
 
 _UPLOAD_READ_CHUNK_BYTES = 1024 * 1024
 _DEFAULT_ASR_MAX_BYTES = 24 * 1024 * 1024
+
+
+class SpeakingEvaluationIn(BaseModel):
+    """Transient evidence envelope for the internal R7 evaluator boundary."""
+
+    # Keep raw values until build_speaking_evaluation so every invalid field,
+    # including over-limit text, uses the canonical speech error envelope.
+    language: Any = ""
+    reference_text: Any = ""
+    transcript_text: Any = ""
+    content_match: Any = None
+    pronunciation: Any = None
+    transcription_confidence: Any = None
 
 
 async def _read_upload_limited(file: UploadFile, *, max_bytes: int) -> bytes:
@@ -154,6 +172,21 @@ async def transcribe_speech(
             for x in result.words
         ],
     }
+
+
+@router.post("/evaluation")
+def evaluate_speaking(payload: SpeakingEvaluationIn) -> dict[str, Any]:
+    """Normalize one transient Speaking take without persisting audio or scores."""
+
+    values = payload.model_dump() if hasattr(payload, "model_dump") else payload.dict()
+    try:
+        return build_speaking_evaluation(**values)
+    except SpeakingEvaluationInvalid as exc:
+        raise orena_http_error(
+            422,
+            "speaking_evaluation_invalid",
+            str(exc),
+        ) from exc
 
 _DEFAULT_PRONUNCIATION_MAX_BYTES = 8 * 1024 * 1024
 

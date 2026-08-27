@@ -1,11 +1,16 @@
 from __future__ import annotations
 
+import asyncio
+import json
+
 import pytest
+from fastapi import FastAPI
 
 from writing_coach.speaking_evaluator import (
     SpeakingEvaluationInvalid,
     build_speaking_evaluation,
 )
+from writing_coach.speech_api import SpeakingEvaluationIn, evaluate_speaking, router as speech_router
 
 
 def _pronunciation(*, score_kind: str = "provider") -> dict:
@@ -88,6 +93,93 @@ def test_synthetic_demo_is_explicitly_non_assessment() -> None:
     assert result["evidence"]["synthetic_demo"] is True
     assert result["provenance"]["pronunciation"] == "synthetic_demo"
     assert result["dimensions"]["proficiency"] is None
+
+
+def test_api_boundary_returns_transient_evaluation_envelope() -> None:
+    payload = SpeakingEvaluationIn(
+        language="en",
+        reference_text="Good morning.",
+        transcript_text="Good morning.",
+        content_match={"content_match": 100},
+        pronunciation=_pronunciation(),
+        transcription_confidence=94,
+    )
+
+    result = evaluate_speaking(payload)
+
+    assert result["language"] == "en"
+    assert result["dimensions"]["transcription_confidence"] == 94.0
+    assert result["dimensions"]["content_match"] == 100.0
+    assert result["dimensions"]["pronunciation"] == 88.0
+    assert result["dimensions"]["proficiency"] is None
+    assert result["provenance"]["pronunciation"] == "azure-speech"
+    assert result["evidence"]["reference_text"] == "Good morning."
+
+
+def test_api_boundary_rejects_invalid_evaluation_payload() -> None:
+    from fastapi import HTTPException
+
+    payload = SpeakingEvaluationIn(
+        language="fr",
+        reference_text="Bonjour.",
+        transcript_text="Bonjour.",
+    )
+
+    with pytest.raises(HTTPException) as raised:
+        evaluate_speaking(payload)
+
+    assert raised.value.status_code == 422
+    assert raised.value.detail["category"] == "speaking_evaluation_invalid"
+
+
+def test_http_boundary_normalizes_over_limit_validation_to_canonical_error() -> None:
+    application = FastAPI()
+    application.include_router(speech_router)
+    body = json.dumps({
+        "language": "en",
+        "reference_text": "x" * 1201,
+        "transcript_text": "A line.",
+    }).encode("utf-8")
+    sent: list[dict] = []
+    received = False
+
+    async def receive() -> dict:
+        nonlocal received
+        if received:
+            return {"type": "http.disconnect"}
+        received = True
+        return {"type": "http.request", "body": body, "more_body": False}
+
+    async def send(message: dict) -> None:
+        sent.append(message)
+
+    async def invoke() -> None:
+        await application(
+            {
+                "type": "http",
+                "asgi": {"version": "3.0", "spec_version": "2.3"},
+                "http_version": "1.1",
+                "method": "POST",
+                "scheme": "http",
+                "path": "/api/speech/evaluation",
+                "raw_path": b"/api/speech/evaluation",
+                "query_string": b"",
+                "headers": [
+                    (b"content-type", b"application/json"),
+                    (b"content-length", str(len(body)).encode("ascii")),
+                ],
+                "client": ("test", 1),
+                "server": ("test", 80),
+            },
+            receive,
+            send,
+        )
+
+    asyncio.run(invoke())
+    response_body = next(message["body"] for message in sent if message["type"] == "http.response.body")
+    payload = json.loads(response_body)
+    assert next(message["status"] for message in sent if message["type"] == "http.response.start") == 422
+    assert payload["detail"]["category"] == "speaking_evaluation_invalid"
 
 
 def test_phoneme_only_weakness_is_actionable_without_flagging_clean_words() -> None:
