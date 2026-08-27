@@ -326,4 +326,59 @@ assert.equal('word_target' in submittedPracticeContext,false,
   'Write evaluation context must forward only backend practice-context fields');
 assert.equal(globalThis.location.hash,'#/review');
 
+const zhTargetRecommendation={
+  intent:'repair',
+  focus_family:'grammar',
+  focus_category:'article',
+  focus_status:'watch',
+  focus_label:'冠词',
+  focus_instruction:'下一篇写作先检查冠词使用。',
+  reason:'近期写作中反复出现冠词问题。',
+  target_level:'HSK4',
+  task_type:'hsk',
+  topic:'工作',
+  word_target:80,
+};
+const zhTargetTask={
+  ...zhTargetRecommendation,
+  prompt:'请写一段关于工作习惯的短文，注意冠词对应的限定表达。',
+  personalization:zhTargetRecommendation,
+};
+api.practiceRecommendation=async()=>zhTargetRecommendation;
+api.nextPractice=async()=>zhTargetTask;
+state.language='zh';
+state.supportLanguage='zh';
+state.profile={native_language:'zh'};
+state.draft={...state.draft,mode:'free',level:'HSK4',length:80,text:'',html:'',prompt:'',generatedTask:null,practiceContext:null,parentEssayId:null};
+globalThis.location.hash='#/journey';
+latestMemory={patterns:[],strengths:[],focus:{category:'article'},revision_wins:[]};
+await renderJourney(root);
+assert.ok(root.innerHTML.includes('data-journey-start'),
+  'Chinese Journey must render the targeted Practice start control');
+await root.querySelector('[data-journey-start]').click();
+assert.equal(globalThis.location.hash,'#/write');
+let submittedChinesePayload=null;
+const beforeChineseEvaluate=api.evaluate;
+const beforeChinesePracticeOutcome=api.practiceOutcome;
+api.evaluate=async payload=>{
+  submittedChinesePayload=payload;
+  return {id:415};
+};
+api.practiceOutcome=async()=>({outcome:null});
+await renderWrite(writeRoot);
+writeNodes.get('#writingEditor').innerText='我每天养成一个有用的写作习惯。';
+await writeNodes.get('#reviewDraft').listeners.click({
+  currentTarget:writeNodes.get('#reviewDraft'),
+});
+api.evaluate=beforeChineseEvaluate;
+api.practiceOutcome=beforeChinesePracticeOutcome;
+assert.equal(submittedChinesePayload.learning_language,'zh',
+  'Chinese Journey target must reach Write with Chinese evaluator language');
+assert.equal(submittedChinesePayload.target_cefr,'HSK4');
+const expectedChineseContext={...zhTargetRecommendation};
+delete expectedChineseContext.word_target;
+assert.deepEqual(submittedChinesePayload.practice_context,expectedChineseContext,
+  'Chinese Journey target must preserve backend-valid practice context');
+assert.equal(globalThis.location.hash,'#/review');
+
 console.log('Journey Grammar outcome locale contract: PASS');
