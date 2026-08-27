@@ -86,16 +86,20 @@ const COPY={
 
 const copy=()=>COPY[uiLocale()]||COPY.en;
 const ASR_COPY={
-  en:{busy:'Transcribing your take...',result:'What Orena heard',failed:'Could not transcribe this take. You can still play it back and retry.',unconfigured:'Speech recognition is not configured on this environment.',access:'Speech recognition access is not available in this environment. Please contact the administrator.',invalid:'This recording request is not valid.',large:'This recording is too large.',timeout:'Speech recognition timed out. Try again shortly.',malformed:'Speech recognition returned no usable transcript.'},
-  vi:{busy:'Đang nhận dạng lượt nói...',result:'Orena nghe được',failed:'Chưa thể nhận dạng lượt nói này. Bạn vẫn có thể nghe lại và thử lại.',unconfigured:'Môi trường này chưa cấu hình dịch vụ nhận dạng lời nói.',access:'Môi trường này không có quyền dùng dịch vụ nhận dạng lời nói. Hãy liên hệ quản trị viên.',invalid:'Yêu cầu nhận dạng lượt ghi này không hợp lệ.',large:'Lượt ghi này quá lớn.',timeout:'Nhận dạng lời nói đã hết thời gian. Hãy thử lại sau ít phút.',malformed:'Dịch vụ nhận dạng không trả về bản ghi lời nói dùng được.'},
-  zh:{busy:'正在识别这次录音…',result:'Orena 听到的内容',failed:'暂时无法识别这次录音。你仍然可以回放并重试。',unconfigured:'当前环境尚未配置语音识别服务。',access:'当前环境没有语音识别权限，请联系管理员。',invalid:'这次录音请求无效。',large:'这次录音文件过大。',timeout:'语音识别超时，请稍后重试。',malformed:'语音识别没有返回可用的文字。'},
+  en:{busy:'Transcribing your take...',result:'What Orena heard',failed:'Could not transcribe this take. You can still play it back and retry.',providerFailure:'The speech recognition provider failed. You can play back the take and try again.',unconfigured:'Speech recognition is not configured on this environment.',access:'Speech recognition access is not available in this environment. Please contact the administrator.',invalid:'This recording request is not valid.',unprocessed:'This recording could not be processed. Try recording again.',large:'This recording is too large.',timeout:'Speech recognition timed out. Try again shortly.',rateLimited:'Speech recognition is rate-limited. Try again shortly.',capacity:'Speech recognition capacity is temporarily unavailable. Try again shortly.',malformed:'Speech recognition returned no usable transcript.'},
+  vi:{busy:'Đang nhận dạng lượt nói...',result:'Orena nghe được',failed:'Chưa thể nhận dạng lượt nói này. Bạn vẫn có thể nghe lại và thử lại.',providerFailure:'Dịch vụ nhận dạng lời nói gặp lỗi. Bạn có thể nghe lại lượt ghi và thử lại.',unconfigured:'Môi trường này chưa cấu hình dịch vụ nhận dạng lời nói.',access:'Môi trường này không có quyền dùng dịch vụ nhận dạng lời nói. Hãy liên hệ quản trị viên.',invalid:'Yêu cầu nhận dạng lượt ghi này không hợp lệ.',unprocessed:'Không thể xử lý lượt ghi này. Hãy ghi lại.',large:'Lượt ghi này quá lớn.',timeout:'Nhận dạng lời nói đã hết thời gian. Hãy thử lại sau ít phút.',rateLimited:'Dịch vụ nhận dạng lời nói đang giới hạn lượt gọi. Hãy thử lại sau ít phút.',capacity:'Dịch vụ nhận dạng lời nói tạm thời quá tải. Hãy thử lại sau ít phút.',malformed:'Dịch vụ nhận dạng không trả về bản ghi lời nói dùng được.'},
+  zh:{busy:'正在识别这次录音…',result:'Orena 听到的内容',failed:'暂时无法识别这次录音。你仍然可以回放并重试。',providerFailure:'语音识别服务发生错误，你可以回放录音后重试。',unconfigured:'当前环境尚未配置语音识别服务。',access:'当前环境没有语音识别权限，请联系管理员。',invalid:'这次录音请求无效。',unprocessed:'无法处理这次录音，请重新录制。',large:'这次录音文件过大。',timeout:'语音识别超时，请稍后重试。',rateLimited:'语音识别调用受限，请稍后重试。',capacity:'语音识别服务暂时繁忙，请稍后重试。',malformed:'语音识别没有返回可用的文字。'},
 };
 const asrCopy=()=>ASR_COPY[uiLocale()]||ASR_COPY.en;
 function asrErrorMessage(category,c){
   if(category==='speech_asr_unconfigured')return c.unconfigured;
-  if(category==='speech_asr_invalid_language'||category==='speech_asr_invalid_request'||category==='speech_asr_unprocessable_audio')return c.invalid;
+  if(category==='speech_asr_invalid_language'||category==='speech_asr_invalid_request')return c.invalid;
+  if(category==='speech_asr_unprocessable_audio')return c.unprocessed;
   if(category==='speech_asr_payload_too_large')return c.large;
   if(category==='speech_asr_timeout')return c.timeout;
+  if(category==='speech_asr_rate_limited')return c.rateLimited;
+  if(category==='speech_asr_capacity')return c.capacity;
+  if(category==='speech_asr_provider_failure')return c.providerFailure;
   if(category==='speech_asr_auth'||category==='speech_asr_forbidden')return c.access;
   if(category==='speech_asr_provider_malformed')return c.malformed;
   return c.failed;

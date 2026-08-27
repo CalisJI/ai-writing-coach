@@ -318,6 +318,40 @@ for(const category of ['speech_asr_auth','speech_asr_forbidden']){
       `${locale.toUpperCase()} Speaking must not offer retry guidance for ${category}`);
   }
 }
+for(const [category,copies] of [
+  ['speech_asr_rate_limited',{
+    en:'Speech recognition is rate-limited. Try again shortly.',
+    vi:'Dịch vụ nhận dạng lời nói đang giới hạn lượt gọi. Hãy thử lại sau ít phút.',
+    zh:'语音识别调用受限，请稍后重试。',
+  }],
+  ['speech_asr_capacity',{
+    en:'Speech recognition capacity is temporarily unavailable. Try again shortly.',
+    vi:'Dịch vụ nhận dạng lời nói tạm thời quá tải. Hãy thử lại sau ít phút.',
+    zh:'语音识别服务暂时繁忙，请稍后重试。',
+  }],
+  ['speech_asr_unprocessable_audio',{
+    en:'This recording could not be processed. Try recording again.',
+    vi:'Không thể xử lý lượt ghi này. Hãy ghi lại.',
+    zh:'无法处理这次录音，请重新录制。',
+  }],
+  ['speech_asr_provider_failure',{
+    en:'The speech recognition provider failed. You can play back the take and try again.',
+    vi:'Dịch vụ nhận dạng lời nói gặp lỗi. Bạn có thể nghe lại lượt ghi và thử lại.',
+    zh:'语音识别服务发生错误，你可以回放录音后重试。',
+  }],
+]){
+  asrErrorCategory=category;
+  await errorController.startRecording();
+  assert.equal(await errorController.stopRecording(),true);
+  assert.equal(errorController.model.asrStatus,'error');
+  for(const locale of ['en','vi','zh']){
+    state.supportLanguage=locale;
+    const errorHtml=errorController.html();
+    assert.match(errorHtml,new RegExp(copies[locale]));
+    assert.doesNotMatch(errorHtml,/SERVER ENGLISH ASR/,
+      `${locale.toUpperCase()} Speaking must not leak ${category}`);
+  }
+}
 asrErrorCategory='speech_asr_timeout';
 assert.equal(await errorController.assessPronunciation(),false);
 assert.equal(errorController.model.pronunciationStatus,'error');
