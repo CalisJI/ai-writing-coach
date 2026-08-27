@@ -1543,7 +1543,9 @@ def api_evaluate(payload: EssayIn) -> dict[str, Any]:
 
     result, evaluator = evaluate(payload)
     result["grammar_links"] = grammar_links_for_issues(
-        result.get("errors", []), active_grammar_knowledge_by_id()
+        result.get("errors", []),
+        active_grammar_knowledge_by_id(),
+        target_level=payload.target_cefr,
     )
     overall = weighted_overall(result)
     word_count = writing_unit_count(payload.text)
