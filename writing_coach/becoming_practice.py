@@ -182,8 +182,17 @@ def build_practice_recommendation(
         intent = "reinforce" if status == "improving" else "repair"
         evidence = str(focus.get("example") or "")
         if language == "zh":
+            status_copy = {
+                "improving": "\u6539\u5584\u4e2d",
+                "watch": "\u5f85\u89c2\u5bdf",
+                "recurring": "\u53cd\u590d\u51fa\u73b0",
+                "new": "\u65b0\u51fa\u73b0",
+                "resolved": "\u5df2\u89e3\u51b3",
+                "active": "\u5f53\u524d\u6d3b\u8dc3",
+                "historical": "\u5386\u53f2\u8bc1\u636e",
+            }.get(status, "\u9700\u8981\u5173\u6ce8")
             reason = (
-                f"这个模式目前是“{status}”。Orena 根据重复写作证据把它作为下一次练习重点，"
+                f"这个模式目前是“{status_copy}”。Orena 根据重复写作证据把它作为下一次练习重点，"
                 "而不是同时追踪所有小错误。"
             )
         else:

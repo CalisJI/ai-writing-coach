@@ -92,6 +92,8 @@ def test_chinese_focus_recommendation_preserves_language_and_level_adaptation():
     assert recommendation["focus_label"] == "\u8bed\u6cd5\u4e0e\u53e5\u5b50\u7ed3\u6784"
     assert recommendation["evidence"] == "\u6211\u6628\u5929\u53bb\u4e86\u5b66\u6821\u3002"
     assert "\u6a21\u5f0f" in recommendation["reason"]
+    assert "\u6539\u5584\u4e2d" in recommendation["reason"]
+    assert "improving" not in recommendation["reason"]
     assert recommendation["focus_instruction"]
 
 
