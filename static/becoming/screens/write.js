@@ -107,6 +107,10 @@ function promptText() {
   return typeof state.draft.prompt === 'string' ? state.draft.prompt.trim() : '';
 }
 
+function draftFieldText(value) {
+  return typeof value === 'string' ? value : '';
+}
+
 function personalizationLabel(task) {
   const personalization = task && typeof task === 'object' && !Array.isArray(task)
     ? task.personalization : null;
@@ -296,7 +300,7 @@ function asidePanel(config, adaptiveMode) {
         <div class="o-field" id="topicField">
           ${fieldHead('practiceTopic', 'write.topic', 'write.info_topic')}
           <input id="practiceTopic" class="o-control" type="text" list="topicSuggestions"
-                 value="${attr(state.draft.topic === 'random' ? '' : state.draft.topic || '')}"
+                 value="${attr(state.draft.topic === 'random' ? '' : draftFieldText(state.draft.topic))}"
                  placeholder="${attr(topicLabel('random'))}" maxlength="120">
           <datalist id="topicSuggestions">
             ${config.topics.map(value => `<option value="${attr(topicLabel(value))}"></option>`).join('')}
@@ -305,13 +309,13 @@ function asidePanel(config, adaptiveMode) {
         <div class="o-field">
           ${fieldHead('practiceAudience', 'write.audience', 'write.info_audience')}
           <input id="practiceAudience" class="o-control" type="text"
-                 value="${attr(state.draft.audience || '')}"
+                 value="${attr(draftFieldText(state.draft.audience))}"
                  placeholder="${attr(t('write.audience_placeholder'))}" maxlength="80">
         </div>
         ${state.draft.mode === 'custom' ? `<div class="o-field">
           ${fieldHead('customPrompt', 'write.custom_prompt', '')}
           <textarea id="customPrompt" class="o-control o-control--area" rows="4"
-                    placeholder="${attr(t('write.custom_placeholder'))}">${esc(state.draft.prompt || '')}</textarea>
+                    placeholder="${attr(t('write.custom_placeholder'))}">${esc(draftFieldText(state.draft.prompt))}</textarea>
         </div>` : ''}
       </div>
 

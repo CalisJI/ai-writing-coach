@@ -64,6 +64,9 @@ assert.match(root.innerHTML,/Articles/);
 assert.doesNotMatch(root.innerHTML,/\[object Object\]|undefined/);
 
 state.draft.generatedTask={instruction:{bad:true},prompt:{bad:true},personalization:{focus_label:{bad:true}}};
+state.draft.mode='custom';
+state.draft.topic={bad:true};
+state.draft.audience={bad:true};
 state.draft.prompt={bad:true};
 state.draft.text={bad:true};
 state.draft.html={bad:true};
