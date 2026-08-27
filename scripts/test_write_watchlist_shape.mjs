@@ -82,6 +82,19 @@ assert.match(root.innerHTML,/id="practiceAudience"[^>]*value=""/,
 assert.match(root.innerHTML,/id="customPrompt"[^>]*><\/textarea>/,
   'Writing must clear malformed custom prompt values in the rendered control');
 
+state.draft.savedAt={bad:true};
+await renderWrite(root);
+assert.match(root.innerHTML,/Not saved yet/,
+  'Writing must not claim a save for malformed timestamps');
+state.draft.savedAt=String(Date.now()-3600000);
+await renderWrite(root);
+assert.match(root.innerHTML,/Not saved yet/,
+  'Writing must not coerce numeric-string timestamps');
+state.draft.savedAt=Date.now()+86400000;
+await renderWrite(root);
+assert.match(root.innerHTML,/Not saved yet/,
+  'Writing must not claim a save for future timestamps');
+
 for(const malformed of [
   null,{},
   [{category:{},status:'recurring',total:{},older:1,newer:1}],

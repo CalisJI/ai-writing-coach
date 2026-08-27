@@ -79,9 +79,13 @@ function selectionLookupButton() {
 }
 
 function savedLabel(savedAt) {
-  if (!savedAt) return t('write.saved_never');
-  const minutes = Math.floor((Date.now() - Number(savedAt)) / 60000);
-  if (!Number.isFinite(minutes) || minutes < 1) return t('write.saved_now');
+  const raw = typeof savedAt === 'number' ? savedAt : null;
+  if (raw === null || !Number.isFinite(raw) || !Number.isInteger(raw) || raw <= 0) {
+    return t('write.saved_never');
+  }
+  const minutes = Math.floor((Date.now() - raw) / 60000);
+  if (!Number.isFinite(minutes) || minutes < 0) return t('write.saved_never');
+  if (minutes < 1) return t('write.saved_now');
   if (minutes < 60) return t('write.saved_minutes', {n: minutes});
   return t('write.saved_hours', {n: Math.floor(minutes / 60)});
 }
