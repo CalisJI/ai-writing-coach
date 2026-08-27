@@ -592,3 +592,28 @@ def test_provider_failures_use_canonical_learner_safe_evaluation_envelope(
     }
     assert provider_error not in detail["message"]
     assert "raw provider detail" not in str(detail)
+
+
+def test_language_scope_mismatch_uses_canonical_evaluation_envelope(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import app
+    from fastapi import HTTPException
+
+    monkeypatch.setattr(app, "active_grammar_language_code", lambda: "en")
+
+    with pytest.raises(HTTPException) as raised:
+        app.api_evaluate(
+            app.EssayIn(
+                text="I write a short sentence.",
+                learning_language="zh",
+            )
+        )
+
+    assert raised.value.status_code == 409
+    assert raised.value.detail == {
+        "category": "language_scope_mismatch",
+        "message": "Writing language does not match the selected learning language.",
+        "retryable": False,
+        "context": {"requested_language": "zh", "active_language": "en"},
+    }

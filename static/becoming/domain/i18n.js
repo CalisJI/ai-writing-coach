@@ -1433,6 +1433,9 @@ Object.assign(COPY.en,{
   'write.brief_failed':'Could not create a practice brief.',
   'write.short_first':'Write at least a short paragraph first.',
   'write.review_failed':'Your writing could not be reviewed right now.',
+  'write.evaluation_unavailable':'AI Coach is temporarily unavailable. Please try again.',
+  'write.evaluation_provider_failure':'AI Coach could not produce a usable evaluation. Please try again.',
+  'write.language_scope_mismatch':'This writing language no longer matches your selected learning language.',
   'write.parent_missing_retry':'The earlier version could no longer be found, so this is being saved as a new entry.',
 });
 Object.assign(COPY.vi,{
@@ -1455,6 +1458,9 @@ Object.assign(COPY.vi,{
   'write.brief_failed':'Không thể tạo đề bài luyện tập lúc này.',
   'write.short_first':'Hãy viết ít nhất một đoạn ngắn trước.',
   'write.review_failed':'Hiện chưa thể review bài viết này.',
+  'write.evaluation_unavailable':'AI Coach tạm thời chưa khả dụng. Hãy thử lại.',
+  'write.evaluation_provider_failure':'AI Coach chưa tạo được một đánh giá có thể sử dụng. Hãy thử lại.',
+  'write.language_scope_mismatch':'Ngôn ngữ bài viết không còn khớp với ngôn ngữ học bạn đã chọn.',
   'write.parent_missing_retry':'Không tìm thấy bản viết trước đó, nên bài này sẽ được lưu như một bản viết mới.',
 });
 Object.assign(COPY.zh,{
@@ -1477,6 +1483,9 @@ Object.assign(COPY.zh,{
   'write.brief_failed':'暂时无法生成练习任务。',
   'write.short_first':'请先写至少一个短段落。',
   'write.review_failed':'暂时无法分析这篇写作。',
+  'write.evaluation_unavailable':'AI Coach 暂时无法使用，请稍后再试。',
+  'write.evaluation_provider_failure':'AI Coach 未能生成可用的写作评估，请稍后再试。',
+  'write.language_scope_mismatch':'写作语言与当前选择的学习语言不一致。',
   'write.parent_missing_retry':'找不到之前的版本，这篇将作为新条目保存。',
 });
 

@@ -2,14 +2,39 @@ import assert from 'node:assert/strict';
 import {api} from '../static/becoming/api.js';
 import {state} from '../static/becoming/store.js';
 import {evaluationNotice,renderReview,reviewSummaryText} from '../static/becoming/screens/review.js';
-import {renderWrite} from '../static/becoming/screens/write.js';
+import {renderWrite,writingEvaluationErrorMessage} from '../static/becoming/screens/write.js';
 import {categoryReason,categoryRule,supportCopy} from '../static/becoming/domain/support.js';
+import {t} from '../static/becoming/domain/i18n.js';
 
 const result={
   priorities_vi:['Sửa thì động từ trước khi đánh bóng từ vựng.','Giữ mạch ý rõ hơn.'],
 };
 
 state.profile={native_language:'vi'};
+state.supportLanguage='vi';
+for(const locale of ['en','vi','zh']){
+  state.supportLanguage=locale;
+  assert.equal(
+    writingEvaluationErrorMessage({category:'evaluation_unavailable'}),
+    t('write.evaluation_unavailable'),
+    `${locale.toUpperCase()} Write must localize temporary evaluator unavailability`,
+  );
+  assert.equal(
+    writingEvaluationErrorMessage({category:'evaluation_provider_failure'}),
+    t('write.evaluation_provider_failure'),
+    `${locale.toUpperCase()} Write must localize unusable evaluator responses`,
+  );
+  assert.equal(
+    writingEvaluationErrorMessage({category:'language_scope_mismatch'}),
+    t('write.language_scope_mismatch'),
+    `${locale.toUpperCase()} Write must localize language-scope mismatches`,
+  );
+  assert.equal(
+    writingEvaluationErrorMessage({category:'unknown_provider_detail',message:'raw provider failure'}),
+    t('write.review_failed'),
+    `${locale.toUpperCase()} Write must use safe generic copy for unknown evaluator errors`,
+  );
+}
 state.supportLanguage='vi';
 assert.equal(
   reviewSummaryText(result,null,[]),

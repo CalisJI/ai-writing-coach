@@ -62,6 +62,17 @@ const PRACTICE_CONTEXT_FIELDS = [
   'focus_instruction', 'grammar_id', 'grammar_title',
 ];
 
+const EVALUATION_ERROR_COPY = {
+  evaluation_unavailable: 'write.evaluation_unavailable',
+  evaluation_provider_failure: 'write.evaluation_provider_failure',
+  language_scope_mismatch: 'write.language_scope_mismatch',
+};
+
+export function writingEvaluationErrorMessage(error = {}) {
+  const category = String(error?.category || '').trim();
+  return t(EVALUATION_ERROR_COPY[category] || 'write.review_failed');
+}
+
 function bandLabel(level) {
   const tier = BAND_TIERS[String(level || '').toUpperCase()] || BAND_TIERS[level];
   return tier ? t(`band.${tier}`) : '';
@@ -750,7 +761,7 @@ export async function renderWrite(root) {
         t('busy.preparing_review_4'),
       ]});
     } catch (error) {
-      toast(error.message || t('write.review_failed'));
+      toast(writingEvaluationErrorMessage(error));
     }
   }
 

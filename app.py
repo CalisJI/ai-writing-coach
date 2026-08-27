@@ -1531,7 +1531,12 @@ def api_evaluate(payload: EssayIn) -> dict[str, Any]:
         requested_language = payload.learning_language.casefold().replace("_", "-")
         active_scope = active_language.casefold().replace("_", "-")
         if requested_language != active_scope and requested_language.split("-", 1)[0] != active_scope.split("-", 1)[0]:
-            raise HTTPException(status_code=409, detail="language_scope_mismatch")
+            raise orena_http_error(
+                409,
+                "language_scope_mismatch",
+                "Writing language does not match the selected learning language.",
+                context={"requested_language": requested_language, "active_language": active_language},
+            )
     previous: dict[str, Any] | None = None
     series_id: int | None = None
     revision_no = 1
