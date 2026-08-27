@@ -345,7 +345,8 @@ function normalizedJourneyPracticeOutcome(outcome){
   }
   const focus=typeof outcome.focus_label==='string'?outcome.focus_label.trim():'';
   if(!focus)return null;
-  return {status,issue_count:issueCount,revision_no:revisionNo,previous_issue_count:previous,focus_label:focus};
+  const essayId=integer(outcome.essay_id,1);
+  return {status,issue_count:issueCount,revision_no:revisionNo,previous_issue_count:previous,focus_label:focus,essay_id:essayId};
 }
 
 function practiceOutcomeHistory(items){
@@ -365,6 +366,7 @@ function practiceOutcomeHistory(items){
           focus:outcome.focus_label,
         }))}</p>
         <small>${esc(t('outcome.revision'))} ${esc(outcome.revision_no)}</small>
+        ${outcome.essay_id!==null?`<button type="button" class="text-link" data-practice-outcome-essay="${attr(outcome.essay_id)}">${esc(c.openLatest)}</button>`:''}
       </li>`).join('')}
     </ol>
   </section>`;
@@ -741,6 +743,25 @@ export async function renderJourney(root){
       if(!id)return;
       try{ localStorage.setItem('becoming.grammar-focus',id); }catch{}
       go('grammar');
+    });
+  });
+
+  root.querySelectorAll('[data-practice-outcome-essay]').forEach(button=>{
+    button.addEventListener('click',async()=>{
+      const id=button.dataset.practiceOutcomeEssay;
+      if(!id)return;
+      try{
+        const essay=await api.essay(id);
+        if(!essay||typeof essay!=='object')throw new Error(t('review.empty_body'));
+        state.lastEvaluation=essay;
+        state.draft={
+          ...state.draft,
+          text:essay.text||'',html:essay.html||'',prompt:essay.prompt||'',
+          parentEssayId:essay.id,level:essay.target_cefr||state.draft.level,
+          practiceContext:essay.practice_context||null,
+        };
+        go('review');
+      }catch(error){ root.insertAdjacentHTML('afterbegin',errorBlock(error.message||t('review.empty_body'))); }
     });
   });
 

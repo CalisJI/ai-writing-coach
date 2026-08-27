@@ -23,6 +23,7 @@ globalThis.document={
 const revisionButtons=new Map();
 const outcomeButtons=new Map();
 const outcomePracticeButtons=new Map();
+const outcomeEssayButtons=new Map();
 const journeyStartButton={
   dataset:{journeyStart:''},
   listeners:{},
@@ -74,6 +75,20 @@ const root={
           });
         }
         return outcomePracticeButtons.get(id);
+      });
+    }
+    if(selector==='[data-practice-outcome-essay]'){
+      const ids=[...root.innerHTML.matchAll(/data-practice-outcome-essay="([^"]+)"/g)]
+        .map(match=>match[1]);
+      return ids.map(id=>{
+        if(!outcomeEssayButtons.has(id)){
+          outcomeEssayButtons.set(id,{
+            dataset:{practiceOutcomeEssay:id},listeners:{},
+            addEventListener(name,listener){this.listeners[name]=listener;},
+            async click(){return this.listeners.click?.({currentTarget:this});},
+          });
+        }
+        return outcomeEssayButtons.get(id);
       });
     }
     if(selector!=='[data-journey-essay]')return [];
@@ -131,6 +146,7 @@ api.essays=async()=>[{
   created_at:'2026-01-01T00:00:00Z',
   prompt:'A short practice task',
 }];
+api.essay=async id=>({id:Number(id),text:'A practiced Grammar sentence.',prompt:'Grammar practice'});
 let latestMemory={
   patterns:[],
   strengths:[],
@@ -140,6 +156,7 @@ let latestMemory={
 api.learningMemory=async()=>latestMemory;
 api.practiceRecommendation=async()=>null;
 let latestOutcome={
+    essay_id:12,
     grammar_id:'a1-agreement',
     focus_label:'Agreement practice',
     status:'improved',
@@ -148,7 +165,7 @@ let latestOutcome={
 };
 let practiceHistoryItems=[
   latestOutcome,
-  {grammar_id:'a1-agreement',focus_label:'Agreement practice',status:'still_working',issue_count:1,revision_no:1},
+  {essay_id:11,grammar_id:'a1-agreement',focus_label:'Agreement practice',status:'still_working',issue_count:1,revision_no:1},
 ];
 api.practiceOutcomes=async()=>({latest:latestOutcome,items:practiceHistoryItems});
 
@@ -194,6 +211,16 @@ for(const [locale,label,practiceLabel] of [
   if(locale!=='en')assert.doesNotMatch(root.innerHTML,/still_working/,
     `Journey ${locale.toUpperCase()} must not expose raw historical status enums`);
 }
+const outcomeEssay=root.querySelectorAll('[data-practice-outcome-essay]')[0];
+assert.equal(outcomeEssay?.dataset.practiceOutcomeEssay,'12',
+  'Journey practice history must link to the recorded essay id');
+await outcomeEssay.click();
+assert.equal(state.lastEvaluation.id,12,
+  'Journey practice history must open the linked essay for Review');
+assert.equal(state.draft.parentEssayId,12,
+  'Journey practice history must preserve the linked essay lineage');
+assert.equal(globalThis.location.hash,'#/review');
+globalThis.location.hash='#/journey';
 await root.querySelectorAll('[data-outcome-grammar]')[0].click();
 assert.equal(storage.get('becoming.grammar-focus'),'a1-agreement',
   'Journey Grammar outcome must persist the linked lesson before opening Grammar');
