@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+import json
 from typing import Any
 
 import pytest
@@ -365,6 +366,175 @@ def test_invalid_provider_response_uses_the_same_explicit_demo_fallback(monkeypa
     assert result["errors"][0]["fragment"] == "I has"
     assert "Kết nối AI Coach" not in result["priorities_vi"][0]
     assert "chưa tạo được đánh giá đầy đủ" in result["priorities_vi"][0]
+
+
+@pytest.mark.parametrize(
+    (
+        "language",
+        "target_level",
+        "learner_text",
+        "error_category",
+        "error_fragment",
+        "error_suggestion",
+        "strength_fragment",
+        "grammar_id",
+    ),
+    [
+        (
+            "en",
+            "B1",
+            "I has a dog.",
+            "agreement",
+            "I has",
+            "I have",
+            "dog",
+            "a1-agreement",
+        ),
+        (
+            "zh",
+            "HSK2",
+            "\u6211\u6bcf\u5929\u90fd\u8ba4\u771f\u5b66\u4e60\u6c49\u8bed\u3002",
+            "word_order",
+            "\u5b66\u4e60\u6c49\u8bed",
+            "\u6c49\u8bed\u5b66\u4e60",
+            "\u6211\u6bcf\u5929",
+            "hsk2-word-order",
+        ),
+    ],
+)
+def test_api_evaluate_end_to_end_preserves_en_zh_evidence_and_provenance(
+    monkeypatch: pytest.MonkeyPatch,
+    language: str,
+    target_level: str,
+    learner_text: str,
+    error_category: str,
+    error_fragment: str,
+    error_suggestion: str,
+    strength_fragment: str,
+    grammar_id: str,
+) -> None:
+    """The Write response must carry the evidence that Review and Journey consume."""
+    import app
+    from writing_coach.ai.base import AIResult
+    from writing_coach.languages.chinese.profile import (
+        ERROR_CATEGORIES as ZH_CATEGORIES,
+        PROFILE as ZH_PROFILE,
+        RUBRIC_WEIGHTS as ZH_WEIGHTS,
+        score_to_level as zh_score_to_level,
+    )
+    from writing_coach.languages.english.profile import (
+        ERROR_CATEGORIES as EN_CATEGORIES,
+        PROFILE as EN_PROFILE,
+        RUBRIC_WEIGHTS as EN_WEIGHTS,
+        score_to_level as en_score_to_level,
+    )
+
+    class FakeLearningRepository:
+        def __init__(self) -> None:
+            self.created: dict[str, Any] | None = None
+
+        def create_essay(self, values: dict[str, Any]) -> dict[str, int]:
+            self.created = values
+            return {"id": 41, "series_id": 41, "revision_no": 1}
+
+    repository = FakeLearningRepository()
+    monkeypatch.setattr(app, "_learning_repository", repository)
+    monkeypatch.setattr(app, "active_grammar_language_code", lambda: language)
+    monkeypatch.setattr(app, "is_chinese", lambda: language == "zh")
+
+    if language == "zh":
+        profile, weights, levels, score_to_level, categories = (
+            ZH_PROFILE,
+            ZH_WEIGHTS,
+            ZH_PROFILE.levels,
+            zh_score_to_level,
+            ZH_CATEGORIES,
+        )
+    else:
+        profile, weights, levels, score_to_level, categories = (
+            EN_PROFILE,
+            EN_WEIGHTS,
+            EN_PROFILE.levels,
+            en_score_to_level,
+            EN_CATEGORIES,
+        )
+    monkeypatch.setattr(app, "active_profile", lambda: profile)
+    monkeypatch.setattr(app, "active_rubric_weights", lambda: weights)
+    monkeypatch.setattr(app, "active_levels", lambda: levels)
+    monkeypatch.setattr(app, "active_score_to_level", score_to_level)
+    monkeypatch.setattr(app, "active_error_categories", lambda: categories)
+    monkeypatch.setattr(app, "active_system_prompt", lambda: "fixture system prompt")
+    monkeypatch.setattr(
+        app,
+        "active_grammar_knowledge_by_id",
+        lambda: {
+            grammar_id: {
+                "title": "Subject verb agreement" if language == "en" else "Word order",
+                "level": target_level,
+                "quick_reference": {"lookup_tags": [error_category.replace("_", " ")]},
+            }
+        },
+    )
+
+    raw_result = {
+        **{key: 70 for key in weights},
+        "cefr_estimate": target_level,
+        "summary_vi": "Bai viet co bang chung ro rang.",
+        "strengths_vi": ["Nguoi hoc trinh bay y ro rang."],
+        "strength_evidence": [
+            {
+                "category": "grammar",
+                "fragment": strength_fragment,
+                "explanation_vi": "Diem manh nay xuat hien ro trong cau.",
+                "confidence": 0.9,
+            }
+        ],
+        "priorities_vi": ["Sua mau loi nay trong lan viet tiep theo."],
+        "errors": [
+            {
+                "category": error_category,
+                "fragment": error_fragment,
+                "explanation_vi": "Cau truc nay can duoc dieu chinh.",
+                "suggestion": error_suggestion,
+                "mini_rule_vi": "Chon cau truc phu hop voi ngu canh.",
+                "confidence": 0.95,
+            }
+        ],
+    }
+
+    captured: dict[str, Any] = {}
+
+    def generate_structured(**kwargs: Any) -> AIResult:
+        captured.update(kwargs)
+        return AIResult(
+            data=raw_result,
+            provider=f"fixture-{language}",
+            model="v1",
+            runtime={"mode": "fixture"},
+        )
+
+    monkeypatch.setattr(app, "generate_structured", generate_structured)
+    response = app.api_evaluate(
+        app.EssayIn(
+            text=learner_text,
+            prompt="Write one short practice response.",
+            target_cefr=target_level,
+            learning_language=language,
+        )
+    )
+
+    assert captured["capability_key"] == "writing_evaluator"
+    assert response["id"] == 41
+    assert response["evaluator"] == f"fixture-{language}:v1"
+    assert response["schema_version"] == "writing-evaluation-v2"
+    assert response["errors"][0]["fragment"] == error_fragment
+    assert response["issues"][0]["quote"] == error_fragment
+    assert response["strength_evidence"][0]["fragment"] == strength_fragment
+    assert response["grammar_links"][0]["grammar_id"] == grammar_id
+    assert repository.created is not None
+    assert repository.created["evaluator"] == response["evaluator"]
+    assert json.loads(repository.created["errors_json"])[0]["fragment"] == error_fragment
+    assert json.loads(repository.created["strength_evidence_json"])[0]["fragment"] == strength_fragment
 
 
 def test_heuristic_fallback_keeps_high_confidence_feedback_and_v2_envelope(monkeypatch: pytest.MonkeyPatch) -> None:
