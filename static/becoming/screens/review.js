@@ -322,7 +322,10 @@ function practiceOutcomeBlock(outcome){
       <span>${esc(outcome.focus_label||t('common.current_focus'))}</span>
       <span>${t('outcome.revision')} ${esc(outcome.revision_no||1)}</span>
     </div>
-    ${outcome.grammar_id?`<button type="button" class="o-btn o-btn--outline o-btn--compact" data-outcome-grammar="${attr(outcome.grammar_id)}">${esc(t('review.open_grammar'))}</button>`:''}
+    ${outcome.grammar_id?`<div class="action-row">
+      <button type="button" class="o-btn o-btn--outline o-btn--compact" data-outcome-grammar="${attr(outcome.grammar_id)}">${esc(t('review.open_grammar'))}</button>
+      <button type="button" class="o-btn o-btn--primary o-btn--compact" data-practice-grammar="${attr(outcome.grammar_id)}" data-practice-evidence="${attr(evidence)}">${esc(t('review.practice_grammar'))}</button>
+    </div>`:''}
     ${evidence?`<blockquote>“${esc(evidence)}”</blockquote>`:''}
   </section>`;
 }

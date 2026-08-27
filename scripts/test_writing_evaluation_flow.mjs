@@ -220,8 +220,9 @@ try{
     focus_label:'Articles',grammar_id:'a1-article',
   };
   const practiceOutcome={
-    status:'improved',focus_label:'Articles',previous_issue_count:1,
-    issue_count:0,revision_no:2,
+  status:'improved',focus_label:'Articles',previous_issue_count:1,
+  issue_count:0,revision_no:2,grammar_id:'a1-article',
+  error_evidence:['I has a book'],
   };
   const practiceEvaluation={
     ...evaluation,
@@ -258,6 +259,10 @@ try{
   assert.match(reviewRoot.innerHTML,/practice-check status-improved/,
     'Review must render the attributed practice outcome');
   assert.match(reviewRoot.innerHTML,/Articles/);
+  assert.match(reviewRoot.innerHTML,/data-practice-grammar="a1-article"/,
+    'Review practice outcome must expose the linked Grammar practice action');
+  assert.match(reviewRoot.innerHTML,/data-practice-evidence="I has a book"/,
+    'Review practice outcome must carry its exact learner evidence');
   api.practiceOutcome=originalPracticeOutcome;
 
   // The same submit-and-render contract must hold for Chinese, not only for
