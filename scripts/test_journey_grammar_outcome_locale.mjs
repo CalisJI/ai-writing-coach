@@ -301,7 +301,12 @@ const targetTask={
   personalization:targetRecommendation,
 };
 api.practiceRecommendation=async()=>targetRecommendation;
-api.nextPractice=async()=>targetTask;
+let nextPracticePayload=null;
+api.nextPractice=async payload=>{
+  nextPracticePayload=payload;
+  return targetTask;
+};
+state.draft={...state.draft,level:'A1'};
 latestMemory={
   patterns:[],
   strengths:[],
@@ -315,6 +320,8 @@ const renderedStart=root.querySelector('[data-journey-start]');
 assert.ok(renderedStart,
   'Journey target control must be available from the rendered markup');
 await renderedStart.click();
+assert.deepEqual(nextPracticePayload,{target_level:'B2'},
+  'Journey must request Practice at the recommendation level, not a stale draft level');
 assert.equal(state.draft.prompt,targetTask.prompt,
   'Journey target action must transfer the generated practice prompt to Write');
 assert.deepEqual(state.draft.practiceContext,targetRecommendation,
@@ -363,17 +370,22 @@ const zhTargetTask={
   personalization:zhTargetRecommendation,
 };
 api.practiceRecommendation=async()=>zhTargetRecommendation;
-api.nextPractice=async()=>zhTargetTask;
+api.nextPractice=async payload=>{
+  nextPracticePayload=payload;
+  return zhTargetTask;
+};
 state.language='zh';
 state.supportLanguage='zh';
 state.profile={native_language:'zh'};
-state.draft={...state.draft,mode:'free',level:'HSK4',length:80,text:'',html:'',prompt:'',generatedTask:null,practiceContext:null,parentEssayId:null};
+state.draft={...state.draft,mode:'free',level:'HSK1',length:80,text:'',html:'',prompt:'',generatedTask:null,practiceContext:null,parentEssayId:null};
 globalThis.location.hash='#/journey';
 latestMemory={patterns:[],strengths:[],focus:{category:'article'},revision_wins:[]};
 await renderJourney(root);
 assert.ok(root.innerHTML.includes('data-journey-start'),
   'Chinese Journey must render the targeted Practice start control');
 await root.querySelector('[data-journey-start]').click();
+assert.deepEqual(nextPracticePayload,{target_level:'HSK4'},
+  'Chinese Journey must request Practice at the recommendation level, not a stale draft level');
 assert.equal(globalThis.location.hash,'#/write');
 let submittedChinesePayload=null;
 const beforeChineseEvaluate=api.evaluate;

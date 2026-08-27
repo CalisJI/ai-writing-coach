@@ -692,7 +692,7 @@ export async function renderJourney(root){
       await runBusy(button,async()=>{
         /* The same path Home uses, so a target started here and a target
            started there produce the same brief. */
-        const task=await api.nextPractice({target_level:state.draft.level||recommendation.target_level||''});
+        const task=await api.nextPractice({target_level:recommendation.target_level||state.draft.level||''});
         const personalization=task.personalization||recommendation;
         saveDraft({
           mode:task.task_type||personalization.task_type||'opinion',
