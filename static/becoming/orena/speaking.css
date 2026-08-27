@@ -291,6 +291,12 @@ a.o-btn.is-disabled{opacity:.45;pointer-events:none}
 .o-speaking-evaluation dt{font-size:11px;color:var(--o-ink-faint)}
 .o-speaking-evaluation dd{margin:0;font-size:var(--o-text-body);font-weight:600;font-variant-numeric:tabular-nums}
 .o-speaking-evaluation[data-speaking-evaluation-state="error"] p{color:var(--o-attention)}
+.o-speaking-evaluation h4{margin:0;font-size:var(--o-text-meta);font-weight:600;color:var(--o-ink)}
+.o-speaking-evaluation-highlights,.o-speaking-next-steps{display:grid;gap:7px;padding-top:9px;border-top:1px solid var(--o-border)}
+.o-speaking-evaluation-highlights ul,.o-speaking-next-steps ul{display:grid;gap:6px;margin:0;padding:0;list-style:none}
+.o-speaking-evaluation-highlights li,.o-speaking-next-steps li{font-size:var(--o-text-meta);line-height:1.45;color:var(--o-ink-muted)}
+.o-speaking-evaluation-highlights li::before{content:'✓';margin-right:7px;color:var(--o-positive)}
+.o-speaking-next-steps li::before{content:'→';margin-right:7px;color:var(--o-attention)}
 
 .o-pronunciation-evidence{display:grid;gap:10px;padding-top:2px}
 .o-pronunciation-evidence h3{margin:0;font-size:var(--o-text-ui);font-weight:600}
