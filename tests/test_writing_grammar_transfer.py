@@ -112,3 +112,26 @@ def test_real_chinese_catalog_prefers_target_level_for_aspect_transfer():
     assert links
     assert all(item["level"] == "HSK2" for item in links)
     assert "zh-hsk2-review-1-31" in {item["grammar_id"] for item in links}
+
+
+def test_target_level_precedes_stronger_advanced_signal():
+    knowledge = {
+        "hsk2-aspect": {
+            "title": "Aspect basics",
+            "level": "HSK2",
+            "quick_reference": {"lookup_tags": ["过/了/着"]},
+        },
+        "hsk6-aspect": {
+            "title": "Advanced written aspect interaction",
+            "level": "HSK6",
+            "quick_reference": {"lookup_tags": ["aspect interaction"]},
+        },
+    }
+
+    links = grammar_links_for_issues(
+        [{"id": "issue-aspect", "category": "aspect"}],
+        knowledge,
+        target_level="HSK2",
+    )
+
+    assert [item["grammar_id"] for item in links] == ["hsk2-aspect", "hsk6-aspect"]
