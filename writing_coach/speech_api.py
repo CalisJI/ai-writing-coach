@@ -48,7 +48,11 @@ def configure_speech_pronunciation(provider: SpeechPronunciationProvider | None)
 
 def _provider() -> SpeechAsrProvider:
     if _speech_asr_provider is None:
-        raise HTTPException(503, "Speech ASR is not configured.")
+        raise orena_http_error(
+            503,
+            "speech_asr_unconfigured",
+            "Speech recognition is not configured.",
+        )
     return _speech_asr_provider
 
 
@@ -115,7 +119,11 @@ async def transcribe_speech(
 ) -> dict[str, Any]:
     normalized_language = language.strip().casefold() or None
     if normalized_language is not None and normalized_language not in {"en", "zh"}:
-        raise HTTPException(422, "Unsupported speech language.")
+        raise orena_http_error(
+            422,
+            "speech_asr_invalid_language",
+            "Unsupported speech language.",
+        )
 
     provider = _provider()
     max_bytes = int(getattr(provider, "max_bytes", _DEFAULT_ASR_MAX_BYTES))
@@ -128,11 +136,24 @@ async def transcribe_speech(
             language=normalized_language,
         )
     except SpeechAsrPayloadTooLarge as exc:
-        raise HTTPException(413, "Audio recording is too large.") from exc
+        raise orena_http_error(
+            413,
+            "speech_asr_payload_too_large",
+            "Audio recording is too large.",
+        ) from exc
     except SpeechAsrTimedOut as exc:
-        raise HTTPException(504, "Speech transcription timed out.") from exc
+        raise orena_http_error(
+            504,
+            "speech_asr_timeout",
+            "Speech transcription timed out.",
+            retryable=True,
+        ) from exc
     except SpeechAsrMalformed as exc:
-        raise HTTPException(502, "Speech provider returned an unusable transcript.") from exc
+        raise orena_http_error(
+            502,
+            "speech_asr_provider_malformed",
+            "Speech provider returned an unusable transcript.",
+        ) from exc
     except SpeechAsrRequestFailed as exc:
         provider_status = getattr(exc, "status_code", None)
         category = {
@@ -220,13 +241,21 @@ async def assess_pronunciation(
 ) -> dict[str, Any]:
     normalized_language = language.strip().casefold()
     if normalized_language not in {"en", "zh"}:
-        raise HTTPException(422, "Unsupported pronunciation language.")
+        raise orena_http_error(
+            422,
+            "pronunciation_invalid_language",
+            "Unsupported pronunciation language.",
+        )
 
     provider = _pronunciation_provider()
     reference = reference_text.strip()
     max_reference_chars = int(getattr(provider, "max_reference_chars", 1200))
     if not reference or len(reference) > max_reference_chars:
-        raise HTTPException(422, "Pronunciation reference text is invalid.")
+        raise orena_http_error(
+            422,
+            "pronunciation_reference_invalid",
+            "Pronunciation reference text is invalid.",
+        )
 
     max_bytes = int(getattr(provider, "max_bytes", _DEFAULT_PRONUNCIATION_MAX_BYTES))
     try:
@@ -239,7 +268,11 @@ async def assess_pronunciation(
             reference_text=reference,
         )
     except SpeechPronunciationPayloadTooLarge as exc:
-        raise HTTPException(413, "Audio recording is too large.") from exc
+        raise orena_http_error(
+            413,
+            "pronunciation_payload_too_large",
+            "Audio recording is too large.",
+        ) from exc
     except SpeechPronunciationTimedOut as exc:
         raise orena_http_error(
             504,
