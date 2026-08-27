@@ -131,4 +131,28 @@ for(const locale of ['vi','zh']){
   }
 }
 
+const revisionEssays=[
+  {id:11,series_id:11,revision_no:1,overall:68,created_at:'2026-01-01T00:00:00Z',prompt:'A revision series'},
+  {id:12,series_id:11,revision_no:2,overall:74,created_at:'2026-01-02T00:00:00Z',prompt:'A revision series'},
+];
+const revisionEvidenceCopy={
+  en:'Issue count change: -2',
+  vi:'Thay đổi số lượng lỗi: -2',
+  zh:'问题数量变化：-2',
+};
+api.essays=async()=>revisionEssays;
+for(const locale of ['en','vi','zh']){
+  state.profile={native_language:locale};
+  state.supportLanguage=locale;
+  latestMemory={
+    patterns:[],
+    strengths:[],
+    focus:null,
+    revision_wins:[{latest_id:12,revisions:2,overall_delta:6,error_delta:-2,latest_date:'2026-01-02T00:00:00Z'}],
+  };
+  await renderJourney(root);
+  assert.match(root.innerHTML,new RegExp(revisionEvidenceCopy[locale]),
+    `Journey ${locale.toUpperCase()} should render localized revision evidence`);
+}
+
 console.log('Journey Grammar outcome locale contract: PASS');

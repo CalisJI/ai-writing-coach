@@ -39,7 +39,7 @@ const COPY={
     emptyTitle:'Your journey starts with one piece.',
     emptyBody:'Once you have written something, this page follows what improves, what keeps coming back, and what to work on next.',
     start:'Start writing',
-    beforeNow:'Before and now',revisionGain:'{before} → {after} across {count} drafts ({gain})',
+    beforeNow:'Before and now',revisionGain:'{before} → {after} across {count} drafts ({gain})',evidenceChange:'Issue count change: {delta}',
     revisionSingle:'One draft, no revision yet.',openLatest:'Open the latest draft',
     whereYouAre:'Where you are',estimated:'estimated',reliable:'Reliable strengths',
     movement:'Score movement',movementNote:'Across your last five pieces.',
@@ -71,7 +71,7 @@ const COPY={
     emptyTitle:'Hành trình bắt đầu từ một bài viết.',
     emptyBody:'Khi bạn đã viết, trang này theo dõi cái gì đang tiến bộ, cái gì lặp lại và nên làm gì tiếp.',
     start:'Bắt đầu viết',
-    beforeNow:'Trước và nay',revisionGain:'{before} → {after} qua {count} bản ({gain})',
+    beforeNow:'Trước và nay',revisionGain:'{before} → {after} qua {count} bản ({gain})',evidenceChange:'Thay đổi số lượng lỗi: {delta}',
     revisionSingle:'Mới một bản, chưa sửa lại.',openLatest:'Mở bản mới nhất',
     whereYouAre:'Bạn đang ở đâu',estimated:'ước lượng',reliable:'Điểm mạnh ổn định',
     movement:'Biến động điểm',movementNote:'Tính trên năm bài gần nhất.',
@@ -103,7 +103,7 @@ const COPY={
     emptyTitle:'历程从第一篇开始。',
     emptyBody:'写过之后，这个页面会跟踪什么在进步、什么反复出现、下一步该练什么。',
     start:'开始写作',
-    beforeNow:'之前与现在',revisionGain:'{before} → {after}，共 {count} 稿（{gain}）',
+    beforeNow:'之前与现在',revisionGain:'{before} → {after}，共 {count} 稿（{gain}）',evidenceChange:'问题数量变化：{delta}',
     revisionSingle:'只有一稿，还没有修改。',openLatest:'打开最新一稿',
     whereYouAre:'你目前的位置',estimated:'估算',reliable:'稳定的优势',
     movement:'分数变化',movementNote:'基于最近五篇。',
@@ -235,7 +235,7 @@ function groupEssays(rows=[]){
    in would drop the one thing this screen can actually prove - that a second
    draft scored differently from the first - so the evidence keeps its own card
    and every row opens the draft it is talking about. */
-function revisionList(groups=[]){
+function revisionList(groups=[],wins=[]){
   const c=copy();
   if(!groups.length)return `<p class="o-target-copy">${esc(c.revisionSingle)}</p>`;
 
@@ -243,6 +243,7 @@ function revisionList(groups=[]){
     const first=group[0];
     const latest=group.at(-1);
     const gain=Number(latest.overall||0)-Number(first.overall||0);
+    const win=wins.find(item=>String(item.latest_id)===String(latest.id));
     const label=(latest.prompt||t('common.free_writing')).split('\n').find(Boolean)||t('common.free_writing');
     const gainLabel=`${gain>=0?'+':''}${gain.toFixed(1)}`;
     return `<li class="o-revision-row">
@@ -252,6 +253,7 @@ function revisionList(groups=[]){
         <p>${esc(group.length>1
           ?fill(c.revisionGain,{before:first.overall,after:latest.overall,count:group.length,gain:gainLabel})
           :c.revisionSingle)}</p>
+        ${win?`<small class="o-revision-evidence">${esc(fill(c.evidenceChange,{delta:`${Number(win.error_delta)>0?'+':''}${Number(win.error_delta)}`}))}</small>`:''}
       </div>
       <span class="o-revision-gain ${group.length>1?(gain>=0?'is-up':'is-down'):'is-flat'}">${group.length>1?esc(gainLabel):'&mdash;'}</span>
       <button type="button" class="o-icon-button" data-journey-essay="${latest.id}" aria-label="${esc(c.openLatest)}" title="${esc(c.openLatest)}">${oIcon('arrowRight')}</button>
@@ -617,7 +619,7 @@ export async function renderJourney(root){
 
         <section class="o-card o-journey-revisions">
           <span class="o-label">${esc(c.beforeNow)}</span>
-          ${revisionList(groups)}
+          ${revisionList(groups,memory.revision_wins||[])}
         </section>
 
         ${timeline(memory,essays,recommendation)}
