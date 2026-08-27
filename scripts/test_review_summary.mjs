@@ -77,7 +77,7 @@ class FakeElement{
   async click(){return this.listeners.click?.({currentTarget:this});}
 }
 
-function fakeReviewRoot({openGrammar=[],practiceGrammar=[]}={}){
+function fakeReviewRoot({openGrammar=[],practiceGrammar=[],saveLibrary=[],saveStrength=[]}={}){
   const ids=[
     '#learnerTextEvidence','#posLensToggle','#posLensStatus','#posLensLegend','#posLens',
     '#editDraftButton','#reviewRubric','#fullRubricButton','#downloadFeedback',
@@ -91,6 +91,8 @@ function fakeReviewRoot({openGrammar=[],practiceGrammar=[]}={}){
     querySelectorAll:selector=>{
       if(selector==='[data-open-grammar]')return openGrammar;
       if(selector==='[data-practice-grammar]')return practiceGrammar;
+      if(selector==='[data-save-library]')return saveLibrary;
+      if(selector==='[data-save-strength]')return saveStrength;
       return [];
     },
   };
@@ -298,6 +300,42 @@ assert.ok(
     &&zhRoot.innerHTML.includes(categoryRule('grammar',{native_language:'zh'})),
   'Chinese Review feedback should render both the localized explanation and reusable rule',
 );
+
+const saveErrorButton=new FakeElement();
+saveErrorButton.dataset.saveLibrary='0';
+const saveStrengthButton=new FakeElement();
+saveStrengthButton.dataset.saveStrength='0';
+const libraryRoot=fakeReviewRoot({
+  saveLibrary:[saveErrorButton],
+  saveStrength:[saveStrengthButton],
+});
+const savedLibraryItems=[];
+const originalSaveLibrary=api.saveLibraryVocabulary;
+api.saveLibraryVocabulary=async payload=>{
+  savedLibraryItems.push(payload);
+  return {ok:true};
+};
+state.profile={native_language:'en'};
+state.supportLanguage='en';
+state.language='en';
+state.lastEvaluation={...feedbackLocaleFixture,id:91};
+state.draft.text=feedbackLocaleFixture.text;
+await renderReview(libraryRoot);
+assert.match(libraryRoot.innerHTML,/data-save-library="0"/,
+  'Review must render the error evidence Library save action');
+assert.match(libraryRoot.innerHTML,/data-save-strength="0"/,
+  'Review must render the strength evidence Library save action');
+await saveErrorButton.click();
+await saveStrengthButton.click();
+api.saveLibraryVocabulary=originalSaveLibrary;
+assert.equal(savedLibraryItems.length,2,
+  'Review evidence actions should save both error and strength evidence');
+assert.equal(savedLibraryItems[0].source_essay_id,91);
+assert.equal(savedLibraryItems[0].source_kind,'feedback');
+assert.equal(savedLibraryItems[0].source_fragment,'I is');
+assert.equal(savedLibraryItems[1].source_essay_id,91);
+assert.equal(savedLibraryItems[1].source_kind,'strength');
+assert.equal(savedLibraryItems[1].source_fragment,'I write clearly.');
 
 const transferFixture={
   ...renderFixture,
