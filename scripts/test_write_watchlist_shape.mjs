@@ -47,6 +47,7 @@ globalThis.localStorage={
   setItem:(key,value)=>storage.set(key,String(value)),
   removeItem:key=>storage.delete(key),
 };
+globalThis.location={hash:'#/write'};
 globalThis.window={
   getSelection:()=>null,
   setInterval:()=>1,
@@ -91,6 +92,43 @@ await nodes.get('#generateBrief').listeners.click({currentTarget:nodes.get('#gen
 api.generateTask=originalGenerateTask;
 assert.equal(generatedPayload.topic,'random',
   'Writing must not send whitespace-only topics to task generation');
+
+state.draft.mode='free';
+state.draft.topic='random';
+state.draft.practiceContext={intent:{bad:true}};
+await renderWrite(root);
+nodes.get('#writingEditor').innerText='A sufficiently long learner draft.';
+const originalEvaluate=api.evaluate;
+let evaluationPayload=null;
+api.evaluate=async payload=>{
+  evaluationPayload=payload;
+  return {id:7};
+};
+await nodes.get('#reviewDraft').listeners.click({currentTarget:nodes.get('#reviewDraft')});
+const validPracticeContext={
+  intent:'repair',focus_category:'article',focus_label:'Article',focus_family:'grammar',
+  focus_status:'recurring',task_type:'email',topic:'work',target_level:'B2',
+  action_label:'Practice this focus',reason:'Use a clearer article.',evidence:'a evidence',
+  focus_instruction:'Check articles before submitting.',grammar_id:'a1-article',
+  grammar_title:'Articles',
+};
+state.draft.practiceContext=validPracticeContext;
+await nodes.get('#reviewDraft').listeners.click({currentTarget:nodes.get('#reviewDraft')});
+assert.deepEqual(evaluationPayload.practice_context,validPracticeContext,
+  'Writing must preserve valid backend practice context fields');
+for(const malformedContext of [
+  [],'malformed',{intent:'observe',focus_family:'grammar'},
+  {intent:'repair',focus_family:'style'},
+  {intent:'repair',focus_family:''},{intent:'',focus_family:'grammar'},
+]){
+  state.draft.practiceContext=malformedContext;
+  await nodes.get('#reviewDraft').listeners.click({currentTarget:nodes.get('#reviewDraft')});
+  assert.equal(evaluationPayload.practice_context,null,
+    'Writing must suppress malformed practice context variants');
+}
+api.evaluate=originalEvaluate;
+assert.equal(evaluationPayload.practice_context,null,
+  'Writing must not send malformed practice context to evaluation');
 
 for(const locale of ['en','vi','zh']){
   state.supportLanguage=locale;

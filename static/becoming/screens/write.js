@@ -54,6 +54,13 @@ const SUPPORT_SWITCHES = [
 ];
 
 const WORD_ROLES = ['verb', 'noun', 'adjective', 'adverb'];
+const PRACTICE_INTENTS = new Set(['repair', 'reinforce', 'transfer', 'baseline']);
+const PRACTICE_FAMILIES = new Set(['grammar', 'vocabulary', 'coherence', 'task_achievement', 'naturalness', 'expression']);
+const PRACTICE_CONTEXT_FIELDS = [
+  'intent', 'focus_category', 'focus_label', 'focus_family', 'focus_status',
+  'task_type', 'topic', 'target_level', 'action_label', 'reason', 'evidence',
+  'focus_instruction', 'grammar_id', 'grammar_title',
+];
 
 function bandLabel(level) {
   const tier = BAND_TIERS[String(level || '').toUpperCase()] || BAND_TIERS[level];
@@ -125,6 +132,25 @@ function personalizationLabel(task) {
   return personalization && typeof personalization === 'object' && !Array.isArray(personalization)
     && typeof personalization.focus_label === 'string'
     ? personalization.focus_label.trim() : '';
+}
+
+function normalizedPracticeContext(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  const context = {};
+  for (const field of PRACTICE_CONTEXT_FIELDS) {
+    if (!(field in value)) continue;
+    if (typeof value[field] !== 'string') return null;
+    context[field] = value[field];
+  }
+  if (!context.intent && !context.focus_family) return null;
+  if ('intent' in context && !PRACTICE_INTENTS.has(context.intent)) return null;
+  if ('focus_family' in context && !PRACTICE_FAMILIES.has(context.focus_family)) return null;
+  return context;
+}
+
+function evaluationPracticeContext() {
+  return normalizedPracticeContext(state.draft.practiceContext)
+    || normalizedPracticeContext(state.draft.generatedTask?.personalization);
 }
 
 function promptCard(config) {
@@ -651,13 +677,14 @@ export async function renderWrite(root) {
       return;
     }
 
+    const practiceContext = evaluationPracticeContext();
     const evaluateOnce = parentEssayId => api.evaluate({
       prompt: promptText(),
       text,
       target_cefr: state.draft.level,
       learning_language: state.language,
       parent_essay_id: parentEssayId || null,
-      practice_context: state.draft.practiceContext || state.draft.generatedTask?.personalization || null,
+      practice_context: practiceContext,
     });
 
     try {
@@ -679,7 +706,7 @@ export async function renderWrite(root) {
           }
         }
 
-        if (result.id && (state.draft.practiceContext || state.draft.generatedTask?.personalization)) {
+        if (result.id && practiceContext) {
           try {
             const outcomePayload = await api.practiceOutcome(result.id);
             result.practice_outcome = outcomePayload?.outcome || null;
