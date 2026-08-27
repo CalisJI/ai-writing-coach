@@ -289,6 +289,8 @@ try{
   assert.equal(state.draft.prompt,'Practice this grammar again.');
   assert.equal(state.draft.practiceContext?.grammar_id,'a1-article');
   assert.equal(state.draft.practiceContext?.evidence,'I has a book');
+  assert.equal(state.draft.parentEssayId,practiceEvaluation.id,
+    'Review Grammar practice must preserve the source essay lineage');
   assert.equal(state.draft.savedAt,null,
     'Review Grammar practice must clear stale saved-state before Write');
   assert.equal(globalThis.location.hash,'#/write');

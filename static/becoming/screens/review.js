@@ -893,7 +893,7 @@ export async function renderReview(root){
         level:task.target_level||task.practice_context?.target_level||state.draft.level,
         practiceContext:task.practice_context||null,
         generatedTask:null,
-        parentEssayId:null,
+        parentEssayId:Number.isInteger(result.id)&&result.id>0?result.id:null,
       });
       go('write');
     }catch(error){ toast(error.message||String(error)); }

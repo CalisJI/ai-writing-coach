@@ -68,7 +68,7 @@ const root={
       return ids.map(id=>{
         if(!outcomePracticeButtons.has(id)){
           outcomePracticeButtons.set(id,{
-            dataset:{outcomePractice:id,outcomePracticeEvidence:(root.innerHTML.match(new RegExp(`data-outcome-practice="${id}"[^>]*data-outcome-practice-evidence="([^"]*)"`))||[])[1]||''},listeners:{},disabled:false,
+            dataset:{outcomePractice:id,outcomePracticeEvidence:(root.innerHTML.match(new RegExp(`data-outcome-practice="${id}"[^>]*data-outcome-practice-evidence="([^"]*)"`))||[])[1]||'',outcomePracticeEssay:(root.innerHTML.match(new RegExp(`data-outcome-practice="${id}"[^>]*data-outcome-practice-essay="([^"]*)"`))||[])[1]||''},listeners:{},disabled:false,
             addEventListener(name,listener){this.listeners[name]=listener;},
             setAttribute() {},removeAttribute() {},
             async click(){return this.listeners.click?.({currentTarget:this});},
@@ -253,6 +253,8 @@ assert.equal(state.draft.prompt,'Write three sentences using this grammar.',
   'Journey Grammar practice must transfer the generated prompt to Write');
 assert.equal(state.draft.practiceContext?.focus_family,'grammar',
   'Journey Grammar practice must preserve the targeted practice context');
+assert.equal(state.draft.parentEssayId,12,
+  'Journey Grammar practice must preserve the source essay lineage');
 assert.equal(state.draft.savedAt,null,
   'Journey Grammar practice must clear stale saved-state before Write');
 assert.equal(globalThis.location.hash,'#/write',

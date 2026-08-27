@@ -178,7 +178,7 @@ function practiceOutcomeSignal(outcome){
     <small>${esc(outcome.focus_label||t('common.current_focus'))} · ${t('outcome.revision')} ${esc(outcome.revision_no||1)}</small>
     ${grammarId?`<div class="action-row">
       <button type="button" class="o-btn o-btn--outline o-btn--compact" data-home-open-grammar="${attr(grammarId)}">${esc(t('review.open_grammar'))}</button>
-      <button type="button" class="o-btn o-btn--primary o-btn--compact" data-home-practice-grammar="${attr(grammarId)}" data-home-practice-evidence="${attr(outcome.error_evidence[0]||'')}">${esc(t('review.practice_grammar'))}</button>
+      <button type="button" class="o-btn o-btn--primary o-btn--compact" data-home-practice-grammar="${attr(grammarId)}" data-home-practice-evidence="${attr(outcome.error_evidence[0]||'')}" data-home-practice-essay="${attr(outcome.essay_id||'')}">${esc(t('review.practice_grammar'))}</button>
       ${outcome.essay_id!==null?`<button type="button" class="text-link" data-home-open-review="${attr(outcome.essay_id)}">${esc(t('home.open_review'))}</button>`:''}
     </div>`:outcome.essay_id!==null?`<div class="action-row"><button type="button" class="text-link" data-home-open-review="${attr(outcome.essay_id)}">${esc(t('home.open_review'))}</button></div>`:''}
   </article>`;
@@ -673,7 +673,10 @@ export async function renderHome(root){
             mode:context?.task_type||state.draft.mode,
             topic:context?.topic||state.draft.topic,
             level:task.target_level||context?.target_level||state.draft.level,
-            practiceContext:context,generatedTask:null,parentEssayId:null,
+            practiceContext:context,generatedTask:null,
+            parentEssayId:Number(button.dataset.homePracticeEssay||0)>0
+              &&Number.isInteger(Number(button.dataset.homePracticeEssay))
+              ?Number(button.dataset.homePracticeEssay):null,
           });
           go('write');
         },{label:t('busy.creating')});

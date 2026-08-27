@@ -320,7 +320,7 @@ function grammarOutcomeCard(outcome, language='en'){
     <div class="practice-check-meta"><span>${esc(outcome.focus_label||outcome.grammar_title||outcome.grammar_id)}</span><span>${esc(outcome.revision_no||1)} · ${esc(status)}</span></div>
     <div class="action-row">
       <button type="button" class="o-btn o-btn--outline o-btn--compact" data-outcome-grammar="${attr(outcome.grammar_id)}">${esc(copy().openLesson)}</button>
-      <button type="button" class="o-btn o-btn--primary o-btn--compact" data-outcome-practice="${attr(outcome.grammar_id)}" data-outcome-practice-evidence="${attr(outcome.error_evidence[0]||'')}">${esc(copy().practiceLesson)}</button>
+      <button type="button" class="o-btn o-btn--primary o-btn--compact" data-outcome-practice="${attr(outcome.grammar_id)}" data-outcome-practice-evidence="${attr(outcome.error_evidence[0]||'')}" data-outcome-practice-essay="${attr(outcome.essay_id||'')}">${esc(copy().practiceLesson)}</button>
     </div>
   </section>`;
 }
@@ -786,7 +786,10 @@ export async function renderJourney(root){
             mode:context?.task_type||state.draft.mode,
             topic:context?.topic||state.draft.topic,
             level:task.target_level||context?.target_level||state.draft.level,
-            practiceContext:context,generatedTask:null,parentEssayId:null,
+            practiceContext:context,generatedTask:null,
+            parentEssayId:Number(button.dataset.outcomePracticeEssay||0)>0
+              &&Number.isInteger(Number(button.dataset.outcomePracticeEssay))
+              ?Number(button.dataset.outcomePracticeEssay):null,
           });
           go('write');
         },{label:t('busy.creating')});

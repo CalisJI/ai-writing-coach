@@ -35,6 +35,7 @@ const root={
     if(attribute==='home-practice-grammar'){
       button.dataset.homePracticeGrammar=match[1];
       button.dataset.homePracticeEvidence=(this.innerHTML.match(new RegExp(`data-home-practice-grammar="${match[1]}"[^>]*data-home-practice-evidence="([^"]*)"`))||[])[1]||'';
+      button.dataset.homePracticeEssay=(this.innerHTML.match(new RegExp(`data-home-practice-grammar="${match[1]}"[^>]*data-home-practice-essay="([^"]*)"`))||[])[1]||'';
     }else button.dataset.homeOpenReview=match[1];
     this.nodes.set(selector,button);
     return [button];
@@ -168,6 +169,8 @@ try{
       `${locale.toUpperCase()} Home must carry exact learner evidence into Grammar practice`);
     assert.equal(state.draft.practiceContext?.grammar_id,grammarPracticeId,
       `${locale.toUpperCase()} Home must preserve Grammar practice context`);
+    assert.equal(state.draft.parentEssayId,412,
+      `${locale.toUpperCase()} Home Grammar practice must preserve the source essay lineage`);
     assert.equal(state.draft.savedAt,null,
       `${locale.toUpperCase()} Home Grammar practice must clear stale saved-state`);
     assert.equal(globalThis.location.hash,'#/write',

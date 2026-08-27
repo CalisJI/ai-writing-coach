@@ -466,7 +466,7 @@ const actionRoot=fakeReviewRoot({
 state.profile={native_language:'en'};
 state.supportLanguage='en';
 state.language='en';
-state.lastEvaluation=transferFixture;
+state.lastEvaluation={...transferFixture,id:91,practice_outcome:null};
 state.draft.text=transferFixture.text;
 let practiceEvidence='';
 api.grammarPractice=async (grammarId,evidence)=>{
@@ -487,6 +487,8 @@ assert.equal(globalThis.location.hash,'#/grammar');
 await practiceGrammarButton.click();
 assert.equal(state.draft.prompt,'Write three sentences using the grammar focus.');
 assert.deepEqual(state.draft.practiceContext,{grammar_id:'a1-agreement',focus_category:'grammar'});
+assert.equal(state.draft.parentEssayId,91,
+  'Grammar transfer practice must preserve the source Review essay lineage');
 assert.equal(practiceEvidence,'I write');
 assert.equal(globalThis.location.hash,'#/write');
 
