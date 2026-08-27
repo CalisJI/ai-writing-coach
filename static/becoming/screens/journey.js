@@ -49,7 +49,7 @@ const COPY={
     stageIn:'{stage} · {evidence} pieces of evidence',
     practiceHistory:'Recent practice outcomes',
     practiceHistoryBody:'These checks stay attached to the pieces where you practised the target.',
-    openLesson:'Open Grammar lesson',
+    openLesson:'Open Grammar lesson',practiceLesson:'Practice this grammar',
   },
   vi:{
     title:'Hành trình học của bạn',lead:'Câu chuyện về tiến bộ, trọng tâm và bước kế tiếp.',
@@ -84,7 +84,7 @@ const COPY={
     stageIn:'{stage} · {evidence} lần có bằng chứng',
     practiceHistory:'Các kết quả luyện tập gần đây',
     practiceHistoryBody:'Các lần kiểm tra này vẫn gắn với những bài bạn đã luyện đúng trọng tâm.',
-    openLesson:'Mở bài học Ngữ pháp',
+    openLesson:'Mở bài học Ngữ pháp',practiceLesson:'Luyện ngữ pháp này',
   },
   zh:{
     title:'你的学习历程',lead:'关于进步、重点和下一步的记录。',
@@ -119,7 +119,7 @@ const COPY={
     stageIn:'{stage} · {evidence} 处证据',
     practiceHistory:'最近的练习结果',
     practiceHistoryBody:'这些检查会保留在你练习该重点的对应作品旁。',
-    openLesson:'打开语法课程',
+    openLesson:'打开语法课程',practiceLesson:'练习这个语法',
   },
 };
 const copy=()=>COPY[uiLocale()]||COPY.en;
@@ -315,7 +315,10 @@ function grammarOutcomeCard(outcome, language='en'){
     <span class="o-label">${esc(label)}</span>
     <p class="o-panel-copy">${esc(body)}</p>
     <div class="practice-check-meta"><span>${esc(outcome.focus_label||outcome.grammar_title||outcome.grammar_id)}</span><span>${esc(outcome.revision_no||1)} · ${esc(status)}</span></div>
-    <button type="button" class="o-btn o-btn--outline o-btn--compact" data-outcome-grammar="${attr(outcome.grammar_id)}">${esc(copy().openLesson)}</button>
+    <div class="action-row">
+      <button type="button" class="o-btn o-btn--outline o-btn--compact" data-outcome-grammar="${attr(outcome.grammar_id)}">${esc(copy().openLesson)}</button>
+      <button type="button" class="o-btn o-btn--primary o-btn--compact" data-outcome-practice="${attr(outcome.grammar_id)}">${esc(copy().practiceLesson)}</button>
+    </div>
   </section>`;
 }
 
@@ -738,6 +741,31 @@ export async function renderJourney(root){
       if(!id)return;
       try{ localStorage.setItem('becoming.grammar-focus',id); }catch{}
       go('grammar');
+    });
+  });
+
+  root.querySelectorAll('[data-outcome-practice]').forEach(button=>{
+    button.addEventListener('click',async()=>{
+      const id=button.dataset.outcomePractice;
+      if(!id)return;
+      try{
+        await runBusy(button,async()=>{
+          const task=await api.grammarPractice(id);
+          if(!task||typeof task!=='object'||typeof task.prompt!=='string'||!task.prompt.trim()){
+            throw new Error(t('review.practice_failed'));
+          }
+          const context=task.practice_context&&typeof task.practice_context==='object'
+            ?task.practice_context:null;
+          saveDraft({
+            prompt:task.prompt.trim(),text:'',html:'',
+            mode:context?.task_type||state.draft.mode,
+            topic:context?.topic||state.draft.topic,
+            level:task.target_level||context?.target_level||state.draft.level,
+            practiceContext:context,generatedTask:null,parentEssayId:null,
+          });
+          go('write');
+        },{label:t('busy.creating')});
+      }catch(error){ root.insertAdjacentHTML('afterbegin',errorBlock(error.message||t('review.practice_failed'))); }
     });
   });
 

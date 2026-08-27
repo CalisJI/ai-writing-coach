@@ -22,6 +22,7 @@ globalThis.document={
 };
 const revisionButtons=new Map();
 const outcomeButtons=new Map();
+const outcomePracticeButtons=new Map();
 const journeyStartButton={
   dataset:{journeyStart:''},
   listeners:{},
@@ -58,6 +59,21 @@ const root={
           });
         }
         return outcomeButtons.get(id);
+      });
+    }
+    if(selector==='[data-outcome-practice]'){
+      const ids=[...root.innerHTML.matchAll(/data-outcome-practice="([^"]+)"/g)]
+        .map(match=>match[1]);
+      return ids.map(id=>{
+        if(!outcomePracticeButtons.has(id)){
+          outcomePracticeButtons.set(id,{
+            dataset:{outcomePractice:id},listeners:{},disabled:false,
+            addEventListener(name,listener){this.listeners[name]=listener;},
+            setAttribute() {},removeAttribute() {},
+            async click(){return this.listeners.click?.({currentTarget:this});},
+          });
+        }
+        return outcomePracticeButtons.get(id);
       });
     }
     if(selector!=='[data-journey-essay]')return [];
@@ -143,10 +159,10 @@ const historyStatusCopy={
   vi:'Mẫu này vẫn đang xuất hiện.',
   zh:'这个模式仍然活跃。',
 };
-for(const [locale,label] of [
-  ['en','Grammar practice progress'],
-  ['vi','Tiến độ luyện ngữ pháp'],
-  ['zh','语法练习进度'],
+for(const [locale,label,practiceLabel] of [
+  ['en','Grammar practice progress','Practice this grammar'],
+  ['vi','Tiến độ luyện ngữ pháp','Luyện ngữ pháp này'],
+  ['zh','语法练习进度','练习这个语法'],
 ]){
   state.supportLanguage=locale;
   await renderJourney(root);
@@ -157,6 +173,11 @@ for(const [locale,label] of [
   const outcomeButton=root.querySelectorAll('[data-outcome-grammar]')[0];
   assert.equal(outcomeButton?.dataset.outcomeGrammar,'a1-agreement',
     `Journey ${locale.toUpperCase()} Grammar outcome must link its lesson`);
+  const practiceButton=root.querySelectorAll('[data-outcome-practice]')[0];
+  assert.equal(practiceButton?.dataset.outcomePractice,'a1-agreement',
+    `Journey ${locale.toUpperCase()} Grammar outcome must expose targeted practice`);
+  assert.ok(root.innerHTML.includes(practiceLabel),
+    `Journey ${locale.toUpperCase()} Grammar outcome must localize targeted practice action`);
   if(locale!=='en'){
     assert.doesNotMatch(
       root.innerHTML,
@@ -178,7 +199,33 @@ assert.equal(storage.get('becoming.grammar-focus'),'a1-agreement',
   'Journey Grammar outcome must persist the linked lesson before opening Grammar');
 assert.equal(globalThis.location.hash,'#/grammar',
   'Journey Grammar outcome must open the linked Grammar lesson');
+let grammarPracticePayload=null;
+api.grammarPractice=async id=>{
+  grammarPracticePayload=id;
+  return {
+    grammar_id:id,target_level:'B2',prompt:'Write three sentences using this grammar.',
+    practice_context:{intent:'repair',focus_family:'grammar',focus_category:'article',
+      focus_label:'Articles',task_type:'story',topic:'grammar transfer',target_level:'B2'},
+  };
+};
+state.draft={...state.draft,mode:'free',topic:'random',level:'A1',text:'',html:''};
+state.supportLanguage='en';
+globalThis.location.hash='#/journey';
+await renderJourney(root);
+const outcomePractice=root.querySelectorAll('[data-outcome-practice]')[0];
+assert.ok(outcomePractice,'Journey Grammar outcome must render targeted practice action');
+await outcomePractice.click();
+assert.equal(grammarPracticePayload,'a1-agreement',
+  'Journey Grammar outcome must request the linked Grammar practice');
+assert.equal(state.draft.prompt,'Write three sentences using this grammar.',
+  'Journey Grammar practice must transfer the generated prompt to Write');
+assert.equal(state.draft.practiceContext?.focus_family,'grammar',
+  'Journey Grammar practice must preserve the targeted practice context');
+assert.equal(globalThis.location.hash,'#/write',
+  'Journey Grammar practice must open Write');
+state.draft={...state.draft,prompt:'',practiceContext:null};
 state.supportLanguage='zh';
+await renderJourney(root);
 assert.doesNotMatch(root.innerHTML,/Grammar practice progress/);
 
 practiceHistoryItems=[];
