@@ -18,7 +18,8 @@ globalThis.AudioWorkletNode ??= class AudioWorkletNode {
   disconnect(){}
 };
 
-const {createSpeakingController}=await import('../static/becoming/screens/speaking.js');
+const {createSpeakingController,renderSpeaking}=await import('../static/becoming/screens/speaking.js');
+const {api}=await import('../static/becoming/api.js');
 
 const payload=structuredClone(MEDIA_LEARNING_FIXTURE);
 assert.equal(setSharedMediaSession({
@@ -340,5 +341,126 @@ assert.match(zhController.html(),/data-speaking-evaluation-state="ready"/);
 assert.match(zhController.html(),/内容匹配/);
 assert.match(zhController.html(),/这份摘要只描述本次录音/);
 clearSharedMediaSession('zh');
+
+// Render-level acceptance: exercise the actual screen event wiring for both
+// learner languages. The controller tests above prove domain state changes;
+// this fake root proves the mounted DOM exposes the same record -> ASR ->
+// feedback path the browser uses.
+class RenderNode{
+  constructor(dataset={},id=''){
+    this.dataset=dataset;
+    this.id=id;
+    this.listeners={};
+    this.style={};
+    this.disabled=false;
+    this.value='1';
+    this.textContent='';
+  }
+  addEventListener(name,listener){this.listeners[name]=listener;}
+  async click(){return this.listeners.click?.({currentTarget:this,target:this});}
+  setAttribute(){}
+}
+class RenderRoot{
+  constructor(){this._html='';this.nodes=[];this._set('');}
+  _set(html){
+    this._html=html;
+    this.nodes=[];
+    const seen=new Set();
+    const dataPattern=/data-([a-z0-9-]+)(?:="([^"]*)")?/g;
+    for(const match of html.matchAll(dataPattern)){
+      const key=match[1].replace(/-([a-z])/g,(_,letter)=>letter.toUpperCase());
+      if(seen.has(key))continue;
+      seen.add(key);
+      this.nodes.push(new RenderNode({[key]:match[2]??''}));
+    }
+    const idPattern=/id="([^"]+)"/g;
+    for(const match of html.matchAll(idPattern)){
+      if(!this.nodes.some(node=>node.id===match[1]))this.nodes.push(new RenderNode({},match[1]));
+    }
+  }
+  set innerHTML(value){this._set(String(value||''));}
+  get innerHTML(){return this._html;}
+  querySelector(selector){
+    if(selector.startsWith('#'))return this.nodes.find(node=>node.id===selector.slice(1))||null;
+    const match=selector.match(/^\[data-([a-z0-9-]+)\]/);
+    if(!match)return null;
+    const key=match[1].replace(/-([a-z])/g,(_,letter)=>letter.toUpperCase());
+    return this.nodes.find(node=>Object.prototype.hasOwnProperty.call(node.dataset,key))||null;
+  }
+  querySelectorAll(selector){
+    const node=this.querySelector(selector);
+    return node?[node]:[];
+  }
+}
+
+const originalSpeechApi={
+  transcribeSpeech:api.transcribeSpeech,
+  assessPronunciation:api.assessPronunciation,
+  evaluateSpeaking:api.evaluateSpeaking,
+};
+const renderedCases=[
+  {language:'en',supportLanguage:'en',payload:MEDIA_LEARNING_FIXTURE,text:'Listen for the first complete idea.'},
+  {language:'zh',supportLanguage:'zh',payload:MEDIA_LEARNING_ZH_FIXTURE,text:'这是共享的原文字幕。'},
+];
+try{
+  for(const item of renderedCases){
+    clearSharedMediaSession(item.language);
+    assert.equal(setSharedMediaSession({
+      learning_language:item.language,
+      payload:structuredClone(item.payload),
+      selected_segment_id:item.language==='zh'?'segment-zh-001':'segment-001',
+    }),true);
+    state.language=item.language;
+    state.supportLanguage=item.supportLanguage;
+    let recording=false;
+    const renderedRecorder={
+      snapshot(){return {status:recording?'recording':'idle',error:null,url:null,blob:null,mime_type:'audio/webm',supported:true};},
+      async start(){recording=true;return true;},
+      async stop(){recording=false;return {blob:new Blob(['rendered take'],{type:'audio/webm'}),mime_type:'audio/webm',size:13,url:'blob:rendered'};},
+      discard(){recording=false;return true;},
+      cleanup(){},
+    };
+    api.transcribeSpeech=async()=>({text:item.text,words:[]});
+    api.assessPronunciation=async()=>null;
+    let renderedEvaluationPayload=null;
+    api.evaluateSpeaking=async payload=>{
+      renderedEvaluationPayload=payload;
+      return {
+      language:payload.language,
+      dimensions:{transcription_confidence:null,content_match:100,pronunciation:null,fluency:null,proficiency:null},
+      evidence:{reference_text:payload.reference_text,transcript_text:payload.transcript_text},
+      };
+    };
+    const renderedRoot=new RenderRoot();
+    const renderedController=await renderSpeaking(renderedRoot,{recorderFactory:()=>renderedRecorder});
+    assert.ok(renderedController,`${item.language.toUpperCase()} rendered Speaking screen should mount`);
+    assert.match(renderedRoot.innerHTML,/data-speaking-record/);
+    await renderedRoot.querySelector('[data-speaking-record]').click();
+    assert.equal(renderedController.model.asrStatus,'idle');
+    await renderedRoot.querySelector('[data-speaking-stop]').click();
+    for(let attempt=0;attempt<100&&(
+      renderedController.model.asrStatus==='loading'||
+      renderedController.model.speakingEvaluationStatus==='loading'
+    );attempt++){
+      await new Promise(resolve=>setTimeout(resolve,0));
+    }
+    assert.equal(renderedController.model.asrStatus,'ready',`${item.language.toUpperCase()} rendered take should reach ASR`);
+    assert.equal(renderedController.model.speakingEvaluationStatus,'ready',`${item.language.toUpperCase()} rendered take should reach evaluation`);
+    assert.equal(renderedEvaluationPayload.language,item.language);
+    assert.equal(renderedEvaluationPayload.reference_text,item.text);
+    assert.equal(renderedEvaluationPayload.transcript_text,item.text);
+    assert.match(renderedRoot.innerHTML,/data-speaking-content-match/);
+    assert.match(renderedRoot.innerHTML,/data-speaking-evaluation-state="ready"/);
+    assert.equal(renderedRoot.innerHTML.includes(item.text),true);
+    assert.match(renderedRoot.innerHTML,item.language==='zh'?/本次录音评估/:/Take evaluation/);
+    renderedRoot._cleanupScreen?.();
+  }
+}finally{
+  api.transcribeSpeech=originalSpeechApi.transcribeSpeech;
+  api.assessPronunciation=originalSpeechApi.assessPronunciation;
+  api.evaluateSpeaking=originalSpeechApi.evaluateSpeaking;
+  clearSharedMediaSession('en');
+  clearSharedMediaSession('zh');
+}
 
 console.log('Speaking UI fixture record -> ASR -> match -> feedback: PASS');
