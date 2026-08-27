@@ -82,7 +82,13 @@ def _practice_context(row: dict[str, Any]) -> dict[str, Any] | None:
     if not isinstance(module_data, dict):
         return None
     context = module_data.get("practice")
-    return context if isinstance(context, dict) else None
+    if not isinstance(context, dict):
+        return None
+    try:
+        normalized = PracticeContextIn(**context)
+    except Exception:
+        return None
+    return normalized.model_dump() if hasattr(normalized, "model_dump") else normalized.dict()
 
 
 def _category_key(value: Any) -> str:

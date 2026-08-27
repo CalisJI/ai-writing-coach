@@ -83,6 +83,15 @@ def main() -> None:
     assert out2["previous_issue_count"] == 2
     assert out2["issue_count"] == 1
 
+    for malformed_context in (
+        {"intent": "", "focus_family": "grammar", "focus_category": "article"},
+        {"intent": "repair", "focus_family": "", "focus_category": "article"},
+        {"intent": {"bad": True}, "focus_family": "grammar", "focus_category": "article"},
+    ):
+        malformed_row = dict(row2)
+        malformed_row["module_data_json"] = json.dumps({"practice": malformed_context})
+        assert derive_practice_outcome(rows, malformed_row) is None
+
     rows = repo.memory_essay_rows()
     row3 = next(r for r in rows if r["id"] == 3)
     out3 = derive_practice_outcome(rows, row3)
