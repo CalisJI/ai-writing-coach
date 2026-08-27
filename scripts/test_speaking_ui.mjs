@@ -1,6 +1,9 @@
 import assert from 'node:assert/strict';
 
-import {MEDIA_LEARNING_FIXTURE} from '../tests/fixtures/media-learning.js';
+import {
+  MEDIA_LEARNING_FIXTURE,
+  MEDIA_LEARNING_ZH_FIXTURE,
+} from '../tests/fixtures/media-learning.js';
 import {
   clearSharedMediaSession,
   getSharedMediaSession,
@@ -263,5 +266,78 @@ assert.equal(raceController.model.asrTranscript,'');
 assert.equal(raceEvaluationPayloads.length,0,
   'Speaking must ignore a take whose ASR completes after its segment changed');
 clearSharedMediaSession('en');
+
+// The same record → ASR → content-match path must remain executable for a
+// Chinese source lesson, not only have Chinese labels around an English take.
+const zhPayload=structuredClone(MEDIA_LEARNING_ZH_FIXTURE);
+assert.equal(setSharedMediaSession({
+  learning_language:'zh',
+  payload:zhPayload,
+  selected_segment_id:'segment-zh-001',
+}),true);
+const zhSession=getSharedMediaSession('zh');
+let zhTake=null;
+const zhRecorder={
+  snapshot(){
+    return {
+      status:zhTake?'ready':'idle',
+      error:null,
+      url:zhTake?.url||null,
+      blob:zhTake?.blob||null,
+      mime_type:'audio/webm',
+      supported:true,
+    };
+  },
+  async start(){return true;},
+  async stop(){
+    zhTake={
+      url:'blob:qa-speaking-zh-take',
+      blob:new Blob(['qa speaking zh take'],{type:'audio/webm'}),
+      mime_type:'audio/webm',
+      size:19,
+    };
+    return zhTake;
+  },
+  discard(){zhTake=null;return true;},
+  cleanup(){},
+};
+let zhEvaluationPayload=null;
+const zhController=createSpeakingController({
+  session:zhSession,
+  recorder:zhRecorder,
+  transcribe:async()=>({
+    text:'这是共享的原文字幕。',
+    words:[],
+  }),
+  evaluateSpeaking:async payload=>{
+    zhEvaluationPayload=payload;
+    return {
+      language:'zh',
+      dimensions:{
+        transcription_confidence:null,
+        content_match:100,
+        pronunciation:null,
+        fluency:null,
+        proficiency:null,
+      },
+      evidence:{reference_text:payload.reference_text,transcript_text:payload.transcript_text},
+    };
+  },
+});
+state.supportLanguage='zh';
+assert.match(zhController.html(),/data-speaking-core/);
+assert.match(zhController.html(),/这是共享的原文字幕。/);
+assert.equal(await zhController.startRecording(),true);
+assert.equal(await zhController.stopRecording(),true);
+assert.equal(zhController.model.asrStatus,'ready');
+assert.equal(zhController.model.evaluation?.content_match,100);
+assert.equal(zhController.model.speakingEvaluationStatus,'ready');
+assert.equal(zhEvaluationPayload.language,'zh');
+assert.equal(zhEvaluationPayload.reference_text,'这是共享的原文字幕。');
+assert.equal(zhEvaluationPayload.transcript_text,'这是共享的原文字幕。');
+assert.match(zhController.html(),/data-speaking-evaluation-state="ready"/);
+assert.match(zhController.html(),/内容匹配/);
+assert.match(zhController.html(),/这份摘要只描述本次录音/);
+clearSharedMediaSession('zh');
 
 console.log('Speaking UI fixture record -> ASR -> match -> feedback: PASS');
