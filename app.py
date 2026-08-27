@@ -415,11 +415,19 @@ def evaluate(payload: EssayIn) -> tuple[dict[str, Any], str]:
     except AIProviderUnavailable as exc:
         if ALLOW_FALLBACK:
             return heuristic_fallback(payload), "fallback-demo"
-        raise HTTPException(status_code=503, detail=f"AI engine unavailable: {exc}") from exc
+        raise orena_http_error(
+            503,
+            "evaluation_unavailable",
+            "AI evaluation is temporarily unavailable. Please try again.",
+        ) from exc
     except AIProviderError as exc:
         if ALLOW_FALLBACK:
             return heuristic_fallback(payload), "fallback-demo"
-        raise HTTPException(status_code=502, detail=f"AI engine returned invalid output: {exc}") from exc
+        raise orena_http_error(
+            502,
+            "evaluation_provider_failure",
+            "AI evaluation could not produce a usable result.",
+        ) from exc
 
 def row_to_dict(row: dict[str, Any], detail: bool = False) -> dict[str, Any]:
     d = dict(row)

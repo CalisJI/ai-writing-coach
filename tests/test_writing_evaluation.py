@@ -547,3 +547,48 @@ def test_heuristic_fallback_keeps_high_confidence_feedback_and_v2_envelope(monke
     assert result["errors"][0]["fragment"] == "I has"
     assert result["errors"][0]["suggestion"] == "I have"
     assert result["issues"][0]["span"] == {"start": 0, "end": 5}
+
+
+@pytest.mark.parametrize(
+    ("provider_error", "status_code", "category", "retryable"),
+    (
+        ("unavailable", 503, "evaluation_unavailable", True),
+        ("invalid-response", 502, "evaluation_provider_failure", False),
+    ),
+)
+def test_provider_failures_use_canonical_learner_safe_evaluation_envelope(
+    monkeypatch: pytest.MonkeyPatch,
+    provider_error: str,
+    status_code: int,
+    category: str,
+    retryable: bool,
+) -> None:
+    import app
+    from fastapi import HTTPException
+    from writing_coach.ai.base import AIProviderError, AIProviderUnavailable
+
+    exception_type = AIProviderUnavailable if provider_error == "unavailable" else AIProviderError
+
+    def fail(_payload: Any) -> Any:
+        raise exception_type(f"raw provider detail: {provider_error}")
+
+    monkeypatch.setattr(app, "evaluate_with_ai", fail)
+    monkeypatch.setattr(app, "ALLOW_FALLBACK", False)
+
+    with pytest.raises(HTTPException) as raised:
+        app.evaluate(app.EssayIn(text="I write a short sentence."))
+
+    assert raised.value.status_code == status_code
+    detail = raised.value.detail
+    assert detail == {
+        "category": category,
+        "message": (
+            "AI evaluation is temporarily unavailable. Please try again."
+            if provider_error == "unavailable"
+            else "AI evaluation could not produce a usable result."
+        ),
+        "retryable": retryable,
+        "context": {},
+    }
+    assert provider_error not in detail["message"]
+    assert "raw provider detail" not in str(detail)
