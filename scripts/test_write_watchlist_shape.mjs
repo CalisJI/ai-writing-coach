@@ -75,6 +75,12 @@ assert.doesNotMatch(root.innerHTML,/\[object Object\]|undefined/,
   'Writing must not stringify malformed prompt payloads');
 assert.doesNotMatch(root.innerHTML,/Articles|Write about a useful habit/,
   'Writing must omit malformed generated-task text');
+assert.match(root.innerHTML,/id="practiceTopic"[^>]*value=""/,
+  'Writing must clear malformed topic values in the rendered control');
+assert.match(root.innerHTML,/id="practiceAudience"[^>]*value=""/,
+  'Writing must clear malformed audience values in the rendered control');
+assert.match(root.innerHTML,/id="customPrompt"[^>]*><\/textarea>/,
+  'Writing must clear malformed custom prompt values in the rendered control');
 
 for(const malformed of [
   null,{},
