@@ -137,6 +137,7 @@ function normalizedPracticeOutcome(outcome){
   };
   const issueCount=numberValue(outcome.issue_count);
   const revisionNo=numberValue(outcome.revision_no);
+  const essayId=numberValue(outcome.essay_id);
   if(
     issueCount===null||!Number.isInteger(issueCount)||issueCount<0
     ||revisionNo===null||!Number.isInteger(revisionNo)||revisionNo<1
@@ -153,6 +154,7 @@ function normalizedPracticeOutcome(outcome){
     previous_issue_count:previous,
     issue_count:issueCount,
     revision_no:revisionNo,
+    essay_id:essayId!==null&&Number.isInteger(essayId)&&essayId>0?essayId:null,
   };
 }
 
@@ -174,7 +176,8 @@ function practiceOutcomeSignal(outcome){
     ${grammarId?`<div class="action-row">
       <button type="button" class="o-btn o-btn--outline o-btn--compact" data-home-open-grammar="${attr(grammarId)}">${esc(t('review.open_grammar'))}</button>
       <button type="button" class="o-btn o-btn--primary o-btn--compact" data-home-practice-grammar="${attr(grammarId)}">${esc(t('review.practice_grammar'))}</button>
-    </div>`:''}
+      ${outcome.essay_id!==null?`<button type="button" class="text-link" data-home-open-review="${attr(outcome.essay_id)}">${esc(t('home.open_review'))}</button>`:''}
+    </div>`:outcome.essay_id!==null?`<div class="action-row"><button type="button" class="text-link" data-home-open-review="${attr(outcome.essay_id)}">${esc(t('home.open_review'))}</button></div>`:''}
   </article>`;
 }
 
@@ -649,6 +652,7 @@ export async function renderHome(root){
       try{ localStorage.setItem('becoming.grammar-focus',id); }catch{}
       go('grammar');
     }));
+    root.querySelectorAll('[data-home-open-review]').forEach(button=>button.addEventListener('click',()=>openEssay(button.dataset.homeOpenReview)));
     root.querySelectorAll('[data-home-practice-grammar]').forEach(button=>button.addEventListener('click',async()=>{
       const id=button.dataset.homePracticeGrammar;
       if(!id)return;
@@ -680,6 +684,7 @@ export async function renderHome(root){
         state.draft={
           ...state.draft,
           text:essay.text||'',
+          html:essay.html||'',
           prompt:essay.prompt||'',
           parentEssayId:essay.id,
           level:essay.target_cefr||state.draft.level,

@@ -26,11 +26,13 @@ const root={
     return this.nodes.get(selector);
   },
   querySelectorAll(selector){
-    if(!selector.includes('home-practice-grammar'))return [];
-    const match=this.innerHTML.match(/data-home-practice-grammar="([^"]+)"/);
+    const attribute=selector.includes('home-practice-grammar')
+      ?'home-practice-grammar':'home-open-review';
+    if(!selector.includes(attribute))return [];
+    const match=this.innerHTML.match(new RegExp(`data-${attribute}="([^"]+)"`));
     if(!match)return [];
     const button=this.nodes.get(selector)||new FakeElement();
-    button.dataset.homePracticeGrammar=match[1];
+    button.dataset[attribute==='home-practice-grammar'?'homePracticeGrammar':'homeOpenReview']=match[1];
     this.nodes.set(selector,button);
     return [button];
   },
@@ -59,6 +61,7 @@ const original={
   libraryVocabulary:api.libraryVocabulary,
   nextPractice:api.nextPractice,
   grammarPractice:api.grammarPractice,
+  essay:api.essay,
 };
 
 const fixtures={
@@ -98,7 +101,7 @@ try{
   api.learningMemory=async()=>({patterns:[],strengths:[],focus:null,revision_wins:[]});
   api.practiceOutcomes=async()=>({latest:{
     status:'improved',previous_issue_count:2,issue_count:0,revision_no:2,
-    focus_label:'Grammar transfer',grammar_id:'a1-complete-sentences-and-basic-word-order',
+    focus_label:'Grammar transfer',grammar_id:'a1-complete-sentences-and-basic-word-order',essay_id:412,
   }});
   api.libraryVocabulary=async()=>[];
 
@@ -129,6 +132,18 @@ try{
       `${locale.toUpperCase()} Home must render Grammar practice from the latest outcome`);
     assert.ok(root.innerHTML.includes(locale==='zh'?'立即练习':'Practice now'),
       `${locale.toUpperCase()} Home must localize the Grammar practice action`);
+    const reviewButton=root.querySelectorAll('[data-home-open-review]')[0];
+    assert.equal(reviewButton?.dataset.homeOpenReview,'412',
+      `${locale.toUpperCase()} Home must link the latest outcome to its essay`);
+    api.essay=async id=>({id:Number(id),text:'A reviewed Grammar sentence.',html:'<p>A reviewed Grammar sentence.</p>',prompt:'Grammar practice'});
+    await reviewButton.click();
+    assert.equal(state.lastEvaluation.id,412,
+      `${locale.toUpperCase()} Home outcome must open the linked essay in Review`);
+    assert.equal(state.draft.html,'<p>A reviewed Grammar sentence.</p>',
+      `${locale.toUpperCase()} Home Review handoff must replace stale rich-text content`);
+    assert.equal(globalThis.location.hash,'#/review',
+      `${locale.toUpperCase()} Home outcome review action must open Review`);
+    globalThis.location.hash='#/home';
     let grammarPracticeId=null;
     api.grammarPractice=async id=>{
       grammarPracticeId=id;
