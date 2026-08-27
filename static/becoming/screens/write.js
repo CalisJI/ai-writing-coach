@@ -348,6 +348,10 @@ function asidePanel(config, adaptiveMode) {
   const support = supportState();
   const scaffold = writingScaffold(adaptiveMode, state.language);
   const watchlist = normalizedWatchlist(state.dashboard?.error_memory);
+  const draftTopic = draftFieldText(state.draft.topic);
+  const displayedTopic = draftTopic === 'random'
+    ? ''
+    : (config.topics.includes(draftTopic) ? topicLabel(draftTopic) : draftTopic);
 
   return `<aside class="o-card o-write-aside o-disclosure" data-open="true" aria-label="${attr(t('write.setup_panel'))}">
     ${disclosureHead('write.setup_panel')}
@@ -370,7 +374,7 @@ function asidePanel(config, adaptiveMode) {
         <div class="o-field" id="topicField">
           ${fieldHead('practiceTopic', 'write.topic', 'write.info_topic')}
           <input id="practiceTopic" class="o-control" type="text" list="topicSuggestions"
-                 value="${attr(state.draft.topic === 'random' ? '' : draftFieldText(state.draft.topic))}"
+                 value="${attr(displayedTopic)}"
                  placeholder="${attr(topicLabel('random'))}" maxlength="120">
           <datalist id="topicSuggestions">
             ${config.topics.map(value => `<option value="${attr(topicLabel(value))}"></option>`).join('')}

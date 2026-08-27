@@ -160,7 +160,20 @@ for(const locale of ['en','vi','zh']){
   assert.ok(root.innerHTML.includes(`<li>${t('category.vocabulary')} · 3 · ${t('write.trend_up')}</li>`),
     `Writing must render the translated vocabulary watchlist item for ${locale}`);
 }
+state.language='zh';
+state.supportLanguage='zh';
+state.draft.topic='daily life';
+await renderWrite(root);
+assert.match(root.innerHTML,/id="practiceTopic"[^>]*value="日常生活"/,
+  'Chinese Write must localize canonical practice topics in the setup control');
+state.draft.topic='我的旅行计划';
+await renderWrite(root);
+assert.match(root.innerHTML,/id="practiceTopic"[^>]*value="我的旅行计划"/,
+  'Chinese Write must preserve custom topics in the setup control');
+state.language='en';
 state.supportLanguage='en';
+state.draft.level='B2';
+state.draft.mode='free';
 
 state.draft.generatedTask={instruction:{bad:true},prompt:{bad:true},personalization:{focus_label:{bad:true}}};
 state.draft.mode='custom';
