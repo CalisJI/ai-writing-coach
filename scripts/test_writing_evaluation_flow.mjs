@@ -124,6 +124,7 @@ const zhEvaluation={
 };
 
 const originalEvaluate=api.evaluate;
+const originalPracticeOutcome=api.practiceOutcome;
 let submittedPayload=null;
 api.evaluate=async payload=>{
   submittedPayload=payload;
@@ -172,6 +173,7 @@ try{
   assert.equal(state.draft.prompt,evaluation.prompt);
 
   const revisedText='I am building a useful writing habit every day.';
+  const practiceParentEssayId=411;
   const revisedEvaluation={
     ...evaluation,
     id:413,
@@ -190,6 +192,8 @@ try{
     submittedPayload=payload;
     return payload.parent_essay_id===evaluation.id
       ?{...revisedEvaluation}
+      :payload.parent_essay_id===practiceParentEssayId
+        ?{...practiceEvaluation}
       :beforeRevisionEvaluate(payload);
   };
   await renderWrite(writeRoot);
@@ -208,6 +212,53 @@ try{
     'Review must label the resolved issue in the revision delta');
   assert.match(reviewRoot.innerHTML,/“I is”/,
     'Review must retain the exact resolved learner fragment');
+
+  // R4 practice attribution: a targeted Grammar task's context must survive
+  // the next Write submit and surface the persisted outcome in Review.
+  const practiceContext={
+    intent:'repair',focus_family:'grammar',focus_category:'article',
+    focus_label:'Articles',grammar_id:'a1-article',
+  };
+  const practiceOutcome={
+    status:'improved',focus_label:'Articles',previous_issue_count:1,
+    issue_count:0,revision_no:2,
+  };
+  const practiceEvaluation={
+    ...evaluation,
+    id:414,
+    parent_essay_id:practiceParentEssayId,
+    practice_context:practiceContext,
+  };
+  api.practiceOutcome=async id=>{
+    assert.equal(id,practiceEvaluation.id,
+      'Practice outcome lookup must use the newly evaluated essay id');
+    return {outcome:practiceOutcome};
+  };
+  state.language='en';
+  state.supportLanguage='en';
+  state.profile={native_language:'en'};
+  state.draft={
+    ...state.draft,
+    mode:'free',level:'B2',length:150,text:'',html:'',prompt:evaluation.prompt,
+    generatedTask:null,practiceContext,parentEssayId:practiceParentEssayId,
+  };
+  globalThis.location.hash='#/write';
+  await renderWrite(writeRoot);
+  writeRoot.querySelector('#writingEditor').innerText=learnerText;
+  await writeRoot.querySelector('#reviewDraft').listeners.click({
+    currentTarget:writeRoot.querySelector('#reviewDraft'),
+  });
+  assert.equal(submittedPayload.parent_essay_id,practiceParentEssayId,
+    'Practice revision must link to a comparable predecessor essay');
+  assert.deepEqual(submittedPayload.practice_context,practiceContext,
+    'Practice submit must preserve the targeted Grammar context');
+  assert.deepEqual(state.lastEvaluation.practice_outcome,practiceOutcome,
+    'Write submit must attach the fetched practice outcome');
+  await renderReview(reviewRoot);
+  assert.match(reviewRoot.innerHTML,/practice-check status-improved/,
+    'Review must render the attributed practice outcome');
+  assert.match(reviewRoot.innerHTML,/Articles/);
+  api.practiceOutcome=originalPracticeOutcome;
 
   // The same submit-and-render contract must hold for Chinese, not only for
   // the English fixture above.
@@ -238,6 +289,7 @@ try{
   assert.match(reviewRoot.innerHTML,/81/);
 }finally{
   api.evaluate=originalEvaluate;
+  api.practiceOutcome=originalPracticeOutcome;
 }
 
 console.log('Writing -> Evaluate -> Review evidence flow: PASS');
