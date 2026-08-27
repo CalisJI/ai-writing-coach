@@ -335,6 +335,7 @@ assert.equal(zhController.model.speakingEvaluationStatus,'ready');
 assert.equal(zhEvaluationPayload.language,'zh');
 assert.equal(zhEvaluationPayload.reference_text,'这是共享的原文字幕。');
 assert.equal(zhEvaluationPayload.transcript_text,'这是共享的原文字幕。');
+assert.match(zhController.html(),/data-speaking-content-match/);
 assert.match(zhController.html(),/data-speaking-evaluation-state="ready"/);
 assert.match(zhController.html(),/内容匹配/);
 assert.match(zhController.html(),/这份摘要只描述本次录音/);
