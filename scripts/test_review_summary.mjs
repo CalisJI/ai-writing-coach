@@ -309,12 +309,18 @@ const dialogNodes={
 };
 globalThis.document={
   getElementById:id=>dialogNodes[id]||null,
+  createElement:()=>({textContent:'',className:'',remove:()=>{}}),
   body:{style:{}},
   addEventListener:()=>{},
   removeEventListener:()=>{},
   execCommand:()=>{},
   queryCommandState:()=>false,
 };
+
+const toastMessages=[];
+const toastRegion={appendChild:item=>toastMessages.push(item.textContent)};
+const dialogGetElementById=globalThis.document.getElementById;
+globalThis.document.getElementById=id=>id==='toastRegion'?toastRegion:dialogGetElementById(id);
 state.profile={native_language:'en'};
 state.supportLanguage='zh';
 state.lastEvaluation=feedbackLocaleFixture;
@@ -608,6 +614,50 @@ try{
   api.evaluate=originalEvaluate;
   api.practiceOutcome=originalPracticeOutcome;
   api.grammarPractice=originalGrammarPractice;
+}
+
+// R3 learner-visible evaluator errors: the canonical API envelope must survive
+// the API client and the real Write submit handler, then become localized copy
+// in the toast for every supported interface locale.
+const originalFetch=globalThis.fetch;
+let currentErrorCategory='language_scope_mismatch';
+globalThis.fetch=async()=>({
+  ok:false,
+  status:409,
+  headers:{get:()=> 'application/json'},
+  json:async()=>({detail:{
+    category:currentErrorCategory,
+    message:'canonical evaluator error',
+    retryable:false,
+    context:{requested_language:'zh',active_language:'en'},
+  }}),
+});
+try{
+  for(const locale of ['en','vi','zh']){
+    for(const category of ['evaluation_unavailable','evaluation_provider_failure','language_scope_mismatch']){
+      currentErrorCategory=category;
+      state.profile={native_language:locale};
+      state.supportLanguage=locale;
+      state.language='en';
+      state.dashboard={error_memory:[]};
+      state.draft={
+        ...state.draft,
+        mode:'free',level:'B2',length:150,text:'',html:'',prompt:'Write a short sentence.',
+        generatedTask:null,practiceContext:null,parentEssayId:null,
+      };
+      const writeRoot=fakeWriteRoot();
+      await renderWrite(writeRoot);
+      writeRoot.querySelector('#writingEditor').innerText='I write a short sentence.';
+      await writeRoot.querySelector('#reviewDraft').click();
+      assert.equal(
+        toastMessages.at(-1),
+        t(`write.${category}`),
+        `${locale.toUpperCase()} Write submit must localize ${category}`,
+      );
+    }
+  }
+}finally{
+  globalThis.fetch=originalFetch;
 }
 
 state.profile={native_language:'vi'};
