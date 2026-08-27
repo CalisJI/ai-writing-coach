@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {api} from '../static/becoming/api.js';
 import {state} from '../static/becoming/store.js';
 import {evaluationNotice,renderReview,reviewSummaryText} from '../static/becoming/screens/review.js';
+import {renderWrite} from '../static/becoming/screens/write.js';
 import {categoryReason,categoryRule,supportCopy} from '../static/becoming/domain/support.js';
 
 const result={
@@ -74,6 +75,8 @@ class FakeElement{
   addEventListener(name,listener){this.listeners[name]=listener;}
   removeAttribute(name){delete this.attributes[name];}
   setAttribute(name,value){this.attributes[name]=value;}
+  focus(){}
+  contains(){return false;}
   async click(){return this.listeners.click?.({currentTarget:this});}
 }
 
@@ -282,6 +285,10 @@ const dialogNodes={
 globalThis.document={
   getElementById:id=>dialogNodes[id]||null,
   body:{style:{}},
+  addEventListener:()=>{},
+  removeEventListener:()=>{},
+  execCommand:()=>{},
+  queryCommandState:()=>false,
 };
 state.profile={native_language:'en'};
 state.supportLanguage='zh';
@@ -409,7 +416,12 @@ globalThis.localStorage={
   removeItem:key=>storedActionValues.delete(key),
 };
 globalThis.location={hash:''};
-globalThis.window={dispatchEvent:()=>{}};
+globalThis.window={
+  dispatchEvent:()=>{},
+  getSelection:()=>null,
+  setInterval:()=>1,
+  clearInterval:()=>{},
+};
 globalThis.HashChangeEvent=class {};
 const openGrammarButton=new FakeElement();
 openGrammarButton.dataset.openGrammar='a1-agreement';
@@ -446,6 +458,132 @@ assert.equal(state.draft.prompt,'Write three sentences using the grammar focus.'
 assert.deepEqual(state.draft.practiceContext,{grammar_id:'a1-agreement',focus_category:'grammar'});
 assert.equal(practiceEvidence,'I write');
 assert.equal(globalThis.location.hash,'#/write');
+
+// R4 targeted-practice handoff: the Review action must carry a backend-valid
+// context all the way through Write's real submit handler, for both learner
+// languages. A screen-only assertion would miss a dropped context here.
+const writeIds=[
+  '#writingEditor','#editorCount','#savedStamp','#lookupSelection','#blockFormat',
+  '#practiceMode','#practiceLevel','#practiceLength','#practiceTopic','#practiceAudience',
+  '#clearDraft','#reviewDraft','#reviewDraftMobile','#viewRubric','#generateBrief',
+];
+function fakeWriteRoot(){
+  const nodes=new Map(writeIds.map(id=>[id,new FakeElement()]));
+  return {
+    nodes,
+    innerHTML:'',
+    querySelector:selector=>nodes.get(selector)||null,
+    querySelectorAll:()=>[],
+  };
+}
+
+const originalEvaluate=api.evaluate;
+const originalPracticeOutcome=api.practiceOutcome;
+const originalGrammarPractice=api.grammarPractice;
+const targetedPracticeCases=[
+  {
+    locale:'en',
+    text:'I write three clear sentences about my daily habit.',
+    prompt:'Write three sentences using the grammar focus.',
+    context:{
+      intent:'repair',focus_category:'grammar',focus_family:'grammar',
+      focus_label:'Complete sentences and basic word order',
+      task_type:'story',topic:'grammar transfer',target_level:'A1',
+      action_label:'Practice this grammar',
+      reason:'Targeted practice selected from a Writing finding and the static Grammar curriculum.',
+      evidence:'',
+      focus_instruction:'Write 3–5 sentences using the grammar focus from this lesson.',
+      grammar_id:'a1-complete-sentences-and-basic-word-order',
+      grammar_title:'Complete sentences and basic word order',
+    },
+  },
+  {
+    locale:'zh',
+    text:'我每天写三句清楚的句子来记录习惯。',
+    prompt:'请写 3-5 句，使用本课的语法重点。',
+    context:{
+      intent:'repair',focus_category:'grammar',focus_family:'grammar',
+      focus_label:'SVO cơ bản',
+      task_type:'story',topic:'grammar transfer',target_level:'HSK1',
+      action_label:'Practice this grammar',
+      reason:'Targeted practice selected from a Writing finding and the static Grammar curriculum.',
+      evidence:'',
+      focus_instruction:'请写 3-5 句，使用本课的语法重点。',
+      grammar_id:'zh-hsk1-1-svo-c-b-n',
+      grammar_title:'SVO cơ bản',
+    },
+  },
+];
+try{
+  for(const item of targetedPracticeCases){
+    state.profile={native_language:item.locale};
+    state.supportLanguage=item.locale;
+    state.language=item.locale;
+    const practiceButton=new FakeElement();
+    practiceButton.dataset.practiceGrammar=item.context.grammar_id;
+    practiceButton.dataset.practiceEvidence=item.context.evidence;
+    const targetRoot=fakeReviewRoot({practiceGrammar:[practiceButton]});
+    state.lastEvaluation={
+      ...transferFixture,
+      grammar_links:[{
+        ...transferFixture.grammar_links[0],
+        grammar_id:item.context.grammar_id,
+        title:item.context.grammar_title,
+        level:item.context.target_level,
+      }],
+    };
+    state.draft={
+      ...state.draft,
+      mode:'free',
+      level:item.context.target_level,
+      length:item.locale==='zh'?80:150,
+      topic:'random',
+      text:transferFixture.text,
+    };
+    api.grammarPractice=async(grammarId,evidence)=>{
+      assert.equal(grammarId,item.context.grammar_id);
+      assert.equal(evidence,'');
+      return {
+        grammar_id:item.context.grammar_id,
+        title:item.context.grammar_title,
+        level:item.context.target_level,
+        target_level:item.context.target_level,
+        prompt:item.prompt,
+        practice_blueprint:{},
+        practice_context:item.context,
+        source:'static-grammar-kb',
+      };
+    };
+    await renderReview(targetRoot);
+    assert.match(targetRoot.innerHTML,
+      new RegExp(`data-practice-grammar="${item.context.grammar_id}"`),
+      `${item.locale.toUpperCase()} Review must render the curriculum Grammar target`);
+    await practiceButton.click();
+    assert.deepEqual(state.draft.practiceContext,item.context,
+      `${item.locale.toUpperCase()} Grammar practice must preserve backend-valid context`);
+
+    const writeRoot=fakeWriteRoot();
+    state.dashboard={error_memory:[]};
+    await renderWrite(writeRoot);
+    writeRoot.querySelector('#writingEditor').innerText=item.text;
+    let submitted=null;
+    api.evaluate=async payload=>{
+      submitted=payload;
+      return {id:item.locale==='zh'?993:992,evaluator:'ollama:writing-evaluator'};
+    };
+    api.practiceOutcome=async()=>({outcome:null});
+    await writeRoot.querySelector('#reviewDraft').click();
+    assert.ok(submitted,`${item.locale.toUpperCase()} targeted practice must submit for evaluation`);
+    assert.equal(submitted.learning_language,item.locale);
+    assert.equal(submitted.target_cefr,item.context.target_level);
+    assert.deepEqual(submitted.practice_context,item.context,
+      `${item.locale.toUpperCase()} evaluator payload must retain targeted Grammar context`);
+  }
+}finally{
+  api.evaluate=originalEvaluate;
+  api.practiceOutcome=originalPracticeOutcome;
+  api.grammarPractice=originalGrammarPractice;
+}
 
 state.profile={native_language:'vi'};
 state.supportLanguage='vi';
