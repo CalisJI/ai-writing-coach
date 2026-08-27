@@ -120,6 +120,17 @@ await renderWrite(root);
 assert.equal(state.draft.topic,'travel',
   'Writing must preserve valid topics during level fallback');
 
+for(const malformedDraft of [null,[]]){
+  state.draft=malformedDraft;
+  await renderWrite(root);
+  assert.equal(state.draft.mode,'free',
+    'Writing must recover a malformed draft container');
+  assert.equal(state.draft.topic,'random',
+    'Writing must recover a malformed draft topic');
+  assert.doesNotMatch(root.innerHTML,/\[object Object\]|undefined/,
+    'Writing must not expose malformed draft containers');
+}
+
 state.draft.savedAt={bad:true};
 await renderWrite(root);
 assert.match(root.innerHTML,/Not saved yet/,

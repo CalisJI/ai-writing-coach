@@ -380,6 +380,9 @@ function asidePanel(config, adaptiveMode) {
 
 export async function renderWrite(root) {
   const config = configFor(state.language);
+  if (!state.draft || typeof state.draft !== 'object' || Array.isArray(state.draft)) {
+    state.draft = {};
+  }
   const modeValues = new Set(config.modes.map(([value]) => value));
   const invalidLevel = !config.levels.includes(state.draft.level);
   const invalidMode = !modeValues.has(state.draft.mode);
