@@ -327,6 +327,36 @@ function practiceOutcomeBlock(outcome){
   </section>`;
 }
 
+function revisionDeltaBlock(result={}){
+  const delta=result&&typeof result.delta==='object'&&!Array.isArray(result.delta)?result.delta:null;
+  const overall=typeof delta?.overall==='number'&&Number.isFinite(delta.overall)?delta.overall:null;
+  const after=typeof result.overall==='number'&&Number.isFinite(result.overall)?result.overall:null;
+  const issues=delta?.issues&&typeof delta.issues==='object'&&!Array.isArray(delta.issues)?delta.issues:null;
+  if(overall===null||after===null||!issues)return '';
+  const list=name=>Array.isArray(issues[name])
+    ?issues[name].filter(item=>item&&typeof item==='object'&&!Array.isArray(item))
+    :[];
+  const removed=list('removed');
+  const persistent=list('persistent');
+  const newly=list('new');
+  const changed=list('changed').filter(item=>
+    typeof item.before?.fragment==='string'&&item.before.fragment.trim()
+    &&typeof item.after?.fragment==='string'&&item.after.fragment.trim(),
+  );
+  const beforeCount=persistent.length+removed.length+changed.length;
+  const afterCount=persistent.length+newly.length+changed.length;
+  const before=after-overall;
+  const gain=`${overall>0?'+':''}${overall}`;
+  return `<section class="o-card o-panel review-revision-delta">
+    <h2 class="o-label">${esc(t('review.revision_delta_title'))}</h2>
+    <p class="o-panel-copy">${esc(t('review.revision_score_delta',{before:before.toFixed(1),after:after.toFixed(1),gain}))}</p>
+    <p class="o-panel-copy">${esc(t('review.revision_issue_delta',{before:beforeCount,after:afterCount}))}</p>
+    ${changed.length?`<div class="revision-delta-group"><span class="context-label">${esc(t('review.revision_changed'))}</span>${changed.slice(0,3).map(item=>diffMarkup(item.before.fragment,item.after.fragment,state.language)).join('')}</div>`:''}
+    ${removed.length?`<div class="revision-delta-group"><span class="context-label">${esc(t('review.revision_resolved'))}</span>${removed.slice(0,3).map(item=>`<blockquote>“${esc(item.fragment||item.quote||'')}”</blockquote>`).join('')}</div>`:''}
+    ${newly.length?`<div class="revision-delta-group"><span class="context-label">${esc(t('review.revision_new'))}</span>${newly.slice(0,3).map(item=>`<blockquote>“${esc(item.fragment||item.quote||'')}”</blockquote>`).join('')}</div>`:''}
+  </section>`;
+}
+
 function disclosure(result,budget,learnerText=''){
   const metrics=metricsFrom(result);
   const priorities=normalizedPriorityList(result.priorities_vi).slice(1);
@@ -818,6 +848,8 @@ export async function renderReview(root){
           <h2 class="o-label">${esc(t('review.strengths_title'))}</h2>
           <ul class="o-strengths">${visibleStrengths.map((item,index)=>strengthRow(item,index)).join('')}</ul>
         </section>`:''}
+
+        ${revisionDeltaBlock(result)}
 
         ${practiceOutcomeBlock(result.practice_outcome)}
 

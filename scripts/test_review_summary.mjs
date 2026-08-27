@@ -337,6 +337,33 @@ for(const locale of ['en','vi','zh']){
   assert.doesNotMatch(root.innerHTML,/Writing finding category:/);
 }
 
+const revisionFixture={
+  ...renderFixture,
+  overall:74,
+  delta:{overall:4,issues:{
+    removed:[{fragment:'a dog'}],
+    persistent:[],
+    new:[{fragment:'dog a'}],
+    changed:[{before:{fragment:'I has'},after:{fragment:'I have'}}],
+  }},
+};
+const revisionCopy={en:'Revision evidence',vi:'Bằng chứng sửa bài',zh:'修改证据'};
+for(const locale of ['en','vi','zh']){
+  state.profile={native_language:locale};
+  state.supportLanguage=locale;
+  state.language='en';
+  state.lastEvaluation=revisionFixture;
+  state.draft.text=revisionFixture.text;
+  const root=fakeReviewRoot();
+  await renderReview(root);
+  assert.match(root.innerHTML,new RegExp(revisionCopy[locale]),
+    `Review ${locale.toUpperCase()} should render localized revision evidence`);
+  assert.match(root.innerHTML,/change-before\">has/);
+  assert.match(root.innerHTML,/change-after\">have/);
+  assert.match(root.innerHTML,/a dog/);
+  assert.match(root.innerHTML,/dog a/);
+}
+
 const storedActionValues=new Map();
 globalThis.localStorage={
   getItem:key=>storedActionValues.get(key)??null,
