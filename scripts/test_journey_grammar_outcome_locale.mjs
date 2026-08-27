@@ -3,10 +3,27 @@ import {api} from '../static/becoming/api.js';
 import {state} from '../static/becoming/store.js';
 import {renderJourney} from '../static/becoming/screens/journey.js';
 
+globalThis.location={hash:'#/journey'};
+const revisionButtons=new Map();
 const root={
   innerHTML:'',
   querySelector:()=>null,
-  querySelectorAll:()=>[],
+  querySelectorAll:selector=>{
+    if(selector!=='[data-journey-essay]')return [];
+    const ids=[...root.innerHTML.matchAll(/data-journey-essay="([^"]+)"/g)]
+      .map(match=>match[1]);
+    return ids.map(id=>{
+      if(!revisionButtons.has(id)){
+        revisionButtons.set(id,{
+          dataset:{journeyEssay:id},
+          listeners:{},
+          addEventListener(name,listener){this.listeners[name]=listener;},
+          async click(){return this.listeners.click?.({currentTarget:this});},
+        });
+      }
+      return revisionButtons.get(id);
+    });
+  },
 };
 
 api.dashboard=async()=>({cefr:'B1',streak:0});
@@ -141,6 +158,11 @@ const revisionEvidenceCopy={
   zh:'问题数量变化：-2',
 };
 api.essays=async()=>revisionEssays;
+let openedEssayId=null;
+api.essay=async id=>{
+  openedEssayId=String(id);
+  return revisionEssays.find(item=>String(item.id)===String(id));
+};
 for(const locale of ['en','vi','zh']){
   state.profile={native_language:locale};
   state.supportLanguage=locale;
@@ -154,5 +176,28 @@ for(const locale of ['en','vi','zh']){
   assert.match(root.innerHTML,new RegExp(revisionEvidenceCopy[locale]),
     `Journey ${locale.toUpperCase()} should render localized revision evidence`);
 }
+
+state.language='en';
+state.supportLanguage='en';
+latestMemory={
+  patterns:[],
+  strengths:[],
+  focus:null,
+  revision_wins:[{latest_id:12,revisions:2,overall_delta:6,error_delta:-2,latest_date:'2026-01-02T00:00:00Z'}],
+};
+await renderJourney(root);
+const renderedRevisionButtons=root.querySelectorAll('[data-journey-essay]');
+assert.equal(renderedRevisionButtons.length,1,
+  'Journey must render one revision control for the linked latest essay');
+assert.equal(renderedRevisionButtons[0].dataset.journeyEssay,'12',
+  'Journey revision control must target the linked latest essay id');
+await renderedRevisionButtons[0].click();
+assert.equal(openedEssayId,'12',
+  'Journey revision evidence must open the linked latest essay');
+assert.equal(state.lastEvaluation.id,12,
+  'Journey revision navigation must retain the selected essay for Review');
+assert.equal(state.draft.parentEssayId,12,
+  'Journey revision navigation must preserve the Review parent essay id');
+assert.equal(globalThis.location?.hash,'#/review');
 
 console.log('Journey Grammar outcome locale contract: PASS');
