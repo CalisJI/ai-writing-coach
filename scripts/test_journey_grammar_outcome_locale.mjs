@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {api} from '../static/becoming/api.js';
 import {state} from '../static/becoming/store.js';
 import {renderJourney} from '../static/becoming/screens/journey.js';
+import {renderWrite} from '../static/becoming/screens/write.js';
 
 globalThis.location={hash:'#/journey'};
 const storage=new Map();
@@ -10,7 +11,15 @@ globalThis.localStorage={
   setItem:(key,value)=>storage.set(key,String(value)),
   removeItem:key=>storage.delete(key),
 };
-globalThis.window={dispatchEvent:()=>{}};
+globalThis.window={dispatchEvent:()=>{},getSelection:()=>null,setInterval:()=>1,clearInterval:()=>{}};
+globalThis.document={
+  addEventListener:()=>{},
+  removeEventListener:()=>{},
+  querySelector:()=>null,
+  querySelectorAll:()=>[],
+  getElementById:()=>null,
+  execCommand:()=>{},
+};
 const revisionButtons=new Map();
 const journeyStartButton={
   dataset:{journeyStart:''},
@@ -50,6 +59,35 @@ const root={
       return revisionButtons.get(id);
     });
   },
+};
+class WriteElement{
+  constructor(){
+    this.dataset={};
+    this.listeners={};
+    this.innerHTML='';
+    this.innerText='';
+    this.textContent='';
+    this.disabled=false;
+    this.classList={toggle:()=>{},add:()=>{},remove:()=>{}};
+  }
+  addEventListener(name,listener){this.listeners[name]=listener;}
+  removeEventListener(){}
+  focus(){}
+  setAttribute(){}
+  removeAttribute(){}
+  contains(){return false;}
+  querySelector(){return null;}
+}
+const writeIds=[
+  '#writingEditor','#editorCount','#savedStamp','#lookupSelection','#blockFormat',
+  '#practiceMode','#practiceLevel','#practiceLength','#practiceTopic','#practiceAudience',
+  '#clearDraft','#reviewDraft','#reviewDraftMobile','#viewRubric','#generateBrief',
+];
+const writeNodes=new Map(writeIds.map(id=>[id,new WriteElement()]));
+const writeRoot={
+  innerHTML:'',
+  querySelector:selector=>writeNodes.get(selector)||null,
+  querySelectorAll:()=>[],
 };
 
 api.dashboard=async()=>({cefr:'B1',streak:0});
@@ -229,6 +267,8 @@ assert.equal(globalThis.location?.hash,'#/review');
 const targetRecommendation={
   intent:'repair',
   focus_family:'grammar',
+  focus_category:'article',
+  focus_status:'watch',
   focus_label:'Articles',
   focus_instruction:'Practice articles before your next draft.',
   reason:'Repeated article evidence in recent writing.',
@@ -262,5 +302,28 @@ assert.equal(state.draft.prompt,targetTask.prompt,
 assert.deepEqual(state.draft.practiceContext,targetRecommendation,
   'Journey target action must preserve recommendation context for evaluation');
 assert.equal(globalThis.location.hash,'#/write');
+
+const originalEvaluate=api.evaluate;
+const originalPracticeOutcome=api.practiceOutcome;
+let submittedPracticeContext=null;
+api.evaluate=async payload=>{
+  submittedPracticeContext=payload.practice_context;
+  return {id:414};
+};
+api.practiceOutcome=async()=>({outcome:null});
+await renderWrite(writeRoot);
+writeNodes.get('#writingEditor').innerText='A focused article practice sentence.';
+await writeNodes.get('#reviewDraft').listeners.click({
+  currentTarget:writeNodes.get('#reviewDraft'),
+});
+api.evaluate=originalEvaluate;
+api.practiceOutcome=originalPracticeOutcome;
+const expectedPracticeContext={...targetRecommendation};
+delete expectedPracticeContext.word_target;
+assert.deepEqual(submittedPracticeContext,expectedPracticeContext,
+  'Journey-created practice context must reach the Write evaluation payload');
+assert.equal('word_target' in submittedPracticeContext,false,
+  'Write evaluation context must forward only backend practice-context fields');
+assert.equal(globalThis.location.hash,'#/review');
 
 console.log('Journey Grammar outcome locale contract: PASS');
