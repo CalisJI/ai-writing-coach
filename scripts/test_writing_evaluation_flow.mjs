@@ -22,15 +22,30 @@ class FakeElement{
   setAttribute(){}
   removeAttribute(){}
   querySelector(){return null;}
+  async click(){return this.listeners.click?.({currentTarget:this});}
 }
 
 function fakeRoot(ids){
   const nodes=new Map(ids.map(id=>[id,new FakeElement()]));
+  const practiceButtons=new Map();
   return {
     nodes,
     innerHTML:'',
     querySelector:selector=>nodes.get(selector)||null,
-    querySelectorAll:()=>[],
+    querySelectorAll(selector){
+      if(selector!=='[data-practice-grammar]')return [];
+      const matches=[...this.innerHTML.matchAll(/data-practice-grammar="([^"]+)"(?:[^>]*data-practice-evidence="([^"]*)")?/g)];
+      return matches.map(match=>{
+        const id=match[1];
+        if(!practiceButtons.has(id)){
+          const button=new FakeElement();
+          button.dataset.practiceGrammar=id;
+          button.dataset.practiceEvidence=match[2]||'';
+          practiceButtons.set(id,button);
+        }
+        return practiceButtons.get(id);
+      });
+    },
   };
 }
 
@@ -125,6 +140,7 @@ const zhEvaluation={
 
 const originalEvaluate=api.evaluate;
 const originalPracticeOutcome=api.practiceOutcome;
+const originalGrammarPractice=api.grammarPractice;
 let submittedPayload=null;
 api.evaluate=async payload=>{
   submittedPayload=payload;
@@ -263,6 +279,17 @@ try{
     'Review practice outcome must expose the linked Grammar practice action');
   assert.match(reviewRoot.innerHTML,/data-practice-evidence="I has a book"/,
     'Review practice outcome must carry its exact learner evidence');
+  const outcomePracticeButton=reviewRoot.querySelectorAll('[data-practice-grammar]')[0];
+  assert.equal(outcomePracticeButton?.dataset.practiceGrammar,'a1-article');
+  api.grammarPractice=async(grammarId,evidence)=>({
+    grammar_id:grammarId,prompt:'Practice this grammar again.',target_level:'B2',
+    practice_context:{intent:'repair',focus_family:'grammar',grammar_id:grammarId,evidence},
+  });
+  await outcomePracticeButton.click();
+  assert.equal(state.draft.prompt,'Practice this grammar again.');
+  assert.equal(state.draft.practiceContext?.grammar_id,'a1-article');
+  assert.equal(state.draft.practiceContext?.evidence,'I has a book');
+  assert.equal(globalThis.location.hash,'#/write');
   api.practiceOutcome=originalPracticeOutcome;
 
   // The same submit-and-render contract must hold for Chinese, not only for
@@ -337,6 +364,7 @@ try{
 }finally{
   api.evaluate=originalEvaluate;
   api.practiceOutcome=originalPracticeOutcome;
+  api.grammarPractice=originalGrammarPractice;
 }
 
 console.log('Writing -> Evaluate -> Review evidence flow: PASS');
