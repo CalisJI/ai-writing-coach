@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import {state} from '../static/becoming/store.js';
 import {renderWrite} from '../static/becoming/screens/write.js';
+import {t} from '../static/becoming/domain/i18n.js';
 
 class FakeElement{
   constructor(){
@@ -68,6 +69,18 @@ assert.match(root.innerHTML,/What keeps coming back/);
 assert.match(root.innerHTML,/Write about a useful habit/);
 assert.match(root.innerHTML,/Articles/);
 assert.doesNotMatch(root.innerHTML,/\[object Object\]|undefined/);
+
+for(const locale of ['en','vi','zh']){
+  state.supportLanguage=locale;
+  await renderWrite(root);
+  assert.ok(root.innerHTML.includes(t('write.watchlist')),
+    `Writing must render the watchlist heading for ${locale}`);
+  assert.ok(root.innerHTML.includes(`<li>${t('category.grammar')} · 4 · ${t('write.trend_flat')}</li>`),
+    `Writing must render the translated grammar watchlist item for ${locale}`);
+  assert.ok(root.innerHTML.includes(`<li>${t('category.vocabulary')} · 3 · ${t('write.trend_up')}</li>`),
+    `Writing must render the translated vocabulary watchlist item for ${locale}`);
+}
+state.supportLanguage='en';
 
 state.draft.generatedTask={instruction:{bad:true},prompt:{bad:true},personalization:{focus_label:{bad:true}}};
 state.draft.mode='custom';
