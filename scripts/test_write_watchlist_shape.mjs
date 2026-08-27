@@ -89,9 +89,19 @@ assert.equal(generatedPayload.topic,'random',
   'Writing must not send malformed topics to task generation');
 state.draft.topic='   ';
 await nodes.get('#generateBrief').listeners.click({currentTarget:nodes.get('#generateBrief')});
-api.generateTask=originalGenerateTask;
 assert.equal(generatedPayload.topic,'random',
   'Writing must not send whitespace-only topics to task generation');
+state.draft.mode={bad:true};
+state.draft.level={bad:true};
+state.draft.length={bad:true};
+await nodes.get('#generateBrief').listeners.click({currentTarget:nodes.get('#generateBrief')});
+assert.equal(generatedPayload.task_type,'opinion',
+  'Writing must not send malformed task types to generation');
+assert.equal(generatedPayload.target_cefr,'B2',
+  'Writing must send the configured level to task generation');
+assert.equal(generatedPayload.word_target,150,
+  'Writing must send the configured word target to task generation');
+api.generateTask=originalGenerateTask;
 
 state.draft.mode='free';
 state.draft.topic='random';

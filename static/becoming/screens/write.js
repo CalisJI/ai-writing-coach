@@ -139,6 +139,18 @@ function evaluatorLevelValue(value, language) {
   return config.levels.includes(value) ? value : config.defaultLevel;
 }
 
+function taskTypeValue(value, language) {
+  const allowed = language === 'zh'
+    ? new Set(['opinion', 'email', 'review', 'story', 'hsk'])
+    : new Set(['opinion', 'email', 'review', 'story', 'toeic']);
+  return allowed.has(value) ? value : 'opinion';
+}
+
+function taskWordTargetValue(value, language) {
+  const config = configFor(evaluatorLanguageValue(language));
+  return config.lengths.includes(value) ? value : config.defaultLength;
+}
+
 function personalizationLabel(task) {
   const personalization = task && typeof task === 'object' && !Array.isArray(task)
     ? task.personalization : null;
@@ -654,10 +666,10 @@ export async function renderWrite(root) {
     try {
       await runBusy(button, async () => {
         const task = await api.generateTask({
-          task_type: state.draft.mode,
+          task_type: taskTypeValue(state.draft.mode, state.language),
           topic: draftTopicValue(state.draft.topic),
-          target_cefr: state.draft.level,
-          word_target: Number(state.draft.length),
+          target_cefr: evaluatorLevelValue(state.draft.level, state.language),
+          word_target: taskWordTargetValue(state.draft.length, state.language),
         });
         saveDraft({generatedTask: task, practiceContext: null, prompt: task.prompt || ''});
         toast(task.source === 'built-in' ? t('write.builtin_ready') : t('write.brief_ready'));
