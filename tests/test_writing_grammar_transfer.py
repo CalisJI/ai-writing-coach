@@ -141,15 +141,69 @@ def test_target_level_precedes_stronger_advanced_signal():
 def test_targeted_grammar_practice_carries_evidence_into_bilingual_prompt(monkeypatch):
     import app
     from types import SimpleNamespace
+    from writing_coach.languages.grammar_registry import grammar_provider
 
-    monkeypatch.setattr(
-        app,
-        "active_grammar_by_id",
-        lambda: {"zh-aspect": {"title": "体与补语", "level": "HSK2", "practice_blueprint": {}}},
-    )
+    provider = grammar_provider("zh")
+    grammar_id = "zh-hsk1-1-svo-c-b-n"
+    assert grammar_id in provider.by_id
+    lesson = provider.by_id[grammar_id]
+    monkeypatch.setattr(app, "active_grammar_by_id", lambda: provider.by_id)
     monkeypatch.setattr(app, "active_profile", lambda: SimpleNamespace(code="zh"))
 
-    result = app.grammar_targeted_practice("zh-aspect", evidence="我昨天去过了北京")
+    result = app.grammar_targeted_practice(grammar_id, evidence="我每天写")
 
-    assert result["practice_context"]["evidence"] == "我昨天去过了北京"
-    assert "我昨天去过了北京" in result["prompt"]
+    assert result["grammar_id"] == grammar_id
+    assert result["title"] == lesson["title"]
+    assert result["level"] == lesson["level"] == "HSK1"
+    assert result["target_level"] == "HSK1"
+    assert result["source"] == "static-grammar-kb"
+    assert result["practice_blueprint"] == lesson.get("practice_blueprint", {})
+    context = result["practice_context"]
+    assert context == {
+        "intent": "repair",
+        "focus_category": "grammar",
+        "focus_label": lesson["title"],
+        "focus_family": "grammar",
+        "task_type": "story",
+        "topic": "grammar transfer",
+        "target_level": "HSK1",
+        "action_label": "Practice this grammar",
+        "reason": "Targeted practice selected from a Writing finding and the static Grammar curriculum.",
+        "evidence": "我每天写",
+        "focus_instruction": result["prompt"],
+        "grammar_id": grammar_id,
+        "grammar_title": lesson["title"],
+    }
+    assert "我每天写" in result["prompt"]
+
+
+def test_targeted_grammar_practice_uses_real_english_lesson_contract(monkeypatch):
+    import app
+    from types import SimpleNamespace
+    from writing_coach.languages.grammar_registry import grammar_provider
+
+    provider = grammar_provider("en")
+    grammar_id = "a1-complete-sentences-and-basic-word-order"
+    assert grammar_id in provider.by_id
+    lesson = provider.by_id[grammar_id]
+    monkeypatch.setattr(app, "active_grammar_by_id", lambda: provider.by_id)
+    monkeypatch.setattr(app, "active_profile", lambda: SimpleNamespace(code="en"))
+
+    result = app.grammar_targeted_practice(grammar_id, evidence="I write")
+
+    assert result["grammar_id"] == grammar_id
+    assert result["title"] == lesson["title"]
+    assert result["level"] == lesson["level"] == "A1"
+    assert result["target_level"] == "A1"
+    assert result["source"] == "static-grammar-kb"
+    context = result["practice_context"]
+    assert context["intent"] == "repair"
+    assert context["focus_category"] == "grammar"
+    assert context["focus_family"] == "grammar"
+    assert context["focus_label"] == lesson["title"]
+    assert context["grammar_id"] == grammar_id
+    assert context["grammar_title"] == lesson["title"]
+    assert context["target_level"] == "A1"
+    assert context["evidence"] == "I write"
+    assert context["focus_instruction"] == result["prompt"]
+    assert result["prompt"].endswith('Pay special attention to this evidence from your writing: “I write”.')
