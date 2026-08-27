@@ -371,6 +371,8 @@ api.grammarPractice=async (grammarId,evidence)=>{
   };
 };
 await renderReview(actionRoot);
+assert.match(actionRoot.innerHTML,/data-practice-evidence="I write"/,
+  'Grammar practice action should retain the exact Writing evidence fragment');
 await openGrammarButton.click();
 assert.equal(storedActionValues.get('becoming.grammar-focus'),'a1-agreement');
 assert.equal(globalThis.location.hash,'#/grammar');
