@@ -298,6 +298,9 @@ function normalizedGrammarOutcome(outcome){
     grammar_title:grammarTitle,
     issue_count:Math.max(0,Math.floor(numericValue(outcome.issue_count,0))),
     revision_no:Math.max(1,Math.floor(numericValue(outcome.revision_no,1))),
+    error_evidence:Array.isArray(outcome.error_evidence)
+      ?outcome.error_evidence.filter(item=>typeof item==='string'&&item.trim()).map(item=>item.trim().slice(0,260)).slice(0,3)
+      :[],
   };
 }
 
@@ -317,7 +320,7 @@ function grammarOutcomeCard(outcome, language='en'){
     <div class="practice-check-meta"><span>${esc(outcome.focus_label||outcome.grammar_title||outcome.grammar_id)}</span><span>${esc(outcome.revision_no||1)} · ${esc(status)}</span></div>
     <div class="action-row">
       <button type="button" class="o-btn o-btn--outline o-btn--compact" data-outcome-grammar="${attr(outcome.grammar_id)}">${esc(copy().openLesson)}</button>
-      <button type="button" class="o-btn o-btn--primary o-btn--compact" data-outcome-practice="${attr(outcome.grammar_id)}">${esc(copy().practiceLesson)}</button>
+      <button type="button" class="o-btn o-btn--primary o-btn--compact" data-outcome-practice="${attr(outcome.grammar_id)}" data-outcome-practice-evidence="${attr(outcome.error_evidence[0]||'')}">${esc(copy().practiceLesson)}</button>
     </div>
   </section>`;
 }
@@ -771,7 +774,7 @@ export async function renderJourney(root){
       if(!id)return;
       try{
         await runBusy(button,async()=>{
-          const task=await api.grammarPractice(id);
+          const task=await api.grammarPractice(id,button.dataset.outcomePracticeEvidence||'');
           if(!task||typeof task!=='object'||typeof task.prompt!=='string'||!task.prompt.trim()){
             throw new Error(t('review.practice_failed'));
           }

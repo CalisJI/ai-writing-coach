@@ -32,7 +32,10 @@ const root={
     const match=this.innerHTML.match(new RegExp(`data-${attribute}="([^"]+)"`));
     if(!match)return [];
     const button=this.nodes.get(selector)||new FakeElement();
-    button.dataset[attribute==='home-practice-grammar'?'homePracticeGrammar':'homeOpenReview']=match[1];
+    if(attribute==='home-practice-grammar'){
+      button.dataset.homePracticeGrammar=match[1];
+      button.dataset.homePracticeEvidence=(this.innerHTML.match(new RegExp(`data-home-practice-grammar="${match[1]}"[^>]*data-home-practice-evidence="([^"]*)"`))||[])[1]||'';
+    }else button.dataset.homeOpenReview=match[1];
     this.nodes.set(selector,button);
     return [button];
   },
@@ -102,6 +105,7 @@ try{
   api.practiceOutcomes=async()=>({latest:{
     status:'improved',previous_issue_count:2,issue_count:0,revision_no:2,
     focus_label:'Grammar transfer',grammar_id:'a1-complete-sentences-and-basic-word-order',essay_id:412,
+    error_evidence:['I has a book'],
   }});
   api.libraryVocabulary=async()=>[];
 
@@ -145,8 +149,10 @@ try{
       `${locale.toUpperCase()} Home outcome review action must open Review`);
     globalThis.location.hash='#/home';
     let grammarPracticeId=null;
-    api.grammarPractice=async id=>{
+    let grammarPracticeEvidence=null;
+    api.grammarPractice=async (id,evidence)=>{
       grammarPracticeId=id;
+      grammarPracticeEvidence=evidence;
       return {
         prompt:locale==='zh'?'请使用本课语法重点写三句话。':'Write three sentences using this grammar focus.',
         target_level:locale==='zh'?'HSK1':'A1',
@@ -158,6 +164,8 @@ try{
     await grammarButton.click();
     assert.equal(grammarPracticeId,'a1-complete-sentences-and-basic-word-order',
       `${locale.toUpperCase()} Home must request the linked Grammar lesson practice`);
+    assert.equal(grammarPracticeEvidence,'I has a book',
+      `${locale.toUpperCase()} Home must carry exact learner evidence into Grammar practice`);
     assert.equal(state.draft.practiceContext?.grammar_id,grammarPracticeId,
       `${locale.toUpperCase()} Home must preserve Grammar practice context`);
     assert.equal(state.draft.savedAt,null,

@@ -68,7 +68,7 @@ const root={
       return ids.map(id=>{
         if(!outcomePracticeButtons.has(id)){
           outcomePracticeButtons.set(id,{
-            dataset:{outcomePractice:id},listeners:{},disabled:false,
+            dataset:{outcomePractice:id,outcomePracticeEvidence:(root.innerHTML.match(new RegExp(`data-outcome-practice="${id}"[^>]*data-outcome-practice-evidence="([^"]*)"`))||[])[1]||''},listeners:{},disabled:false,
             addEventListener(name,listener){this.listeners[name]=listener;},
             setAttribute() {},removeAttribute() {},
             async click(){return this.listeners.click?.({currentTarget:this});},
@@ -157,6 +157,7 @@ api.learningMemory=async()=>latestMemory;
 api.practiceRecommendation=async()=>null;
 let latestOutcome={
     essay_id:12,
+    error_evidence:['I has a book'],
     grammar_id:'a1-agreement',
     focus_label:'Agreement practice',
     status:'improved',
@@ -227,8 +228,10 @@ assert.equal(storage.get('becoming.grammar-focus'),'a1-agreement',
 assert.equal(globalThis.location.hash,'#/grammar',
   'Journey Grammar outcome must open the linked Grammar lesson');
 let grammarPracticePayload=null;
-api.grammarPractice=async id=>{
+let grammarPracticeEvidence=null;
+api.grammarPractice=async (id,evidence)=>{
   grammarPracticePayload=id;
+  grammarPracticeEvidence=evidence;
   return {
     grammar_id:id,target_level:'B2',prompt:'Write three sentences using this grammar.',
     practice_context:{intent:'repair',focus_family:'grammar',focus_category:'article',
@@ -244,6 +247,8 @@ assert.ok(outcomePractice,'Journey Grammar outcome must render targeted practice
 await outcomePractice.click();
 assert.equal(grammarPracticePayload,'a1-agreement',
   'Journey Grammar outcome must request the linked Grammar practice');
+assert.equal(grammarPracticeEvidence,'I has a book',
+  'Journey Grammar outcome must carry exact learner evidence into Grammar practice');
 assert.equal(state.draft.prompt,'Write three sentences using this grammar.',
   'Journey Grammar practice must transfer the generated prompt to Write');
 assert.equal(state.draft.practiceContext?.focus_family,'grammar',

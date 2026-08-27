@@ -155,6 +155,9 @@ function normalizedPracticeOutcome(outcome){
     issue_count:issueCount,
     revision_no:revisionNo,
     essay_id:essayId!==null&&Number.isInteger(essayId)&&essayId>0?essayId:null,
+    error_evidence:Array.isArray(outcome.error_evidence)
+      ?outcome.error_evidence.filter(item=>typeof item==='string'&&item.trim()).map(item=>item.trim().slice(0,260)).slice(0,3)
+      :[],
   };
 }
 
@@ -175,7 +178,7 @@ function practiceOutcomeSignal(outcome){
     <small>${esc(outcome.focus_label||t('common.current_focus'))} · ${t('outcome.revision')} ${esc(outcome.revision_no||1)}</small>
     ${grammarId?`<div class="action-row">
       <button type="button" class="o-btn o-btn--outline o-btn--compact" data-home-open-grammar="${attr(grammarId)}">${esc(t('review.open_grammar'))}</button>
-      <button type="button" class="o-btn o-btn--primary o-btn--compact" data-home-practice-grammar="${attr(grammarId)}">${esc(t('review.practice_grammar'))}</button>
+      <button type="button" class="o-btn o-btn--primary o-btn--compact" data-home-practice-grammar="${attr(grammarId)}" data-home-practice-evidence="${attr(outcome.error_evidence[0]||'')}">${esc(t('review.practice_grammar'))}</button>
       ${outcome.essay_id!==null?`<button type="button" class="text-link" data-home-open-review="${attr(outcome.essay_id)}">${esc(t('home.open_review'))}</button>`:''}
     </div>`:outcome.essay_id!==null?`<div class="action-row"><button type="button" class="text-link" data-home-open-review="${attr(outcome.essay_id)}">${esc(t('home.open_review'))}</button></div>`:''}
   </article>`;
@@ -658,7 +661,7 @@ export async function renderHome(root){
       if(!id)return;
       try{
         await runBusy(button,async()=>{
-          const task=await api.grammarPractice(id);
+          const task=await api.grammarPractice(id,button.dataset.homePracticeEvidence||'');
           if(!task||typeof task!=='object'||typeof task.prompt!=='string'||!task.prompt.trim()){
             throw new Error(t('review.practice_failed'));
           }
