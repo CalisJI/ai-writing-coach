@@ -115,6 +115,10 @@ function draftFieldText(value) {
   return typeof value === 'string' ? value : '';
 }
 
+function draftTopicValue(value) {
+  return draftFieldText(value).trim() || 'random';
+}
+
 function personalizationLabel(task) {
   const personalization = task && typeof task === 'object' && !Array.isArray(task)
     ? task.personalization : null;
@@ -612,7 +616,7 @@ export async function renderWrite(root) {
       await runBusy(button, async () => {
         const task = await api.generateTask({
           task_type: state.draft.mode,
-          topic: state.draft.topic || 'random',
+          topic: draftTopicValue(state.draft.topic),
           target_cefr: state.draft.level,
           word_target: Number(state.draft.length),
         });

@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import {api} from '../static/becoming/api.js';
 import {state} from '../static/becoming/store.js';
 import {renderWrite} from '../static/becoming/screens/write.js';
 import {t} from '../static/becoming/domain/i18n.js';
@@ -18,12 +19,13 @@ class FakeElement{
   contains(){return false;}
   focus(){}
   setAttribute(){}
+  removeAttribute(){}
 }
 
 const ids=[
   '#writingEditor','#editorCount','#savedStamp','#lookupSelection','#blockFormat',
   '#practiceMode','#practiceLevel','#practiceLength','#practiceTopic','#practiceAudience',
-  '#clearDraft','#reviewDraft','#reviewDraftMobile','#viewRubric',
+  '#clearDraft','#reviewDraft','#reviewDraftMobile','#viewRubric','#generateBrief',
 ];
 const nodes=new Map(ids.map(id=>[id,new FakeElement()]));
 const root={
@@ -36,6 +38,7 @@ globalThis.document={
   addEventListener:()=>{},
   removeEventListener:()=>{},
   querySelector:()=>null,
+  getElementById:()=>null,
   execCommand:()=>{},
 };
 const storage=new Map();
@@ -69,6 +72,25 @@ assert.match(root.innerHTML,/What keeps coming back/);
 assert.match(root.innerHTML,/Write about a useful habit/);
 assert.match(root.innerHTML,/Articles/);
 assert.doesNotMatch(root.innerHTML,/\[object Object\]|undefined/);
+
+state.draft.mode='opinion';
+state.draft.topic='travel';
+await renderWrite(root);
+const originalGenerateTask=api.generateTask;
+let generatedPayload=null;
+api.generateTask=async payload=>{
+  generatedPayload=payload;
+  return {prompt:'Generated safely',source:'built-in'};
+};
+state.draft.topic={bad:true};
+await nodes.get('#generateBrief').listeners.click({currentTarget:nodes.get('#generateBrief')});
+assert.equal(generatedPayload.topic,'random',
+  'Writing must not send malformed topics to task generation');
+state.draft.topic='   ';
+await nodes.get('#generateBrief').listeners.click({currentTarget:nodes.get('#generateBrief')});
+api.generateTask=originalGenerateTask;
+assert.equal(generatedPayload.topic,'random',
+  'Writing must not send whitespace-only topics to task generation');
 
 for(const locale of ['en','vi','zh']){
   state.supportLanguage=locale;
