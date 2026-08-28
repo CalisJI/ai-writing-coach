@@ -46,3 +46,20 @@ export function shadowingPracticeSummary(session){
     total_rounds:states.reduce((total,state)=>total+state.rounds,0),
   };
 }
+
+export function restoreShadowingPracticeProgress(session,records){
+  if(!session||!Array.isArray(records))return false;
+  let restored=false;
+  for(const record of records){
+    if(!record||typeof record!=='object'||record.asset_id!==session.asset_id)continue;
+    const segmentId=typeof record.segment_id==='string'?record.segment_id:'';
+    if(!session.segments[segmentId])continue;
+    const rounds=Number(record.completed_rounds);
+    if(!Number.isInteger(rounds)||rounds<0||rounds>1000)continue;
+    // A restore can arrive after the learner has already completed a round
+    // locally. Never let an older persisted snapshot erase that progress.
+    session.segments[segmentId].rounds=Math.max(session.segments[segmentId].rounds,rounds);
+    restored=true;
+  }
+  return restored;
+}

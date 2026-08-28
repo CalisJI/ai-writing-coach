@@ -122,6 +122,12 @@ def main():
         assert 'PostgreSQL runtime' in str(exc)
     else:
         raise AssertionError('SQLite must not persist Active Listening progress')
+    try:
+        sr.save_shadowing_progress_record({'asset_id':'asset-en','segment_id':'segment-1','completed_rounds':2,'updated_at':now})
+    except RuntimeError as exc:
+        assert 'PostgreSQL runtime' in str(exc)
+    else:
+        raise AssertionError('SQLite must not persist Shadowing progress')
 
     # Real-data regression: older language DBs can contain saved_words but have
     # never initialized Active Recall / Reading optional tables.
@@ -174,5 +180,12 @@ def main():
     assert pactive['asset_id']=='asset-en'
     assert pactive['checked_attempt_count']==2
     assert pr.list_listening_progress_records('asset-en')[0]['segment_id']=='segment-1'
+    pshadow=pr.save_shadowing_progress_record({'asset_id':'asset-en','segment_id':'segment-1','completed_rounds':2,'updated_at':now})
+    assert pshadow['asset_id']=='asset-en'
+    assert pshadow['completed_rounds']==2
+    pshadow_stale=pr.save_shadowing_progress_record({'asset_id':'asset-en','segment_id':'segment-1','completed_rounds':1,'updated_at':now})
+    assert pshadow_stale['completed_rounds']==2
+    assert pr.list_shadowing_progress_records('asset-en')[0]['segment_id']=='segment-1'
+    assert pr.list_shadowing_progress_records('asset-en')[0]['completed_rounds']==2
     print('BECOMING specialized persistence repository self-test OK')
 if __name__=='__main__': main()

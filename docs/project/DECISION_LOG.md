@@ -690,3 +690,26 @@ runtime cutover, and public Listening promotion remain human-gated.
 
 **Supersedes / Superseded by:** Extends D-005 and D-029. Supersedes no earlier
 decision.
+
+## D-033 — Durable Shadowing rounds remain separate from Active Listening progress
+
+**Status:** Accepted
+
+**Decision:** R11 stores completed Shadowing rounds in a distinct PostgreSQL-only
+specialized record keyed by authenticated learner, learning language, media
+asset, and canonical segment. Shadowing records contain only a bounded round
+count and timestamp; they never persist raw audio, transcript answers,
+proficiency, or mastery claims. Active Listening reconstruction records remain a
+separate table and state machine even when both practices use the same media
+identity.
+
+**Reason:** Shadowing and Active Listening have different learner evidence and
+restore semantics. Reusing the reconstruction row would allow one practice to
+overwrite or misrepresent the other when a learner revisits the same segment.
+
+**Consequences:** Listening can restore both bounded practice states independently
+with localized empty, unavailable, restored, and save-failure feedback. The
+additive Alembic artifact is prepared for PostgreSQL authority, but production
+migration, runtime cutover, and public Listening promotion remain human-gated.
+
+**Supersedes / Superseded by:** Extends D-032. Supersedes no earlier decision.

@@ -88,12 +88,13 @@ baseline.
   audio-free learner history reopening, and saved-key-word handoff to Library.
   The result is passage-specific and does not claim CEFR/HSK mastery; public
   Reading promotion remains a separate human gate.
-- R11 now has an internal EN/ZH Active Listening persistence loop: completed
-  reconstruction checks and reveal states are saved as bounded, audio-free
-  learner progress, restored only for the authenticated language/asset/segment
-  scope, and rendered with localized empty, unavailable, and save-failure copy.
-  PostgreSQL is the only durable target; the additive migration is prepared but
-  no production migration or public Listening promotion was performed.
+- R11 now has an internal EN/ZH Listening-practice persistence loop: completed
+  Active Listening reconstruction checks/reveal states and Shadowing rounds are
+  saved as separate bounded, audio-free learner records, restored only for the
+  authenticated language/asset/segment scope, and rendered with localized
+  empty, unavailable, restored, and save-failure copy. PostgreSQL is the only
+  durable target; the additive migration is prepared but no production
+  migration or public Listening promotion was performed.
 
 **Closed programs protected from casual rewrite:**
 

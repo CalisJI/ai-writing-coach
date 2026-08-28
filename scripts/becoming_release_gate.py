@@ -72,6 +72,7 @@ def main() -> None:
         root / "tests" / "test_listening_progress.py",
         root / "writing_coach" / "persistence" / "models.py",
         root / "migrations" / "versions" / "20260828_0003_listening_progress.py",
+        root / "migrations" / "versions" / "20260828_0004_shadowing_progress.py",
         root / "static" / "becoming" / "screens" / "speaking.js",
         root / "static" / "becoming" / "speaking.css",
         root / "static" / "becoming" / "orena" / "speaking.css",
@@ -405,6 +406,10 @@ def main() -> None:
         "loadListeningProgress", "saveListeningProgress", "restorePracticeProgress",
         "data-listening-persistence-state", "progressFailed",
     ], "Active Listening durable progress")
+    require_contains(errors, screens["listening"], [
+        "loadShadowingProgress", "saveShadowingProgress", "restoreShadowingProgress",
+        "data-shadowing-persistence-state", "markShadowingProgressUnavailable",
+    ], "Shadowing durable progress")
 
     # Design philosophy contract: every current/future route requires explicit learner-goal metadata.
     route_match = re.search(r"VALID\s*=\s*new Set\(\[([^\]]+)\]\)", router, re.S)

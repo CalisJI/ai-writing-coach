@@ -27,6 +27,12 @@ class ListeningProgressIn(BaseModel):
     last_answer: str = Field(default="", max_length=2000)
 
 
+class ShadowingProgressIn(BaseModel):
+    asset_id: str = Field(min_length=1, max_length=255)
+    segment_id: str = Field(min_length=1, max_length=255)
+    completed_rounds: int = Field(default=0, ge=0, le=1000)
+
+
 def configure_listening_progress(repository: SpecializedLearningRepository | None) -> None:
     global _repository
     _repository = repository
@@ -76,5 +82,32 @@ def save_listening_progress(payload: ListeningProgressIn) -> dict[str, Any]:
         item = repository.save_listening_progress_record(values)
     except (RuntimeError, ValueError) as exc:
         category = "listening_progress_unavailable" if isinstance(exc, RuntimeError) else "listening_progress_invalid"
+        raise orena_http_error(503 if isinstance(exc, RuntimeError) else 422, category, str(exc)) from exc
+    return {"item": item}
+
+
+@router.get("/shadowing-progress")
+def list_shadowing_progress(
+    asset_id: str = Query(..., min_length=1, max_length=255),
+) -> dict[str, Any]:
+    repository = _installed()
+    asset = _clean_identity(asset_id, "asset_id")
+    try:
+        return {"items": repository.list_shadowing_progress_records(asset)}
+    except RuntimeError as exc:
+        raise orena_http_error(503, "shadowing_progress_unavailable", str(exc)) from exc
+
+
+@router.post("/shadowing-progress")
+def save_shadowing_progress(payload: ShadowingProgressIn) -> dict[str, Any]:
+    repository = _installed()
+    values = payload.model_dump() if hasattr(payload, "model_dump") else payload.dict()
+    values["asset_id"] = _clean_identity(values["asset_id"], "asset_id")
+    values["segment_id"] = _clean_identity(values["segment_id"], "segment_id")
+    values["updated_at"] = datetime.now(timezone.utc).isoformat()
+    try:
+        item = repository.save_shadowing_progress_record(values)
+    except (RuntimeError, ValueError) as exc:
+        category = "shadowing_progress_unavailable" if isinstance(exc, RuntimeError) else "shadowing_progress_invalid"
         raise orena_http_error(503 if isinstance(exc, RuntimeError) else 422, category, str(exc)) from exc
     return {"item": item}

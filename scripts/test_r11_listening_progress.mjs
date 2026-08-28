@@ -173,6 +173,101 @@ try{
     assert.equal(cross.model.practicePersistence.status,'saved');
   }
 
+  for(const item of [
+    {language:'en',payload:MEDIA_LEARNING_FIXTURE,restored:'Previous shadowing progress restored for this lesson.',unavailable:'Saved shadowing progress is unavailable here.',failed:'Shadowing progress could not be saved. Your current practice remains on this device.'},
+    {language:'zh',payload:MEDIA_LEARNING_ZH_FIXTURE,restored:'已恢复本课之前的跟读进度。',unavailable:'当前无法使用已保存的跟读进度。',failed:'无法保存跟读进度。'},
+  ]){
+    state.language=item.language;
+    state.supportLanguage=item.language;
+    state.me={id:`learner-shadow-${item.language}`};
+    const shadowSaved=[];
+    const shadow=await renderListening(rootFor(),{
+      importMedia:async()=>item.payload,
+      targetLanguage:()=>item.language,
+      loadListeningProgress:async()=>({items:[]}),
+      loadShadowingProgress:async assetId=>({items:[{asset_id:assetId,segment_id:item.payload.transcript.segments[0].segment_id,completed_rounds:2}]}),
+      saveShadowingProgress:async payload=>{shadowSaved.push({...payload});return {item:payload};},
+    });
+    await shadow.importUrl(`https://example.test/shadow-${item.language}`);
+    await new Promise(resolve=>setTimeout(resolve,0));
+    assert.equal(shadow.setMode('shadowing'),true);
+    const shadowSegment=item.payload.transcript.segments[0].segment_id;
+    assert.equal(shadow.model.shadowingSession.segments[shadowSegment].rounds,2);
+    assert.equal(shadow.model.shadowingPersistence.status,'restored');
+    assert.ok(shadow.html().includes(item.restored),`${item.language} shadowing restore is localized`);
+    assert.equal(shadow.recordShadowingRound(),true);
+    await new Promise(resolve=>setTimeout(resolve,0));
+    assert.deepEqual(shadowSaved.at(-1),{asset_id:item.payload.asset.asset_id,segment_id:shadowSegment,completed_rounds:3});
+
+    const unavailable=await renderListening(rootFor(),{
+      importMedia:async()=>item.payload,
+      targetLanguage:()=>item.language,
+      loadListeningProgress:async()=>({items:[]}),
+      loadShadowingProgress:async()=>{throw new Error('shadow database detail');},
+    });
+    await unavailable.importUrl(`https://example.test/shadow-unavailable-${item.language}`);
+    await new Promise(resolve=>setTimeout(resolve,0));
+    assert.equal(unavailable.setMode('shadowing'),true);
+    assert.ok(unavailable.html().includes(item.unavailable));
+    assert.doesNotMatch(unavailable.html(),/shadow database detail/);
+
+    const failed=await renderListening(rootFor(),{
+      importMedia:async()=>item.payload,
+      targetLanguage:()=>item.language,
+      loadListeningProgress:async()=>({items:[]}),
+      loadShadowingProgress:async()=>({items:[]}),
+      saveShadowingProgress:async()=>{throw new Error('shadow database detail');},
+    });
+    await failed.importUrl(`https://example.test/shadow-failed-${item.language}`);
+    await new Promise(resolve=>setTimeout(resolve,0));
+    assert.equal(failed.setMode('shadowing'),true);
+    assert.equal(failed.recordShadowingRound(),true);
+    await new Promise(resolve=>setTimeout(resolve,0));
+    assert.ok(failed.html().includes(item.failed));
+    assert.doesNotMatch(failed.html(),/shadow database detail/);
+  }
+
+  for(const item of [
+    {language:'en',payload:MEDIA_LEARNING_FIXTURE},
+    {language:'zh',payload:MEDIA_LEARNING_ZH_FIXTURE},
+  ]){
+    state.language=item.language;
+    state.supportLanguage=item.language;
+    state.me={id:`learner-shadow-race-${item.language}`};
+    let resolveRestore;
+    const pendingRestore=new Promise(resolve=>{resolveRestore=resolve;});
+    const saved=[];
+    let durableTotal=5;
+    const delayed=await renderListening(rootFor(),{
+      importMedia:async()=>item.payload,
+      targetLanguage:()=>item.language,
+      loadListeningProgress:async()=>({items:[]}),
+      loadShadowingProgress:()=>pendingRestore,
+      saveShadowingProgress:async payload=>{
+        durableTotal=Math.max(durableTotal,payload.completed_rounds);
+        saved.push({...payload,durable_total:durableTotal});
+        return {item:payload};
+      },
+    });
+    await delayed.importUrl(`https://example.test/shadow-race-${item.language}`);
+    await new Promise(resolve=>setTimeout(resolve,0));
+    assert.equal(delayed.setMode('shadowing'),true);
+    const segmentId=item.payload.transcript.segments[0].segment_id;
+    assert.equal(delayed.model.shadowingSession.segments[segmentId].rounds,0);
+    assert.equal(delayed.recordShadowingRound(),true);
+    assert.equal(delayed.model.shadowingSession.segments[segmentId].rounds,1);
+    await new Promise(resolve=>setTimeout(resolve,0));
+    assert.equal(saved.at(-1).completed_rounds,1);
+    assert.equal(durableTotal,5);
+    resolveRestore({items:[{asset_id:item.payload.asset.asset_id,segment_id:segmentId,completed_rounds:5}]});
+    await new Promise(resolve=>setTimeout(resolve,0));
+    await new Promise(resolve=>setTimeout(resolve,0));
+    assert.equal(delayed.model.shadowingSession.segments[segmentId].rounds,6,`${item.language} delayed higher restore merges the local round`);
+    assert.equal(durableTotal,6,`${item.language} durable total retains the restored rounds and local increment`);
+    assert.equal(saved.at(-1).completed_rounds,6,`${item.language} corrective save carries the merged total`);
+    assert.notEqual(delayed.model.shadowingPersistence.status,'restored',`${item.language} local save state is not replaced by stale restore`);
+  }
+
   state.language='en';
   state.supportLanguage='en';
   state.me={id:'learner-empty'};

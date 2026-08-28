@@ -17,6 +17,7 @@ from writing_coach.persistence.models import (
     ReadingAttempt,
     ReadingSession,
     ListeningProgress,
+    ShadowingProgress,
     SavedWord,
     SpeakingAttempt,
     User,
@@ -43,6 +44,8 @@ class SpecializedLearningRepository(Protocol):
     def create_reading_attempt_record(self, session_id: int, values: dict[str, Any]) -> None: ...
     def save_listening_progress_record(self, values: dict[str, Any]) -> dict[str, Any]: ...
     def list_listening_progress_records(self, asset_id: str) -> list[dict[str, Any]]: ...
+    def save_shadowing_progress_record(self, values: dict[str, Any]) -> dict[str, Any]: ...
+    def list_shadowing_progress_records(self, asset_id: str) -> list[dict[str, Any]]: ...
     def create_speaking_attempt_record(self, values: dict[str, Any]) -> dict[str, Any]: ...
     def list_speaking_attempt_records(self, limit: int = 50, *, asset_id: str | None = None, segment_id: str | None = None) -> list[dict[str, Any]]: ...
     def speaking_progress(self) -> dict[str, Any]: ...
@@ -416,6 +419,12 @@ class SQLiteSpecializedLearningRepository:
     def list_listening_progress_records(self, asset_id: str) -> list[dict[str, Any]]:
         raise RuntimeError("Durable Active Listening progress requires the PostgreSQL runtime.")
 
+    def save_shadowing_progress_record(self, values: dict[str, Any]) -> dict[str, Any]:
+        raise RuntimeError("Durable Shadowing progress requires the PostgreSQL runtime.")
+
+    def list_shadowing_progress_records(self, asset_id: str) -> list[dict[str, Any]]:
+        raise RuntimeError("Durable Shadowing progress requires the PostgreSQL runtime.")
+
     def create_speaking_attempt_record(self, values: dict[str, Any]) -> dict[str, Any]:
         raise RuntimeError("Durable Speaking attempts require the PostgreSQL runtime.")
 
@@ -684,6 +693,57 @@ class PostgresSpecializedLearningRepository:
                 .order_by(ListeningProgress.updated_at.desc())
             ).all()
             return [self._listening_progress_payload(row) for row in rows]
+
+    def _shadowing_progress_payload(self, row: Any) -> dict[str, Any]:
+        return {
+            "id": str(row.id),
+            "language": row.language_code,
+            "asset_id": row.asset_id,
+            "segment_id": row.segment_id,
+            "completed_rounds": int(row.completed_rounds or 0),
+            "updated_at": self._iso(row.updated_at),
+        }
+
+    def save_shadowing_progress_record(self, values: dict[str, Any]) -> dict[str, Any]:
+        uid, lang = self._scope()
+        asset_id = str(values["asset_id"])
+        segment_id = str(values["segment_id"])
+        progress_id = stable_uuid("shadowing-progress", self._key(), lang, asset_id, segment_id)
+        with Session(self.engine) as s, s.begin():
+            if s.get(User, uid) is None:
+                raise RuntimeError("PostgreSQL scope user missing; shadow/import must run first.")
+            row = s.get(ShadowingProgress, progress_id)
+            fields = {
+                "completed_rounds": int(values.get("completed_rounds", 0)),
+                "updated_at": self._dt(values["updated_at"]),
+            }
+            if row is None:
+                row = ShadowingProgress(
+                    id=progress_id, user_id=uid, language_code=lang,
+                    asset_id=asset_id, segment_id=segment_id, **fields,
+                )
+                s.add(row)
+            else:
+                # Shadowing rounds are cumulative learner evidence. A delayed
+                # client snapshot must never roll a newer persisted total back.
+                row.completed_rounds = max(int(row.completed_rounds or 0), fields["completed_rounds"])
+                row.updated_at = fields["updated_at"]
+            s.flush()
+            return self._shadowing_progress_payload(row)
+
+    def list_shadowing_progress_records(self, asset_id: str) -> list[dict[str, Any]]:
+        uid, lang = self._scope()
+        with Session(self.engine) as s:
+            rows = s.scalars(
+                select(ShadowingProgress)
+                .where(
+                    ShadowingProgress.user_id == uid,
+                    ShadowingProgress.language_code == lang,
+                    ShadowingProgress.asset_id == asset_id,
+                )
+                .order_by(ShadowingProgress.updated_at.desc())
+            ).all()
+            return [self._shadowing_progress_payload(row) for row in rows]
 
     @staticmethod
     def _speaking_payload(row: Any) -> dict[str, Any]:

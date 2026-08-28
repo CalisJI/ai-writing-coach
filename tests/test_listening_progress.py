@@ -4,9 +4,12 @@ from fastapi import HTTPException
 
 from writing_coach.listening_api import (
     ListeningProgressIn,
+    ShadowingProgressIn,
     configure_listening_progress,
     list_listening_progress,
+    list_shadowing_progress,
     save_listening_progress,
+    save_shadowing_progress,
 )
 
 
@@ -65,3 +68,30 @@ def test_unconfigured_progress_is_canonical_and_truthful() -> None:
         raise AssertionError("unconfigured progress must fail closed")
     assert detail["category"] == "listening_progress_unconfigured"
     assert "audio" not in str(detail).lower()
+
+
+def test_shadowing_progress_is_distinct_and_audio_free() -> None:
+    class FakeRepository:
+        def __init__(self) -> None:
+            self.values = None
+
+        def save_shadowing_progress_record(self, values: dict) -> dict:
+            self.values = values
+            return {"asset_id": values["asset_id"], "segment_id": values["segment_id"], "completed_rounds": values["completed_rounds"]}
+
+        def list_shadowing_progress_records(self, asset_id: str) -> list[dict]:
+            return [{"asset_id": asset_id, "segment_id": "segment-1", "completed_rounds": 2}]
+
+    repository = FakeRepository()
+    configure_listening_progress(repository)
+    try:
+        saved = save_shadowing_progress(ShadowingProgressIn(
+            asset_id="asset-en", segment_id="segment-1", completed_rounds=2,
+        ))
+        assert saved["item"]["completed_rounds"] == 2
+        assert repository.values["completed_rounds"] == 2
+        assert "audio" not in repository.values
+        assert "proficiency" not in repository.values
+        assert list_shadowing_progress(" asset-en ")["items"][0]["completed_rounds"] == 2
+    finally:
+        configure_listening_progress(None)

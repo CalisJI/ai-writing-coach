@@ -30,6 +30,7 @@ import {
 import {
   createShadowingPracticeSession,
   recordShadowingPracticeRound,
+  restoreShadowingPracticeProgress,
   selectShadowingPracticeSegment,
   shadowingPracticeSummary,
 } from '../domain/shadowing-practice.js';
@@ -125,6 +126,9 @@ const SHADOW_COPY={
   vi:{progressTitle:'Ti\u1ebfn \u0111\u1ed9',segmentsLabel:'\u0111o\u1ea1n', keySoundsPending:'\u00c2m ch\u00ednh v\u00e0 nh\u1ecbp \u2014 ch\u01b0a ki\u1ec3m tra', studioTitle:'Ph\u00f2ng luy\u1ec7n Shadowing',studioLead:'Luy\u1ec7n n\u00f3i v\u1edbi n\u1ed9i dung th\u1ef1c t\u1ebf.',leaveStudio:'R\u1eddi ph\u00f2ng luy\u1ec7n',sharedMedia:'Media d\u00f9ng chung',viewTranscript:'Xem to\u00e0n b\u1ed9 transcript',nowPracticing:'\u0110ang luy\u1ec7n',listen:'Nghe m\u1eabu',holdToRepeat:'Gi\u1eef \u0111\u1ec3 n\u00f3i',listenToMe:'Nghe l\u1ea1i m\u00ecnh',yourAttempts:'C\u00e1c l\u01b0\u1ee3t c\u1ee7a b\u1ea1n',roundOf:'L\u01b0\u1ee3t {n} tr\u00ean {total}',startRound:'B\u1eaft \u0111\u1ea7u l\u01b0\u1ee3t {n}',tips:'G\u1ee3i \u00fd',tip1:'Nghe \u0111o\u1ea1n m\u1eabu, r\u1ed3i n\u00f3i l\u1ea1i \u0111\u00fang t\u1ed1c \u0111\u1ed9 \u0111\u00f3.',tip2:'B\u00e1m nh\u1ecbp c\u1ee7a ng\u01b0\u1eddi n\u00f3i tr\u01b0\u1edbc, \u0111\u1eebng lo t\u1eebng \u00e2m m\u1ed9t.',shortcuts:'Ph\u00edm t\u1eaft',scPlay:'Ph\u00e1t / D\u1eebng',scRepeat:'Gi\u1eef \u0111\u1ec3 n\u00f3i',scNext:'\u0110o\u1ea1n sau',scPrev:'\u0110o\u1ea1n tr\u01b0\u1edbc',scorePending:'Ch\u01b0a ch\u1ea5m',scoreNote:'Ph\u1ea7n ch\u1ea5m ph\u00e1t \u00e2m v\u00e0 ng\u1eef \u0111i\u1ec7u ch\u01b0a \u0111\u01b0\u1ee3c x\u00e2y. B\u1ea3n ghi c\u1ee7a b\u1ea1n n\u1eb1m tr\u00ean thi\u1ebft b\u1ecb n\u00e0y v\u00e0 kh\u00f4ng \u0111\u01b0\u1ee3c t\u1ea3i l\u00ean.',recording:'\u0110ang ghi\u2026',recordUnsupported:'Tr\u00ecnh duy\u1ec7t n\u00e0y kh\u00f4ng ghi \u00e2m \u0111\u01b0\u1ee3c.',justNow:'V\u1eeba xong',takes:'l\u01b0\u1ee3t',pinyin:'Pinyin',mode:'Shadowing',practice:'Shadow đoạn này',guide:'Nghe đoạn đã chọn, lặp lại thành tiếng rồi đánh dấu một lượt đã hoàn thành.',markRound:'Đánh dấu hoàn thành 1 lượt',rounds:'Số lượt',progress:'Shadowing trong phiên',practiced:'Đoạn đã luyện',totalRounds:'Tổng lượt hoàn thành',noScore:'Lặp lại ở đây không ghi âm và không chấm gì cả. Mở mục Nói khi bạn muốn ghi giọng và nghe lại.',openSpeaking:'Mở mục Nói',segment:'Đoạn'},
   zh:{progressTitle:'\u8fdb\u5ea6',segmentsLabel:'\u53e5\u6bb5', keySoundsPending:'\u5173\u952e\u97f3\u4e0e\u8282\u594f \u2014 \u5c1a\u672a\u68c0\u6d4b', studioTitle:'\u8ddf\u8bfb\u5de5\u4f5c\u5ba4',studioLead:'\u7528\u771f\u5b9e\u5185\u5bb9\u7ec3\u53e3\u8bed\u3002',leaveStudio:'\u9000\u51fa\u5de5\u4f5c\u5ba4',sharedMedia:'\u5171\u4eab\u5a92\u4f53',viewTranscript:'\u67e5\u770b\u5b8c\u6574\u5b57\u5e55',nowPracticing:'\u6b63\u5728\u7ec3',listen:'\u542c\u539f\u58f0',holdToRepeat:'\u6309\u4f4f\u8ddf\u8bfb',listenToMe:'\u542c\u6211\u7684',yourAttempts:'\u4f60\u7684\u5f55\u97f3',roundOf:'\u7b2c {n} \u8f6e\uff0c\u5171 {total} \u8f6e',startRound:'\u5f00\u59cb\u7b2c {n} \u8f6e',tips:'\u63d0\u793a',tip1:'\u5148\u542c\u4e00\u904d\uff0c\u518d\u7528\u540c\u6837\u7684\u901f\u5ea6\u8bf4\u56de\u53bb\u3002',tip2:'\u5148\u8ddf\u4e0a\u8bf4\u8bdd\u4eba\u7684\u8282\u594f\uff0c\u518d\u8ba1\u8f83\u5355\u4e2a\u97f3\u3002',shortcuts:'\u5feb\u6377\u952e',scPlay:'\u64ad\u653e / \u6682\u505c',scRepeat:'\u6309\u4f4f\u8ddf\u8bfb',scNext:'\u4e0b\u4e00\u53e5',scPrev:'\u4e0a\u4e00\u53e5',scorePending:'\u5c1a\u672a\u8bc4\u5206',scoreNote:'\u53d1\u97f3\u4e0e\u8bed\u8c03\u8bc4\u5206\u8fd8\u672a\u5efa\u6210\u3002\u5f55\u97f3\u53ea\u4fdd\u5b58\u5728\u672c\u673a\uff0c\u4e0d\u4f1a\u4e0a\u4f20\u3002',recording:'\u5f55\u97f3\u4e2d\u2026',recordUnsupported:'\u6b64\u6d4f\u89c8\u5668\u65e0\u6cd5\u5f55\u97f3\u3002',justNow:'\u521a\u521a',takes:'\u6b21',pinyin:'\u62fc\u97f3',mode:'跟读',practice:'跟读这一句',guide:'先听所选句段，再大声跟读，然后记录一次已完成练习。',markRound:'记录完成一轮',rounds:'轮次',progress:'本次跟读',practiced:'已练句段',totalRounds:'已完成轮次',noScore:'这里的跟读不录音，也不评分。需要录制并回放自己的声音时，请打开口语。',openSpeaking:'打开口语',segment:'句段'},
 };
+Object.assign(SHADOW_COPY.en,{progressEmpty:'No saved shadowing progress for this lesson yet.',progressSaving:'Saving shadowing progress…',progressSaved:'Shadowing progress saved for this lesson.',progressUnavailable:'Saved shadowing progress is unavailable here. Your current practice remains on this device.',progressFailed:'Shadowing progress could not be saved. Your current practice remains on this device.',progressRestored:'Previous shadowing progress restored for this lesson.'});
+Object.assign(SHADOW_COPY.vi,{progressEmpty:'Chưa có tiến độ Shadowing nào được lưu cho bài học này.',progressSaving:'Đang lưu tiến độ Shadowing…',progressSaved:'Đã lưu tiến độ Shadowing cho bài học này.',progressUnavailable:'Tiến độ Shadowing đã lưu hiện không khả dụng. Bài luyện hiện tại vẫn ở trên thiết bị này.',progressFailed:'Không thể lưu tiến độ Shadowing. Bài luyện hiện tại vẫn ở trên thiết bị này.',progressRestored:'Đã khôi phục tiến độ Shadowing trước đó cho bài học này.'});
+Object.assign(SHADOW_COPY.zh,{progressEmpty:'本课还没有已保存的跟读进度。',progressSaving:'正在保存跟读进度…',progressSaved:'已保存本课跟读进度。',progressUnavailable:'当前无法使用已保存的跟读进度。当前练习仍保留在本设备上。',progressFailed:'无法保存跟读进度。当前练习仍保留在本设备上。',progressRestored:'已恢复本课之前的跟读进度。'});
 const SHADOW_FEEDBACK_COPY={
   en:{title:'Latest Speak feedback',loading:'Loading your latest Speak feedback…',none:'No completed Speak take for this segment yet.',failed:'Speak feedback is temporarily unavailable. Shadowing remains usable.',content:'Content match',pronunciation:'Pronunciation',fluency:'Fluency',transcription:'Transcription confidence',unavailable:'Not measured'},
   vi:{title:'Phản hồi Nói gần đây nhất',loading:'Đang tải phản hồi Nói gần đây nhất…',none:'Chưa có lượt Nói hoàn tất cho đoạn này.',failed:'Phản hồi Nói tạm thời không khả dụng. Shadowing vẫn dùng được.',content:'Độ khớp nội dung',pronunciation:'Phát âm',fluency:'Độ trôi chảy',transcription:'Độ tin cậy transcript',unavailable:'Chưa đo'},
@@ -523,6 +527,9 @@ function shadowingWorkspace(payload,selected,model){
   const summary=shadowingPracticeSummary(model.shadowingSession);
   const takes=shadowTakesFor(payload,selected);
   const rounds=Math.max(3,takes.length+1);
+  const persistenceKey=payload.asset?.asset_id&&selected?`${payload.asset.asset_id}:${selected}`:'';
+  const persistence=model.shadowingPersistence?.key===persistenceKey?model.shadowingPersistence:{status:'empty',key:persistenceKey};
+  const persistenceCopy=persistence.status==='saving'?s.progressSaving:persistence.status==='saved'?s.progressSaved:persistence.status==='unavailable'?s.progressUnavailable:persistence.status==='error'?s.progressFailed:persistence.status==='restored'?s.progressRestored:s.progressEmpty;
 
   return `<div class="o-studio-body">
     <div class="o-studio-main">
@@ -568,6 +575,7 @@ function shadowingWorkspace(payload,selected,model){
         </ol>
         <p class="o-take-note">${esc(s.scoreNote)}</p>
       </section>
+      <p class="o-practice-persistence" data-shadowing-persistence-state="${esc(persistence.status)}" role="status">${esc(persistenceCopy)}</p>
       ${shadowingFeedback(model.speakingFeedback)}
     </div>
 
@@ -1046,12 +1054,15 @@ function translationRequest(payload,targetLanguage){
   };
 }
 
-export function createListeningController({importMedia,importStatus,targetLanguage,translateMedia=()=>Promise.resolve(null),onChange=()=>{},onMediaReady=()=>{},onTranslationReady=()=>{},onSelection=()=>{},onProcessing=()=>{},onImportTerminal=()=>{},onPracticeProgressSave=()=>{}}){
-  const model={status:'empty',payload:null,error:null,selected:null,manualSelection:false,playingSegmentId:null,jobId:null,sourceUrl:'',original:true,meaning:true,playbackRate:1,mode:'follow',practiceSession:null,shadowingSession:null,practiceValidation:null,practicePersistence:{status:'empty'},speakingFeedback:{status:'empty',item:null}};
+export function createListeningController({importMedia,importStatus,targetLanguage,translateMedia=()=>Promise.resolve(null),onChange=()=>{},onMediaReady=()=>{},onTranslationReady=()=>{},onSelection=()=>{},onProcessing=()=>{},onImportTerminal=()=>{},onPracticeProgressSave=()=>{},onShadowingProgressSave=()=>{}}){
+  const model={status:'empty',payload:null,error:null,selected:null,manualSelection:false,playingSegmentId:null,jobId:null,sourceUrl:'',original:true,meaning:true,playbackRate:1,mode:'follow',practiceSession:null,shadowingSession:null,practiceValidation:null,practicePersistence:{status:'empty'},shadowingPersistence:{status:'empty'},speakingFeedback:{status:'empty',item:null}};
   const viewId=`listening-${++listeningViewSequence}`;
   let importGeneration=0;
   let backgroundTranslationGeneration=0;
   const practicePersistenceByKey=new Map();
+  const shadowingPersistenceByKey=new Map();
+  const shadowingLocallyMutated=new Set();
+  const shadowingLocalIncrements=new Map();
   const changed=(options={})=>onChange({...model},options);
   const actionAnchor=()=>model.mode==='follow'&&!model.manualSelection
     ?(model.playingSegmentId||model.selected):model.selected;
@@ -1074,6 +1085,8 @@ export function createListeningController({importMedia,importStatus,targetLangua
   };
   const practiceSaveQueues=new Map();
   const practiceSaveVersions=new Map();
+  const shadowingSaveQueues=new Map();
+  const shadowingSaveVersions=new Map();
   const practiceKey=(assetId,segmentId)=>`${assetId}:${segmentId}`;
   const setPracticePersistence=(key,status)=>{
     const value={status,key};
@@ -1083,6 +1096,45 @@ export function createListeningController({importMedia,importStatus,targetLangua
       return true;
     }
     return false;
+  };
+  const shadowingKey=(assetId,segmentId)=>`${assetId}:${segmentId}`;
+  const setShadowingPersistence=(key,status)=>{
+    const value={status,key};
+    shadowingPersistenceByKey.set(key,value);
+    if(shadowingKey(model.shadowingSession?.asset_id,model.shadowingSession?.current_segment_id)===key){
+      model.shadowingPersistence=value;
+      return true;
+    }
+    return false;
+  };
+  const shadowingProgressPayload=(segmentIdOverride=null)=>{
+    const session=model.shadowingSession;
+    const segmentId=segmentIdOverride||session?.current_segment_id;
+    const segment=segmentId?session.segments[segmentId]:null;
+    if(!session||!segment)return null;
+    return {asset_id:session.asset_id,segment_id:segmentId,completed_rounds:Number(segment.rounds||0)};
+  };
+  const persistShadowingProgress=(segmentId=null)=>{
+    const payload=shadowingProgressPayload(segmentId);
+    if(!payload)return false;
+    const key=shadowingKey(payload.asset_id,payload.segment_id);
+    const version=(shadowingSaveVersions.get(key)||0)+1;
+    shadowingSaveVersions.set(key,version);
+    setShadowingPersistence(key,'saving');
+    changed();
+    const previous=shadowingSaveQueues.get(key)||Promise.resolve();
+    const queued=previous.catch(()=>{}).then(()=>{
+      try{return onShadowingProgressSave(payload);}catch{return Promise.reject(new Error('persistence failed'));}
+    });
+    shadowingSaveQueues.set(key,queued);
+    queued.then(()=>{
+      if(shadowingSaveVersions.get(key)===version&&setShadowingPersistence(key,'saved'))changed();
+    }).catch(()=>{
+      if(shadowingSaveVersions.get(key)===version&&setShadowingPersistence(key,'error'))changed();
+    }).finally(()=>{
+      if(shadowingSaveQueues.get(key)===queued)shadowingSaveQueues.delete(key);
+    });
+    return true;
   };
   const persistPracticeProgress=()=>{
     const payload=practiceProgressPayload();
@@ -1125,7 +1177,11 @@ export function createListeningController({importMedia,importStatus,targetLangua
     model.shadowingSession=model.status==='ready'?createShadowingPracticeSession({asset_id:payload.asset.asset_id,segment_ids:segmentIds}):null;
     model.practiceValidation=null;
     practicePersistenceByKey.clear();
+    shadowingPersistenceByKey.clear();
+    shadowingLocallyMutated.clear();
+    shadowingLocalIncrements.clear();
     model.practicePersistence={status:'empty',key:model.practiceSession?practiceKey(model.practiceSession.asset_id,model.practiceSession.current_segment_id):''};
+    model.shadowingPersistence={status:'empty',key:model.shadowingSession?shadowingKey(model.shadowingSession.asset_id,model.shadowingSession.current_segment_id):''};
     model.speakingFeedback={status:'empty',item:null};
     if(['active','shadowing'].includes(model.mode)&&!playbackAvailable(payload?.playback))model.mode='follow';
     if(model.status==='processing'&&model.jobId)onProcessing({job_id:model.jobId,source_url:model.sourceUrl});
@@ -1203,6 +1259,7 @@ export function createListeningController({importMedia,importStatus,targetLangua
       if(model.practiceSession)selectListeningPracticeSegment(model.practiceSession,segmentId);
       if(model.shadowingSession)selectShadowingPracticeSegment(model.shadowingSession,segmentId);
       model.practicePersistence=practicePersistenceByKey.get(practiceKey(model.practiceSession?.asset_id,segmentId))||{status:'empty',key:practiceKey(model.practiceSession?.asset_id,segmentId)};
+      model.shadowingPersistence=shadowingPersistenceByKey.get(shadowingKey(model.shadowingSession?.asset_id,segmentId))||{status:'empty',key:shadowingKey(model.shadowingSession?.asset_id,segmentId)};
       model.practiceValidation=null;onSelection(segmentId);changed();return true;
     },
     moveSelection(offset){
@@ -1217,6 +1274,7 @@ export function createListeningController({importMedia,importStatus,targetLangua
       if(model.practiceSession)selectListeningPracticeSegment(model.practiceSession,target.segment_id);
       if(model.shadowingSession)selectShadowingPracticeSegment(model.shadowingSession,target.segment_id);
       model.practicePersistence=practicePersistenceByKey.get(practiceKey(model.practiceSession?.asset_id,target.segment_id))||{status:'empty',key:practiceKey(model.practiceSession?.asset_id,target.segment_id)};
+      model.shadowingPersistence=shadowingPersistenceByKey.get(shadowingKey(model.shadowingSession?.asset_id,target.segment_id))||{status:'empty',key:shadowingKey(model.shadowingSession?.asset_id,target.segment_id)};
       model.practiceValidation=null;onSelection(target.segment_id);changed();return true;
     },
     restore(payload,selectedId=null,mode='follow'){
@@ -1234,7 +1292,11 @@ export function createListeningController({importMedia,importStatus,targetLangua
       }
       model.practiceValidation=null;
       practicePersistenceByKey.clear();
+      shadowingPersistenceByKey.clear();
+      shadowingLocallyMutated.clear();
+      shadowingLocalIncrements.clear();
       model.practicePersistence={status:'empty',key:model.practiceSession?practiceKey(model.practiceSession.asset_id,model.practiceSession.current_segment_id):''};
+      model.shadowingPersistence={status:'empty',key:model.shadowingSession?shadowingKey(model.shadowingSession.asset_id,model.shadowingSession.current_segment_id):''};
       model.speakingFeedback={status:'empty',item:null};
       model.mode=['follow','active','shadowing'].includes(mode)?mode:'follow';
       if(['active','shadowing'].includes(model.mode)&&!playbackAvailable(payload.playback))model.mode='follow';
@@ -1292,6 +1354,39 @@ export function createListeningController({importMedia,importStatus,targetLangua
       changed();
       return restored;
     },
+    restoreShadowingProgress(records){
+      if(!model.shadowingSession)return false;
+      const restored=restoreShadowingPracticeProgress(model.shadowingSession,records);
+      const restoredKeys=(Array.isArray(records)?records:[]).filter(record=>record&&record.asset_id===model.shadowingSession.asset_id&&model.shadowingSession.segments[record.segment_id]&&Number.isInteger(Number(record.completed_rounds))&&Number(record.completed_rounds)>=0&&Number(record.completed_rounds)<=1000).map(record=>shadowingKey(model.shadowingSession.asset_id,record.segment_id));
+      (Array.isArray(records)?records:[]).forEach(record=>{
+        if(!record||record.asset_id!==model.shadowingSession.asset_id||!model.shadowingSession.segments[record.segment_id])return;
+        const rounds=Number(record.completed_rounds);
+        if(!Number.isInteger(rounds)||rounds<0||rounds>1000)return;
+        const key=shadowingKey(model.shadowingSession.asset_id,record.segment_id);
+        const localIncrements=shadowingLocalIncrements.get(key)||0;
+        if(localIncrements>0){
+          model.shadowingSession.segments[record.segment_id].rounds=Math.max(model.shadowingSession.segments[record.segment_id].rounds,rounds+localIncrements);
+          persistShadowingProgress(record.segment_id);
+        }
+      });
+      restoredKeys.forEach(key=>{
+        if(!shadowingLocallyMutated.has(key))setShadowingPersistence(key,'restored');
+      });
+      const key=shadowingKey(model.shadowingSession.asset_id,model.shadowingSession.current_segment_id);
+      if(!restoredKeys.includes(key))setShadowingPersistence(key,'empty');
+      model.shadowingPersistence=shadowingPersistenceByKey.get(key)||{status:'empty',key};
+      changed();
+      return restored;
+    },
+    markShadowingProgressUnavailable(){
+      if(!model.shadowingSession)return false;
+      const assetId=model.shadowingSession.asset_id;
+      model.shadowingSession.segment_ids.forEach(segmentId=>setShadowingPersistence(shadowingKey(assetId,segmentId),'unavailable'));
+      const key=shadowingKey(assetId,model.shadowingSession.current_segment_id);
+      model.shadowingPersistence=shadowingPersistenceByKey.get(key)||{status:'unavailable',key};
+      changed();
+      return true;
+    },
     markPracticeProgressUnavailable(){
       if(!model.practiceSession)return false;
       const assetId=model.practiceSession.asset_id;
@@ -1304,7 +1399,12 @@ export function createListeningController({importMedia,importStatus,targetLangua
     recordShadowingRound(){
       if(!model.shadowingSession)return false;
       const recorded=recordShadowingPracticeRound(model.shadowingSession);
-      if(recorded)changed();
+      if(recorded){
+        const key=shadowingKey(model.shadowingSession.asset_id,model.shadowingSession.current_segment_id);
+        shadowingLocallyMutated.add(key);
+        shadowingLocalIncrements.set(key,(shadowingLocalIncrements.get(key)||0)+1);
+        changed();persistShadowingProgress();
+      }
       return recorded;
     },
     openSpeaking(){
@@ -1323,7 +1423,10 @@ export function createListeningController({importMedia,importStatus,targetLangua
       if(model.playingSegmentId){
         model.selected=model.playingSegmentId;
         if(model.mode==='active')selectListeningPracticeSegment(model.practiceSession,model.selected);
-        if(model.mode==='shadowing')selectShadowingPracticeSegment(model.shadowingSession,model.selected);
+        if(model.mode==='shadowing'){
+          selectShadowingPracticeSegment(model.shadowingSession,model.selected);
+          model.shadowingPersistence=shadowingPersistenceByKey.get(shadowingKey(model.shadowingSession?.asset_id,model.selected))||{status:'empty',key:shadowingKey(model.shadowingSession?.asset_id,model.selected)};
+        }
       }
       model.manualSelection=false;changed();return actionAnchor();
     },
@@ -1334,7 +1437,10 @@ export function createListeningController({importMedia,importStatus,targetLangua
       const selectedChanged=['follow','shadowing'].includes(model.mode)&&!model.manualSelection;
       if(selectedChanged){
         model.selected=segmentId;
-        if(model.mode==='shadowing')selectShadowingPracticeSegment(model.shadowingSession,segmentId);
+        if(model.mode==='shadowing'){
+          selectShadowingPracticeSegment(model.shadowingSession,segmentId);
+          model.shadowingPersistence=shadowingPersistenceByKey.get(shadowingKey(model.shadowingSession?.asset_id,segmentId))||{status:'empty',key:shadowingKey(model.shadowingSession?.asset_id,segmentId)};
+        }
       }
       changed({playbackOnly:true,selectedChanged});return true;
     },
@@ -1450,7 +1556,7 @@ function installSmartFollow(root){
   return binding;
 }
 
-export async function renderListening(root,{importMedia=api.importMedia,importStatus=api.mediaImportStatus,translateMedia=api.translateMedia,targetLanguage=supportLanguage,speakingAttempts=api.speakingAttempts,loadListeningProgress=api.listeningProgress,saveListeningProgress=api.saveListeningProgress}={}){
+export async function renderListening(root,{importMedia=api.importMedia,importStatus=api.mediaImportStatus,translateMedia=api.translateMedia,targetLanguage=supportLanguage,speakingAttempts=api.speakingAttempts,loadListeningProgress=api.listeningProgress,saveListeningProgress=api.saveListeningProgress,loadShadowingProgress=api.shadowingProgress,saveShadowingProgress=api.saveShadowingProgress}={}){
   let controller;
   let mounted=false;
   let visibleSelection=null;
@@ -1963,6 +2069,18 @@ export async function renderListening(root,{importMedia=api.importMedia,importSt
       controller.markPracticeProgressUnavailable();
     });
   };
+  const restoreShadowingProgressForAsset=(payload)=>{
+    if(!state.me||typeof loadShadowingProgress!=='function'||!payload?.asset?.asset_id)return;
+    let pending;
+    try{pending=loadShadowingProgress(payload.asset.asset_id);}catch{pending=Promise.reject(new Error('shadowing progress unavailable'));}
+    Promise.resolve(pending).then(response=>{
+      if(controller.model.shadowingSession?.asset_id!==payload.asset.asset_id)return;
+      controller.restoreShadowingProgress(response?.items||[]);
+    }).catch(()=>{
+      if(controller.model.shadowingSession?.asset_id!==payload.asset.asset_id)return;
+      controller.markShadowingProgressUnavailable();
+    });
+  };
   controller=createListeningController({
     importMedia,importStatus,targetLanguage,translateMedia,onChange:render,
     onMediaReady:(payload,selected_segment_id)=>{
@@ -1976,9 +2094,13 @@ export async function renderListening(root,{importMedia=api.importMedia,importSt
         provider:payload?.asset?.source_provider||'',
       });
       restoreListeningProgressForAsset(payload);
+      restoreShadowingProgressForAsset(payload);
     },
     onPracticeProgressSave:payload=>state.me&&typeof saveListeningProgress==='function'
       ?saveListeningProgress(payload)
+      :Promise.resolve(),
+    onShadowingProgressSave:payload=>state.me&&typeof saveShadowingProgress==='function'
+      ?saveShadowingProgress(payload)
       :Promise.resolve(),
     onTranslationReady:payload=>{
       setSharedMediaSession({learning_language:state.language,payload,selected_segment_id:controller.model.selected});
