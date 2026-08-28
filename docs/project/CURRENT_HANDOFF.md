@@ -43,8 +43,10 @@ baseline.
   into separate transcription-confidence, content-match, pronunciation,
   fluency, and explicitly-unassessed proficiency dimensions. It preserves
   word/phoneme evidence and synthetic-demo provenance. The EN/ZH mounted
-  per-take matrix now carries optional ASR confidence through the evaluator and
-  renders measured versus unavailable dimensions without composite claims. It
+  per-take matrix now carries optional ASR confidence and provider pronunciation
+  evidence (including EN phonemes/stress and ZH tone-marked phonemes) through
+  the evaluator, then renders measured versus unavailable dimensions without
+  composite claims. It
   does not expose a public route, persist attempts, or activate the reserved AI
   capability.
 

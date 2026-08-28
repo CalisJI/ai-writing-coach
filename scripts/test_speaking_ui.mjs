@@ -568,11 +568,19 @@ const originalSpeechApi={
   evaluateSpeaking:api.evaluateSpeaking,
 };
 const renderedCases=[
-  {language:'en',supportLanguage:'en',payload:MEDIA_LEARNING_FIXTURE,text:'Listen for the first complete idea.',confidence:92},
+  {language:'en',supportLanguage:'en',payload:MEDIA_LEARNING_FIXTURE,text:'Listen for the first complete idea.',confidence:92,
+    pronunciation:{provider:'azure-speech',score_kind:'provider',locale:'en-US',pron_score:86,fluency_score:81,prosody_score:84,
+      words:[{word:'Listen',accuracy_score:74,error_type:'Mispronunciation',phonemes:[{phoneme:'l',accuracy_score:70}]}]},
+    evidenceToken:'Listen'},
   {language:'zh',supportLanguage:'zh',payload:MEDIA_LEARNING_ZH_FIXTURE,text:'这是共享的原文字幕。',confidence:null},
 ];
 try{
   for(const item of renderedCases){
+    if(item.language==='zh'){
+      item.pronunciation={provider:'azure-speech',score_kind:'provider',locale:'zh-CN',pron_score:79,fluency_score:83,prosody_score:78,
+        words:[{word:'你',accuracy_score:72,error_type:'Mispronunciation',phonemes:[{phoneme:'nǐ',accuracy_score:68}]}]};
+      item.evidenceToken='nǐ';
+    }
     clearSharedMediaSession(item.language);
     assert.equal(setSharedMediaSession({
       learning_language:item.language,
@@ -582,11 +590,12 @@ try{
     state.language=item.language;
     state.supportLanguage=item.supportLanguage;
     let recording=false;
+    let renderedTake=null;
     const renderedRecorder={
-      snapshot(){return {status:recording?'recording':'idle',error:null,url:null,blob:null,mime_type:'audio/webm',supported:true};},
+      snapshot(){return {status:recording?'recording':renderedTake?'ready':'idle',error:null,url:recording?'blob:rendered':renderedTake?.url||null,blob:recording?null:renderedTake?.blob||null,mime_type:'audio/webm',supported:true};},
       async start(){recording=true;return true;},
-      async stop(){recording=false;return {blob:new Blob(['rendered take'],{type:'audio/webm'}),mime_type:'audio/webm',size:13,url:'blob:rendered'};},
-      discard(){recording=false;return true;},
+      async stop(){recording=false;renderedTake={blob:new Blob(['rendered take'],{type:'audio/webm'}),mime_type:'audio/webm',size:13,url:'blob:rendered'};return renderedTake;},
+      discard(){recording=false;renderedTake=null;return true;},
       cleanup(){},
     };
     api.transcribeSpeech=async()=>({
@@ -594,13 +603,13 @@ try{
       ...(item.confidence===null?{}:{confidence:item.confidence}),
       words:[],
     });
-    api.assessPronunciation=async()=>null;
-    let renderedEvaluationPayload=null;
+    api.assessPronunciation=async()=>item.pronunciation;
+    const renderedEvaluationPayloads=[];
     api.evaluateSpeaking=async payload=>{
-      renderedEvaluationPayload=payload;
+      renderedEvaluationPayloads.push(payload);
       return {
       language:payload.language,
-      dimensions:{transcription_confidence:payload.transcription_confidence,content_match:100,pronunciation:null,fluency:null,proficiency:null},
+      dimensions:{transcription_confidence:payload.transcription_confidence,content_match:100,pronunciation:payload.pronunciation?.pron_score??null,fluency:payload.pronunciation?.fluency_score??null,proficiency:null},
       evidence:{reference_text:payload.reference_text,transcript_text:payload.transcript_text},
       };
     };
@@ -619,10 +628,11 @@ try{
     }
     assert.equal(renderedController.model.asrStatus,'ready',`${item.language.toUpperCase()} rendered take should reach ASR`);
     assert.equal(renderedController.model.speakingEvaluationStatus,'ready',`${item.language.toUpperCase()} rendered take should reach evaluation`);
-    assert.equal(renderedEvaluationPayload.language,item.language);
-    assert.equal(renderedEvaluationPayload.reference_text,item.text);
-    assert.equal(renderedEvaluationPayload.transcript_text,item.text);
-    assert.equal(renderedEvaluationPayload.transcription_confidence,item.confidence);
+    assert.equal(renderedEvaluationPayloads[0].language,item.language);
+    assert.equal(renderedEvaluationPayloads[0].reference_text,item.text);
+    assert.equal(renderedEvaluationPayloads[0].transcript_text,item.text);
+    assert.equal(renderedEvaluationPayloads[0].transcription_confidence,item.confidence);
+    assert.equal(renderedEvaluationPayloads[0].pronunciation,null);
     assert.match(renderedRoot.innerHTML,/data-speaking-content-match/);
     assert.match(renderedRoot.innerHTML,/data-speaking-evaluation-state="ready"/);
     assert.equal(renderedRoot.innerHTML.includes(item.text),true);
@@ -634,6 +644,23 @@ try{
       assert.match(renderedRoot.innerHTML,/92/);
     }
     assert.match(renderedRoot.innerHTML,item.language==='zh'?/本次录音评估/:/Take evaluation/);
+    const pronunciationAction=renderedRoot.querySelector('[data-speaking-pronunciation-action]');
+    assert.ok(pronunciationAction,`${item.language.toUpperCase()} mounted take should expose pronunciation assessment`);
+    await pronunciationAction.click();
+    for(let attempt=0;attempt<100&&(
+      renderedController.model.pronunciationStatus==='loading'||
+      renderedController.model.speakingEvaluationStatus==='loading'
+    );attempt++){
+      await new Promise(resolve=>setTimeout(resolve,0));
+    }
+    assert.equal(renderedController.model.pronunciationStatus,'ready',`${item.language.toUpperCase()} provider evidence should resolve`);
+    assert.equal(renderedController.model.speakingEvaluationStatus,'ready',`${item.language.toUpperCase()} pronunciation feedback should resolve`);
+    const pronunciationEvaluationPayload=renderedEvaluationPayloads.at(-1);
+    assert.deepEqual(pronunciationEvaluationPayload.pronunciation,item.pronunciation);
+    assert.equal(renderedController.model.speakingEvaluation.dimensions.pronunciation,item.pronunciation.pron_score);
+    assert.equal(renderedController.model.speakingEvaluation.dimensions.fluency,item.pronunciation.fluency_score);
+    assert.match(renderedRoot.innerHTML,/data-speaking-pronunciation-evidence/);
+    assert.match(renderedRoot.innerHTML,new RegExp(item.evidenceToken));
     renderedRoot._cleanupScreen?.();
   }
 }finally{
