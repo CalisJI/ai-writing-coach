@@ -470,8 +470,8 @@ The post-R5 roadmap uses one primary learner-visible lane.
   mounted Admin contract and verifies the canonical API/backend contract
   boundaries; credentialed provider health and runtime activation remain
   explicit human-gated deferrals in `R13_LOCAL_ACCEPTANCE_MATRIX.json`.
-- **R14 — AI Usage, Cost, Quota & Provider Operations: IN PROGRESS / LOCAL
-  FOUNDATION.** Existing provider-backed structured-generation and Platform
+- **R14 — AI Usage, Cost, Quota & Provider Operations: COMPLETE / LOCAL
+  ACCEPTANCE PASS.** Existing provider-backed structured-generation and Platform
   Admin live-test boundaries now expose one sanitized capability/provider/model/
   latency/usage telemetry shape. Missing token or quota data remains unknown;
   durable events now use the existing PostgreSQL audit boundary and read-only
@@ -494,6 +494,12 @@ The post-R5 roadmap uses one primary learner-visible lane.
   provider/model pair. Admin can explicitly check standby readiness and shows
   sanitized provenance, while learner routing remains primary-only and never
   performs automatic retry or failover.
+- The deterministic `scripts/r14_release_matrix.mjs` runner now verifies the
+  mounted Admin operations behavior and records the telemetry, persistence,
+  aggregation, pricing, and provider-control boundaries as local contract
+  evidence in `R14_LOCAL_ACCEPTANCE_MATRIX.json`. Credentialed provider
+  validation, production observation, billing/quota enforcement, and learner
+  runtime activation remain explicit human-gated deferrals.
 - **R2 — AI Capability Control Plane: HUMAN GATE / READY.**
   Static/runtime support exists. Production migration/config initialization,
   credentialed validation, activation, and rollback execution remain human

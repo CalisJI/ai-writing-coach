@@ -190,3 +190,44 @@ def test_r12_local_retention_foundation_closeout_is_recorded() -> None:
     assert "| R12 | Retention & Growth | PLANNED |" in roadmap
     for script in (return_test, habit_test, plan_test, onboarding_test):
         assert "en" in script and "zh" in script
+
+
+def test_r14_local_operations_foundation_closeout_is_recorded() -> None:
+    project_state = (ROOT / "docs/project/PROJECT_STATE.md").read_text(encoding="utf-8")
+    handoff = (ROOT / "docs/project/CURRENT_HANDOFF.md").read_text(encoding="utf-8")
+    roadmap = (ROOT / "docs/project/ROADMAP.md").read_text(encoding="utf-8")
+    report = (ROOT / "docs/project/R14_LOCAL_ACCEPTANCE_MATRIX.json").read_text(encoding="utf-8")
+    runner = (ROOT / "scripts/r14_release_matrix.mjs").read_text(encoding="utf-8")
+    telemetry_tests = (ROOT / "tests/test_ai_telemetry.py").read_text(encoding="utf-8")
+    control_plane_tests = (ROOT / "tests/test_ai_control_plane.py").read_text(encoding="utf-8")
+
+    state_start = project_state.find("R14 — AI Usage, Cost, Quota & Provider Operations:")
+    assert state_start >= 0
+    state_section = project_state[state_start:state_start + 700]
+    assert "COMPLETE / LOCAL" in state_section
+    assert "ACCEPTANCE PASS" in state_section
+    assert "IN PROGRESS / LOCAL FOUNDATION" not in state_section
+    assert "R14 — AI Usage, Cost, Quota & Provider Operations: **COMPLETE / LOCAL ACCEPTANCE PASS**" in handoff
+    assert "R14 local-operations closeout" in handoff
+    assert "| R14 | AI Usage, Cost, Quota & Provider Operations | PLANNED / POST-R12 PLATFORM TRACK |" in roadmap
+
+    assert '"matrix": "R14-local-ai-operations-foundation"' in report
+    assert '"r14_local_complete": true' in report
+    assert '"scope": "mounted-behavior"' in report
+    assert '"scope": "source-and-test-boundary"' in report
+    for gate in (
+        "provider_credentials",
+        "billing_or_quota_enforcement",
+        "learner_runtime_activation",
+        "production_postgresql_observation",
+    ):
+        assert f'"gate": "{gate}"' in report
+    assert "canonical R14 matrix report is stale" in runner
+    assert "test_r13_admin_capability_matrix.mjs" in runner
+    for contract in (
+        "test_success_telemetry_keeps_capability_provider_model_and_reported_usage",
+        "test_admin_operations_aggregates_cost_by_catalog_and_trend",
+        "test_operations_endpoint_is_read_only_and_aggregates_without_provider_probe",
+        "test_live_test_failure_taxonomy_is_distinct_and_sanitized",
+    ):
+        assert contract in telemetry_tests or contract in control_plane_tests

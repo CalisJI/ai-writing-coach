@@ -82,7 +82,15 @@ function runAdmin(configResponses, operationResponse={ok:true,json:async()=>({av
   };
   const calls=[];
   const supplied=Array.isArray(configResponses)?[...configResponses]:[configResponses];
-  const responses=[{ok:true,json:async()=>({is_admin:true})}, supplied.shift(), operationResponse, ...supplied];
+  const responses=[
+    {ok:true,json:async()=>({is_admin:true})},
+    supplied.shift(),
+    operationResponse,
+    {ok:true,json:async()=>({available:true,has_data:false,skills:[]})},
+    {ok:true,json:async()=>({available:true,state:'no_data',evidence_state:'no_data',indicators:[]})},
+    {ok:true,json:async()=>({account:{available:true}})},
+    ...supplied,
+  ];
   const context={
     document,
     fetch:async(url,options={})=>{
@@ -134,7 +142,7 @@ assert.doesNotMatch(linguisticRow,/data-save-capability=/);
 assert.doesNotMatch(speechRow,/data-save-capability=/);
 assert.doesNotMatch(matrix,/secret|token|api_key/i);
 assert.doesNotMatch(modelGrid,/data-use-provider|data-test-provider/);
-assert.deepEqual(rendered.calls.map(call=>call.method),['GET','GET','GET']);
+assert.deepEqual(rendered.calls.map(call=>call.method),['GET','GET','GET','GET','GET','GET']);
 assert.match(rendered.elements.get('#adminOperations').innerHTML,/No operation data yet/);
 const populatedOperations=await runAdmin({ok:true,json:async()=>payload},{ok:true,json:async()=>({
   available:true,has_data:true,
@@ -178,7 +186,7 @@ const healthButton=healthSuccess.elements.get('#adminCapabilityMatrix').querySel
 assert.equal(healthButton.dataset.healthCapability,'writing_evaluator');
 await healthButton.click();
 assert.equal(healthButton.closest().querySelector('[data-capability-health-status]').textContent,'Healthy · 23 ms');
-assert.deepEqual(healthSuccess.calls.map(call=>call.method),['GET','GET','GET','POST']);
+assert.deepEqual(healthSuccess.calls.map(call=>call.method),['GET','GET','GET','GET','GET','GET','POST']);
 
 const healthFailure=await runAdmin([
   {ok:true,json:async()=>payload},
@@ -201,7 +209,7 @@ assert.match(standbyMarkup,/Standby provider/);
 assert.match(standbyMarkup,/data-health-standby-capability="writing_evaluator"/);
 const standbyButton=standbyReady.elements.get('#adminCapabilityMatrix').querySelectorAll('[data-health-standby-capability]')[0];
 await standbyButton.click();
-assert.equal(standbyReady.calls[3].url,'/api/admin/ai/test/writing_evaluator?standby=true');
+assert.equal(standbyReady.calls[6].url,'/api/admin/ai/test/writing_evaluator?standby=true');
 assert.equal(standbyButton.closest().querySelector('[data-capability-standby-health-status]').textContent,'Standby healthy · 21 ms');
 
 const saveResponses=[
@@ -215,9 +223,9 @@ assert.equal(saveButton.dataset.saveCapability,'writing_evaluator');
 saveButton.closest().querySelector('[data-capability-model]').value='model-2';
 await saveButton.click();
 await new Promise(resolve=>setTimeout(resolve,0));
-assert.deepEqual(editable.calls.map(call=>call.method),['GET','GET','GET','PUT','GET']);
-assert.equal(editable.calls[3].url,'/api/admin/ai/config/writing_evaluator');
-assert.deepEqual(JSON.parse(editable.calls[3].body),{
+assert.deepEqual(editable.calls.map(call=>call.method),['GET','GET','GET','GET','GET','GET','PUT','GET']);
+assert.equal(editable.calls[6].url,'/api/admin/ai/config/writing_evaluator');
+assert.deepEqual(JSON.parse(editable.calls[6].body),{
   enabled:true, provider:'openai', model:'model-2', backup_provider:null, backup_model:null, timeout_seconds:45, temperature:0.4, fallback_policy:'none',
 });
 assert.equal(editable.elements.get('#adminAiMessage').textContent,'Capability configuration saved. Learner runtime remains unchanged.');
@@ -229,7 +237,7 @@ const rejected=await runAdmin([
 const rejectedButton=rejected.elements.get('#adminCapabilityMatrix').querySelectorAll('[data-save-capability]')[0];
 await rejectedButton.click();
 await new Promise(resolve=>setTimeout(resolve,0));
-assert.deepEqual(rejected.calls.map(call=>call.method),['GET','GET','GET','PUT']);
+assert.deepEqual(rejected.calls.map(call=>call.method),['GET','GET','GET','GET','GET','GET','PUT']);
 assert.equal(rejected.elements.get('#adminAiMessage').textContent,'Capability configuration could not be saved.');
 assert.doesNotMatch(rejected.elements.get('#adminAiMessage').textContent,/super-secret|token/i);
 
@@ -241,7 +249,7 @@ const refreshAfterSaveFailure=await runAdmin([
 const committedButton=refreshAfterSaveFailure.elements.get('#adminCapabilityMatrix').querySelectorAll('[data-save-capability]')[0];
 await committedButton.click();
 await new Promise(resolve=>setTimeout(resolve,0));
-assert.deepEqual(refreshAfterSaveFailure.calls.map(call=>call.method),['GET','GET','GET','PUT','GET']);
+assert.deepEqual(refreshAfterSaveFailure.calls.map(call=>call.method),['GET','GET','GET','GET','GET','GET','PUT','GET']);
 assert.match(refreshAfterSaveFailure.elements.get('#adminCapabilityMatrix').innerHTML,/Capability matrix is unavailable/);
 assert.equal(refreshAfterSaveFailure.elements.get('#adminAiMessage').textContent,'Capability configuration saved, but Admin could not refresh.');
 

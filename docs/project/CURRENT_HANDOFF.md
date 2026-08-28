@@ -109,6 +109,13 @@ baseline.
   primary. Admin exposes sanitized primary/standby provenance and a distinct
   click-only standby health check; learner runtime remains primary-only with no
   automatic retries or cross-provider failover.
+- **R14 local-operations closeout:** COMPLETE / LOCAL ACCEPTANCE PASS. The
+  deterministic `scripts/r14_release_matrix.mjs` runner verifies the mounted
+  Admin operations view and records the telemetry, PostgreSQL audit boundary,
+  bounded aggregation, pricing, and provider-control contracts in
+  `R14_LOCAL_ACCEPTANCE_MATRIX.json`. Credentialed provider checks, production
+  observation, billing/quota enforcement, and learner runtime activation remain
+  human-gated and deferred.
 - R13 local acceptance is now closed by the deterministic
   `scripts/r13_release_matrix.mjs` runner and
   `docs/project/R13_LOCAL_ACCEPTANCE_MATRIX.json`. The matrix executes the
@@ -118,7 +125,7 @@ baseline.
 
 - R6 — Speaking Core: **COMPLETE / LOCAL ACCEPTANCE PASS**
 - R2 — AI Capability Control Plane: **HUMAN GATE / READY, NOT PRODUCT-BLOCKING**
-- R14 — AI Usage, Cost, Quota & Provider Operations: **IN PROGRESS / LOCAL FOUNDATION**
+- R14 — AI Usage, Cost, Quota & Provider Operations: **COMPLETE / LOCAL ACCEPTANCE PASS**
 
 - R15 - SaaS Plans, Entitlements & Usage Policy: **COMPLETE / LOCAL ACCEPTANCE PASS**
 
