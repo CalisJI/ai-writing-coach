@@ -128,6 +128,10 @@
     return compatible.map(provider=>`<option value="${esc(provider.id)}" ${provider.id===selected?'selected':''}>${esc(provider.name || provider.id)}</option>`).join('');
   }
 
+  function backupProviderOptions(capability, selected){
+    return `<option value="">No standby provider</option>${capabilityProviderOptions(capability, selected || '')}`;
+  }
+
   function capabilityHealthLabel(errorClass){
     const labels = Object.create(null);
     labels.capability_disabled = 'Capability disabled';
@@ -161,6 +165,8 @@
           const provider = config.provider || '—';
           const model = config.model || '—';
           const editableModel = config.model_redacted ? '' : (config.model || '');
+          const backupProvider = config.backup_provider || '';
+          const backupModel = config.backup_model_redacted ? '' : (config.backup_model || '');
           const provenance = capability.config_provenance || {};
           const savedState = provenance.saved
             ? `${provenance.updated_at ? `Saved ${provenance.updated_at}` : 'Saved configuration'}${provenance.updated_by_present ? ' · Updated by administrator' : ''}`
@@ -172,10 +178,13 @@
             <div class="admin-capability-controls">
               <label>Provider<select data-capability-provider>${capabilityProviderOptions(capability, config.provider || providers[0]?.id || '')}</select></label>
               <label>Model<input data-capability-model type="text" maxlength="160" value="${esc(editableModel)}" placeholder="Model identifier"></label>
+              <label>Standby provider<select data-capability-backup-provider>${backupProviderOptions(capability, backupProvider)}</select></label>
+              <label>Standby model<input data-capability-backup-model type="text" maxlength="160" value="${esc(backupModel)}" placeholder="Optional standby model"></label>
               <label class="admin-capability-enabled"><input data-capability-enabled type="checkbox" ${config.enabled === false?'':'checked'}> Enabled</label>
               <button class="primary compact" type="button" data-save-capability="${esc(capability.key)}" data-capability-fallback="${esc(config.fallback_policy || (capability.allowed_fallback_policies || ['none'])[0])}" data-capability-timeout="${esc(config.timeout_seconds ?? '')}" data-capability-temperature="${esc(config.temperature ?? '')}">Save configuration</button>
               <small>Saved configuration only · learner runtime remains ${esc(learnerRuntime.mode || 'unknown')}</small>
               ${capability.explicit_config_exists && config.enabled !== false ? '<button class="ghost compact" type="button" data-health-capability="'+esc(capability.key)+'">Verify health</button><small data-capability-health-status></small>' : ''}
+              ${capability.explicit_config_exists && config.enabled !== false && backupProvider && backupModel ? '<button class="ghost compact" type="button" data-health-standby-capability="'+esc(capability.key)+'">Verify standby</button><small data-capability-standby-health-status></small>' : ''}
             </div>` : '';
           return `<div class="admin-capability-row" role="row" data-capability-key="${esc(capability.key)}">
             <span role="cell"><b>${esc(capability.key)}</b><small>${esc(runtime)}</small></span>
@@ -191,6 +200,9 @@
       }));
     });
     host.querySelectorAll('[data-health-capability]').forEach(button=>{
+      button.addEventListener('click',()=>runCapabilityHealth(button));
+    });
+    host.querySelectorAll('[data-health-standby-capability]').forEach(button=>{
       button.addEventListener('click',()=>runCapabilityHealth(button));
     });
   }
@@ -211,6 +223,8 @@
     const row = button?.closest?.('[data-capability-key]');
     const provider = row?.querySelector?.('[data-capability-provider]')?.value || '';
     const model = row?.querySelector?.('[data-capability-model]')?.value || '';
+    const backupProvider = row?.querySelector?.('[data-capability-backup-provider]')?.value || '';
+    const backupModel = row?.querySelector?.('[data-capability-backup-model]')?.value || '';
     const enabled = row?.querySelector?.('[data-capability-enabled]')?.checked !== false;
     const fallbackPolicy = button?.dataset?.capabilityFallback || 'none';
     const timeoutValue = button?.dataset?.capabilityTimeout || '';
@@ -225,6 +239,8 @@
           enabled,
           provider,
           model:String(model).trim(),
+          backup_provider: backupProvider || null,
+          backup_model: String(backupModel).trim() || null,
           timeout_seconds: timeoutValue === '' ? null : Number(timeoutValue),
           temperature: temperatureValue === '' ? null : Number(temperatureValue),
           fallback_policy:fallbackPolicy,
@@ -246,24 +262,27 @@
   }
 
   async function runCapabilityHealth(button){
-    const key = button?.dataset?.healthCapability;
+    const standby = button?.dataset?.healthStandbyCapability ? true : false;
+    const key = button?.dataset?.healthCapability || button?.dataset?.healthStandbyCapability;
     const row = button?.closest?.('[data-capability-key]');
     const status = row?.querySelector?.('[data-capability-health-status]');
+    const standbyStatus = row?.querySelector?.('[data-capability-standby-health-status]');
+    const targetStatus = standby ? standbyStatus : status;
     if(!key) return;
     button.disabled = true;
-    if(status) status.textContent = 'Checking…';
+    if(targetStatus) targetStatus.textContent = 'Checking…';
     try{
-      const response = await fetch(`/api/admin/ai/test/${encodeURIComponent(key)}`,{method:'POST'});
+      const response = await fetch(`/api/admin/ai/test/${encodeURIComponent(key)}${standby ? '?standby=true' : ''}`,{method:'POST'});
       const data = await response.json();
       if(!response.ok){
         const errorClass = data?.detail?.error_class || data?.error_class;
-        if(status) status.textContent = capabilityHealthLabel(errorClass);
+        if(targetStatus) targetStatus.textContent = capabilityHealthLabel(errorClass);
         return;
       }
       const latency = Number.isFinite(Number(data?.latency_ms)) ? ` · ${Number(data.latency_ms)} ms` : '';
-      if(status) status.textContent = `Healthy${latency}`;
+      if(targetStatus) targetStatus.textContent = `${standby ? 'Standby healthy' : 'Healthy'}${latency}`;
     }catch(_error){
-      if(status) status.textContent = 'Health check failed';
+      if(targetStatus) targetStatus.textContent = 'Health check failed';
     }finally{
       button.disabled = false;
     }

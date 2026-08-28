@@ -72,6 +72,8 @@ class CapabilityConfigIn(BaseModel):
     enabled: bool
     provider: str = Field(min_length=1, max_length=40)
     model: str = Field(min_length=1, max_length=160)
+    backup_provider: str | None = Field(default=None, min_length=1, max_length=40)
+    backup_model: str | None = Field(default=None, min_length=1, max_length=160)
     timeout_seconds: int | None = None
     temperature: float | None = None
     fallback_policy: str = "none"
@@ -412,6 +414,8 @@ def _capability_config(payload: CapabilityConfigIn) -> CapabilityConfig:
         enabled=payload.enabled,
         provider=payload.provider,
         model=payload.model,
+        backup_provider=payload.backup_provider,
+        backup_model=payload.backup_model,
         timeout_seconds=payload.timeout_seconds,
         temperature=payload.temperature,
         fallback_policy=payload.fallback_policy,
@@ -439,6 +443,8 @@ def _live_failure(
     control_plane: AIControlPlane,
     capability_key: str,
     exc: Exception,
+    *,
+    standby: bool = False,
 ) -> HTTPException:
     if isinstance(exc, AICapabilityDisabled):
         status, error_class, message = 409, "capability_disabled", "Capability is disabled."
@@ -462,7 +468,7 @@ def _live_failure(
         raise exc
 
     try:
-        context = control_plane.diagnostic_context(capability_key)
+        context = control_plane.diagnostic_context(capability_key, standby=standby)
     except (AICapabilityConfigInvalid, AICapabilityUnsupported):
         context = {
             "capability": "[invalid]",
@@ -500,11 +506,15 @@ def _live_failure(
 
 
 @router.post("/test/{capability_key}")
-def admin_ai_capability_test(capability_key: str, request: Request) -> dict[str, Any]:
+def admin_ai_capability_test(
+    capability_key: str,
+    request: Request,
+    standby: bool = False,
+) -> dict[str, Any]:
     _require_admin(request)
     control_plane = AIControlPlane(_installed_platform_repository())
     try:
-        return control_plane.live_test(capability_key)
+        return control_plane.live_test(capability_key, standby=standby)
     except (
         AICapabilityConfigInvalid,
         AICapabilityDisabled,
@@ -512,7 +522,7 @@ def admin_ai_capability_test(capability_key: str, request: Request) -> dict[str,
         AICapabilityUnsupported,
         AIProviderError,
     ) as exc:
-        raise _live_failure(control_plane, capability_key, exc) from exc
+        raise _live_failure(control_plane, capability_key, exc, standby=standby) from exc
 
 
 def install_platform_ai(

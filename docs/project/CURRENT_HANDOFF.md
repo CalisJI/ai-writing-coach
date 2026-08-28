@@ -86,6 +86,11 @@ baseline.
   aggregates group only estimated amounts by currency/catalog version. No
   billing, quota enforcement, live price fetching, or provider activation is
   implied.
+- R14 capability administration now persists an optional complete standby
+  provider/model pair with the same static compatibility validation as the
+  primary. Admin exposes sanitized primary/standby provenance and a distinct
+  click-only standby health check; learner runtime remains primary-only with no
+  automatic retries or cross-provider failover.
 - R13 local acceptance is now closed by the deterministic
   `scripts/r13_release_matrix.mjs` runner and
   `docs/project/R13_LOCAL_ACCEPTANCE_MATRIX.json`. The matrix executes the

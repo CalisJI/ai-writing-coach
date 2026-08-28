@@ -229,7 +229,9 @@ def test_get_is_capability_centric_network_free_and_secret_safe(
     repository = FakeRepository()
     repository.legacy = AISelectionRecord("openai", "https://legacy:super-secret@example.invalid")
     repository.capabilities["writing_evaluator"] = capability_config(
-        model="abc?api_key=super-secret"
+        model="abc?api_key=super-secret",
+        backup_provider="deepseek",
+        backup_model="https://backup.invalid/model?token=super-secret",
     )
     repository.capability_metadata["writing_evaluator"] = (
         "2026-08-28T14:00:00+07:00",
@@ -261,6 +263,8 @@ def test_get_is_capability_centric_network_free_and_secret_safe(
     ))
     assert states["writing_evaluator"]["config"]["model"] == "[redacted]"
     assert states["writing_evaluator"]["config"]["model_redacted"] is True
+    assert states["writing_evaluator"]["config"]["backup_model"] == "[redacted]"
+    assert states["writing_evaluator"]["config"]["backup_model_redacted"] is True
     assert states["writing_evaluator"]["config_provenance"] == {
         "saved": True,
         "updated_at": "2026-08-28T14:00:00+07:00",
@@ -371,6 +375,70 @@ def test_capability_put_updates_one_row_offline_without_legacy_or_network(
     assert repository.legacy_writes == []
     assert offline.discovery_calls == 0
     assert offline.generation_calls == []
+
+
+def test_capability_backup_configuration_is_persisted_and_inspected_safely(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    repository = FakeRepository()
+    request = configure_platform(monkeypatch, repository)
+    response = platform_module.admin_ai_capability_config_update(
+        "writing_evaluator",
+        platform_module.CapabilityConfigIn(**valid_payload(
+            backup_provider="deepseek", backup_model="deepseek-chat"
+        )),
+        request,
+    )
+    saved = repository.capabilities["writing_evaluator"]
+    assert saved.backup_provider == "deepseek"
+    assert saved.backup_model == "deepseek-chat"
+    assert response["config"]["backup_provider"] == "deepseek"
+    assert response["config"]["backup_model"] == "deepseek-chat"
+    inspected = platform_module.admin_ai_config(request)
+    config = next(item for item in inspected["capabilities"] if item["key"] == "writing_evaluator")["config"]
+    assert config["backup_provider"] == "deepseek"
+    assert config["backup_model"] == "deepseek-chat"
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [
+        valid_payload(backup_provider="deepseek"),
+        valid_payload(backup_model="deepseek-chat"),
+        valid_payload(backup_provider="unknown", backup_model="model-2"),
+    ],
+)
+def test_capability_backup_configuration_requires_supported_complete_pair(
+    monkeypatch: pytest.MonkeyPatch,
+    payload: dict[str, Any],
+) -> None:
+    repository = FakeRepository()
+    request = configure_platform(monkeypatch, repository)
+    with pytest.raises(HTTPException) as caught:
+        platform_module.admin_ai_capability_config_update(
+            "writing_evaluator", platform_module.CapabilityConfigIn(**payload), request
+        )
+    assert caught.value.status_code == 400
+    assert repository.capabilities == {}
+
+
+def test_standby_health_check_is_explicit_and_does_not_touch_primary(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    repository = FakeRepository()
+    repository.capabilities["writing_evaluator"] = capability_config(
+        backup_provider="deepseek", backup_model="deepseek-chat"
+    )
+    primary = FakeProvider()
+    standby = FakeProvider(id="deepseek", name="DeepSeek API", models=("deepseek-chat",))
+    request = configure_platform(monkeypatch, repository, providers={"openai": primary, "deepseek": standby})
+    result = platform_module.admin_ai_capability_test("writing_evaluator", request, standby=True)
+    assert result["provider"] == "deepseek"
+    assert result["model"] == "deepseek-chat"
+    assert primary.discovery_calls == 0
+    assert primary.generation_calls == []
+    assert standby.discovery_calls == 1
+    assert standby.generation_calls[0]["model"] == "deepseek-chat"
 
 
 @pytest.mark.parametrize(

@@ -120,6 +120,19 @@ def test_absent_or_malformed_usage_remains_unknown(monkeypatch: pytest.MonkeyPat
     assert result.runtime["telemetry"]["quota_available"] == "unknown"
 
 
+def test_backup_configuration_does_not_change_primary_runtime_routing(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    primary = Provider()
+    result = invoke(
+        monkeypatch,
+        primary,
+        config(backup_provider="deepseek", backup_model="deepseek-chat"),
+    )
+    assert result.provider == "openai"
+    assert result.model == "telemetry-model"
+
+
 def test_rate_limit_telemetry_keeps_only_safe_numeric_evidence() -> None:
     safe = sanitize_telemetry({
         "capability": "writing_evaluator",

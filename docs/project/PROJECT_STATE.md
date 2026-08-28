@@ -447,6 +447,10 @@ The post-R5 roadmap uses one primary learner-visible lane.
   catalog version for capability and seven-day trend buckets; this is
   observation only, with no billing, quota enforcement, live price fetching,
   or provider activation.
+- R14 capability settings also support an optional validated standby
+  provider/model pair. Admin can explicitly check standby readiness and shows
+  sanitized provenance, while learner routing remains primary-only and never
+  performs automatic retry or failover.
 - **R2 — AI Capability Control Plane: HUMAN GATE / READY.**
   Static/runtime support exists. Production migration/config initialization,
   credentialed validation, activation, and rollback execution remain human

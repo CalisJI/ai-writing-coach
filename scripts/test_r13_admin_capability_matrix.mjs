@@ -21,10 +21,10 @@ class FakeElement{
   closest(){return null;}
   querySelector(){return null;}
   querySelectorAll(selector){
-    if(selector !== '[data-save-capability]' && selector !== '[data-health-capability]') return [];
+    if(selector !== '[data-save-capability]' && selector !== '[data-health-capability]' && selector !== '[data-health-standby-capability]') return [];
     if(this._childrenBySelector?.has(selector)) return this._childrenBySelector.get(selector);
     const controls=[];
-    const attributeName=selector === '[data-save-capability]' ? 'data-save-capability' : 'data-health-capability';
+    const attributeName=selector === '[data-save-capability]' ? 'data-save-capability' : selector === '[data-health-capability]' ? 'data-health-capability' : 'data-health-standby-capability';
     const pattern=new RegExp(`<button[^>]*${attributeName}="([^"]+)"[^>]*>`, 'g');
     let match;
     while((match=pattern.exec(this._innerHTML))){
@@ -33,13 +33,19 @@ class FakeElement{
       const row=new FakeElement();
       const provider=new FakeElement(); provider.value='openai';
       const model=new FakeElement(); model.value='model-1';
+      const backupProvider=new FakeElement(); backupProvider.value='';
+      const backupModel=new FakeElement(); backupModel.value='';
       const enabled=new FakeElement(); enabled.checked=true;
       const healthStatus=new FakeElement();
+      const standbyHealthStatus=new FakeElement();
       row.querySelector=(query)=>({
         '[data-capability-provider]':provider,
         '[data-capability-model]':model,
+        '[data-capability-backup-provider]':backupProvider,
+        '[data-capability-backup-model]':backupModel,
         '[data-capability-enabled]':enabled,
         '[data-capability-health-status]':healthStatus,
+        '[data-capability-standby-health-status]':standbyHealthStatus,
       }[query] || null);
       const button=new FakeElement();
       if(selector === '[data-save-capability]'){
@@ -47,8 +53,10 @@ class FakeElement{
         button.dataset.capabilityFallback=attribute('data-capability-fallback');
         button.dataset.capabilityTimeout=attribute('data-capability-timeout');
         button.dataset.capabilityTemperature=attribute('data-capability-temperature');
-      }else{
+      }else if(selector === '[data-health-capability]'){
         button.dataset.healthCapability=key;
+      }else{
+        button.dataset.healthStandbyCapability=key;
       }
       button.closest=()=>row;
       controls.push(button);
@@ -181,6 +189,21 @@ await failingHealth.click();
 assert.equal(failingHealth.closest().querySelector('[data-capability-health-status]').textContent,'Provider unavailable');
 assert.doesNotMatch(healthFailure.elements.get('#adminCapabilityMatrix').innerHTML,/super-secret|token/i);
 
+const backupPayload=structuredClone(payload);
+backupPayload.capabilities[0].config.backup_provider='deepseek';
+backupPayload.capabilities[0].config.backup_model='deepseek-chat';
+const standbyReady=await runAdmin([
+  {ok:true,json:async()=>backupPayload},
+  {ok:true,json:async()=>({ok:true,capability:'writing_evaluator',provider:'deepseek',model:'deepseek-chat',latency_ms:21})},
+]);
+const standbyMarkup=standbyReady.elements.get('#adminCapabilityMatrix').innerHTML;
+assert.match(standbyMarkup,/Standby provider/);
+assert.match(standbyMarkup,/data-health-standby-capability="writing_evaluator"/);
+const standbyButton=standbyReady.elements.get('#adminCapabilityMatrix').querySelectorAll('[data-health-standby-capability]')[0];
+await standbyButton.click();
+assert.equal(standbyReady.calls[3].url,'/api/admin/ai/test/writing_evaluator?standby=true');
+assert.equal(standbyButton.closest().querySelector('[data-capability-standby-health-status]').textContent,'Standby healthy · 21 ms');
+
 const saveResponses=[
   {ok:true,json:async()=>payload},
   {ok:true,json:async()=>({capability:'writing_evaluator',config:{enabled:true,provider:'openai',model:'model-2'}})},
@@ -195,7 +218,7 @@ await new Promise(resolve=>setTimeout(resolve,0));
 assert.deepEqual(editable.calls.map(call=>call.method),['GET','GET','GET','PUT','GET']);
 assert.equal(editable.calls[3].url,'/api/admin/ai/config/writing_evaluator');
 assert.deepEqual(JSON.parse(editable.calls[3].body),{
-  enabled:true, provider:'openai', model:'model-2', timeout_seconds:45, temperature:0.4, fallback_policy:'none',
+  enabled:true, provider:'openai', model:'model-2', backup_provider:null, backup_model:null, timeout_seconds:45, temperature:0.4, fallback_policy:'none',
 });
 assert.equal(editable.elements.get('#adminAiMessage').textContent,'Capability configuration saved. Learner runtime remains unchanged.');
 

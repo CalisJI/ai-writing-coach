@@ -734,3 +734,23 @@ capability and bounded trend buckets. Pricing changes require a new catalog
 version; no live price fetching or learner-facing behavior is introduced.
 
 **Supersedes / Superseded by:** Supersedes no earlier decision.
+
+## D-035 - Standby provider configuration is explicit and non-routing
+
+**Status:** Accepted
+
+**Decision:** R14 capability configuration may persist an optional, complete
+standby provider/model pair after the same static operation validation as the
+primary pair. Admin may run a click-only standby health check against that
+saved pair. Learner runtime routing remains primary-only; no automatic retry,
+cross-provider failover, or activation is implied.
+
+**Reason:** Operators need readiness evidence without coupling preparation of a
+backup to learner traffic or silently changing provider behavior.
+
+**Consequences:** PostgreSQL platform settings and the Admin capability matrix
+expose sanitized primary/standby configuration provenance. Standby checks are
+explicit requests and remain subject to existing server-managed credentials and
+human release gates.
+
+**Supersedes / Superseded by:** Supersedes no earlier decision.

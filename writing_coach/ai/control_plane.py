@@ -199,6 +199,9 @@ def _sanitized_config(config: CapabilityConfig) -> dict[str, Any]:
     model, redacted = safe_model_display(config.model)
     value["model"] = model
     value["model_redacted"] = redacted
+    backup_model, backup_redacted = safe_model_display(config.backup_model)
+    value["backup_model"] = backup_model or None
+    value["backup_model_redacted"] = backup_redacted
     return value
 
 
@@ -444,7 +447,7 @@ class AIControlPlane:
             )
         return row.config
 
-    def live_test(self, capability_key: str) -> dict[str, Any]:
+    def live_test(self, capability_key: str, *, standby: bool = False) -> dict[str, Any]:
         started = perf_counter()
         provider: str | None = None
         model: str | None = None
@@ -454,9 +457,11 @@ class AIControlPlane:
             telemetry_capability = definition.key
             row = self.repository.get_capability_config(definition.key)
             if row is not None:
-                provider = row.config.provider
-                model = row.config.model
-            result = self._live_test(capability_key)
+                provider = row.config.backup_provider if standby else row.config.provider
+                model = row.config.backup_model if standby else row.config.model
+            if standby and (provider is None or model is None):
+                raise AICapabilityConfigInvalid("Capability has no configured standby provider/model.")
+            result = self._live_test(capability_key, standby=standby)
             reported_usage = result.pop("_telemetry_usage", None)
             reported_rate_limit = result.pop("_telemetry_rate_limit", None)
             model_display, model_redacted = safe_model_display(result.get("model"))
@@ -499,7 +504,7 @@ class AIControlPlane:
             self._record_operation(exc.telemetry)
             raise
 
-    def _live_test(self, capability_key: str) -> dict[str, Any]:
+    def _live_test(self, capability_key: str, *, standby: bool = False) -> dict[str, Any]:
         """Run one small request against an explicitly configured capability."""
 
         definition = require_capability(capability_key)
@@ -508,14 +513,18 @@ class AIControlPlane:
             raise AICapabilityDisabled(f"AI capability {definition.key!r} is disabled.")
         validate_capability_config(definition.key, config)
 
-        runtime = self.provider_factory().get(config.provider)
+        provider_id = config.backup_provider if standby else config.provider
+        model_id = config.backup_model if standby else config.model
+        if provider_id is None or model_id is None:
+            raise AICapabilityConfigInvalid("Capability has no configured standby provider/model.")
+        runtime = self.provider_factory().get(provider_id)
         if runtime is None or not getattr(runtime, "configured", False):
             raise AIProviderNotConfigured("AI provider is not configured on the server.")
 
         models = runtime.discover_models_live()
         if not models:
             raise AIModelCatalogEmpty("AI provider returned an empty model catalog.")
-        if config.model not in models:
+        if model_id not in models:
             raise AIModelUnavailable("Configured AI model is not available.")
 
         schema = {
@@ -543,7 +552,7 @@ class AIControlPlane:
                 },
             ],
             schema=schema,
-            model=config.model,
+            model=model_id,
             max_output_tokens=40,
             temperature=config.temperature if config.temperature is not None else 0.0,
         )
@@ -555,11 +564,11 @@ class AIControlPlane:
         ):
             raise AIProviderResponseInvalid("AI provider response failed capability validation.")
 
-        model, redacted = safe_model_display(config.model)
+        model, redacted = safe_model_display(model_id)
         return {
             "ok": True,
             "capability": definition.key,
-            "provider": config.provider,
+            "provider": provider_id,
             "model": model,
             "model_redacted": redacted,
             "latency_ms": latency_ms,
@@ -568,17 +577,18 @@ class AIControlPlane:
             "_telemetry_rate_limit": normalized_rate_limit(result.runtime.get("rate_limit")),
         }
 
-    def diagnostic_context(self, capability_key: str) -> dict[str, Any]:
+    def diagnostic_context(self, capability_key: str, *, standby: bool = False) -> dict[str, Any]:
         """Load only safe identifiers for a failed live-test response."""
 
         definition = require_capability(capability_key)
         row = self.repository.get_capability_config(definition.key)
         if row is None:
             return {"capability": definition.key, "provider": None, "model": None, "model_redacted": False}
-        model, redacted = safe_model_display(row.config.model)
+        provider = row.config.backup_provider if standby else row.config.provider
+        model, redacted = safe_model_display(row.config.backup_model if standby else row.config.model)
         return {
             "capability": definition.key,
-            "provider": row.config.provider,
+            "provider": provider,
             "model": model,
             "model_redacted": redacted,
         }
