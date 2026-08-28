@@ -99,7 +99,9 @@ from writing_coach.becoming_reading import ReadingAnswerIn, ReadingGenerateIn, c
 from writing_coach.cross_skill_transfer import select_cross_skill_cue
 from writing_coach.product_activity_api import product_activity_response
 from writing_coach.readiness_summary import build_readiness_summary
-from fastapi import FastAPI, HTTPException, Query, Request
+from fastapi import FastAPI, HTTPException, Query, Request, Response
+from fastapi.exception_handlers import request_validation_exception_handler as fastapi_validation_exception_handler
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
@@ -119,6 +121,15 @@ APP_VERSION = os.getenv(
 SCHEMA_VERSION = 11
 
 app = FastAPI(title="Orena", version=APP_VERSION)
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_error_response(request: Request, exc: RequestValidationError) -> Response:
+    """Preserve FastAPI validation bodies while marking mutable dictionary errors."""
+    response = await fastapi_validation_exception_handler(request, exc)
+    if request.url.path.rstrip("/") == "/api/dictionary":
+        response.headers["Cache-Control"] = "no-store"
+    return response
 app.mount("/static", StaticFiles(directory=ROOT / "static"), name="static")
 
 BECOMING_ASSET_ROOT = (ROOT / "static" / "becoming").resolve()
@@ -1498,12 +1509,21 @@ def api_translate(payload: TranslateIn) -> dict[str, Any]:
         raise HTTPException(503, "AI translation is unavailable.") from exc
 
 @app.get("/api/dictionary")
-def api_dictionary(word: str) -> dict[str, Any]:
-    return lookup_dictionary(word)
+def api_dictionary(word: str, response: Response = None) -> dict[str, Any]:
+    """Return mutable/provider-backed dictionary data without shared caching."""
+    if response is not None:
+        response.headers["Cache-Control"] = "no-store"
+    try:
+        return lookup_dictionary(word)
+    except HTTPException as exc:
+        headers = dict(exc.headers or {})
+        headers["Cache-Control"] = "no-store"
+        exc.headers = headers
+        raise
 
 
 @app.get("/api/chinese/stroke-order")
-def api_chinese_stroke_order(word: str) -> dict[str, Any]:
+def api_chinese_stroke_order(word: str, request: Request = None, response: Response = None) -> dict[str, Any]:
     """Verified stroke order for the Han characters in `word`.
 
     Deterministic and offline: this reads the vendored Make Me a Hanzi pack and
@@ -1512,13 +1532,28 @@ def api_chinese_stroke_order(word: str) -> dict[str, Any]:
     being invented (`UPGRADE_REGRESSION_RULES.md` §33).
     """
     try:
-        return chinese_stroke_order.stroke_order_for(word)
+        payload = chinese_stroke_order.stroke_order_for(word)
+        source_version = str(payload.get("source_version") or chinese_stroke_order.SOURCE_VERSION)
+        etag_seed = f"{source_version}\x00{payload.get('word', '')}"
+        etag = '"' + hashlib.sha256(etag_seed.encode("utf-8")).hexdigest()[:24] + '"'
+        cache_headers = {
+            "Cache-Control": "public, max-age=31536000, immutable",
+            "ETag": etag,
+        }
+        if request is not None and request.headers.get("if-none-match") == etag:
+            return Response(status_code=304, headers=cache_headers)
+        if response is not None:
+            for key, value in cache_headers.items():
+                response.headers[key] = value
+        return payload
     except chinese_stroke_order.StrokeDataUnavailable as exc:
-        raise orena_http_error(
+        error = orena_http_error(
             503,
             "stroke_data_unavailable",
             "Stroke-order data is not installed on this server.",
-        ) from exc
+        )
+        error.headers = {**(error.headers or {}), "Cache-Control": "no-store"}
+        raise error from exc
 
 
 @app.get("/api/vocabulary")

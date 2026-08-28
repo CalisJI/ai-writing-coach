@@ -120,3 +120,15 @@ def test_r17_local_foundation_closeout_records_verified_route_boundary() -> None
     assert 'headers={"x-test-admin": "1"}' in route_test
     for sensitive in ("private-user", "private learner text", "private prompt", "private.example"):
         assert sensitive in route_test
+
+
+def test_r18_reference_data_cache_contract_is_recorded() -> None:
+    project_state = (ROOT / "docs/project/PROJECT_STATE.md").read_text(encoding="utf-8")
+    handoff = (ROOT / "docs/project/CURRENT_HANDOFF.md").read_text(encoding="utf-8")
+    route_test = (ROOT / "tests/test_reference_data_cache.py").read_text(encoding="utf-8")
+    assert "Current Orena program: R18" in project_state
+    assert "R18 — Mobile/API Readiness: **IN PROGRESS / LOCAL FOUNDATION**" in project_state
+    assert "R18 — Mobile/API Readiness: **IN PROGRESS / LOCAL FOUNDATION**" in handoff
+    assert "R18 immutable reference-data cache contract" in handoff
+    for contract in ("source_version", "If-None-Match", "no-store", "ASGITransport"):
+        assert contract in route_test or contract in handoff

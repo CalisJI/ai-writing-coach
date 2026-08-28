@@ -21,6 +21,7 @@ INDEX_PATH = DATA_DIR / "hanzi_strokes.index.json"
 PACK_PATH = DATA_DIR / "hanzi_strokes.pack"
 
 EXPECTED_FORMAT = "orena.hanzi-strokes.v1"
+SOURCE_VERSION = "hanzi-writer-data-2.0.1"
 
 # The two ranges the learner-facing Han filter accepts. The vendored pack is
 # built to cover exactly these, so "not a Han character" and "no stroke data"
@@ -137,4 +138,5 @@ def stroke_order_for(word: str) -> dict[str, Any]:
         "characters": characters,
         "unavailable": unavailable,
         "source": "make-me-a-hanzi",
+        "source_version": SOURCE_VERSION,
     }

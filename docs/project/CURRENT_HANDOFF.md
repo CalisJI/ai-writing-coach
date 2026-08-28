@@ -23,6 +23,9 @@ baseline.
 - R17 — Product Analytics & Operational Observability: **COMPLETE / LOCAL
   ACCEPTANCE PASS** for privacy-bounded Admin activity trends and readiness
   evidence; live/production release gates remain human-gated.
+- R18 — Mobile/API Readiness: **IN PROGRESS / LOCAL FOUNDATION** for the
+  immutable reference-data cache contract; mobile-client implementation and
+  production release remain deferred.
 
 **Secondary / gated programs:**
 
@@ -593,6 +596,20 @@ Stop and return to the human coordinator when:
 	and locally verified; live PostgreSQL observation, provider activation, and
 	production release approval remain human-gated and deferred.
 
-	**Next handoff owner:** R18 mobile/API-readiness owner. Consume the verified
-	Admin and platform contracts without reopening R17 metrics or changing
-	provider activation, billing, deployment, or learner scoring behavior.
+**Next handoff owner:** R18 mobile/API-readiness owner. Consume the verified
+Admin and platform contracts, and extend the reference-data transport policy
+without reopening R17 metrics or changing provider activation, billing,
+deployment, or learner scoring behavior.
+
+## R18 immutable reference-data cache contract
+
+The deterministic Chinese stroke-order endpoint now carries a stable
+`source_version` tied to the vendored data release and returns a public,
+one-year immutable cache policy with an ETag derived from that version and the
+requested word. Matching `If-None-Match` requests receive `304` without a
+payload; missing/unreadable stroke data is returned as a canonical, `no-store`
+503 response. The mutable/provider-backed dictionary endpoint is explicitly
+`Cache-Control: no-store` for both success and failure responses. Focused ASGI
+tests cover EN/ZH applicability, repeat and conditional requests, unavailable
+states, and the absence of provider calls; the existing Hanzi contract keeps
+large datasets server-owned rather than duplicated in the client.

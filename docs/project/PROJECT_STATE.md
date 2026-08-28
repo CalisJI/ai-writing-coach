@@ -18,9 +18,9 @@ operational state.
 
 - Application version: `1.4.0`
 - BECOMING frontend version: `2.17.5`
-- Current Orena program: R17 â€” Product Analytics & Operational Observability;
-  privacy-bounded Admin activity trends are locally implemented, with public
-  release and production validation remaining governed separately.
+- Current Orena program: R18 — Mobile/API Readiness; the immutable
+  reference-data cache contract is locally implemented, with mutable dictionary
+  caching, live validation, and production release remaining governed separately.
 
 ## Orena UI/UX integration
 
@@ -51,8 +51,10 @@ operational state.
 - The Chinese learner dictionary now has deterministic stroke-order practice
   backed by a vendored `9,565`-character, `14.1 MB` data pack and lazy-loaded
   renderer. `GET /api/chinese/stroke-order` is read-only, uses no AI or runtime
-  CDN, and reports unavailable glyphs truthfully. D-023 records the durable
-  data and licensing decision.
+  CDN, reports unavailable glyphs truthfully, and exposes a stable source
+  version with immutable ETag validation. The mutable/provider-backed
+  `GET /api/dictionary` path is explicitly `no-store`. D-023 records the
+  durable data and licensing decision.
 - Writing/Review POS annotation and Listening transcript annotation now share
   one deterministic local implementation (`NLTK`/`jieba`/`pypinyin`) through
   `writing_coach/linguistic_annotation.py`. `writing_linguistic` is no longer
@@ -159,6 +161,13 @@ authority.
 	  or entitlement enforcement. The authenticated route boundary and
 	  aggregate-only redaction are covered by the mounted ASGI regression;
 	  live/production release gates remain deferred.
+
+- R18 — Mobile/API Readiness: **IN PROGRESS / LOCAL FOUNDATION**. The
+  deterministic Chinese stroke-order endpoint now returns source/version
+  metadata with public immutable cache semantics and conditional ETag support;
+  unavailable data is explicitly non-cacheable. The provider-backed or mutable
+  dictionary endpoint is explicitly `no-store`, preserving conservative web
+  and future mobile behavior without duplicating datasets client-side.
 
 - R0 — Product Release Architecture: **CLOSED**.
 - R1 — Production Staging + Cloudflare + Google OAuth: **CLOSED / PASS**.
