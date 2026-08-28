@@ -50,10 +50,13 @@ baseline.
   clears the draft before opening Write, and keeps recommendation or
   generation failures localized and non-actionable.
 - R13 capability-matrix foundation is now locally implemented in the existing
-  Platform Admin surface. The read-only matrix consumes the canonical
-  capability-centric admin response, distinguishes deterministic, reserved,
-  unconfigured, configured, and unavailable states, and never exposes
-  provider credentials or adds a mutation path.
+  Platform Admin surface. The matrix consumes the canonical capability-centric
+  admin response, distinguishes deterministic, reserved,
+  unconfigured, configured, and unavailable states. Implemented provider-backed
+  capabilities now expose scoped provider/model/enabled controls backed by the
+  canonical capability PUT route; deterministic and reserved capabilities stay
+  read-only. Saving configuration does not activate learner runtime, and
+  failures clear stale matrix data without exposing provider credentials.
 
 - R6 — Speaking Core: **COMPLETE / LOCAL ACCEPTANCE PASS**
 - R2 — AI Capability Control Plane: **HUMAN GATE / READY, NOT PRODUCT-BLOCKING**

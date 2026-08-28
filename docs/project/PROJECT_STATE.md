@@ -413,11 +413,14 @@ The post-R5 roadmap uses one primary learner-visible lane.
   target level through the existing task-generation endpoint, clears stale
   draft state, and leaves the learner on Home with a localized error when
   generation is unavailable.
-- **R13 — Platform Admin Completion: IN PROGRESS / LOCAL FOUNDATION.** The
-  existing Platform Admin now includes a read-only capability matrix sourced
-  from the canonical admin control-plane response. It distinguishes
-  deterministic, reserved, unconfigured, configured, and provider-unavailable
-  states without changing configuration or activating learner runtime.
+- **R13 — Platform Admin Completion: IN PROGRESS / LOCAL CONTROL SLICE.** The
+  existing Platform Admin includes a capability matrix sourced from
+  the canonical admin control-plane response. Implemented provider-backed
+  capabilities expose scoped provider/model/enabled controls through the
+  canonical capability configuration route; deterministic and reserved
+  capabilities remain read-only. Saved configuration is visibly distinct from
+  learner runtime and does not activate it; failures clear stale matrix data
+  without exposing provider credentials.
 - **R2 — AI Capability Control Plane: HUMAN GATE / READY.**
   Static/runtime support exists. Production migration/config initialization,
   credentialed validation, activation, and rollback execution remain human

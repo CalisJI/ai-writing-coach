@@ -4,16 +4,51 @@ import vm from 'node:vm';
 
 class FakeElement{
   constructor(){
-    this.innerHTML='';
+    this._innerHTML='';
     this.textContent='';
     this.className='';
     this.dataset={};
+    this.value='';
+    this.checked=true;
+    this.disabled=false;
     this.listeners={};
     this.classList={add(){},remove(){},toggle(){}};
   }
+  set innerHTML(value){this._innerHTML=String(value); this._childrenBySelector=new Map();}
+  get innerHTML(){return this._innerHTML;}
   addEventListener(name,listener){this.listeners[name]=listener;}
   async click(){return this.listeners.click?.({currentTarget:this});}
-  querySelectorAll(){return [];}
+  closest(){return null;}
+  querySelector(){return null;}
+  querySelectorAll(selector){
+    if(selector !== '[data-save-capability]') return [];
+    if(this._childrenBySelector?.has(selector)) return this._childrenBySelector.get(selector);
+    const controls=[];
+    const pattern=/<button[^>]*data-save-capability="([^"]+)"[^>]*>/g;
+    let match;
+    while((match=pattern.exec(this._innerHTML))){
+      const key=match[1];
+      const attribute=(name)=>match[0].match(new RegExp(`${name}="([^"]*)"`))?.[1] || '';
+      const row=new FakeElement();
+      const provider=new FakeElement(); provider.value='openai';
+      const model=new FakeElement(); model.value='model-1';
+      const enabled=new FakeElement(); enabled.checked=true;
+      row.querySelector=(query)=>({
+        '[data-capability-provider]':provider,
+        '[data-capability-model]':model,
+        '[data-capability-enabled]':enabled,
+      }[query] || null);
+      const button=new FakeElement();
+      button.dataset.saveCapability=key;
+      button.dataset.capabilityFallback=attribute('data-capability-fallback');
+      button.dataset.capabilityTimeout=attribute('data-capability-timeout');
+      button.dataset.capabilityTemperature=attribute('data-capability-temperature');
+      button.closest=()=>row;
+      controls.push(button);
+    }
+    this._childrenBySelector.set(selector,controls);
+    return controls;
+  }
 }
 
 const elementIds=[
@@ -36,7 +71,7 @@ function runAdmin(configResponses){
   const context={
     document,
     fetch:async(url,options={})=>{
-      calls.push({url,method:options.method||'GET'});
+      calls.push({url,method:options.method||'GET',body:options.body});
       return responses.shift();
     },
     console:{error(){}},
@@ -46,16 +81,18 @@ function runAdmin(configResponses){
 }
 
 const capabilities=[
-  {key:'writing_evaluator',operation:'structured_text_generation',implemented:true,provider_backed:true,configurable:true,explicit_config_exists:true,config:{enabled:true,provider:'openai',model:'model-1'}},
+  {key:'writing_evaluator',operation:'structured_text_generation',implemented:true,provider_backed:true,configurable:true,explicit_config_exists:true,config:{enabled:true,provider:'openai',model:'model-1',timeout_seconds:45,temperature:0.4,fallback_policy:'none'}},
   {key:'writing_linguistic',operation:'deterministic',implemented:true,provider_backed:false,configurable:false,explicit_config_exists:false,config:null},
   {key:'reading_generator',operation:'structured_text_generation',implemented:true,provider_backed:true,configurable:true,explicit_config_exists:false,config:null},
+  {key:'writing_improver',operation:'structured_text_generation',implemented:true,provider_backed:true,configurable:true,explicit_config_exists:true,config:{enabled:false,provider:'openai',model:'model-1'}},
+  {key:'learner_translation',operation:'structured_text_generation',implemented:true,provider_backed:true,configurable:true,explicit_config_exists:true,config:{enabled:true,provider:'deepseek',model:'model-1'}},
   {key:'speech_asr',operation:'speech_recognition',implemented:false,provider_backed:true,configurable:false,explicit_config_exists:false,config:null},
   {key:'learner_dictionary',operation:'structured_text_generation',implemented:true,provider_backed:true,configurable:true,explicit_config_exists:true,config:{enabled:true,provider:'openai',model:'[redacted]',model_redacted:true}},
 ];
 const payload={
   capabilities,
   providers:[
-    {id:'openai',name:'OpenAI API',kind:'cloud',secret_mode:'server-managed',server_configured:true},
+    {id:'openai',name:'OpenAI API',kind:'cloud',secret_mode:'server-managed',server_configured:true,configured:true,available:true,models:['model-1']},
   ],
   learner_runtime:{mode:'legacy'},
   legacy_runtime:{role:'live-global-routing-until-R2-activation',selection_present:false},
@@ -63,15 +100,65 @@ const payload={
 
 const rendered=await runAdmin({ok:true,json:async()=>payload});
 const matrix=rendered.elements.get('#adminCapabilityMatrix').innerHTML;
+const modelGrid=rendered.elements.get('#adminModelGrid').innerHTML;
 assert.match(matrix,/data-capability-key="writing_evaluator"/);
 assert.match(matrix,/Configured/);
 assert.match(matrix,/data-capability-key="writing_linguistic"[\s\S]*Deterministic/);
 assert.match(matrix,/data-capability-key="reading_generator"[\s\S]*Not configured/);
+assert.match(matrix,/data-capability-key="writing_improver"[\s\S]*Configured · disabled/);
+assert.match(matrix,/data-capability-key="learner_translation"[\s\S]*Configured · provider unavailable/);
 assert.match(matrix,/data-capability-key="speech_asr"[\s\S]*Reserved/);
 assert.match(matrix,/Learner runtime: <b>legacy<\/b>/);
 assert.match(matrix,/\[redacted\]/);
+assert.match(matrix,/data-capability-key="writing_evaluator"[\s\S]*data-save-capability="writing_evaluator"/);
+const linguisticRow=matrix.match(/data-capability-key="writing_linguistic"[\s\S]*?(?=<\/div><div class="admin-capability-row")/)?.[0] || '';
+const speechRow=matrix.match(/data-capability-key="speech_asr"[\s\S]*?(?=<\/div><div class="admin-capability-row")/)?.[0] || '';
+assert.doesNotMatch(linguisticRow,/data-save-capability=/);
+assert.doesNotMatch(speechRow,/data-save-capability=/);
 assert.doesNotMatch(matrix,/secret|token|api_key/i);
+assert.doesNotMatch(modelGrid,/data-use-provider|data-test-provider/);
 assert.deepEqual(rendered.calls.map(call=>call.method),['GET','GET']);
+
+const saveResponses=[
+  {ok:true,json:async()=>payload},
+  {ok:true,json:async()=>({capability:'writing_evaluator',config:{enabled:true,provider:'openai',model:'model-2'}})},
+  {ok:true,json:async()=>payload},
+];
+const editable=await runAdmin(saveResponses);
+const saveButton=editable.elements.get('#adminCapabilityMatrix').querySelectorAll('[data-save-capability]')[0];
+assert.equal(saveButton.dataset.saveCapability,'writing_evaluator');
+saveButton.closest().querySelector('[data-capability-model]').value='model-2';
+await saveButton.click();
+await new Promise(resolve=>setTimeout(resolve,0));
+assert.deepEqual(editable.calls.map(call=>call.method),['GET','GET','PUT','GET']);
+assert.equal(editable.calls[2].url,'/api/admin/ai/config/writing_evaluator');
+assert.deepEqual(JSON.parse(editable.calls[2].body),{
+  enabled:true, provider:'openai', model:'model-2', timeout_seconds:45, temperature:0.4, fallback_policy:'none',
+});
+assert.equal(editable.elements.get('#adminAiMessage').textContent,'Capability configuration saved. Learner runtime remains unchanged.');
+
+const rejected=await runAdmin([
+  {ok:true,json:async()=>payload},
+  {ok:false,json:async()=>({detail:'token=super-secret'})},
+]);
+const rejectedButton=rejected.elements.get('#adminCapabilityMatrix').querySelectorAll('[data-save-capability]')[0];
+await rejectedButton.click();
+await new Promise(resolve=>setTimeout(resolve,0));
+assert.deepEqual(rejected.calls.map(call=>call.method),['GET','GET','PUT']);
+assert.equal(rejected.elements.get('#adminAiMessage').textContent,'Capability configuration could not be saved.');
+assert.doesNotMatch(rejected.elements.get('#adminAiMessage').textContent,/super-secret|token/i);
+
+const refreshAfterSaveFailure=await runAdmin([
+  {ok:true,json:async()=>payload},
+  {ok:true,json:async()=>({capability:'writing_evaluator',config:{enabled:true,provider:'openai',model:'model-2'}})},
+  {ok:false,json:async()=>({detail:'token=super-secret'})},
+]);
+const committedButton=refreshAfterSaveFailure.elements.get('#adminCapabilityMatrix').querySelectorAll('[data-save-capability]')[0];
+await committedButton.click();
+await new Promise(resolve=>setTimeout(resolve,0));
+assert.deepEqual(refreshAfterSaveFailure.calls.map(call=>call.method),['GET','GET','PUT','GET']);
+assert.match(refreshAfterSaveFailure.elements.get('#adminCapabilityMatrix').innerHTML,/Capability matrix is unavailable/);
+assert.equal(refreshAfterSaveFailure.elements.get('#adminAiMessage').textContent,'Capability configuration saved, but Admin could not refresh.');
 
 const failed=await runAdmin({ok:false,json:async()=>({detail:'token=super-secret'})});
 assert.match(failed.elements.get('#adminCapabilityMatrix').innerHTML,/Capability matrix is unavailable/);

@@ -58,6 +58,19 @@
     return {label:'Configured', cls:'ready'};
   }
 
+  function capabilityIsConfigurable(capability){
+    return Boolean(capability?.implemented && capability.provider_backed && capability.configurable);
+  }
+
+  function capabilityProviderOptions(capability, selected){
+    const operation = capability?.operation;
+    const compatible = providers.filter(provider=>
+      !Array.isArray(provider.supported_operations)
+      || provider.supported_operations.includes(operation)
+    );
+    return compatible.map(provider=>`<option value="${esc(provider.id)}" ${provider.id===selected?'selected':''}>${esc(provider.name || provider.id)}</option>`).join('');
+  }
+
   function renderCapabilityMatrix(){
     const host = $('#adminCapabilityMatrix');
     if(!host) return;
@@ -76,17 +89,31 @@
           const config = capability.config || {};
           const provider = config.provider || '—';
           const model = config.model || '—';
+          const editableModel = config.model_redacted ? '' : (config.model || '');
           const runtime = capability.provider_backed
             ? (learnerRuntime.mode==='capability'?'Capability mode':'Legacy routing')
             : 'Local deterministic';
+          const controls = capabilityIsConfigurable(capability) ? `
+            <div class="admin-capability-controls">
+              <label>Provider<select data-capability-provider>${capabilityProviderOptions(capability, config.provider || providers[0]?.id || '')}</select></label>
+              <label>Model<input data-capability-model type="text" maxlength="160" value="${esc(editableModel)}" placeholder="Model identifier"></label>
+              <label class="admin-capability-enabled"><input data-capability-enabled type="checkbox" ${config.enabled === false?'':'checked'}> Enabled</label>
+              <button class="primary compact" type="button" data-save-capability="${esc(capability.key)}" data-capability-fallback="${esc(config.fallback_policy || (capability.allowed_fallback_policies || ['none'])[0])}" data-capability-timeout="${esc(config.timeout_seconds ?? '')}" data-capability-temperature="${esc(config.temperature ?? '')}">Save configuration</button>
+              <small>Saved configuration only · learner runtime remains ${esc(learnerRuntime.mode || 'unknown')}</small>
+            </div>` : '';
           return `<div class="admin-capability-row" role="row" data-capability-key="${esc(capability.key)}">
             <span role="cell"><b>${esc(capability.key)}</b><small>${esc(runtime)}</small></span>
             <span role="cell"><i class="admin-capability-dot ${state.cls}"></i>${esc(state.label)}</span>
             <span role="cell">${esc(provider)} / ${esc(model)}</span>
-            <span role="cell">${esc(capability.operation || '—')}</span>
+            <span role="cell">${esc(capability.operation || '—')}${controls}</span>
           </div>`;
         }).join('')}
       </div>`;
+    host.querySelectorAll('[data-save-capability]').forEach(button=>{
+      button.addEventListener('click',()=>saveCapability(button).catch(()=>{
+        setMessage('Capability configuration could not be saved.','error');
+      }));
+    });
   }
 
   function resetCapabilityMatrix(){
@@ -98,6 +125,45 @@
   function showConfigFailure(){
     resetCapabilityMatrix();
     setMessage('Platform Admin failed to load.','error');
+  }
+
+  async function saveCapability(button){
+    const key = button?.dataset?.saveCapability;
+    const row = button?.closest?.('[data-capability-key]');
+    const provider = row?.querySelector?.('[data-capability-provider]')?.value || '';
+    const model = row?.querySelector?.('[data-capability-model]')?.value || '';
+    const enabled = row?.querySelector?.('[data-capability-enabled]')?.checked !== false;
+    const fallbackPolicy = button?.dataset?.capabilityFallback || 'none';
+    const timeoutValue = button?.dataset?.capabilityTimeout || '';
+    const temperatureValue = button?.dataset?.capabilityTemperature || '';
+    if(!key || !provider || !String(model).trim()) throw new Error('Capability configuration is incomplete');
+    button.disabled = true;
+    try{
+      const response = await fetch(`/api/admin/ai/config/${encodeURIComponent(key)}`,{
+        method:'PUT',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({
+          enabled,
+          provider,
+          model:String(model).trim(),
+          timeout_seconds: timeoutValue === '' ? null : Number(timeoutValue),
+          temperature: temperatureValue === '' ? null : Number(temperatureValue),
+          fallback_policy:fallbackPolicy,
+        })
+      });
+      await response.json();
+      if(!response.ok) throw new Error('Capability configuration was rejected');
+      try{
+        await fetchConfig({quiet:true});
+      }catch(_refreshError){
+        showConfigFailure();
+        setMessage('Capability configuration saved, but Admin could not refresh.','error');
+        return;
+      }
+      setMessage('Capability configuration saved. Learner runtime remains unchanged.','ok');
+    }finally{
+      button.disabled = false;
+    }
   }
 
   function renderSummary(){
@@ -202,18 +268,10 @@
           <span>${esc(state)}</span>
         </div>
         <div class="model-card-actions">
-          <button class="ghost compact" type="button" data-test-provider="${esc(provider.id)}" data-test-model="${esc(model)}" ${usable?'':'disabled'}>Test</button>
-          <button class="${isActive?'ghost':'primary'} compact" type="button" data-use-provider="${esc(provider.id)}" data-use-model="${esc(model)}" ${usable&&!isActive?'':'disabled'}>${isActive?'In use':'Use model'}</button>
+          <span class="admin-model-read-only">Catalog only · configure per capability above</span>
         </div>
       </article>`;
     }).join('');
-
-    host.querySelectorAll('[data-use-provider]').forEach(btn=>{
-      btn.addEventListener('click',()=>useModel(btn.dataset.useProvider,btn.dataset.useModel));
-    });
-    host.querySelectorAll('[data-test-provider]').forEach(btn=>{
-      btn.addEventListener('click',()=>testModel(btn.dataset.testProvider,btn.dataset.testModel));
-    });
   }
 
   function syncFilterButtons(){
