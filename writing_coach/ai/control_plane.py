@@ -410,6 +410,8 @@ class AIControlPlane:
         return {
             "available": callable(loader),
             "has_data": bool(events),
+            "sample_limit": max(1, min(int(limit), 500)),
+            "sample_truncated": bool(isinstance(raw_events, list) and len(raw_events) >= max(1, min(int(limit), 500))),
             "recent": events,
             "by_capability": list(aggregates.values()),
             "usage_note": "Provider usage and token cost are explicit; unsupported models remain unpriced.",

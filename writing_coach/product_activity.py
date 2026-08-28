@@ -113,6 +113,55 @@ def aggregate_product_activity(rows: Any, *, window_days: int = 7, now: datetime
     return {"available": True, "data_state": "ready" if total else "insufficient_data", "has_data": bool(total), "window_days": days, "window_start": start.isoformat(), "window_end": end.isoformat(), "active_learners": len(learners) if total else None, "returning_learners": sum(1 for active_days in cohort_days.values() if len(active_days) >= 2) if total else None, "repeat_practice_learners": sum(1 for count in learner_completed.values() if count >= 2) if total else None, "cross_skill_returning_learners": sum(1 for learner, skills_seen in cohort_skills.items() if len(skills_seen) >= 2 and len(cohort_days.get(learner, set())) >= 2) if total else None, "return_windows": return_windows, "daily_returning": daily_returning, "total_activities": total, "total_completions": sum(item["completions"] for item in skills), "skills": skills}
 
 
+def aggregate_cost_per_active_learner(activity: dict[str, Any], operations: Any) -> dict[str, Any]:
+    """Join matching-window priced operation evidence to aggregate active learners."""
+    if not isinstance(activity, dict) or not isinstance(operations, dict) or operations.get("available") is False:
+        return {"available": False, "data_state": "unavailable", "currency_state": "none", "cost_totals": [], "capability_cost": []}
+    if operations.get("sample_truncated") is True:
+        return {"available": True, "data_state": "insufficient_data", "evidence_state": "partial", "currency_state": "unknown", "cost_totals": [], "capability_cost": [], "considered_operations": operations.get("sample_limit")}
+    active = activity.get("active_learners")
+    start = _when(activity.get("window_start"))
+    end = _when(activity.get("window_end"))
+    if start is None or end is None:
+        return {"available": False, "data_state": "unavailable", "currency_state": "none", "cost_totals": [], "capability_cost": []}
+    totals: dict[tuple[str, str], dict[str, Any]] = {}
+    by_capability: dict[str, dict[tuple[str, str], dict[str, Any]]] = {}
+    priced = 0
+    considered = 0
+    unpriced = 0
+    for raw in operations.get("recent") if isinstance(operations.get("recent"), list) else []:
+        if not isinstance(raw, dict):
+            continue
+        occurred = _when(raw.get("created_at"))
+        if occurred is None or not (start <= occurred <= end):
+            continue
+        considered += 1
+        cost = raw.get("cost") if isinstance(raw.get("cost"), dict) else {}
+        amount = cost.get("amount")
+        currency = cost.get("currency")
+        state = cost.get("state")
+        if state != "estimated" or not isinstance(amount, (int, float)) or not isinstance(currency, str) or not currency.strip() or amount < 0:
+            unpriced += 1
+            continue
+        provenance = cost.get("provenance") if isinstance(cost.get("provenance"), dict) else {}
+        version = str(provenance.get("catalog_version") or "unknown")
+        key = (currency.strip(), version)
+        item = totals.setdefault(key, {"currency": key[0], "catalog_version": version, "amount": 0.0, "evidence_count": 0})
+        item["amount"] = round(item["amount"] + float(amount), 8)
+        item["evidence_count"] += 1
+        capability = str(raw.get("capability") or "unknown")
+        cap_item = by_capability.setdefault(capability, {}).setdefault(key, {"currency": key[0], "catalog_version": version, "amount": 0.0, "evidence_count": 0})
+        cap_item["amount"] = round(cap_item["amount"] + float(amount), 8)
+        cap_item["evidence_count"] += 1
+        priced += 1
+    currency_state = "none" if not totals else "single" if len({key[0] for key in totals}) == 1 else "mixed"
+    evidence_state = "unpriced" if not priced else "partial" if unpriced else "estimated"
+    denominator = active if isinstance(active, int) and active > 0 else None
+    cost_totals = [{**item, "cost_per_active_learner": round(item["amount"] / denominator, 8) if denominator else None} for item in totals.values()]
+    capability_cost = [{"capability": capability, "cost_totals": [{**item, "cost_per_active_learner": round(item["amount"] / denominator, 8) if denominator else None} for item in values.values()]} for capability, values in by_capability.items()]
+    return {"available": True, "data_state": "ready" if priced else "insufficient_data", "evidence_state": evidence_state, "currency_state": currency_state, "window_start": activity.get("window_start"), "window_end": activity.get("window_end"), "active_learners": active if denominator else None, "considered_operations": considered, "cost_totals": cost_totals, "capability_cost": capability_cost}
+
+
 if __name__ == "__main__":
     result = aggregate_product_activity([{"learner_key": "u1", "skill": "writing", "occurred_at": "2026-01-02T12:00:00+00:00", "completed": True}], now=datetime(2026, 1, 3, tzinfo=timezone.utc), window_days=7)
     assert result["active_learners"] == 1 and result["skills"][0]["completions"] == 1

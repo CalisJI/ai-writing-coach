@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 
-from writing_coach.product_activity import aggregate_product_activity
+from writing_coach.product_activity import aggregate_cost_per_active_learner, aggregate_product_activity
 from writing_coach.product_activity_api import product_activity_response
 
 
@@ -79,6 +79,8 @@ def test_admin_endpoint_guard_redaction_and_unavailable():
         return {"is_admin": True}
     result = product_activity_response("admin", Repo(), guard, window_days=7, now=datetime(2026, 1, 8, 12, tzinfo=timezone.utc))
     assert result["active_learners"] == 1 and "private-user" not in str(result) and "private" not in str(result)
+    with_cost = product_activity_response("admin", Repo(), guard, window_days=7, now=datetime(2026, 1, 8, 12, tzinfo=timezone.utc), operations_loader=lambda: {"available": True, "recent": [{"created_at": "2026-01-08T11:00:00+00:00", "capability": "writing_evaluator", "cost": {"state": "estimated", "amount": 0.25, "currency": "USD", "provenance": {"catalog_version": "v1"}}}]})
+    assert with_cost["cost_per_active_learner"]["cost_totals"][0]["cost_per_active_learner"] == 0.25
     try: product_activity_response("not-admin", Repo(), guard)
     except PermissionError: pass
     else: raise AssertionError("non-admin request was accepted")
@@ -88,8 +90,29 @@ def test_admin_endpoint_guard_redaction_and_unavailable():
     assert unavailable["available"] is False and unavailable["data_state"] == "unavailable"
 
 
+def test_cost_join_states_and_window_alignment():
+    activity = {"window_start": "2026-01-02T00:00:00+00:00", "window_end": "2026-01-08T12:00:00+00:00", "active_learners": 2}
+    operations = {"available": True, "recent": [
+        {"created_at": "2026-01-08T10:00:00+00:00", "capability": "writing_evaluator", "cost": {"state": "estimated", "amount": 0.4, "currency": "USD", "provenance": {"catalog_version": "v1"}}},
+        {"created_at": "2026-01-07T10:00:00+00:00", "capability": "reading_generator", "cost": {"state": "estimated", "amount": 0.2, "currency": "USD", "provenance": {"catalog_version": "v1"}}},
+        {"created_at": "2026-01-06T10:00:00+00:00", "capability": "speech_asr", "cost": {"state": "unpriced"}},
+        {"created_at": "2025-12-01T10:00:00+00:00", "capability": "writing_evaluator", "cost": {"state": "estimated", "amount": 9, "currency": "USD"}},
+    ]}
+    result = aggregate_cost_per_active_learner(activity, operations)
+    assert result["data_state"] == "ready" and result["evidence_state"] == "partial" and result["currency_state"] == "single"
+    assert result["cost_totals"] == [{"currency": "USD", "catalog_version": "v1", "amount": 0.6, "evidence_count": 2, "cost_per_active_learner": 0.3}]
+    assert {item["capability"] for item in result["capability_cost"]} == {"writing_evaluator", "reading_generator"}
+    mixed = aggregate_cost_per_active_learner(activity, {"available": True, "recent": operations["recent"][:1] + [{"created_at": "2026-01-08T11:00:00+00:00", "capability": "reading_generator", "cost": {"state": "estimated", "amount": 1, "currency": "EUR"}}]})
+    assert mixed["currency_state"] == "mixed" and len(mixed["cost_totals"]) == 2
+    zero = aggregate_cost_per_active_learner({**activity, "active_learners": 0}, operations)
+    assert all(item["cost_per_active_learner"] is None for item in zero["cost_totals"])
+    truncated = aggregate_cost_per_active_learner(activity, {"available": True, "sample_limit": 500, "sample_truncated": True, "recent": operations["recent"]})
+    assert truncated["data_state"] == "insufficient_data" and truncated["evidence_state"] == "partial" and truncated["cost_totals"] == []
+
+
 if __name__ == "__main__":
     test_window_and_redaction()
     test_empty_is_explicit()
     test_admin_endpoint_guard_redaction_and_unavailable()
+    test_cost_join_states_and_window_alignment()
     print("product activity selftest: PASS")

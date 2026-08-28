@@ -81,7 +81,7 @@ from writing_coach.core.errors import orena_http_error
 from writing_coach.core.platform_api import router as platform_router
 from writing_coach.core.language_registry import is_enabled
 from writing_coach.ai.base import AICapabilityError, AIProviderError, AIProviderUnavailable
-from writing_coach.ai.platform import active_ai_label, active_ai_status, generate_structured, install_platform_ai, configure_platform_repository
+from writing_coach.ai.platform import active_ai_label, active_ai_status, admin_ai_operations, generate_structured, install_platform_ai, configure_platform_repository
 from writing_coach.product.service import configure_product_repository
 from writing_coach.persistence.runtime import build_runtime
 from writing_coach.persistence.learning_repository import (
@@ -1789,7 +1789,7 @@ def becoming_review_cue_get(essay_id: int | None = None) -> dict[str, Any]:
 
 @app.get("/api/admin/product-activity", name="admin_product_activity")
 def admin_product_activity(request: Request, window_days: int = 7) -> dict[str, Any]:
-    return product_activity_response(request, _specialized_learning_repository, require_admin, window_days=window_days)
+    return product_activity_response(request, _specialized_learning_repository, require_admin, window_days=window_days, operations_loader=lambda: admin_ai_operations(request, limit=500))
 
 @app.get("/api/cross-skill-cue", name="becoming_cross_skill_cue_get")
 def becoming_cross_skill_cue_get() -> dict[str, Any]:

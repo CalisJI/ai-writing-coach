@@ -329,9 +329,9 @@ def admin_ai_config(request: Request) -> dict[str, Any]:
 
 
 @router.get("/operations")
-def admin_ai_operations(request: Request) -> dict[str, Any]:
+def admin_ai_operations(request: Request, limit: int = 100) -> dict[str, Any]:
     _require_admin(request)
-    return AIControlPlane(_installed_platform_repository()).operations()
+    return AIControlPlane(_installed_platform_repository()).operations(limit=limit)
 
 
 @router.put("/config", deprecated=True)
