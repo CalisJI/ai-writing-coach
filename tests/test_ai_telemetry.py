@@ -249,7 +249,51 @@ def test_admin_operations_aggregate_sanitized_events_and_show_no_cost() -> None:
         "avg_latency_ms": 20,
         "usage_known": 1,
         "usage_unknown": 1,
+        "health_state": "provider_failure",
+        "evidence_count": 2,
+        "failure_count": 1,
+        "provider_failure_count": 1,
+        "failure_rate_percent": 50,
     }]
     assert "prompt" not in result["recent"][0]
     assert "cost" not in result["recent"][0]
     assert result["usage_note"]
+
+
+@pytest.mark.parametrize(
+    ("events", "health_state"),
+    [
+        ([{"outcome": "success", "latency_ms": 1999}], "healthy"),
+        ([{"outcome": "success", "latency_ms": 2000}], "degraded"),
+        ([{"outcome": "success", "latency_ms": 10}, {"outcome": "failure", "error_class": "operation_failed", "latency_ms": 11}], "degraded"),
+        ([{"outcome": "failure", "error_class": "provider_response_invalid", "latency_ms": 10}], "provider_failure"),
+    ],
+)
+def test_operations_health_states_use_explicit_evidence_thresholds(events, health_state) -> None:
+    repository = Repository(config())
+    repository.events = [
+        {
+            "capability": "writing_evaluator",
+            "provider": "openai",
+            "model": "telemetry-model",
+            "outcome": event["outcome"],
+            "error_class": event.get("error_class"),
+            "latency_ms": event.get("latency_ms"),
+            "usage": {"prompt_tokens": None, "completion_tokens": None, "total_tokens": None},
+        }
+        for event in events
+    ]
+
+    row = AIControlPlane(repository).operations()["by_capability"][0]
+
+    assert row["health_state"] == health_state
+    assert row["evidence_count"] == len(events)
+    assert row["failure_count"] == sum(event["outcome"] == "failure" for event in events)
+
+
+def test_operations_without_events_are_explicitly_empty() -> None:
+    result = AIControlPlane(Repository(config())).operations()
+
+    assert result["has_data"] is False
+    assert result["recent"] == []
+    assert result["by_capability"] == []

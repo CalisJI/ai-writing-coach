@@ -50,9 +50,11 @@
       host.innerHTML = '<div class="admin-capability-empty">No operation data yet. Provider probes are never automatic.</div>';
       return;
     }
+    const healthLabels = {no_data:'No data', healthy:'Healthy', degraded:'Degraded', provider_failure:'Provider failure'};
     const rows = (operations.by_capability||[]).map(row=>`<div class="admin-operation-row">
-      <b>${esc(row.capability)}</b><span>${row.total} total · ${row.success} success · ${row.failure} failure</span>
-      <span>${row.avg_latency_ms == null ? 'Latency unknown' : `${row.avg_latency_ms} ms average`} · ${row.usage_known ? `${row.usage_known} usage reported` : 'Usage unknown'}</span>
+      <b>${esc(row.capability)}</b><strong>${esc(healthLabels[row.health_state] || 'Health unknown')}</strong>
+      <span>${row.total} total · ${row.success} success · ${row.failure} failure · ${row.evidence_count ?? row.total} events sampled</span>
+      <span>${row.failure_rate_percent == null ? 'Failure rate unknown' : `${row.failure_rate_percent}% failures`} · ${row.avg_latency_ms == null ? 'Latency unknown' : `${row.avg_latency_ms} ms average`} · ${row.usage_known ? `${row.usage_known} usage reported` : 'Usage unknown'}</span>
     </div>`).join('');
     const recent = (operations.recent||[]).slice(0,10).map(event=>`<div class="admin-operation-recent-row">
       <b>${esc(event.capability)}</b><span>${esc(event.outcome)} · ${esc(event.provider || 'Provider unknown')} · ${esc(event.model || 'Model unknown')}</span>

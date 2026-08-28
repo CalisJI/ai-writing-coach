@@ -31,6 +31,64 @@ _SUSPICIOUS_MODEL = re.compile(
     re.IGNORECASE,
 )
 
+_OPERATION_HEALTH_WINDOW = 20
+_DEGRADED_FAILURE_RATE_PERCENT = 50
+_DEGRADED_LATENCY_MS = 2000
+_PROVIDER_FAILURE_CLASSES = frozenset({
+    "provider_error",
+    "provider_unavailable",
+    "provider_not_configured",
+    "model_catalog_empty",
+    "model_unavailable",
+    "provider_response_invalid",
+})
+
+
+def _operation_health(events: list[dict[str, Any]]) -> dict[str, Any]:
+    """Classify a bounded persisted-event sample without probing providers."""
+
+    sample = events[:_OPERATION_HEALTH_WINDOW]
+    evidence_count = len(sample)
+    if not evidence_count:
+        return {
+            "health_state": "no_data",
+            "evidence_count": 0,
+            "failure_count": 0,
+            "provider_failure_count": 0,
+            "failure_rate_percent": None,
+            "avg_latency_ms": None,
+        }
+    failure_count = sum(event.get("outcome") == "failure" for event in sample)
+    provider_failure_count = sum(
+        event.get("outcome") == "failure"
+        and event.get("error_class") in _PROVIDER_FAILURE_CLASSES
+        for event in sample
+    )
+    latencies = [
+        event["latency_ms"]
+        for event in sample
+        if isinstance(event.get("latency_ms"), int)
+    ]
+    avg_latency = round(sum(latencies) / len(latencies)) if latencies else None
+    failure_rate_percent = round(failure_count * 100 / evidence_count)
+    if provider_failure_count:
+        health_state = "provider_failure"
+    elif (
+        failure_rate_percent >= _DEGRADED_FAILURE_RATE_PERCENT
+        or (avg_latency is not None and avg_latency >= _DEGRADED_LATENCY_MS)
+    ):
+        health_state = "degraded"
+    else:
+        health_state = "healthy"
+    return {
+        "health_state": health_state,
+        "evidence_count": evidence_count,
+        "failure_count": failure_count,
+        "provider_failure_count": provider_failure_count,
+        "failure_rate_percent": failure_rate_percent,
+        "avg_latency_ms": avg_latency,
+    }
+
 
 def safe_model_display(model: object) -> tuple[str, bool]:
     """Return an operator-safe model label without modifying persisted data."""
@@ -179,7 +237,9 @@ class AIControlPlane:
             row = aggregates.setdefault(key, {
                 "capability": key, "total": 0, "success": 0, "failure": 0,
                 "avg_latency_ms": None, "usage_known": 0, "usage_unknown": 0,
+                "_health_events": [],
             })
+            row["_health_events"].append(event)
             row["total"] += 1
             if event["outcome"] == "success":
                 row["success"] += 1
@@ -197,6 +257,8 @@ class AIControlPlane:
         for row in aggregates.values():
             latencies = row.pop("_latencies", [])
             row["avg_latency_ms"] = round(sum(latencies) / len(latencies)) if latencies else None
+            health = _operation_health(row.pop("_health_events", []))
+            row.update(health)
         return {
             "available": callable(loader),
             "has_data": bool(events),
