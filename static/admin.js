@@ -6,6 +6,7 @@
   let active = {provider:'', model:''};
   let currentFilter = 'all';
   let searchText = '';
+  let operations = {available:false, has_data:false, recent:[], by_capability:[]};
 
   function esc(s=''){
     return String(s).replace(/[&<>"']/g,c=>({
@@ -40,6 +41,33 @@
     if(!configured) return {label:'Not configured', cls:'muted'};
     if(provider.available || provider.server_configured) return {label:'Ready', cls:'ready'};
     return {label:'Configured · unavailable', cls:'warn'};
+  }
+
+  function renderOperations(){
+    const host = $('#adminOperations');
+    if(!host) return;
+    if(!operations.has_data){
+      host.innerHTML = '<div class="admin-capability-empty">No operation data yet. Provider probes are never automatic.</div>';
+      return;
+    }
+    const rows = (operations.by_capability||[]).map(row=>`<div class="admin-operation-row">
+      <b>${esc(row.capability)}</b><span>${row.total} total · ${row.success} success · ${row.failure} failure</span>
+      <span>${row.avg_latency_ms == null ? 'Latency unknown' : `${row.avg_latency_ms} ms average`} · ${row.usage_known ? `${row.usage_known} usage reported` : 'Usage unknown'}</span>
+    </div>`).join('');
+    const recent = (operations.recent||[]).slice(0,10).map(event=>`<div class="admin-operation-recent-row">
+      <b>${esc(event.capability)}</b><span>${esc(event.outcome)} · ${esc(event.provider || 'Provider unknown')} · ${esc(event.model || 'Model unknown')}</span>
+      <span>${event.latency_ms == null ? 'Latency unknown' : `${Number(event.latency_ms)} ms`} · ${!event.usage || event.usage.total_tokens == null ? 'Usage unknown' : 'Usage reported'}</span>
+    </div>`).join('');
+    host.innerHTML = `<section class="admin-operation-group"><h3>By capability</h3>${rows || '<div class="admin-capability-empty">No aggregate data yet.</div>'}</section>
+      <section class="admin-operation-group"><h3>Recent events</h3>${recent || '<div class="admin-capability-empty">No recent operation data.</div>'}</section>`;
+  }
+
+  async function fetchOperations(){
+    const response = await fetch('/api/admin/ai/operations',{cache:'no-store'});
+    const data = await response.json();
+    if(!response.ok) throw new Error('Could not load AI operations');
+    operations = data && typeof data === 'object' ? data : {available:false,has_data:false,recent:[],by_capability:[]};
+    renderOperations();
   }
 
   function capabilityState(capability){
@@ -388,6 +416,9 @@
       $('#adminRefreshModels')?.addEventListener('click',()=>{
         fetchConfig().catch(showConfigFailure);
       });
+      $('#adminRefreshOperations')?.addEventListener('click',()=>{
+        fetchOperations().catch(()=>setMessage('AI operation activity could not be loaded.','error'));
+      });
 
       $('#adminModelSearch')?.addEventListener('input',ev=>{
         searchText = String(ev.target.value||'').trim().toLowerCase();
@@ -405,6 +436,7 @@
 
       // Preload once so the admin page is instant when opened.
       await fetchConfig({quiet:true});
+      await fetchOperations().catch(()=>renderOperations());
     }catch(err){
       console.error('Admin dashboard initialization failed:',err);
       showConfigFailure();

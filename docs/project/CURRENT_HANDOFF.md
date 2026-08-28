@@ -64,7 +64,12 @@ baseline.
   Success and typed failure paths expose one sanitized capability/provider/
   model/latency/usage shape; absent token or quota data remains explicitly
   unknown, and no cost or billing behavior is inferred. Provider activation,
-  persistence, aggregation, and credentialed live validation remain gated.
+  billing, and credentialed live validation remain gated.
+- R14 telemetry persistence and operator visibility now use the existing
+  PostgreSQL `AuditLog` boundary and a read-only Admin operations endpoint.
+  Aggregates expose recent activity, per-capability success/failure totals,
+  latency, and explicit unknown-usage/no-data states without provider probes;
+  SQLite remains frozen archive storage.
 - R13 local acceptance is now closed by the deterministic
   `scripts/r13_release_matrix.mjs` runner and
   `docs/project/R13_LOCAL_ACCEPTANCE_MATRIX.json`. The matrix executes the

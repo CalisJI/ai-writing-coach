@@ -957,3 +957,5 @@ body[data-theme="light"] .dictionary-translation,
 body[data-theme="comfort"] .dictionary-translation,
 body[data-theme="light"] .character-chip,
 body[data-theme="comfort"] .character-chip{border-color:var(--line);background:var(--card)}
+.admin-operations{display:grid;gap:7px}.admin-operation-row{display:grid;grid-template-columns:minmax(150px,1fr) minmax(180px,1.5fr) minmax(180px,1fr);gap:10px;padding:10px 12px;border:1px solid #2c3a50;border-radius:9px;color:#c7d1df;font-size:.72rem}.admin-operation-row span{color:#8191a7}
+@media(max-width:760px){.admin-operation-row{grid-template-columns:1fr}}

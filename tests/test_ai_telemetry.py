@@ -16,8 +16,17 @@ from writing_coach.persistence.platform_repository import CapabilityConfigRecord
 class Repository:
     config: CapabilityConfig | None
 
+    def __post_init__(self) -> None:
+        self.events: list[dict[str, Any]] = []
+
     def get_capability_config(self, key: str) -> CapabilityConfigRecord | None:
         return CapabilityConfigRecord(key, self.config) if self.config is not None else None
+
+    def record_ai_operation(self, telemetry: dict[str, Any]) -> None:
+        self.events.append(dict(telemetry))
+
+    def list_ai_operation_events(self, limit: int = 100) -> list[dict[str, Any]]:
+        return self.events[:limit]
 
 
 class Provider:
@@ -70,11 +79,11 @@ def invoke(monkeypatch: pytest.MonkeyPatch, provider: Provider, capability_confi
 def test_success_telemetry_keeps_capability_provider_model_and_reported_usage(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    result = invoke(
-        monkeypatch,
-        Provider(runtime={"prompt_tokens": 7, "completion_tokens": 5, "total_tokens": 12}),
-        config(),
-    )
+    repository = Repository(config())
+    monkeypatch.setenv("AI_RUNTIME_MODE", "capability")
+    monkeypatch.setattr(platform, "_platform_repository", repository)
+    monkeypatch.setattr(platform, "providers", lambda: {"openai": Provider(runtime={"prompt_tokens": 7, "completion_tokens": 5, "total_tokens": 12})})
+    result = platform.generate_structured(messages=[], schema={"type": "object"}, max_output_tokens=20, capability_key="writing_evaluator")
 
     assert result.runtime["telemetry"] == {
         "capability": "writing_evaluator",
@@ -90,6 +99,7 @@ def test_success_telemetry_keeps_capability_provider_model_and_reported_usage(
     assert isinstance(result.runtime["telemetry"]["latency_ms"], int)
     assert result.runtime["telemetry"]["latency_ms"] >= 0
     assert "cost" not in result.runtime["telemetry"]
+    assert repository.events[0] == result.runtime["telemetry"]
 
 
 def test_absent_or_malformed_usage_remains_unknown(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -133,7 +143,8 @@ def test_capability_failure_has_same_shape_without_provider_activation(
 ) -> None:
     provider = Provider()
     monkeypatch.setenv("AI_RUNTIME_MODE", "capability")
-    monkeypatch.setattr(platform, "_platform_repository", Repository(config(enabled=False)))
+    repository = Repository(config(enabled=False))
+    monkeypatch.setattr(platform, "_platform_repository", repository)
     monkeypatch.setattr(platform, "providers", lambda: {"openai": provider})
 
     with pytest.raises(platform.AICapabilityDisabled) as caught:
@@ -146,13 +157,15 @@ def test_capability_failure_has_same_shape_without_provider_activation(
     assert caught.value.telemetry["outcome"] == "failure"
     assert caught.value.telemetry["capability"] == "writing_evaluator"
     assert provider.error is None
+    assert repository.events[0]["error_class"] == "capability_disabled"
 
 
 def test_control_plane_success_uses_the_same_telemetry_contract() -> None:
     provider = Provider(
         runtime={"prompt_tokens": 4, "completion_tokens": 3, "total_tokens": 7}
     )
-    plane = AIControlPlane(Repository(config()), provider_factory=lambda: {"openai": provider})
+    repository = Repository(config())
+    plane = AIControlPlane(repository, provider_factory=lambda: {"openai": provider})
 
     result = plane.live_test("writing_evaluator")
 
@@ -167,11 +180,13 @@ def test_control_plane_success_uses_the_same_telemetry_contract() -> None:
         "usage": {"prompt_tokens": 4, "completion_tokens": 3, "total_tokens": 7},
         "quota_available": "unknown",
     }
+    assert repository.events[0] == result["telemetry"]
 
 
 def test_control_plane_provider_failure_carries_typed_telemetry() -> None:
     provider = Provider(error=AIProviderError("provider failure"))
-    plane = AIControlPlane(Repository(config()), provider_factory=lambda: {"openai": provider})
+    repository = Repository(config())
+    plane = AIControlPlane(repository, provider_factory=lambda: {"openai": provider})
 
     with pytest.raises(AIProviderError) as caught:
         plane.live_test("writing_evaluator")
@@ -180,6 +195,7 @@ def test_control_plane_provider_failure_carries_typed_telemetry() -> None:
     assert caught.value.telemetry["outcome"] == "failure"
     assert caught.value.telemetry["error_class"] == "provider_error"
     assert caught.value.telemetry["quota_available"] == "unknown"
+    assert repository.events[0] == caught.value.telemetry
 
 
 def test_invalid_capability_key_is_redacted_in_failure_telemetry() -> None:
@@ -190,3 +206,50 @@ def test_invalid_capability_key_is_redacted_in_failure_telemetry() -> None:
 
     assert caught.value.telemetry["capability"] == "[invalid]"
     assert "do-not-leak" not in repr(caught.value.telemetry)
+
+
+def test_admin_operations_aggregate_sanitized_events_and_show_no_cost() -> None:
+    repository = Repository(config())
+    repository.events = [
+        {
+            "capability": "writing_evaluator",
+            "provider": "openai",
+            "model": "telemetry-model",
+            "model_redacted": False,
+            "outcome": "success",
+            "error_class": None,
+            "latency_ms": 20,
+            "usage": {"prompt_tokens": 4, "completion_tokens": 3, "total_tokens": 7},
+            "quota_available": "unknown",
+            "prompt": "must not persist",
+            "cost": 99,
+            "created_at": "2026-08-28T10:00:00+00:00",
+        },
+        {
+            "capability": "writing_evaluator",
+            "provider": "openai",
+            "model": "telemetry-model",
+            "model_redacted": False,
+            "outcome": "failure",
+            "error_class": "provider_error",
+            "latency_ms": None,
+            "usage": {"prompt_tokens": None, "completion_tokens": None, "total_tokens": None},
+            "quota_available": "unknown",
+        },
+    ]
+
+    result = AIControlPlane(repository).operations()
+
+    assert result["has_data"] is True
+    assert result["by_capability"] == [{
+        "capability": "writing_evaluator",
+        "total": 2,
+        "success": 1,
+        "failure": 1,
+        "avg_latency_ms": 20,
+        "usage_known": 1,
+        "usage_unknown": 1,
+    }]
+    assert "prompt" not in result["recent"][0]
+    assert "cost" not in result["recent"][0]
+    assert result["usage_note"]

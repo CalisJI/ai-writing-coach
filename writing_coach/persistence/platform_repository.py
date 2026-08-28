@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import sqlite3
+import uuid
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -19,7 +20,7 @@ from writing_coach.ai.config import (
 )
 from writing_coach.ai.base import AICapabilityConfigInvalid
 from writing_coach.persistence.config import create_shadow_engine
-from writing_coach.persistence.models import PlatformSetting
+from writing_coach.persistence.models import AuditLog, PlatformSetting
 
 
 @dataclass(frozen=True)
@@ -61,6 +62,8 @@ class PlatformRepository(Protocol):
         *,
         updated_by: str = "",
     ) -> None: ...
+    def record_ai_operation(self, telemetry: dict) -> None: ...
+    def list_ai_operation_events(self, limit: int = 100) -> list[dict]: ...
 
 
 class SQLitePlatformRepository:
@@ -203,6 +206,13 @@ class SQLitePlatformRepository:
             )
             conn.commit()
 
+    def record_ai_operation(self, telemetry: dict) -> None:
+        # SQLite is frozen archive/rollback storage; telemetry is PostgreSQL-only.
+        return None
+
+    def list_ai_operation_events(self, limit: int = 100) -> list[dict]:
+        return []
+
 
 class PostgresPlatformRepository:
     """PostgreSQL platform configuration backed by Alembic-owned storage."""
@@ -303,3 +313,43 @@ class PostgresPlatformRepository:
                 row.value = config.to_dict()
                 row.updated_at = now
                 row.updated_by = updated_by
+
+    def record_ai_operation(self, telemetry: dict) -> None:
+        from writing_coach.ai.base import sanitize_telemetry
+
+        safe = sanitize_telemetry(telemetry)
+        if safe is None:
+            return None
+        now = datetime.now(timezone.utc)
+        with Session(self.engine) as session, session.begin():
+            session.add(
+                AuditLog(
+                    id=uuid.uuid4(),
+                    user_id=None,
+                    action="ai.operation",
+                    entity_type="ai_capability",
+                    entity_id=str(safe["capability"]),
+                    payload=safe,
+                    created_at=now,
+                )
+            )
+
+    def list_ai_operation_events(self, limit: int = 100) -> list[dict]:
+        bounded = max(1, min(int(limit), 500))
+        with Session(self.engine) as session:
+            rows = session.scalars(
+                select(AuditLog)
+                .where(AuditLog.action == "ai.operation")
+                .order_by(AuditLog.created_at.desc())
+                .limit(bounded)
+            ).all()
+        from writing_coach.ai.base import sanitize_telemetry
+
+        events: list[dict] = []
+        for row in rows:
+            safe = sanitize_telemetry(row.payload)
+            if safe is None:
+                continue
+            safe["created_at"] = row.created_at.isoformat()
+            events.append(safe)
+        return events

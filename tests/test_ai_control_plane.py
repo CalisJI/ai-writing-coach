@@ -47,6 +47,7 @@ class FakeRepository:
         self.capability_writes: list[tuple[str, CapabilityConfig, str]] = []
         self.legacy_writes: list[tuple[str, str, str]] = []
         self.capability_metadata: dict[str, tuple[str, str]] = {}
+        self.ai_events: list[dict[str, Any]] = []
 
     def initialize(self) -> None:
         pass
@@ -86,6 +87,12 @@ class FakeRepository:
     ) -> None:
         self.capabilities[capability_key] = config
         self.capability_writes.append((capability_key, config, updated_by))
+
+    def record_ai_operation(self, telemetry: dict[str, Any]) -> None:
+        self.ai_events.append(dict(telemetry))
+
+    def list_ai_operation_events(self, limit: int = 100) -> list[dict[str, Any]]:
+        return self.ai_events[:limit]
 
 
 @dataclass
@@ -258,6 +265,8 @@ def test_get_is_capability_centric_network_free_and_secret_safe(
         "updated_at": "2026-08-28T14:00:00+07:00",
         "updated_by_present": True,
     }
+
+
     assert states["reading_evaluator"]["config_provenance"] == {
         "saved": False,
         "updated_at": None,
@@ -274,6 +283,32 @@ def test_get_is_capability_centric_network_free_and_secret_safe(
     assert "server-secret" not in rendered
     assert "admin-sub-secret-shaped" not in rendered
     assert provider.discovery_calls == 0
+
+
+def test_operations_endpoint_is_read_only_and_aggregates_without_provider_probe(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    repository = FakeRepository()
+    repository.ai_events.append({
+        "capability": "writing_evaluator",
+        "provider": "openai",
+        "model": "model-1",
+        "outcome": "success",
+        "latency_ms": 12,
+        "usage": {"prompt_tokens": 2, "completion_tokens": 1, "total_tokens": 3},
+        "prompt": "never return",
+        "cost": 5,
+    })
+    request = configure_platform(monkeypatch, repository)
+    monkeypatch.setattr(platform_module, "providers", lambda: pytest.fail("operations endpoint probed providers"))
+
+    result = platform_module.admin_ai_operations(request)
+
+    assert result["has_data"] is True
+    assert result["by_capability"][0]["capability"] == "writing_evaluator"
+    assert result["by_capability"][0]["usage_known"] == 1
+    assert "prompt" not in result["recent"][0]
+    assert "cost" not in result["recent"][0]
 
 
 def test_capability_put_updates_one_row_offline_without_legacy_or_network(

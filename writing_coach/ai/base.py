@@ -7,6 +7,12 @@ from dataclasses import dataclass
 from typing import Any
 
 
+_SUSPICIOUS_TELEMETRY_VALUE = re.compile(
+    r"(?:^[a-z][a-z0-9+.-]*://|[?#]|(?:api[_-]?key|token|secret|password|authorization)\s*=)",
+    re.IGNORECASE,
+)
+
+
 class AIProviderError(RuntimeError):
     """Provider failure carrying optional normalized operation telemetry."""
 
@@ -112,6 +118,41 @@ def telemetry_error_class(error: BaseException) -> str:
         if isinstance(error, error_type):
             return label
     return "operation_failed"
+
+
+def sanitize_telemetry(value: object) -> dict[str, Any] | None:
+    """Return the allowlisted, prompt-free event shape safe for persistence."""
+
+    if not isinstance(value, dict):
+        return None
+    capability = str(value.get("capability") or "")
+    if capability != "legacy" and capability != "[invalid]" and not re.fullmatch(r"[a-z][a-z0-9_]{0,79}", capability):
+        capability = "[invalid]"
+    provider = str(value.get("provider") or "")[:40] or None
+    if provider and not re.fullmatch(r"[a-z][a-z0-9_-]{0,39}", provider):
+        provider = "[redacted]"
+    model = str(value.get("model") or "")[:160] or None
+    model_redacted = bool(value.get("model_redacted"))
+    if model and _SUSPICIOUS_TELEMETRY_VALUE.search(model):
+        model, model_redacted = "[redacted]", True
+    usage = normalized_usage(value.get("usage"))
+    outcome = value.get("outcome")
+    if outcome not in {"success", "failure"}:
+        return None
+    error_class = value.get("error_class")
+    if not isinstance(error_class, str) or not re.fullmatch(r"[a-z][a-z0-9_]{0,79}", error_class):
+        error_class = None
+    return {
+        "capability": capability,
+        "provider": provider,
+        "model": model,
+        "model_redacted": model_redacted,
+        "outcome": outcome,
+        "error_class": error_class,
+        "latency_ms": normalized_latency(value.get("latency_ms")),
+        "usage": usage,
+        "quota_available": "unknown",
+    }
 
 
 def extract_json_object(text: str) -> dict[str, Any]:

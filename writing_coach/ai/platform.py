@@ -24,6 +24,7 @@ from writing_coach.ai.base import (
     AIResult,
     normalized_latency,
     normalized_usage,
+    sanitize_telemetry,
     telemetry_error_class,
 )
 from writing_coach.ai.capabilities import require_capability
@@ -173,6 +174,20 @@ def active_ai_status() -> dict[str, Any]:
     }
 
 
+def _persist_operation_telemetry(telemetry: dict[str, Any]) -> None:
+    """Best-effort persistence through the installed platform repository."""
+
+    safe = sanitize_telemetry(telemetry)
+    recorder = getattr(_platform_repository, "record_ai_operation", None)
+    if safe is None or not callable(recorder):
+        return
+    try:
+        recorder(safe)
+    except Exception:
+        # Telemetry must never change learner/provider operation semantics.
+        return
+
+
 def generate_structured(
     *,
     messages: list[dict[str, str]],
@@ -200,6 +215,7 @@ def generate_structured(
             "usage": normalized_usage(runtime),
             "quota_available": "unknown",
         }
+        _persist_operation_telemetry(runtime["telemetry"])
         result.runtime = runtime
         return result
 
@@ -266,6 +282,7 @@ def generate_structured(
             "usage": normalized_usage(None),
             "quota_available": "unknown",
         }
+        _persist_operation_telemetry(exc.telemetry)
         raise
 
 
@@ -301,6 +318,12 @@ def admin_ai_config(request: Request) -> dict[str, Any]:
     result = AIControlPlane(_installed_platform_repository()).inspect()
     result["learner_runtime"] = {"mode": runtime_mode().value}
     return result
+
+
+@router.get("/operations")
+def admin_ai_operations(request: Request) -> dict[str, Any]:
+    _require_admin(request)
+    return AIControlPlane(_installed_platform_repository()).operations()
 
 
 @router.put("/config", deprecated=True)

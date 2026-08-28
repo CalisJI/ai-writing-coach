@@ -18,6 +18,7 @@ from writing_coach.ai.base import (
     normalized_latency,
     normalized_usage,
     telemetry_error_class,
+    sanitize_telemetry,
 )
 from writing_coach.ai.capabilities import all_capabilities, require_capability
 from writing_coach.ai.config import CapabilityConfig, validate_capability_config
@@ -86,6 +87,16 @@ class AIControlPlane:
         self.repository = repository
         self.provider_factory = provider_factory
 
+    def _record_operation(self, telemetry: dict[str, Any]) -> None:
+        recorder = getattr(self.repository, "record_ai_operation", None)
+        safe = sanitize_telemetry(telemetry)
+        if safe is None or not callable(recorder):
+            return
+        try:
+            recorder(safe)
+        except Exception:
+            return
+
     def inspect(self) -> dict[str, Any]:
         """Build a sanitized, network-free view of the product capability catalog."""
 
@@ -148,6 +159,52 @@ class AIControlPlane:
             },
         }
 
+    def operations(self, *, limit: int = 100) -> dict[str, Any]:
+        """Return read-only, sanitized recent events and per-capability totals."""
+
+        loader = getattr(self.repository, "list_ai_operation_events", None)
+        raw_events = loader(limit) if callable(loader) else []
+        events = []
+        for raw in raw_events if isinstance(raw_events, list) else []:
+            event = sanitize_telemetry(raw)
+            if event is None:
+                continue
+            created_at = raw.get("created_at") if isinstance(raw, dict) else None
+            if isinstance(created_at, str) and created_at:
+                event["created_at"] = created_at
+            events.append(event)
+        aggregates: dict[str, dict[str, Any]] = {}
+        for event in events:
+            key = event["capability"]
+            row = aggregates.setdefault(key, {
+                "capability": key, "total": 0, "success": 0, "failure": 0,
+                "avg_latency_ms": None, "usage_known": 0, "usage_unknown": 0,
+            })
+            row["total"] += 1
+            if event["outcome"] == "success":
+                row["success"] += 1
+            else:
+                row["failure"] += 1
+            latency = event.get("latency_ms")
+            if isinstance(latency, int):
+                known = row.setdefault("_latencies", [])
+                known.append(latency)
+            usage = event.get("usage") or {}
+            if all(isinstance(usage.get(name), int) for name in ("prompt_tokens", "completion_tokens", "total_tokens")):
+                row["usage_known"] += 1
+            else:
+                row["usage_unknown"] += 1
+        for row in aggregates.values():
+            latencies = row.pop("_latencies", [])
+            row["avg_latency_ms"] = round(sum(latencies) / len(latencies)) if latencies else None
+        return {
+            "available": callable(loader),
+            "has_data": bool(events),
+            "recent": events,
+            "by_capability": list(aggregates.values()),
+            "usage_note": "Provider usage is unknown when not reported; cost is not calculated.",
+        }
+
     def set_config(
         self,
         capability_key: str,
@@ -207,6 +264,7 @@ class AIControlPlane:
                 "usage": normalized_usage(reported_usage),
                 "quota_available": "unknown",
             }
+            self._record_operation(result["telemetry"])
             return result
         except (AICapabilityConfigInvalid, AICapabilityDisabled,
                 AICapabilityNotConfigured, AICapabilityUnsupported,
@@ -225,6 +283,7 @@ class AIControlPlane:
                 "usage": normalized_usage(None),
                 "quota_available": "unknown",
             }
+            self._record_operation(exc.telemetry)
             raise
 
     def _live_test(self, capability_key: str) -> dict[str, Any]:
