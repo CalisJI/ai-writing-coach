@@ -16,6 +16,7 @@ from writing_coach.persistence.models import (
     EssayRevision,
     ReadingAttempt,
     ReadingSession,
+    ListeningProgress,
     SavedWord,
     SpeakingAttempt,
     User,
@@ -40,6 +41,8 @@ class SpecializedLearningRepository(Protocol):
     def latest_reading_attempt(self, session_id: int) -> dict[str, Any] | None: ...
     def list_reading_session_records(self, limit: int) -> list[dict[str, Any]]: ...
     def create_reading_attempt_record(self, session_id: int, values: dict[str, Any]) -> None: ...
+    def save_listening_progress_record(self, values: dict[str, Any]) -> dict[str, Any]: ...
+    def list_listening_progress_records(self, asset_id: str) -> list[dict[str, Any]]: ...
     def create_speaking_attempt_record(self, values: dict[str, Any]) -> dict[str, Any]: ...
     def list_speaking_attempt_records(self, limit: int = 50, *, asset_id: str | None = None, segment_id: str | None = None) -> list[dict[str, Any]]: ...
     def speaking_progress(self) -> dict[str, Any]: ...
@@ -407,6 +410,12 @@ class SQLiteSpecializedLearningRepository:
                          (session_id,values["created_at"],json.dumps(values["answers"]),values["correct_count"],values["total"]))
             conn.commit()
 
+    def save_listening_progress_record(self, values: dict[str, Any]) -> dict[str, Any]:
+        raise RuntimeError("Durable Active Listening progress requires the PostgreSQL runtime.")
+
+    def list_listening_progress_records(self, asset_id: str) -> list[dict[str, Any]]:
+        raise RuntimeError("Durable Active Listening progress requires the PostgreSQL runtime.")
+
     def create_speaking_attempt_record(self, values: dict[str, Any]) -> dict[str, Any]:
         raise RuntimeError("Durable Speaking attempts require the PostgreSQL runtime.")
 
@@ -616,6 +625,65 @@ class PostgresSpecializedLearningRepository:
             max_id=s.scalar(select(func.max(ReadingAttempt.legacy_id))); legacy=int(max_id or 0)+1
             s.add(ReadingAttempt(id=stable_uuid("reading-attempt",self._key(),self._language_provider().casefold(),legacy),session_id=r.id,legacy_id=legacy,
                                  created_at=self._dt(values["created_at"]),answers=list(values["answers"]),correct_count=int(values["correct_count"]),total=int(values["total"])))
+
+    def _listening_progress_payload(self, row: Any) -> dict[str, Any]:
+        return {
+            "id": str(row.id),
+            "language": row.language_code,
+            "asset_id": row.asset_id,
+            "segment_id": row.segment_id,
+            "presentation": row.presentation,
+            "revealed": bool(row.revealed),
+            "checked_attempt_count": int(row.checked_attempt_count or 0),
+            "best_accuracy_percent": row.best_accuracy_percent,
+            "best_exact": bool(row.best_exact),
+            "last_answer": row.last_answer,
+            "updated_at": self._iso(row.updated_at),
+        }
+
+    def save_listening_progress_record(self, values: dict[str, Any]) -> dict[str, Any]:
+        uid, lang = self._scope()
+        asset_id = str(values["asset_id"])
+        segment_id = str(values["segment_id"])
+        progress_id = stable_uuid("listening-progress", self._key(), lang, asset_id, segment_id)
+        with Session(self.engine) as s, s.begin():
+            if s.get(User, uid) is None:
+                raise RuntimeError("PostgreSQL scope user missing; shadow/import must run first.")
+            row = s.get(ListeningProgress, progress_id)
+            fields = {
+                "presentation": values.get("presentation", "prompt"),
+                "revealed": bool(values.get("revealed", False)),
+                "checked_attempt_count": int(values.get("checked_attempt_count", 0)),
+                "best_accuracy_percent": values.get("best_accuracy_percent"),
+                "best_exact": bool(values.get("best_exact", False)),
+                "last_answer": str(values.get("last_answer", "")),
+                "updated_at": self._dt(values["updated_at"]),
+            }
+            if row is None:
+                row = ListeningProgress(
+                    id=progress_id, user_id=uid, language_code=lang,
+                    asset_id=asset_id, segment_id=segment_id, **fields,
+                )
+                s.add(row)
+            else:
+                for key, value in fields.items():
+                    setattr(row, key, value)
+            s.flush()
+            return self._listening_progress_payload(row)
+
+    def list_listening_progress_records(self, asset_id: str) -> list[dict[str, Any]]:
+        uid, lang = self._scope()
+        with Session(self.engine) as s:
+            rows = s.scalars(
+                select(ListeningProgress)
+                .where(
+                    ListeningProgress.user_id == uid,
+                    ListeningProgress.language_code == lang,
+                    ListeningProgress.asset_id == asset_id,
+                )
+                .order_by(ListeningProgress.updated_at.desc())
+            ).all()
+            return [self._listening_progress_payload(row) for row in rows]
 
     @staticmethod
     def _speaking_payload(row: Any) -> dict[str, Any]:

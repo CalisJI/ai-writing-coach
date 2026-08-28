@@ -116,6 +116,12 @@ def main():
     else:
         raise AssertionError('SQLite must not persist Speaking attempts')
     assert not sr._has_table(c, 'speaking_attempts')
+    try:
+        sr.save_listening_progress_record({'asset_id':'asset-en','segment_id':'segment-1','presentation':'checked','revealed':False,'checked_attempt_count':2,'best_accuracy_percent':87,'best_exact':False,'last_answer':'Good morning.','updated_at':now})
+    except RuntimeError as exc:
+        assert 'PostgreSQL runtime' in str(exc)
+    else:
+        raise AssertionError('SQLite must not persist Active Listening progress')
 
     # Real-data regression: older language DBs can contain saved_words but have
     # never initialized Active Recall / Reading optional tables.
@@ -164,5 +170,9 @@ def main():
     assert pspeaking['take_id']=='take-1'
     assert pspeaking['language']=='en'
     assert pr.speaking_progress()['average_fluency']==82.0
+    pactive=pr.save_listening_progress_record({'asset_id':'asset-en','segment_id':'segment-1','presentation':'checked','revealed':False,'checked_attempt_count':2,'best_accuracy_percent':87,'best_exact':False,'last_answer':'Good morning.','updated_at':now})
+    assert pactive['asset_id']=='asset-en'
+    assert pactive['checked_attempt_count']==2
+    assert pr.list_listening_progress_records('asset-en')[0]['segment_id']=='segment-1'
     print('BECOMING specialized persistence repository self-test OK')
 if __name__=='__main__': main()

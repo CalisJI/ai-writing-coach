@@ -20,6 +20,7 @@ import {
   evaluateListeningReconstruction,
   listeningPracticeSummary,
   listeningUnits,
+  restoreListeningPracticeProgress,
   recordListeningPracticeAttempt,
   retryListeningPracticeSegment,
   revealListeningPracticeAnswer,
@@ -115,9 +116,9 @@ const COPY={
   },shortcuts:'快捷键',shortcutsTitle:'键盘快捷键',wordTiming:'逐词对齐',vocabulary:'词汇',notes:'笔记',notesPlaceholder:'本课笔记仅保存在此设备上。',vocabularyEmpty:'你在点评中保存的词会出现在这里。',download:'下载',hidePlayer:'隐藏视频',showPlayer:'显示视频',jumpPlaying:'跳到正在播放处',skipBack:'后退',skipForward:'前进',mute:'静音',unmute:'取消静音',words:'词',listen:'听力 · 跟随',title:'逐句听见意思。',lead:'把外部视频导入一个共享媒体课程。观看视频、跟随原文、在可用时阅读释义，并重听每个句子。',url:'视频网址',placeholder:'https://www.youtube.com/watch?v=…',prepare:'导入 / 准备课程',preparingMeaning:'正在准备释义……原文字幕现在已可使用。',showGroup:'显示',skillName:'听力',skillStat:'已准备课程',recentTitle:'继续一课',needTitle:'什么样的视频可用',need1:'一个 YouTube 链接，直接从地址栏粘贴。',need2:'视频必须已有字幕 —— 没有字幕就无法跟读。',need3:'使用你正在学习的语言。',retryTranslation:'重试准备',validating:'正在检查网址…',processing:'正在准备课程…',translationFailed:'暂时无法准备释义。请重试准备后开始课程。',original:'原文字幕',meaning:'释义',unavailable:'释义暂时不可用。',notRequired:'所选辅助语言不需要翻译。',translationUnavailable:'目前无法生成释义。你仍可继续使用原文字幕。',translationTooLarge:'本课内容过大，当前无法自动生成释义。你仍可继续使用原文字幕。',generatedTranscript:'此字幕由系统自动生成，可能有误。',transcriptMissing:'这个视频没有可用字幕。',unsupported:'暂不支持这个视频来源。',malformedUrl:'请输入有效的公开视频网址。',unsupportedProvider:'暂不支持这个媒体提供方。',mediaUnavailable:'该媒体为私密内容或暂不可用。',providerTimeout:'媒体提供方响应超时，请重试。',providerFailure:'媒体提供方无法准备本课，请重试。',unsupportedSourceLanguage:'暂不支持这个媒体语言。',invalidTargetLanguage:'请选择有效的辅助语言。',failed:'无法准备课程。',previous:'上一句',next:'下一句',replay:'重听',speed:'速度',select:'选择一段字幕后重听。',shadow:'跟读这句',shared:'跟读直接复用同一媒体和句段，不需要再次导入视频。',playback:'这个来源暂时无法播放。'},
 };
 const ACTIVE_COPY={
-  en:{follow:'Follow',active:'Active',mode:'Listening mode',activeUnavailable:'Active Listening and Shadowing need usable provider playback.',practice:'Active Listening',prompt:'Type what you heard',check:'Check answer',reveal:'Reveal answer',retry:'Retry',yourAnswer:'Your answer',textMatch:'Text match',exact:'Exact match',close:'Close match',tryAgain:'Try again',disclaimer:'Text match compares your reconstruction with this transcript. It is not a proficiency score.',progress:'Session practice',practiced:'Practiced',exactCount:'Exact',average:'Average best text match',attempts:'Checked attempts',revealed:'Revealed only',segment:'Segment',answerEmpty:'Type what you heard before checking.',answerTooLarge:'Your reconstruction is too long to check safely.',segmentTooLarge:'This transcript segment is too large to check safely. Follow mode remains available.',meaningUnavailable:'Meaning is currently unavailable. The original transcript remains usable.',meaningTooLarge:'Meaning is unavailable because this lesson is too large for automatic translation.',meaningNotRequired:'Translation is not required for the selected support language.'},
-  vi:{follow:'Theo dõi',active:'Chủ động',mode:'Chế độ nghe',activeUnavailable:'Luyện nghe chủ động và Shadowing cần nguồn phát khả dụng.',practice:'Luyện nghe chủ động',prompt:'Gõ lại điều bạn nghe được',check:'Kiểm tra',reveal:'Xem đáp án',retry:'Thử lại',yourAnswer:'Câu trả lời của bạn',textMatch:'Độ khớp văn bản',exact:'Khớp chính xác',close:'Gần khớp',tryAgain:'Hãy thử lại',disclaimer:'Độ khớp văn bản so sánh phần bạn nghe được với transcript này. Đây không phải điểm năng lực.',progress:'Luyện tập trong phiên',practiced:'Đã luyện',exactCount:'Chính xác',average:'Độ khớp tốt nhất trung bình',attempts:'Lượt đã kiểm tra',revealed:'Chỉ xem đáp án',segment:'Đoạn',answerEmpty:'Hãy gõ lại điều bạn nghe được trước khi kiểm tra.',answerTooLarge:'Câu trả lời quá dài để kiểm tra an toàn.',segmentTooLarge:'Đoạn transcript này quá dài để kiểm tra an toàn. Chế độ Theo dõi vẫn khả dụng.',meaningUnavailable:'Hiện chưa có phần nghĩa. Transcript gốc vẫn khả dụng.',meaningTooLarge:'Không có phần nghĩa vì bài học quá lớn để dịch tự động.',meaningNotRequired:'Không cần bản dịch cho ngôn ngữ hỗ trợ đã chọn.'},
-  zh:{follow:'跟随',active:'主动练习',mode:'听力模式',activeUnavailable:'主动听力和跟读练习需要可用的媒体播放。',practice:'主动听力',prompt:'输入你听到的内容',check:'检查答案',reveal:'显示答案',retry:'重试',yourAnswer:'你的答案',textMatch:'文本匹配度',exact:'完全匹配',close:'接近匹配',tryAgain:'再试一次',disclaimer:'文本匹配只比较你的重构与本段字幕，并不是语言能力分数。',progress:'本次练习',practiced:'已练习',exactCount:'完全匹配',average:'最佳文本匹配平均值',attempts:'已检查次数',revealed:'仅查看答案',segment:'句段',answerEmpty:'请先输入你听到的内容。',answerTooLarge:'你的答案过长，无法安全检查。',segmentTooLarge:'本段字幕过长，无法安全检查。跟随模式仍可使用。',meaningUnavailable:'释义目前不可用，原文字幕仍可使用。',meaningTooLarge:'本课内容过大，无法自动生成释义。',meaningNotRequired:'所选辅助语言不需要翻译。'},
+  en:{follow:'Follow',active:'Active',mode:'Listening mode',activeUnavailable:'Active Listening and Shadowing need usable provider playback.',practice:'Active Listening',prompt:'Type what you heard',check:'Check answer',reveal:'Reveal answer',retry:'Retry',yourAnswer:'Your answer',textMatch:'Text match',exact:'Exact match',close:'Close match',tryAgain:'Try again',disclaimer:'Text match compares your reconstruction with this transcript. It is not a proficiency score.',progress:'Session practice',practiced:'Practiced',exactCount:'Exact',average:'Average best text match',attempts:'Checked attempts',revealed:'Revealed only',segment:'Segment',answerEmpty:'Type what you heard before checking.',answerTooLarge:'Your reconstruction is too long to check safely.',segmentTooLarge:'This transcript segment is too large to check safely. Follow mode remains available.',meaningUnavailable:'Meaning is currently unavailable. The original transcript remains usable.',meaningTooLarge:'Meaning is unavailable because this lesson is too large for automatic translation.',meaningNotRequired:'Translation is not required for the selected support language.',progressEmpty:'No saved listening progress for this lesson yet.',progressSaving:'Saving listening progress…',progressSaved:'Listening progress saved for this lesson.',progressUnavailable:'Saved listening progress is unavailable here. Your current practice remains on this device.',progressFailed:'Listening progress could not be saved. Your current practice remains on this device.',progressRestored:'Previous progress restored for this lesson.'},
+  vi:{follow:'Theo dõi',active:'Chủ động',mode:'Chế độ nghe',activeUnavailable:'Luyện nghe chủ động và Shadowing cần nguồn phát khả dụng.',practice:'Luyện nghe chủ động',prompt:'Gõ lại điều bạn nghe được',check:'Kiểm tra',reveal:'Xem đáp án',retry:'Thử lại',yourAnswer:'Câu trả lời của bạn',textMatch:'Độ khớp văn bản',exact:'Khớp chính xác',close:'Gần khớp',tryAgain:'Hãy thử lại',disclaimer:'Độ khớp văn bản so sánh phần bạn nghe được với transcript này. Đây không phải điểm năng lực.',progress:'Luyện tập trong phiên',practiced:'Đã luyện',exactCount:'Chính xác',average:'Độ khớp tốt nhất trung bình',attempts:'Lượt đã kiểm tra',revealed:'Chỉ xem đáp án',segment:'Đoạn',answerEmpty:'Hãy gõ lại điều bạn nghe được trước khi kiểm tra.',answerTooLarge:'Câu trả lời quá dài để kiểm tra an toàn.',segmentTooLarge:'Đoạn transcript này quá dài để kiểm tra an toàn. Chế độ Theo dõi vẫn khả dụng.',meaningUnavailable:'Hiện chưa có phần nghĩa. Transcript gốc vẫn khả dụng.',meaningTooLarge:'Không có phần nghĩa vì bài học quá lớn để dịch tự động.',meaningNotRequired:'Không cần bản dịch cho ngôn ngữ hỗ trợ đã chọn.',progressEmpty:'Chưa có tiến độ nghe nào được lưu cho bài học này.',progressSaving:'Đang lưu tiến độ nghe…',progressSaved:'Đã lưu tiến độ nghe cho bài học này.',progressUnavailable:'Tiến độ đã lưu hiện không khả dụng. Bài luyện hiện tại vẫn ở trên thiết bị này.',progressFailed:'Không thể lưu tiến độ nghe. Bài luyện hiện tại vẫn ở trên thiết bị này.',progressRestored:'Đã khôi phục tiến độ trước đó cho bài học này.'},
+  zh:{follow:'跟随',active:'主动练习',mode:'听力模式',activeUnavailable:'主动听力和跟读练习需要可用的媒体播放。',practice:'主动听力',prompt:'输入你听到的内容',check:'检查答案',reveal:'显示答案',retry:'重试',yourAnswer:'你的答案',textMatch:'文本匹配度',exact:'完全匹配',close:'接近匹配',tryAgain:'再试一次',disclaimer:'文本匹配只比较你的重构与本段字幕，并不是语言能力分数。',progress:'本次练习',practiced:'已练习',exactCount:'完全匹配',average:'最佳文本匹配平均值',attempts:'已检查次数',revealed:'仅查看答案',segment:'句段',answerEmpty:'请先输入你听到的内容。',answerTooLarge:'你的答案过长，无法安全检查。',segmentTooLarge:'本段字幕过长，无法安全检查。跟随模式仍可使用。',meaningUnavailable:'释义目前不可用，原文字幕仍可使用。',meaningTooLarge:'本课内容过大，无法自动生成释义。',meaningNotRequired:'所选辅助语言不需要翻译。',progressEmpty:'本课还没有已保存的听力进度。',progressSaving:'正在保存听力进度…',progressSaved:'已保存本课听力进度。',progressUnavailable:'当前无法使用已保存的听力进度。当前练习仍保留在本设备上。',progressFailed:'无法保存听力进度。当前练习仍保留在本设备上。',progressRestored:'已恢复本课之前的练习进度。'},
 };
 const SHADOW_COPY={
   en:{progressTitle:'Progress',segmentsLabel:'segments', keySoundsPending:'Key sounds and rhythm \u2014 not checked yet', studioTitle:'Shadowing Studio',studioLead:'Practice speaking with real-world content.',leaveStudio:'Leave studio',sharedMedia:'Shared media',viewTranscript:'View full transcript',nowPracticing:'Now practicing',listen:'Listen',holdToRepeat:'Hold to repeat',listenToMe:'Listen to me',yourAttempts:'Your attempts',roundOf:'Round {n} of {total}',startRound:'Start round {n}',tips:'Tips',tip1:'Play the segment, then say it back at the same speed.',tip2:'Match the speaker\u2019s rhythm before worrying about single sounds.',shortcuts:'Keyboard shortcuts',scPlay:'Play / Pause',scRepeat:'Hold to repeat',scNext:'Next segment',scPrev:'Previous segment',scorePending:'Not scored yet',scoreNote:'Pronunciation and intonation scoring is not built yet. Your takes stay on this device and are never uploaded.',recording:'Recording\u2026',recordUnsupported:'This browser cannot record audio.',justNow:'Just now',takes:'takes',pinyin:'Pinyin',mode:'Shadowing',practice:'Shadow this segment',guide:'Listen to the selected segment, repeat it aloud, then mark one completed round.',markRound:'Mark round complete',rounds:'Rounds',progress:'Session shadowing',practiced:'Practiced segments',totalRounds:'Completed rounds',noScore:'Repeating here does not record or score anything. Open Speak when you want to record your voice and play it back.',openSpeaking:'Open Speak',segment:'Segment'},
@@ -348,12 +349,15 @@ function activeWorkspace(payload,selected,model){
   const state=model.practiceSession?.segments?.[selected];
   const translations=new Map((payload.translations||[]).map(item=>[item.segment_id,item.translated_meaning]));
   const visible=state?.presentation==='checked'||state?.presentation==='revealed';
-  const lastAttempt=state?.presentation==='checked'?state.attempts.at(-1)||null:null;
+  const lastAttempt=state?.presentation==='checked'?(state.last_attempt||state.attempts.at(-1)||null):null;
   const result=lastAttempt?.result;
   const summary=listeningPracticeSummary(model.practiceSession);
   const evaluable=segment&&listeningUnits(segment.original_text,payload.asset?.source_language).length<=MAX_LISTENING_EVALUATION_UNITS;
   const validation=model.practiceValidation==='answer_empty'?c.answerEmpty:model.practiceValidation==='answer_too_large'?c.answerTooLarge:model.practiceValidation==='evaluation_too_large'?c.segmentTooLarge:'';
   const quality=result?.exact?c.exact:result?.accuracy_percent>=80?c.close:c.tryAgain;
+  const persistenceKey=payload.asset?.asset_id&&selected?`${payload.asset.asset_id}:${selected}`:'';
+  const persistence=model.practicePersistence?.key===persistenceKey?model.practicePersistence:{status:'empty',key:persistenceKey};
+  const persistenceCopy=persistence.status==='saving'?c.progressSaving:persistence.status==='saved'?c.progressSaved:persistence.status==='unavailable'?c.progressUnavailable:persistence.status==='error'?c.progressFailed:persistence.status==='restored'?c.progressRestored:c.progressEmpty;
   return `<section class="listening-transcript listening-active visual-section-surface" aria-label="${esc(c.practice)}">
     <div class="listening-toolbar"><div><strong>${esc(c.practice)}</strong><small>${esc(c.disclaimer)}</small></div></div>
     ${segmentNavigation(segments,selected,model.playbackRate)}
@@ -385,6 +389,7 @@ function activeWorkspace(payload,selected,model){
       <span>${esc(c.revealed)} ${summary.revealed_only_segments}</span>
       <span>${esc(c.average)} ${summary.average_best_text_match===null?'—':`${summary.average_best_text_match}%`}</span>
     </div>
+    ${persistenceCopy?`<p class="active-listening-persistence active-listening-persistence-${esc(persistence.status)}" data-listening-persistence-state="${esc(persistence.status)}" role="status">${esc(persistenceCopy)}</p>`:''}
   </section>`;
 }
 
@@ -1041,15 +1046,66 @@ function translationRequest(payload,targetLanguage){
   };
 }
 
-export function createListeningController({importMedia,importStatus,targetLanguage,translateMedia=()=>Promise.resolve(null),onChange=()=>{},onMediaReady=()=>{},onTranslationReady=()=>{},onSelection=()=>{},onProcessing=()=>{},onImportTerminal=()=>{}}){
-  const model={status:'empty',payload:null,error:null,selected:null,manualSelection:false,playingSegmentId:null,jobId:null,sourceUrl:'',original:true,meaning:true,playbackRate:1,mode:'follow',practiceSession:null,shadowingSession:null,practiceValidation:null,speakingFeedback:{status:'empty',item:null}};
+export function createListeningController({importMedia,importStatus,targetLanguage,translateMedia=()=>Promise.resolve(null),onChange=()=>{},onMediaReady=()=>{},onTranslationReady=()=>{},onSelection=()=>{},onProcessing=()=>{},onImportTerminal=()=>{},onPracticeProgressSave=()=>{}}){
+  const model={status:'empty',payload:null,error:null,selected:null,manualSelection:false,playingSegmentId:null,jobId:null,sourceUrl:'',original:true,meaning:true,playbackRate:1,mode:'follow',practiceSession:null,shadowingSession:null,practiceValidation:null,practicePersistence:{status:'empty'},speakingFeedback:{status:'empty',item:null}};
   const viewId=`listening-${++listeningViewSequence}`;
   let importGeneration=0;
   let backgroundTranslationGeneration=0;
+  const practicePersistenceByKey=new Map();
   const changed=(options={})=>onChange({...model},options);
   const actionAnchor=()=>model.mode==='follow'&&!model.manualSelection
     ?(model.playingSegmentId||model.selected):model.selected;
   const selectedSegment=()=>model.payload?.transcript?.segments?.find(segment=>segment.segment_id===model.selected);
+  const practiceProgressPayload=()=>{
+    const session=model.practiceSession;
+    const segmentId=session?.current_segment_id;
+    const segment=segmentId?session.segments[segmentId]:null;
+    if(!session||!segment)return null;
+    return {
+      asset_id:session.asset_id,
+      segment_id:segmentId,
+      presentation:segment.presentation,
+      revealed:Boolean(segment.revealed),
+      checked_attempt_count:Number(segment.checked_attempt_count||segment.attempts.length||0),
+      best_accuracy_percent:segment.best_result?.accuracy_percent??null,
+      best_exact:Boolean(segment.best_result?.exact),
+      last_answer:segment.presentation==='prompt'?'':(segment.last_attempt?.answer||segment.draft||''),
+    };
+  };
+  const practiceSaveQueues=new Map();
+  const practiceSaveVersions=new Map();
+  const practiceKey=(assetId,segmentId)=>`${assetId}:${segmentId}`;
+  const setPracticePersistence=(key,status)=>{
+    const value={status,key};
+    practicePersistenceByKey.set(key,value);
+    if(practiceKey(model.practiceSession?.asset_id,model.practiceSession?.current_segment_id)===key){
+      model.practicePersistence=value;
+      return true;
+    }
+    return false;
+  };
+  const persistPracticeProgress=()=>{
+    const payload=practiceProgressPayload();
+    if(!payload)return false;
+    const key=practiceKey(payload.asset_id,payload.segment_id);
+    const version=(practiceSaveVersions.get(key)||0)+1;
+    practiceSaveVersions.set(key,version);
+    setPracticePersistence(key,'saving');
+    changed();
+    const previous=practiceSaveQueues.get(key)||Promise.resolve();
+    const queued=previous.catch(()=>{}).then(()=>{
+      try{return onPracticeProgressSave(payload);}catch{return Promise.reject(new Error('persistence failed'));}
+    });
+    practiceSaveQueues.set(key,queued);
+    queued.then(()=>{
+      if(practiceSaveVersions.get(key)===version&&setPracticePersistence(key,'saved'))changed();
+    }).catch(()=>{
+      if(practiceSaveVersions.get(key)===version&&setPracticePersistence(key,'error'))changed();
+    }).finally(()=>{
+      if(practiceSaveQueues.get(key)===queued)practiceSaveQueues.delete(key);
+    });
+    return true;
+  };
   const mergeTranslation=translated=>{
     model.payload={
       ...model.payload,
@@ -1068,6 +1124,8 @@ export function createListeningController({importMedia,importStatus,targetLangua
     model.practiceSession=model.status==='ready'?createListeningPracticeSession({asset_id:payload.asset.asset_id,segment_ids:segmentIds}):null;
     model.shadowingSession=model.status==='ready'?createShadowingPracticeSession({asset_id:payload.asset.asset_id,segment_ids:segmentIds}):null;
     model.practiceValidation=null;
+    practicePersistenceByKey.clear();
+    model.practicePersistence={status:'empty',key:model.practiceSession?practiceKey(model.practiceSession.asset_id,model.practiceSession.current_segment_id):''};
     model.speakingFeedback={status:'empty',item:null};
     if(['active','shadowing'].includes(model.mode)&&!playbackAvailable(payload?.playback))model.mode='follow';
     if(model.status==='processing'&&model.jobId)onProcessing({job_id:model.jobId,source_url:model.sourceUrl});
@@ -1144,6 +1202,7 @@ export function createListeningController({importMedia,importStatus,targetLangua
       model.selected=segmentId;model.manualSelection=true;
       if(model.practiceSession)selectListeningPracticeSegment(model.practiceSession,segmentId);
       if(model.shadowingSession)selectShadowingPracticeSegment(model.shadowingSession,segmentId);
+      model.practicePersistence=practicePersistenceByKey.get(practiceKey(model.practiceSession?.asset_id,segmentId))||{status:'empty',key:practiceKey(model.practiceSession?.asset_id,segmentId)};
       model.practiceValidation=null;onSelection(segmentId);changed();return true;
     },
     moveSelection(offset){
@@ -1157,6 +1216,7 @@ export function createListeningController({importMedia,importStatus,targetLangua
       model.selected=target.segment_id;model.manualSelection=true;
       if(model.practiceSession)selectListeningPracticeSegment(model.practiceSession,target.segment_id);
       if(model.shadowingSession)selectShadowingPracticeSegment(model.shadowingSession,target.segment_id);
+      model.practicePersistence=practicePersistenceByKey.get(practiceKey(model.practiceSession?.asset_id,target.segment_id))||{status:'empty',key:practiceKey(model.practiceSession?.asset_id,target.segment_id)};
       model.practiceValidation=null;onSelection(target.segment_id);changed();return true;
     },
     restore(payload,selectedId=null,mode='follow'){
@@ -1173,6 +1233,8 @@ export function createListeningController({importMedia,importStatus,targetLangua
         selectShadowingPracticeSegment(model.shadowingSession,model.selected);
       }
       model.practiceValidation=null;
+      practicePersistenceByKey.clear();
+      model.practicePersistence={status:'empty',key:model.practiceSession?practiceKey(model.practiceSession.asset_id,model.practiceSession.current_segment_id):''};
       model.speakingFeedback={status:'empty',item:null};
       model.mode=['follow','active','shadowing'].includes(mode)?mode:'follow';
       if(['active','shadowing'].includes(model.mode)&&!playbackAvailable(payload.playback))model.mode='follow';
@@ -1204,7 +1266,7 @@ export function createListeningController({importMedia,importStatus,targetLangua
         const state=model.practiceSession.segments[model.selected];
         const result=evaluateListeningReconstruction({source_language:model.payload.asset.source_language,expected:segment.original_text,answer:state.draft});
         recordListeningPracticeAttempt(model.practiceSession,result);
-        model.practiceValidation=null;changed();return true;
+        model.practiceValidation=null;changed();persistPracticeProgress();return true;
       }catch(error){
         model.practiceValidation=error?.code||'evaluation_unavailable';changed();return false;
       }
@@ -1212,12 +1274,32 @@ export function createListeningController({importMedia,importStatus,targetLangua
     revealPractice(){
       if(!model.practiceSession)return false;
       revealListeningPracticeAnswer(model.practiceSession);
-      model.practiceValidation=null;changed();return true;
+      model.practiceValidation=null;changed();persistPracticeProgress();return true;
     },
     retryPractice(){
       if(!model.practiceSession)return false;
       retryListeningPracticeSegment(model.practiceSession);
-      model.practiceValidation=null;changed();return true;
+      model.practiceValidation=null;changed();persistPracticeProgress();return true;
+    },
+    restorePracticeProgress(records){
+      if(!model.practiceSession)return false;
+      const restoredKeys=[];
+      const restored=restoreListeningPracticeProgress(model.practiceSession,records,segmentId=>restoredKeys.push(practiceKey(model.practiceSession.asset_id,segmentId)));
+      restoredKeys.forEach(key=>setPracticePersistence(key,'restored'));
+      const key=practiceKey(model.practiceSession.asset_id,model.practiceSession.current_segment_id);
+      if(!restoredKeys.includes(key))setPracticePersistence(key,'empty');
+      model.practicePersistence=practicePersistenceByKey.get(key)||{status:'empty',key};
+      changed();
+      return restored;
+    },
+    markPracticeProgressUnavailable(){
+      if(!model.practiceSession)return false;
+      const assetId=model.practiceSession.asset_id;
+      model.practiceSession.segment_ids.forEach(segmentId=>setPracticePersistence(practiceKey(assetId,segmentId),'unavailable'));
+      const key=practiceKey(assetId,model.practiceSession.current_segment_id);
+      model.practicePersistence=practicePersistenceByKey.get(key)||{status:'unavailable',key};
+      changed();
+      return true;
     },
     recordShadowingRound(){
       if(!model.shadowingSession)return false;
@@ -1368,7 +1450,7 @@ function installSmartFollow(root){
   return binding;
 }
 
-export async function renderListening(root,{importMedia=api.importMedia,importStatus=api.mediaImportStatus,translateMedia=api.translateMedia,targetLanguage=supportLanguage,speakingAttempts=api.speakingAttempts}={}){
+export async function renderListening(root,{importMedia=api.importMedia,importStatus=api.mediaImportStatus,translateMedia=api.translateMedia,targetLanguage=supportLanguage,speakingAttempts=api.speakingAttempts,loadListeningProgress=api.listeningProgress,saveListeningProgress=api.saveListeningProgress}={}){
   let controller;
   let mounted=false;
   let visibleSelection=null;
@@ -1869,6 +1951,18 @@ export async function renderListening(root,{importMedia=api.importMedia,importSt
     })
     .catch(()=>{ lessonVocabulary=[]; });
 
+  const restoreListeningProgressForAsset=(payload)=>{
+    if(!state.me||typeof loadListeningProgress!=='function'||!payload?.asset?.asset_id)return;
+    let pending;
+    try{pending=loadListeningProgress(payload.asset.asset_id);}catch{pending=Promise.reject(new Error('progress unavailable'));}
+    Promise.resolve(pending).then(response=>{
+      if(controller.model.practiceSession?.asset_id!==payload.asset.asset_id)return;
+      controller.restorePracticeProgress(response?.items||[]);
+    }).catch(()=>{
+      if(controller.model.practiceSession?.asset_id!==payload.asset.asset_id)return;
+      controller.markPracticeProgressUnavailable();
+    });
+  };
   controller=createListeningController({
     importMedia,importStatus,targetLanguage,translateMedia,onChange:render,
     onMediaReady:(payload,selected_segment_id)=>{
@@ -1881,7 +1975,11 @@ export async function renderListening(root,{importMedia=api.importMedia,importSt
         title:payload?.asset?.title||'',
         provider:payload?.asset?.source_provider||'',
       });
+      restoreListeningProgressForAsset(payload);
     },
+    onPracticeProgressSave:payload=>state.me&&typeof saveListeningProgress==='function'
+      ?saveListeningProgress(payload)
+      :Promise.resolve(),
     onTranslationReady:payload=>{
       setSharedMediaSession({learning_language:state.language,payload,selected_segment_id:controller.model.selected});
       render();

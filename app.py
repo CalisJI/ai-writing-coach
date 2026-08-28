@@ -70,6 +70,10 @@ from writing_coach.speech_api import (
     configure_speaking_attempt_repository,
     router as speech_router,
 )
+from writing_coach.listening_api import (
+    configure_listening_progress,
+    router as listening_progress_router,
+)
 from writing_coach.speech_asr import GroqSpeechAsrProvider
 from writing_coach.speech_pronunciation import build_speech_pronunciation_provider
 from writing_coach.core.errors import orena_http_error
@@ -279,6 +283,12 @@ configure_speaking_attempt_repository(
     else None
 )
 app.include_router(speech_router)
+configure_listening_progress(
+    _specialized_learning_repository
+    if _persistence_runtime.backend == "postgresql"
+    else None
+)
+app.include_router(listening_progress_router)
 install_platform_ai(app, require_admin)
 configure_becoming_memory(_specialized_learning_repository)
 configure_becoming_outcomes(_specialized_learning_repository)

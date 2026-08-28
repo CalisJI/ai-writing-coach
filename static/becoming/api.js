@@ -160,6 +160,12 @@ export const api={
     if(segmentId)params.set('segment_id',String(segmentId));
     return request(`/api/speech/attempts?${params.toString()}`);
   },
+  listeningProgress:(assetId)=>request(`/api/listening/progress?asset_id=${encodeURIComponent(assetId||'')}`),
+  saveListeningProgress:(payload)=>request('/api/listening/progress',{
+    method:'POST',
+    headers:JSON_HEADERS,
+    body:JSON.stringify(payload||{}),
+  }),
   essays:()=>request('/api/essays'),
   essay:(id)=>request(`/api/essays/${encodeURIComponent(id)}`),
   linguisticAnnotations:(id)=>request(`/api/essays/${encodeURIComponent(id)}/linguistic-annotations`,{

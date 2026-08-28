@@ -219,6 +219,37 @@ class ReadingAttempt(Base):
     total: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
 
 
+class ListeningProgress(Base):
+    """Bounded, audio-free Active Listening progress for one segment."""
+
+    __tablename__ = "listening_progress"
+    __table_args__ = (
+        UniqueConstraint(
+            "user_id", "language_code", "asset_id", "segment_id",
+            name="uq_listening_progress_scope_segment",
+        ),
+        Index(
+            "ix_listening_progress_user_language_asset",
+            "user_id", "language_code", "asset_id",
+        ),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True)
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    language_code: Mapped[str] = mapped_column(String(20), nullable=False)
+    asset_id: Mapped[str] = mapped_column(String(255), nullable=False)
+    segment_id: Mapped[str] = mapped_column(String(255), nullable=False)
+    presentation: Mapped[str] = mapped_column(String(20), default="prompt", nullable=False)
+    revealed: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    checked_attempt_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    best_accuracy_percent: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    best_exact: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    last_answer: Mapped[str] = mapped_column(Text, default="", nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
 class SpeakingAttempt(Base):
     """Privacy-bounded evaluator evidence for one completed Speaking take.
 

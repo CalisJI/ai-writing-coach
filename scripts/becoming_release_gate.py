@@ -67,6 +67,11 @@ def main() -> None:
         root / "static" / "becoming" / "domain" / "shared-media-session.js",
         root / "static" / "becoming" / "components" / "audio-recorder.js",
         root / "static" / "becoming" / "screens" / "listening.js",
+        root / "static" / "becoming" / "domain" / "listening-practice.js",
+        root / "writing_coach" / "listening_api.py",
+        root / "tests" / "test_listening_progress.py",
+        root / "writing_coach" / "persistence" / "models.py",
+        root / "migrations" / "versions" / "20260828_0003_listening_progress.py",
         root / "static" / "becoming" / "screens" / "speaking.js",
         root / "static" / "becoming" / "speaking.css",
         root / "static" / "becoming" / "orena" / "speaking.css",
@@ -80,6 +85,7 @@ def main() -> None:
         root / "scripts" / "test_shadowing_practice.mjs",
         root / "scripts" / "test_r9_shadowing_speaking_flow.mjs",
         root / "scripts" / "test_r9_shadowing_feedback.mjs",
+        root / "scripts" / "test_r11_listening_progress.mjs",
         root / "scripts" / "test_r10_reading_flow.mjs",
         root / "scripts" / "test_speaking_core.mjs",
         root / "scripts" / "test_speaking_groq_flow.mjs",
@@ -395,6 +401,10 @@ def main() -> None:
     require_contains(errors, screens["listening"], [
         "speakingAttempts(1", "data-speaking-feedback-state", "shadowingFeedback",
     ], "Shadowing Speaking-feedback continuity")
+    require_contains(errors, screens["listening"], [
+        "loadListeningProgress", "saveListeningProgress", "restorePracticeProgress",
+        "data-listening-persistence-state", "progressFailed",
+    ], "Active Listening durable progress")
 
     # Design philosophy contract: every current/future route requires explicit learner-goal metadata.
     route_match = re.search(r"VALID\s*=\s*new Set\(\[([^\]]+)\]\)", router, re.S)

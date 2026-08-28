@@ -667,3 +667,26 @@ without new persistence or provider behavior. Public Shadowing/Speaking
 promotion remains human-gated.
 
 **Supersedes / Superseded by:** Extends D-029. Supersedes no earlier decision.
+
+## D-032 — Durable Active Listening progress remains audio-free and scoped
+
+**Status:** Accepted
+
+**Decision:** R11 stores Active Listening reconstruction progress in a
+PostgreSQL-only specialized record keyed by authenticated learner, learning
+language, media asset, and canonical segment. The record contains only bounded
+presentation/reveal state, text-match evidence, attempt count, and the latest
+learner answer; raw audio, proficiency, and mastery claims are excluded.
+
+**Reason:** Session-only reconstruction state disappeared when a learner
+reopened a lesson, while the existing media object already provides stable
+asset and segment identities. A scoped, audio-free record closes that learner
+continuity gap without reopening M1 media ingestion or R9 Shadowing.
+
+**Consequences:** Listening restores matching progress and renders localized
+empty, unavailable, and persistence-failure states. The additive Alembic
+artifact is prepared for the PostgreSQL authority, but production migration,
+runtime cutover, and public Listening promotion remain human-gated.
+
+**Supersedes / Superseded by:** Extends D-005 and D-029. Supersedes no earlier
+decision.

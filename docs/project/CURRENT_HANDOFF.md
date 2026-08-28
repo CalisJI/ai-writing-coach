@@ -13,6 +13,7 @@ baseline.
 - R3 — Writing Evaluation Completion: **COMPLETE / LOCAL ACCEPTANCE PASS**
 - R4 — Writing Learning Loop + Grammar Transfer: **COMPLETE / LOCAL ACCEPTANCE PASS**
 - R10 — Reading Completion: **COMPLETE / LOCAL ACCEPTANCE PASS**
+- R11 — Listening Completion: **COMPLETE / LOCAL ACCEPTANCE PASS**
 
 **Secondary / gated programs:**
 
@@ -23,6 +24,10 @@ baseline.
 - R9 — Speaking Advanced / Shadowing Studio: **COMPLETE / LOCAL ACCEPTANCE PASS**
   for the shared-media feedback-loop foundation; advanced provider scoring and
   public promotion remain gated.
+
+- R11 — Listening Completion: **COMPLETE / LOCAL ACCEPTANCE PASS** for the
+  durable Active Listening progress foundation; public Listening promotion and
+  runtime migration remain gated.
 
 - R6 — Speaking Core: **COMPLETE / LOCAL ACCEPTANCE PASS**
 - R2 — AI Capability Control Plane: **HUMAN GATE / READY, NOT PRODUCT-BLOCKING**
@@ -83,6 +88,12 @@ baseline.
   audio-free learner history reopening, and saved-key-word handoff to Library.
   The result is passage-specific and does not claim CEFR/HSK mastery; public
   Reading promotion remains a separate human gate.
+- R11 now has an internal EN/ZH Active Listening persistence loop: completed
+  reconstruction checks and reveal states are saved as bounded, audio-free
+  learner progress, restored only for the authenticated language/asset/segment
+  scope, and rendered with localized empty, unavailable, and save-failure copy.
+  PostgreSQL is the only durable target; the additive migration is prepared but
+  no production migration or public Listening promotion was performed.
 
 **Closed programs protected from casual rewrite:**
 
