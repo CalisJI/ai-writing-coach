@@ -38,6 +38,7 @@ async function request(url, options={}){
 
 export const api={
   me:()=>request('/api/me'),
+  sessionBootstrap:()=>request('/api/session/bootstrap'),
   productMe:()=>request('/api/product/me'),
   adminProductAccount:()=>request('/api/product/admin/account'),
   health:()=>request('/api/health'),

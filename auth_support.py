@@ -7,7 +7,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Callable
 
-from fastapi import APIRouter, FastAPI, HTTPException, Request
+from fastapi import APIRouter, FastAPI, HTTPException, Request, Response
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from google.auth.transport.requests import Request as GoogleAuthRequest
 from google.oauth2 import id_token as google_id_token
@@ -16,7 +16,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 from writing_coach.core.request_context import LANGUAGE_CODE_CTX, USER_KEY_CTX, current_language_code
 from writing_coach.core.storage import resolve_language_db_path
-from writing_coach.core.language_registry import DEFAULT_LANGUAGE, enabled_language
+from writing_coach.core.language_registry import DEFAULT_LANGUAGE, all_languages, enabled_language
 from writing_coach.core.deployment import DeploymentConfig, resolve_deployment_config
 from writing_coach.persistence.auth_repository import AuthRepository
 
@@ -43,6 +43,7 @@ if BOOTSTRAP_OWNER_EMAIL:
 
 AUTH_ENABLED = DEPLOYMENT.auth_enabled
 COOKIE_SECURE = DEPLOYMENT.cookie_secure
+SESSION_BOOTSTRAP_VERSION = "orena.session-bootstrap.v1"
 
 if AUTH_ENABLED and GOOGLE_REDIRECT_URI.startswith("http://"):
     os.environ.setdefault("OAUTHLIB_INSECURE_TRANSPORT", "1")
@@ -267,6 +268,38 @@ def api_me(request: Request) -> dict[str, Any]:
         "language": current_language_code(),
         "role": role,
         "is_admin": role == "admin",
+    }
+
+
+@router.get("/api/session/bootstrap")
+def api_session_bootstrap(request: Request, response: Response) -> dict[str, Any]:
+    """Return the compact authenticated session contract for web/mobile clients."""
+    response.headers["Cache-Control"] = "no-store"
+    if not AUTH_ENABLED:
+        role = "admin"
+        mode = "local"
+    else:
+        sub = str(request.session.get("user_sub") or "")
+        user = auth_user(sub)
+        if not user:
+            raise HTTPException(401, "Authentication required")
+        role = str(user.get("role") or "user")
+        mode = "google"
+
+    active = enabled_language(
+        request.session.get("language") or current_language_code() or DEFAULT_LANGUAGE
+    ).code
+    options = [
+        {"code": item.code, "name": item.name, "native_name": item.native_name}
+        for item in all_languages()
+        if item.enabled
+    ]
+    return {
+        "version": SESSION_BOOTSTRAP_VERSION,
+        "authenticated": True,
+        "mode": mode,
+        "user": {"role": role, "is_admin": role == "admin"},
+        "language": {"active": active, "options": options},
     }
 
 class UserIsolationMiddleware(BaseHTTPMiddleware):

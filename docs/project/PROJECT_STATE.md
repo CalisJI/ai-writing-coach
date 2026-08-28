@@ -19,8 +19,9 @@ operational state.
 - Application version: `1.4.0`
 - BECOMING frontend version: `2.17.5`
 - Current Orena program: R18 — Mobile/API Readiness; the immutable
-  reference-data cache contract is locally implemented, with mutable dictionary
-  caching, live validation, and production release remaining governed separately.
+  reference-data cache and authenticated session-bootstrap contracts are locally
+  implemented, with mutable dictionary caching, live validation, and production
+  release remaining governed separately.
 
 ## Orena UI/UX integration
 
@@ -167,7 +168,10 @@ authority.
   metadata with public immutable cache semantics and conditional ETag support;
   unavailable data is explicitly non-cacheable. The provider-backed or mutable
   dictionary endpoint is explicitly `no-store`, preserving conservative web
-  and future mobile behavior without duplicating datasets client-side.
+  and future mobile behavior without duplicating datasets client-side. The
+  authenticated `/api/session/bootstrap` route adds a compact, versioned,
+  read-only session/language contract for web and future mobile consumers;
+  production release remains governed separately.
 
 - R0 — Product Release Architecture: **CLOSED**.
 - R1 — Production Staging + Cloudflare + Google OAuth: **CLOSED / PASS**.

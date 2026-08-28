@@ -24,8 +24,9 @@ baseline.
   ACCEPTANCE PASS** for privacy-bounded Admin activity trends and readiness
   evidence; live/production release gates remain human-gated.
 - R18 — Mobile/API Readiness: **IN PROGRESS / LOCAL FOUNDATION** for the
-  immutable reference-data cache contract; mobile-client implementation and
-  production release remain deferred.
+  immutable reference-data cache and authenticated session-bootstrap
+  contracts; mobile-client implementation and production release remain
+  deferred.
 
 **Secondary / gated programs:**
 
@@ -613,3 +614,16 @@ payload; missing/unreadable stroke data is returned as a canonical, `no-store`
 tests cover EN/ZH applicability, repeat and conditional requests, unavailable
 states, and the absence of provider calls; the existing Hanzi contract keeps
 large datasets server-owned rather than duplicated in the client.
+
+## R18 authenticated session-bootstrap contract
+
+`GET /api/session/bootstrap` is the compact, versioned, read-only transport
+contract for the existing authenticated session. It returns authenticated
+state, minimal role/admin flags, the server-authoritative active language, and
+the enabled language options without duplicating learner identity or content
+data. The existing session middleware remains the authentication boundary:
+missing or invalid sessions receive the non-sensitive
+`{"detail":"Authentication required"}` response. Focused ASGI tests exercise
+signed EN and ZH session cookies plus missing/invalid-cookie requests;
+mobile-client implementation, OAuth changes, and production release remain
+deferred.

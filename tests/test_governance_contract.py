@@ -132,3 +132,18 @@ def test_r18_reference_data_cache_contract_is_recorded() -> None:
     assert "R18 immutable reference-data cache contract" in handoff
     for contract in ("source_version", "If-None-Match", "no-store", "ASGITransport"):
         assert contract in route_test or contract in handoff
+
+
+def test_r18_session_bootstrap_contract_is_recorded() -> None:
+    project_state = (ROOT / "docs/project/PROJECT_STATE.md").read_text(encoding="utf-8")
+    handoff = (ROOT / "docs/project/CURRENT_HANDOFF.md").read_text(encoding="utf-8")
+    auth_source = (ROOT / "auth_support.py").read_text(encoding="utf-8")
+    route_test = (ROOT / "tests/test_session_bootstrap.py").read_text(encoding="utf-8")
+    assert "authenticated session-bootstrap contracts" in project_state
+    assert "R18 authenticated session-bootstrap contract" in handoff
+    assert "GET /api/session/bootstrap" in handoff
+    assert "/api/session/bootstrap" in auth_source
+    assert 'SESSION_BOOTSTRAP_VERSION = "orena.session-bootstrap.v1"' in auth_source
+    assert "httpx.ASGITransport" in route_test
+    assert 'for language in ("en", "zh")' in route_test
+    assert '"detail": "Authentication required"' in route_test
