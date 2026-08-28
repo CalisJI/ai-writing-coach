@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+from time import perf_counter
 from enum import Enum
 from pathlib import Path
 from typing import Any, Callable
@@ -9,6 +10,7 @@ from fastapi import APIRouter, FastAPI, HTTPException, Request
 from pydantic import BaseModel, ConfigDict, Field
 
 from writing_coach.ai.base import (
+    AICapabilityError,
     AICapabilityConfigInvalid,
     AICapabilityDisabled,
     AICapabilityNotConfigured,
@@ -20,10 +22,17 @@ from writing_coach.ai.base import (
     AIProviderResponseInvalid,
     AIProviderUnavailable,
     AIResult,
+    normalized_latency,
+    normalized_usage,
+    telemetry_error_class,
 )
 from writing_coach.ai.capabilities import require_capability
 from writing_coach.ai.config import CapabilityConfig, validate_capability_config
-from writing_coach.ai.control_plane import AIControlPlane, safe_model_display
+from writing_coach.ai.control_plane import (
+    AIControlPlane,
+    safe_capability_display,
+    safe_model_display,
+)
 from writing_coach.ai.providers import build_providers
 from writing_coach.persistence.platform_repository import PlatformRepository
 
@@ -173,52 +182,91 @@ def generate_structured(
     seed: int | None = None,
     capability_key: str | None = None,
 ) -> AIResult:
-    if runtime_mode() is AIRuntimeMode.LEGACY:
-        item, model = active_selection()
+    started = perf_counter()
+    provider_id: str | None = None
+    model: str | None = None
+
+    def finish(result: AIResult) -> AIResult:
+        runtime = dict(result.runtime or {})
+        provider_id = str(result.provider or "") or None
+        model_display, model_redacted = safe_model_display(result.model)
+        runtime["telemetry"] = {
+            "capability": safe_capability_display(capability_key) if capability_key else "legacy",
+            "provider": provider_id,
+            "model": model_display or None,
+            "model_redacted": model_redacted,
+            "outcome": "success",
+            "latency_ms": normalized_latency((perf_counter() - started) * 1000),
+            "usage": normalized_usage(runtime),
+            "quota_available": "unknown",
+        }
+        result.runtime = runtime
+        return result
+
+    try:
+        if runtime_mode() is AIRuntimeMode.LEGACY:
+            item, model = active_selection()
+            provider_id = str(getattr(item, "id", "") or "") or None
+            if not item.configured:
+                raise AIProviderUnavailable(f"{item.name} is not configured.")
+
+            # Do not silently fail over to a paid provider.
+            return finish(item.generate_json(
+                messages=messages,
+                schema=schema,
+                model=model,
+                max_output_tokens=max_output_tokens,
+                temperature=temperature,
+                seed=seed,
+            ))
+
+        if capability_key is None:
+            raise AICapabilityUnsupported("Capability mode requires an explicit AI capability.")
+        definition = require_capability(capability_key)
+        if not definition.implemented or not definition.provider_backed or not definition.configurable:
+            raise AICapabilityUnsupported(
+                f"AI capability {definition.key!r} is not provider-configurable."
+            )
+        row = _installed_platform_repository().get_capability_config(definition.key)
+        if row is None:
+            raise AICapabilityNotConfigured(
+                f"AI capability {definition.key!r} has no explicit configuration."
+            )
+        config = row.config
+        provider_id = config.provider
+        model = config.model
+        if not config.enabled:
+            raise AICapabilityDisabled(f"AI capability {definition.key!r} is disabled.")
+        validate_capability_config(definition.key, config)
+
+        item = providers().get(config.provider)
+        if item is None:
+            raise AICapabilityUnsupported(f"Unknown AI provider: {config.provider!r}.")
         if not item.configured:
             raise AIProviderUnavailable(f"{item.name} is not configured.")
-
-        # Do not silently fail over to a paid provider.
-        return item.generate_json(
+        generate_once = getattr(item, "generate_json_once", None) or item.generate_json
+        return finish(generate_once(
             messages=messages,
             schema=schema,
-            model=model,
+            model=config.model,
             max_output_tokens=max_output_tokens,
-            temperature=temperature,
+            temperature=config.temperature if config.temperature is not None else temperature,
             seed=seed,
-        )
-
-    if capability_key is None:
-        raise AICapabilityUnsupported("Capability mode requires an explicit AI capability.")
-    definition = require_capability(capability_key)
-    if not definition.implemented or not definition.provider_backed or not definition.configurable:
-        raise AICapabilityUnsupported(
-            f"AI capability {definition.key!r} is not provider-configurable."
-        )
-    row = _installed_platform_repository().get_capability_config(definition.key)
-    if row is None:
-        raise AICapabilityNotConfigured(
-            f"AI capability {definition.key!r} has no explicit configuration."
-        )
-    config = row.config
-    if not config.enabled:
-        raise AICapabilityDisabled(f"AI capability {definition.key!r} is disabled.")
-    validate_capability_config(definition.key, config)
-
-    item = providers().get(config.provider)
-    if item is None:
-        raise AICapabilityUnsupported(f"Unknown AI provider: {config.provider!r}.")
-    if not item.configured:
-        raise AIProviderUnavailable(f"{item.name} is not configured.")
-    generate_once = getattr(item, "generate_json_once", None) or item.generate_json
-    return generate_once(
-        messages=messages,
-        schema=schema,
-        model=config.model,
-        max_output_tokens=max_output_tokens,
-        temperature=config.temperature if config.temperature is not None else temperature,
-        seed=seed,
-    )
+        ))
+    except (AICapabilityError, AIProviderError) as exc:
+        model_display, model_redacted = safe_model_display(model)
+        exc.telemetry = {
+            "capability": safe_capability_display(capability_key) if capability_key else "legacy",
+            "provider": provider_id,
+            "model": model_display or None,
+            "model_redacted": model_redacted,
+            "outcome": "failure",
+            "error_class": telemetry_error_class(exc),
+            "latency_ms": normalized_latency((perf_counter() - started) * 1000),
+            "usage": normalized_usage(None),
+            "quota_available": "unknown",
+        }
+        raise
 
 
 def _require_admin(request: Request) -> dict[str, Any]:
@@ -393,14 +441,30 @@ def _live_failure(
             "model": None,
             "model_redacted": False,
         }
+    raw_telemetry = getattr(exc, "telemetry", None)
+    telemetry = raw_telemetry if isinstance(raw_telemetry, dict) else {}
+    # The control plane attaches this shape before the route translates the
+    # typed exception; copy only normalized fields into the HTTP detail.
+    safe_telemetry = {
+        "capability": safe_capability_display(telemetry.get("capability") or capability_key),
+        "provider": str(telemetry.get("provider") or "") or None,
+        "model": safe_model_display(telemetry.get("model"))[0] or None,
+        "model_redacted": bool(telemetry.get("model_redacted")),
+        "outcome": "failure",
+        "error_class": error_class,
+        "latency_ms": normalized_latency(telemetry.get("latency_ms")),
+        "usage": normalized_usage(telemetry.get("usage")),
+        "quota_available": "unknown",
+    }
     return HTTPException(
         status,
         {
             "ok": False,
             **context,
-            "latency_ms": None,
+            "latency_ms": safe_telemetry["latency_ms"],
             "error_class": error_class,
             "error": message,
+            "telemetry": safe_telemetry,
         },
     )
 

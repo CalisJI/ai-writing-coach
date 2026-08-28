@@ -1,13 +1,16 @@
 from __future__ import annotations
 
 import json
+import math
 import re
 from dataclasses import dataclass
 from typing import Any
 
 
 class AIProviderError(RuntimeError):
-    pass
+    """Provider failure carrying optional normalized operation telemetry."""
+
+    telemetry: dict[str, Any] | None = None
 
 
 class AIProviderUnavailable(AIProviderError):
@@ -32,6 +35,8 @@ class AIProviderResponseInvalid(AIProviderError):
 
 class AICapabilityError(RuntimeError):
     """Base error for capability configuration and routing contracts."""
+
+    telemetry: dict[str, Any] | None = None
 
 
 class AICapabilityDisabled(AICapabilityError):
@@ -64,6 +69,49 @@ class AIResult:
     @property
     def label(self) -> str:
         return f"{self.provider}:{self.model}"
+
+
+def normalized_usage(runtime: object) -> dict[str, int | None]:
+    """Keep provider usage honest: malformed or absent counts remain unknown."""
+
+    source = runtime if isinstance(runtime, dict) else {}
+    result: dict[str, int | None] = {}
+    for key in ("prompt_tokens", "completion_tokens", "total_tokens"):
+        value = source.get(key)
+        if type(value) is int and value >= 0:
+            result[key] = value
+        else:
+            result[key] = None
+    return result
+
+
+def normalized_latency(value: object) -> int | None:
+    """Return a non-negative elapsed duration or unknown."""
+
+    if type(value) not in {int, float} or not math.isfinite(float(value)):
+        return None
+    return max(0, round(float(value)))
+
+
+def telemetry_error_class(error: BaseException) -> str:
+    """Map typed provider/capability failures to a stable, non-secret label."""
+
+    names = {
+        AICapabilityDisabled: "capability_disabled",
+        AICapabilityNotConfigured: "capability_not_configured",
+        AICapabilityConfigInvalid: "capability_invalid",
+        AICapabilityUnsupported: "capability_unsupported",
+        AIProviderNotConfigured: "provider_not_configured",
+        AIModelCatalogEmpty: "model_catalog_empty",
+        AIModelUnavailable: "model_unavailable",
+        AIProviderResponseInvalid: "provider_response_invalid",
+        AIProviderUnavailable: "provider_unavailable",
+        AIProviderError: "provider_error",
+    }
+    for error_type, label in names.items():
+        if isinstance(error, error_type):
+            return label
+    return "operation_failed"
 
 
 def extract_json_object(text: str) -> dict[str, Any]:

@@ -12,8 +12,12 @@ from writing_coach.ai.base import (
     AICapabilityNotConfigured,
     AIModelCatalogEmpty,
     AIModelUnavailable,
+    AIProviderError,
     AIProviderNotConfigured,
     AIProviderResponseInvalid,
+    normalized_latency,
+    normalized_usage,
+    telemetry_error_class,
 )
 from writing_coach.ai.capabilities import all_capabilities, require_capability
 from writing_coach.ai.config import CapabilityConfig, validate_capability_config
@@ -34,6 +38,15 @@ def safe_model_display(model: object) -> tuple[str, bool]:
     if _SUSPICIOUS_MODEL.search(value):
         return "[redacted]", True
     return value, False
+
+
+def safe_capability_display(capability_key: object) -> str:
+    """Return a catalog-owned capability label, never an arbitrary caller value."""
+
+    try:
+        return require_capability(capability_key).key
+    except AICapabilityUnsupported:
+        return "[invalid]"
 
 
 def _sanitized_config(config: CapabilityConfig) -> dict[str, Any]:
@@ -167,6 +180,54 @@ class AIControlPlane:
         return row.config
 
     def live_test(self, capability_key: str) -> dict[str, Any]:
+        started = perf_counter()
+        provider: str | None = None
+        model: str | None = None
+        telemetry_capability = safe_capability_display(capability_key)
+        try:
+            definition = require_capability(capability_key)
+            telemetry_capability = definition.key
+            row = self.repository.get_capability_config(definition.key)
+            if row is not None:
+                provider = row.config.provider
+                model = row.config.model
+            result = self._live_test(capability_key)
+            reported_usage = result.pop("_telemetry_usage", None)
+            model_display, model_redacted = safe_model_display(result.get("model"))
+            result["model"] = model_display
+            result["model_redacted"] = model_redacted
+            result["telemetry"] = {
+                "capability": definition.key,
+                "provider": result.get("provider"),
+                "model": model_display or None,
+                "model_redacted": model_redacted,
+                "outcome": "success",
+                "error_class": None,
+                "latency_ms": normalized_latency((perf_counter() - started) * 1000),
+                "usage": normalized_usage(reported_usage),
+                "quota_available": "unknown",
+            }
+            return result
+        except (AICapabilityConfigInvalid, AICapabilityDisabled,
+                AICapabilityNotConfigured, AICapabilityUnsupported,
+                AIProviderNotConfigured, AIModelCatalogEmpty,
+                AIModelUnavailable, AIProviderResponseInvalid,
+                AIProviderError) as exc:
+            model_display, model_redacted = safe_model_display(model)
+            exc.telemetry = {
+                "capability": telemetry_capability,
+                "provider": provider,
+                "model": model_display or None,
+                "model_redacted": model_redacted,
+                "outcome": "failure",
+                "error_class": telemetry_error_class(exc),
+                "latency_ms": normalized_latency((perf_counter() - started) * 1000),
+                "usage": normalized_usage(None),
+                "quota_available": "unknown",
+            }
+            raise
+
+    def _live_test(self, capability_key: str) -> dict[str, Any]:
         """Run one small request against an explicitly configured capability."""
 
         definition = require_capability(capability_key)
@@ -231,6 +292,7 @@ class AIControlPlane:
             "model_redacted": redacted,
             "latency_ms": latency_ms,
             "error_class": None,
+            "_telemetry_usage": normalized_usage(result.runtime),
         }
 
     def diagnostic_context(self, capability_key: str) -> dict[str, Any]:

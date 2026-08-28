@@ -59,6 +59,12 @@ baseline.
   explicit click-only health checks for eligible configurations; saving or
   checking does not activate learner runtime, and failures never expose
   provider credentials.
+- R14 capability telemetry foundation is now locally implemented across the
+  existing structured-generation and Platform Admin live-test boundaries.
+  Success and typed failure paths expose one sanitized capability/provider/
+  model/latency/usage shape; absent token or quota data remains explicitly
+  unknown, and no cost or billing behavior is inferred. Provider activation,
+  persistence, aggregation, and credentialed live validation remain gated.
 - R13 local acceptance is now closed by the deterministic
   `scripts/r13_release_matrix.mjs` runner and
   `docs/project/R13_LOCAL_ACCEPTANCE_MATRIX.json`. The matrix executes the
@@ -68,6 +74,7 @@ baseline.
 
 - R6 — Speaking Core: **COMPLETE / LOCAL ACCEPTANCE PASS**
 - R2 — AI Capability Control Plane: **HUMAN GATE / READY, NOT PRODUCT-BLOCKING**
+- R14 — AI Usage, Cost, Quota & Provider Operations: **IN PROGRESS / LOCAL FOUNDATION**
 
 **Current working lane (2026-08-28):**
 

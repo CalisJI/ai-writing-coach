@@ -358,6 +358,16 @@ def test_live_test_failure_taxonomy_is_distinct_and_sanitized(
         platform_module.admin_ai_capability_test("writing_evaluator", request)
     assert caught.value.status_code >= 400
     assert caught.value.detail["error_class"] == error_class
+    telemetry = caught.value.detail["telemetry"]
+    assert telemetry["capability"] == "writing_evaluator"
+    assert telemetry["error_class"] == error_class
+    assert telemetry["outcome"] == "failure"
+    assert telemetry["usage"] == {
+        "prompt_tokens": None,
+        "completion_tokens": None,
+        "total_tokens": None,
+    }
+    assert telemetry["quota_available"] == "unknown"
     assert "raw network" not in str(caught.value.detail)
     assert repository.legacy_writes == []
 
@@ -409,6 +419,21 @@ def test_live_test_rejects_deterministic_and_reserved_capabilities(
     assert caught.value.detail["error_class"] == "capability_invalid"
 
 
+def test_live_test_invalid_capability_does_not_echo_caller_value(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    repository = FakeRepository()
+    request = configure_platform(monkeypatch, repository)
+    supplied = "unknown?token=do-not-leak"
+
+    with pytest.raises(HTTPException) as caught:
+        platform_module.admin_ai_capability_test(supplied, request)
+
+    assert caught.value.detail["telemetry"]["capability"] == "[invalid]"
+    assert caught.value.detail["capability"] == "[invalid]"
+    assert "do-not-leak" not in str(caught.value.detail)
+
+
 def test_live_test_invokes_exact_provider_model_once_and_validates_schema(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -430,6 +455,13 @@ def test_live_test_invokes_exact_provider_model_once_and_validates_schema(
         "model": "model-1",
         "error_class": None,
     } == response
+    assert response["telemetry"]["capability"] == "writing_evaluator"
+    assert response["telemetry"]["outcome"] == "success"
+    assert response["telemetry"]["usage"] == {
+        "prompt_tokens": None,
+        "completion_tokens": None,
+        "total_tokens": None,
+    }
     assert selected.discovery_calls == 1
     assert len(selected.generation_calls) == 1
     assert selected.generation_calls[0]["model"] == "model-1"
@@ -452,6 +484,8 @@ def test_live_test_invalid_response_and_raw_provider_errors_are_not_exposed(
         platform_module.admin_ai_capability_test("writing_evaluator", request)
     assert caught.value.detail["error_class"] == "provider_response_invalid"
     assert caught.value.detail["model"] == "[redacted]"
+    assert caught.value.detail["telemetry"]["model"] == "[redacted]"
+    assert caught.value.detail["telemetry"]["model_redacted"] is True
     assert "super-secret" not in str(caught.value.detail)
     assert len(malformed.generation_calls) == 1
 
@@ -465,6 +499,7 @@ def test_live_test_invalid_response_and_raw_provider_errors_are_not_exposed(
     with pytest.raises(HTTPException) as caught:
         platform_module.admin_ai_capability_test("writing_evaluator", request)
     assert caught.value.detail["error_class"] == "provider_error"
+    assert caught.value.detail["telemetry"]["error_class"] == "provider_error"
     assert "super-secret" not in str(caught.value.detail)
     assert "raw-body" not in str(caught.value.detail)
     assert len(failing.generation_calls) == 1
