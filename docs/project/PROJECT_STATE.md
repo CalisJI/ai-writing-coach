@@ -386,13 +386,14 @@ The post-R5 roadmap uses one primary learner-visible lane.
   to exact passage evidence, learner-scoped history reopening, and saved-word
   handoff to Library. Results remain passage-specific and make no CEFR/HSK
   mastery claim; public Reading promotion remains deferred.
-- **R11 — Listening Completion: COMPLETE / LOCAL ACCEPTANCE PASS.** Active
-  Listening reconstruction checks/reveal semantics and Shadowing rounds now
-  persist as separate bounded, audio-free learner progress and restore only for
-  the authenticated language/asset/segment scope. EN/ZH mounted contracts cover
-  reconstruction and round restoration, isolation, empty/unavailable history,
-  and persistence failure copy; PostgreSQL migration execution and public
-  Listening promotion remain deferred.
+- **R11 — Listening Completion: PRE-PUBLIC MATRIX COMPLETE / HUMAN PROMOTION
+  GATE.** The deterministic EN/ZH matrix covers mounted Active reconstruction
+  resume, Shadowing round resume, Shadowing-to-Speaking feedback continuity,
+  localized unavailable/failure states, and the browser module graph. Its
+  canonical report distinguishes behavioral passes from PostgreSQL-only,
+  language/asset/segment scope, and audio-free static inspections. Production
+  migration, capability activation, and public Listening promotion remain
+  deferred.
 - **R2 — AI Capability Control Plane: HUMAN GATE / READY.**
   Static/runtime support exists. Production migration/config initialization,
   credentialed validation, activation, and rollback execution remain human

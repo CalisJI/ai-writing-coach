@@ -95,6 +95,8 @@ def main() -> None:
         root / "scripts" / "test_speaking_voice_enhancement_contract.mjs",
         root / "scripts" / "r8_release_matrix.mjs",
         root / "docs" / "project" / "R8_PRE_PUBLIC_MATRIX.json",
+        root / "scripts" / "r11_release_matrix.mjs",
+        root / "docs" / "project" / "R11_PRE_PUBLIC_MATRIX.json",
         root / "scripts" / "test_speech_api_bounds.py",
         root / "static" / "becoming" / "domain" / "rank.js",
         root / "static" / "becoming" / "domain" / "feedback-map.js",
@@ -185,6 +187,8 @@ def main() -> None:
     speaking_evaluator = read("writing_coach/speaking_evaluator.py")
     r8_matrix = read("scripts/r8_release_matrix.mjs")
     r8_matrix_report = read("docs/project/R8_PRE_PUBLIC_MATRIX.json")
+    r11_matrix = read("scripts/r11_release_matrix.mjs")
+    r11_matrix_report = read("docs/project/R11_PRE_PUBLIC_MATRIX.json")
     skill_registry = read("writing_coach/core/skill_registry.py")
     platform_api = read("writing_coach/core/platform_api.py")
     rank_domain = read("static/becoming/domain/rank.js")
@@ -653,6 +657,17 @@ def main() -> None:
         '"speaking_public": false', '"capability_activation": false',
         '"provider_credentials"', '"postgres_migration"', '"public_promotion"',
     ], "R8 matrix evidence report")
+    require_contains(errors, r11_matrix, [
+        "R11-pre-public-en-zh-listening", "test_r11_listening_progress.mjs",
+        "test_r9_shadowing_feedback.mjs", "source-boundary",
+        "postgres_migration", "public_promotion", "listening_public:false",
+    ], "R11 EN/ZH pre-public Listening release matrix")
+    require_contains(errors, r11_matrix_report, [
+        '"matrix": "R11-pre-public-en-zh-listening"',
+        '"scope": "behavioral"', '"scope": "source-boundary"',
+        '"listening_public": false', '"capability_activation": false',
+        '"postgres_migration"', '"public_promotion"',
+    ], "R11 matrix evidence report")
     for forbidden in [
         "fetch(", "FormData", "XMLHttpRequest",
         "SpeechRecognition", "pronunciation_evaluator",

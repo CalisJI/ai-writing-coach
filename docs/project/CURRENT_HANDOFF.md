@@ -13,7 +13,7 @@ baseline.
 - R3 — Writing Evaluation Completion: **COMPLETE / LOCAL ACCEPTANCE PASS**
 - R4 — Writing Learning Loop + Grammar Transfer: **COMPLETE / LOCAL ACCEPTANCE PASS**
 - R10 — Reading Completion: **COMPLETE / LOCAL ACCEPTANCE PASS**
-- R11 — Listening Completion: **COMPLETE / LOCAL ACCEPTANCE PASS**
+- R11 — Listening Completion: **PRE-PUBLIC MATRIX COMPLETE / HUMAN PROMOTION GATE**
 
 **Secondary / gated programs:**
 
@@ -25,7 +25,7 @@ baseline.
   for the shared-media feedback-loop foundation; advanced provider scoring and
   public promotion remain gated.
 
-- R11 — Listening Completion: **COMPLETE / LOCAL ACCEPTANCE PASS** for the
+- R11 — Listening Completion: **PRE-PUBLIC MATRIX COMPLETE / HUMAN PROMOTION GATE** for the
   durable Active Listening progress foundation; public Listening promotion and
   runtime migration remain gated.
 
@@ -88,13 +88,13 @@ baseline.
   audio-free learner history reopening, and saved-key-word handoff to Library.
   The result is passage-specific and does not claim CEFR/HSK mastery; public
   Reading promotion remains a separate human gate.
-- R11 now has an internal EN/ZH Listening-practice persistence loop: completed
-  Active Listening reconstruction checks/reveal states and Shadowing rounds are
-  saved as separate bounded, audio-free learner records, restored only for the
-  authenticated language/asset/segment scope, and rendered with localized
-  empty, unavailable, restored, and save-failure copy. PostgreSQL is the only
-  durable target; the additive migration is prepared but no production
-  migration or public Listening promotion was performed.
+- R11 now has a deterministic EN/ZH pre-public Listening matrix covering the
+  mounted Active reconstruction resume and Shadowing round resume flows,
+  Shadowing-to-Speaking feedback continuity, localized unavailable/failure
+  states, and the browser module graph. The matrix labels PostgreSQL-only,
+  scope, and audio-free boundaries as static inspections; the canonical report
+  is `docs/project/R11_PRE_PUBLIC_MATRIX.json`. Production migration,
+  capability activation, and public Listening promotion remain deferred.
 
 **Closed programs protected from casual rewrite:**
 

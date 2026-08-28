@@ -68,3 +68,19 @@ def test_r8_pre_public_matrix_keeps_release_gates_deferred() -> None:
     assert '"status": "static-inspection"' in report
     for gate in ("provider_credentials", "postgres_migration", "public_promotion"):
         assert f'"gate": "{gate}"' in report
+
+
+def test_r11_pre_public_listening_matrix_records_behavioral_and_deferred_evidence() -> None:
+    report = (ROOT / "docs/project/R11_PRE_PUBLIC_MATRIX.json").read_text(encoding="utf-8")
+    runner = (ROOT / "scripts/r11_release_matrix.mjs").read_text(encoding="utf-8")
+    assert '"matrix": "R11-pre-public-en-zh-listening"' in report
+    assert '"scope": "behavioral"' in report
+    assert '"scope": "source-boundary"' in report
+    assert '"listening_public": false' in report
+    assert '"capability_activation": false' in report
+    for gate in ("postgres_migration", "capability_activation", "public_promotion"):
+        assert f'"gate": "{gate}"' in report
+    assert "test_r11_listening_progress.mjs" in runner
+    assert "test_r9_shadowing_feedback.mjs" in runner
+    assert "canonical R11 matrix report is stale" in runner
+    assert "if(output)" in runner
