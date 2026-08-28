@@ -528,7 +528,15 @@ function speakingReturnEvidence(history,session){
     &&item.segment_id!=null&&segments.includes(String(item.segment_id)))||null;
 }
 
+function hasLocalWritingDraft(draft=state.draft){
+  if(!draft||typeof draft!=='object')return false;
+  const text=value=>typeof value==='string'&&value.trim()!=='';
+  return text(draft.text)||text(draft.html)||text(draft.prompt)
+    ||Boolean(draft.generatedTask&&typeof draft.generatedTask==='object'&&!Array.isArray(draft.generatedTask));
+}
+
 function nextPracticePlan({recommendation,readingHistory,speakingHistory,listeningResume}){
+  if(hasLocalWritingDraft())return {kind:'writing-draft'};
   if(recommendation&&recommendation.intent!=='baseline')return {kind:'writing'};
   const reading=readingReturnEvidence(readingHistory);
   if(reading)return {kind:'reading',sessionId:reading.id};
@@ -536,6 +544,7 @@ function nextPracticePlan({recommendation,readingHistory,speakingHistory,listeni
   const speakingSession=getSharedMediaSession(state.language);
   const speaking=speakingReturnEvidence(speakingHistory,speakingSession);
   if(speaking)return {kind:'speaking',segmentId:String(speaking.segment_id)};
+  if(recommendation?.intent==='baseline')return {kind:'baseline'};
   return null;
 }
 
@@ -637,7 +646,7 @@ export async function renderHome(root){
       api.dashboard(),
       api.essays(),
       api.learningMemory(),
-      api.practiceRecommendation(),
+      Promise.resolve().then(()=>api.practiceRecommendation()).catch(()=>null),
       api.practiceOutcomes(1),
       Promise.resolve().then(()=>api.readingSessions(8)).catch(()=>null),
       Promise.resolve().then(()=>api.speakingAttempts(1)).catch(()=>null),
@@ -700,32 +709,40 @@ export async function renderHome(root){
       </div>
     </div>`;
 
+    const startRecommendedPractice=async(button)=>{
+      await runBusy(button,async()=>{
+        const task=await api.nextPractice({target_level:recommendation?.target_level||state.draft.level||''});
+        const personalization=task.personalization||recommendation;
+        saveDraft({
+          mode:task.task_type||personalization.task_type||'opinion',
+          topic:task.topic||personalization.topic||'random',
+          level:personalization.target_level||state.draft.level,
+          length:Number(task.word_target||personalization.word_target||state.draft.length),
+          prompt:task.prompt||'',
+          generatedTask:task,
+          practiceContext:personalization,
+          text:'',
+          html:'',
+          savedAt:null,
+          parentEssayId:null,
+        });
+        state.practiceRecommendation=personalization;
+        go('write');
+      },{label:t('busy.creating')});
+    };
+
     root.querySelector('#homePrimary')?.addEventListener('click',async()=>{
+      if(hasLocalWritingDraft()){
+        go('write');
+        return;
+      }
       if(!personalized){
         go('write');
         return;
       }
       const button=root.querySelector('#homePrimary');
       try{
-        await runBusy(button,async()=>{
-          const task=await api.nextPractice({target_level:recommendation.target_level||state.draft.level||''});
-          const personalization=task.personalization||recommendation;
-          saveDraft({
-            mode:task.task_type||personalization.task_type||'opinion',
-            topic:task.topic||personalization.topic||'random',
-            level:personalization.target_level||state.draft.level,
-            length:Number(task.word_target||personalization.word_target||state.draft.length),
-            prompt:task.prompt||'',
-            generatedTask:task,
-            practiceContext:personalization,
-            text:'',
-            html:'',
-            savedAt:null,
-            parentEssayId:null,
-          });
-          state.practiceRecommendation=personalization;
-          go('write');
-        },{label:t('busy.creating')});
+        await startRecommendedPractice(button);
       }catch(error){
         root.insertAdjacentHTML('afterbegin',errorBlock(error.message||t('busy.working')));
       }
@@ -743,8 +760,15 @@ export async function renderHome(root){
     root.querySelector('[data-home-listening-goal]')?.addEventListener('click',()=>go('listen'));
     root.querySelector('[data-home-next-plan-action]')?.addEventListener('click',async()=>{
       if(!nextPlan)return;
-      if(nextPlan.kind==='writing'){
-        await root.querySelector('#homePrimary')?.click();
+      if(nextPlan.kind==='writing-draft'){
+        go('write');
+      }else if(nextPlan.kind==='writing'||nextPlan.kind==='baseline'){
+        const button=nextPlan.kind==='writing'?root.querySelector('#homePrimary'):root.querySelector('[data-home-next-plan-action]');
+        try{
+          await startRecommendedPractice(button);
+        }catch(error){
+          root.insertAdjacentHTML('afterbegin',errorBlock(error.message||t('busy.working')));
+        }
       }else if(nextPlan.kind==='listening'&&nextPlan.lesson?.source_url){
         requestLessonAutostart(state.language,nextPlan.lesson.source_url,nextPlan.lesson);
         go('listen');

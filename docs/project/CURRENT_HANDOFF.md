@@ -44,6 +44,11 @@ baseline.
   Listening history, and Speaking evidence when a prepared media session is
   available. Each action reuses its established route/handoff; unavailable
   evidence yields a localized empty state and no completion/progress claim.
+- The R12 onboarding activation slice extends that plan with a final baseline
+  Writing action when no resumable evidence exists. It uses the saved
+  profile-aligned recommendation and established task-generation handoff,
+  clears the draft before opening Write, and keeps recommendation or
+  generation failures localized and non-actionable.
 
 - R6 — Speaking Core: **COMPLETE / LOCAL ACCEPTANCE PASS**
 - R2 — AI Capability Control Plane: **HUMAN GATE / READY, NOT PRODUCT-BLOCKING**

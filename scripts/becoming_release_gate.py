@@ -438,7 +438,9 @@ def main() -> None:
     ], "Home Listening habit snapshot")
     require_contains(errors, screens["home"], [
         "nextPracticePlan", "data-home-next-plan", "data-home-next-plan-action",
-        "readingReturnEvidence", "speakingReturnEvidence",
+        "readingReturnEvidence", "speakingReturnEvidence", "intent==='baseline'",
+        "next_plan_baseline_title", "startRecommendedPractice", "hasLocalWritingDraft",
+        "writing-draft",
     ], "Home cross-skill next-practice plan")
 
     # Design philosophy contract: every current/future route requires explicit learner-goal metadata.

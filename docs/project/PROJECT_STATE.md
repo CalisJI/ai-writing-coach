@@ -407,6 +407,12 @@ The post-R5 roadmap uses one primary learner-visible lane.
   existing Writing, Reading, Listening, and Speaking evidence. It reuses the
   established flow for each available action and stays quiet when evidence is
   unavailable; it creates no new progress or completion claim.
+- R12's onboarding activation slice now turns a baseline Writing
+  recommendation into one localized first-practice action when no resumable
+  cross-skill evidence exists. The action uses the saved goal/style and
+  target level through the existing task-generation endpoint, clears stale
+  draft state, and leaves the learner on Home with a localized error when
+  generation is unavailable.
 - **R2 — AI Capability Control Plane: HUMAN GATE / READY.**
   Static/runtime support exists. Production migration/config initialization,
   credentialed validation, activation, and rollback execution remain human

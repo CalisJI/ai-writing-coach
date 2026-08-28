@@ -19,7 +19,7 @@ function homeRoot(){
   const root={innerHTML:'',nodes:new Map(),querySelector(selector){
     if(!this.nodes.has(selector))this.nodes.set(selector,new FakeElement());
     return this.nodes.get(selector);
-  },querySelectorAll(){return [];},insertAdjacentHTML(){}};
+  },querySelectorAll(){return [];},insertAdjacentHTML(_position,html){this.innerHTML+=String(html||'');}};
   return root;
 }
 
@@ -35,7 +35,7 @@ const baseReading={items:[{id:22,latest_attempt:{correct_count:4,total:4}}]};
 
 async function renderPlan(language,{recommendation=null,reading=baseReading,speaking={items:[]}}={}){
   state.language=language;state.supportLanguage=language;state.me={id:`plan-${language}`};
-  api.practiceRecommendation=async()=>recommendation;
+  api.practiceRecommendation=typeof recommendation==='function'?recommendation:async()=>recommendation;
   api.readingSessions=typeof reading==='function'?reading:async()=>reading;
   api.speakingAttempts=typeof speaking==='function'?speaking:async()=>speaking;
   const root=homeRoot();
@@ -59,6 +59,7 @@ try{
   await root.querySelector('[data-home-next-plan-action]').click();
   assert.equal(globalThis.location.hash,'#/write');
   assert.equal(generated.target_level,'B2');
+  state.draft={...state.draft,text:'',html:'',prompt:'',generatedTask:null,savedAt:null};
 
   storage.clear();clearSharedMediaSession('zh');
   api.readingSession=async id=>({found:true,session:{id:Number(id),title:'A waiting reading',questions:[],passage:'',target_level:'B2'}});
@@ -111,6 +112,82 @@ try{
     assert.ok(root.innerHTML.includes(t('home.next_plan_empty')));
     assert.doesNotMatch(root.innerHTML,/data-home-next-plan-action/);
     assert.doesNotMatch(root.innerHTML,/100%|completed|streak/i);
+  }
+
+  for(const language of ['en','zh']){
+    storage.clear();
+    clearSharedMediaSession(language);
+    api.practiceRecommendation=async()=>{throw new Error('recommendation unavailable');};
+    root=await renderPlan(language,{recommendation:()=>{throw new Error('unused');},reading:{items:[{id:22,latest_attempt:{correct_count:4,total:4}}]},speaking:{items:[]}});
+    assert.match(root.innerHTML,/data-home-next-plan[^>]*data-plan-kind="empty"/);
+    assert.doesNotMatch(root.innerHTML,/data-home-next-plan-action/);
+
+    storage.clear();
+    clearSharedMediaSession(language);
+    state.draft={...state.draft,text:'',html:'',prompt:'',generatedTask:null,savedAt:null};
+    const recommendation={
+      language,
+      intent:'baseline',
+      focus_category:'expression',
+      focus_family:'expression',
+      target_level:language==='zh'?'HSK4':'B2',
+      task_type:language==='zh'?'hsk':'story',
+      topic:language==='zh'?'random':'daily life',
+      word_target:language==='zh'?80:150,
+      goal:language==='zh'?'travel':'work',
+      guidance_style:'guided',
+      action_label:language==='zh'?'开始一次基线写作':'Create a baseline',
+    };
+    let baselinePayload=null;
+    api.practiceRecommendation=async()=>recommendation;
+    api.nextPractice=async payload=>{
+      baselinePayload=payload;
+      return {
+        task_type:recommendation.task_type,
+        topic:recommendation.topic,
+        target_level:recommendation.target_level,
+        word_target:recommendation.word_target,
+        prompt:language==='zh'?'请写一段关于旅行计划的短文。':'Write a short draft about a useful everyday plan.',
+        personalization:recommendation,
+      };
+    };
+    globalThis.location.hash='#/home';
+    root=await renderPlan(language,{recommendation,reading:{items:[{id:22,latest_attempt:{correct_count:4,total:4}}]},speaking:{items:[]}});
+    assert.match(root.innerHTML,/data-home-next-plan[^>]*data-plan-kind="baseline"/);
+    assert.ok(root.innerHTML.includes(t('home.next_plan_baseline_title')));
+    assert.ok(root.innerHTML.includes(t('home.next_plan_baseline_body')));
+    await root.querySelector('[data-home-next-plan-action]').click();
+    assert.deepEqual(baselinePayload,{target_level:recommendation.target_level});
+    assert.equal(state.draft.text,'');
+    assert.equal(state.draft.html,'');
+    assert.equal(state.draft.savedAt,null);
+    assert.equal(state.draft.prompt,language==='zh'?'请写一段关于旅行计划的短文。':'Write a short draft about a useful everyday plan.');
+    assert.equal(state.draft.practiceContext.goal,recommendation.goal);
+    assert.equal(state.draft.practiceContext.guidance_style,'guided');
+    assert.equal(globalThis.location.hash,'#/write');
+
+    state.draft={...state.draft,text:'An unfinished learner draft.',html:'<p>An unfinished learner draft.</p>',prompt:'Keep writing this draft.',generatedTask:null,savedAt:1700000000000};
+    let draftPayload=null;
+    api.nextPractice=async payload=>{draftPayload=payload;throw new Error('must not generate over a draft');};
+    globalThis.location.hash='#/home';
+    root=await renderPlan(language,{recommendation,reading:{items:[{id:22,latest_attempt:{correct_count:4,total:4}}]},speaking:{items:[]}});
+    assert.match(root.innerHTML,/data-home-next-plan[^>]*data-plan-kind="writing-draft"/);
+    assert.ok(root.innerHTML.includes(t('home.next_plan_writing-draft_title')));
+    await root.querySelector('[data-home-next-plan-action]').click();
+    assert.equal(draftPayload,null);
+    assert.equal(state.draft.text,'An unfinished learner draft.');
+    assert.equal(state.draft.html,'<p>An unfinished learner draft.</p>');
+    assert.equal(state.draft.prompt,'Keep writing this draft.');
+    assert.equal(state.draft.savedAt,1700000000000);
+    assert.equal(globalThis.location.hash,'#/write');
+
+    state.draft={...state.draft,text:'',html:'',prompt:'',generatedTask:null,savedAt:null};
+    api.nextPractice=async()=>{throw new Error('generation unavailable');};
+    globalThis.location.hash='#/home';
+    root=await renderPlan(language,{recommendation,reading:{items:[{id:22,latest_attempt:{correct_count:4,total:4}}]},speaking:{items:[]}});
+    await root.querySelector('[data-home-next-plan-action]').click();
+    assert.equal(globalThis.location.hash,'#/home');
+    assert.match(root.innerHTML,/generation unavailable/);
   }
 }finally{
   Object.assign(api,original);
