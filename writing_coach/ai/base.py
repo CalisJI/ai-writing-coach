@@ -17,6 +17,7 @@ class AIProviderError(RuntimeError):
     """Provider failure carrying optional normalized operation telemetry."""
 
     telemetry: dict[str, Any] | None = None
+    rate_limit: dict[str, int | None] | None = None
 
 
 class AIProviderUnavailable(AIProviderError):
@@ -91,6 +92,25 @@ def normalized_usage(runtime: object) -> dict[str, int | None]:
     return result
 
 
+_RATE_LIMIT_KEYS = (
+    "requests_limit",
+    "requests_remaining",
+    "tokens_limit",
+    "tokens_remaining",
+)
+
+
+def normalized_rate_limit(value: object) -> dict[str, int | None]:
+    """Keep only provider-reported non-negative integer rate-limit evidence."""
+
+    source = value if isinstance(value, dict) else {}
+    result: dict[str, int | None] = {}
+    for key in _RATE_LIMIT_KEYS:
+        item = source.get(key)
+        result[key] = item if type(item) is int and item >= 0 else None
+    return result
+
+
 def normalized_latency(value: object) -> int | None:
     """Return a non-negative elapsed duration or unknown."""
 
@@ -151,6 +171,7 @@ def sanitize_telemetry(value: object) -> dict[str, Any] | None:
         "error_class": error_class,
         "latency_ms": normalized_latency(value.get("latency_ms")),
         "usage": usage,
+        "rate_limit": normalized_rate_limit(value.get("rate_limit")),
         "quota_available": "unknown",
     }
 

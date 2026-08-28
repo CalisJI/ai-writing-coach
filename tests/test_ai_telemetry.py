@@ -6,7 +6,7 @@ from typing import Any
 import pytest
 
 import writing_coach.ai.platform as platform
-from writing_coach.ai.base import AICapabilityUnsupported, AIProviderError, AIResult
+from writing_coach.ai.base import AICapabilityUnsupported, AIProviderError, AIResult, sanitize_telemetry
 from writing_coach.ai.config import CapabilityConfig
 from writing_coach.ai.control_plane import AIControlPlane
 from writing_coach.persistence.platform_repository import CapabilityConfigRecord
@@ -94,6 +94,7 @@ def test_success_telemetry_keeps_capability_provider_model_and_reported_usage(
         "error_class": None,
         "latency_ms": result.runtime["telemetry"]["latency_ms"],
         "usage": {"prompt_tokens": 7, "completion_tokens": 5, "total_tokens": 12},
+        "rate_limit": {"requests_limit": None, "requests_remaining": None, "tokens_limit": None, "tokens_remaining": None},
         "quota_available": "unknown",
     }
     assert isinstance(result.runtime["telemetry"]["latency_ms"], int)
@@ -117,6 +118,27 @@ def test_absent_or_malformed_usage_remains_unknown(monkeypatch: pytest.MonkeyPat
     assert result.runtime["telemetry"]["quota_available"] == "unknown"
 
 
+def test_rate_limit_telemetry_keeps_only_safe_numeric_evidence() -> None:
+    safe = sanitize_telemetry({
+        "capability": "writing_evaluator",
+        "outcome": "success",
+        "rate_limit": {
+            "requests_limit": 100,
+            "requests_remaining": 0,
+            "tokens_limit": "2000",
+            "tokens_remaining": -1,
+            "reset": "secret-token",
+        },
+    })
+
+    assert safe["rate_limit"] == {
+        "requests_limit": 100,
+        "requests_remaining": 0,
+        "tokens_limit": None,
+        "tokens_remaining": None,
+    }
+
+
 def test_failure_telemetry_is_typed_and_redacts_suspicious_model(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -133,6 +155,7 @@ def test_failure_telemetry_is_typed_and_redacts_suspicious_model(
         "error_class": "provider_error",
         "latency_ms": caught.value.telemetry["latency_ms"],
         "usage": {"prompt_tokens": None, "completion_tokens": None, "total_tokens": None},
+        "rate_limit": {"requests_limit": None, "requests_remaining": None, "tokens_limit": None, "tokens_remaining": None},
         "quota_available": "unknown",
     }
     assert "do-not-leak" not in repr(caught.value.telemetry)
@@ -178,8 +201,10 @@ def test_control_plane_success_uses_the_same_telemetry_contract() -> None:
         "error_class": None,
         "latency_ms": result["telemetry"]["latency_ms"],
         "usage": {"prompt_tokens": 4, "completion_tokens": 3, "total_tokens": 7},
+        "rate_limit": {"requests_limit": None, "requests_remaining": None, "tokens_limit": None, "tokens_remaining": None},
         "quota_available": "unknown",
     }
+    assert "_telemetry_rate_limit" not in result
     assert repository.events[0] == result["telemetry"]
 
 
@@ -219,8 +244,9 @@ def test_admin_operations_aggregate_sanitized_events_and_show_no_cost() -> None:
             "outcome": "success",
             "error_class": None,
             "latency_ms": 20,
-            "usage": {"prompt_tokens": 4, "completion_tokens": 3, "total_tokens": 7},
-            "quota_available": "unknown",
+        "usage": {"prompt_tokens": 4, "completion_tokens": 3, "total_tokens": 7},
+        "rate_limit": {"requests_limit": None, "requests_remaining": None, "tokens_limit": None, "tokens_remaining": None},
+        "quota_available": "unknown",
             "prompt": "must not persist",
             "cost": 99,
             "created_at": "2026-08-28T10:00:00+00:00",
@@ -251,6 +277,10 @@ def test_admin_operations_aggregate_sanitized_events_and_show_no_cost() -> None:
         "usage_partial": 0,
         "usage_unknown": 1,
         "token_totals": {"prompt_tokens": 4, "completion_tokens": 3, "total_tokens": 7},
+        "rate_limit": {"requests_limit": None, "requests_remaining": None, "tokens_limit": None, "tokens_remaining": None},
+        "rate_limit_reported_count": 0,
+        "rate_limit_unknown_count": 2,
+        "quota_state": "unavailable",
         "health_state": "provider_failure",
         "evidence_count": 2,
         "failure_count": 1,
@@ -294,6 +324,39 @@ def test_admin_operations_aggregate_provider_tokens_and_partial_usage() -> None:
     assert row["usage_partial"] == 1
     assert row["usage_unknown"] == 1
     assert "cost" not in AIControlPlane(repository).operations()["recent"][2]
+
+
+def test_admin_operations_reports_latest_rate_limit_state_and_evidence_counts() -> None:
+    repository = Repository(config())
+    repository.events = [
+        {
+            "capability": "writing_evaluator",
+            "outcome": "success",
+            "rate_limit": {
+                "requests_limit": 100,
+                "requests_remaining": 0,
+                "tokens_limit": 10000,
+                "tokens_remaining": 25,
+            },
+        },
+        {
+            "capability": "writing_evaluator",
+            "outcome": "success",
+            "rate_limit": {},
+        },
+    ]
+
+    row = AIControlPlane(repository).operations()["by_capability"][0]
+
+    assert row["rate_limit"] == {
+        "requests_limit": 100,
+        "requests_remaining": 0,
+        "tokens_limit": 10000,
+        "tokens_remaining": 25,
+    }
+    assert row["rate_limit_reported_count"] == 1
+    assert row["rate_limit_unknown_count"] == 1
+    assert row["quota_state"] == "reported_exhausted"
 
 
 @pytest.mark.parametrize(

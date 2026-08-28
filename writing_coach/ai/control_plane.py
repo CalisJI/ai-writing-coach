@@ -16,6 +16,7 @@ from writing_coach.ai.base import (
     AIProviderNotConfigured,
     AIProviderResponseInvalid,
     normalized_latency,
+    normalized_rate_limit,
     normalized_usage,
     telemetry_error_class,
     sanitize_telemetry,
@@ -240,9 +241,11 @@ class AIControlPlane:
                 "usage_partial": 0,
                 "_token_totals": {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0},
                 "_token_seen": set(),
+                "_rate_limit_events": [],
                 "_health_events": [],
             })
             row["_health_events"].append(event)
+            row["_rate_limit_events"].append(event.get("rate_limit") or {})
             row["total"] += 1
             if event["outcome"] == "success":
                 row["success"] += 1
@@ -275,6 +278,23 @@ class AIControlPlane:
                 name: token_totals[name] if name in token_seen else None
                 for name in ("prompt_tokens", "completion_tokens", "total_tokens")
             }
+            rate_limit_events = row.pop("_rate_limit_events", [])
+            rate_limit_keys = ("requests_limit", "requests_remaining", "tokens_limit", "tokens_remaining")
+            reported = [
+                value for value in rate_limit_events
+                if any(isinstance(value.get(name), int) for name in rate_limit_keys)
+            ]
+            latest_rate_limit = reported[0] if reported else {name: None for name in rate_limit_keys}
+            exhausted = any(
+                latest_rate_limit.get(name) == 0
+                for name in ("requests_remaining", "tokens_remaining")
+            )
+            row["rate_limit"] = latest_rate_limit
+            row["rate_limit_reported_count"] = len(reported)
+            row["rate_limit_unknown_count"] = row["total"] - len(reported)
+            row["quota_state"] = (
+                "reported_exhausted" if exhausted else "reported" if reported else "unavailable"
+            )
         return {
             "available": callable(loader),
             "has_data": bool(events),
@@ -328,6 +348,7 @@ class AIControlPlane:
                 model = row.config.model
             result = self._live_test(capability_key)
             reported_usage = result.pop("_telemetry_usage", None)
+            reported_rate_limit = result.pop("_telemetry_rate_limit", None)
             model_display, model_redacted = safe_model_display(result.get("model"))
             result["model"] = model_display
             result["model_redacted"] = model_redacted
@@ -340,6 +361,7 @@ class AIControlPlane:
                 "error_class": None,
                 "latency_ms": normalized_latency((perf_counter() - started) * 1000),
                 "usage": normalized_usage(reported_usage),
+                "rate_limit": normalized_rate_limit(reported_rate_limit),
                 "quota_available": "unknown",
             }
             self._record_operation(result["telemetry"])
@@ -359,6 +381,7 @@ class AIControlPlane:
                 "error_class": telemetry_error_class(exc),
                 "latency_ms": normalized_latency((perf_counter() - started) * 1000),
                 "usage": normalized_usage(None),
+                "rate_limit": normalized_rate_limit(getattr(exc, "rate_limit", None)),
                 "quota_available": "unknown",
             }
             self._record_operation(exc.telemetry)
@@ -430,6 +453,7 @@ class AIControlPlane:
             "latency_ms": latency_ms,
             "error_class": None,
             "_telemetry_usage": normalized_usage(result.runtime),
+            "_telemetry_rate_limit": normalized_rate_limit(result.runtime.get("rate_limit")),
         }
 
     def diagnostic_context(self, capability_key: str) -> dict[str, Any]:

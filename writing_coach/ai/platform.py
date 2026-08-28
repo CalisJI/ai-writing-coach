@@ -23,6 +23,7 @@ from writing_coach.ai.base import (
     AIProviderUnavailable,
     AIResult,
     normalized_latency,
+    normalized_rate_limit,
     normalized_usage,
     sanitize_telemetry,
     telemetry_error_class,
@@ -213,6 +214,7 @@ def generate_structured(
             "outcome": "success",
             "latency_ms": normalized_latency((perf_counter() - started) * 1000),
             "usage": normalized_usage(runtime),
+            "rate_limit": normalized_rate_limit(runtime.get("rate_limit")),
             "quota_available": "unknown",
         }
         _persist_operation_telemetry(runtime["telemetry"])
@@ -280,6 +282,7 @@ def generate_structured(
             "error_class": telemetry_error_class(exc),
             "latency_ms": normalized_latency((perf_counter() - started) * 1000),
             "usage": normalized_usage(None),
+            "rate_limit": normalized_rate_limit(getattr(exc, "rate_limit", None)),
             "quota_available": "unknown",
         }
         _persist_operation_telemetry(exc.telemetry)
@@ -477,6 +480,7 @@ def _live_failure(
         "error_class": error_class,
         "latency_ms": normalized_latency(telemetry.get("latency_ms")),
         "usage": normalized_usage(telemetry.get("usage")),
+        "rate_limit": normalized_rate_limit(telemetry.get("rate_limit")),
         "quota_available": "unknown",
     }
     return HTTPException(

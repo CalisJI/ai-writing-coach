@@ -72,7 +72,9 @@ baseline.
   evidence, latency, and explicit unknown-usage/no-data states without provider
   probes. Admin also reports provider-reported prompt/completion/total token
   totals with complete, partial, and unavailable evidence states; SQLite
-  remains frozen archive storage.
+  remains frozen archive storage. OpenAI-compatible response headers now carry
+  allowlisted request/token limit and remaining evidence through the same
+  sanitized event boundary, including reported exhaustion without enforcement.
 - R13 local acceptance is now closed by the deterministic
   `scripts/r13_release_matrix.mjs` runner and
   `docs/project/R13_LOCAL_ACCEPTANCE_MATRIX.json`. The matrix executes the

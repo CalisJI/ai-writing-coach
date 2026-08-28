@@ -51,6 +51,7 @@
       return;
     }
     const healthLabels = {no_data:'No data', healthy:'Healthy', degraded:'Degraded', provider_failure:'Provider failure'};
+    const quotaLabels = {unavailable:'Rate limits unavailable', reported:'Rate limits reported', reported_exhausted:'Provider reports exhausted'};
     const rows = (operations.by_capability||[]).map(row=>{
       const tokens = row.token_totals || {};
       const tokenLabel = name => tokens[name] == null ? `${name.replace('_tokens','')} unknown` : `${tokens[name]} ${name.replace('_tokens','')}`;
@@ -58,11 +59,13 @@
         row.usage_partial ? `${row.usage_partial} partial usage` : '',
         row.usage_unknown ? `${row.usage_unknown} usage unavailable` : '',
       ].filter(Boolean).join(' · ') || 'Usage complete';
+      const quotaEvidence = `${quotaLabels[row.quota_state] || 'Rate limits unknown'} · ${row.rate_limit_reported_count || 0} reported`;
       return `<div class="admin-operation-row">
       <b>${esc(row.capability)}</b><strong>${esc(healthLabels[row.health_state] || 'Health unknown')}</strong>
       <span>${row.total} total · ${row.success} success · ${row.failure} failure · ${row.evidence_count ?? row.total} events sampled</span>
       <span>${row.failure_rate_percent == null ? 'Failure rate unknown' : `${row.failure_rate_percent}% failures`} · ${row.avg_latency_ms == null ? 'Latency unknown' : `${row.avg_latency_ms} ms average`} · ${row.usage_known ? `${row.usage_known} usage reported` : row.usage_partial ? 'Usage partial' : 'Usage unknown'}</span>
       <span>Tokens: ${tokenLabel('prompt_tokens')} · ${tokenLabel('completion_tokens')} · ${tokenLabel('total_tokens')} · ${usageEvidence}</span>
+      <span>${esc(quotaEvidence)}</span>
     </div>`;
     }).join('');
     const recent = (operations.recent||[]).slice(0,10).map(event=>`<div class="admin-operation-recent-row">

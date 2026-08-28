@@ -36,6 +36,38 @@ class ProviderDefinition:
 
 
 _STRUCTURED_TEXT_OPERATIONS = frozenset({AIOperation.STRUCTURED_TEXT_GENERATION})
+
+_RATE_LIMIT_HEADER_KEYS = {
+    "x-ratelimit-limit-requests": "requests_limit",
+    "x-ratelimit-remaining-requests": "requests_remaining",
+    "x-ratelimit-limit-tokens": "tokens_limit",
+    "x-ratelimit-remaining-tokens": "tokens_remaining",
+}
+
+
+def _normalized_rate_limit_headers(headers: object) -> dict[str, int | None]:
+    """Extract only safe integer values from allowlisted response headers."""
+
+    result = {key: None for key in ("requests_limit", "requests_remaining", "tokens_limit", "tokens_remaining")}
+    if not hasattr(headers, "items"):
+        return result
+    for name, key in _RATE_LIMIT_HEADER_KEYS.items():
+        raw = next((value for header, value in headers.items() if str(header).casefold() == name), None)
+        if type(raw) is int and raw >= 0:
+            result[key] = raw
+            continue
+        if not isinstance(raw, str):
+            continue
+        value = raw.strip()
+        if len(value) > 15 or not re.fullmatch(r"\d+", value):
+            continue
+        try:
+            parsed = int(value)
+        except (TypeError, ValueError, OverflowError):
+            continue
+        if parsed <= 10**15:
+            result[key] = parsed
+    return result
 # generate_json() consumes temperature per request. Timeout is currently bound
 # to each runtime instance from environment configuration, so capability config
 # must not claim it is independently supported yet.
@@ -292,6 +324,7 @@ class OpenAICompatibleProvider:
         self.default_models = list(default_models)
         self.model_filter = model_filter
         self.timeout = int(os.getenv("CLOUD_AI_TIMEOUT", "180"))
+        self._last_rate_limit = _normalized_rate_limit_headers(None)
 
     @property
     def configured(self) -> bool:
@@ -396,15 +429,18 @@ class OpenAICompatibleProvider:
             json=body,
             timeout=self.timeout,
         )
+        self._last_rate_limit = _normalized_rate_limit_headers(getattr(response, "headers", None))
         if response.status_code >= 400:
             detail = ""
             try:
                 detail = str(response.json().get("error", {}).get("message") or "")
             except Exception:
                 pass
-            raise AIProviderError(
+            error = AIProviderError(
                 f"{self.name} returned HTTP {response.status_code}. {detail[:300]}".strip()
             )
+            error.rate_limit = dict(self._last_rate_limit)
+            raise error
         try:
             return response.json()
         except ValueError as exc:
@@ -465,6 +501,7 @@ class OpenAICompatibleProvider:
                 "prompt_tokens": usage.get("prompt_tokens"),
                 "completion_tokens": usage.get("completion_tokens"),
                 "total_tokens": usage.get("total_tokens"),
+                "rate_limit": dict(self._last_rate_limit),
             },
         )
 
@@ -519,6 +556,7 @@ class OpenAICompatibleProvider:
                 "prompt_tokens": usage.get("prompt_tokens"),
                 "completion_tokens": usage.get("completion_tokens"),
                 "total_tokens": usage.get("total_tokens"),
+                "rate_limit": dict(self._last_rate_limit),
             },
         )
 

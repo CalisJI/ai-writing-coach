@@ -319,6 +319,35 @@ def test_operations_endpoint_is_read_only_and_aggregates_without_provider_probe(
     assert "cost" not in result["recent"][0]
 
 
+def test_operations_endpoint_reports_mixed_rate_limit_evidence_without_probing(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    repository = FakeRepository()
+    repository.ai_events = [
+        {
+            "capability": "writing_evaluator",
+            "outcome": "success",
+            "rate_limit": {
+                "requests_limit": 100,
+                "requests_remaining": 0,
+                "tokens_limit": 2000,
+                "tokens_remaining": 10,
+            },
+        },
+        {"capability": "writing_evaluator", "outcome": "failure", "error_class": "provider_error"},
+    ]
+    request = configure_platform(monkeypatch, repository)
+    monkeypatch.setattr(platform_module, "providers", lambda: pytest.fail("operations endpoint probed providers"))
+
+    result = platform_module.admin_ai_operations(request)
+    row = result["by_capability"][0]
+
+    assert row["rate_limit_reported_count"] == 1
+    assert row["rate_limit_unknown_count"] == 1
+    assert row["quota_state"] == "reported_exhausted"
+    assert row["rate_limit"]["requests_remaining"] == 0
+
+
 def test_capability_put_updates_one_row_offline_without_legacy_or_network(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -688,9 +717,10 @@ def test_one_shot_provider_request_has_typed_transport_and_response_failures(
 
 
 class ProviderResponse:
-    def __init__(self, payload: object) -> None:
+    def __init__(self, payload: object, *, headers: dict[str, str] | None = None, status_code: int = 200) -> None:
         self.payload = payload
-        self.status_code = 200
+        self.status_code = status_code
+        self.headers = headers or {}
 
     def raise_for_status(self) -> None:
         pass
@@ -702,6 +732,73 @@ class ProviderResponse:
 class InvalidJSONResponse(ProviderResponse):
     def json(self) -> object:
         raise ValueError("Authorization: Bearer super-secret raw-body")
+
+
+def test_openai_structured_response_captures_allowlisted_rate_limit_headers(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    provider = openai_provider(monkeypatch)
+    payload = {"choices": [{"message": {"content": '{"ok": true}'}}]}
+    response = ProviderResponse(
+        payload,
+        headers={
+            "X-RateLimit-Limit-Requests": "9" * 100,
+            "x-ratelimit-remaining-requests": "0",
+            "x-ratelimit-limit-tokens": "20000",
+            "x-ratelimit-remaining-tokens": "bad",
+            "x-ratelimit-reset-requests": "tomorrow",
+        },
+    )
+    monkeypatch.setattr(requests, "post", lambda *_args, **_kwargs: response)
+
+    result = provider.generate_json_once(
+        messages=[{"role": "user", "content": "test"}],
+        schema={"type": "object"},
+        model="model-1",
+        max_output_tokens=40,
+        temperature=0.0,
+    )
+
+    assert result.runtime["rate_limit"] == {
+        "requests_limit": None,
+        "requests_remaining": 0,
+        "tokens_limit": 20000,
+        "tokens_remaining": None,
+    }
+    assert "x-ratelimit-reset-requests" not in result.runtime["rate_limit"]
+
+
+def test_openai_provider_failure_retains_safe_rate_limit_headers(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    provider = openai_provider(monkeypatch)
+    response = ProviderResponse(
+        {"error": {"message": "rate limited"}},
+        status_code=429,
+        headers={
+            "x-ratelimit-remaining-requests": "0",
+            "x-ratelimit-remaining-tokens": "0",
+            "x-ratelimit-reset-requests": "secret-reset-value",
+        },
+    )
+    monkeypatch.setattr(requests, "post", lambda *_args, **_kwargs: response)
+
+    with pytest.raises(AIProviderError) as caught:
+        provider.generate_json_once(
+            messages=[{"role": "user", "content": "test"}],
+            schema={"type": "object"},
+            model="model-1",
+            max_output_tokens=40,
+            temperature=0.0,
+        )
+
+    assert caught.value.rate_limit == {
+        "requests_limit": None,
+        "requests_remaining": 0,
+        "tokens_limit": None,
+        "tokens_remaining": 0,
+    }
+    assert "secret-reset-value" not in repr(caught.value.rate_limit)
 
 
 @pytest.mark.parametrize(

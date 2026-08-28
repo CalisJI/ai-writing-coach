@@ -435,7 +435,9 @@ The post-R5 roadmap uses one primary learner-visible lane.
   Admin aggregation with bounded healthy/degraded/provider-failure evidence
   states. Admin token totals preserve provider-reported prompt/completion/total
   dimensions and distinguish complete, partial, and unavailable usage; billing,
-  quota enforcement, and credentialed live validation remain deferred.
+  quota enforcement, and credentialed live validation remain deferred. The
+  operations surface also carries allowlisted provider request/token limit and
+  remaining headers, reporting exhaustion only when remaining capacity is zero.
 - **R2 — AI Capability Control Plane: HUMAN GATE / READY.**
   Static/runtime support exists. Production migration/config initialization,
   credentialed validation, activation, and rollback execution remain human
