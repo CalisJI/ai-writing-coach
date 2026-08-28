@@ -310,6 +310,11 @@ def test_operations_endpoint_is_read_only_and_aggregates_without_provider_probe(
     assert result["by_capability"][0]["health_state"] == "healthy"
     assert result["by_capability"][0]["evidence_count"] == 1
     assert result["by_capability"][0]["failure_rate_percent"] == 0
+    assert result["by_capability"][0]["token_totals"] == {
+        "prompt_tokens": 2,
+        "completion_tokens": 1,
+        "total_tokens": 3,
+    }
     assert "prompt" not in result["recent"][0]
     assert "cost" not in result["recent"][0]
 

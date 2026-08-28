@@ -131,12 +131,13 @@ assert.match(rendered.elements.get('#adminOperations').innerHTML,/No operation d
 const populatedOperations=await runAdmin({ok:true,json:async()=>payload},{ok:true,json:async()=>({
   available:true,has_data:true,
   by_capability:[
-    {capability:'writing_evaluator',total:2,success:1,failure:1,avg_latency_ms:18,usage_known:1,usage_unknown:1,health_state:'degraded',evidence_count:2,failure_rate_percent:50},
-    {capability:'reading_generator',total:1,success:0,failure:1,avg_latency_ms:null,usage_known:0,usage_unknown:1,health_state:'provider_failure',evidence_count:1,failure_rate_percent:100},
+    {capability:'writing_evaluator',total:3,success:2,failure:1,avg_latency_ms:18,usage_known:1,usage_partial:1,usage_unknown:1,token_totals:{prompt_tokens:6,completion_tokens:null,total_tokens:8},health_state:'degraded',evidence_count:3,failure_rate_percent:33},
+    {capability:'reading_generator',total:1,success:0,failure:1,avg_latency_ms:null,usage_known:0,usage_partial:0,usage_unknown:1,token_totals:{prompt_tokens:null,completion_tokens:null,total_tokens:null},health_state:'provider_failure',evidence_count:1,failure_rate_percent:100},
   ],
   recent:[
     {capability:'writing_evaluator',provider:'openai',model:'model-1',outcome:'success',latency_ms:17,usage:{total_tokens:9},prompt:'do-not-render',cost:99},
     {capability:'reading_generator',provider:'ollama',model:'local-model',outcome:'failure',latency_ms:null,usage:null},
+    {capability:'writing_evaluator',provider:'openai',model:'model-1',outcome:'success',latency_ms:19,usage:{prompt_tokens:null,completion_tokens:null,total_tokens:null}},
   ],
 })});
 const operationsMarkup=populatedOperations.elements.get('#adminOperations').innerHTML;
@@ -147,8 +148,11 @@ assert.match(operationsMarkup,/17 ms/);
 assert.match(operationsMarkup,/Usage unknown/);
 assert.match(operationsMarkup,/Degraded/);
 assert.match(operationsMarkup,/Provider failure/);
-assert.match(operationsMarkup,/50% failures/);
-assert.match(operationsMarkup,/2 events sampled/);
+assert.match(operationsMarkup,/33% failures/);
+assert.match(operationsMarkup,/3 events sampled/);
+assert.match(operationsMarkup,/Tokens: 6 prompt · completion unknown · 8 total/);
+assert.match(operationsMarkup,/1 partial usage/);
+assert.match(operationsMarkup,/1 usage unavailable/);
 assert.doesNotMatch(operationsMarkup,/do-not-render|cost/);
 assert.equal(rendered.elements.get('#adminCapabilityMatrix').querySelectorAll('[data-health-capability]').length,3);
 

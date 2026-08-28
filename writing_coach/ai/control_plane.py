@@ -237,6 +237,9 @@ class AIControlPlane:
             row = aggregates.setdefault(key, {
                 "capability": key, "total": 0, "success": 0, "failure": 0,
                 "avg_latency_ms": None, "usage_known": 0, "usage_unknown": 0,
+                "usage_partial": 0,
+                "_token_totals": {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0},
+                "_token_seen": set(),
                 "_health_events": [],
             })
             row["_health_events"].append(event)
@@ -250,8 +253,15 @@ class AIControlPlane:
                 known = row.setdefault("_latencies", [])
                 known.append(latency)
             usage = event.get("usage") or {}
-            if all(isinstance(usage.get(name), int) for name in ("prompt_tokens", "completion_tokens", "total_tokens")):
+            token_keys = ("prompt_tokens", "completion_tokens", "total_tokens")
+            known_tokens = [name for name in token_keys if isinstance(usage.get(name), int)]
+            for name in known_tokens:
+                row["_token_totals"][name] += usage[name]
+                row["_token_seen"].add(name)
+            if len(known_tokens) == len(token_keys):
                 row["usage_known"] += 1
+            elif known_tokens:
+                row["usage_partial"] += 1
             else:
                 row["usage_unknown"] += 1
         for row in aggregates.values():
@@ -259,6 +269,12 @@ class AIControlPlane:
             row["avg_latency_ms"] = round(sum(latencies) / len(latencies)) if latencies else None
             health = _operation_health(row.pop("_health_events", []))
             row.update(health)
+            token_totals = row.pop("_token_totals", {})
+            token_seen = row.pop("_token_seen", set())
+            row["token_totals"] = {
+                name: token_totals[name] if name in token_seen else None
+                for name in ("prompt_tokens", "completion_tokens", "total_tokens")
+            }
         return {
             "available": callable(loader),
             "has_data": bool(events),

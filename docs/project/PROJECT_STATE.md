@@ -433,8 +433,9 @@ The post-R5 roadmap uses one primary learner-visible lane.
   latency/usage telemetry shape. Missing token or quota data remains unknown;
   durable events now use the existing PostgreSQL audit boundary and read-only
   Admin aggregation with bounded healthy/degraded/provider-failure evidence
-  states; billing, quota enforcement, and credentialed live validation remain
-  deferred.
+  states. Admin token totals preserve provider-reported prompt/completion/total
+  dimensions and distinguish complete, partial, and unavailable usage; billing,
+  quota enforcement, and credentialed live validation remain deferred.
 - **R2 — AI Capability Control Plane: HUMAN GATE / READY.**
   Static/runtime support exists. Production migration/config initialization,
   credentialed validation, activation, and rollback execution remain human

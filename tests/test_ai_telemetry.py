@@ -248,7 +248,9 @@ def test_admin_operations_aggregate_sanitized_events_and_show_no_cost() -> None:
         "failure": 1,
         "avg_latency_ms": 20,
         "usage_known": 1,
+        "usage_partial": 0,
         "usage_unknown": 1,
+        "token_totals": {"prompt_tokens": 4, "completion_tokens": 3, "total_tokens": 7},
         "health_state": "provider_failure",
         "evidence_count": 2,
         "failure_count": 1,
@@ -258,6 +260,40 @@ def test_admin_operations_aggregate_sanitized_events_and_show_no_cost() -> None:
     assert "prompt" not in result["recent"][0]
     assert "cost" not in result["recent"][0]
     assert result["usage_note"]
+
+
+def test_admin_operations_aggregate_provider_tokens_and_partial_usage() -> None:
+    repository = Repository(config())
+    repository.events = [
+        {
+            "capability": "writing_evaluator",
+            "outcome": "success",
+            "usage": {"prompt_tokens": 4, "completion_tokens": 3, "total_tokens": 7},
+        },
+        {
+            "capability": "writing_evaluator",
+            "outcome": "success",
+            "usage": {"prompt_tokens": 2, "completion_tokens": None, "total_tokens": 2},
+        },
+        {
+            "capability": "writing_evaluator",
+            "outcome": "failure",
+            "usage": {"prompt_tokens": "9", "completion_tokens": -1, "total_tokens": None},
+            "cost": 999,
+        },
+    ]
+
+    row = AIControlPlane(repository).operations()["by_capability"][0]
+
+    assert row["token_totals"] == {
+        "prompt_tokens": 6,
+        "completion_tokens": 3,
+        "total_tokens": 9,
+    }
+    assert row["usage_known"] == 1
+    assert row["usage_partial"] == 1
+    assert row["usage_unknown"] == 1
+    assert "cost" not in AIControlPlane(repository).operations()["recent"][2]
 
 
 @pytest.mark.parametrize(

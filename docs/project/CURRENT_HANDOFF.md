@@ -70,7 +70,9 @@ baseline.
   Aggregates expose recent activity, per-capability success/failure totals,
   deterministic healthy/degraded/provider-failure states from bounded recent
   evidence, latency, and explicit unknown-usage/no-data states without provider
-  probes; SQLite remains frozen archive storage.
+  probes. Admin also reports provider-reported prompt/completion/total token
+  totals with complete, partial, and unavailable evidence states; SQLite
+  remains frozen archive storage.
 - R13 local acceptance is now closed by the deterministic
   `scripts/r13_release_matrix.mjs` runner and
   `docs/project/R13_LOCAL_ACCEPTANCE_MATRIX.json`. The matrix executes the
