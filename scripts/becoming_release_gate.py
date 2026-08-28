@@ -45,6 +45,7 @@ def main() -> None:
         root / "writing_coach" / "becoming_outcomes.py",
         root / "writing_coach" / "becoming_library.py",
         root / "writing_coach" / "becoming_reading.py",
+        root / "writing_coach" / "becoming_reading_selftest.py",
         root / "writing_coach" / "becoming_linguistics.py",
         root / "writing_coach" / "core" / "skill_registry.py",
         root / "templates" / "becoming" / "index.html",
@@ -78,6 +79,7 @@ def main() -> None:
         root / "scripts" / "test_m3_pronunciation_contract.mjs",
         root / "scripts" / "test_shadowing_practice.mjs",
         root / "scripts" / "test_r9_shadowing_speaking_flow.mjs",
+        root / "scripts" / "test_r10_reading_flow.mjs",
         root / "scripts" / "test_speaking_core.mjs",
         root / "scripts" / "test_speaking_groq_flow.mjs",
         root / "scripts" / "test_speaking_ui.mjs",
@@ -329,6 +331,10 @@ def main() -> None:
         "def create_reading_session", "def submit_reading_answers", "def _public_question",
         "comprehension_check_only", "def _term_occurs",
     ], "Reading service")
+    require_contains(errors, screens["reading"], [
+        "data-reading-evidence", "data-find-evidence", "data-reading-save-all",
+        "data-reading-open", "data-reading-library",
+    ], "Reading mounted learning-loop contract")
     require_contains(errors, specialized_repository_text, [
         "CREATE TABLE IF NOT EXISTS vocabulary_learning",
         "CREATE TABLE IF NOT EXISTS reading_sessions",

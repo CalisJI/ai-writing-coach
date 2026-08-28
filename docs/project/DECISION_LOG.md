@@ -627,3 +627,23 @@ human-gated.
 
 **Supersedes / Superseded by:** Extends the M1.6 shared-media and R6/R7
 Speaking decisions. Supersedes no earlier decision.
+
+## D-030 — Reading internal comprehension loop
+
+**Status:** Accepted
+
+**Decision:** R10 Reading is locally complete for an internal EN/ZH loop from
+session creation through passage-specific comprehension evidence, learner
+history reopening, and saved-word handoff to Library. Reading results remain
+transient comprehension checks and must not be presented as CEFR/HSK mastery.
+
+**Reason:** The mounted contract exercises the existing authenticated Reading
+session and answer boundaries in both required languages without promoting the
+separate Reading release or introducing a schema/provider decision.
+
+**Consequences:** Future Reading work consumes the existing session/API and
+Vocabulary/Library contracts. Public Reading promotion remains a separate
+human gate; no production activation or migration is implied.
+
+**Supersedes / Superseded by:** Extends the R9 shared-media acceptance
+decision. Supersedes no earlier decision.

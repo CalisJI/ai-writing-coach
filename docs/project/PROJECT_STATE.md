@@ -380,6 +380,11 @@ The post-R5 roadmap uses one primary learner-visible lane.
   the same Shadowing Studio mode. Per-take feedback remains dimension-specific;
   no raw audio persistence, new provider, or public capability activation was
   added.
+- **R10 — Reading Completion: COMPLETE / LOCAL ACCEPTANCE PASS.** The mounted
+  EN/ZH Reading contract verifies session creation, comprehension answers tied
+  to exact passage evidence, learner-scoped history reopening, and saved-word
+  handoff to Library. Results remain passage-specific and make no CEFR/HSK
+  mastery claim; public Reading promotion remains deferred.
 - **R2 — AI Capability Control Plane: HUMAN GATE / READY.**
   Static/runtime support exists. Production migration/config initialization,
   credentialed validation, activation, and rollback execution remain human
@@ -393,7 +398,7 @@ The post-R5 roadmap uses one primary learner-visible lane.
 
 The intended product sequence is:
 
-`R3 → R4 → R6 → R7 → R8`
+`R3 → R4 → R6 → R7 → R8 → R9 → R10`
 
 R2 production activation is completed when explicitly authorized and before a
 public capability-dependent release requires it.

@@ -12,6 +12,7 @@ baseline.
 
 - R3 — Writing Evaluation Completion: **COMPLETE / LOCAL ACCEPTANCE PASS**
 - R4 — Writing Learning Loop + Grammar Transfer: **COMPLETE / LOCAL ACCEPTANCE PASS**
+- R10 — Reading Completion: **COMPLETE / LOCAL ACCEPTANCE PASS**
 
 **Secondary / gated programs:**
 
@@ -74,6 +75,11 @@ baseline.
   Shadowing mode and segment on return to Listening. The mounted handoff
   contract passes for both languages; provider scoring and public activation
   remain outside this local checkpoint.
+- R10 now has an internal EN/ZH Reading learning-loop acceptance: mounted
+  session creation, comprehension answers with exact passage evidence,
+  audio-free learner history reopening, and saved-key-word handoff to Library.
+  The result is passage-specific and does not claim CEFR/HSK mastery; public
+  Reading promotion remains a separate human gate.
 
 **Closed programs protected from casual rewrite:**
 
