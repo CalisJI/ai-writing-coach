@@ -630,4 +630,76 @@ try{
   clearSharedMediaSession('zh');
 }
 
+// Acceptance matrix for the states around the happy path: an unprepared
+// learner sees a truthful entry state, an unsupported recorder never exposes
+// a fake take, and an ASR failure keeps the local screen free of evaluation
+// claims. These are mounted-screen checks for both supported source languages.
+for(const item of [
+  {language:'en',supportLanguage:'en',emptyTitle:'Pick something to say.',unsupported:'This browser cannot record audio here.',timeout:'Speech recognition timed out. Try again shortly.'},
+  {language:'zh',supportLanguage:'zh',emptyTitle:'选一个要说的内容。',unsupported:'当前浏览器无法在这里录音。',timeout:'语音识别超时，请稍后重试。'},
+]){
+  clearSharedMediaSession(item.language);
+  state.language=item.language;
+  state.supportLanguage=item.supportLanguage;
+  const emptyRoot=new RenderRoot();
+  assert.equal(await renderSpeaking(emptyRoot),null,
+    `${item.language.toUpperCase()} Speaking without prepared media should stay in the empty state`);
+  assert.match(emptyRoot.innerHTML,/speaking-empty/);
+  assert.match(emptyRoot.innerHTML,new RegExp(item.emptyTitle));
+  assert.match(emptyRoot.innerHTML,/data-speaking-open-listening/);
+  assert.doesNotMatch(emptyRoot.innerHTML,/data-speaking-core/);
+
+  assert.equal(setSharedMediaSession({
+    learning_language:item.language,
+    payload:structuredClone(item.language==='zh'?MEDIA_LEARNING_ZH_FIXTURE:MEDIA_LEARNING_FIXTURE),
+    selected_segment_id:item.language==='zh'?'segment-zh-001':'segment-001',
+  }),true);
+  const unsupportedRecorder={
+    snapshot(){return {status:'unsupported',error:null,url:null,blob:null,mime_type:'audio/webm',supported:false};},
+    async start(){return false;},
+    async stop(){return null;},
+    discard(){return true;},
+    cleanup(){},
+  };
+  const unsupportedRoot=new RenderRoot();
+  const unsupportedController=await renderSpeaking(unsupportedRoot,{recorderFactory:()=>unsupportedRecorder});
+  assert.ok(unsupportedController);
+  assert.match(unsupportedRoot.innerHTML,/data-speaking-record[^>]*disabled/);
+  assert.match(unsupportedRoot.innerHTML,new RegExp(item.unsupported));
+  assert.doesNotMatch(unsupportedRoot.innerHTML,/data-speaking-evaluation-state="ready"/);
+  unsupportedRoot._cleanupScreen?.();
+
+  let recording=false;
+  const failedRecorder={
+    snapshot(){return {status:recording?'recording':'idle',error:null,url:recording?'blob:failed':null,blob:recording?new Blob(['failed take'],{type:'audio/webm'}):null,mime_type:'audio/webm',supported:true};},
+    async start(){recording=true;return true;},
+    async stop(){recording=false;return {blob:new Blob(['failed take'],{type:'audio/webm'}),mime_type:'audio/webm',size:11,url:'blob:failed'};},
+    discard(){recording=false;return true;},
+    cleanup(){},
+  };
+  const failedRoot=new RenderRoot();
+  const originalTranscribe=api.transcribeSpeech;
+  const originalEvaluate=api.evaluateSpeaking;
+  api.transcribeSpeech=async()=>{throw {category:'speech_asr_timeout',message:'SERVER ASR DETAIL'};};
+  api.evaluateSpeaking=async()=>{throw new Error('evaluation must not run after ASR failure');};
+  try{
+    const failedController=await renderSpeaking(failedRoot,{recorderFactory:()=>failedRecorder});
+    await failedRoot.querySelector('[data-speaking-record]').click();
+    await failedRoot.querySelector('[data-speaking-stop]').click();
+    for(let attempt=0;attempt<100&&failedController.model.asrStatus==='loading';attempt++){
+      await new Promise(resolve=>setTimeout(resolve,0));
+    }
+    assert.equal(failedController.model.asrStatus,'error');
+    assert.match(failedRoot.innerHTML,new RegExp(item.timeout));
+    assert.match(failedRoot.innerHTML,/data-speaking-asr-result/);
+    assert.doesNotMatch(failedRoot.innerHTML,/SERVER ASR DETAIL/);
+    assert.doesNotMatch(failedRoot.innerHTML,/data-speaking-evaluation-state="ready"/);
+    failedRoot._cleanupScreen?.();
+  }finally{
+    api.transcribeSpeech=originalTranscribe;
+    api.evaluateSpeaking=originalEvaluate;
+  }
+  clearSharedMediaSession(item.language);
+}
+
 console.log('Speaking UI fixture record -> ASR -> match -> feedback: PASS');

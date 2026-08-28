@@ -139,7 +139,7 @@ authority.
 - M1 — Media Learning Foundation: **CLOSED / FOUNDATION COMPLETE**.
 - R3 — Writing Evaluation Completion: **IN PROGRESS / PRIMARY**.
 - R5 — Grammar Knowledge System: **CLOSED / APPROVED / merged via PR #44**.
-- R6 — Speaking Core: **IN PROGRESS / INTERNAL / SECONDARY**.
+- R6 — Speaking Core: **COMPLETE / LOCAL ACCEPTANCE PASS**.
 
 Current learner skill truth:
 
@@ -260,8 +260,9 @@ rather than duplicating or mass-rewriting Grammar.
 
 ## R6 Speaking Core
 
-R6 is **IN PROGRESS / INTERNAL**. Speaking Core reuses the current
-language-scoped shared Media Learning session from Listening and adds local
+R6 is **COMPLETE / LOCAL ACCEPTANCE PASS** at the prepared-media internal
+checkpoint. Speaking Core reuses the current language-scoped shared Media
+Learning session from Listening and adds local
 microphone recording, RNNoise-based voice enhancement when available, and
 immediate playback of the learner's take. When configured, the stopped take
 is sent transiently through the authenticated speech API to Groq ASR. Orena
@@ -349,10 +350,13 @@ The post-R5 roadmap uses one primary learner-visible lane.
   backend-valid context, fresh draft state, and source revision lineage into the
   real Write evaluation payload. Practice outcomes return through the existing
   Review/Journey contracts and consume stable R5 Grammar IDs.
-- **R6 — Speaking Core: IN PROGRESS / INTERNAL / SECONDARY.**
-  Preserve the stable shared-media recording/ASR/content-match foundation.
-  Bounded internal core completion may continue; it must preserve the verified
-  R3/R4 Writing and Grammar-transfer contracts.
+- **R6 — Speaking Core: COMPLETE / LOCAL ACCEPTANCE PASS.**
+  Prepared EN/ZH shared-media fixtures now verify mounted record → transient ASR
+  → deterministic content-match feedback, together with truthful missing-session,
+  unsupported-recorder, and transcription-failure states. Audio and attempts
+  remain transient; no pronunciation, fluency, proficiency, or durable-progress
+  claim is made. The verified R3/R4 Writing and Grammar-transfer contracts are
+  unchanged.
 - **R2 — AI Capability Control Plane: HUMAN GATE / READY.**
   Static/runtime support exists. Production migration/config initialization,
   credentialed validation, activation, and rollback execution remain human

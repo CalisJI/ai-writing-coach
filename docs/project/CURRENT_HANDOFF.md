@@ -15,7 +15,7 @@ baseline.
 
 **Secondary / gated programs:**
 
-- R6 — Speaking Core: **IN PROGRESS / INTERNAL / SECONDARY**
+- R6 — Speaking Core: **COMPLETE / LOCAL ACCEPTANCE PASS**
 - R2 — AI Capability Control Plane: **HUMAN GATE / READY, NOT PRODUCT-BLOCKING**
 
 **Current working lane (2026-08-28):**
@@ -34,10 +34,11 @@ baseline.
   RNNoise/native fallback, transient ASR, deterministic content matching, and
   provider pronunciation boundaries. The stale input-filter contract was
   aligned with the intentional raw-signal constraints in `28fc825`.
-- Browser QA reaches the truthful Speaking empty state when no prepared media
-  lesson exists. Full record → ASR → feedback browser acceptance still needs a
-  prepared local media fixture; no provider credentials or production data are
-  used for this checkpoint.
+- The prepared-media acceptance matrix now mounts the Speaking screen for EN
+  and ZH and verifies record → transient ASR → deterministic content-match
+  feedback, plus truthful missing-session, unsupported-recorder, and ASR-error
+  states. No pronunciation, fluency, proficiency, durable attempts, provider
+  credentials, or production data are used.
 - R7 now has an internal `speaking_evaluator` contract that normalizes one take
   into separate transcription-confidence, content-match, pronunciation,
   fluency, and explicitly-unassessed proficiency dimensions. It preserves
@@ -280,11 +281,12 @@ revision → delta/progress → Review/Journey/Library`
 Writing is a COMPLETE public-gate candidate from the implementation and local
 acceptance perspective; public promotion remains a human gate.
 
-## R6 secondary lane
+## R6 Speaking Core closeout
 
-Preserve the existing internal Speaking/media implementation. R3/R4 are
-locally closed; any future R6 work remains bounded to the documented internal
-core checkpoint and does not alter the verified Writing/Grammar contracts.
+R6 is locally closed at the prepared-media internal acceptance checkpoint.
+Preserve the existing Speaking/media implementation and the verified EN/ZH
+record → ASR → content-match contracts. No durable Speaking progress or
+pronunciation scoring is implied by this closeout.
 
 Later R7 owns pronunciation, full Speaking evaluation, durable Speaking
 progress, and the final Speaking COMPLETE evidence.
@@ -343,4 +345,4 @@ Stop and return to the human coordinator when:
 - an unresolved P0/P1 requires broader redesign;
 - the rollback path becomes unclear.
 
-**Next handoff owner:** R6 Speaking Core agent for the next bounded internal/core checkpoint.
+**Next handoff owner:** R7 Speaking Evaluation agent for the next bounded internal checkpoint.
