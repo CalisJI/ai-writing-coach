@@ -127,8 +127,13 @@ def test_r18_reference_data_cache_contract_is_recorded() -> None:
     handoff = (ROOT / "docs/project/CURRENT_HANDOFF.md").read_text(encoding="utf-8")
     route_test = (ROOT / "tests/test_reference_data_cache.py").read_text(encoding="utf-8")
     assert "Current Orena program: R18" in project_state
-    assert "R18 — Mobile/API Readiness: **IN PROGRESS / LOCAL FOUNDATION**" in project_state
-    assert "R18 — Mobile/API Readiness: **IN PROGRESS / LOCAL FOUNDATION**" in handoff
+    assert "R18 — Mobile/API Readiness: **COMPLETE / LOCAL ACCEPTANCE PASS**" in project_state
+    assert "R18 — Mobile/API Readiness: **COMPLETE / LOCAL ACCEPTANCE PASS**" in handoff
+    assert "R18 — Mobile/API Readiness: **IN PROGRESS / LOCAL FOUNDATION**" not in project_state
+    assert "R18 — Mobile/API Readiness: **IN PROGRESS / LOCAL FOUNDATION**" not in handoff
+    roadmap = (ROOT / "docs/project/ROADMAP.md").read_text(encoding="utf-8")
+    assert "| R18 | Mobile/API Readiness | PLANNED / POST-R12 PLATFORM TRACK |" in roadmap
+    assert "R18 local-foundation closeout" in handoff
     assert "R18 immutable reference-data cache contract" in handoff
     for contract in ("source_version", "If-None-Match", "no-store", "ASGITransport"):
         assert contract in route_test or contract in handoff

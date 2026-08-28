@@ -23,7 +23,7 @@ baseline.
 - R17 — Product Analytics & Operational Observability: **COMPLETE / LOCAL
   ACCEPTANCE PASS** for privacy-bounded Admin activity trends and readiness
   evidence; live/production release gates remain human-gated.
-- R18 — Mobile/API Readiness: **IN PROGRESS / LOCAL FOUNDATION** for the
+- R18 — Mobile/API Readiness: **COMPLETE / LOCAL ACCEPTANCE PASS** for the
   immutable reference-data cache, authenticated session-bootstrap, and compact
   media-status contracts; mobile-client implementation and production release
   remain deferred.
@@ -597,10 +597,14 @@ Stop and return to the human coordinator when:
 	and locally verified; live PostgreSQL observation, provider activation, and
 	production release approval remain human-gated and deferred.
 
-**Next handoff owner:** R18 mobile/API-readiness owner. Consume the verified
-Admin and platform contracts, and extend the reference-data transport policy
-without reopening R17 metrics or changing provider activation, billing,
-deployment, or learner scoring behavior.
+**R18 local-foundation closeout:** COMPLETE / LOCAL ACCEPTANCE PASS. The
+reference-data cache, session bootstrap, and compact media-status contracts
+are directly implemented and locally verified; mobile-client implementation,
+provider activation, and production release remain human-gated and deferred.
+
+**Next handoff owner:** mobile/API-readiness follow-on owner. Consume these
+verified contracts without reopening R17 metrics or changing provider
+activation, billing, deployment, or learner scoring behavior.
 
 ## R18 immutable reference-data cache contract
 

@@ -164,7 +164,7 @@ authority.
 	  aggregate-only redaction are covered by the mounted ASGI regression;
 	  live/production release gates remain deferred.
 
-- R18 — Mobile/API Readiness: **IN PROGRESS / LOCAL FOUNDATION**. The
+- R18 — Mobile/API Readiness: **COMPLETE / LOCAL ACCEPTANCE PASS**. The
   deterministic Chinese stroke-order endpoint now returns source/version
   metadata with public immutable cache semantics and conditional ETag support;
   unavailable data is explicitly non-cacheable. The provider-backed or mutable
