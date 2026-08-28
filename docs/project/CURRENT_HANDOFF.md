@@ -20,6 +20,8 @@ baseline.
 - R16 — Advanced Learning Intelligence: **COMPLETE / LOCAL ACCEPTANCE PASS**
   for contextual dictionary, adaptive Writing difficulty, error-memory
   review-cue, and cross-skill transfer foundations.
+- R17 — Product Analytics & Operational Observability: **IN PROGRESS / LOCAL
+  FOUNDATION** for privacy-bounded Admin activity trends.
 
 **Secondary / gated programs:**
 
@@ -479,6 +481,15 @@ language-scoped records with a concrete source-specific handoff from Writing,
 Reading, Listening, or Speaking. Home and Journey render one localized cue
 with literal provenance and preserve an explicit no-transfer-evidence state;
 no shared proficiency, mastery, or completion score is inferred or persisted.
+
+## R17 privacy-bounded product activity trends
+
+The Admin-only product activity endpoint aggregates bounded PostgreSQL Writing,
+Reading, Listening, and Speaking records into active-learner, activity, and
+completion trends. Output is read-only and omits learner identifiers, text,
+media URLs, and event rows; empty and unavailable runtime states remain
+explicit. The Admin view is additive and does not write learner events,
+change scoring, enforce entitlements, or activate providers.
 
 ## R2 human gate
 

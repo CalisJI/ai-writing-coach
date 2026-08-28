@@ -96,7 +96,8 @@ from writing_coach.becoming_library import LibraryVocabularyIn, VocabularyReview
 from writing_coach.becoming_linguistics import configure_becoming_linguistics, linguistic_annotations_for_essay
 from writing_coach.becoming_reading import ReadingAnswerIn, ReadingGenerateIn, configure_becoming_reading, create_reading_session, get_reading_session, list_reading_sessions, submit_reading_answers
 from writing_coach.cross_skill_transfer import select_cross_skill_cue
-from fastapi import FastAPI, HTTPException, Query
+from writing_coach.product_activity_api import product_activity_response
+from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
@@ -1785,6 +1786,10 @@ def becoming_learning_memory_get() -> dict[str, Any]:
 @app.get("/api/review-cue", name="becoming_review_cue_get")
 def becoming_review_cue_get(essay_id: int | None = None) -> dict[str, Any]:
     return get_review_cue(essay_id)
+
+@app.get("/api/admin/product-activity", name="admin_product_activity")
+def admin_product_activity(request: Request, window_days: int = 7) -> dict[str, Any]:
+    return product_activity_response(request, _specialized_learning_repository, require_admin, window_days=window_days)
 
 @app.get("/api/cross-skill-cue", name="becoming_cross_skill_cue_get")
 def becoming_cross_skill_cue_get() -> dict[str, Any]:

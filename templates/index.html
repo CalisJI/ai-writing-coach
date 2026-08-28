@@ -326,6 +326,19 @@
         </div>
       </div>
 
+      <div class="card panel admin-operations-panel">
+        <div class="panel-title">
+          <div>
+            <h2>Product activity</h2>
+            <p>Read-only aggregate learner activity by skill. No learner text, media URLs, or identifiers are shown.</p>
+          </div>
+          <button id="adminRefreshProductActivity" class="ghost compact" type="button">Refresh activity</button>
+        </div>
+        <div id="adminProductActivity" class="admin-operations" aria-live="polite">
+          <div class="admin-capability-empty">Loading product activity…</div>
+        </div>
+      </div>
+
       <div class="card panel admin-account-panel">
         <div class="panel-title">
           <div><h2>Account state</h2><p>Read-only plan, entitlement and monthly usage for the signed-in administrator.</p></div>

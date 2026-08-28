@@ -18,10 +18,9 @@ operational state.
 
 - Application version: `1.4.0`
 - BECOMING frontend version: `2.17.5`
-- Current Orena program: R16 â€” Advanced Learning Intelligence;
-  contextual dictionary, evidence-grounded Writing difficulty, and
-  error-memory review-cue, and cross-skill transfer foundations are locally
-  complete, with provider activation remaining deferred.
+- Current Orena program: R17 â€” Product Analytics & Operational Observability;
+  privacy-bounded Admin activity trends are locally implemented, with public
+  release and production validation remaining governed separately.
 
 ## Orena UI/UX integration
 
@@ -150,6 +149,11 @@ authority.
   changes, review cues, and cross-skill cues use only verified,
   language-scoped evidence with explicit insufficient/no-actionable-evidence
   states. Provider activation and live credentialed validation remain deferred.
+
+- R17 — Product Analytics & Operational Observability: **IN PROGRESS / LOCAL
+  FOUNDATION**. Admin-only activity aggregates use bounded PostgreSQL records,
+  redact learner identifiers and raw content, and expose explicit empty or
+  unavailable states without learner-event writes or entitlement enforcement.
 
 - R0 — Product Release Architecture: **CLOSED**.
 - R1 — Production Staging + Cloudflare + Google OAuth: **CLOSED / PASS**.

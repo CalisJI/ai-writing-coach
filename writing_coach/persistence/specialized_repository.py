@@ -52,6 +52,7 @@ class SpecializedLearningRepository(Protocol):
     def speaking_progress(self) -> dict[str, Any]: ...
     def get_linguistic_essay(self, essay_id: int) -> dict[str, Any] | None: ...
     def update_essay_module_data(self, essay_id: int, module_data: dict[str, Any]) -> bool: ...
+    def list_product_activity_events(self, since: datetime) -> list[dict[str, Any]]: ...
 
 
 class SQLiteSpecializedLearningRepository:
@@ -448,6 +449,9 @@ class SQLiteSpecializedLearningRepository:
             cur=conn.execute("UPDATE essays SET module_data_json=? WHERE id=?",(json.dumps(module_data,ensure_ascii=False),essay_id))
             conn.commit()
         return cur.rowcount > 0
+
+    def list_product_activity_events(self, since: datetime) -> list[dict[str, Any]]:
+        raise RuntimeError("Product activity analytics requires the PostgreSQL runtime.")
 
 
 class PostgresSpecializedLearningRepository:
@@ -847,3 +851,17 @@ class PostgresSpecializedLearningRepository:
             e=s.scalar(select(Essay).where(Essay.user_id==uid,Essay.language_code==lang,Essay.legacy_id==essay_id))
             if e is None: return False
             e.module_data=module_data; return True
+
+    def list_product_activity_events(self, since: datetime) -> list[dict[str, Any]]:
+        """Read aggregate inputs across learners without selecting raw content."""
+        with Session(self.engine) as s:
+            events: list[dict[str, Any]] = []
+            for occurred, uid in s.execute(select(Essay.created_at, Essay.user_id).where(Essay.created_at >= since)).all():
+                events.append({"skill": "writing", "occurred_at": self._iso(occurred), "learner_key": str(uid), "completed": True})
+            for occurred, uid, total in s.execute(select(ReadingAttempt.created_at, ReadingSession.user_id, ReadingAttempt.total).join(ReadingSession, ReadingAttempt.session_id == ReadingSession.id).where(ReadingAttempt.created_at >= since)).all():
+                events.append({"skill": "reading", "occurred_at": self._iso(occurred), "learner_key": str(uid), "completed": isinstance(total, int) and total > 0})
+            for occurred, uid, revealed, checked in s.execute(select(ListeningProgress.updated_at, ListeningProgress.user_id, ListeningProgress.revealed, ListeningProgress.checked_attempt_count).where(ListeningProgress.updated_at >= since)).all():
+                events.append({"skill": "listening", "occurred_at": self._iso(occurred), "learner_key": str(uid), "completed": bool(revealed or (checked or 0) > 0)})
+            for occurred, uid in s.execute(select(SpeakingAttempt.created_at, SpeakingAttempt.user_id).where(SpeakingAttempt.created_at >= since)).all():
+                events.append({"skill": "speaking", "occurred_at": self._iso(occurred), "learner_key": str(uid), "completed": True})
+            return events

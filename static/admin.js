@@ -8,6 +8,7 @@
   let searchText = '';
   let operations = {available:false, has_data:false, recent:[], by_capability:[]};
   let accountState = null;
+  let productActivity = {available:false,has_data:false,skills:[]};
 
   function esc(s=''){
     return String(s).replace(/[&<>"']/g,c=>({
@@ -115,6 +116,23 @@
       return `<div class="admin-account-row"><b>${esc(key)}</b><span>${esc(item.entitlement_state||'unknown')}</span><small>${esc(usage)}</small></div>`;
     }).join('');
     host.innerHTML=`<div class="admin-account-summary"><strong>${esc(plan.name||'Plan unavailable')}</strong><span>${esc(status)} · read only</span></div><div class="admin-account-features">${rows||'<span>No entitlement data.</span>'}</div>`;
+  }
+
+  function renderProductActivity(){
+    const host=$('#adminProductActivity');
+    if(!host)return;
+    if(productActivity.available===false){host.innerHTML='<div class="admin-capability-empty">Product activity is unavailable on this environment.</div>';return;}
+    if(!productActivity.has_data){host.innerHTML='<div class="admin-capability-empty">Not enough activity data for this window.</div>';return;}
+    const rows=(productActivity.skills||[]).map(item=>{const trend=(item.days||[]).map(day=>`${esc(day.date)}: ${day.activities}/${day.completions}`).join(' · ')||'No daily data'; return `<div class="admin-activity-row"><b>${esc(item.skill)}</b><span>${item.activities} activities · ${item.completions} completed</span><span>${item.completion_rate_percent==null?'Completion rate unknown':`${item.completion_rate_percent}% completion rate`}</span><small>Daily activity/completions: ${trend}</small></div>`;}).join('');
+    host.innerHTML=`<div class="admin-activity-summary"><strong>${productActivity.active_learners==null?'Active learners unknown':`${productActivity.active_learners} active learners`}</strong><span>${productActivity.total_activities} activities · ${productActivity.total_completions} completed · last ${productActivity.window_days} days</span></div><div class="admin-activity-rows">${rows}</div>`;
+  }
+
+  async function fetchProductActivity(){
+    const response=await fetch('/api/admin/product-activity?window_days=7',{cache:'no-store'});
+    const data=await response.json();
+    if(!response.ok)throw new Error('Could not load product activity');
+    productActivity=data&&typeof data==='object'?data:{available:false,has_data:false,skills:[]};
+    renderProductActivity();
   }
 
   async function fetchAccountState(){
@@ -493,6 +511,9 @@
       $('#adminRefreshOperations')?.addEventListener('click',()=>{
         fetchOperations().catch(()=>setMessage('AI operation activity could not be loaded.','error'));
       });
+      $('#adminRefreshProductActivity')?.addEventListener('click',()=>{
+        fetchProductActivity().catch(()=>{productActivity={available:false,has_data:false,skills:[]};renderProductActivity();});
+      });
 
       $('#adminModelSearch')?.addEventListener('input',ev=>{
         searchText = String(ev.target.value||'').trim().toLowerCase();
@@ -511,6 +532,7 @@
       // Preload once so the admin page is instant when opened.
       await fetchConfig({quiet:true});
       await fetchOperations().catch(()=>renderOperations());
+      await fetchProductActivity().catch(()=>renderProductActivity());
       await fetchAccountState().catch(()=>renderAccountState());
     }catch(err){
       console.error('Admin dashboard initialization failed:',err);
