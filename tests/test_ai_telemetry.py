@@ -88,6 +88,7 @@ def test_success_telemetry_keeps_capability_provider_model_and_reported_usage(
 
     assert result.runtime["telemetry"] == {
         "capability": "writing_evaluator",
+        "origin": "learner",
         "provider": "openai",
         "model": "telemetry-model",
         "model_redacted": False,
@@ -163,6 +164,7 @@ def test_failure_telemetry_is_typed_and_redacts_suspicious_model(
 
     assert caught.value.telemetry == {
         "capability": "writing_evaluator",
+        "origin": "learner",
         "provider": "openai",
         "model": "[redacted]",
         "model_redacted": True,
@@ -210,6 +212,7 @@ def test_control_plane_success_uses_the_same_telemetry_contract() -> None:
 
     assert result["telemetry"] == {
         "capability": "writing_evaluator",
+        "origin": "operator_test",
         "provider": "openai",
         "model": "telemetry-model",
         "model_redacted": False,

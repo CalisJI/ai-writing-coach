@@ -193,6 +193,9 @@ def sanitize_telemetry(value: object) -> dict[str, Any] | None:
 
     if not isinstance(value, dict):
         return None
+    origin = value.get("origin")
+    if not isinstance(origin, str) or origin not in {"learner", "operator_test", "configuration"}:
+        origin = None
     capability = str(value.get("capability") or "")
     if capability != "legacy" and capability != "[invalid]" and not re.fullmatch(r"[a-z][a-z0-9_]{0,79}", capability):
         capability = "[invalid]"
@@ -212,6 +215,7 @@ def sanitize_telemetry(value: object) -> dict[str, Any] | None:
         error_class = None
     result = {
         "capability": capability,
+        "origin": origin,
         "provider": provider,
         "model": model,
         "model_redacted": model_redacted,

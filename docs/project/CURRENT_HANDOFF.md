@@ -508,8 +508,18 @@ stages where existing records provide them: Writing submission attempts and
 completions, Reading session/attempt/completion stages, Listening progress
 attempts/completions, and completed Speaking takes. Unsupported stages are
 explicitly unavailable rather than zero. The response remains bounded,
-identifier-free, content-free, read-only, and malformed-record tolerant; no
-synthetic tracking events or learner-event writes were introduced.
+	identifier-free, content-free, read-only, and malformed-record tolerant; no
+	synthetic tracking events or learner-event writes were introduced.
+
+	## R17 learner-impact failure and degraded-state observability
+
+	Admin product-activity now includes bounded capability/day failure trends from
+	validated learner-origin AI telemetry only. Operator tests and configuration
+	events are excluded; output has no learner identifiers, text, URLs, or event
+	rows and reports explicit insufficient/unavailable states. Origin is an
+	allowlisted telemetry field persisted through the existing PostgreSQL AuditLog
+	boundary; no learner-event, scoring, billing, or provider-activation path was
+	added.
 
 ## R2 human gate
 

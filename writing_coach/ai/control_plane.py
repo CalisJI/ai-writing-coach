@@ -8,6 +8,7 @@ from time import perf_counter
 from typing import Any, Callable
 
 from writing_coach.ai.base import (
+    AICapabilityConfigInvalid,
     AICapabilityUnsupported,
     AICapabilityDisabled,
     AICapabilityNotConfigured,
@@ -471,6 +472,7 @@ class AIControlPlane:
             result["model_redacted"] = model_redacted
             result["telemetry"] = {
                 "capability": definition.key,
+                "origin": "operator_test",
                 "provider": result.get("provider"),
                 "model": model_display or None,
                 "model_redacted": model_redacted,
@@ -492,6 +494,7 @@ class AIControlPlane:
             model_display, model_redacted = safe_model_display(model)
             exc.telemetry = {
                 "capability": telemetry_capability,
+                "origin": "operator_test",
                 "provider": provider,
                 "model": model_display or None,
                 "model_redacted": model_redacted,

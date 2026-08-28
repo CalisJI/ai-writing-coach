@@ -6,6 +6,7 @@ learner identifiers, text, URLs, or per-event rows.
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
+import re
 from typing import Any
 
 SKILLS = ("writing", "reading", "listening", "speaking")
@@ -15,6 +16,12 @@ FUNNEL_SUPPORT = {
     "listening": {"started": False, "attempted": True, "completed": True},
     "speaking": {"started": False, "attempted": False, "completed": True},
 }
+LEARNER_DEGRADED_ERROR_CLASSES = frozenset({
+    "capability_disabled", "capability_not_configured", "capability_invalid",
+    "capability_unsupported", "provider_not_configured", "provider_unavailable",
+    "model_catalog_empty", "model_unavailable", "provider_response_invalid",
+    "provider_error", "operation_failed",
+})
 
 
 def _when(value: Any) -> datetime | None:
@@ -160,6 +167,42 @@ def aggregate_cost_per_active_learner(activity: dict[str, Any], operations: Any)
     cost_totals = [{**item, "cost_per_active_learner": round(item["amount"] / denominator, 8) if denominator else None} for item in totals.values()]
     capability_cost = [{"capability": capability, "cost_totals": [{**item, "cost_per_active_learner": round(item["amount"] / denominator, 8) if denominator else None} for item in values.values()]} for capability, values in by_capability.items()]
     return {"available": True, "data_state": "ready" if priced else "insufficient_data", "evidence_state": evidence_state, "currency_state": currency_state, "window_start": activity.get("window_start"), "window_end": activity.get("window_end"), "active_learners": active if denominator else None, "considered_operations": considered, "cost_totals": cost_totals, "capability_cost": capability_cost}
+
+
+def aggregate_learner_impact_failures(operations: Any, *, window_days: int = 7, now: datetime | None = None) -> dict[str, Any]:
+    """Aggregate validated learner-origin failures without learner attribution."""
+    days = max(1, min(int(window_days or 7), 30))
+    end = (now or datetime.now(timezone.utc)).astimezone(timezone.utc)
+    start = datetime.combine(end.date() - timedelta(days=days - 1), datetime.min.time(), tzinfo=timezone.utc)
+    base = {"window_days": days, "window_start": start.isoformat(), "window_end": end.isoformat(), "by_capability": []}
+    if not isinstance(operations, dict) or operations.get("available") is False:
+        return {"available": False, "data_state": "unavailable", "has_data": False, **base}
+    if operations.get("sample_truncated") is True:
+        return {"available": True, "data_state": "insufficient_data", "has_data": False, **base}
+    by_capability: dict[str, dict[str, Any]] = {}
+    events = operations.get("recent") if isinstance(operations.get("recent"), list) else []
+    for event in events:
+        if not isinstance(event, dict) or event.get("origin") != "learner" or event.get("outcome") != "failure":
+            continue
+        capability = event.get("capability")
+        occurred = _when(event.get("created_at"))
+        error_class = event.get("error_class")
+        if not isinstance(capability, str) or not capability or (capability not in {"legacy", "[invalid]"} and not re.fullmatch(r"[a-z][a-z0-9_]{0,79}", capability)) or occurred is None or not (start <= occurred <= end):
+            continue
+        day = occurred.date().isoformat()
+        item = by_capability.setdefault(capability, {"capability": capability, "failure_count": 0, "degraded_count": 0, "days": {}})
+        item["failure_count"] += 1
+        degraded = isinstance(error_class, str) and error_class in LEARNER_DEGRADED_ERROR_CLASSES
+        item["degraded_count"] += int(degraded)
+        bucket = item["days"].setdefault(day, {"date": day, "failure_count": 0, "degraded_count": 0})
+        bucket["failure_count"] += 1
+        bucket["degraded_count"] += int(degraded)
+    rows = []
+    for item in sorted(by_capability.values(), key=lambda value: value["capability"]):
+        item["days"] = [item["days"][key] for key in sorted(item["days"])]
+        rows.append(item)
+    total = sum(item["failure_count"] for item in rows)
+    return {"available": True, "data_state": "ready" if total else "insufficient_data", "has_data": bool(total), **base, "by_capability": rows}
 
 
 if __name__ == "__main__":

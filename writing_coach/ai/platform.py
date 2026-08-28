@@ -211,10 +211,12 @@ def generate_structured(
         model_display, model_redacted = safe_model_display(result.model)
         runtime["telemetry"] = {
             "capability": safe_capability_display(capability_key) if capability_key else "legacy",
+            "origin": "learner",
             "provider": provider_id,
             "model": model_display or None,
             "model_redacted": model_redacted,
             "outcome": "success",
+            "error_class": None,
             "latency_ms": normalized_latency((perf_counter() - started) * 1000),
             "usage": normalized_usage(runtime),
             "rate_limit": normalized_rate_limit(runtime.get("rate_limit")),
@@ -279,6 +281,7 @@ def generate_structured(
         model_display, model_redacted = safe_model_display(model)
         exc.telemetry = {
             "capability": safe_capability_display(capability_key) if capability_key else "legacy",
+            "origin": "learner",
             "provider": provider_id,
             "model": model_display or None,
             "model_redacted": model_redacted,
@@ -482,6 +485,7 @@ def _live_failure(
     # typed exception; copy only normalized fields into the HTTP detail.
     safe_telemetry = {
         "capability": safe_capability_display(telemetry.get("capability") or capability_key),
+        "origin": "operator_test",
         "provider": str(telemetry.get("provider") or "") or None,
         "model": safe_model_display(telemetry.get("model"))[0] or None,
         "model_redacted": bool(telemetry.get("model_redacted")),

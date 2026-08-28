@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 
-from writing_coach.product_activity import aggregate_cost_per_active_learner, aggregate_product_activity
+from writing_coach.ai.base import sanitize_telemetry
+from writing_coach.product_activity import aggregate_cost_per_active_learner, aggregate_learner_impact_failures, aggregate_product_activity
 from writing_coach.product_activity_api import product_activity_response
 
 
@@ -110,9 +111,31 @@ def test_cost_join_states_and_window_alignment():
     assert truncated["data_state"] == "insufficient_data" and truncated["evidence_state"] == "partial" and truncated["cost_totals"] == []
 
 
+def test_learner_impact_origin_and_boundaries():
+    now = datetime(2026, 1, 8, 12, tzinfo=timezone.utc)
+    operations = {"available": True, "recent": [
+        {"origin": "learner", "outcome": "failure", "error_class": "provider_unavailable", "capability": "writing_evaluator", "created_at": "2026-01-08T11:00:00+00:00", "text": "private"},
+        {"origin": "learner", "outcome": "failure", "error_class": "provider_error", "capability": "writing_evaluator", "created_at": "2026-01-07T11:00:00+00:00"},
+        {"origin": "operator_test", "outcome": "failure", "error_class": "provider_unavailable", "capability": "speech_asr", "created_at": "2026-01-08T10:00:00+00:00"},
+        {"origin": "configuration", "outcome": "failure", "error_class": "capability_invalid", "capability": "reading_generator", "created_at": "2026-01-08T10:00:00+00:00"},
+        {"origin": "learner", "outcome": "failure", "error_class": "provider_unavailable", "capability": "writing_evaluator", "created_at": "not-a-date"},
+        {"origin": "learner", "outcome": "failure", "error_class": "provider_unavailable", "capability": "writing_evaluator", "created_at": "2025-12-01T10:00:00+00:00"},
+    ]}
+    result = aggregate_learner_impact_failures(operations, window_days=7, now=now)
+    assert result["data_state"] == "ready" and result["by_capability"] == [{"capability": "writing_evaluator", "failure_count": 2, "degraded_count": 2, "days": [{"date": "2026-01-07", "failure_count": 1, "degraded_count": 1}, {"date": "2026-01-08", "failure_count": 1, "degraded_count": 1}]}]
+    assert "private" not in str(result) and "operator_test" not in str(result)
+    assert aggregate_learner_impact_failures({"available": True, "recent": []}, now=now)["data_state"] == "insufficient_data"
+    assert aggregate_learner_impact_failures({"available": True, "sample_truncated": True, "recent": []}, now=now)["data_state"] == "insufficient_data"
+    assert aggregate_learner_impact_failures({"available": False}, now=now)["data_state"] == "unavailable"
+    assert sanitize_telemetry({"capability": "writing_evaluator", "outcome": "failure", "origin": "learner"})["origin"] == "learner"
+    assert sanitize_telemetry({"capability": "writing_evaluator", "outcome": "failure", "origin": "blob"})["origin"] is None
+    assert sanitize_telemetry({"capability": "writing_evaluator", "outcome": "failure", "origin": []})["origin"] is None
+
+
 if __name__ == "__main__":
     test_window_and_redaction()
     test_empty_is_explicit()
     test_admin_endpoint_guard_redaction_and_unavailable()
     test_cost_join_states_and_window_alignment()
+    test_learner_impact_origin_and_boundaries()
     print("product activity selftest: PASS")
