@@ -59,6 +59,12 @@ baseline.
   explicit click-only health checks for eligible configurations; saving or
   checking does not activate learner runtime, and failures never expose
   provider credentials.
+- R13 local acceptance is now closed by the deterministic
+  `scripts/r13_release_matrix.mjs` runner and
+  `docs/project/R13_LOCAL_ACCEPTANCE_MATRIX.json`. The matrix executes the
+  mounted Admin contract, verifies the canonical API and backend contract
+  boundaries, and records credentialed provider health and runtime activation
+  as explicit human-gated deferrals.
 
 - R6 — Speaking Core: **COMPLETE / LOCAL ACCEPTANCE PASS**
 - R2 — AI Capability Control Plane: **HUMAN GATE / READY, NOT PRODUCT-BLOCKING**

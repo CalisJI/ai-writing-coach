@@ -84,3 +84,23 @@ def test_r11_pre_public_listening_matrix_records_behavioral_and_deferred_evidenc
     assert "test_r9_shadowing_feedback.mjs" in runner
     assert "canonical R11 matrix report is stale" in runner
     assert "if(output)" in runner
+
+
+def test_r13_local_admin_matrix_is_reproducible_and_runtime_safe() -> None:
+    report = (ROOT / "docs/project/R13_LOCAL_ACCEPTANCE_MATRIX.json").read_text(encoding="utf-8")
+    runner = (ROOT / "scripts/r13_release_matrix.mjs").read_text(encoding="utf-8")
+    project_state = (ROOT / "docs/project/PROJECT_STATE.md").read_text(encoding="utf-8")
+    handoff = (ROOT / "docs/project/CURRENT_HANDOFF.md").read_text(encoding="utf-8")
+    assert '"matrix": "R13-local-admin-acceptance"' in report
+    assert '"r13_local_complete": true' in report
+    assert '"learner_runtime_activation": false' in report
+    assert '"production_mutation": false' in report
+    assert '"scope": "mounted-behavior"' in report
+    assert '"scope": "source-and-test-boundary"' in report
+    assert '"gate": "credentialed_provider_health"' in report
+    assert '"gate": "learner_runtime_activation"' in report
+    assert "canonical R13 matrix report is stale" in runner
+    assert "test_r13_admin_capability_matrix.mjs" in runner
+    assert "config_provenance" in runner
+    assert "R13 — Platform Admin Completion: COMPLETE / LOCAL ACCEPTANCE PASS" in project_state
+    assert "R13 local acceptance is now closed" in handoff
