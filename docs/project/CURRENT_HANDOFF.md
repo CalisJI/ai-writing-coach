@@ -8,20 +8,28 @@ checkpoint. It inherits the reviewed R5 Grammar Knowledge System closeout
 (PR #44). Documentation-only descendants may advance without changing this
 baseline.
 
-**Primary active program:**
+**Primary completed checkpoints:**
 
-- R3 — Writing Evaluation Completion: **IN PROGRESS / PRIMARY**
+- R3 — Writing Evaluation Completion: **COMPLETE / LOCAL ACCEPTANCE PASS**
+- R4 — Writing Learning Loop + Grammar Transfer: **COMPLETE / LOCAL ACCEPTANCE PASS**
 
 **Secondary / gated programs:**
 
 - R6 — Speaking Core: **IN PROGRESS / INTERNAL / SECONDARY**
 - R2 — AI Capability Control Plane: **HUMAN GATE / READY, NOT PRODUCT-BLOCKING**
 
-**Current working lane (2026-08-26):**
+**Current working lane (2026-08-28):**
 
-- Writing learner-flow work is checkpointed through `5b17c8b` (grammar
-  practice progress is visible in Journey); the branch has closed the bounded
-  R6 Speaking Core audit and started the R7 evaluation contract slice.
+- Writing learner-flow work is checkpointed through `c2e16de` and the R3/R4
+  acceptance matrix is locally complete: EN/ZH evaluator contracts and the
+  24-case deterministic benchmark pass, and Review, Home, and Journey Grammar
+  practice actions preserve literal evidence, fresh draft state, source
+  revision lineage, and the real Write evaluation payload.
+- R4 outcome coverage confirms re-evaluation remains linked to the source
+  revision series and Review/Journey render the returned localized practice
+  outcome without inventing learner evidence. Writing remains BETA pending
+  the documented human public-gate review; no provider credentials or
+  production capability activation were used.
 - Speaking Core contract coverage is green, including local recording,
   RNNoise/native fallback, transient ASR, deterministic content matching, and
   provider pronunciation boundaries. The stale input-filter contract was
@@ -224,7 +232,7 @@ remains an explicit fallback path rather than a replacement media model.
 - The authenticated internal transcription boundary remains
   `/api/speech/transcribe`; audio is transient and not persisted to the learner account.
 
-## Primary next checkpoint — R3 Writing Evaluation Completion
+## R3/R4 acceptance closeout
 
 Do not start by replacing the Writing architecture. Inspect and complete the
 existing evaluation path.
@@ -240,7 +248,8 @@ Existing stable foundations to preserve include:
 - Review/Journey/Library boundaries;
 - shared EN/ZH product behavior.
 
-R3 work should focus on learner-visible completion:
+R3 learner-visible completion and the R4 Grammar-transfer loop are locally
+verified:
 
 1. verify the current EN/ZH evaluator contract and representative quality;
 2. close real scoring/evidence correctness gaps only;
@@ -250,26 +259,32 @@ R3 work should focus on learner-visible completion:
 6. create representative EN/ZH regression fixtures;
 7. validate the end-to-end Write → Evaluate → Review evidence path.
 
-Do not reopen R5 for Writing feedback. Grammar transfer belongs to the next
-stage, R4, and must reference stable R5 concepts rather than duplicate content.
+The verified R4 extension preserves Grammar IDs and exact Writing evidence
+from Review, Home, and Journey into Write, keeps the originating essay as the
+revision parent, and returns practice outcomes to Review/Journey through the
+existing API contract.
 
-## Next after R3 — R4 Writing Learning Loop + Grammar Transfer
+Do not reopen R5 for Writing feedback. The verified Grammar transfer loop
+references stable R5 concepts and does not duplicate Grammar content.
+
+## Next after R4 — remaining internal/core checkpoints
 
 The former standalone “Multilingual Writing Language Lens” stage is absorbed
 into R3 because multilingual parity is already a product invariant.
 
-R4 will connect:
+R4 now connects:
 
 `Writing evidence → appropriate R5 Grammar concept → targeted practice →
 revision → delta/progress → Review/Journey/Library`
 
-Writing becomes a COMPLETE public-gate candidate only after R3 and R4 pass.
+Writing is a COMPLETE public-gate candidate from the implementation and local
+acceptance perspective; public promotion remains a human gate.
 
 ## R6 secondary lane
 
-Preserve the existing internal Speaking/media implementation. Until R3/R4
-close, only bounded R6 blockers or necessary core completion should interrupt
-the primary Writing lane.
+Preserve the existing internal Speaking/media implementation. R3/R4 are
+locally closed; any future R6 work remains bounded to the documented internal
+core checkpoint and does not alter the verified Writing/Grammar contracts.
 
 Later R7 owns pronunciation, full Speaking evaluation, durable Speaking
 progress, and the final Speaking COMPLETE evidence.
@@ -328,4 +343,4 @@ Stop and return to the human coordinator when:
 - an unresolved P0/P1 requires broader redesign;
 - the rollback path becomes unclear.
 
-**Next handoff owner:** R3 Writing implementation/review agent.
+**Next handoff owner:** R6 Speaking Core agent for the next bounded internal/core checkpoint.

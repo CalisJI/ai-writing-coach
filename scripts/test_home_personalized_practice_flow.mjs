@@ -2,12 +2,14 @@ import assert from 'node:assert/strict';
 import {api} from '../static/becoming/api.js';
 import {state} from '../static/becoming/store.js';
 import {renderHome} from '../static/becoming/screens/home.js';
+import {renderWrite} from '../static/becoming/screens/write.js';
 
 class FakeElement{
   constructor(){
     this.dataset={};
     this.listeners={};
     this.innerHTML='';
+    this.innerText='';
     this.textContent='';
     this.disabled=false;
     this.classList={toggle:()=>{},add:()=>{},remove:()=>{}};
@@ -16,6 +18,9 @@ class FakeElement{
   removeAttribute(){}
   setAttribute(){}
   async click(){return this.listeners.click?.({currentTarget:this});}
+  contains(){return false;}
+  focus(){}
+  querySelector(){return null;}
 }
 
 const root={
@@ -45,10 +50,25 @@ const root={
 globalThis.document={
   querySelector:()=>null,
   querySelectorAll:()=>[],
+  addEventListener:()=>{},
+  removeEventListener:()=>{},
+  execCommand:()=>{},
+  body:{style:{},classList:{add:()=>{},remove:()=>{}}},
 };
-globalThis.window={dispatchEvent:()=>{}};
+globalThis.window={dispatchEvent:()=>{},getSelection:()=>null,setInterval:()=>1,clearInterval:()=>{}};
 globalThis.location={hash:'#/home'};
 globalThis.HashChangeEvent=class {};
+const writeIds=[
+  '#writingEditor','#editorCount','#savedStamp','#lookupSelection','#blockFormat',
+  '#practiceMode','#practiceLevel','#practiceLength','#practiceTopic','#practiceAudience',
+  '#clearDraft','#reviewDraft','#reviewDraftMobile','#viewRubric','#generateBrief',
+];
+const writeNodes=new Map(writeIds.map(id=>[id,new FakeElement()]));
+const writeRoot={
+  innerHTML:'',
+  querySelector:selector=>writeNodes.get(selector)||null,
+  querySelectorAll:()=>[],
+};
 const storage=new Map();
 globalThis.localStorage={
   getItem:key=>storage.get(key)??null,
@@ -66,6 +86,8 @@ const original={
   nextPractice:api.nextPractice,
   grammarPractice:api.grammarPractice,
   essay:api.essay,
+  evaluate:api.evaluate,
+  practiceOutcome:api.practiceOutcome,
 };
 
 const fixtures={
@@ -105,7 +127,9 @@ try{
   api.learningMemory=async()=>({patterns:[],strengths:[],focus:null,revision_wins:[]});
   api.practiceOutcomes=async()=>({latest:{
     status:'improved',previous_issue_count:2,issue_count:0,revision_no:2,
-    focus_label:'Grammar transfer',grammar_id:'a1-complete-sentences-and-basic-word-order',essay_id:412,
+    focus_label:'Grammar transfer',
+    grammar_id:state.language==='zh'?'zh-hsk1-1-svo-c-b-n':'a1-complete-sentences-and-basic-word-order',
+    essay_id:412,
     error_evidence:['I has a book'],
   }});
   api.libraryVocabulary=async()=>[];
@@ -159,11 +183,15 @@ try{
         target_level:locale==='zh'?'HSK1':'A1',
         practice_context:{intent:'repair',focus_family:'grammar',focus_category:'grammar',
           task_type:'story',topic:'grammar transfer',target_level:locale==='zh'?'HSK1':'A1',
-          grammar_id:id},
+          action_label:locale==='zh'?'练习这个语法':'Practice this grammar',
+          reason:locale==='zh'?'根据你的 Writing 发现和静态 Grammar 课程选择的针对性练习。':'Targeted practice selected from a Writing finding and the static Grammar curriculum.',
+          evidence:'I has a book',
+          focus_instruction:locale==='zh'?'请写 3-5 句，使用本课的语法重点。':'Write 3–5 sentences using the grammar focus from this lesson.',
+          grammar_id:id,grammar_title:locale==='zh'?'语法练习':'Grammar practice'},
       };
     };
     await grammarButton.click();
-    assert.equal(grammarPracticeId,'a1-complete-sentences-and-basic-word-order',
+    assert.equal(grammarPracticeId,locale==='zh'?'zh-hsk1-1-svo-c-b-n':'a1-complete-sentences-and-basic-word-order',
       `${locale.toUpperCase()} Home must request the linked Grammar lesson practice`);
     assert.equal(grammarPracticeEvidence,'I has a book',
       `${locale.toUpperCase()} Home must carry exact learner evidence into Grammar practice`);
@@ -171,10 +199,35 @@ try{
       `${locale.toUpperCase()} Home must preserve Grammar practice context`);
     assert.equal(state.draft.parentEssayId,412,
       `${locale.toUpperCase()} Home Grammar practice must preserve the source essay lineage`);
-    assert.equal(state.draft.savedAt,null,
-      `${locale.toUpperCase()} Home Grammar practice must clear stale saved-state`);
     assert.equal(globalThis.location.hash,'#/write',
       `${locale.toUpperCase()} Home Grammar practice must open Write`);
+    let homeGrammarPayload=null;
+    const beforeHomeEvaluate=api.evaluate;
+    const beforeHomeOutcome=api.practiceOutcome;
+    api.evaluate=async payload=>{
+      homeGrammarPayload=payload;
+      return {id:413,evaluator:'ollama:writing-evaluator'};
+    };
+    api.practiceOutcome=async()=>({outcome:null});
+    globalThis.location.hash='#/write';
+    await renderWrite(writeRoot);
+    writeNodes.get('#writingEditor').innerText=locale==='zh'
+      ?'我每天写一段清楚的练习句子。'
+      :'I write a clear practice sentence every day.';
+    await writeNodes.get('#reviewDraft').listeners.click({
+      currentTarget:writeNodes.get('#reviewDraft'),
+    });
+    assert.equal(homeGrammarPayload.parent_essay_id,412,
+      `${locale.toUpperCase()} Home Grammar practice must send the source essay as the evaluation parent`);
+    assert.equal(homeGrammarPayload.learning_language,locale);
+    assert.equal(homeGrammarPayload.practice_context.grammar_id,grammarPracticeId);
+    assert.equal(homeGrammarPayload.practice_context.evidence,'I has a book');
+    api.evaluate=beforeHomeEvaluate;
+    api.practiceOutcome=beforeHomeOutcome;
+    assert.equal(state.draft.savedAt,null,
+      `${locale.toUpperCase()} Home Grammar practice must clear stale saved-state`);
+    assert.equal(globalThis.location.hash,'#/review',
+      `${locale.toUpperCase()} Home Grammar practice must submit into Review`);
     globalThis.location.hash='#/home';
     assert.match(root.innerHTML,/id="homePrimary"/,
       `${locale.toUpperCase()} Home must render the personalized Practice action`);

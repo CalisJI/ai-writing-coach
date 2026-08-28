@@ -5,6 +5,7 @@ import {renderJourney} from '../static/becoming/screens/journey.js';
 import {renderWrite} from '../static/becoming/screens/write.js';
 
 globalThis.location={hash:'#/journey'};
+globalThis.HashChangeEvent=class {};
 const storage=new Map();
 globalThis.localStorage={
   getItem:key=>storage.get(key)||null,
@@ -234,8 +235,13 @@ api.grammarPractice=async (id,evidence)=>{
   grammarPracticeEvidence=evidence;
   return {
     grammar_id:id,target_level:'B2',prompt:'Write three sentences using this grammar.',
-    practice_context:{intent:'repair',focus_family:'grammar',focus_category:'article',
-      focus_label:'Articles',task_type:'story',topic:'grammar transfer',target_level:'B2'},
+    practice_context:{intent:'repair',focus_category:'grammar',focus_label:'Articles',
+      focus_family:'grammar',focus_status:'',task_type:'story',topic:'grammar transfer',
+      target_level:'B2',action_label:'Practice this grammar',
+      reason:'Targeted practice selected from a Writing finding and the static Grammar curriculum.',
+      evidence:'I has a book',
+      focus_instruction:'Write 3–5 sentences using the grammar focus from this lesson.',
+      grammar_id:id,grammar_title:'Articles'},
   };
 };
 state.draft={...state.draft,mode:'free',topic:'random',level:'A1',text:'',html:'',savedAt:1700000000000};
@@ -259,6 +265,27 @@ assert.equal(state.draft.savedAt,null,
   'Journey Grammar practice must clear stale saved-state before Write');
 assert.equal(globalThis.location.hash,'#/write',
   'Journey Grammar practice must open Write');
+let journeyGrammarPayload=null;
+const beforeJourneyGrammarEvaluate=api.evaluate;
+const beforeJourneyGrammarOutcome=api.practiceOutcome;
+api.evaluate=async payload=>{
+  journeyGrammarPayload=payload;
+  return {id:416,evaluator:'ollama:writing-evaluator'};
+};
+api.practiceOutcome=async()=>({outcome:null});
+await renderWrite(writeRoot);
+writeNodes.get('#writingEditor').innerText='A focused Grammar practice sentence.';
+await writeNodes.get('#reviewDraft').listeners.click({
+  currentTarget:writeNodes.get('#reviewDraft'),
+});
+assert.equal(journeyGrammarPayload.parent_essay_id,12,
+  'Journey Grammar practice must send the source essay as the evaluation parent');
+assert.equal(journeyGrammarPayload.learning_language,'en');
+assert.equal(journeyGrammarPayload.practice_context.evidence,'I has a book');
+assert.equal(journeyGrammarPayload.practice_context.grammar_id,'a1-agreement');
+assert.equal(journeyGrammarPayload.practice_context.focus_category,'grammar');
+api.evaluate=beforeJourneyGrammarEvaluate;
+api.practiceOutcome=beforeJourneyGrammarOutcome;
 state.draft={...state.draft,prompt:'',practiceContext:null};
 state.supportLanguage='zh';
 await renderJourney(root);

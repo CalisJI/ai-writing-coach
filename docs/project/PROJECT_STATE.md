@@ -339,14 +339,20 @@ fallback and no silent paid-provider failover.
 
 The post-R5 roadmap uses one primary learner-visible lane.
 
-- **R3 — Writing Evaluation Completion: IN PROGRESS / PRIMARY.**
-  Preserve the current shared evaluator/request/schema/evidence architecture and
-  close real scoring, evidence, learner-feedback, EN/ZH parity, and end-to-end
-  Writing/Review gaps. Do not redesign R5 or duplicate Grammar content.
+- **R3 — Writing Evaluation Completion: COMPLETE / LOCAL ACCEPTANCE PASS.**
+  The shared evaluator/request/schema/evidence architecture, deterministic EN/ZH
+  benchmark, scoring safeguards, degraded-state truthfulness, and end-to-end
+  Writing/Review evidence flow are verified. Writing remains BETA pending human
+  public-gate review.
+- **R4 — Writing Learning Loop + Grammar Transfer: COMPLETE / LOCAL ACCEPTANCE PASS.**
+  Review, Home, and Journey Grammar practice actions preserve exact evidence,
+  backend-valid context, fresh draft state, and source revision lineage into the
+  real Write evaluation payload. Practice outcomes return through the existing
+  Review/Journey contracts and consume stable R5 Grammar IDs.
 - **R6 — Speaking Core: IN PROGRESS / INTERNAL / SECONDARY.**
   Preserve the stable shared-media recording/ASR/content-match foundation.
-  Bounded blocker fixes may continue, but broad Speaking expansion should not
-  distract from R3/R4.
+  Bounded internal core completion may continue; it must preserve the verified
+  R3/R4 Writing and Grammar-transfer contracts.
 - **R2 — AI Capability Control Plane: HUMAN GATE / READY.**
   Static/runtime support exists. Production migration/config initialization,
   credentialed validation, activation, and rollback execution remain human
