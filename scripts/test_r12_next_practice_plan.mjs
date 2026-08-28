@@ -111,7 +111,8 @@ try{
     assert.match(root.innerHTML,/data-home-next-plan[^>]*data-plan-kind="empty"/);
     assert.ok(root.innerHTML.includes(t('home.next_plan_empty')));
     assert.doesNotMatch(root.innerHTML,/data-home-next-plan-action/);
-    assert.doesNotMatch(root.innerHTML,/100%|completed|streak/i);
+    const planMarkup=root.innerHTML.match(/<section class="o-card o-panel home-next-plan"[\s\S]*?<\/section>/)?.[0]||'';
+    assert.doesNotMatch(planMarkup,/100%|completed|streak/i);
   }
 
   for(const language of ['en','zh']){

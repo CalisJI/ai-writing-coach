@@ -437,7 +437,7 @@ The post-R5 roadmap uses one primary learner-visible lane.
   language/asset/segment scope, and audio-free static inspections. Production
   migration, capability activation, and public Listening promotion remain
   deferred.
-- **R12 — Retention & Growth: IN PROGRESS / LOCAL FOUNDATION.** Home now offers
+- **R12 — Retention & Growth: COMPLETE / LOCAL ACCEPTANCE PASS.** Home now offers
   a localized return-to-Listening cue only for a recent language-scoped lesson;
   the handoff carries a source URL and bounded segment/mode context, and
   Listening restores valid state or falls back to the canonical first segment

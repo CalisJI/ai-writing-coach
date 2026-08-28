@@ -14,7 +14,7 @@ baseline.
 - R4 — Writing Learning Loop + Grammar Transfer: **COMPLETE / LOCAL ACCEPTANCE PASS**
 - R10 — Reading Completion: **COMPLETE / LOCAL ACCEPTANCE PASS**
 - R11 — Listening Completion: **PRE-PUBLIC MATRIX COMPLETE / HUMAN PROMOTION GATE**
-- R12 — Retention & Growth: **IN PROGRESS / LOCAL FOUNDATION**
+- R12 — Retention & Growth: **COMPLETE / LOCAL ACCEPTANCE PASS**
 
 - R15 - SaaS Plans, Entitlements & Usage Policy: **COMPLETE / LOCAL ACCEPTANCE PASS**
 - R16 — Advanced Learning Intelligence: **COMPLETE / LOCAL ACCEPTANCE PASS**
@@ -61,6 +61,12 @@ baseline.
   profile-aligned recommendation and established task-generation handoff,
   clears the draft before opening Write, and keeps recommendation or
   generation failures localized and non-actionable.
+- **R12 local-foundation closeout:** COMPLETE / LOCAL ACCEPTANCE PASS. Focused
+  EN/ZH browser contracts verify the localized Listening return cue and
+  device-local habit state, prioritized next-practice routing across Writing,
+  Reading, Listening, and Speaking, and the baseline Writing onboarding action.
+  Malformed or unavailable evidence remains explicitly unclaimed; public
+  retention promotion and server-side tracking remain deferred.
 - R13 capability-matrix foundation is now locally implemented in the existing
   Platform Admin surface. The matrix consumes the canonical capability-centric
   admin response, distinguishes deterministic, reserved,

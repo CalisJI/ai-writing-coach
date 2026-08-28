@@ -172,3 +172,21 @@ def test_r18_compact_media_status_contract_is_recorded() -> None:
     assert "httpx.ASGITransport" in route_test
     for state in ("processing", "ready", "failed"):
         assert f'"{state}"' in route_test
+
+
+def test_r12_local_retention_foundation_closeout_is_recorded() -> None:
+    project_state = (ROOT / "docs/project/PROJECT_STATE.md").read_text(encoding="utf-8")
+    handoff = (ROOT / "docs/project/CURRENT_HANDOFF.md").read_text(encoding="utf-8")
+    roadmap = (ROOT / "docs/project/ROADMAP.md").read_text(encoding="utf-8")
+    return_test = (ROOT / "scripts/test_r12_listening_return.mjs").read_text(encoding="utf-8")
+    habit_test = (ROOT / "scripts/test_r12_listening_habit_home.mjs").read_text(encoding="utf-8")
+    plan_test = (ROOT / "scripts/test_r12_next_practice_plan.mjs").read_text(encoding="utf-8")
+    onboarding_test = (ROOT / "scripts/test_home_personalized_practice_flow.mjs").read_text(encoding="utf-8")
+    assert "**R12 — Retention & Growth: COMPLETE / LOCAL ACCEPTANCE PASS." in project_state
+    assert "R12 — Retention & Growth: **COMPLETE / LOCAL ACCEPTANCE PASS**" in handoff
+    assert "R12 local-foundation closeout" in handoff
+    assert "R12 — Retention & Growth: IN PROGRESS / LOCAL FOUNDATION" not in project_state
+    assert "R12 — Retention & Growth: **IN PROGRESS / LOCAL FOUNDATION**" not in handoff
+    assert "| R12 | Retention & Growth | PLANNED |" in roadmap
+    for script in (return_test, habit_test, plan_test, onboarding_test):
+        assert "en" in script and "zh" in script
