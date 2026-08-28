@@ -7,6 +7,7 @@ import {requestLessonAutostart,resumableLesson} from '../domain/media-lesson-his
 import {listeningHabitSnapshot} from '../domain/listening-habit.js';
 import {getSharedMediaSession,selectSharedMediaSegment} from '../domain/shared-media-session.js';
 import {difficultyAdjustment} from '../domain/adaptive.js';
+import {crossSkillCueMarkup} from '../domain/cross-skill.js';
 import {attr,esc,errorBlock,loadingBlock,runBusy,sectionHeading,helpTip} from '../components/primitives.js';
 import {t,categoryLabel,masteryLabel,statusLabel,practiceModeLabel,topicLabel,unitLabel,uiLocale} from '../domain/i18n.js';
 
@@ -682,7 +683,7 @@ export async function renderHome(root){
   root.innerHTML=`<section class="page">${loadingBlock(5)}</section>`;
 
   try{
-    const [dashboard,essays,memory,recommendation,outcomes,readingHistory,speakingHistory]=await Promise.all([
+    const [dashboard,essays,memory,recommendation,outcomes,readingHistory,speakingHistory,crossCue]=await Promise.all([
       api.dashboard(),
       api.essays(),
       api.learningMemory(),
@@ -690,6 +691,7 @@ export async function renderHome(root){
       api.practiceOutcomes(1),
       Promise.resolve().then(()=>api.readingSessions(8)).catch(()=>null),
       Promise.resolve().then(()=>api.speakingAttempts(1)).catch(()=>null),
+      Promise.resolve().then(()=>api.crossSkillCue()).catch(()=>null),
     ]);
     /* The library panel is additive: Home is still useful without it, so a
        failure here degrades that one card rather than the screen. */
@@ -717,6 +719,7 @@ export async function renderHome(root){
         ${listeningResumeSignal(listeningResume)}
         ${listeningHabitSignal(listeningHabit)}
         ${nextPracticePlanSignal(nextPlan)}
+        ${crossSkillCueMarkup(crossCue,{learningLanguage:state.language})}
         ${writingDashboardMarkup(dashboard,essays,memory)}
 
         <div class="o-home-split">
@@ -885,6 +888,23 @@ export async function renderHome(root){
         root.insertAdjacentHTML('afterbegin',errorBlock(error.message));
       }
     }
+
+    root.querySelector('[data-cross-skill-kind]')?.addEventListener('click',async event=>{
+      const button=event.currentTarget;
+      const kind=button.dataset.crossSkillKind;
+      if(kind==='review')return openEssay(button.dataset.crossSkillEssay);
+      if(kind==='reading'){
+        try{const loaded=await api.readingSession(button.dataset.crossSkillSession); if(loaded?.found&&loaded.session)state.readingSession=loaded.session;}catch{}
+        state.readingResult=null; go('read'); return;
+      }
+      if(kind==='listening'){
+        if(button.dataset.crossSkillUrl)requestLessonAutostart(state.language,button.dataset.crossSkillUrl,{source_url:button.dataset.crossSkillUrl,title:button.dataset.crossSkillTitle,selected_segment_id:button.dataset.crossSkillSegment});
+        selectSharedMediaSegment(state.language,button.dataset.crossSkillSegment||''); go('listen'); return;
+      }
+      if(kind==='speaking'&&button.dataset.crossSkillAsset&&button.dataset.crossSkillSegment){
+        selectSharedMediaSegment(state.language,button.dataset.crossSkillSegment); go('speak');
+      }
+    });
 
     root.querySelectorAll('[data-open-review-cue]').forEach(button=>{
       button.addEventListener('click',()=>openEssay(button.dataset.openReviewCue));

@@ -44,6 +44,7 @@ class SpecializedLearningRepository(Protocol):
     def create_reading_attempt_record(self, session_id: int, values: dict[str, Any]) -> None: ...
     def save_listening_progress_record(self, values: dict[str, Any]) -> dict[str, Any]: ...
     def list_listening_progress_records(self, asset_id: str) -> list[dict[str, Any]]: ...
+    def list_recent_listening_progress_records(self, limit: int = 20) -> list[dict[str, Any]]: ...
     def save_shadowing_progress_record(self, values: dict[str, Any]) -> dict[str, Any]: ...
     def list_shadowing_progress_records(self, asset_id: str) -> list[dict[str, Any]]: ...
     def create_speaking_attempt_record(self, values: dict[str, Any]) -> dict[str, Any]: ...
@@ -419,6 +420,9 @@ class SQLiteSpecializedLearningRepository:
     def list_listening_progress_records(self, asset_id: str) -> list[dict[str, Any]]:
         raise RuntimeError("Durable Active Listening progress requires the PostgreSQL runtime.")
 
+    def list_recent_listening_progress_records(self, limit: int = 20) -> list[dict[str, Any]]:
+        raise RuntimeError("Durable Active Listening progress requires the PostgreSQL runtime.")
+
     def save_shadowing_progress_record(self, values: dict[str, Any]) -> dict[str, Any]:
         raise RuntimeError("Durable Shadowing progress requires the PostgreSQL runtime.")
 
@@ -691,6 +695,17 @@ class PostgresSpecializedLearningRepository:
                     ListeningProgress.asset_id == asset_id,
                 )
                 .order_by(ListeningProgress.updated_at.desc())
+            ).all()
+            return [self._listening_progress_payload(row) for row in rows]
+
+    def list_recent_listening_progress_records(self, limit: int = 20) -> list[dict[str, Any]]:
+        uid, lang = self._scope()
+        with Session(self.engine) as s:
+            rows = s.scalars(
+                select(ListeningProgress)
+                .where(ListeningProgress.user_id == uid, ListeningProgress.language_code == lang)
+                .order_by(ListeningProgress.updated_at.desc())
+                .limit(max(1, min(int(limit), 100)))
             ).all()
             return [self._listening_progress_payload(row) for row in rows]
 

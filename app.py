@@ -95,6 +95,7 @@ from writing_coach.becoming_outcomes import PracticeContextIn, configure_becomin
 from writing_coach.becoming_library import LibraryVocabularyIn, VocabularyReviewIn, configure_becoming_library, delete_library_vocabulary, list_library_vocabulary, review_library_vocabulary, save_library_vocabulary
 from writing_coach.becoming_linguistics import configure_becoming_linguistics, linguistic_annotations_for_essay
 from writing_coach.becoming_reading import ReadingAnswerIn, ReadingGenerateIn, configure_becoming_reading, create_reading_session, get_reading_session, list_reading_sessions, submit_reading_answers
+from writing_coach.cross_skill_transfer import select_cross_skill_cue
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
@@ -1784,6 +1785,31 @@ def becoming_learning_memory_get() -> dict[str, Any]:
 @app.get("/api/review-cue", name="becoming_review_cue_get")
 def becoming_review_cue_get(essay_id: int | None = None) -> dict[str, Any]:
     return get_review_cue(essay_id)
+
+@app.get("/api/cross-skill-cue", name="becoming_cross_skill_cue_get")
+def becoming_cross_skill_cue_get() -> dict[str, Any]:
+    """Return one language-scoped, evidence-backed cue without persistence."""
+    language = active_profile().code
+    try:
+        raw_writing = get_review_cue()
+        writing = {**raw_writing, "language": language} if isinstance(raw_writing, dict) else None
+    except Exception:
+        writing = None
+    try:
+        reading_payload = list_reading_sessions(20)
+        raw_reading = reading_payload.get("items", []) if isinstance(reading_payload, dict) else []
+        reading = [{**item, "language": language} for item in raw_reading if isinstance(item, dict)]
+    except Exception:
+        reading = []
+    try:
+        listening = _specialized_learning_repository.list_recent_listening_progress_records(20)
+    except Exception:
+        listening = []
+    try:
+        speaking = _specialized_learning_repository.list_speaking_attempt_records(20)
+    except Exception:
+        speaking = []
+    return select_cross_skill_cue(language=language, writing=writing, reading=reading, listening=listening, speaking=speaking)
 # === BECOMING MEMORY DIRECT ROUTES END ===
 
 # === BECOMING PERSONALIZED PRACTICE ROUTES START ===

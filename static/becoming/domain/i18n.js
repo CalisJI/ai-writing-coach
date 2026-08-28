@@ -2393,6 +2393,31 @@ Object.assign(COPY.zh,{
 });
 
 Object.assign(COPY.en,{
+  'cross_skill.kicker':'Cross-skill cue',
+  'cross_skill.title':'A useful next connection',
+  'cross_skill.body':'From your {source} evidence, this is a concrete place to continue.',
+  'cross_skill.empty':'No completed cross-skill evidence is ready yet.',
+  'cross_skill.source_writing':'Writing', 'cross_skill.source_reading':'Reading', 'cross_skill.source_listening':'Listening', 'cross_skill.source_speaking':'Speaking',
+  'cross_skill.action_writing':'Open Review', 'cross_skill.action_reading':'Continue Reading', 'cross_skill.action_listening':'Open Listening', 'cross_skill.action_speaking':'Open Speaking',
+});
+Object.assign(COPY.vi,{
+  'cross_skill.kicker':'Gợi ý nối kỹ năng',
+  'cross_skill.title':'Một liên kết hữu ích tiếp theo',
+  'cross_skill.body':'Từ bằng chứng {source} của bạn, đây là điểm cụ thể để tiếp tục.',
+  'cross_skill.empty':'Chưa có bằng chứng hoàn thành liên kỹ năng phù hợp.',
+  'cross_skill.source_writing':'Viết', 'cross_skill.source_reading':'Đọc', 'cross_skill.source_listening':'Nghe', 'cross_skill.source_speaking':'Nói',
+  'cross_skill.action_writing':'Mở Nhận xét', 'cross_skill.action_reading':'Tiếp tục Đọc', 'cross_skill.action_listening':'Mở Nghe', 'cross_skill.action_speaking':'Mở Nói',
+});
+Object.assign(COPY.zh,{
+  'cross_skill.kicker':'跨技能提示',
+  'cross_skill.title':'下一步的有用连接',
+  'cross_skill.body':'根据你的{source}证据，这里是可以继续练习的具体方向。',
+  'cross_skill.empty':'暂时没有可用的跨技能完成证据。',
+  'cross_skill.source_writing':'写作', 'cross_skill.source_reading':'阅读', 'cross_skill.source_listening':'听力', 'cross_skill.source_speaking':'口语',
+  'cross_skill.action_writing':'打开评阅', 'cross_skill.action_reading':'继续阅读', 'cross_skill.action_listening':'打开听力', 'cross_skill.action_speaking':'打开口语',
+});
+
+Object.assign(COPY.en,{
   'write.difficulty_stretch':'Recent revision evidence supports a small stretch: {delta} more words.',
   'write.difficulty_scaffold':'Recent unresolved evidence calls for a shorter task: {delta} fewer words.',
   'write.difficulty_hold':'Verified evidence does not support changing the task length yet.',

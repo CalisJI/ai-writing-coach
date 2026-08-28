@@ -4,6 +4,7 @@ import {go} from '../router.js';
 import {esc,attr,errorBlock,loadingBlock,runBusy} from '../components/primitives.js';
 import {t,uiLocale,categoryLabel,masteryLabel,statusLabel} from '../domain/i18n.js';
 import {oIcon} from '../orena/icons.js';
+import {crossSkillCueMarkup} from '../domain/cross-skill.js';
 
 /* ORENA-JOURNEY-*: the story the learning memory already tells - what is being
  * worked on, what moved, what keeps coming back, and what is next.
@@ -126,6 +127,23 @@ const copy=()=>COPY[uiLocale()]||COPY.en;
 
 const fill=(template,values)=>Object.entries(values)
   .reduce((text,[key,value])=>text.replace(`{${key}}`,String(value)),String(template||''));
+
+function bindCrossSkillCue(root){
+  root.querySelector('[data-cross-skill-kind]')?.addEventListener('click',async event=>{
+    const button=event.currentTarget,kind=button.dataset.crossSkillKind;
+    if(kind==='review'){
+      try{const essay=await api.essay(button.dataset.crossSkillEssay); state.lastEvaluation=essay; state.draft={...state.draft,text:essay.text||'',html:essay.html||'',prompt:essay.prompt||'',parentEssayId:essay.id,level:essay.target_cefr||state.draft.level,practiceContext:essay.practice_context||null}; go('review');}catch{}
+    }else if(kind==='reading'){
+      try{const loaded=await api.readingSession(button.dataset.crossSkillSession); if(loaded?.found&&loaded.session)state.readingSession=loaded.session;}catch{}
+      state.readingResult=null; go('read');
+    }else if(kind==='listening'){
+      if(button.dataset.crossSkillUrl){const {requestLessonAutostart}=await import('../domain/media-lesson-history.js'); requestLessonAutostart(state.language,button.dataset.crossSkillUrl,{source_url:button.dataset.crossSkillUrl,title:button.dataset.crossSkillTitle,selected_segment_id:button.dataset.crossSkillSegment});}
+      const {selectSharedMediaSegment}=await import('../domain/shared-media-session.js'); selectSharedMediaSegment(state.language,button.dataset.crossSkillSegment||''); go('listen');
+    }else if(kind==='speaking'&&button.dataset.crossSkillSegment){
+      const {selectSharedMediaSegment}=await import('../domain/shared-media-session.js'); selectSharedMediaSegment(state.language,button.dataset.crossSkillSegment); go('speak');
+    }
+  });
+}
 
 function shortDate(value){
   const parsed=Date.parse(String(value||'').replace(' ','T'));
@@ -609,6 +627,7 @@ export async function renderJourney(root){
   let memory;
   let recommendation=null;
   let practiceOutcomes=null;
+  let crossCue=null;
   try{
     [dashboard,essays,memory]=await Promise.all([
       api.dashboard(),
@@ -633,6 +652,7 @@ export async function renderJourney(root){
     recommendation=null;
   }
   try{ practiceOutcomes=await api.practiceOutcomes(5); }catch{ practiceOutcomes=null; }
+  try{ crossCue=await api.crossSkillCue(); }catch{ crossCue=null; }
 
   const c=copy();
   if(!essays.length){
@@ -642,9 +662,11 @@ export async function renderJourney(root){
         <h2>${esc(c.emptyTitle)}</h2>
         <p>${esc(c.emptyBody)}</p>
         <button type="button" class="o-btn o-btn--primary" id="journeyStart">${oIcon('write')}<span>${esc(c.start)}</span></button>
+        ${crossSkillCueMarkup(crossCue,{learningLanguage:state.language})}
       </section>
     </section>`;
     root.querySelector('#journeyStart')?.addEventListener('click',()=>go('write'));
+    bindCrossSkillCue(root);
     return;
   }
 
@@ -674,6 +696,7 @@ export async function renderJourney(root){
     <div class="o-journey-body-grid">
       <div class="o-journey-main">
         ${focusCard(focus)}
+        ${crossSkillCueMarkup(crossCue,{learningLanguage:state.language})}
         ${grammarOutcomeCard(practiceOutcomes?.latest,uiLocale())}
         ${practiceOutcomeHistory(practiceOutcomes?.items)}
         ${improving
@@ -739,6 +762,7 @@ export async function renderJourney(root){
       go('review');
     });
   });
+  bindCrossSkillCue(root);
 
   root.querySelectorAll('[data-outcome-grammar]').forEach(button=>{
     button.addEventListener('click',()=>{

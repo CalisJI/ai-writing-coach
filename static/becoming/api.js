@@ -57,6 +57,7 @@ export const api={
   }),
   learningMemory:()=>request('/api/learning-memory'),
   reviewCue:(essayId)=>request(`/api/review-cue${essayId!=null?`?essay_id=${encodeURIComponent(essayId)}`:''}`),
+  crossSkillCue:()=>request('/api/cross-skill-cue'),
   practiceRecommendation:()=>request('/api/practice-recommendation'),
   nextPractice:(payload)=>request('/api/practice/next',{
     method:'POST',

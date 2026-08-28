@@ -18,8 +18,8 @@ baseline.
 
 - R15 - SaaS Plans, Entitlements & Usage Policy: **COMPLETE / LOCAL ACCEPTANCE PASS**
 - R16 — Advanced Learning Intelligence: **COMPLETE / LOCAL ACCEPTANCE PASS**
-  for contextual dictionary, adaptive Writing difficulty, and error-memory
-  review-cue foundations.
+  for contextual dictionary, adaptive Writing difficulty, error-memory
+  review-cue, and cross-skill transfer foundations.
 
 **Secondary / gated programs:**
 
@@ -123,6 +123,11 @@ baseline.
   or unresolved Writing pattern with explicit source status and provenance.
   Home and Review render localized rationale, show an explicit no-actionable-
   evidence state, and open only the linked existing Review/Grammar handoff.
+- R16 cross-skill transfer cues now select one completed, language-scoped
+  Writing, Reading, Listening, or Speaking record with bounded provenance.
+  Home and Journey render one localized source cue and reuse established
+  skill handoffs; malformed, stale, or unlinked records produce an explicit
+  no-evidence state without a shared proficiency or completion claim.
 
 - Writing learner-flow work is checkpointed through `c2e16de` and the R3/R4
   acceptance matrix is locally complete: EN/ZH evaluator contracts and the
@@ -466,6 +471,14 @@ outcomes. Each cue carries literal learner evidence, source and status, and a
 linked essay or Grammar action only when that identifier is valid. Home and
 Review share localized EN/VI/ZH rationale and render an explicit empty state
 when no actionable evidence exists; no mastery or proficiency claim is made.
+
+## R16 cross-skill evidence transfer closeout
+
+The authenticated read-only cross-skill selector accepts only completed,
+language-scoped records with a concrete source-specific handoff from Writing,
+Reading, Listening, or Speaking. Home and Journey render one localized cue
+with literal provenance and preserve an explicit no-transfer-evidence state;
+no shared proficiency, mastery, or completion score is inferred or persisted.
 
 ## R2 human gate
 
