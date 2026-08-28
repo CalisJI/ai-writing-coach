@@ -12,15 +12,23 @@ function segmentIds(payload){
     .filter(value=>typeof value==='string'&&value);
 }
 
-export function setSharedMediaSession({learning_language='',payload=null,selected_segment_id=null}={}){
+function sessionMode(value){
+  return ['follow','active','shadowing'].includes(value)?value:'follow';
+}
+
+export function setSharedMediaSession({learning_language='',payload=null,selected_segment_id=null,mode=null}={}){
   const key=languageKey(learning_language);
   const ids=segmentIds(payload);
   if(!key||!payload?.asset?.asset_id||ids.length===0)return false;
   const selected=ids.includes(selected_segment_id)?selected_segment_id:ids[0];
+  const previous=sessions.get(key);
+  const sameAsset=previous?.payload?.asset?.asset_id===payload.asset.asset_id;
+  const rememberedMode=mode==null&&sameAsset?sessionMode(previous.mode):sessionMode(mode);
   sessions.set(key,{
     learning_language:key,
     payload,
     selected_segment_id:selected,
+    mode:rememberedMode,
   });
   return true;
 }
@@ -32,6 +40,7 @@ export function getSharedMediaSession(learningLanguage=''){
     learning_language:value.learning_language,
     payload:value.payload,
     selected_segment_id:value.selected_segment_id,
+    mode:sessionMode(value.mode),
   };
 }
 
@@ -42,6 +51,13 @@ export function selectSharedMediaSegment(learningLanguage='',segmentId=''){
   const ids=segmentIds(current.payload);
   if(!ids.includes(segmentId))return false;
   current.selected_segment_id=segmentId;
+  return true;
+}
+
+export function setSharedMediaMode(learningLanguage='',mode='follow'){
+  const current=sessions.get(languageKey(learningLanguage));
+  if(!current||!['follow','active','shadowing'].includes(mode))return false;
+  current.mode=mode;
   return true;
 }
 

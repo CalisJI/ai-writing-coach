@@ -374,6 +374,12 @@ The post-R5 roadmap uses one primary learner-visible lane.
   separately executed backend contracts in `docs/project/R8_PRE_PUBLIC_MATRIX.json`.
   Provider credentialed validation, production migration, capability activation,
   and public promotion remain explicitly deferred.
+- **R9 — Speaking Advanced / Shadowing Studio: COMPLETE / LOCAL ACCEPTANCE PASS.**
+  Selected EN/ZH canonical media segments now carry their asset, language, and
+  segment identity into the existing Speaking recorder/evaluator and back into
+  the same Shadowing Studio mode. Per-take feedback remains dimension-specific;
+  no raw audio persistence, new provider, or public capability activation was
+  added.
 - **R2 — AI Capability Control Plane: HUMAN GATE / READY.**
   Static/runtime support exists. Production migration/config initialization,
   credentialed validation, activation, and rollback execution remain human

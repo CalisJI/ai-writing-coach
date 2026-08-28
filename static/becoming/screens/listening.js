@@ -32,7 +32,7 @@ import {
   selectShadowingPracticeSegment,
   shadowingPracticeSummary,
 } from '../domain/shadowing-practice.js';
-import {getSharedMediaSession,selectSharedMediaSegment,setSharedMediaSession} from '../domain/shared-media-session.js';
+import {getSharedMediaSession,selectSharedMediaSegment,setSharedMediaMode,setSharedMediaSession} from '../domain/shared-media-session.js';
 import {clearPendingMediaImport,getPendingMediaImport,setPendingMediaImport} from '../domain/media-import-resume.js';
 import {listMediaLessons,rememberMediaLesson,takeLessonAutostart,resumableLesson} from '../domain/media-lesson-history.js';
 import {skillMasthead} from '../components/skill-masthead.js';
@@ -1125,7 +1125,7 @@ export function createListeningController({importMedia,importStatus,targetLangua
       if(model.shadowingSession)selectShadowingPracticeSegment(model.shadowingSession,target.segment_id);
       model.practiceValidation=null;onSelection(target.segment_id);changed();return true;
     },
-    restore(payload,selectedId=null){
+    restore(payload,selectedId=null,mode='follow'){
       if(mediaImportState(payload)!=='ready')return false;
       model.payload=payload;
       model.status='ready';
@@ -1139,6 +1139,7 @@ export function createListeningController({importMedia,importStatus,targetLangua
         selectShadowingPracticeSegment(model.shadowingSession,model.selected);
       }
       model.practiceValidation=null;
+      model.mode=['follow','active','shadowing'].includes(mode)?mode:'follow';
       if(['active','shadowing'].includes(model.mode)&&!playbackAvailable(payload.playback))model.mode='follow';
       onMediaReady(payload,model.selected);
       changed();
@@ -1188,6 +1189,11 @@ export function createListeningController({importMedia,importStatus,targetLangua
       const recorded=recordShadowingPracticeRound(model.shadowingSession);
       if(recorded)changed();
       return recorded;
+    },
+    openSpeaking(){
+      if(model.status!=='ready'||!model.payload||!model.selected)return false;
+      if(!selectSharedMediaSegment(state.language,model.selected))return false;
+      return setSharedMediaMode(state.language,model.mode);
     },
     toggleOriginal(value){model.original=value;changed();},
     toggleMeaning(value){model.meaning=value;changed();},
@@ -1548,7 +1554,12 @@ export async function renderListening(root,{importMedia=api.importMedia,importSt
     if(roundButton&&!roundButton.hasAttribute('data-shadow-record')){
       roundButton.addEventListener('click',()=>controller.recordShadowingRound());
     }
-    root.querySelector('[data-open-speaking]')?.addEventListener('click',()=>go('speak'));
+    root.querySelector('[data-open-speaking]')?.addEventListener('click',()=>{
+      /* Preserve the learner's exact studio context for the return trip. The
+         shared session already carries asset and segment; this flag lets
+         Listening reopen Shadowing instead of silently dropping to Follow. */
+      if(controller.openSpeaking())go('speak');
+    });
     root.querySelector('#activeListeningAnswer')?.addEventListener('input',event=>controller.setPracticeDraft(event.target.value));
     root.querySelector('#activeListeningForm')?.addEventListener('submit',event=>{
       event.preventDefault();
@@ -1889,7 +1900,7 @@ export async function renderListening(root,{importMedia=api.importMedia,importSt
   const resume=(pending||handoff||shared)?null:resumableLesson(state.language);
   const autostart=handoff||resume?.source_url||'';
   if(pending)controller.resumePending(pending);
-  else if(shared)controller.restore(shared.payload,shared.selected_segment_id);
+  else if(shared)controller.restore(shared.payload,shared.selected_segment_id,shared.mode);
   else if(autostart){
     // The field renders model.sourceUrl while an import is in flight or has
     // failed, so the learner can see and edit the link that went wrong. It

@@ -77,6 +77,7 @@ def main() -> None:
         root / "tests" / "test_speaking_evaluator.py",
         root / "scripts" / "test_m3_pronunciation_contract.mjs",
         root / "scripts" / "test_shadowing_practice.mjs",
+        root / "scripts" / "test_r9_shadowing_speaking_flow.mjs",
         root / "scripts" / "test_speaking_core.mjs",
         root / "scripts" / "test_speaking_groq_flow.mjs",
         root / "scripts" / "test_speaking_ui.mjs",
@@ -565,7 +566,7 @@ def main() -> None:
     # non-persistent; pronunciation scores are per-take evidence, not proficiency.
     require_contains(errors, shared_media_session, [
         "setSharedMediaSession", "getSharedMediaSession",
-        "selectSharedMediaSegment", "learning_language",
+        "selectSharedMediaSegment", "setSharedMediaMode", "learning_language",
     ], "shared media session bridge")
     for forbidden in ["fetch(", "localStorage", "sessionStorage"]:
         if forbidden in shared_media_session:
@@ -586,6 +587,10 @@ def main() -> None:
         "data-speaking-asr-result", "data-speaking-content-match",
         "data-speaking-pronunciation", "data-score-kind", "synthetic_demo",
     ], "internal Speaking Core")
+    require_contains(errors, listening_screen, [
+        "openSpeaking()", "controller.openSpeaking()", "setSharedMediaMode",
+        "controller.restore(shared.payload,shared.selected_segment_id,shared.mode)",
+    ], "R9 Shadowing-to-Speaking handoff")
     require_contains(errors, api, [
         "transcribeSpeech:", "/api/speech/transcribe", "new FormData()",
         "assessPronunciation:", "/api/speech/pronunciation",

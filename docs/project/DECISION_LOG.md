@@ -604,3 +604,26 @@ remain explicit human actions.
 
 **Supersedes / Superseded by:** Extends the R3/R4 and R6/R7 local acceptance
 decisions. Supersedes no earlier decision.
+
+## D-029 — R9 shared-media Shadowing returns through Speaking feedback
+
+**Status:** Accepted
+
+**Decision:** R9's first Shadowing Studio slice reuses the canonical M1 media
+asset and segment session to open the existing Speaking recorder/evaluator, then
+restores the same selected segment and Shadowing mode when the learner returns
+to Listening.
+
+**Reason:** The learner-visible advanced Shadowing loop must not duplicate media
+ingestion or lose context at the Speaking boundary. Existing per-take feedback
+already separates content match, pronunciation, fluency, unavailable
+dimensions, and unassessed proficiency; this slice connects that loop without
+adding raw-audio persistence or new providers.
+
+**Consequences:** `setSharedMediaMode` records only the in-memory return mode,
+the R9 mounted EN/ZH contract verifies asset/language/segment continuity and
+dimension-specific evaluation, and provider scoring or public activation remain
+human-gated.
+
+**Supersedes / Superseded by:** Extends the M1.6 shared-media and R6/R7
+Speaking decisions. Supersedes no earlier decision.

@@ -19,6 +19,9 @@ baseline.
   for the internal durable-attempt/history slice; public promotion remains gated.
 - R8 — Public Product Gate: Writing + Speaking EN/ZH: **PRE-PUBLIC MATRIX
   COMPLETE / HUMAN PROMOTION GATE**.
+- R9 — Speaking Advanced / Shadowing Studio: **COMPLETE / LOCAL ACCEPTANCE PASS**
+  for the shared-media feedback-loop foundation; advanced provider scoring and
+  public promotion remain gated.
 
 - R6 — Speaking Core: **COMPLETE / LOCAL ACCEPTANCE PASS**
 - R2 — AI Capability Control Plane: **HUMAN GATE / READY, NOT PRODUCT-BLOCKING**
@@ -65,6 +68,12 @@ baseline.
   The deterministic report is checked in at
   `docs/project/R8_PRE_PUBLIC_MATRIX.json` and verified byte-for-byte by the
   runner's default mode.
+- The R9 Shadowing Studio foundation now preserves the selected canonical
+  EN/ZH asset and segment when opening Speaking, carries the same identity
+  through recording/evaluation and audio-free attempt handoff, and restores the
+  Shadowing mode and segment on return to Listening. The mounted handoff
+  contract passes for both languages; provider scoring and public activation
+  remain outside this local checkpoint.
 
 **Closed programs protected from casual rewrite:**
 
