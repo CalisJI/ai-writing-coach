@@ -36,7 +36,7 @@ import {
 } from '../domain/shadowing-practice.js';
 import {getSharedMediaSession,selectSharedMediaSegment,setSharedMediaMode,setSharedMediaSession} from '../domain/shared-media-session.js';
 import {clearPendingMediaImport,getPendingMediaImport,setPendingMediaImport} from '../domain/media-import-resume.js';
-import {listMediaLessons,rememberMediaLesson,takeLessonAutostart,resumableLesson} from '../domain/media-lesson-history.js';
+import {listMediaLessons,rememberMediaLesson,takeLessonAutostartContext,resumableLesson} from '../domain/media-lesson-history.js';
 import {skillMasthead} from '../components/skill-masthead.js';
 
 const COPY={
@@ -1054,7 +1054,7 @@ function translationRequest(payload,targetLanguage){
   };
 }
 
-export function createListeningController({importMedia,importStatus,targetLanguage,translateMedia=()=>Promise.resolve(null),onChange=()=>{},onMediaReady=()=>{},onTranslationReady=()=>{},onSelection=()=>{},onProcessing=()=>{},onImportTerminal=()=>{},onPracticeProgressSave=()=>{},onShadowingProgressSave=()=>{}}){
+export function createListeningController({importMedia,importStatus,targetLanguage,translateMedia=()=>Promise.resolve(null),onChange=()=>{},onMediaReady=()=>{},onTranslationReady=()=>{},onSelection=()=>{},onModeChange=()=>{},onProcessing=()=>{},onImportTerminal=()=>{},onPracticeProgressSave=()=>{},onShadowingProgressSave=()=>{}}){
   const model={status:'empty',payload:null,error:null,selected:null,manualSelection:false,playingSegmentId:null,jobId:null,sourceUrl:'',original:true,meaning:true,playbackRate:1,mode:'follow',practiceSession:null,shadowingSession:null,practiceValidation:null,practicePersistence:{status:'empty'},shadowingPersistence:{status:'empty'},speakingFeedback:{status:'empty',item:null}};
   const viewId=`listening-${++listeningViewSequence}`;
   let importGeneration=0;
@@ -1311,7 +1311,7 @@ export function createListeningController({importMedia,importStatus,targetLangua
       model.mode=value;
       if(value==='active')selectListeningPracticeSegment(model.practiceSession,model.selected);
       if(value==='shadowing')selectShadowingPracticeSegment(model.shadowingSession,model.selected);
-      model.practiceValidation=null;changed();return true;
+      model.practiceValidation=null;onModeChange(value,model.selected);changed();return true;
     },
     setPracticeDraft(value){
       if(!model.practiceSession)return false;
@@ -2092,6 +2092,8 @@ export async function renderListening(root,{importMedia=api.importMedia,importSt
         source_url:payload?.asset?.source_url||'',
         title:payload?.asset?.title||'',
         provider:payload?.asset?.source_provider||'',
+        selected_segment_id,
+        mode:controller?.model?.mode||'follow',
       });
       restoreListeningProgressForAsset(payload);
       restoreShadowingProgressForAsset(payload);
@@ -2106,7 +2108,15 @@ export async function renderListening(root,{importMedia=api.importMedia,importSt
       setSharedMediaSession({learning_language:state.language,payload,selected_segment_id:controller.model.selected});
       render();
     },
-    onSelection:segmentId=>selectSharedMediaSegment(state.language,segmentId),
+    onSelection:segmentId=>{
+      selectSharedMediaSegment(state.language,segmentId);
+      const payload=controller?.model?.payload;
+      rememberMediaLesson({learning_language:state.language,source_url:payload?.asset?.source_url||'',title:payload?.asset?.title||'',provider:payload?.asset?.source_provider||'',selected_segment_id:segmentId,mode:controller?.model?.mode||'follow'});
+    },
+    onModeChange:(mode,segmentId)=>{
+      const payload=controller?.model?.payload;
+      rememberMediaLesson({learning_language:state.language,source_url:payload?.asset?.source_url||'',title:payload?.asset?.title||'',provider:payload?.asset?.source_provider||'',selected_segment_id:segmentId,mode});
+    },
     onProcessing:({job_id,source_url})=>setPendingMediaImport({learning_language:state.language,job_id,source_url}),
     onImportTerminal:()=>clearPendingMediaImport(state.language),
   });
@@ -2180,9 +2190,9 @@ export async function renderListening(root,{importMedia=api.importMedia,importSt
   // is never interrupted by a handoff.
   // Speaking's handoff wins over a plain resume: it is an explicit request,
   // where a resume is only a guess about what the learner was doing.
-  const handoff=pending?'':takeLessonAutostart(state.language);
+  const handoff=pending?null:takeLessonAutostartContext(state.language);
   const resume=(pending||handoff||shared)?null:resumableLesson(state.language);
-  const autostart=handoff||resume?.source_url||'';
+  const autostart=handoff?.source_url||resume?.source_url||'';
   if(pending)controller.resumePending(pending);
   else if(shared)controller.restore(shared.payload,shared.selected_segment_id,shared.mode);
   else if(autostart){
@@ -2192,7 +2202,18 @@ export async function renderListening(root,{importMedia=api.importMedia,importSt
     // something new". Setting the DOM here would not survive: importUrl
     // re-renders straight away.
     render();
-    controller.importUrl(autostart);
+    controller.importUrl(autostart).then(()=>{
+      const context=handoff||resume;
+      if(controller.model.status!=='ready'||!context)return;
+      // A saved mode is meaningful only alongside the saved canonical segment.
+      // If that segment disappeared from a refreshed transcript, keep the
+      // safe first-segment/Follow fallback instead of silently resuming a mode
+      // against different content.
+      const segmentAccepted=Boolean(context.selected_segment_id)
+        && controller.select(context.selected_segment_id);
+      if(segmentAccepted&&context.mode&&context.mode!=='follow')controller.setMode(context.mode);
+      else if(!segmentAccepted&&controller.model.mode!=='follow')controller.setMode('follow');
+    });
   }
   else render();
   return controller;

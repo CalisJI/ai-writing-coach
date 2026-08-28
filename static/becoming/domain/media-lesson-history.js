@@ -49,7 +49,9 @@ function usable(entry) {
   return Number.isFinite(savedAt) && Date.now() - savedAt <= MAX_AGE_MS;
 }
 
-export function rememberMediaLesson({ learning_language = '', source_url = '', title = '', provider = '' } = {}) {
+const validModes = new Set(['follow', 'active', 'shadowing']);
+
+export function rememberMediaLesson({ learning_language = '', source_url = '', title = '', provider = '', selected_segment_id = '', mode = '' } = {}) {
   const key = languageKey(learning_language);
   const url = cleanText(source_url, 400);
   if (!key || !url) return false;
@@ -57,6 +59,8 @@ export function rememberMediaLesson({ learning_language = '', source_url = '', t
   const all = readAll();
   const existing = Array.isArray(all[key]) ? all[key].filter(usable) : [];
   const previous = existing.find(entry => entry.source_url === url);
+  const segment = cleanText(selected_segment_id, 255) || (previous ? previous.selected_segment_id : '');
+  const selectedMode = validModes.has(mode) ? mode : (previous && validModes.has(previous.mode) ? previous.mode : 'follow');
 
   const entry = {
     source_url: url,
@@ -64,6 +68,8 @@ export function rememberMediaLesson({ learning_language = '', source_url = '', t
     // never downgrades a named lesson to a bare URL.
     title: cleanText(title, 160) || (previous ? previous.title : ''),
     provider: cleanText(provider, 40) || (previous ? previous.provider : ''),
+    selected_segment_id: segment,
+    mode: selectedMode,
     saved_at: Date.now(),
   };
 
@@ -104,12 +110,16 @@ export function forgetMediaLesson(learningLanguage = '', sourceUrl = '') {
  */
 const AUTOSTART_KEY = 'orena.listen-autostart.v1';
 
-export function requestLessonAutostart(learningLanguage = '', sourceUrl = '') {
+export function requestLessonAutostart(learningLanguage = '', sourceUrl = '', context = {}) {
   const key = languageKey(learningLanguage);
   const url = cleanText(sourceUrl, 400);
   if (!key || !url) return false;
   try {
-    sessionStorage.setItem(AUTOSTART_KEY, JSON.stringify({ key, url, at: Date.now() }));
+    sessionStorage.setItem(AUTOSTART_KEY, JSON.stringify({
+      key, url, at: Date.now(),
+      selected_segment_id: cleanText(context.selected_segment_id, 255),
+      mode: validModes.has(context.mode) ? context.mode : '',
+    }));
     return true;
   } catch {
     return false;
@@ -117,25 +127,34 @@ export function requestLessonAutostart(learningLanguage = '', sourceUrl = '') {
 }
 
 export function takeLessonAutostart(learningLanguage = '') {
+  return takeLessonAutostartContext(learningLanguage)?.source_url || '';
+}
+
+export function takeLessonAutostartContext(learningLanguage = '') {
   const key = languageKey(learningLanguage);
-  if (!key) return '';
+  if (!key) return null;
   let raw = null;
   try {
     raw = sessionStorage.getItem(AUTOSTART_KEY);
     sessionStorage.removeItem(AUTOSTART_KEY);
   } catch {
-    return '';
+    return null;
   }
-  if (!raw) return '';
+  if (!raw) return null;
   try {
     const parsed = JSON.parse(raw);
     // Only honour a fresh request for this language, so a stale handoff can
     // never hijack a later visit to Listening.
-    if (!parsed || parsed.key !== key) return '';
-    if (!Number.isFinite(Number(parsed.at)) || Date.now() - Number(parsed.at) > 60000) return '';
-    return typeof parsed.url === 'string' ? parsed.url : '';
+    if (!parsed || parsed.key !== key) return null;
+    if (!Number.isFinite(Number(parsed.at)) || Date.now() - Number(parsed.at) > 60000) return null;
+    if (typeof parsed.url !== 'string' || !parsed.url) return null;
+    return {
+      source_url: parsed.url,
+      selected_segment_id: cleanText(parsed.selected_segment_id, 255),
+      mode: validModes.has(parsed.mode) ? parsed.mode : 'follow',
+    };
   } catch {
-    return '';
+    return null;
   }
 }
 
@@ -157,5 +176,10 @@ export function resumableLesson(learningLanguage = '', windowMs = RESUME_WINDOW_
   if (!newest) return null;
   const savedAt = Number(newest.saved_at);
   if (!Number.isFinite(savedAt) || Date.now() - savedAt > windowMs) return null;
-  return { source_url: newest.source_url, title: newest.title || '' };
+  return {
+    source_url: newest.source_url,
+    title: newest.title || '',
+    selected_segment_id: cleanText(newest.selected_segment_id, 255),
+    mode: validModes.has(newest.mode) ? newest.mode : 'follow',
+  };
 }

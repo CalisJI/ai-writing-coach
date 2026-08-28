@@ -14,6 +14,7 @@ baseline.
 - R4 — Writing Learning Loop + Grammar Transfer: **COMPLETE / LOCAL ACCEPTANCE PASS**
 - R10 — Reading Completion: **COMPLETE / LOCAL ACCEPTANCE PASS**
 - R11 — Listening Completion: **PRE-PUBLIC MATRIX COMPLETE / HUMAN PROMOTION GATE**
+- R12 — Retention & Growth: **IN PROGRESS / LOCAL FOUNDATION**
 
 **Secondary / gated programs:**
 
@@ -28,6 +29,13 @@ baseline.
 - R11 — Listening Completion: **PRE-PUBLIC MATRIX COMPLETE / HUMAN PROMOTION GATE** for the
   durable Active Listening progress foundation; public Listening promotion and
   runtime migration remain gated.
+
+- R12 has its first local retention slice: Home now exposes a localized,
+  language-scoped return cue for a recent Listening lesson and hands off only
+  the source URL plus bounded segment/mode context. Listening re-imports the
+  asset and restores the valid selection/mode, falling back safely when the
+  history is empty or stale. No media payload is persisted and no public
+  capability was activated.
 
 - R6 — Speaking Core: **COMPLETE / LOCAL ACCEPTANCE PASS**
 - R2 — AI Capability Control Plane: **HUMAN GATE / READY, NOT PRODUCT-BLOCKING**

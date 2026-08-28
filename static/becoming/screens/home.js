@@ -3,6 +3,7 @@ import {oIcon} from '../orena/icons.js';
 import {state,saveDraft} from '../store.js';
 import {go} from '../router.js';
 import {homeInsight,metricOverview} from '../domain/feedback.js';
+import {requestLessonAutostart,resumableLesson} from '../domain/media-lesson-history.js';
 import {attr,esc,errorBlock,loadingBlock,runBusy,sectionHeading,helpTip} from '../components/primitives.js';
 import {t,categoryLabel,masteryLabel,statusLabel,practiceModeLabel,topicLabel,unitLabel,uiLocale} from '../domain/i18n.js';
 
@@ -474,6 +475,18 @@ function homeHero(insight,personalized,currentEssay){
   </section>`;
 }
 
+function listeningResumeSignal(lesson){
+  if(!lesson)return '';
+  return `<section class="o-card o-panel home-listening-resume" data-home-listening-resume>
+    <div>
+      <span class="o-label">${esc(t('home.listening_resume_title'))}</span>
+      <h2>${esc(lesson.title||t('title.listen'))}</h2>
+      <p class="o-panel-copy">${esc(t('home.listening_resume_body'))}</p>
+    </div>
+    <button class="o-btn o-btn--outline o-btn--compact" type="button" data-home-resume-listening>${esc(t('home.listening_resume_action'))}</button>
+  </section>`;
+}
+
 function homeCurrentPiece(currentEssay){
   if(!currentEssay){
     return `<aside class="o-hero-piece o-hero-piece--empty">
@@ -577,10 +590,12 @@ export async function renderHome(root){
     const insight=homeInsight(dashboard,memory,state.language);
     const personalized=recommendation && recommendation.intent!=='baseline';
     const currentEssay=sortedEssays(essays)[0]||null;
+    const listeningResume=resumableLesson(state.language);
 
     root.innerHTML=`<div class="o-page">
       <div class="o-home">
         ${homeHero(insight,personalized,currentEssay)}
+        ${listeningResumeSignal(listeningResume)}
         ${writingDashboardMarkup(dashboard,essays,memory)}
 
         <div class="o-home-split">
@@ -648,6 +663,11 @@ export async function renderHome(root){
     root.querySelector('#journeyLinkTop')?.addEventListener('click',()=>go('journey'));
     root.querySelector('#dashboardJourneyLink')?.addEventListener('click',()=>go('journey'));
     root.querySelector('#writingDashboardJourneyLink')?.addEventListener('click',()=>go('journey'));
+    root.querySelector('[data-home-resume-listening]')?.addEventListener('click',()=>{
+      if(!listeningResume?.source_url)return;
+      requestLessonAutostart(state.language,listeningResume.source_url,listeningResume);
+      go('listen');
+    });
 
     root.querySelectorAll('[data-home-open-grammar]').forEach(button=>button.addEventListener('click',()=>{
       const id=button.dataset.homeOpenGrammar;
