@@ -621,6 +621,7 @@ export async function renderWrite(root) {
     await openDictionary(term, {
       title: state.language === 'zh' ? `Pinyin · ${t('dictionary.title')}` : t('dictionary.title'),
       language: state.language,
+      context: editor.innerText || state.draft.text || '',
     });
   });
 

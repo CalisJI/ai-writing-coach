@@ -17,6 +17,8 @@ baseline.
 - R12 — Retention & Growth: **IN PROGRESS / LOCAL FOUNDATION**
 
 - R15 - SaaS Plans, Entitlements & Usage Policy: **COMPLETE / LOCAL ACCEPTANCE PASS**
+- R16 — Advanced Learning Intelligence: **COMPLETE / LOCAL ACCEPTANCE PASS**
+  for the contextual dictionary foundation across Writing, Review, and Media.
 
 **Secondary / gated programs:**
 
@@ -107,6 +109,11 @@ baseline.
 - R15 - SaaS Plans, Entitlements & Usage Policy: **COMPLETE / LOCAL ACCEPTANCE PASS**
 
 **Current working lane (2026-08-28):**
+
+- R16 contextual dictionary foundation is locally complete across the existing
+  Writing, Review, and Media sentence/segment flows. The shared authenticated
+  contract requires visible learner evidence and exposes truthful unavailable
+  states; provider activation and credentialed live validation remain deferred.
 
 - Writing learner-flow work is checkpointed through `c2e16de` and the R3/R4
   acceptance matrix is locally complete: EN/ZH evaluator contracts and the
@@ -423,6 +430,16 @@ repository now feed an authenticated account endpoint. Profile and read-only
 Admin surfaces localize plan, entitlement, monthly usage, exhausted, unlimited,
 and unavailable states; billing and feature enforcement remain disabled.
 
+## R16 contextual dictionary foundation closeout
+
+Writing, Review, and Media sentence/segment lookups now share one authenticated
+contextual dictionary response grounded in the learner's visible text. The
+contract rejects selections absent from that context and returns an explicit
+unavailable state when the explanation provider cannot produce a result. EN,
+VI, and ZH adapters preserve the selected evidence without inventing context or
+proficiency claims. Provider activation and credentialed live validation remain
+deferred.
+
 ## R2 human gate
 
 **YES**
@@ -477,6 +494,6 @@ Stop and return to the human coordinator when:
 - an unresolved P0/P1 requires broader redesign;
 - the rollback path becomes unclear.
 
-**Next handoff owner:** R16 advanced learning-intelligence owner; R15 account
-state visibility is locally closed and no billing, deployment, or capability
-activation is implied.
+**Next handoff owner:** R16 advanced learning-intelligence follow-on owner; the
+contextual dictionary foundation is locally closed and no provider activation,
+billing, deployment, or capability activation is implied.

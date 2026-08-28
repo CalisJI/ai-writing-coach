@@ -11,6 +11,7 @@ import {createLocalAudioRecorder,localAudioRecordingSupported} from '../componen
 import {showDialog} from '../components/primitives.js';
 import {transcriptTokens} from '../domain/transcript-tokens.js';
 import {buildTranscriptDisplayUnits,displayUnitContains,displayUnitMeaning} from '../domain/transcript-display-units.js';
+import {openDictionary} from '../components/dictionary.js';
 import {activeCanonicalSegment} from '../domain/transcript-playback.js';
 import {applyPlayingSegment} from '../components/interactive-transcript.js';
 import {
@@ -276,6 +277,7 @@ function followWorkspace(payload,selected,{original,meaning,playbackRate,manualS
         ${displayUnitContains(segment,selected)?`<div class="listening-segment-actions">
           <button type="button" class="o-btn o-btn--outline o-btn--compact" data-shadow-selected title="${esc(c.shared)}">${esc(c.shadow)}</button>
           <button type="button" class="o-btn o-btn--primary o-btn--compact" data-open-speaking title="${esc(c.shared)}">${esc(shadowText().openSpeaking)}</button>
+          <button type="button" class="o-btn o-btn--outline o-btn--compact" data-contextual-lookup title="${esc(t('dictionary.context_lookup'))}">${esc(t('dictionary.context_lookup'))}</button>
         </div>`:''}
       </article>`).join('')}
     </div>
@@ -1755,6 +1757,12 @@ export async function renderListening(root,{importMedia=api.importMedia,importSt
       controller.select(controller.model.selected);
     });
     root.querySelector('[data-shadow-selected]')?.addEventListener('click',()=>controller.setMode('shadowing'));
+    root.querySelector('[data-contextual-lookup]')?.addEventListener('click',async()=>{
+      const segment=(controller.model.payload?.transcript?.segments||[]).find(item=>item.segment_id===controller.model.selected);
+      const context=String(segment?.original_text||'').trim();
+      if(!context)return;
+      await openDictionary(context,{title:t('dictionary.title'),language:state.language,context});
+    });
     /* In the studio a round IS the recorded take, so it is counted when the
        take lands - see the hold-to-repeat wiring below. Counting on click too
        would double it, and click fires before the async stop() resolves, so the

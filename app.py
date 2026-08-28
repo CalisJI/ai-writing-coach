@@ -70,6 +70,7 @@ from writing_coach.speech_api import (
     configure_speaking_attempt_repository,
     router as speech_router,
 )
+from writing_coach.media_interaction import contextual_router as contextual_dictionary_router
 from writing_coach.listening_api import (
     configure_listening_progress,
     router as listening_progress_router,
@@ -275,6 +276,7 @@ configure_media_fallback(
     else None
 )
 app.include_router(media_learning_router)
+app.include_router(contextual_dictionary_router)
 configure_speech_asr(_speech_asr_provider)
 configure_speech_pronunciation(build_speech_pronunciation_provider())
 configure_speaking_attempt_repository(

@@ -980,6 +980,7 @@ export async function renderReview(root){
       await openDictionary(term,{
         title:state.language==='zh'?`Pinyin · ${t('dictionary.title')}`:t('dictionary.title'),
         language:state.language,
+        context:learnerText,
       });
     });
   });
@@ -991,6 +992,7 @@ export async function renderReview(root){
       await openDictionary(item?.fragment||'',{
         title:state.language==='zh'?`Pinyin · ${t('dictionary.title')}`:t('dictionary.title'),
         language:state.language,
+        context:learnerText,
       });
     });
   });

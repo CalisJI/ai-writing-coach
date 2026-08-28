@@ -152,3 +152,45 @@ def test_explain_media_text_uses_requested_support_language(monkeypatch) -> None
     assert "Explain in Vietnamese" in observed["system"]
     assert payload["target_language"] == "vi"
     assert payload["vocabulary"][0]["fragment"] == "usually"
+
+
+def test_contextual_dictionary_requires_visible_context_and_returns_grounded_claim(monkeypatch) -> None:
+    monkeypatch.setattr(media_interaction, "current_language_code", lambda: "en")
+    monkeypatch.setattr(media_interaction, "_run_structured", lambda *args, **kwargs: {
+        "summary": "A repeated weekday habit.",
+        "natural_translation": "Tôi thường đi bộ.",
+        "grammar_notes": [], "vocabulary": [], "usage_note": "",
+    })
+    payload = media_interaction.contextual_dictionary(
+        media_interaction.ContextualDictionaryIn(
+            text="usually", context="I usually walk to school.", source_language="en", target_language="vi"
+        )
+    )
+    assert payload["available"] is True
+    assert payload["claim"] == "contextual_dictionary"
+    assert payload["selected_text"] == "usually"
+
+    with pytest.raises(HTTPException) as exc:
+        media_interaction.contextual_dictionary(
+            media_interaction.ContextualDictionaryIn(
+                text="usually", context="I walk to school.", source_language="en", target_language="vi"
+            )
+        )
+    assert exc.value.status_code == 422
+
+
+def test_contextual_dictionary_has_explicit_unavailable_fallback(monkeypatch) -> None:
+    monkeypatch.setattr(media_interaction, "current_language_code", lambda: "zh")
+    monkeypatch.setattr(media_interaction, "_run_structured", lambda *args, **kwargs: (_ for _ in ()).throw(HTTPException(503, "unavailable")))
+    payload = media_interaction.contextual_dictionary(
+        media_interaction.ContextualDictionaryIn(
+            text="学习", context="我喜欢学习。", source_language="zh", target_language="vi"
+        )
+    )
+    assert payload == {
+        "available": False,
+        "source_language": "zh",
+        "target_language": "vi",
+        "selected_text": "学习",
+        "claim": "contextual_dictionary_unavailable",
+    }

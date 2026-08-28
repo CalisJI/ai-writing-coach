@@ -53,6 +53,26 @@ function firstDefinition(payload={}){
   };
 }
 
+export function contextualResultMarkup(payload={}){
+  if(payload.available===false){
+    const selected=String(payload.selected_text||'').trim();
+    return `<div class="dictionary-context-unavailable" role="status">
+      ${selected?`<p class="dictionary-context-selected">${esc(selected)}</p>`:''}
+      <p>${esc(t('dictionary.context_unavailable'))}</p>
+    </div>`;
+  }
+  const notes=Array.isArray(payload.grammar_notes)?payload.grammar_notes.filter(Boolean):[];
+  const vocabulary=Array.isArray(payload.vocabulary)?payload.vocabulary.filter(item=>item&&item.fragment&&item.meaning):[];
+  return `<div class="dictionary-context-result">
+    <p class="dictionary-context-selected">${esc(payload.selected_text||'')}</p>
+    ${payload.summary?`<p class="dictionary-definition">${esc(payload.summary)}</p>`:''}
+    ${payload.natural_translation?`<p class="dictionary-translation">${esc(payload.natural_translation)}</p>`:''}
+    ${notes.length?`<ul class="dictionary-context-notes">${notes.map(item=>`<li>${esc(item)}</li>`).join('')}</ul>`:''}
+    ${vocabulary.length?`<ul class="dictionary-context-vocabulary">${vocabulary.map(item=>`<li><b>${esc(item.fragment)}</b> — ${esc(item.meaning)}</li>`).join('')}</ul>`:''}
+    ${payload.usage_note?`<p class="library-note">${esc(payload.usage_note)}</p>`:''}
+  </div>`;
+}
+
 export function dictionaryResultMarkup(payload={},{
   language=state.language,
   pinyinMode=state.profile?.pinyin||'auto',
@@ -112,6 +132,7 @@ export function mountDictionaryResult(root=document){
 export async function openDictionary(term,{
   title='Dictionary',
   language=state.language,
+  context='',
 }={}){
   const value=String(term||'').trim().slice(0,180);
   if(!value){
@@ -122,12 +143,14 @@ export async function openDictionary(term,{
   showLoadingDialog(title||t('dictionary.title'),t('busy.looking_up'));
 
   try{
-    const payload=await api.dictionary(value);
-    updateDialog(dictionaryResultMarkup(payload,{
-      language,
-      pinyinMode:state.profile?.pinyin||'auto',
-      includeWriting:true,
-    }),{title:title||t('dictionary.title')});
+    const groundedContext=String(context||'').trim();
+    const targetLanguage=state.supportLanguage||state.profile?.native_language||'vi';
+    const payload=groundedContext&&groundedContext.toLocaleLowerCase().includes(value.toLocaleLowerCase())
+      ?await api.contextualDictionary({text:value,context:groundedContext,source_language:language,target_language:targetLanguage})
+      :await api.dictionary(value);
+    updateDialog(payload?.claim==='contextual_dictionary'||payload?.claim==='contextual_dictionary_unavailable'
+      ?contextualResultMarkup(payload)
+      :dictionaryResultMarkup(payload,{language,pinyinMode:state.profile?.pinyin||'auto',includeWriting:true}),{title:title||t('dictionary.title')});
     mountDictionaryResult(document.getElementById('dialogBody'));
     return payload;
   }catch(error){

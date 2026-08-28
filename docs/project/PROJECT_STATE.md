@@ -18,8 +18,9 @@ operational state.
 
 - Application version: `1.4.0`
 - BECOMING frontend version: `2.17.5`
-- Current Orena program: R15 â€” SaaS Plans, Entitlements & Usage Policy;
-  account-state visibility is locally complete and billing remains deferred.
+- Current Orena program: R16 â€” Advanced Learning Intelligence;
+  the contextual dictionary foundation is locally complete and provider
+  activation remains deferred.
 
 ## Orena UI/UX integration
 
@@ -140,6 +141,12 @@ authority.
   read-only Admin surfaces now expose the existing Free/Premium catalog and
   PostgreSQL-backed usage with localized unavailable/exhausted/unlimited
   states. Billing and feature enforcement remain disabled.
+
+- R16 — Advanced Learning Intelligence: **COMPLETE / LOCAL ACCEPTANCE
+  PASS** for the contextual dictionary foundation. Writing, Review, and Media
+  sentence/segment lookups share one authenticated, source-grounded context
+  contract with explicit unavailable states. Provider activation and live
+  credentialed validation remain deferred.
 
 - R0 — Product Release Architecture: **CLOSED**.
 - R1 — Production Staging + Cloudflare + Google OAuth: **CLOSED / PASS**.

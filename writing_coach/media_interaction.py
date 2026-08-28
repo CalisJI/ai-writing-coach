@@ -20,6 +20,7 @@ from writing_coach.linguistic_annotation import annotate as _annotate
 
 
 router = APIRouter()
+contextual_router = APIRouter(prefix="/api/dictionary", tags=["dictionary"])
 
 _ALLOWED_POS = _SHARED_POS
 _SUPPORT_LANGUAGE_NAMES = {
@@ -53,6 +54,12 @@ class MediaExplainIn(BaseModel):
     @classmethod
     def normalize_target_language(cls, value: str) -> str:
         return value.strip().casefold()
+
+
+class ContextualDictionaryIn(MediaExplainIn):
+    """A dictionary request grounded in the exact visible learner context."""
+
+    context: str = Field(min_length=1, max_length=2400)
 
 
 def _primary_language(value: str) -> str:
@@ -259,3 +266,36 @@ def explain_media_text(payload: MediaExplainIn) -> dict[str, Any]:
         "usage_note": str(raw.get("usage_note") or "").strip()[:1600],
         "claim": "contextual_ai_explanation",
     }
+
+
+@contextual_router.post("/contextual")
+def contextual_dictionary(payload: ContextualDictionaryIn) -> dict[str, Any]:
+    source = payload.text.strip()
+    context = payload.context.strip()
+    if not source:
+        raise HTTPException(422, "Selected text is required.")
+    if source.casefold() not in context.casefold():
+        raise HTTPException(422, "Selected text must come from the supplied learner context.")
+    try:
+        result = explain_media_text(payload)
+    except HTTPException as exc:
+        if exc.status_code not in {502, 503}:
+            raise
+        return {
+            "available": False,
+            "source_language": _primary_language(payload.source_language),
+            "target_language": payload.target_language.strip().casefold(),
+            "selected_text": source,
+            "claim": "contextual_dictionary_unavailable",
+        }
+    if not str(result.get("summary") or "").strip():
+        return {
+            "available": False,
+            "source_language": _primary_language(payload.source_language),
+            "target_language": payload.target_language.strip().casefold(),
+            "selected_text": source,
+            "claim": "contextual_dictionary_unavailable",
+        }
+    result["available"] = True
+    result["claim"] = "contextual_dictionary"
+    return result
