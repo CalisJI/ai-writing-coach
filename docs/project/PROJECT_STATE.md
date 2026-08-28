@@ -150,12 +150,15 @@ authority.
   language-scoped evidence with explicit insufficient/no-actionable-evidence
   states. Provider activation and live credentialed validation remain deferred.
 
-- R17 — Product Analytics & Operational Observability: **IN PROGRESS / LOCAL
-  FOUNDATION**. Admin-only activity, return, source-specific funnel, cost,
-  learner-impact failure/degraded aggregates, and operational readiness evidence
-  use bounded PostgreSQL/configuration records, redact learner identifiers and
-  raw content, and expose explicit ready, degraded, insufficient, unavailable,
-  or deferred states without learner-event writes or entitlement enforcement.
+	- R17 — Product Analytics & Operational Observability: **COMPLETE / LOCAL
+	  ACCEPTANCE PASS**. Admin-only activity, return, source-specific funnel,
+	  cost, learner-impact failure/degraded aggregates, and operational readiness
+	  evidence use bounded PostgreSQL/configuration records, redact learner
+	  identifiers and raw content, and expose explicit ready, degraded,
+	  insufficient, unavailable, or deferred states without learner-event writes
+	  or entitlement enforcement. The authenticated route boundary and
+	  aggregate-only redaction are covered by the mounted ASGI regression;
+	  live/production release gates remain deferred.
 
 - R0 — Product Release Architecture: **CLOSED**.
 - R1 — Production Staging + Cloudflare + Google OAuth: **CLOSED / PASS**.

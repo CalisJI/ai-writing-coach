@@ -1796,7 +1796,7 @@ def admin_product_activity(request: Request, window_days: int = 7) -> dict[str, 
 @app.get("/api/admin/readiness-summary", name="admin_readiness_summary")
 def admin_readiness_summary(request: Request) -> dict[str, Any]:
     require_admin(request)
-    config = AIControlPlane(_installed_platform_repository()).inspect()
+    config = AIControlPlane(_persistence_runtime.platform_repository).inspect()
     operations = admin_ai_operations(request, limit=500)
     product_activity = product_activity_response(request, _specialized_learning_repository, require_admin, window_days=7, operations_loader=lambda: operations)
     return build_readiness_summary(config, operations, product_activity)

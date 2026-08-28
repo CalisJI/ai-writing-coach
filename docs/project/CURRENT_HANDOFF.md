@@ -20,8 +20,9 @@ baseline.
 - R16 — Advanced Learning Intelligence: **COMPLETE / LOCAL ACCEPTANCE PASS**
   for contextual dictionary, adaptive Writing difficulty, error-memory
   review-cue, and cross-skill transfer foundations.
-- R17 — Product Analytics & Operational Observability: **IN PROGRESS / LOCAL
-  FOUNDATION** for privacy-bounded Admin activity trends.
+- R17 — Product Analytics & Operational Observability: **COMPLETE / LOCAL
+  ACCEPTANCE PASS** for privacy-bounded Admin activity trends and readiness
+  evidence; live/production release gates remain human-gated.
 
 **Secondary / gated programs:**
 
@@ -529,7 +530,9 @@ learner-impact evidence, and the human-gated activation policy. Each indicator
 is explicitly ready, degraded, insufficient, unavailable, or deferred; the
 overall view states that it is not production-release approval. The endpoint is
 read-only and aggregate-only, with no probes, writes, learner records, billing,
-activation, or deployment behavior.
+activation, or deployment behavior. The authenticated/non-admin boundary and
+redaction contract are exercised through the mounted ASGI route regression in
+`tests/test_r17_admin_routes.py` using representative underlying records.
 
 ## R2 human gate
 
@@ -585,6 +588,11 @@ Stop and return to the human coordinator when:
 - an unresolved P0/P1 requires broader redesign;
 - the rollback path becomes unclear.
 
-**Next handoff owner:** R17 product-analytics owner; activity and return
-observability remain read-only, privacy-bounded Admin work with no provider
-activation, billing, deployment, or capability activation implied.
+	**R17 local-foundation closeout:** COMPLETE / LOCAL ACCEPTANCE PASS. The
+	Admin analytics and readiness decision surface is read-only, aggregate-only,
+	and locally verified; live PostgreSQL observation, provider activation, and
+	production release approval remain human-gated and deferred.
+
+	**Next handoff owner:** R18 mobile/API-readiness owner. Consume the verified
+	Admin and platform contracts without reopening R17 metrics or changing
+	provider activation, billing, deployment, or learner scoring behavior.
