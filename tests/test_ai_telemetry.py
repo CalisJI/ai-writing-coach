@@ -281,6 +281,10 @@ def test_admin_operations_aggregate_sanitized_events_and_show_no_cost() -> None:
         "rate_limit_reported_count": 0,
         "rate_limit_unknown_count": 2,
         "quota_state": "unavailable",
+        "trend": [
+            {"bucket": "unknown", "request_count": 1, "failure_count": 1, "avg_latency_ms": None, "usage_known": 0, "usage_partial": 0, "usage_unknown": 1, "token_totals": {"prompt_tokens": None, "completion_tokens": None, "total_tokens": None}, "rate_limit_reported_count": 0},
+            {"bucket": "2026-08-28", "request_count": 1, "failure_count": 0, "avg_latency_ms": 20, "usage_known": 1, "usage_partial": 0, "usage_unknown": 0, "token_totals": {"prompt_tokens": 4, "completion_tokens": 3, "total_tokens": 7}, "rate_limit_reported_count": 0},
+        ],
         "health_state": "provider_failure",
         "evidence_count": 2,
         "failure_count": 1,
@@ -357,6 +361,40 @@ def test_admin_operations_reports_latest_rate_limit_state_and_evidence_counts() 
     assert row["rate_limit_reported_count"] == 1
     assert row["rate_limit_unknown_count"] == 1
     assert row["quota_state"] == "reported_exhausted"
+
+
+def test_admin_operations_trend_buckets_timestamps_and_keeps_unknowns_explicit() -> None:
+    repository = Repository(config())
+    repository.events = [
+        {"capability": "writing_evaluator", "outcome": "success", "created_at": "2026-08-28T10:00:00+00:00", "latency_ms": 10, "usage": {"prompt_tokens": 2, "completion_tokens": 1, "total_tokens": 3}},
+        {"capability": "writing_evaluator", "outcome": "failure", "created_at": "2026-08-27T10:00:00+00:00", "latency_ms": 30, "usage": {"prompt_tokens": 2, "completion_tokens": None, "total_tokens": 2}},
+        {"capability": "writing_evaluator", "outcome": "success", "created_at": "not-a-timestamp", "usage": {}},
+        {"capability": "writing_evaluator", "outcome": "success", "usage": {}},
+    ]
+
+    result = AIControlPlane(repository).operations()
+    row = result["by_capability"][0]
+    trend = {bucket["bucket"]: bucket for bucket in row["trend"]}
+
+    assert result["trend_window_days"] == 7
+    assert trend["2026-08-28"]["request_count"] == 1
+    assert trend["2026-08-27"]["failure_count"] == 1
+    assert trend["2026-08-27"]["usage_partial"] == 1
+    assert trend["unknown"]["request_count"] == 2
+    assert trend["unknown"]["usage_unknown"] == 2
+
+
+def test_admin_operations_treats_timezone_less_boundary_timestamp_as_unknown() -> None:
+    repository = Repository(config())
+    repository.events = [
+        {"capability": "writing_evaluator", "outcome": "success", "created_at": "2026-08-28T23:59:59", "usage": {}},
+        {"capability": "writing_evaluator", "outcome": "success", "created_at": "2026-08-29T00:00:01+00:00", "usage": {}},
+    ]
+
+    trend = {bucket["bucket"]: bucket for bucket in AIControlPlane(repository).operations()["by_capability"][0]["trend"]}
+
+    assert trend["unknown"]["request_count"] == 1
+    assert trend["2026-08-29"]["request_count"] == 1
 
 
 @pytest.mark.parametrize(

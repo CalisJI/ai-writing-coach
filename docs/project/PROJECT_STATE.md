@@ -438,6 +438,8 @@ The post-R5 roadmap uses one primary learner-visible lane.
   quota enforcement, and credentialed live validation remain deferred. The
   operations surface also carries allowlisted provider request/token limit and
   remaining headers, reporting exhaustion only when remaining capacity is zero.
+  Bounded UTC day-bucket trends expose request, failure, latency, token, and
+  rate-limit evidence while preserving explicit unknown timestamp/usage states.
 - **R2 — AI Capability Control Plane: HUMAN GATE / READY.**
   Static/runtime support exists. Production migration/config initialization,
   credentialed validation, activation, and rollback execution remain human

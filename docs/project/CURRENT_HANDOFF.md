@@ -75,6 +75,9 @@ baseline.
   remains frozen archive storage. OpenAI-compatible response headers now carry
   allowlisted request/token limit and remaining evidence through the same
   sanitized event boundary, including reported exhaustion without enforcement.
+  Admin operations now also expose bounded UTC day-bucket trends for request,
+  failure, latency, tokens, and rate-limit evidence; malformed timestamps stay
+  in an explicit unknown bucket.
 - R13 local acceptance is now closed by the deterministic
   `scripts/r13_release_matrix.mjs` runner and
   `docs/project/R13_LOCAL_ACCEPTANCE_MATRIX.json`. The matrix executes the

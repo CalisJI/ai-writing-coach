@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+from datetime import datetime, timezone
 from time import perf_counter
 from typing import Any, Callable
 
@@ -43,6 +44,7 @@ _PROVIDER_FAILURE_CLASSES = frozenset({
     "model_unavailable",
     "provider_response_invalid",
 })
+_TREND_WINDOW_DAYS = 7
 
 
 def _operation_health(events: list[dict[str, Any]]) -> dict[str, Any]:
@@ -89,6 +91,71 @@ def _operation_health(events: list[dict[str, Any]]) -> dict[str, Any]:
         "failure_rate_percent": failure_rate_percent,
         "avg_latency_ms": avg_latency,
     }
+
+
+def _operation_trend(events: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Bucket persisted evidence into a bounded UTC calendar-day trend."""
+
+    parsed = []
+    for event in events:
+        stamp = event.get("created_at")
+        if not isinstance(stamp, str):
+            parsed.append((None, event))
+            continue
+        try:
+            value = datetime.fromisoformat(stamp.replace("Z", "+00:00"))
+            parsed.append((value.astimezone(timezone.utc) if value.tzinfo is not None else None, event))
+        except (TypeError, ValueError, OverflowError):
+            parsed.append((None, event))
+    dated = [value for value, _event in parsed if value is not None]
+    anchor = max(dated).date() if dated else None
+    buckets: dict[str, list[dict[str, Any]]] = {}
+    for value, event in parsed:
+        if value is None or anchor is None:
+            key = "unknown"
+        else:
+            age = (anchor - value.date()).days
+            if age < 0 or age >= _TREND_WINDOW_DAYS:
+                continue
+            key = value.date().isoformat()
+        buckets.setdefault(key, []).append(event)
+    result = []
+    for key, bucket_events in sorted(buckets.items(), key=lambda item: item[0], reverse=True):
+        token_keys = ("prompt_tokens", "completion_tokens", "total_tokens")
+        token_totals = {name: 0 for name in token_keys}
+        token_seen = set()
+        latencies = [event["latency_ms"] for event in bucket_events if isinstance(event.get("latency_ms"), int)]
+        usage_known = usage_partial = usage_unknown = 0
+        rate_limit_reported = 0
+        failures = 0
+        for event in bucket_events:
+            failures += event.get("outcome") == "failure"
+            usage = event.get("usage") or {}
+            known = [name for name in token_keys if isinstance(usage.get(name), int)]
+            for name in known:
+                token_totals[name] += usage[name]
+                token_seen.add(name)
+            if len(known) == len(token_keys):
+                usage_known += 1
+            elif known:
+                usage_partial += 1
+            else:
+                usage_unknown += 1
+            rate_limit = event.get("rate_limit") or {}
+            if any(isinstance(rate_limit.get(name), int) for name in ("requests_limit", "requests_remaining", "tokens_limit", "tokens_remaining")):
+                rate_limit_reported += 1
+        result.append({
+            "bucket": key,
+            "request_count": len(bucket_events),
+            "failure_count": failures,
+            "avg_latency_ms": round(sum(latencies) / len(latencies)) if latencies else None,
+            "usage_known": usage_known,
+            "usage_partial": usage_partial,
+            "usage_unknown": usage_unknown,
+            "token_totals": {name: token_totals[name] if name in token_seen else None for name in token_keys},
+            "rate_limit_reported_count": rate_limit_reported,
+        })
+    return result
 
 
 def safe_model_display(model: object) -> tuple[str, bool]:
@@ -242,10 +309,12 @@ class AIControlPlane:
                 "_token_totals": {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0},
                 "_token_seen": set(),
                 "_rate_limit_events": [],
+                "_trend_events": [],
                 "_health_events": [],
             })
             row["_health_events"].append(event)
             row["_rate_limit_events"].append(event.get("rate_limit") or {})
+            row["_trend_events"].append(event)
             row["total"] += 1
             if event["outcome"] == "success":
                 row["success"] += 1
@@ -295,12 +364,14 @@ class AIControlPlane:
             row["quota_state"] = (
                 "reported_exhausted" if exhausted else "reported" if reported else "unavailable"
             )
+            row["trend"] = _operation_trend(row.pop("_trend_events", []))
         return {
             "available": callable(loader),
             "has_data": bool(events),
             "recent": events,
             "by_capability": list(aggregates.values()),
             "usage_note": "Provider usage is unknown when not reported; cost is not calculated.",
+            "trend_window_days": _TREND_WINDOW_DAYS,
         }
 
     def set_config(

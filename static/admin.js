@@ -60,12 +60,18 @@
         row.usage_unknown ? `${row.usage_unknown} usage unavailable` : '',
       ].filter(Boolean).join(' · ') || 'Usage complete';
       const quotaEvidence = `${quotaLabels[row.quota_state] || 'Rate limits unknown'} · ${row.rate_limit_reported_count || 0} reported`;
+      const trend = (row.trend || []).slice(0, 7).map(bucket=>{
+        const total = bucket.token_totals?.total_tokens == null ? 'tokens unknown' : `${bucket.token_totals.total_tokens} tokens`;
+        const latency = bucket.avg_latency_ms == null ? 'latency unknown' : `${bucket.avg_latency_ms} ms avg`;
+        return `<span>${esc(bucket.bucket || 'unknown')} · ${bucket.request_count} requests · ${bucket.failure_count} failures · ${total} · ${latency}</span>`;
+      }).join('') || '<span>No trend data</span>';
       return `<div class="admin-operation-row">
       <b>${esc(row.capability)}</b><strong>${esc(healthLabels[row.health_state] || 'Health unknown')}</strong>
       <span>${row.total} total · ${row.success} success · ${row.failure} failure · ${row.evidence_count ?? row.total} events sampled</span>
       <span>${row.failure_rate_percent == null ? 'Failure rate unknown' : `${row.failure_rate_percent}% failures`} · ${row.avg_latency_ms == null ? 'Latency unknown' : `${row.avg_latency_ms} ms average`} · ${row.usage_known ? `${row.usage_known} usage reported` : row.usage_partial ? 'Usage partial' : 'Usage unknown'}</span>
       <span>Tokens: ${tokenLabel('prompt_tokens')} · ${tokenLabel('completion_tokens')} · ${tokenLabel('total_tokens')} · ${usageEvidence}</span>
       <span>${esc(quotaEvidence)}</span>
+      <div class="admin-operation-trend"><small>Recent trend (${operations.trend_window_days || 7} days)</small>${trend}</div>
     </div>`;
     }).join('');
     const recent = (operations.recent||[]).slice(0,10).map(event=>`<div class="admin-operation-recent-row">
