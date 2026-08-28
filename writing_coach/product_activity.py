@@ -9,6 +9,12 @@ from datetime import datetime, timedelta, timezone
 from typing import Any
 
 SKILLS = ("writing", "reading", "listening", "speaking")
+FUNNEL_SUPPORT = {
+    "writing": {"started": False, "attempted": True, "completed": True},
+    "reading": {"started": True, "attempted": True, "completed": True},
+    "listening": {"started": False, "attempted": True, "completed": True},
+    "speaking": {"started": False, "attempted": False, "completed": True},
+}
 
 
 def _when(value: Any) -> datetime | None:
@@ -36,6 +42,7 @@ def aggregate_product_activity(rows: Any, *, window_days: int = 7, now: datetime
     learner_days: dict[str, set[str]] = {}
     learner_completed: dict[str, int] = {}
     learner_skills: dict[str, set[str]] = {}
+    funnel_keys = {skill: {stage: set() for stage in FUNNEL_SUPPORT[skill]} for skill in SKILLS}
     for row in rows if isinstance(rows, list) else []:
         if not isinstance(row, dict):
             continue
@@ -47,6 +54,12 @@ def aggregate_product_activity(rows: Any, *, window_days: int = 7, now: datetime
         day = occurred.date().isoformat()
         cohort_days.setdefault(learner, set()).add(day)
         cohort_skills.setdefault(learner, set()).add(skill)
+        funnel_stage = row.get("funnel_stage")
+        if row.get("funnel_only") is True:
+            funnel_key = row.get("funnel_key")
+            if funnel_stage in funnel_keys[skill] and FUNNEL_SUPPORT[skill][funnel_stage] is True and isinstance(funnel_key, str) and funnel_key and start <= occurred <= end:
+                funnel_keys[skill][funnel_stage].add(funnel_key)
+            continue
         if not (start <= occurred <= end) or day not in buckets:
             continue
         completed = row.get("completed") is True
@@ -66,6 +79,17 @@ def aggregate_product_activity(rows: Any, *, window_days: int = 7, now: datetime
         row["days"] = [{"date": key, **value} for key, value in row["days"].items()]
         row["completion_rate_percent"] = round(row["completions"] * 100 / row["activities"], 1) if row["activities"] else None
         skills.append(row)
+    for skill in SKILLS:
+        stages = []
+        previous_keys = None
+        for stage, supported in FUNNEL_SUPPORT[skill].items():
+            keys = funnel_keys[skill][stage] if supported else None
+            count = len(keys) if keys is not None else None
+            matched = len(keys & previous_keys) if keys is not None and previous_keys is not None else None
+            rate = round(matched * 100 / len(previous_keys), 1) if matched is not None and previous_keys else None
+            stages.append({"stage": stage, "available": supported, "count": count, "rate_percent": rate})
+            previous_keys = keys
+        by_skill[skill]["funnel"] = {"stages": stages}
     total = sum(item["activities"] for item in skills)
     return_days = [1, 3, 7]
     return_windows = []

@@ -501,6 +501,16 @@ content, or per-event history, and keeps explicit insufficient/unavailable
 states. No tracking SDK, learner scheduling, scoring, entitlement, or event
 write path was added.
 
+## R17 privacy-bounded skill usage and completion funnels
+
+The same Admin product-activity response now exposes source-specific funnel
+stages where existing records provide them: Writing submission attempts and
+completions, Reading session/attempt/completion stages, Listening progress
+attempts/completions, and completed Speaking takes. Unsupported stages are
+explicitly unavailable rather than zero. The response remains bounded,
+identifier-free, content-free, read-only, and malformed-record tolerant; no
+synthetic tracking events or learner-event writes were introduced.
+
 ## R2 human gate
 
 **YES**

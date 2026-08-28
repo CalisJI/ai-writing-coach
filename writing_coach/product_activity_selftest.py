@@ -17,6 +17,14 @@ def test_window_and_redaction():
         {"learner_key": "u6", "skill": "reading", "occurred_at": "2026-01-08T08:30:00+00:00", "completed": True},
         {"learner_key": "u3", "skill": "listening", "occurred_at": "2025-12-01T11:00:00+00:00", "completed": True},
         {"learner_key": "u4", "skill": "writing", "occurred_at": "not-a-date", "completed": True},
+        {"learner_key": "u1", "skill": "writing", "occurred_at": "2026-01-07T10:00:00+00:00", "funnel_stage": "attempted", "funnel_key": "essay-1", "funnel_only": True},
+        {"learner_key": "u1", "skill": "writing", "occurred_at": "2026-01-07T10:00:00+00:00", "funnel_stage": "completed", "funnel_key": "essay-1", "funnel_only": True},
+        {"learner_key": "u1", "skill": "reading", "occurred_at": "2026-01-07T11:00:00+00:00", "funnel_stage": "started", "funnel_key": "session-1", "funnel_only": True},
+        {"learner_key": "u1", "skill": "reading", "occurred_at": "2026-01-07T11:00:00+00:00", "funnel_stage": "attempted", "funnel_key": "session-1", "funnel_only": True},
+        {"learner_key": "u1", "skill": "reading", "occurred_at": "2026-01-07T11:00:00+00:00", "funnel_stage": "completed", "funnel_key": "session-1", "funnel_only": True},
+        {"learner_key": "u1", "skill": "listening", "occurred_at": "2026-01-08T11:00:00+00:00", "funnel_stage": "attempted", "funnel_key": "asset-1:seg-1", "funnel_only": True},
+        {"learner_key": "u1", "skill": "listening", "occurred_at": "2026-01-08T11:00:00+00:00", "funnel_stage": "completed", "funnel_key": "asset-1:seg-1", "funnel_only": True},
+        {"learner_key": "u1", "skill": "speaking", "occurred_at": "2026-01-06T11:00:00+00:00", "funnel_stage": "completed", "funnel_key": "take-1", "funnel_only": True},
     ]
     result = aggregate_product_activity(rows, window_days=7, now=now)
     assert result["active_learners"] == 4
@@ -31,6 +39,25 @@ def test_window_and_redaction():
     assert result["daily_returning"][-1] == {"date": "2026-01-08", "returning_learners": 2}
     assert all("learner_key" not in item and "text" not in item for item in result["skills"])
     assert result["skills"][0]["days"][-1]["date"] == "2026-01-08"
+    assert result["skills"][0]["funnel"]["stages"][0]["available"] is False
+    assert result["skills"][0]["funnel"]["stages"][1]["count"] == 1
+    assert result["skills"][1]["funnel"]["stages"][0]["count"] == 1
+    assert result["skills"][1]["funnel"]["stages"][2]["rate_percent"] == 100.0
+    assert result["skills"][2]["funnel"]["stages"][0]["available"] is False
+    assert result["skills"][3]["funnel"]["stages"][1]["available"] is False
+    assert result["skills"][3]["funnel"]["stages"][2]["count"] == 1
+    misaligned = aggregate_product_activity([
+        {"learner_key": "u7", "skill": "reading", "occurred_at": "2026-01-01T10:00:00+00:00", "funnel_stage": "started", "funnel_key": "old-session", "funnel_only": True},
+        {"learner_key": "u7", "skill": "reading", "occurred_at": "2026-01-03T10:00:00+00:00", "funnel_stage": "attempted", "funnel_key": "old-session", "funnel_only": True},
+        {"learner_key": "u7", "skill": "reading", "occurred_at": "2026-01-04T10:00:00+00:00", "funnel_stage": "attempted", "funnel_key": "old-session", "funnel_only": True},
+        {"learner_key": "u7", "skill": "reading", "occurred_at": "2026-01-03T10:00:00+00:00", "funnel_stage": "completed", "funnel_key": "old-session", "funnel_only": True},
+        {"learner_key": "u8", "skill": "reading", "occurred_at": "2026-01-03T09:00:00+00:00", "funnel_stage": "started", "funnel_key": "new-session", "funnel_only": True},
+        {"learner_key": "u8", "skill": "reading", "occurred_at": "2026-01-03T09:30:00+00:00", "funnel_stage": "attempted", "funnel_key": "old-a", "funnel_only": True},
+        {"learner_key": "u8", "skill": "reading", "occurred_at": "2026-01-03T09:45:00+00:00", "funnel_stage": "attempted", "funnel_key": "old-b", "funnel_only": True},
+    ], now=now)
+    misaligned_stages = misaligned["skills"][1]["funnel"]["stages"]
+    assert misaligned_stages[0]["count"] == 1 and misaligned_stages[1]["count"] == 3 and misaligned_stages[1]["rate_percent"] == 0.0
+    assert all(stage["rate_percent"] is None or 0 <= stage["rate_percent"] <= 100 for stage in misaligned_stages)
 
 
 def test_empty_is_explicit():
