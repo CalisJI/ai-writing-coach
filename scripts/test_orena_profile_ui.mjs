@@ -68,6 +68,11 @@ assert.match(profile,/growthRankFrame\(rank\)/);
 assert.match(profile,/oIcon\('sliders'\)/,'About Preferences must use the shared settings icon');
 assert.match(icons,/sliders:\s*`<svg/,'Shared icon set must expose the settings sliders icon');
 assert.doesNotMatch(profile,/data-profile-action="delete-account"|api\.deleteAccount/,'Profile must not expose an unsupported destructive account action');
+assert.match(profile,/api\.productMe\(\)/,'Profile must load canonical account state');
+assert.match(profile,/accountPlanMarkup\(accountState\)/,'Profile must render account state rather than a marketing-only plan label');
+for(const key of ['profile.plan_unavailable','profile.plan_default','profile.plan_active','profile.plan_unknown','profile.unlimited','profile.exhausted','profile.usage_unavailable']){
+  assert.ok(i18n.includes("'"+key+"'"),key+' must remain localized');
+}
 
 assert.match(styles,/\.o-prefs\{[\s\S]*grid-template-columns:minmax\(0,1fr\) var\(--o-aside-w\)[\s\S]*gap:24px/);
 assert.match(styles,/\.o-set-row\{[\s\S]*grid-template-columns:minmax\(0,1fr\) minmax\(0,auto\)/);

@@ -38,6 +38,8 @@ async function request(url, options={}){
 
 export const api={
   me:()=>request('/api/me'),
+  productMe:()=>request('/api/product/me'),
+  adminProductAccount:()=>request('/api/product/admin/account'),
   health:()=>request('/api/health'),
   languages:()=>request('/api/platform/languages'),
   skills:()=>request('/api/platform/skills'),

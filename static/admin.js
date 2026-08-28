@@ -7,6 +7,7 @@
   let currentFilter = 'all';
   let searchText = '';
   let operations = {available:false, has_data:false, recent:[], by_capability:[]};
+  let accountState = null;
 
   function esc(s=''){
     return String(s).replace(/[&<>"']/g,c=>({
@@ -97,6 +98,31 @@
     if(!response.ok) throw new Error('Could not load AI operations');
     operations = data && typeof data === 'object' ? data : {available:false,has_data:false,recent:[],by_capability:[]};
     renderOperations();
+  }
+
+  function renderAccountState(){
+    const host=$('#adminAccountState');
+    if(!host)return;
+    if(!accountState || accountState.available===false){
+      host.innerHTML='<div class="admin-capability-empty">Account plan and usage are unavailable.</div>';
+      return;
+    }
+    const plan=accountState.plan||{};
+    const status=accountState.subscription?.state||'unknown';
+    const rows=Object.entries(accountState.features||{}).map(([key,item])=>{
+      const limit=item.monthly_limit===null?'unlimited':item.monthly_limit;
+      const usage=item.usage_state==='unavailable'?'usage unavailable':`${item.used} used · ${item.remaining===null?'unlimited':`${item.remaining} remaining`} / ${limit}`;
+      return `<div class="admin-account-row"><b>${esc(key)}</b><span>${esc(item.entitlement_state||'unknown')}</span><small>${esc(usage)}</small></div>`;
+    }).join('');
+    host.innerHTML=`<div class="admin-account-summary"><strong>${esc(plan.name||'Plan unavailable')}</strong><span>${esc(status)} · read only</span></div><div class="admin-account-features">${rows||'<span>No entitlement data.</span>'}</div>`;
+  }
+
+  async function fetchAccountState(){
+    const response=await fetch('/api/product/admin/account',{cache:'no-store'});
+    if(!response.ok)throw new Error('Could not load account state');
+    const data=await response.json();
+    accountState=data?.account&&typeof data.account==='object'?data.account:{available:false};
+    renderAccountState();
   }
 
   function capabilityState(capability){
@@ -485,6 +511,7 @@
       // Preload once so the admin page is instant when opened.
       await fetchConfig({quiet:true});
       await fetchOperations().catch(()=>renderOperations());
+      await fetchAccountState().catch(()=>renderAccountState());
     }catch(err){
       console.error('Admin dashboard initialization failed:',err);
       showConfigFailure();

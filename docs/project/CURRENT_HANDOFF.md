@@ -16,6 +16,8 @@ baseline.
 - R11 — Listening Completion: **PRE-PUBLIC MATRIX COMPLETE / HUMAN PROMOTION GATE**
 - R12 — Retention & Growth: **IN PROGRESS / LOCAL FOUNDATION**
 
+- R15 - SaaS Plans, Entitlements & Usage Policy: **COMPLETE / LOCAL ACCEPTANCE PASS**
+
 **Secondary / gated programs:**
 
 - R7 — Speaking Evaluation + Pronunciation: **COMPLETE / LOCAL ACCEPTANCE PASS**
@@ -101,6 +103,8 @@ baseline.
 - R6 — Speaking Core: **COMPLETE / LOCAL ACCEPTANCE PASS**
 - R2 — AI Capability Control Plane: **HUMAN GATE / READY, NOT PRODUCT-BLOCKING**
 - R14 — AI Usage, Cost, Quota & Provider Operations: **IN PROGRESS / LOCAL FOUNDATION**
+
+- R15 - SaaS Plans, Entitlements & Usage Policy: **COMPLETE / LOCAL ACCEPTANCE PASS**
 
 **Current working lane (2026-08-28):**
 
@@ -412,6 +416,13 @@ pronunciation scoring is implied by this closeout.
 Later R7 owns pronunciation, full Speaking evaluation, durable Speaking
 progress, and the final Speaking COMPLETE evidence.
 
+## R15 account-state visibility closeout
+
+The existing Free/Premium catalog and authoritative PostgreSQL product
+repository now feed an authenticated account endpoint. Profile and read-only
+Admin surfaces localize plan, entitlement, monthly usage, exhausted, unlimited,
+and unavailable states; billing and feature enforcement remain disabled.
+
 ## R2 human gate
 
 **YES**
@@ -466,5 +477,6 @@ Stop and return to the human coordinator when:
 - an unresolved P0/P1 requires broader redesign;
 - the rollback path becomes unclear.
 
-**Next handoff owner:** R8 public-gate review owner; R7's internal durable-attempt
-acceptance is locally closed and no deployment or capability activation is implied.
+**Next handoff owner:** R16 advanced learning-intelligence owner; R15 account
+state visibility is locally closed and no billing, deployment, or capability
+activation is implied.

@@ -18,6 +18,8 @@ operational state.
 
 - Application version: `1.4.0`
 - BECOMING frontend version: `2.17.5`
+- Current Orena program: R15 â€” SaaS Plans, Entitlements & Usage Policy;
+  account-state visibility is locally complete and billing remains deferred.
 
 ## Orena UI/UX integration
 
@@ -132,6 +134,12 @@ authority.
   reconfigure or duplicate it.
 
 ## Product release architecture
+
+- R15 — SaaS Plans, Entitlements & Usage Policy: **COMPLETE / LOCAL
+  ACCEPTANCE PASS**. Authenticated account-state API, learner Profile, and
+  read-only Admin surfaces now expose the existing Free/Premium catalog and
+  PostgreSQL-backed usage with localized unavailable/exhausted/unlimited
+  states. Billing and feature enforcement remain disabled.
 
 - R0 — Product Release Architecture: **CLOSED**.
 - R1 — Production Staging + Cloudflare + Google OAuth: **CLOSED / PASS**.

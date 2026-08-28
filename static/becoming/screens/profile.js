@@ -61,6 +61,12 @@ const PINYIN_MODES=[
 ];
 const pinyinKey=mode=>(PINYIN_MODES.find(([value])=>value===mode)||PINYIN_MODES[0])[1];
 const MODES=['light','dark'];
+const FEATURE_LABELS={
+  en:{'writing.evaluate':'Writing evaluation','writing.improve':'Writing improvements','library.grammar':'Grammar library','dictionary.lookup':'Dictionary lookups','vocabulary.save':'Saved vocabulary','analytics.basic':'Basic analytics','analytics.advanced':'Advanced analytics','practice.personalized':'Personalized practice','export.report':'Report export'},
+  vi:{'writing.evaluate':'Đánh giá bài viết','writing.improve':'Cải thiện bài viết','library.grammar':'Thư viện ngữ pháp','dictionary.lookup':'Tra từ điển','vocabulary.save':'Từ vựng đã lưu','analytics.basic':'Phân tích cơ bản','analytics.advanced':'Phân tích nâng cao','practice.personalized':'Luyện tập cá nhân hóa','export.report':'Xuất báo cáo'},
+  zh:{'writing.evaluate':'写作评估','writing.improve':'写作改进','library.grammar':'语法库','dictionary.lookup':'词典查询','vocabulary.save':'已保存词汇','analytics.basic':'基础分析','analytics.advanced':'高级分析','practice.personalized':'个性化练习','export.report':'报告导出'},
+};
+const PLAN_NAMES={en:{free:'Free plan',premium:'Premium plan'},vi:{free:'Gói miễn phí',premium:'Gói Premium'},zh:{free:'免费方案',premium:'Premium 方案'}};
 
 const COPY={
   en:{
@@ -268,6 +274,27 @@ function statusMarkup(){
   return `<div id="profileSaveStatus" class="profile-save-status" aria-live="polite"></div>`;
 }
 
+function accountPlanMarkup(account){
+  const locale=uiLocale();
+  if(!account || account.available===false){
+    return `<div class="profile-plan-state unavailable">${esc(t('profile.plan_unavailable'))}</div>`;
+  }
+  const planId=account.plan?.id==='premium'?'premium':'free';
+  const planName=PLAN_NAMES[locale]?.[planId]||PLAN_NAMES.en[planId];
+  const state=account.plan_state==='active'?t('profile.plan_active'):account.plan_state==='unknown'?t('profile.plan_unknown'):t('profile.plan_default');
+  const features=Object.entries(account.features||{}).map(([key,item])=>{
+    const label=FEATURE_LABELS[locale]?.[key]||FEATURE_LABELS.en[key]||key;
+    let usage=t('profile.usage_unavailable');
+    if(item.usage_state==='known'){
+      usage=item.monthly_limit===null?t('profile.unlimited'):
+        item.remaining===0?t('profile.exhausted',{limit:item.monthly_limit}):
+        t('profile.remaining',{remaining:item.remaining,limit:item.monthly_limit});
+    }
+    return `<li><span>${esc(label)}</span><small>${esc(usage)}</small></li>`;
+  }).join('');
+  return `<div class="profile-plan-state"><strong>${esc(planName)}</strong><small>${esc(state)}</small><ul class="profile-plan-features">${features}</ul></div>`;
+}
+
 export async function renderProfile(root){
   if(typeof root._cleanupProfile==='function')root._cleanupProfile();
   root.innerHTML=`<section class="o-page">${loadingBlock(3)}</section>`;
@@ -278,6 +305,8 @@ export async function renderProfile(root){
   }catch{
     memory={};
   }
+  let accountState=null;
+  try{accountState=await api.productMe();}catch{accountState={available:false};}
 
   const c=copy();
   const profile=state.profile||{
@@ -391,9 +420,10 @@ export async function renderProfile(root){
             })}
             ${factRow({
               label:c.plan,
-              value:t('chrome.plan_free'),
-              note:t('chrome.plan_free_note'),
+              value:accountState?.available===false?t('profile.plan_unavailable'):(PLAN_NAMES[uiLocale()]?.[accountState?.plan?.id]||PLAN_NAMES.en[accountState?.plan?.id]||t('chrome.plan_free')),
+              note:accountState?.available===false?'':(accountState?.plan_state==='active'?t('profile.plan_active'):t('profile.plan_default')),
             })}
+            <div class="profile-account-entitlements">${accountPlanMarkup(accountState)}</div>
           </div>
         </section>
 
