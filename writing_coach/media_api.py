@@ -66,6 +66,7 @@ class MediaImportStatusIn(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     job_id: str = Field(min_length=20, max_length=200)
+    compact: bool = False
 
 
 class MediaTranslationAssetIn(BaseModel):
@@ -182,6 +183,32 @@ def _serialize_processing_result(
     return response
 
 
+def _serialize_compact_status(result: MediaFallbackResult) -> dict[str, Any]:
+    """Serialize only bounded state needed to resume an opaque import job."""
+    asset = result.acquisition.media_object.asset
+    asset_state = (
+        "processing"
+        if result.status == "processing"
+        else "failed"
+        if result.status == "failed"
+        else "ready"
+    )
+    return {
+        "status": result.status,
+        "asset": {
+            "asset_id": asset.asset_id,
+            "processing_state": asset_state,
+        },
+        "import_job": {
+            "resume_handle": result.job_id,
+            "state": result.provider_state or result.status,
+            "source": result.source,
+            "failure_kind": result.failure_kind,
+            "resumable": result.status == "processing" and bool(result.job_id),
+        },
+    }
+
+
 def _ready_response(
     acquisition: MediaAcquisition,
     *,
@@ -286,6 +313,11 @@ def import_media_status(payload: MediaImportStatusIn) -> dict[str, Any]:
             404,
             "media_job_unavailable",
             "This transcript job is no longer available.",
+            context=(
+                {"status": "unavailable", "resumable": False}
+                if payload.compact
+                else None
+            ),
         )
     try:
         result = service.poll(
@@ -298,7 +330,15 @@ def import_media_status(payload: MediaImportStatusIn) -> dict[str, Any]:
             404,
             "media_job_unavailable",
             "This transcript job is unavailable or expired.",
+            context=(
+                {"status": "unavailable", "resumable": False}
+                if payload.compact
+                else None
+            ),
         ) from exc
+
+    if payload.compact:
+        return _serialize_compact_status(result)
 
     if result.status == "ready":
         if not result.target_language:

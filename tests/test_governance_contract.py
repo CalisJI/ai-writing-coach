@@ -147,3 +147,23 @@ def test_r18_session_bootstrap_contract_is_recorded() -> None:
     assert "httpx.ASGITransport" in route_test
     assert 'for language in ("en", "zh")' in route_test
     assert '"detail": "Authentication required"' in route_test
+
+
+def test_r18_compact_media_status_contract_is_recorded() -> None:
+    project_state = (ROOT / "docs/project/PROJECT_STATE.md").read_text(encoding="utf-8")
+    handoff = (ROOT / "docs/project/CURRENT_HANDOFF.md").read_text(encoding="utf-8")
+    media_source = (ROOT / "writing_coach/media_api.py").read_text(encoding="utf-8")
+    api_source = (ROOT / "static/becoming/api.js").read_text(encoding="utf-8")
+    route_test = (ROOT / "tests/test_media_status_compact.py").read_text(encoding="utf-8")
+    accessor_test = (ROOT / "scripts/test_media_status_compact_accessor.mjs").read_text(encoding="utf-8")
+    assert "compact media" in project_state
+    assert "R18 resumable media-status response shaping" in handoff
+    assert "compact: true" in handoff
+    assert 'compact: bool = False' in media_source
+    assert "resume_handle" in media_source
+    assert "media_job_unavailable" in media_source
+    assert "mediaImportStatusCompact" in api_source
+    assert "JSON.parse(calls[0].options.body)" in accessor_test
+    assert "httpx.ASGITransport" in route_test
+    for state in ("processing", "ready", "failed"):
+        assert f'"{state}"' in route_test

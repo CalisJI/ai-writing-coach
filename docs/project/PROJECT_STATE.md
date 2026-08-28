@@ -20,8 +20,9 @@ operational state.
 - BECOMING frontend version: `2.17.5`
 - Current Orena program: R18 — Mobile/API Readiness; the immutable
   reference-data cache and authenticated session-bootstrap contracts are locally
-  implemented, with mutable dictionary caching, live validation, and production
-  release remaining governed separately.
+  implemented, with compact media status shaping now added alongside them;
+  mutable dictionary caching, live validation, and production release remain
+  governed separately.
 
 ## Orena UI/UX integration
 
@@ -171,7 +172,9 @@ authority.
   and future mobile behavior without duplicating datasets client-side. The
   authenticated `/api/session/bootstrap` route adds a compact, versioned,
   read-only session/language contract for web and future mobile consumers;
-  production release remains governed separately.
+  production release remains governed separately. The media import status
+  route also offers an opt-in bounded response for opaque resume polling while
+  preserving the full acquisition response by default.
 
 - R0 — Product Release Architecture: **CLOSED**.
 - R1 — Production Staging + Cloudflare + Google OAuth: **CLOSED / PASS**.

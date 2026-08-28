@@ -24,9 +24,9 @@ baseline.
   ACCEPTANCE PASS** for privacy-bounded Admin activity trends and readiness
   evidence; live/production release gates remain human-gated.
 - R18 — Mobile/API Readiness: **IN PROGRESS / LOCAL FOUNDATION** for the
-  immutable reference-data cache and authenticated session-bootstrap
-  contracts; mobile-client implementation and production release remain
-  deferred.
+  immutable reference-data cache, authenticated session-bootstrap, and compact
+  media-status contracts; mobile-client implementation and production release
+  remain deferred.
 
 **Secondary / gated programs:**
 
@@ -627,3 +627,16 @@ missing or invalid sessions receive the non-sensitive
 signed EN and ZH session cookies plus missing/invalid-cookie requests;
 mobile-client implementation, OAuth changes, and production release remain
 deferred.
+
+## R18 resumable media-status response shaping
+
+`POST /api/media-learning/import/status` preserves its full acquisition
+response by default and accepts `compact: true` for constrained consumers. The
+compact response contains only bounded job/asset state, the opaque public
+resume handle, source, failure kind, and resumability; transcript, translation,
+timing, playback, and provider job identifiers are not included. Existing
+owner and learning-language scoping remains enforced by the fallback registry.
+Missing, expired, or foreign handles return the canonical
+`media_job_unavailable` envelope with an explicit unavailable, non-resumable
+context. Focused ASGI tests cover processing, ready, failed, scoped, and
+unavailable responses without changing provider or persistence architecture.

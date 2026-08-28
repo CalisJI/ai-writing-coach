@@ -125,6 +125,11 @@ export const api={
     headers:JSON_HEADERS,
     body:JSON.stringify(payload),
   }),
+  mediaImportStatusCompact:(payload)=>request('/api/media-learning/import/status',{
+    method:'POST',
+    headers:JSON_HEADERS,
+    body:JSON.stringify({...payload,compact:true}),
+  }),
   annotateMediaText:(payload)=>request('/api/media-learning/annotate',{
     method:'POST',
     headers:JSON_HEADERS,
