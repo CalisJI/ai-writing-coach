@@ -511,7 +511,7 @@ explicitly unavailable rather than zero. The response remains bounded,
 	identifier-free, content-free, read-only, and malformed-record tolerant; no
 	synthetic tracking events or learner-event writes were introduced.
 
-	## R17 learner-impact failure and degraded-state observability
+## R17 learner-impact failure and degraded-state observability
 
 	Admin product-activity now includes bounded capability/day failure trends from
 	validated learner-origin AI telemetry only. Operator tests and configuration
@@ -519,7 +519,17 @@ explicitly unavailable rather than zero. The response remains bounded,
 	rows and reports explicit insufficient/unavailable states. Origin is an
 	allowlisted telemetry field persisted through the existing PostgreSQL AuditLog
 	boundary; no learner-event, scoring, billing, or provider-activation path was
-	added.
+added.
+
+## R17 operational readiness evidence summary
+
+The Admin-only readiness summary combines existing AI capability configuration,
+bounded operation health, product-observability availability, validated
+learner-impact evidence, and the human-gated activation policy. Each indicator
+is explicitly ready, degraded, insufficient, unavailable, or deferred; the
+overall view states that it is not production-release approval. The endpoint is
+read-only and aggregate-only, with no probes, writes, learner records, billing,
+activation, or deployment behavior.
 
 ## R2 human gate
 

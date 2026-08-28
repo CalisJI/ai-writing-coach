@@ -13,13 +13,14 @@ class FakeElement {
 }
 
 async function mount(productResponse){
-  const ids=['adminNav','adminAiMessage','adminCurrentEngine','adminCurrentKind','adminProviderCount','adminReadyCount','adminModelCount','adminProviderCards','adminModelGrid','adminCapabilityMatrix','adminOperations','adminProductActivity','adminAccountState','adminRefreshModels','adminRefreshOperations','adminRefreshProductActivity','adminModelSearch'];
+  const ids=['adminNav','adminAiMessage','adminCurrentEngine','adminCurrentKind','adminProviderCount','adminReadyCount','adminModelCount','adminProviderCards','adminModelGrid','adminCapabilityMatrix','adminOperations','adminProductActivity','adminReadinessSummary','adminAccountState','adminRefreshModels','adminRefreshOperations','adminRefreshProductActivity','adminModelSearch'];
   const elements=new Map(ids.map(id=>[`#${id}`,new FakeElement()]));
   const responses=[
     {ok:true,json:async()=>({is_admin:true})},
     {ok:true,json:async()=>({capabilities:[],providers:[],learner_runtime:{mode:'legacy'},legacy_runtime:{}})},
     {ok:true,json:async()=>({available:true,has_data:false,recent:[],by_capability:[]})},
     productResponse,
+    {ok:true,json:async()=>({available:true,state:'deferred',evidence_state:'insufficient',approval_state:'not_granted',indicators:[]})},
     {ok:true,json:async()=>({account:{available:false}})},
   ];
   const calls=[]; const errors=[];
@@ -42,7 +43,7 @@ const ready=await mount({ok:true,json:async()=>({
   learner_impact_failures:{available:true,data_state:'ready',has_data:true,by_capability:[{capability:'writing_evaluator',failure_count:2,degraded_count:1,days:[{date:'2026-08-29',failure_count:2,degraded_count:1}]}]},
   skills:[{skill:'writing',activities:8,completions:6,completion_rate_percent:75,days:[{date:'2026-08-29',activities:8,completions:6}],funnel:{stages:[{stage:'started',available:false,count:null,rate_percent:null},{stage:'attempted',available:true,count:8,rate_percent:null},{stage:'completed',available:true,count:6,rate_percent:75}]}}]
 })});
-assert.deepEqual(ready.calls,['/api/me','/api/admin/ai/config','/api/admin/ai/operations','/api/admin/product-activity?window_days=7','/api/product/admin/account'],ready.errors.join('; '));
+assert.deepEqual(ready.calls,['/api/me','/api/admin/ai/config','/api/admin/ai/operations','/api/admin/product-activity?window_days=7','/api/admin/readiness-summary','/api/product/admin/account'],ready.errors.join('; '));
 assert.match(ready.html,/2 returning learners/);
 assert.match(ready.html,/2 repeat-practice learners/);
 assert.match(ready.html,/1 cross-skill returning learners/);

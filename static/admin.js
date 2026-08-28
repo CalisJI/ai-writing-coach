@@ -9,6 +9,7 @@
   let operations = {available:false, has_data:false, recent:[], by_capability:[]};
   let accountState = null;
   let productActivity = {available:false,has_data:false,skills:[]};
+  let readinessSummary = {available:false,state:'unavailable',indicators:[]};
 
   function esc(s=''){
     return String(s).replace(/[&<>"']/g,c=>({
@@ -134,6 +135,23 @@
     else {const impactRows=(impact.by_capability||[]).map(item=>{const days=(item.days||[]).map(day=>`${esc(day.date)}: ${day.failure_count} failures / ${day.degraded_count} degraded`).join(' Â· ')||'No daily data'; return `<div><b>${esc(item.capability)}</b><span>${item.failure_count} learner-impact failures Â· ${item.degraded_count} degraded</span><small>Daily learner-impact failures/degraded: ${days}</small></div>`;}).join(''); host.innerHTML += `<div class="admin-activity-impact"><strong>Learner-impact failure trends</strong>${impactRows}</div>`;}
     const unit=productActivity.cost_per_active_learner;
     if(unit?.available===false){host.innerHTML += '<div class="admin-activity-cost">Cost per active learner is unavailable.</div>';}else if(unit?.data_state!=='ready'){host.innerHTML += `<div class="admin-activity-cost">Cost per active learner is ${unit?.evidence_state==='unpriced'?'unpriced or unavailable':'insufficient'}; no unit-cost claim is shown.</div>`;}else{const costs=(unit.cost_totals||[]).map(item=>`${esc(item.currency)} ${Number(item.cost_per_active_learner).toFixed(8)} per active learner (${esc(item.catalog_version||'unknown')})`).join(' · ')||'No priced cost evidence';const context=(unit.capability_cost||[]).map(item=>`${esc(item.capability)}: ${(item.cost_totals||[]).map(cost=>`${esc(cost.currency)} ${Number(cost.amount).toFixed(6)}`).join(' · ')}`).join(' · ')||'Capability cost context unavailable';host.innerHTML += `<div class="admin-activity-cost"><span>Cost per active learner: ${costs}</span><small>Evidence: ${esc(unit.evidence_state||'unknown')} · currency: ${esc(unit.currency_state||'unknown')} · operations in window: ${unit.considered_operations||0}</small><small>Capability cost context: ${context}</small></div>`;}
+  }
+
+  function renderReadinessSummary(){
+    const host=$('#adminReadinessSummary');
+    if(!host)return;
+    if(readinessSummary.available===false){host.innerHTML='<div class="admin-capability-empty">Operational readiness evidence is unavailable.</div>';return;}
+    const labels={ready:'Ready',degraded:'Degraded',insufficient:'Insufficient evidence',unavailable:'Unavailable',deferred:'Deferred'};
+    const rows=(readinessSummary.indicators||[]).map(item=>`<div class="admin-operation-row"><b>${esc(item.name)}</b><strong>${esc(labels[item.state]||'Unknown')}</strong><span>Source: ${esc(item.source)}</span>${item.detail?`<small>${esc(item.detail)}</small>`:''}</div>`).join('');
+    host.innerHTML=`<div class="admin-activity-summary"><strong>Overall: ${esc(labels[readinessSummary.state]||'Unknown')}</strong><span>Evidence: ${esc(labels[readinessSummary.evidence_state]||'Unknown')} · approval: not granted</span></div><div class="admin-activity-rows">${rows}</div><small>This read-only view is not production-release approval.</small>`;
+  }
+
+  async function fetchReadinessSummary(){
+    const response=await fetch('/api/admin/readiness-summary',{cache:'no-store'});
+    const data=await response.json();
+    if(!response.ok)throw new Error('Could not load readiness evidence');
+    readinessSummary=data&&typeof data==='object'?data:{available:false};
+    renderReadinessSummary();
   }
 
   async function fetchProductActivity(){
@@ -542,6 +560,7 @@
       await fetchConfig({quiet:true});
       await fetchOperations().catch(()=>renderOperations());
       await fetchProductActivity().catch(()=>renderProductActivity());
+      await fetchReadinessSummary().catch(()=>{readinessSummary={available:false};renderReadinessSummary();});
       await fetchAccountState().catch(()=>renderAccountState());
     }catch(err){
       console.error('Admin dashboard initialization failed:',err);

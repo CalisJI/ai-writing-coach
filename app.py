@@ -82,6 +82,7 @@ from writing_coach.core.platform_api import router as platform_router
 from writing_coach.core.language_registry import is_enabled
 from writing_coach.ai.base import AICapabilityError, AIProviderError, AIProviderUnavailable
 from writing_coach.ai.platform import active_ai_label, active_ai_status, admin_ai_operations, generate_structured, install_platform_ai, configure_platform_repository
+from writing_coach.ai.control_plane import AIControlPlane
 from writing_coach.product.service import configure_product_repository
 from writing_coach.persistence.runtime import build_runtime
 from writing_coach.persistence.learning_repository import (
@@ -97,6 +98,7 @@ from writing_coach.becoming_linguistics import configure_becoming_linguistics, l
 from writing_coach.becoming_reading import ReadingAnswerIn, ReadingGenerateIn, configure_becoming_reading, create_reading_session, get_reading_session, list_reading_sessions, submit_reading_answers
 from writing_coach.cross_skill_transfer import select_cross_skill_cue
 from writing_coach.product_activity_api import product_activity_response
+from writing_coach.readiness_summary import build_readiness_summary
 from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
@@ -1790,6 +1792,14 @@ def becoming_review_cue_get(essay_id: int | None = None) -> dict[str, Any]:
 @app.get("/api/admin/product-activity", name="admin_product_activity")
 def admin_product_activity(request: Request, window_days: int = 7) -> dict[str, Any]:
     return product_activity_response(request, _specialized_learning_repository, require_admin, window_days=window_days, operations_loader=lambda: admin_ai_operations(request, limit=500))
+
+@app.get("/api/admin/readiness-summary", name="admin_readiness_summary")
+def admin_readiness_summary(request: Request) -> dict[str, Any]:
+    require_admin(request)
+    config = AIControlPlane(_installed_platform_repository()).inspect()
+    operations = admin_ai_operations(request, limit=500)
+    product_activity = product_activity_response(request, _specialized_learning_repository, require_admin, window_days=7, operations_loader=lambda: operations)
+    return build_readiness_summary(config, operations, product_activity)
 
 @app.get("/api/cross-skill-cue", name="becoming_cross_skill_cue_get")
 def becoming_cross_skill_cue_get() -> dict[str, Any]:

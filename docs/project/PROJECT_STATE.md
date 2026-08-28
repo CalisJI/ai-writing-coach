@@ -151,11 +151,11 @@ authority.
   states. Provider activation and live credentialed validation remain deferred.
 
 - R17 — Product Analytics & Operational Observability: **IN PROGRESS / LOCAL
-  FOUNDATION**. Admin-only activity, return, source-specific funnel, cost, and
-  learner-impact failure/degraded aggregates use bounded PostgreSQL records,
-  redact learner identifiers and raw content, and expose explicit insufficient
-  or unavailable states without learner-event writes or entitlement
-  enforcement.
+  FOUNDATION**. Admin-only activity, return, source-specific funnel, cost,
+  learner-impact failure/degraded aggregates, and operational readiness evidence
+  use bounded PostgreSQL/configuration records, redact learner identifiers and
+  raw content, and expose explicit ready, degraded, insufficient, unavailable,
+  or deferred states without learner-event writes or entitlement enforcement.
 
 - R0 — Product Release Architecture: **CLOSED**.
 - R1 — Production Staging + Cloudflare + Google OAuth: **CLOSED / PASS**.
