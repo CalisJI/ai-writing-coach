@@ -89,7 +89,7 @@ from writing_coach.persistence.learning_repository import (
     SQLiteLearningRepository,
 )
 from writing_coach.persistence.specialized_repository import SQLiteSpecializedLearningRepository
-from writing_coach.becoming_memory import (LearnerProfileIn, configure_becoming_memory, get_learner_profile, get_learning_memory, put_learner_profile)
+from writing_coach.becoming_memory import (LearnerProfileIn, configure_becoming_memory, get_learner_profile, get_learning_memory, get_review_cue, put_learner_profile)
 from writing_coach.becoming_practice import PracticeNextIn, build_practice_recommendation, personalize_generated_task
 from writing_coach.becoming_outcomes import PracticeContextIn, configure_becoming_outcomes, get_practice_outcome, list_practice_outcomes
 from writing_coach.becoming_library import LibraryVocabularyIn, VocabularyReviewIn, configure_becoming_library, delete_library_vocabulary, list_library_vocabulary, review_library_vocabulary, save_library_vocabulary
@@ -1780,6 +1780,10 @@ def becoming_learner_profile_put(payload: LearnerProfileIn) -> dict[str, Any]:
 @app.get("/api/learning-memory", name="becoming_learning_memory_get")
 def becoming_learning_memory_get() -> dict[str, Any]:
     return get_learning_memory()
+
+@app.get("/api/review-cue", name="becoming_review_cue_get")
+def becoming_review_cue_get(essay_id: int | None = None) -> dict[str, Any]:
+    return get_review_cue(essay_id)
 # === BECOMING MEMORY DIRECT ROUTES END ===
 
 # === BECOMING PERSONALIZED PRACTICE ROUTES START ===

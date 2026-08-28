@@ -7,7 +7,7 @@ import {highlightedLearnerText,bindEvidenceLinks,sentenceContext,feedbackCategor
 import {esc,errorBlock,loadingBlock,metricRows,showDialog,toast,helpTip,runBusy,spinner,setBusy} from '../components/primitives.js';
 import {supportCopy,supportNote,categoryReason,categoryRule} from '../domain/support.js';
 import {openDictionary} from '../components/dictionary.js';
-import {t,uiLocale,categoryLabel,unitLabel} from '../domain/i18n.js';
+import {t,uiLocale,categoryLabel,statusLabel,unitLabel} from '../domain/i18n.js';
 import {countUnits} from '../language.js';
 import {attr} from '../components/primitives.js';
 import {oIcon} from '../orena/icons.js';
@@ -327,6 +327,35 @@ function practiceOutcomeBlock(outcome){
       <button type="button" class="o-btn o-btn--primary o-btn--compact" data-practice-grammar="${attr(outcome.grammar_id)}" data-practice-evidence="${attr(evidence)}">${esc(t('review.practice_grammar'))}</button>
     </div>`:''}
     ${evidence?`<blockquote>“${esc(evidence)}”</blockquote>`:''}
+  </section>`;
+}
+
+const REVIEW_CUE_STATUSES=new Set(['recurring','new','watch','still_working','needs_attention']);
+function normalizedReviewCue(value){
+  if(!value||typeof value!=='object'||Array.isArray(value)||value.available!==true)return null;
+  const state=typeof value.state==='string'?value.state.trim().toLowerCase():'';
+  const source=typeof value.source==='string'?value.source.trim().toLowerCase():'';
+  const status=typeof value.status==='string'?value.status.trim().toLowerCase():'';
+  const evidence=typeof value.evidence==='string'?value.evidence.trim().slice(0,260):'';
+  if(!['recurring','unresolved'].includes(state)||!['error_memory','practice_outcome'].includes(source)
+    ||!REVIEW_CUE_STATUSES.has(status)||!evidence)return null;
+  return {...value,state,source,status,evidence,
+    category:typeof value.category==='string'?value.category.trim():'',
+    grammar_id:typeof value.grammar_id==='string'?value.grammar_id.trim():'',
+  };
+}
+
+function reviewCueBlock(value){
+  const cue=normalizedReviewCue(value);
+  if(!cue)return '';
+  const titleKey=cue.state==='recurring'?'review.review_cue_title_recurring':'review.review_cue_title_unresolved';
+  const sourceKey=`review.review_cue_source_${cue.source}`;
+  return `<section class="o-card o-panel review-cue" data-review-cue-state="${esc(cue.state)}">
+    <span class="o-label">${esc(t('review.review_cue_kicker'))}</span>
+    <h2>${esc(t(titleKey))}</h2>
+    <p class="o-panel-copy">${esc(t('review.review_cue_body',{category:categoryLabel(cue.category||'expression'),status:statusLabel(cue.status),source:t(sourceKey)}))}</p>
+    <blockquote>“${esc(cue.evidence)}”</blockquote>
+    ${cue.grammar_id?`<div class="action-row"><button type="button" class="o-btn o-btn--primary o-btn--compact" data-practice-grammar="${attr(cue.grammar_id)}" data-practice-evidence="${attr(cue.evidence)}">${esc(t('review.practice_grammar'))}</button></div>`:''}
   </section>`;
 }
 
@@ -749,6 +778,11 @@ export async function renderReview(root){
     }
   }
 
+  let reviewCue=null;
+  if(result.id&&typeof api.reviewCue==='function'){
+    try{ reviewCue=(await api.reviewCue(result.id))||null; }catch{ reviewCue=null; }
+  }
+
   const learnerText=state.draft.text||result.text||'';
   const level=result.target_cefr||state.draft.level||'';
   const mode=guidanceMode(state.profile||{},state.language,level);
@@ -855,6 +889,8 @@ export async function renderReview(root){
         ${revisionDeltaBlock(result)}
 
         ${practiceOutcomeBlock(result.practice_outcome)}
+
+        ${reviewCueBlock(reviewCue)}
 
         ${grammarTransferBlock(result)}
 

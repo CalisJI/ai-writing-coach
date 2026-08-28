@@ -18,7 +18,8 @@ baseline.
 
 - R15 - SaaS Plans, Entitlements & Usage Policy: **COMPLETE / LOCAL ACCEPTANCE PASS**
 - R16 — Advanced Learning Intelligence: **COMPLETE / LOCAL ACCEPTANCE PASS**
-  for the contextual dictionary and adaptive Writing difficulty foundations.
+  for contextual dictionary, adaptive Writing difficulty, and error-memory
+  review-cue foundations.
 
 **Secondary / gated programs:**
 
@@ -118,6 +119,10 @@ baseline.
   only from verified, language-scoped practice outcomes or revision wins. Home
   and Write carry the provenance and localized stretch/scaffold/hold or
   insufficient-evidence rationale through the existing practice handoff.
+- R16 error-memory review cues now select one literal, language-scoped recurring
+  or unresolved Writing pattern with explicit source status and provenance.
+  Home and Review render localized rationale, show an explicit no-actionable-
+  evidence state, and open only the linked existing Review/Grammar handoff.
 
 - Writing learner-flow work is checkpointed through `c2e16de` and the R3/R4
   acceptance matrix is locally complete: EN/ZH evaluator contracts and the
@@ -452,6 +457,15 @@ down. Malformed and cross-language records produce an explicit
 insufficient-evidence state; no CEFR, HSK, mastery, or proficiency claim is
 inferred. Home and Write render the localized rationale and preserve the
 existing task-generation and evaluation handoff.
+
+## R16 error-memory review cue closeout
+
+The authenticated learning-memory contract now exposes one bounded review cue
+selected from recurring/new/watch Writing patterns or unresolved practice
+outcomes. Each cue carries literal learner evidence, source and status, and a
+linked essay or Grammar action only when that identifier is valid. Home and
+Review share localized EN/VI/ZH rationale and render an explicit empty state
+when no actionable evidence exists; no mastery or proficiency claim is made.
 
 ## R2 human gate
 

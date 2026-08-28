@@ -19,8 +19,9 @@ operational state.
 - Application version: `1.4.0`
 - BECOMING frontend version: `2.17.5`
 - Current Orena program: R16 â€” Advanced Learning Intelligence;
-  contextual dictionary and evidence-grounded Writing difficulty foundations
-  are locally complete, with provider activation remaining deferred.
+  contextual dictionary, evidence-grounded Writing difficulty, and
+  error-memory review-cue foundations are locally complete, with provider
+  activation remaining deferred.
 
 ## Orena UI/UX integration
 
@@ -143,11 +144,12 @@ authority.
   states. Billing and feature enforcement remain disabled.
 
 - R16 — Advanced Learning Intelligence: **COMPLETE / LOCAL ACCEPTANCE
-  PASS** for the contextual dictionary and adaptive Writing difficulty
-  foundations. Contextual lookups share one authenticated, source-grounded
-  contract, while next-task length changes use only verified practice outcome
-  or revision-win evidence with an explicit insufficient-evidence state.
-  Provider activation and live credentialed validation remain deferred.
+  PASS** for the contextual dictionary, adaptive Writing difficulty, and
+  error-memory review-cue foundations. Contextual lookups share one
+  authenticated, source-grounded contract; next-task length changes and review
+  cues use only verified, language-scoped evidence with explicit
+  insufficient/no-actionable-evidence states. Provider activation and live
+  credentialed validation remain deferred.
 
 - R0 — Product Release Architecture: **CLOSED**.
 - R1 — Production Staging + Cloudflare + Google OAuth: **CLOSED / PASS**.

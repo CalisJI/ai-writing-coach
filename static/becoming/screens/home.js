@@ -165,6 +165,38 @@ function normalizedPracticeOutcome(outcome){
   };
 }
 
+const REVIEW_CUE_STATUSES=new Set(['recurring','new','watch','still_working','needs_attention']);
+function normalizedReviewCue(value){
+  if(!value||typeof value!=='object'||Array.isArray(value))return null;
+  const available=value.available===true;
+  const state=typeof value.state==='string'?value.state.trim().toLowerCase():'';
+  const source=typeof value.source==='string'?value.source.trim().toLowerCase():'';
+  const status=typeof value.status==='string'?value.status.trim().toLowerCase():'';
+  const evidence=typeof value.evidence==='string'?value.evidence.trim().slice(0,260):'';
+  const essayId=typeof value.essay_id==='number'&&Number.isInteger(value.essay_id)&&value.essay_id>0?value.essay_id:null;
+  if(!available||!['recurring','unresolved'].includes(state)||!['error_memory','practice_outcome'].includes(source)
+    ||!REVIEW_CUE_STATUSES.has(status)||!evidence)return null;
+  return {...value,available:true,state,source,status,evidence,essay_id:essayId,
+    category:typeof value.category==='string'?value.category.trim():'',
+    suggestion:typeof value.suggestion==='string'?value.suggestion.trim().slice(0,320):''};
+}
+
+function reviewCueSignal(value){
+  const cue=normalizedReviewCue(value);
+  if(!cue)return `<section class="o-card o-panel home-review-cue" data-review-cue-state="none">
+    <span class="o-label">${esc(t('home.review_cue_kicker'))}</span>
+    <p class="o-panel-copy">${esc(t('home.review_cue_empty'))}</p>
+  </section>`;
+  const source=t(`home.review_cue_source_${cue.source}`);
+  return `<section class="o-card o-panel home-review-cue" data-review-cue-state="${esc(cue.state)}">
+    <span class="o-label">${esc(t('home.review_cue_kicker'))}</span>
+    <h2>${esc(t(`home.review_cue_title_${cue.state}`))}</h2>
+    <p class="o-panel-copy">${esc(t('home.review_cue_body',{category:categoryLabel(cue.category||'expression'),status:statusLabel(cue.status),source}))}</p>
+    <blockquote>“${esc(cue.evidence)}”</blockquote>
+    ${cue.essay_id?`<button class="o-btn o-btn--outline o-btn--compact" type="button" data-open-review-cue="${attr(cue.essay_id)}">${esc(t('home.review_cue_open'))}</button>`:''}
+  </section>`;
+}
+
 function practiceOutcomeSignal(outcome){
   outcome=normalizedPracticeOutcome(outcome);
   if(!outcome)return '';
@@ -699,6 +731,7 @@ export async function renderHome(root){
               ${practiceDifficultyMarkup(recommendation)}
             </section>
             ${memorySignal(memory)}
+            ${reviewCueSignal(memory?.review_cue)}
             ${practiceOutcomeSignal(outcomes?.latest)}
             ${streakCard(dashboard,essays)}
           </aside>
@@ -852,6 +885,10 @@ export async function renderHome(root){
         root.insertAdjacentHTML('afterbegin',errorBlock(error.message));
       }
     }
+
+    root.querySelectorAll('[data-open-review-cue]').forEach(button=>{
+      button.addEventListener('click',()=>openEssay(button.dataset.openReviewCue));
+    });
 
     root.querySelector('[data-open-current]')?.addEventListener('click',()=>openEssay(currentEssay.id));
     root.querySelectorAll('[data-open-essay]').forEach(button=>{

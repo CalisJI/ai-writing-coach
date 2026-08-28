@@ -5,8 +5,13 @@ import sqlite3
 
 from writing_coach.becoming_memory import (
     _error_patterns,
+    _review_cue_from_outcome,
+    _review_cue,
     _revision_wins,
     _strength_patterns,
+    configure_becoming_memory,
+    get_learning_memory,
+    get_review_cue,
 )
 from writing_coach.persistence.specialized_repository import SQLiteSpecializedLearningRepository
 
@@ -33,7 +38,9 @@ def main() -> None:
         """
     )
     conn.execute("CREATE TABLE saved_words(word TEXT PRIMARY KEY, added_at TEXT NOT NULL)")
-    SQLiteSpecializedLearningRepository(lambda: conn).initialize()
+    repository = SQLiteSpecializedLearningRepository(lambda: conn)
+    repository.initialize()
+    configure_becoming_memory(repository)
 
     profile_cols = {
         str(r["name"])
@@ -80,10 +87,31 @@ def main() -> None:
     wins = _revision_wins(essay_rows)
 
     assert patterns and patterns[0]["category"] == "article"
+    assert patterns[0]["latest_essay_id"] == 3
+    assert patterns[0]["example_essay_id"] == 1
     assert strengths and strengths[0]["category"] == "coherence"
     assert strengths[0]["stage"] in {"Developing", "Stable"}
     assert wins and wins[0]["series_id"] == 1
     assert wins[0]["overall_delta"] == 6.0
+
+    cue = _review_cue(essay_rows, patterns)
+    assert cue["available"] is True
+    assert cue["source"] == "error_memory"
+    assert cue["state"] == "unresolved"
+    assert cue["status"] == "watch"
+    assert cue["evidence"] == "a apple"
+    assert cue["essay_id"] == 1
+
+    memory = get_learning_memory()
+    assert memory["review_cue"]["evidence"] == "a apple"
+    assert get_review_cue(essay_id=1)["essay_id"] == 1
+    assert get_review_cue(essay_id=3)["available"] is False
+    assert _review_cue_from_outcome({
+        "status": "needs_attention", "essay_id": 3, "error_evidence": "raw audio"
+    }) is None
+
+    empty = _review_cue([], [])
+    assert empty["available"] is False and empty["state"] == "none"
 
     print("BECOMING Phase 4 learning-memory self-test OK")
 

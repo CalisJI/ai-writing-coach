@@ -56,6 +56,7 @@ export const api={
     body:JSON.stringify(payload),
   }),
   learningMemory:()=>request('/api/learning-memory'),
+  reviewCue:(essayId)=>request(`/api/review-cue${essayId!=null?`?essay_id=${encodeURIComponent(essayId)}`:''}`),
   practiceRecommendation:()=>request('/api/practice-recommendation'),
   nextPractice:(payload)=>request('/api/practice/next',{
     method:'POST',

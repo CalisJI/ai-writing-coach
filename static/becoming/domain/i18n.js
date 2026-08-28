@@ -2534,4 +2534,53 @@ export function applyChromeI18n(){
   if(dialog && !dialog.textContent.trim())dialog.textContent=t('chrome.details');
 }
 
+Object.assign(COPY.en,{
+  'home.review_cue_kicker':'Review cue',
+  'home.review_cue_title_recurring':'A pattern is worth revisiting.',
+  'home.review_cue_title_unresolved':'This pattern still needs attention.',
+  'home.review_cue_body':'Evidence for {category} is {status}. Source: {source}.',
+  'home.review_cue_source_error_memory':'your Writing history',
+  'home.review_cue_source_practice_outcome':'a practice outcome',
+  'home.review_cue_empty':'No actionable Writing pattern has enough evidence yet.',
+  'home.review_cue_open':'Open source review',
+  'review.review_cue_kicker':'Review cue',
+  'review.review_cue_title_recurring':'A pattern is worth revisiting.',
+  'review.review_cue_title_unresolved':'This pattern still needs attention.',
+  'review.review_cue_body':'Evidence for {category} is {status}. Source: {source}.',
+  'review.review_cue_source_error_memory':'your Writing history',
+  'review.review_cue_source_practice_outcome':'a practice outcome',
+});
+Object.assign(COPY.vi,{
+  'home.review_cue_kicker':'Gợi ý ôn tập',
+  'home.review_cue_title_recurring':'Có một mẫu cần xem lại.',
+  'home.review_cue_title_unresolved':'Mẫu này vẫn cần được chú ý.',
+  'home.review_cue_body':'Bằng chứng về {category} đang ở trạng thái {status}. Nguồn: {source}.',
+  'home.review_cue_source_error_memory':'lịch sử Writing của bạn',
+  'home.review_cue_source_practice_outcome':'một kết quả luyện tập',
+  'home.review_cue_empty':'Chưa có đủ bằng chứng Writing có thể dùng để ôn tập.',
+  'home.review_cue_open':'Mở bài nhận xét nguồn',
+  'review.review_cue_kicker':'Gợi ý ôn tập',
+  'review.review_cue_title_recurring':'Có một mẫu cần xem lại.',
+  'review.review_cue_title_unresolved':'Mẫu này vẫn cần được chú ý.',
+  'review.review_cue_body':'Bằng chứng về {category} đang ở trạng thái {status}. Nguồn: {source}.',
+  'review.review_cue_source_error_memory':'lịch sử Writing của bạn',
+  'review.review_cue_source_practice_outcome':'một kết quả luyện tập',
+});
+Object.assign(COPY.zh,{
+  'home.review_cue_kicker':'复习提示',
+  'home.review_cue_title_recurring':'有一个模式值得再次复习。',
+  'home.review_cue_title_unresolved':'这个模式仍需要关注。',
+  'home.review_cue_body':'关于{category}的证据状态为{status}。来源：{source}。',
+  'home.review_cue_source_error_memory':'你的 Writing 历史',
+  'home.review_cue_source_practice_outcome':'一次练习结果',
+  'home.review_cue_empty':'目前还没有足够的 Writing 证据可供复习。',
+  'home.review_cue_open':'打开来源评语',
+  'review.review_cue_kicker':'复习提示',
+  'review.review_cue_title_recurring':'有一个模式值得再次复习。',
+  'review.review_cue_title_unresolved':'这个模式仍需要关注。',
+  'review.review_cue_body':'关于{category}的证据状态为{status}。来源：{source}。',
+  'review.review_cue_source_error_memory':'你的 Writing 历史',
+  'review.review_cue_source_practice_outcome':'一次练习结果',
+});
+
 export const UI_COPY=COPY;
