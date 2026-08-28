@@ -491,6 +491,16 @@ media URLs, and event rows; empty and unavailable runtime states remain
 explicit. The Admin view is additive and does not write learner events,
 change scoring, enforce entitlements, or activate providers.
 
+## R17 return-to-practice and retention observability
+
+The Admin product-activity response now also derives bounded returning-learner,
+repeat-practice, cross-skill return, and 1/3/7-day return-window aggregates
+from the same existing PostgreSQL activity records. The mounted Admin view
+shows those aggregates and daily return trends without learner identifiers,
+content, or per-event history, and keeps explicit insufficient/unavailable
+states. No tracking SDK, learner scheduling, scoring, entitlement, or event
+write path was added.
+
 ## R2 human gate
 
 **YES**
@@ -545,6 +555,6 @@ Stop and return to the human coordinator when:
 - an unresolved P0/P1 requires broader redesign;
 - the rollback path becomes unclear.
 
-**Next handoff owner:** R16 advanced learning-intelligence follow-on owner; the
-contextual dictionary foundation is locally closed and no provider activation,
-billing, deployment, or capability activation is implied.
+**Next handoff owner:** R17 product-analytics owner; activity and return
+observability remain read-only, privacy-bounded Admin work with no provider
+activation, billing, deployment, or capability activation implied.

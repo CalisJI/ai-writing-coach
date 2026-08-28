@@ -122,9 +122,12 @@
     const host=$('#adminProductActivity');
     if(!host)return;
     if(productActivity.available===false){host.innerHTML='<div class="admin-capability-empty">Product activity is unavailable on this environment.</div>';return;}
-    if(!productActivity.has_data){host.innerHTML='<div class="admin-capability-empty">Not enough activity data for this window.</div>';return;}
+    if(!productActivity.has_data){host.innerHTML='<div class="admin-capability-empty">Not enough activity data for this window; return trends are insufficient.</div>';return;}
     const rows=(productActivity.skills||[]).map(item=>{const trend=(item.days||[]).map(day=>`${esc(day.date)}: ${day.activities}/${day.completions}`).join(' · ')||'No daily data'; return `<div class="admin-activity-row"><b>${esc(item.skill)}</b><span>${item.activities} activities · ${item.completions} completed</span><span>${item.completion_rate_percent==null?'Completion rate unknown':`${item.completion_rate_percent}% completion rate`}</span><small>Daily activity/completions: ${trend}</small></div>`;}).join('');
     host.innerHTML=`<div class="admin-activity-summary"><strong>${productActivity.active_learners==null?'Active learners unknown':`${productActivity.active_learners} active learners`}</strong><span>${productActivity.total_activities} activities · ${productActivity.total_completions} completed · last ${productActivity.window_days} days</span></div><div class="admin-activity-rows">${rows}</div>`;
+    const windows=(productActivity.return_windows||[]).map(item=>`<span>${item.days}-day return: ${item.returned_learners}/${item.eligible_learners}${item.return_rate_percent==null?' (rate unknown)':` (${item.return_rate_percent}%)`}</span>`).join(' Â· ')||'Return windows unavailable';
+    const daily=(productActivity.daily_returning||[]).map(item=>`${esc(item.date)}: ${item.returning_learners}`).join(' Â· ')||'No return trend data';
+    host.innerHTML += `<div class="admin-activity-retention"><span>${productActivity.returning_learners==null?'Returning learners unknown':`${productActivity.returning_learners} returning learners`}</span><span>${productActivity.repeat_practice_learners==null?'Repeat practice unknown':`${productActivity.repeat_practice_learners} repeat-practice learners`}</span><span>${productActivity.cross_skill_returning_learners==null?'Cross-skill return unknown':`${productActivity.cross_skill_returning_learners} cross-skill returning learners`}</span><small>Return windows: ${windows}</small><small>Daily returning learners: ${daily}</small></div>`;
   }
 
   async function fetchProductActivity(){
