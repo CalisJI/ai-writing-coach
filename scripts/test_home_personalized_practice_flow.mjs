@@ -121,6 +121,9 @@ const fixtures={
   },
 };
 
+fixtures.en.recommendation.difficulty={state:'stretch',word_target:180,length_delta:30,provenance:{source:'practice_outcome',evidence_count:1,status:'improved',revision_no:2}};
+fixtures.zh.recommendation.difficulty={state:'stretch',word_target:120,length_delta:40,provenance:{source:'practice_outcome',evidence_count:1,status:'improved',revision_no:2}};
+
 try{
   api.dashboard=async()=>({essay_count:0,streak:0,metrics:{}});
   api.essays=async()=>[];
@@ -156,6 +159,8 @@ try{
     globalThis.location.hash='#/home';
     root.nodes.clear();
     await renderHome(root);
+    assert.match(root.innerHTML,/data-practice-difficulty/,
+      `${locale.toUpperCase()} Home must render the evidence-based difficulty rationale`);
     const grammarButton=root.querySelectorAll('[data-home-practice-grammar]')[0];
     assert.ok(grammarButton,
       `${locale.toUpperCase()} Home must render Grammar practice from the latest outcome`);
@@ -211,6 +216,8 @@ try{
     api.practiceOutcome=async()=>({outcome:null});
     globalThis.location.hash='#/write';
     await renderWrite(writeRoot);
+    assert.match(writeRoot.innerHTML,/data-practice-difficulty/,
+      `${locale.toUpperCase()} Write must carry the difficulty rationale into the handoff`);
     writeNodes.get('#writingEditor').innerText=locale==='zh'
       ?'我每天写一段清楚的练习句子。'
       :'I write a clear practice sentence every day.';
@@ -228,6 +235,7 @@ try{
       `${locale.toUpperCase()} Home Grammar practice must clear stale saved-state`);
     assert.equal(globalThis.location.hash,'#/review',
       `${locale.toUpperCase()} Home Grammar practice must submit into Review`);
+    state.draft={...state.draft,prompt:'',generatedTask:null,practiceContext:null,text:'',html:''};
     globalThis.location.hash='#/home';
     assert.match(root.innerHTML,/id="homePrimary"/,
       `${locale.toUpperCase()} Home must render the personalized Practice action`);

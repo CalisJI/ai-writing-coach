@@ -1783,12 +1783,23 @@ def becoming_learning_memory_get() -> dict[str, Any]:
 # === BECOMING MEMORY DIRECT ROUTES END ===
 
 # === BECOMING PERSONALIZED PRACTICE ROUTES START ===
+def _recommendation_outcomes() -> list[dict[str, Any]]:
+    try:
+        payload = list_practice_outcomes(8)
+    except Exception:
+        return []
+    items = payload.get("items") if isinstance(payload, dict) else None
+    return items if isinstance(items, list) else []
+
+
 @app.get("/api/practice-recommendation", name="becoming_practice_recommendation")
 def becoming_practice_recommendation() -> dict[str, Any]:
+    memory = get_learning_memory()
     return build_practice_recommendation(
         language=active_profile().code,
         profile=get_learner_profile(),
-        memory=get_learning_memory(),
+        memory=memory,
+        outcomes=_recommendation_outcomes(),
     )
 
 @app.post("/api/practice/next", name="becoming_practice_next")
@@ -1802,6 +1813,7 @@ def becoming_practice_next(payload: PracticeNextIn) -> dict[str, Any]:
         profile=get_learner_profile(),
         memory=get_learning_memory(),
         target_level=target_level,
+        outcomes=_recommendation_outcomes(),
     )
 
     task_payload = TaskGenerateIn(

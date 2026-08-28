@@ -9,6 +9,16 @@ class PracticeNextIn(BaseModel):
     target_level: str = Field(default="", max_length=12)
 
 
+_VALID_OUTCOME_STATUSES = {
+    "improved", "needs_attention", "still_working", "held",
+    "not_observed", "needs_more_evidence", "transferred",
+}
+_VALID_FAMILIES = {
+    "grammar", "vocabulary", "coherence", "task_achievement",
+    "naturalness", "expression",
+}
+
+
 def _humanize(value: Any) -> str:
     raw = str(value or "").strip().replace("-", " ").replace("_", " ")
     return " ".join(part.capitalize() for part in raw.split()) or "Expression"
@@ -127,6 +137,142 @@ def _word_target(language: str, target_level: str, style: str) -> int:
     return base
 
 
+def _stepped_word_target(language: str, current: int, direction: int) -> int:
+    """Move one supported length option, never inventing an unsupported size."""
+    options = [40, 60, 80, 120, 180, 250] if language == "zh" else [100, 120, 150, 180, 220, 280]
+    nearest = min(range(len(options)), key=lambda index: abs(options[index] - int(current)))
+    target_index = max(0, min(len(options) - 1, nearest + direction))
+    return options[target_index]
+
+
+def _integer(value: Any, *, minimum: int = 0) -> int | None:
+    if isinstance(value, bool) or not isinstance(value, int) or value < minimum:
+        return None
+    return value
+
+
+def _verified_outcome(value: Any, language: str) -> dict[str, Any] | None:
+    if not isinstance(value, dict) or isinstance(value, list):
+        return None
+    evidence_language = str(value.get("language") or "").strip().casefold()
+    if evidence_language and evidence_language != language:
+        return None
+    status = str(value.get("status") or "").strip().casefold()
+    family = str(value.get("focus_family") or "").strip().casefold()
+    revision_no = _integer(value.get("revision_no"), minimum=1)
+    issue_count = _integer(value.get("issue_count"), minimum=0)
+    previous = value.get("previous_issue_count")
+    if previous is not None:
+        previous = _integer(previous, minimum=0)
+    if status not in _VALID_OUTCOME_STATUSES or family not in _VALID_FAMILIES:
+        return None
+    if revision_no is None or issue_count is None:
+        return None
+    if status == "improved" and (
+        revision_no < 2 or previous is None or issue_count >= previous
+    ):
+        return None
+    if status in {"needs_attention", "still_working"} and issue_count <= 0:
+        return None
+    essay_id = _integer(value.get("essay_id"), minimum=1)
+    return {
+        "status": status,
+        "focus_family": family,
+        "revision_no": revision_no,
+        "issue_count": issue_count,
+        "previous_issue_count": previous,
+        "essay_id": essay_id,
+    }
+
+
+def _verified_revision_win(value: Any, language: str) -> dict[str, Any] | None:
+    if not isinstance(value, dict) or isinstance(value, list):
+        return None
+    evidence_language = str(value.get("language") or "").strip().casefold()
+    if evidence_language and evidence_language != language:
+        return None
+    revisions = _integer(value.get("revisions"), minimum=2)
+    latest_id = _integer(value.get("latest_id"), minimum=1)
+    overall_delta = value.get("overall_delta")
+    error_delta = value.get("error_delta")
+    if isinstance(overall_delta, bool) or not isinstance(overall_delta, (int, float)):
+        return None
+    if isinstance(error_delta, bool) or not isinstance(error_delta, int):
+        return None
+    if (
+        revisions is None or latest_id is None
+        or not overall_delta > 0
+        or error_delta > 0
+    ):
+        return None
+    return {
+        "status": "improved",
+        "revision_no": revisions,
+        "issue_count": max(0, error_delta),
+        "previous_issue_count": max(0, -error_delta),
+        "essay_id": latest_id,
+        "focus_family": "expression",
+    }
+
+
+def _difficulty_decision(
+    *, language: str, base_word_target: int, outcomes: Any, revision_wins: Any,
+) -> dict[str, Any]:
+    valid = []
+    if isinstance(outcomes, list):
+        for item in outcomes[:8]:
+            normalized = _verified_outcome(item, language)
+            if normalized:
+                valid.append(normalized)
+    evidence_source = "practice_outcome"
+    evidence = valid[0] if valid else None
+    if evidence is None and isinstance(revision_wins, list):
+        for item in revision_wins[:8]:
+            normalized = _verified_revision_win(item, language)
+            if normalized:
+                evidence = normalized
+                evidence_source = "revision_win"
+                valid.append(normalized)
+                break
+    if evidence and evidence["status"] == "improved":
+        word_target = _stepped_word_target(language, base_word_target, 1)
+        state = "stretch"
+        delta = word_target - base_word_target
+    elif evidence and evidence["status"] in {"needs_attention", "still_working"}:
+        word_target = _stepped_word_target(language, base_word_target, -1)
+        state = "scaffold"
+        delta = word_target - base_word_target
+    elif evidence:
+        word_target = base_word_target
+        state = "hold"
+        delta = 0
+    else:
+        word_target = base_word_target
+        state = "insufficient"
+        delta = 0
+
+    provenance = {
+        "source": evidence_source if evidence else "none",
+        "evidence_count": len(valid),
+    }
+    if evidence:
+        provenance.update({
+            "status": evidence["status"],
+            "focus_family": evidence["focus_family"],
+            "revision_no": evidence["revision_no"],
+            "issue_count": evidence["issue_count"],
+            "previous_issue_count": evidence["previous_issue_count"],
+        })
+        if evidence["essay_id"] is not None:
+            provenance["essay_id"] = evidence["essay_id"]
+    return {
+        "state": state,
+        "word_target": word_target,
+        "length_delta": delta,
+        "provenance": provenance,
+    }
+
+
 def _focus_instruction(language: str, family: str, category: str, intent: str) -> str:
     if language == "zh":
         base = {
@@ -164,6 +310,7 @@ def build_practice_recommendation(
     profile: dict[str, Any] | None,
     memory: dict[str, Any] | None,
     target_level: str = "",
+    outcomes: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     profile = profile or {}
     memory = memory or {}
@@ -232,6 +379,13 @@ def build_practice_recommendation(
     topic = _topic(goal, family)
     target = target_level or ("HSK4" if language == "zh" else "B2")
     word_target = _word_target(language, target, style)
+    difficulty = _difficulty_decision(
+        language=language,
+        base_word_target=word_target,
+        outcomes=outcomes if outcomes is not None else memory.get("practice_outcomes", []),
+        revision_wins=memory.get("revision_wins", []),
+    )
+    word_target = difficulty["word_target"]
     focus_instruction = _focus_instruction(language, family, category, intent)
 
     if language == "zh":
@@ -263,6 +417,7 @@ def build_practice_recommendation(
         "topic": topic,
         "target_level": target,
         "word_target": word_target,
+        "difficulty": difficulty,
         "reason": reason,
         "focus_instruction": focus_instruction,
         "action_label": action_label,

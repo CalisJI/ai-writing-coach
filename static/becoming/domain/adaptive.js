@@ -74,3 +74,15 @@ export function writingScaffold(mode,language='en'){
       :['Get the meaning down first','Add enough support for the idea','Finish with a clear ending'],
   };
 }
+
+export function difficultyAdjustment(recommendation={}){
+  const value=recommendation?.difficulty;
+  if(!value||typeof value!=='object'||Array.isArray(value))return null;
+  const state=['stretch','scaffold','hold','insufficient'].includes(value.state)
+    ?value.state:'insufficient';
+  const rawDelta=value.length_delta;
+  if(typeof rawDelta!=='number'||!Number.isFinite(rawDelta)||!Number.isInteger(rawDelta)){
+    return {state:'insufficient',delta:0,key:'write.difficulty_insufficient'};
+  }
+  return {state,delta:Math.abs(rawDelta),key:`write.difficulty_${state}`};
+}

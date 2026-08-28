@@ -2,7 +2,7 @@ import {api} from '../api.js';
 import {state,saveDraft} from '../store.js';
 import {go} from '../router.js';
 import {configFor,countUnits} from '../language.js';
-import {guidanceMode,guidanceLabel,writingScaffold} from '../domain/adaptive.js';
+import {guidanceMode,guidanceLabel,writingScaffold,difficultyAdjustment} from '../domain/adaptive.js';
 import {esc,attr,toast,runBusy,showDialog} from '../components/primitives.js';
 import {installSelectEnhancements} from '../components/select-field.js';
 import {t,practiceModeLabel,topicLabel,unitLabel,categoryLabel} from '../domain/i18n.js';
@@ -200,8 +200,10 @@ function promptCard(config) {
   const level = state.draft.level;
   const band = bandLabel(level);
   const task = state.draft.generatedTask;
+  const taskObject = task && typeof task === 'object' && !Array.isArray(task) ? task : null;
   const canGenerate = !['free', 'custom'].includes(state.draft.mode);
   const focusLabel = personalizationLabel(task);
+  const difficulty=difficultyAdjustment(taskObject?.personalization||state.practiceRecommendation);
 
   return `<article class="o-card o-prompt">
     <span class="o-prompt-tile" aria-hidden="true">${oIcon('document')}</span>
@@ -209,6 +211,7 @@ function promptCard(config) {
       <span class="o-prompt-kicker">${esc(t('write.prompt'))}</span>
       <p class="o-prompt-text">${text ? esc(text) : esc(t('write.no_prompt'))}</p>
       ${focusLabel ? `<p class="o-prompt-kicker">${esc(t('write.memory_guided'))} · ${esc(focusLabel)}</p>` : ''}
+      ${difficulty?`<p class="o-prompt-kicker" data-practice-difficulty>${esc(t(difficulty.key,{delta:difficulty.delta}))}</p>`:''}
       <div class="o-prompt-foot">
         <span class="o-chip">${esc(level)}</span>
         ${band ? `<span class="o-prompt-level">${esc(band)}</span>` : ''}

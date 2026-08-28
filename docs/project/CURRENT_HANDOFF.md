@@ -18,7 +18,7 @@ baseline.
 
 - R15 - SaaS Plans, Entitlements & Usage Policy: **COMPLETE / LOCAL ACCEPTANCE PASS**
 - R16 — Advanced Learning Intelligence: **COMPLETE / LOCAL ACCEPTANCE PASS**
-  for the contextual dictionary foundation across Writing, Review, and Media.
+  for the contextual dictionary and adaptive Writing difficulty foundations.
 
 **Secondary / gated programs:**
 
@@ -114,6 +114,10 @@ baseline.
   Writing, Review, and Media sentence/segment flows. The shared authenticated
   contract requires visible learner evidence and exposes truthful unavailable
   states; provider activation and credentialed live validation remain deferred.
+- R16 adaptive Writing difficulty now derives a bounded one-step length change
+  only from verified, language-scoped practice outcomes or revision wins. Home
+  and Write carry the provenance and localized stretch/scaffold/hold or
+  insufficient-evidence rationale through the existing practice handoff.
 
 - Writing learner-flow work is checkpointed through `c2e16de` and the R3/R4
   acceptance matrix is locally complete: EN/ZH evaluator contracts and the
@@ -439,6 +443,15 @@ unavailable state when the explanation provider cannot produce a result. EN,
 VI, and ZH adapters preserve the selected evidence without inventing context or
 proficiency claims. Provider activation and credentialed live validation remain
 deferred.
+
+## R16 adaptive Writing difficulty closeout
+
+The existing practice recommendation now validates recent learner-scoped
+outcome/revision evidence before selecting one supported length step up or
+down. Malformed and cross-language records produce an explicit
+insufficient-evidence state; no CEFR, HSK, mastery, or proficiency claim is
+inferred. Home and Write render the localized rationale and preserve the
+existing task-generation and evaluation handoff.
 
 ## R2 human gate
 

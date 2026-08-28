@@ -2392,6 +2392,25 @@ Object.assign(COPY.zh,{
   'profile.rank.next_developing':'稳定至少一个重复优势，并形成修改证据',
 });
 
+Object.assign(COPY.en,{
+  'write.difficulty_stretch':'Recent revision evidence supports a small stretch: {delta} more words.',
+  'write.difficulty_scaffold':'Recent unresolved evidence calls for a shorter task: {delta} fewer words.',
+  'write.difficulty_hold':'Verified evidence does not support changing the task length yet.',
+  'write.difficulty_insufficient':'There is not enough verified evidence to adjust difficulty yet.',
+});
+Object.assign(COPY.vi,{
+  'write.difficulty_stretch':'Bằng chứng sửa bài gần đây cho phép tăng nhẹ: thêm {delta} từ.',
+  'write.difficulty_scaffold':'Bằng chứng chưa giải quyết cho thấy nên viết ngắn hơn: bớt {delta} từ.',
+  'write.difficulty_hold':'Bằng chứng đã kiểm chứng chưa đủ để đổi độ dài.',
+  'write.difficulty_insufficient':'Chưa có đủ bằng chứng đáng tin để điều chỉnh độ khó.',
+});
+Object.assign(COPY.zh,{
+  'write.difficulty_stretch':'最近的修改证据支持轻微挑战：增加 {delta} 个字。',
+  'write.difficulty_scaffold':'最近仍有未解决的证据，先写短 {delta} 个字。',
+  'write.difficulty_hold':'已验证的证据还不支持调整任务长度。',
+  'write.difficulty_insufficient':'目前没有足够的已验证证据来调整难度。',
+});
+
 function interpolate(value,vars={}){
   return String(value).replace(/\{([a-zA-Z0-9_]+)\}/g,(_,key)=>String(vars[key]??''));
 }

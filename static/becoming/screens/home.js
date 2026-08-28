@@ -6,6 +6,7 @@ import {homeInsight,metricOverview} from '../domain/feedback.js';
 import {requestLessonAutostart,resumableLesson} from '../domain/media-lesson-history.js';
 import {listeningHabitSnapshot} from '../domain/listening-habit.js';
 import {getSharedMediaSession,selectSharedMediaSegment} from '../domain/shared-media-session.js';
+import {difficultyAdjustment} from '../domain/adaptive.js';
 import {attr,esc,errorBlock,loadingBlock,runBusy,sectionHeading,helpTip} from '../components/primitives.js';
 import {t,categoryLabel,masteryLabel,statusLabel,practiceModeLabel,topicLabel,unitLabel,uiLocale} from '../domain/i18n.js';
 
@@ -562,6 +563,13 @@ function nextPracticePlanSignal(plan){
   </section>`;
 }
 
+function practiceDifficultyMarkup(recommendation){
+  const difficulty=difficultyAdjustment(recommendation);
+  return difficulty
+    ?`<p class="o-panel-copy" data-practice-difficulty>${esc(t(difficulty.key,{delta:difficulty.delta}))}</p>`
+    :'';
+}
+
 function homeCurrentPiece(currentEssay){
   if(!currentEssay){
     return `<aside class="o-hero-piece o-hero-piece--empty">
@@ -688,6 +696,7 @@ export async function renderHome(root){
               <p class="o-insight-line">${esc(insight.statement)}</p>
               <p class="o-panel-copy">${esc(insight.context)}</p>
               ${personalized?`<p class="o-panel-copy"><strong>${esc(categoryLabel(recommendation.focus_category||recommendation.focus_label||'expression'))}</strong> · ${esc(practiceModeLabel(recommendation.task_type))}</p>`:''}
+              ${practiceDifficultyMarkup(recommendation)}
             </section>
             ${memorySignal(memory)}
             ${practiceOutcomeSignal(outcomes?.latest)}
