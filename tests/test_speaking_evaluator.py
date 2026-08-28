@@ -236,6 +236,30 @@ def test_durable_attempt_route_persists_bounded_evidence_and_progress() -> None:
         configure_speaking_attempt_repository(None)
 
 
+def test_speaking_history_route_forwards_asset_segment_scope() -> None:
+    class FakeRepository:
+        def __init__(self) -> None:
+            self.scope = None
+
+        def list_speaking_attempt_records(self, limit: int = 50, *, asset_id: str | None = None, segment_id: str | None = None) -> list[dict]:
+            self.scope = (limit, asset_id, segment_id)
+            return [{"asset_id": asset_id, "segment_id": segment_id, "created_at": "latest"}]
+
+        def speaking_progress(self) -> dict:
+            return {"attempt_count": 1, "proficiency": None}
+
+    repository = FakeRepository()
+    configure_speaking_attempt_repository(repository)
+    language_token = LANGUAGE_CODE_CTX.set("en")
+    try:
+        listed = list_speaking_attempts(limit=100, asset_id=" asset-older ", segment_id=" segment-17 ")
+        assert repository.scope == (100, "asset-older", "segment-17")
+        assert listed["items"] == [{"asset_id": "asset-older", "segment_id": "segment-17", "created_at": "latest"}]
+    finally:
+        LANGUAGE_CODE_CTX.reset(language_token)
+        configure_speaking_attempt_repository(None)
+
+
 def test_durable_attempt_route_rejects_unsupported_proficiency_claim() -> None:
     class FakeRepository:
         def create_speaking_attempt_record(self, values: dict) -> dict:

@@ -79,6 +79,7 @@ def main() -> None:
         root / "scripts" / "test_m3_pronunciation_contract.mjs",
         root / "scripts" / "test_shadowing_practice.mjs",
         root / "scripts" / "test_r9_shadowing_speaking_flow.mjs",
+        root / "scripts" / "test_r9_shadowing_feedback.mjs",
         root / "scripts" / "test_r10_reading_flow.mjs",
         root / "scripts" / "test_speaking_core.mjs",
         root / "scripts" / "test_speaking_groq_flow.mjs",
@@ -186,7 +187,7 @@ def main() -> None:
     phase7_css = read("static/becoming/phase7.css")
     screens = {
         name: read(f"static/becoming/screens/{name}.js")
-        for name in ["home", "write", "review", "reading", "library", "journey", "profile", "onboarding"]
+        for name in ["home", "write", "review", "reading", "listening", "library", "journey", "profile", "onboarding"]
     }
     memory_service = root / "writing_coach" / "becoming_memory.py"
     practice_service = root / "writing_coach" / "becoming_practice.py"
@@ -391,6 +392,9 @@ def main() -> None:
         errors.append("Reading explanation_vi can leak into non-Vietnamese interface locale")
     if "uiLocale()==='vi'?item.translation_vi" not in screens["library"]:
         errors.append("Library translation_vi can leak into non-Vietnamese interface locale")
+    require_contains(errors, screens["listening"], [
+        "speakingAttempts(1", "data-speaking-feedback-state", "shadowingFeedback",
+    ], "Shadowing Speaking-feedback continuity")
 
     # Design philosophy contract: every current/future route requires explicit learner-goal metadata.
     route_match = re.search(r"VALID\s*=\s*new Set\(\[([^\]]+)\]\)", router, re.S)

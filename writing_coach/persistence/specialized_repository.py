@@ -41,7 +41,7 @@ class SpecializedLearningRepository(Protocol):
     def list_reading_session_records(self, limit: int) -> list[dict[str, Any]]: ...
     def create_reading_attempt_record(self, session_id: int, values: dict[str, Any]) -> None: ...
     def create_speaking_attempt_record(self, values: dict[str, Any]) -> dict[str, Any]: ...
-    def list_speaking_attempt_records(self, limit: int = 50) -> list[dict[str, Any]]: ...
+    def list_speaking_attempt_records(self, limit: int = 50, *, asset_id: str | None = None, segment_id: str | None = None) -> list[dict[str, Any]]: ...
     def speaking_progress(self) -> dict[str, Any]: ...
     def get_linguistic_essay(self, essay_id: int) -> dict[str, Any] | None: ...
     def update_essay_module_data(self, essay_id: int, module_data: dict[str, Any]) -> bool: ...
@@ -410,7 +410,7 @@ class SQLiteSpecializedLearningRepository:
     def create_speaking_attempt_record(self, values: dict[str, Any]) -> dict[str, Any]:
         raise RuntimeError("Durable Speaking attempts require the PostgreSQL runtime.")
 
-    def list_speaking_attempt_records(self, limit: int = 50) -> list[dict[str, Any]]:
+    def list_speaking_attempt_records(self, limit: int = 50, *, asset_id: str | None = None, segment_id: str | None = None) -> list[dict[str, Any]]:
         raise RuntimeError("Durable Speaking attempts require the PostgreSQL runtime.")
 
     def speaking_progress(self) -> dict[str, Any]:
@@ -662,12 +662,17 @@ class PostgresSpecializedLearningRepository:
             s.flush()
             return self._speaking_payload(row)
 
-    def list_speaking_attempt_records(self, limit: int = 50) -> list[dict[str, Any]]:
+    def list_speaking_attempt_records(self, limit: int = 50, *, asset_id: str | None = None, segment_id: str | None = None) -> list[dict[str, Any]]:
         uid, lang = self._scope()
         with Session(self.engine) as s:
+            filters = [SpeakingAttempt.user_id == uid, SpeakingAttempt.language_code == lang]
+            if asset_id is not None:
+                filters.append(SpeakingAttempt.asset_id == asset_id)
+            if segment_id is not None:
+                filters.append(SpeakingAttempt.segment_id == segment_id)
             rows = s.scalars(
                 select(SpeakingAttempt)
-                .where(SpeakingAttempt.user_id == uid, SpeakingAttempt.language_code == lang)
+                .where(*filters)
                 .order_by(SpeakingAttempt.created_at.desc())
                 .limit(max(1, min(int(limit), 100)))
             ).all()

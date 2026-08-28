@@ -647,3 +647,23 @@ human gate; no production activation or migration is implied.
 
 **Supersedes / Superseded by:** Extends the R9 shared-media acceptance
 decision. Supersedes no earlier decision.
+
+## D-031 — Shadowing returns latest matching Speaking feedback
+
+**Status:** Accepted
+
+**Decision:** When Listening reopens an EN/ZH Shadowing segment, it may retrieve
+the authenticated learner's latest Speaking evaluator outcome only when its
+language, media asset, and canonical segment all match. The UI renders measured
+dimensions separately and keeps empty/unavailable states explicit; proficiency
+and raw audio are never surfaced.
+
+**Reason:** The R9 handoff already preserves the canonical media identity, but
+without this retrieval the learner returns to a score-free placeholder and
+cannot connect a completed Speaking take to the segment they practised.
+
+**Consequences:** Listening consumes the existing bounded Speaking attempts API
+without new persistence or provider behavior. Public Shadowing/Speaking
+promotion remains human-gated.
+
+**Supersedes / Superseded by:** Extends D-029. Supersedes no earlier decision.

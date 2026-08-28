@@ -72,9 +72,12 @@ baseline.
 - The R9 Shadowing Studio foundation now preserves the selected canonical
   EN/ZH asset and segment when opening Speaking, carries the same identity
   through recording/evaluation and audio-free attempt handoff, and restores the
-  Shadowing mode and segment on return to Listening. The mounted handoff
-  contract passes for both languages; provider scoring and public activation
-  remain outside this local checkpoint.
+  Shadowing mode and segment on return to Listening. On that return, Listening
+  now retrieves only the authenticated learner's latest matching Speaking
+  evaluator outcome for the same language, asset, and canonical segment, and
+  renders dimension-specific feedback with localized empty/error states. The
+  mounted handoff-and-feedback contract passes for both languages; provider
+  scoring and public activation remain outside this local checkpoint.
 - R10 now has an internal EN/ZH Reading learning-loop acceptance: mounted
   session creation, comprehension answers with exact passage evidence,
   audio-free learner history reopening, and saved-key-word handoff to Library.

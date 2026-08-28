@@ -377,9 +377,10 @@ The post-R5 roadmap uses one primary learner-visible lane.
 - **R9 — Speaking Advanced / Shadowing Studio: COMPLETE / LOCAL ACCEPTANCE PASS.**
   Selected EN/ZH canonical media segments now carry their asset, language, and
   segment identity into the existing Speaking recorder/evaluator and back into
-  the same Shadowing Studio mode. Per-take feedback remains dimension-specific;
-  no raw audio persistence, new provider, or public capability activation was
-  added.
+  the same Shadowing Studio mode. Listening now retrieves only the latest
+  authenticated, language/asset/segment-matching Speaking outcome and renders
+  dimension-specific feedback with localized empty/error states. No raw audio
+  persistence, new provider, or public capability activation was added.
 - **R10 — Reading Completion: COMPLETE / LOCAL ACCEPTANCE PASS.** The mounted
   EN/ZH Reading contract verifies session creation, comprehension answers tied
   to exact passage evidence, learner-scoped history reopening, and saved-word

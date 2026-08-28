@@ -154,7 +154,12 @@ export const api={
     headers:JSON_HEADERS,
     body:JSON.stringify(payload||{}),
   }),
-  speakingAttempts:(limit=20)=>request(`/api/speech/attempts?limit=${encodeURIComponent(limit)}`),
+  speakingAttempts:(limit=20,assetId='',segmentId='')=>{
+    const params=new URLSearchParams({limit:String(limit)});
+    if(assetId)params.set('asset_id',String(assetId));
+    if(segmentId)params.set('segment_id',String(segmentId));
+    return request(`/api/speech/attempts?${params.toString()}`);
+  },
   essays:()=>request('/api/essays'),
   essay:(id)=>request(`/api/essays/${encodeURIComponent(id)}`),
   linguisticAnnotations:(id)=>request(`/api/essays/${encodeURIComponent(id)}/linguistic-annotations`,{

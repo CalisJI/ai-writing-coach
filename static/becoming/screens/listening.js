@@ -124,6 +124,12 @@ const SHADOW_COPY={
   vi:{progressTitle:'Ti\u1ebfn \u0111\u1ed9',segmentsLabel:'\u0111o\u1ea1n', keySoundsPending:'\u00c2m ch\u00ednh v\u00e0 nh\u1ecbp \u2014 ch\u01b0a ki\u1ec3m tra', studioTitle:'Ph\u00f2ng luy\u1ec7n Shadowing',studioLead:'Luy\u1ec7n n\u00f3i v\u1edbi n\u1ed9i dung th\u1ef1c t\u1ebf.',leaveStudio:'R\u1eddi ph\u00f2ng luy\u1ec7n',sharedMedia:'Media d\u00f9ng chung',viewTranscript:'Xem to\u00e0n b\u1ed9 transcript',nowPracticing:'\u0110ang luy\u1ec7n',listen:'Nghe m\u1eabu',holdToRepeat:'Gi\u1eef \u0111\u1ec3 n\u00f3i',listenToMe:'Nghe l\u1ea1i m\u00ecnh',yourAttempts:'C\u00e1c l\u01b0\u1ee3t c\u1ee7a b\u1ea1n',roundOf:'L\u01b0\u1ee3t {n} tr\u00ean {total}',startRound:'B\u1eaft \u0111\u1ea7u l\u01b0\u1ee3t {n}',tips:'G\u1ee3i \u00fd',tip1:'Nghe \u0111o\u1ea1n m\u1eabu, r\u1ed3i n\u00f3i l\u1ea1i \u0111\u00fang t\u1ed1c \u0111\u1ed9 \u0111\u00f3.',tip2:'B\u00e1m nh\u1ecbp c\u1ee7a ng\u01b0\u1eddi n\u00f3i tr\u01b0\u1edbc, \u0111\u1eebng lo t\u1eebng \u00e2m m\u1ed9t.',shortcuts:'Ph\u00edm t\u1eaft',scPlay:'Ph\u00e1t / D\u1eebng',scRepeat:'Gi\u1eef \u0111\u1ec3 n\u00f3i',scNext:'\u0110o\u1ea1n sau',scPrev:'\u0110o\u1ea1n tr\u01b0\u1edbc',scorePending:'Ch\u01b0a ch\u1ea5m',scoreNote:'Ph\u1ea7n ch\u1ea5m ph\u00e1t \u00e2m v\u00e0 ng\u1eef \u0111i\u1ec7u ch\u01b0a \u0111\u01b0\u1ee3c x\u00e2y. B\u1ea3n ghi c\u1ee7a b\u1ea1n n\u1eb1m tr\u00ean thi\u1ebft b\u1ecb n\u00e0y v\u00e0 kh\u00f4ng \u0111\u01b0\u1ee3c t\u1ea3i l\u00ean.',recording:'\u0110ang ghi\u2026',recordUnsupported:'Tr\u00ecnh duy\u1ec7t n\u00e0y kh\u00f4ng ghi \u00e2m \u0111\u01b0\u1ee3c.',justNow:'V\u1eeba xong',takes:'l\u01b0\u1ee3t',pinyin:'Pinyin',mode:'Shadowing',practice:'Shadow đoạn này',guide:'Nghe đoạn đã chọn, lặp lại thành tiếng rồi đánh dấu một lượt đã hoàn thành.',markRound:'Đánh dấu hoàn thành 1 lượt',rounds:'Số lượt',progress:'Shadowing trong phiên',practiced:'Đoạn đã luyện',totalRounds:'Tổng lượt hoàn thành',noScore:'Lặp lại ở đây không ghi âm và không chấm gì cả. Mở mục Nói khi bạn muốn ghi giọng và nghe lại.',openSpeaking:'Mở mục Nói',segment:'Đoạn'},
   zh:{progressTitle:'\u8fdb\u5ea6',segmentsLabel:'\u53e5\u6bb5', keySoundsPending:'\u5173\u952e\u97f3\u4e0e\u8282\u594f \u2014 \u5c1a\u672a\u68c0\u6d4b', studioTitle:'\u8ddf\u8bfb\u5de5\u4f5c\u5ba4',studioLead:'\u7528\u771f\u5b9e\u5185\u5bb9\u7ec3\u53e3\u8bed\u3002',leaveStudio:'\u9000\u51fa\u5de5\u4f5c\u5ba4',sharedMedia:'\u5171\u4eab\u5a92\u4f53',viewTranscript:'\u67e5\u770b\u5b8c\u6574\u5b57\u5e55',nowPracticing:'\u6b63\u5728\u7ec3',listen:'\u542c\u539f\u58f0',holdToRepeat:'\u6309\u4f4f\u8ddf\u8bfb',listenToMe:'\u542c\u6211\u7684',yourAttempts:'\u4f60\u7684\u5f55\u97f3',roundOf:'\u7b2c {n} \u8f6e\uff0c\u5171 {total} \u8f6e',startRound:'\u5f00\u59cb\u7b2c {n} \u8f6e',tips:'\u63d0\u793a',tip1:'\u5148\u542c\u4e00\u904d\uff0c\u518d\u7528\u540c\u6837\u7684\u901f\u5ea6\u8bf4\u56de\u53bb\u3002',tip2:'\u5148\u8ddf\u4e0a\u8bf4\u8bdd\u4eba\u7684\u8282\u594f\uff0c\u518d\u8ba1\u8f83\u5355\u4e2a\u97f3\u3002',shortcuts:'\u5feb\u6377\u952e',scPlay:'\u64ad\u653e / \u6682\u505c',scRepeat:'\u6309\u4f4f\u8ddf\u8bfb',scNext:'\u4e0b\u4e00\u53e5',scPrev:'\u4e0a\u4e00\u53e5',scorePending:'\u5c1a\u672a\u8bc4\u5206',scoreNote:'\u53d1\u97f3\u4e0e\u8bed\u8c03\u8bc4\u5206\u8fd8\u672a\u5efa\u6210\u3002\u5f55\u97f3\u53ea\u4fdd\u5b58\u5728\u672c\u673a\uff0c\u4e0d\u4f1a\u4e0a\u4f20\u3002',recording:'\u5f55\u97f3\u4e2d\u2026',recordUnsupported:'\u6b64\u6d4f\u89c8\u5668\u65e0\u6cd5\u5f55\u97f3\u3002',justNow:'\u521a\u521a',takes:'\u6b21',pinyin:'\u62fc\u97f3',mode:'跟读',practice:'跟读这一句',guide:'先听所选句段，再大声跟读，然后记录一次已完成练习。',markRound:'记录完成一轮',rounds:'轮次',progress:'本次跟读',practiced:'已练句段',totalRounds:'已完成轮次',noScore:'这里的跟读不录音，也不评分。需要录制并回放自己的声音时，请打开口语。',openSpeaking:'打开口语',segment:'句段'},
 };
+const SHADOW_FEEDBACK_COPY={
+  en:{title:'Latest Speak feedback',loading:'Loading your latest Speak feedback…',none:'No completed Speak take for this segment yet.',failed:'Speak feedback is temporarily unavailable. Shadowing remains usable.',content:'Content match',pronunciation:'Pronunciation',fluency:'Fluency',transcription:'Transcription confidence',unavailable:'Not measured'},
+  vi:{title:'Phản hồi Nói gần đây nhất',loading:'Đang tải phản hồi Nói gần đây nhất…',none:'Chưa có lượt Nói hoàn tất cho đoạn này.',failed:'Phản hồi Nói tạm thời không khả dụng. Shadowing vẫn dùng được.',content:'Độ khớp nội dung',pronunciation:'Phát âm',fluency:'Độ trôi chảy',transcription:'Độ tin cậy transcript',unavailable:'Chưa đo'},
+  zh:{title:'最近的口语反馈',loading:'正在加载最近的口语反馈…',none:'本句还没有已完成的口语练习。',failed:'口语反馈暂时不可用，跟读仍然可以使用。',content:'内容匹配度',pronunciation:'发音',fluency:'流利度',transcription:'转写可信度',unavailable:'尚未测量'},
+};
+const shadowFeedbackText=()=>SHADOW_FEEDBACK_COPY[uiLocale()]||SHADOW_FEEDBACK_COPY.en;
 let listeningViewSequence=0;
 
 /* Listening time.
@@ -417,6 +423,32 @@ function shadowTakesFor(payload,segmentId){
   return shadowTakes.get(takeKey(payload?.asset?.asset_id,shadowSelection(payload,segmentId)))||[];
 }
 
+function shadowingFeedback(feedback){
+  const c=shadowFeedbackText();
+  if(feedback?.status==='loading'){
+    return `<section class="o-card o-speaking-feedback" data-speaking-feedback-state="loading"><h2 class="o-label">${esc(c.title)}</h2><p class="o-panel-copy">${esc(c.loading)}</p></section>`;
+  }
+  if(feedback?.status==='error'){
+    return `<section class="o-card o-speaking-feedback" data-speaking-feedback-state="error" role="status"><h2 class="o-label">${esc(c.title)}</h2><p class="o-panel-copy">${esc(c.failed)}</p></section>`;
+  }
+  const item=feedback?.item;
+  if(!item){
+    return `<section class="o-card o-speaking-feedback" data-speaking-feedback-state="empty"><h2 class="o-label">${esc(c.title)}</h2><p class="o-panel-copy">${esc(c.none)}</p></section>`;
+  }
+  const dimensions=item.dimensions&&typeof item.dimensions==='object'?item.dimensions:{};
+  const value=key=>typeof dimensions[key]==='number'&&Number.isFinite(dimensions[key])
+    ?`${dimensions[key]}%`:c.unavailable;
+  return `<section class="o-card o-speaking-feedback" data-speaking-feedback-state="ready">
+    <h2 class="o-label">${esc(c.title)}</h2>
+    <dl class="o-speaking-feedback-grid">
+      <div><dt>${esc(c.content)}</dt><dd>${esc(value('content_match'))}</dd></div>
+      <div><dt>${esc(c.pronunciation)}</dt><dd>${esc(value('pronunciation'))}</dd></div>
+      <div><dt>${esc(c.fluency)}</dt><dd>${esc(value('fluency'))}</dd></div>
+      <div><dt>${esc(c.transcription)}</dt><dd>${esc(value('transcription_confidence'))}</dd></div>
+    </dl>
+  </section>`;
+}
+
 function segmentStrip(segments,selected){
   const s=shadowText();
   const index=segments.findIndex(item=>item.segment_id===selected);
@@ -531,6 +563,7 @@ function shadowingWorkspace(payload,selected,model){
         </ol>
         <p class="o-take-note">${esc(s.scoreNote)}</p>
       </section>
+      ${shadowingFeedback(model.speakingFeedback)}
     </div>
 
     <aside class="o-studio-rail">
@@ -1009,7 +1042,7 @@ function translationRequest(payload,targetLanguage){
 }
 
 export function createListeningController({importMedia,importStatus,targetLanguage,translateMedia=()=>Promise.resolve(null),onChange=()=>{},onMediaReady=()=>{},onTranslationReady=()=>{},onSelection=()=>{},onProcessing=()=>{},onImportTerminal=()=>{}}){
-  const model={status:'empty',payload:null,error:null,selected:null,manualSelection:false,playingSegmentId:null,jobId:null,sourceUrl:'',original:true,meaning:true,playbackRate:1,mode:'follow',practiceSession:null,shadowingSession:null,practiceValidation:null};
+  const model={status:'empty',payload:null,error:null,selected:null,manualSelection:false,playingSegmentId:null,jobId:null,sourceUrl:'',original:true,meaning:true,playbackRate:1,mode:'follow',practiceSession:null,shadowingSession:null,practiceValidation:null,speakingFeedback:{status:'empty',item:null}};
   const viewId=`listening-${++listeningViewSequence}`;
   let importGeneration=0;
   let backgroundTranslationGeneration=0;
@@ -1035,6 +1068,7 @@ export function createListeningController({importMedia,importStatus,targetLangua
     model.practiceSession=model.status==='ready'?createListeningPracticeSession({asset_id:payload.asset.asset_id,segment_ids:segmentIds}):null;
     model.shadowingSession=model.status==='ready'?createShadowingPracticeSession({asset_id:payload.asset.asset_id,segment_ids:segmentIds}):null;
     model.practiceValidation=null;
+    model.speakingFeedback={status:'empty',item:null};
     if(['active','shadowing'].includes(model.mode)&&!playbackAvailable(payload?.playback))model.mode='follow';
     if(model.status==='processing'&&model.jobId)onProcessing({job_id:model.jobId,source_url:model.sourceUrl});
     else onImportTerminal();
@@ -1139,6 +1173,7 @@ export function createListeningController({importMedia,importStatus,targetLangua
         selectShadowingPracticeSegment(model.shadowingSession,model.selected);
       }
       model.practiceValidation=null;
+      model.speakingFeedback={status:'empty',item:null};
       model.mode=['follow','active','shadowing'].includes(mode)?mode:'follow';
       if(['active','shadowing'].includes(model.mode)&&!playbackAvailable(payload.playback))model.mode='follow';
       onMediaReady(payload,model.selected);
@@ -1333,15 +1368,20 @@ function installSmartFollow(root){
   return binding;
 }
 
-export async function renderListening(root,{importMedia=api.importMedia,importStatus=api.mediaImportStatus,translateMedia=api.translateMedia,targetLanguage=supportLanguage}={}){
+export async function renderListening(root,{importMedia=api.importMedia,importStatus=api.mediaImportStatus,translateMedia=api.translateMedia,targetLanguage=supportLanguage,speakingAttempts=api.speakingAttempts}={}){
   let controller;
   let mounted=false;
   let visibleSelection=null;
   let pollTimer=null;
   let renderedAssetId=null;
+  let speakingFeedbackKey='';
   const transcriptScrollTops=new Map();
   const viewAbort=new AbortController();
   const smartFollow=installSmartFollow(root);
+  const speakingFeedbackFor=(payload,segmentId)=>{
+    if(!payload?.asset?.asset_id||!segmentId)return '';
+    return `${state.language}|${payload.asset.asset_id}|${segmentId}`;
+  };
   let importForm=null;
   const bindImportForm=()=>{
     const form=root.querySelector('#mediaImportForm');
@@ -1436,8 +1476,32 @@ export async function renderListening(root,{importMedia=api.importMedia,importSt
       && workspaceNode
       && learningColumn
     );
+    const mode=payload?listeningMode(payload,controller.model):'follow';
+    if(mode==='shadowing'&&controller.model.status==='ready'){
+      const key=speakingFeedbackFor(payload,controller.model.selected);
+      if(key&&key!==speakingFeedbackKey){
+        speakingFeedbackKey=key;
+        controller.model.speakingFeedback={status:'loading',item:null};
+        Promise.resolve().then(()=>speakingAttempts(1,payload.asset.asset_id,controller.model.selected)).then(response=>{
+          if(speakingFeedbackKey!==key)return;
+          const items=Array.isArray(response?.items)?response.items:[];
+          const item=items.find(candidate=>candidate&&typeof candidate==='object'
+            &&String(candidate.language||candidate.language_code||'')===state.language
+            &&String(candidate.asset_id||'')===String(payload.asset.asset_id)
+            &&String(candidate.segment_id||'')===String(controller.model.selected));
+          controller.model.speakingFeedback={status:'ready',item:item||null};
+          render(controller.model);
+        }).catch(()=>{
+          if(speakingFeedbackKey!==key)return;
+          controller.model.speakingFeedback={status:'error',item:null};
+          render(controller.model);
+        });
+      }
+    }else if(mode!=='shadowing'){
+      speakingFeedbackKey='';
+      controller.model.speakingFeedback={status:'empty',item:null};
+    }
     if(preservePlayer){
-      const mode=listeningMode(payload,controller.model);
       workspaceNode.dataset.listeningMode=mode;
       learningColumn.innerHTML=learningWorkspace(payload,controller.model.selected,controller.model,mode);
       const segments=typeof learningColumn.querySelector==='function'

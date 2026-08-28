@@ -421,7 +421,11 @@ def save_speaking_attempt(payload: SpeakingAttemptIn) -> dict[str, Any]:
 
 
 @router.get("/attempts")
-def list_speaking_attempts(limit: int = 20) -> dict[str, Any]:
+def list_speaking_attempts(
+    limit: int = 20,
+    asset_id: str | None = None,
+    segment_id: str | None = None,
+) -> dict[str, Any]:
     if _speaking_attempt_repository is None:
         raise orena_http_error(
             503,
@@ -429,8 +433,18 @@ def list_speaking_attempts(limit: int = 20) -> dict[str, Any]:
             "Speaking history is not configured on this environment.",
         )
     bounded_limit = max(1, min(int(limit), 100))
+    scoped_asset = asset_id.strip() if isinstance(asset_id, str) and asset_id.strip() else None
+    scoped_segment = segment_id.strip() if isinstance(segment_id, str) and segment_id.strip() else None
+    if scoped_asset is None and scoped_segment is None:
+        items = _speaking_attempt_repository.list_speaking_attempt_records(bounded_limit)
+    else:
+        items = _speaking_attempt_repository.list_speaking_attempt_records(
+            bounded_limit,
+            asset_id=scoped_asset,
+            segment_id=scoped_segment,
+        )
     return {
-        "items": _speaking_attempt_repository.list_speaking_attempt_records(bounded_limit),
+        "items": items,
         "progress": _speaking_attempt_repository.speaking_progress(),
     }
 
