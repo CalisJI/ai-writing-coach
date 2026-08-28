@@ -1,6 +1,8 @@
 (function(){
   const $ = (s) => document.querySelector(s);
   let providers = [];
+  let capabilities = [];
+  let learnerRuntime = {mode:'legacy'};
   let active = {provider:'', model:''};
   let currentFilter = 'all';
   let searchText = '';
@@ -34,9 +36,68 @@
   }
 
   function providerState(provider){
-    if(!provider.configured) return {label:'Not configured', cls:'muted'};
-    if(provider.available) return {label:'Ready', cls:'ready'};
+    const configured = provider.configured ?? provider.server_configured;
+    if(!configured) return {label:'Not configured', cls:'muted'};
+    if(provider.available || provider.server_configured) return {label:'Ready', cls:'ready'};
     return {label:'Configured · unavailable', cls:'warn'};
+  }
+
+  function capabilityState(capability){
+    if(!capability?.implemented) return {label:'Reserved', cls:'muted'};
+    if(!capability.provider_backed) return {label:'Deterministic', cls:'ready'};
+    if(!capability.explicit_config_exists || !capability.config){
+      return {label:'Not configured', cls:'muted'};
+    }
+    if(capability.config.enabled === false){
+      return {label:'Configured · disabled', cls:'warn'};
+    }
+    const provider = providers.find(item=>item.id===capability.config.provider);
+    if(!provider?.server_configured){
+      return {label:'Configured · provider unavailable', cls:'warn'};
+    }
+    return {label:'Configured', cls:'ready'};
+  }
+
+  function renderCapabilityMatrix(){
+    const host = $('#adminCapabilityMatrix');
+    if(!host) return;
+    if(!capabilities.length){
+      host.innerHTML = '<div class="admin-capability-empty">Capability matrix is unavailable.</div>';
+      return;
+    }
+    host.innerHTML = `<div class="admin-capability-runtime">Learner runtime: <b>${esc(learnerRuntime.mode || 'unknown')}</b></div>
+      <div class="admin-capability-table" role="table" aria-label="AI capability matrix">
+        <div class="admin-capability-row admin-capability-head" role="row">
+          <span role="columnheader">Capability</span><span role="columnheader">State</span>
+          <span role="columnheader">Provider / model</span><span role="columnheader">Operation</span>
+        </div>
+        ${capabilities.map(capability=>{
+          const state = capabilityState(capability);
+          const config = capability.config || {};
+          const provider = config.provider || '—';
+          const model = config.model || '—';
+          const runtime = capability.provider_backed
+            ? (learnerRuntime.mode==='capability'?'Capability mode':'Legacy routing')
+            : 'Local deterministic';
+          return `<div class="admin-capability-row" role="row" data-capability-key="${esc(capability.key)}">
+            <span role="cell"><b>${esc(capability.key)}</b><small>${esc(runtime)}</small></span>
+            <span role="cell"><i class="admin-capability-dot ${state.cls}"></i>${esc(state.label)}</span>
+            <span role="cell">${esc(provider)} / ${esc(model)}</span>
+            <span role="cell">${esc(capability.operation || '—')}</span>
+          </div>`;
+        }).join('')}
+      </div>`;
+  }
+
+  function resetCapabilityMatrix(){
+    capabilities = [];
+    learnerRuntime = {mode:'unknown'};
+    renderCapabilityMatrix();
+  }
+
+  function showConfigFailure(){
+    resetCapabilityMatrix();
+    setMessage('Platform Admin failed to load.','error');
   }
 
   function renderSummary(){
@@ -165,9 +226,12 @@
     if(!quiet) setMessage('Refreshing AI model catalog…');
     const r = await fetch('/api/admin/ai/config',{cache:'no-store'});
     const d = await r.json();
-    if(!r.ok) throw new Error(d.detail || 'Could not load platform AI settings');
+    if(!r.ok) throw new Error('Could not load platform AI settings');
+    capabilities = Array.isArray(d.capabilities) ? d.capabilities : [];
+    learnerRuntime = d.learner_runtime || {mode:'unknown'};
     providers = d.providers || [];
     active = d.active || {provider:'',model:''};
+    renderCapabilityMatrix();
     renderSummary();
     renderProviderCards();
     renderModels();
@@ -214,11 +278,11 @@
 
       $('#adminNav')?.classList.remove('hidden');
       $('#adminNav')?.addEventListener('click',()=>{
-        fetchConfig({quiet:true}).catch(e=>setMessage(e.message,'error'));
+        fetchConfig({quiet:true}).catch(showConfigFailure);
       });
 
       $('#adminRefreshModels')?.addEventListener('click',()=>{
-        fetchConfig().catch(e=>setMessage(e.message,'error'));
+        fetchConfig().catch(showConfigFailure);
       });
 
       $('#adminModelSearch')?.addEventListener('input',ev=>{
@@ -239,7 +303,7 @@
       await fetchConfig({quiet:true});
     }catch(err){
       console.error('Admin dashboard initialization failed:',err);
-      setMessage(err.message || 'Platform Admin failed to load.','error');
+      showConfigFailure();
     }
   }
 

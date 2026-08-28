@@ -49,6 +49,11 @@ baseline.
   profile-aligned recommendation and established task-generation handoff,
   clears the draft before opening Write, and keeps recommendation or
   generation failures localized and non-actionable.
+- R13 capability-matrix foundation is now locally implemented in the existing
+  Platform Admin surface. The read-only matrix consumes the canonical
+  capability-centric admin response, distinguishes deterministic, reserved,
+  unconfigured, configured, and unavailable states, and never exposes
+  provider credentials or adds a mutation path.
 
 - R6 — Speaking Core: **COMPLETE / LOCAL ACCEPTANCE PASS**
 - R2 — AI Capability Control Plane: **HUMAN GATE / READY, NOT PRODUCT-BLOCKING**
