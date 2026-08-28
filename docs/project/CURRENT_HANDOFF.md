@@ -55,8 +55,10 @@ baseline.
   unconfigured, configured, and unavailable states. Implemented provider-backed
   capabilities now expose scoped provider/model/enabled controls backed by the
   canonical capability PUT route; deterministic and reserved capabilities stay
-  read-only. Saving configuration does not activate learner runtime, and
-  failures clear stale matrix data without exposing provider credentials.
+  read-only. The matrix also shows audit-safe saved-state provenance and offers
+  explicit click-only health checks for eligible configurations; saving or
+  checking does not activate learner runtime, and failures never expose
+  provider credentials.
 
 - R6 — Speaking Core: **COMPLETE / LOCAL ACCEPTANCE PASS**
 - R2 — AI Capability Control Plane: **HUMAN GATE / READY, NOT PRODUCT-BLOCKING**

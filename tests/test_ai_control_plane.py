@@ -46,6 +46,7 @@ class FakeRepository:
         self.legacy: AISelectionRecord | None = None
         self.capability_writes: list[tuple[str, CapabilityConfig, str]] = []
         self.legacy_writes: list[tuple[str, str, str]] = []
+        self.capability_metadata: dict[str, tuple[str, str]] = {}
 
     def initialize(self) -> None:
         pass
@@ -61,11 +62,18 @@ class FakeRepository:
         config = self.capabilities.get(capability_key.strip().casefold())
         if config is None:
             return None
-        return CapabilityConfigRecord(capability_key.strip().casefold(), config)
+        key = capability_key.strip().casefold()
+        updated_at, updated_by = self.capability_metadata.get(key, ("", ""))
+        return CapabilityConfigRecord(key, config, updated_at=updated_at, updated_by=updated_by)
 
     def list_capability_configs(self) -> list[CapabilityConfigRecord]:
         return [
-            CapabilityConfigRecord(key, config)
+            CapabilityConfigRecord(
+                key,
+                config,
+                updated_at=self.capability_metadata.get(key, ("", ""))[0],
+                updated_by=self.capability_metadata.get(key, ("", ""))[1],
+            )
             for key, config in sorted(self.capabilities.items())
         ]
 
@@ -215,6 +223,10 @@ def test_get_is_capability_centric_network_free_and_secret_safe(
     repository.capabilities["writing_evaluator"] = capability_config(
         model="abc?api_key=super-secret"
     )
+    repository.capability_metadata["writing_evaluator"] = (
+        "2026-08-28T14:00:00+07:00",
+        "admin-sub-secret-shaped",
+    )
     provider = FakeProvider()
 
     def forbidden(*_args, **_kwargs):
@@ -241,6 +253,16 @@ def test_get_is_capability_centric_network_free_and_secret_safe(
     ))
     assert states["writing_evaluator"]["config"]["model"] == "[redacted]"
     assert states["writing_evaluator"]["config"]["model_redacted"] is True
+    assert states["writing_evaluator"]["config_provenance"] == {
+        "saved": True,
+        "updated_at": "2026-08-28T14:00:00+07:00",
+        "updated_by_present": True,
+    }
+    assert states["reading_evaluator"]["config_provenance"] == {
+        "saved": False,
+        "updated_at": None,
+        "updated_by_present": False,
+    }
     assert payload["legacy_runtime"] == {
         "role": "live-global-routing-until-R2-activation",
         "selection_present": True,
@@ -250,6 +272,7 @@ def test_get_is_capability_centric_network_free_and_secret_safe(
     assert "super-secret" not in rendered
     assert "db-password" not in rendered
     assert "server-secret" not in rendered
+    assert "admin-sub-secret-shaped" not in rendered
     assert provider.discovery_calls == 0
 
 

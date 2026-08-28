@@ -44,6 +44,23 @@ def _sanitized_config(config: CapabilityConfig) -> dict[str, Any]:
     return value
 
 
+def _config_provenance(record: Any) -> dict[str, Any]:
+    """Expose audit-safe saved-state metadata without the administrator identity."""
+
+    if record is None:
+        return {
+            "saved": False,
+            "updated_at": None,
+            "updated_by_present": False,
+        }
+    updated_at = str(getattr(record, "updated_at", "") or "").strip() or None
+    return {
+        "saved": True,
+        "updated_at": updated_at,
+        "updated_by_present": bool(str(getattr(record, "updated_by", "") or "").strip()),
+    }
+
+
 class AIControlPlane:
     """Orchestrates static config administration and explicit live probes."""
 
@@ -60,13 +77,14 @@ class AIControlPlane:
         """Build a sanitized, network-free view of the product capability catalog."""
 
         explicit = {
-            row.capability_key: row.config
+            row.capability_key: row
             for row in self.repository.list_capability_configs()
         }
         runtimes = self.provider_factory()
         capabilities = []
         for definition in all_capabilities():
-            config = explicit.get(definition.key)
+            record = explicit.get(definition.key)
+            config = record.config if record is not None else None
             capabilities.append(
                 {
                     "key": definition.key,
@@ -79,6 +97,7 @@ class AIControlPlane:
                     ),
                     "explicit_config_exists": config is not None,
                     "config": _sanitized_config(config) if config is not None else None,
+                    "config_provenance": _config_provenance(record),
                 }
             )
 

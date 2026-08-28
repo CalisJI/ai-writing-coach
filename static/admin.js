@@ -71,6 +71,20 @@
     return compatible.map(provider=>`<option value="${esc(provider.id)}" ${provider.id===selected?'selected':''}>${esc(provider.name || provider.id)}</option>`).join('');
   }
 
+  function capabilityHealthLabel(errorClass){
+    const labels = Object.create(null);
+    labels.capability_disabled = 'Capability disabled';
+    labels.capability_not_configured = 'Capability not configured';
+    labels.provider_not_configured = 'Provider not configured';
+    labels.model_catalog_empty = 'Provider has no models';
+    labels.model_unavailable = 'Configured model unavailable';
+    labels.provider_unavailable = 'Provider unavailable';
+    labels.provider_response_invalid = 'Provider response invalid';
+    labels.provider_error = 'Provider request failed';
+    labels.capability_invalid = 'Capability configuration invalid';
+    return labels[errorClass] || 'Health check failed';
+  }
+
   function renderCapabilityMatrix(){
     const host = $('#adminCapabilityMatrix');
     if(!host) return;
@@ -90,6 +104,10 @@
           const provider = config.provider || '—';
           const model = config.model || '—';
           const editableModel = config.model_redacted ? '' : (config.model || '');
+          const provenance = capability.config_provenance || {};
+          const savedState = provenance.saved
+            ? `${provenance.updated_at ? `Saved ${provenance.updated_at}` : 'Saved configuration'}${provenance.updated_by_present ? ' · Updated by administrator' : ''}`
+            : 'No saved configuration';
           const runtime = capability.provider_backed
             ? (learnerRuntime.mode==='capability'?'Capability mode':'Legacy routing')
             : 'Local deterministic';
@@ -100,10 +118,11 @@
               <label class="admin-capability-enabled"><input data-capability-enabled type="checkbox" ${config.enabled === false?'':'checked'}> Enabled</label>
               <button class="primary compact" type="button" data-save-capability="${esc(capability.key)}" data-capability-fallback="${esc(config.fallback_policy || (capability.allowed_fallback_policies || ['none'])[0])}" data-capability-timeout="${esc(config.timeout_seconds ?? '')}" data-capability-temperature="${esc(config.temperature ?? '')}">Save configuration</button>
               <small>Saved configuration only · learner runtime remains ${esc(learnerRuntime.mode || 'unknown')}</small>
+              ${capability.explicit_config_exists && config.enabled !== false ? '<button class="ghost compact" type="button" data-health-capability="'+esc(capability.key)+'">Verify health</button><small data-capability-health-status></small>' : ''}
             </div>` : '';
           return `<div class="admin-capability-row" role="row" data-capability-key="${esc(capability.key)}">
             <span role="cell"><b>${esc(capability.key)}</b><small>${esc(runtime)}</small></span>
-            <span role="cell"><i class="admin-capability-dot ${state.cls}"></i>${esc(state.label)}</span>
+            <span role="cell"><i class="admin-capability-dot ${state.cls}"></i>${esc(state.label)}<small>${esc(savedState)}</small></span>
             <span role="cell">${esc(provider)} / ${esc(model)}</span>
             <span role="cell">${esc(capability.operation || '—')}${controls}</span>
           </div>`;
@@ -113,6 +132,9 @@
       button.addEventListener('click',()=>saveCapability(button).catch(()=>{
         setMessage('Capability configuration could not be saved.','error');
       }));
+    });
+    host.querySelectorAll('[data-health-capability]').forEach(button=>{
+      button.addEventListener('click',()=>runCapabilityHealth(button));
     });
   }
 
@@ -161,6 +183,30 @@
         return;
       }
       setMessage('Capability configuration saved. Learner runtime remains unchanged.','ok');
+    }finally{
+      button.disabled = false;
+    }
+  }
+
+  async function runCapabilityHealth(button){
+    const key = button?.dataset?.healthCapability;
+    const row = button?.closest?.('[data-capability-key]');
+    const status = row?.querySelector?.('[data-capability-health-status]');
+    if(!key) return;
+    button.disabled = true;
+    if(status) status.textContent = 'Checking…';
+    try{
+      const response = await fetch(`/api/admin/ai/test/${encodeURIComponent(key)}`,{method:'POST'});
+      const data = await response.json();
+      if(!response.ok){
+        const errorClass = data?.detail?.error_class || data?.error_class;
+        if(status) status.textContent = capabilityHealthLabel(errorClass);
+        return;
+      }
+      const latency = Number.isFinite(Number(data?.latency_ms)) ? ` · ${Number(data.latency_ms)} ms` : '';
+      if(status) status.textContent = `Healthy${latency}`;
+    }catch(_error){
+      if(status) status.textContent = 'Health check failed';
     }finally{
       button.disabled = false;
     }

@@ -418,8 +418,10 @@ The post-R5 roadmap uses one primary learner-visible lane.
   the canonical admin control-plane response. Implemented provider-backed
   capabilities expose scoped provider/model/enabled controls through the
   canonical capability configuration route; deterministic and reserved
-  capabilities remain read-only. Saved configuration is visibly distinct from
-  learner runtime and does not activate it; failures clear stale matrix data
+  capabilities remain read-only. The matrix shows audit-safe saved-state
+  provenance and provides explicit click-only health checks for eligible
+  configurations. Saved configuration and health checks remain distinct from
+  learner runtime and do not activate it; failures clear stale matrix data
   without exposing provider credentials.
 - **R2 — AI Capability Control Plane: HUMAN GATE / READY.**
   Static/runtime support exists. Production migration/config initialization,

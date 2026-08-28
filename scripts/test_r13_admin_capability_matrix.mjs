@@ -21,10 +21,11 @@ class FakeElement{
   closest(){return null;}
   querySelector(){return null;}
   querySelectorAll(selector){
-    if(selector !== '[data-save-capability]') return [];
+    if(selector !== '[data-save-capability]' && selector !== '[data-health-capability]') return [];
     if(this._childrenBySelector?.has(selector)) return this._childrenBySelector.get(selector);
     const controls=[];
-    const pattern=/<button[^>]*data-save-capability="([^"]+)"[^>]*>/g;
+    const attributeName=selector === '[data-save-capability]' ? 'data-save-capability' : 'data-health-capability';
+    const pattern=new RegExp(`<button[^>]*${attributeName}="([^"]+)"[^>]*>`, 'g');
     let match;
     while((match=pattern.exec(this._innerHTML))){
       const key=match[1];
@@ -33,16 +34,22 @@ class FakeElement{
       const provider=new FakeElement(); provider.value='openai';
       const model=new FakeElement(); model.value='model-1';
       const enabled=new FakeElement(); enabled.checked=true;
+      const healthStatus=new FakeElement();
       row.querySelector=(query)=>({
         '[data-capability-provider]':provider,
         '[data-capability-model]':model,
         '[data-capability-enabled]':enabled,
+        '[data-capability-health-status]':healthStatus,
       }[query] || null);
       const button=new FakeElement();
-      button.dataset.saveCapability=key;
-      button.dataset.capabilityFallback=attribute('data-capability-fallback');
-      button.dataset.capabilityTimeout=attribute('data-capability-timeout');
-      button.dataset.capabilityTemperature=attribute('data-capability-temperature');
+      if(selector === '[data-save-capability]'){
+        button.dataset.saveCapability=key;
+        button.dataset.capabilityFallback=attribute('data-capability-fallback');
+        button.dataset.capabilityTimeout=attribute('data-capability-timeout');
+        button.dataset.capabilityTemperature=attribute('data-capability-temperature');
+      }else{
+        button.dataset.healthCapability=key;
+      }
       button.closest=()=>row;
       controls.push(button);
     }
@@ -81,7 +88,7 @@ function runAdmin(configResponses){
 }
 
 const capabilities=[
-  {key:'writing_evaluator',operation:'structured_text_generation',implemented:true,provider_backed:true,configurable:true,explicit_config_exists:true,config:{enabled:true,provider:'openai',model:'model-1',timeout_seconds:45,temperature:0.4,fallback_policy:'none'}},
+  {key:'writing_evaluator',operation:'structured_text_generation',implemented:true,provider_backed:true,configurable:true,explicit_config_exists:true,config:{enabled:true,provider:'openai',model:'model-1',timeout_seconds:45,temperature:0.4,fallback_policy:'none'},config_provenance:{saved:true,updated_at:'2026-08-28T14:00:00+07:00',updated_by_present:true}},
   {key:'writing_linguistic',operation:'deterministic',implemented:true,provider_backed:false,configurable:false,explicit_config_exists:false,config:null},
   {key:'reading_generator',operation:'structured_text_generation',implemented:true,provider_backed:true,configurable:true,explicit_config_exists:false,config:null},
   {key:'writing_improver',operation:'structured_text_generation',implemented:true,provider_backed:true,configurable:true,explicit_config_exists:true,config:{enabled:false,provider:'openai',model:'model-1'}},
@@ -110,6 +117,8 @@ assert.match(matrix,/data-capability-key="learner_translation"[\s\S]*Configured 
 assert.match(matrix,/data-capability-key="speech_asr"[\s\S]*Reserved/);
 assert.match(matrix,/Learner runtime: <b>legacy<\/b>/);
 assert.match(matrix,/\[redacted\]/);
+assert.match(matrix,/Saved 2026-08-28T14:00:00\+07:00/);
+assert.match(matrix,/Updated by administrator/);
 assert.match(matrix,/data-capability-key="writing_evaluator"[\s\S]*data-save-capability="writing_evaluator"/);
 const linguisticRow=matrix.match(/data-capability-key="writing_linguistic"[\s\S]*?(?=<\/div><div class="admin-capability-row")/)?.[0] || '';
 const speechRow=matrix.match(/data-capability-key="speech_asr"[\s\S]*?(?=<\/div><div class="admin-capability-row")/)?.[0] || '';
@@ -118,6 +127,26 @@ assert.doesNotMatch(speechRow,/data-save-capability=/);
 assert.doesNotMatch(matrix,/secret|token|api_key/i);
 assert.doesNotMatch(modelGrid,/data-use-provider|data-test-provider/);
 assert.deepEqual(rendered.calls.map(call=>call.method),['GET','GET']);
+assert.equal(rendered.elements.get('#adminCapabilityMatrix').querySelectorAll('[data-health-capability]').length,3);
+
+const healthSuccess=await runAdmin([
+  {ok:true,json:async()=>payload},
+  {ok:true,json:async()=>({ok:true,capability:'writing_evaluator',provider:'openai',model:'model-1',latency_ms:23})},
+]);
+const healthButton=healthSuccess.elements.get('#adminCapabilityMatrix').querySelectorAll('[data-health-capability]')[0];
+assert.equal(healthButton.dataset.healthCapability,'writing_evaluator');
+await healthButton.click();
+assert.equal(healthButton.closest().querySelector('[data-capability-health-status]').textContent,'Healthy · 23 ms');
+assert.deepEqual(healthSuccess.calls.map(call=>call.method),['GET','GET','POST']);
+
+const healthFailure=await runAdmin([
+  {ok:true,json:async()=>payload},
+  {ok:false,json:async()=>({detail:{error_class:'provider_unavailable',error:'token=super-secret'}})},
+]);
+const failingHealth=healthFailure.elements.get('#adminCapabilityMatrix').querySelectorAll('[data-health-capability]')[0];
+await failingHealth.click();
+assert.equal(failingHealth.closest().querySelector('[data-capability-health-status]').textContent,'Provider unavailable');
+assert.doesNotMatch(healthFailure.elements.get('#adminCapabilityMatrix').innerHTML,/super-secret|token/i);
 
 const saveResponses=[
   {ok:true,json:async()=>payload},
