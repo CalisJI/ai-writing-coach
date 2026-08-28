@@ -91,6 +91,7 @@ def main() -> None:
         root / "scripts" / "test_r11_listening_progress.mjs",
         root / "scripts" / "test_r12_listening_return.mjs",
         root / "scripts" / "test_r12_listening_habit_home.mjs",
+        root / "scripts" / "test_r12_next_practice_plan.mjs",
         root / "scripts" / "test_r10_reading_flow.mjs",
         root / "scripts" / "test_speaking_core.mjs",
         root / "scripts" / "test_speaking_groq_flow.mjs",
@@ -435,6 +436,10 @@ def main() -> None:
         "listeningHabitSnapshot", "data-home-listening-habit",
         "data-home-listening-goal", "listening_habit_unavailable",
     ], "Home Listening habit snapshot")
+    require_contains(errors, screens["home"], [
+        "nextPracticePlan", "data-home-next-plan", "data-home-next-plan-action",
+        "readingReturnEvidence", "speakingReturnEvidence",
+    ], "Home cross-skill next-practice plan")
 
     # Design philosophy contract: every current/future route requires explicit learner-goal metadata.
     route_match = re.search(r"VALID\s*=\s*new Set\(\[([^\]]+)\]\)", router, re.S)

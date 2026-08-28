@@ -5,6 +5,7 @@ import {go} from '../router.js';
 import {homeInsight,metricOverview} from '../domain/feedback.js';
 import {requestLessonAutostart,resumableLesson} from '../domain/media-lesson-history.js';
 import {listeningHabitSnapshot} from '../domain/listening-habit.js';
+import {getSharedMediaSession,selectSharedMediaSegment} from '../domain/shared-media-session.js';
 import {attr,esc,errorBlock,loadingBlock,runBusy,sectionHeading,helpTip} from '../components/primitives.js';
 import {t,categoryLabel,masteryLabel,statusLabel,practiceModeLabel,topicLabel,unitLabel,uiLocale} from '../domain/i18n.js';
 
@@ -509,6 +510,49 @@ function listeningHabitSignal(snapshot){
   </section>`;
 }
 
+function readingReturnEvidence(history){
+  const items=Array.isArray(history)?history:(Array.isArray(history?.items)?history.items:[]);
+  return items.find(item=>item&&Number.isInteger(Number(item.id))&&item.latest_attempt==null)||null;
+}
+
+function speakingReturnEvidence(history,session){
+  const items=Array.isArray(history)?history:(Array.isArray(history?.items)?history.items:[]);
+  const assetId=session?.payload?.asset?.asset_id;
+  const segments=Array.isArray(session?.payload?.transcript?.segments)
+    ?session.payload.transcript.segments
+      .map(segment=>segment?.segment_id)
+      .filter(value=>typeof value==='string'&&value)
+    :[];
+  if(assetId==null||segments.length===0)return null;
+  return items.find(item=>item&&String(item.asset_id)===String(assetId)
+    &&item.segment_id!=null&&segments.includes(String(item.segment_id)))||null;
+}
+
+function nextPracticePlan({recommendation,readingHistory,speakingHistory,listeningResume}){
+  if(recommendation&&recommendation.intent!=='baseline')return {kind:'writing'};
+  const reading=readingReturnEvidence(readingHistory);
+  if(reading)return {kind:'reading',sessionId:reading.id};
+  if(listeningResume)return {kind:'listening',lesson:listeningResume};
+  const speakingSession=getSharedMediaSession(state.language);
+  const speaking=speakingReturnEvidence(speakingHistory,speakingSession);
+  if(speaking)return {kind:'speaking',segmentId:String(speaking.segment_id)};
+  return null;
+}
+
+function nextPracticePlanSignal(plan){
+  const kind=plan?.kind||'empty';
+  if(kind==='empty')return `<section class="o-card o-panel home-next-plan" data-home-next-plan data-plan-kind="empty">
+    <span class="o-label">${esc(t('home.next_plan_title'))}</span>
+    <p class="o-panel-copy">${esc(t('home.next_plan_empty'))}</p>
+  </section>`;
+  const title=t(`home.next_plan_${kind}_title`);
+  const body=t(`home.next_plan_${kind}_body`);
+  return `<section class="o-card o-panel home-next-plan" data-home-next-plan data-plan-kind="${kind}">
+    <div><span class="o-label">${esc(t('home.next_plan_title'))}</span><h2>${esc(title)}</h2><p class="o-panel-copy">${esc(body)}</p></div>
+    <button class="o-btn o-btn--primary o-btn--compact" type="button" data-home-next-plan-action>${esc(t('home.next_plan_action'))}</button>
+  </section>`;
+}
+
 function homeCurrentPiece(currentEssay){
   if(!currentEssay){
     return `<aside class="o-hero-piece o-hero-piece--empty">
@@ -589,12 +633,14 @@ export async function renderHome(root){
   root.innerHTML=`<section class="page">${loadingBlock(5)}</section>`;
 
   try{
-    const [dashboard,essays,memory,recommendation,outcomes]=await Promise.all([
+    const [dashboard,essays,memory,recommendation,outcomes,readingHistory,speakingHistory]=await Promise.all([
       api.dashboard(),
       api.essays(),
       api.learningMemory(),
       api.practiceRecommendation(),
       api.practiceOutcomes(1),
+      Promise.resolve().then(()=>api.readingSessions(8)).catch(()=>null),
+      Promise.resolve().then(()=>api.speakingAttempts(1)).catch(()=>null),
     ]);
     /* The library panel is additive: Home is still useful without it, so a
        failure here degrades that one card rather than the screen. */
@@ -614,12 +660,14 @@ export async function renderHome(root){
     const currentEssay=sortedEssays(essays)[0]||null;
     const listeningResume=resumableLesson(state.language);
     const listeningHabit=listeningHabitSnapshot();
+    const nextPlan=nextPracticePlan({recommendation,readingHistory,speakingHistory,listeningResume});
 
     root.innerHTML=`<div class="o-page">
       <div class="o-home">
         ${homeHero(insight,personalized,currentEssay)}
         ${listeningResumeSignal(listeningResume)}
         ${listeningHabitSignal(listeningHabit)}
+        ${nextPracticePlanSignal(nextPlan)}
         ${writingDashboardMarkup(dashboard,essays,memory)}
 
         <div class="o-home-split">
@@ -693,6 +741,31 @@ export async function renderHome(root){
       go('listen');
     });
     root.querySelector('[data-home-listening-goal]')?.addEventListener('click',()=>go('listen'));
+    root.querySelector('[data-home-next-plan-action]')?.addEventListener('click',async()=>{
+      if(!nextPlan)return;
+      if(nextPlan.kind==='writing'){
+        await root.querySelector('#homePrimary')?.click();
+      }else if(nextPlan.kind==='listening'&&nextPlan.lesson?.source_url){
+        requestLessonAutostart(state.language,nextPlan.lesson.source_url,nextPlan.lesson);
+        go('listen');
+      }else if(nextPlan.kind==='reading'){
+        try{
+          const loaded=await api.readingSession(nextPlan.sessionId);
+          if(loaded?.found&&loaded.session){
+            state.readingSession=loaded.session;
+            state.readingResult=null;
+            go('read');
+            return;
+          }
+        }catch{}
+        state.readingSession=null;
+        state.readingResult=null;
+        go('read');
+      }else if(nextPlan.kind==='speaking'){
+        selectSharedMediaSegment(state.language,nextPlan.segmentId);
+        go('speak');
+      }
+    });
 
     root.querySelectorAll('[data-home-open-grammar]').forEach(button=>button.addEventListener('click',()=>{
       const id=button.dataset.homeOpenGrammar;

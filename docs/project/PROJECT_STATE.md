@@ -403,6 +403,10 @@ The post-R5 roadmap uses one primary learner-visible lane.
   malformed or unavailable local records remain explicitly unclaimed. No
   transcript/audio payload is stored and public retention promotion remains
   deferred.
+- R12 also composes one prioritized, localized Home next-practice plan from
+  existing Writing, Reading, Listening, and Speaking evidence. It reuses the
+  established flow for each available action and stays quiet when evidence is
+  unavailable; it creates no new progress or completion claim.
 - **R2 — AI Capability Control Plane: HUMAN GATE / READY.**
   Static/runtime support exists. Production migration/config initialization,
   credentialed validation, activation, and rollback execution remain human

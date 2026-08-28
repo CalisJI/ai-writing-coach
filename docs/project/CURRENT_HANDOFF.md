@@ -39,6 +39,11 @@ baseline.
   goal control; malformed or unavailable local records remain explicitly
   unclaimed. No media payload is persisted and no public capability was
   activated.
+- R12's next-practice slice now composes one prioritized Home return plan from
+  existing Writing recommendation, unfinished Reading sessions, recent
+  Listening history, and Speaking evidence when a prepared media session is
+  available. Each action reuses its established route/handoff; unavailable
+  evidence yields a localized empty state and no completion/progress claim.
 
 - R6 — Speaking Core: **COMPLETE / LOCAL ACCEPTANCE PASS**
 - R2 — AI Capability Control Plane: **HUMAN GATE / READY, NOT PRODUCT-BLOCKING**
