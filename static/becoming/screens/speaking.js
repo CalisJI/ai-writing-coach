@@ -374,6 +374,12 @@ function scoreBand(value){
   return 'weak';
 }
 
+function transcriptionConfidence(value){
+  return typeof value==='number'&&Number.isFinite(value)&&value>=0&&value<=100
+    ?Math.round(value*100)/100
+    :null;
+}
+
 /* A ring, or the space one would take. r=19 on a 44 box gives a 119.4
    circumference, which the arc length is a straight percentage of. */
 const RING_LENGTH=2*Math.PI*19;
@@ -621,6 +627,7 @@ export function createSpeakingController({session,recorder=createLocalAudioRecor
     asrStatus:'idle',
     asrTranscript:'',
     asrWords:[],
+    transcriptionConfidence:null,
     asrError:'',
     asrErrorMessage:'',
     evaluation:null,
@@ -653,7 +660,7 @@ export function createSpeakingController({session,recorder=createLocalAudioRecor
         transcript_text:model.asrTranscript,
         content_match:model.evaluation,
         pronunciation:model.pronunciation,
-        transcription_confidence:null,
+        transcription_confidence:model.transcriptionConfidence,
       });
       if(generation!==speakingEvaluationGeneration)return false;
       model.speakingEvaluation=result;
@@ -817,6 +824,7 @@ export function createSpeakingController({session,recorder=createLocalAudioRecor
       model.asrStatus='idle';
       model.asrTranscript='';
       model.asrWords=[];
+      model.transcriptionConfidence=null;
       model.asrError='';
       model.evaluation=null;
       model.speakingEvaluationStatus='idle';
@@ -849,6 +857,7 @@ export function createSpeakingController({session,recorder=createLocalAudioRecor
       model.asrStatus='idle';
       model.asrTranscript='';
       model.asrWords=[];
+      model.transcriptionConfidence=null;
       model.asrError='';
       model.evaluation=null;
       model.speakingEvaluationStatus='idle';
@@ -889,6 +898,9 @@ export function createSpeakingController({session,recorder=createLocalAudioRecor
         if(takeGeneration!==asrGeneration||model.selected!==takeSegmentId)return false;
         model.asrTranscript=typeof response?.text==='string'?response.text.trim():'';
         model.asrWords=Array.isArray(response?.words)?response.words:[];
+        model.transcriptionConfidence=transcriptionConfidence(
+          response?.transcription_confidence??response?.confidence,
+        );
         model.asrStatus='ready';
         if(model.asrTranscript){
           model.evaluation=evaluateSpeechTranscript(takeSegment.original_text||'',model.asrTranscript);
@@ -954,6 +966,7 @@ export function createSpeakingController({session,recorder=createLocalAudioRecor
         model.asrStatus='idle';
         model.asrTranscript='';
         model.asrWords=[];
+        model.transcriptionConfidence=null;
         model.asrError='';
         model.evaluation=null;
         model.speakingEvaluationStatus='idle';

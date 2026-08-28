@@ -323,10 +323,11 @@ Reserved in the R2 control plane and not activated:
 - `speech_asr` — R6 currently uses a direct internal Groq ASR adapter outside
   control-plane activation.
 
-Reserved and unimplemented:
+Reserved for later public/capability activation:
 
-- `pronunciation_evaluator`
-- `speaking_evaluator`
+- `pronunciation_evaluator` public activation
+- `speaking_evaluator` public activation (the internal per-take contract is
+  locally verified below)
 
 Capability configuration is product-wide. Per-language capability IDs such as
 `writing_evaluator_en` and `writing_evaluator_zh` do not exist and must not be
@@ -357,6 +358,13 @@ The post-R5 roadmap uses one primary learner-visible lane.
   remain transient; no pronunciation, fluency, proficiency, or durable-progress
   claim is made. The verified R3/R4 Writing and Grammar-transfer contracts are
   unchanged.
+- **R7 — Speaking Evaluation + Pronunciation: INTERNAL PER-TAKE SLICE COMPLETE.**
+  Mounted EN/ZH take flows carry reference text, transcript, optional ASR
+  confidence, content-match evidence, and optional pronunciation evidence into
+  the existing evaluator. Feedback keeps measured dimensions separate and
+  marks proficiency unassessed; synthetic and failure provenance remain
+  transient. Durable attempts, public activation, and broader release work are
+  not part of this slice.
 - **R2 — AI Capability Control Plane: HUMAN GATE / READY.**
   Static/runtime support exists. Production migration/config initialization,
   credentialed validation, activation, and rollback execution remain human
@@ -370,7 +378,7 @@ The post-R5 roadmap uses one primary learner-visible lane.
 
 The intended product sequence is:
 
-`R3 → R4 → finish remaining R6 core gaps → R7 → R8`
+`R3 → R4 → R6 → R7 → R8`
 
 R2 production activation is completed when explicitly authorized and before a
 public capability-dependent release requires it.

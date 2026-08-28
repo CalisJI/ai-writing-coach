@@ -63,6 +63,7 @@ const controller=createSpeakingController({
   recorder,
   transcribe:async()=>({
     text:'Listen for the first complete idea.',
+    confidence:93,
     words:[],
   }),
   pronunciationAssess:async()=>({
@@ -105,7 +106,7 @@ const controller=createSpeakingController({
     return {
       language:payload.language,
       dimensions:{
-        transcription_confidence:null,
+        transcription_confidence:payload.transcription_confidence,
         content_match:100,
         pronunciation:payload.pronunciation?88:null,
         fluency:payload.pronunciation?82:null,
@@ -136,8 +137,9 @@ assert.deepEqual(evaluationPayloads[0],{
   transcript_text:'Listen for the first complete idea.',
   content_match:controller.model.evaluation,
   pronunciation:null,
-  transcription_confidence:null,
+  transcription_confidence:93,
 });
+assert.equal(controller.model.transcriptionConfidence,93);
 assert.match(controller.html(),/data-speaking-content-match/);
 assert.match(controller.html(),/data-speaking-evaluation-state="ready"/);
 assert.match(controller.html(),/Take evaluation/);
@@ -566,8 +568,8 @@ const originalSpeechApi={
   evaluateSpeaking:api.evaluateSpeaking,
 };
 const renderedCases=[
-  {language:'en',supportLanguage:'en',payload:MEDIA_LEARNING_FIXTURE,text:'Listen for the first complete idea.'},
-  {language:'zh',supportLanguage:'zh',payload:MEDIA_LEARNING_ZH_FIXTURE,text:'这是共享的原文字幕。'},
+  {language:'en',supportLanguage:'en',payload:MEDIA_LEARNING_FIXTURE,text:'Listen for the first complete idea.',confidence:92},
+  {language:'zh',supportLanguage:'zh',payload:MEDIA_LEARNING_ZH_FIXTURE,text:'这是共享的原文字幕。',confidence:null},
 ];
 try{
   for(const item of renderedCases){
@@ -587,14 +589,18 @@ try{
       discard(){recording=false;return true;},
       cleanup(){},
     };
-    api.transcribeSpeech=async()=>({text:item.text,words:[]});
+    api.transcribeSpeech=async()=>({
+      text:item.text,
+      ...(item.confidence===null?{}:{confidence:item.confidence}),
+      words:[],
+    });
     api.assessPronunciation=async()=>null;
     let renderedEvaluationPayload=null;
     api.evaluateSpeaking=async payload=>{
       renderedEvaluationPayload=payload;
       return {
       language:payload.language,
-      dimensions:{transcription_confidence:null,content_match:100,pronunciation:null,fluency:null,proficiency:null},
+      dimensions:{transcription_confidence:payload.transcription_confidence,content_match:100,pronunciation:null,fluency:null,proficiency:null},
       evidence:{reference_text:payload.reference_text,transcript_text:payload.transcript_text},
       };
     };
@@ -616,9 +622,17 @@ try{
     assert.equal(renderedEvaluationPayload.language,item.language);
     assert.equal(renderedEvaluationPayload.reference_text,item.text);
     assert.equal(renderedEvaluationPayload.transcript_text,item.text);
+    assert.equal(renderedEvaluationPayload.transcription_confidence,item.confidence);
     assert.match(renderedRoot.innerHTML,/data-speaking-content-match/);
     assert.match(renderedRoot.innerHTML,/data-speaking-evaluation-state="ready"/);
     assert.equal(renderedRoot.innerHTML.includes(item.text),true);
+    assert.match(renderedRoot.innerHTML,/Not assessed|未评估/);
+    if(item.confidence===null){
+      assert.doesNotMatch(renderedRoot.innerHTML,/92/);
+    }else{
+      assert.match(renderedRoot.innerHTML,/Transcription confidence/);
+      assert.match(renderedRoot.innerHTML,/92/);
+    }
     assert.match(renderedRoot.innerHTML,item.language==='zh'?/本次录音评估/:/Take evaluation/);
     renderedRoot._cleanupScreen?.();
   }

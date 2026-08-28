@@ -42,8 +42,11 @@ baseline.
 - R7 now has an internal `speaking_evaluator` contract that normalizes one take
   into separate transcription-confidence, content-match, pronunciation,
   fluency, and explicitly-unassessed proficiency dimensions. It preserves
-  word/phoneme evidence and synthetic-demo provenance, but does not yet expose
-  a public route, persist attempts, or activate the reserved AI capability.
+  word/phoneme evidence and synthetic-demo provenance. The EN/ZH mounted
+  per-take matrix now carries optional ASR confidence through the evaluator and
+  renders measured versus unavailable dimensions without composite claims. It
+  does not expose a public route, persist attempts, or activate the reserved AI
+  capability.
 
 **Closed programs protected from casual rewrite:**
 
