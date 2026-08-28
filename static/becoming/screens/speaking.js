@@ -85,6 +85,12 @@ const COPY={
 };
 
 const copy=()=>COPY[uiLocale()]||COPY.en;
+const HISTORY_COPY={
+  en:{title:'Speaking history',empty:'No completed takes yet.',attempts:'completed takes',content:'content',pronunciation:'pronunciation',fluency:'fluency',notMeasured:'not measured',saveFailed:'This take is ready here, but its history could not be saved.',saveUnavailable:'Speaking history is not available in this environment.'},
+  vi:{title:'Lịch sử luyện nói',empty:'Chưa có lượt ghi nào hoàn tất.',attempts:'lượt đã hoàn tất',content:'nội dung',pronunciation:'phát âm',fluency:'độ trôi chảy',notMeasured:'chưa đo',saveFailed:'Lượt ghi đã sẵn sàng ở đây nhưng không thể lưu vào lịch sử.',saveUnavailable:'Lịch sử luyện nói chưa khả dụng trong môi trường này.'},
+  zh:{title:'口语记录',empty:'还没有完成的录音。',attempts:'次已完成录音',content:'内容',pronunciation:'发音',fluency:'流利度',notMeasured:'未测量',saveFailed:'本次录音可在此查看，但无法保存到记录中。',saveUnavailable:'当前环境无法使用口语记录。'},
+};
+const historyCopy=()=>HISTORY_COPY[uiLocale()]||HISTORY_COPY.en;
 const ASR_COPY={
   en:{busy:'Transcribing your take...',result:'What Orena heard',failed:'Could not transcribe this take. You can still play it back and retry.',providerFailure:'The speech recognition provider failed. You can play back the take and try again.',unconfigured:'Speech recognition is not configured on this environment.',access:'Speech recognition access is not available in this environment. Please contact the administrator.',invalid:'This recording request is not valid.',unprocessed:'This recording could not be processed. Try recording again.',large:'This recording is too large.',timeout:'Speech recognition timed out. Try again shortly.',rateLimited:'Speech recognition is rate-limited. Try again shortly.',capacity:'Speech recognition capacity is temporarily unavailable. Try again shortly.',malformed:'Speech recognition returned no usable transcript.'},
   vi:{busy:'Đang nhận dạng lượt nói...',result:'Orena nghe được',failed:'Chưa thể nhận dạng lượt nói này. Bạn vẫn có thể nghe lại và thử lại.',providerFailure:'Dịch vụ nhận dạng lời nói gặp lỗi. Bạn có thể nghe lại lượt ghi và thử lại.',unconfigured:'Môi trường này chưa cấu hình dịch vụ nhận dạng lời nói.',access:'Môi trường này không có quyền dùng dịch vụ nhận dạng lời nói. Hãy liên hệ quản trị viên.',invalid:'Yêu cầu nhận dạng lượt ghi này không hợp lệ.',unprocessed:'Không thể xử lý lượt ghi này. Hãy ghi lại.',large:'Lượt ghi này quá lớn.',timeout:'Nhận dạng lời nói đã hết thời gian. Hãy thử lại sau ít phút.',rateLimited:'Dịch vụ nhận dạng lời nói đang giới hạn lượt gọi. Hãy thử lại sau ít phút.',capacity:'Dịch vụ nhận dạng lời nói tạm thời quá tải. Hãy thử lại sau ít phút.',malformed:'Dịch vụ nhận dạng không trả về bản ghi lời nói dùng được.'},
@@ -551,6 +557,32 @@ function sourceCheck(model){
   </div>`;
 }
 
+function speakingHistory(model){
+  const h=historyCopy();
+  const progress=model.attemptProgress;
+  const saveStatus=model.attemptPersistStatus;
+  if(!progress&&!['error','unavailable'].includes(saveStatus))return '';
+  const score=(label,value)=>`${esc(label)}: ${value==null?esc(h.notMeasured):Math.round(value)}`;
+  const items=Array.isArray(model.attemptHistory)?model.attemptHistory.slice(0,5):[];
+  const status=saveStatus==='unavailable'?h.saveUnavailable:saveStatus==='error'?h.saveFailed:'';
+  if(!progress)return `<section class="o-card o-speaking-history" data-speaking-history><span class="o-label">${esc(h.title)}</span><p data-speaking-history-status>${esc(status)}</p></section>`;
+  return `<section class="o-card o-speaking-history" data-speaking-history>
+    <div class="o-speaking-history-head"><div><span class="o-label">${esc(h.title)}</span>
+      <h3>${esc(String(progress.attempt_count||0))} ${esc(h.attempts)}</h3></div>
+      <div class="o-speaking-history-progress" aria-label="${esc(h.title)}">
+        <span>${score(h.content,progress.average_content_match)}</span>
+        <span>${score(h.pronunciation,progress.average_pronunciation)}</span>
+        <span>${score(h.fluency,progress.average_fluency)}</span>
+      </div></div>
+    ${status?`<p data-speaking-history-status>${esc(status)}</p>`:''}
+    ${items.length?`<ol>${items.map(item=>`<li data-speaking-history-item>
+      <strong>${esc(item.segment_id||'')}</strong>
+      <span>${score(h.content,item.dimensions?.content_match)} · ${score(h.pronunciation,item.dimensions?.pronunciation)} · ${score(h.fluency,item.dimensions?.fluency)}</span>
+      <p>${esc(item.transcript_text||'')}</p>
+    </li>`).join('')}</ol>`:`<p>${esc(h.empty)}</p>`}
+  </section>`;
+}
+
 /* Provider evidence belongs below the headline scores: it answers which word
    or sound needs another pass without pretending that a single ring explains
    pronunciation. Synthetic demo payloads use the same shape and remain
@@ -614,7 +646,7 @@ function emptyPage(){
   </section>`;
 }
 
-export function createSpeakingController({session,recorder=createLocalAudioRecorder(),transcribe=api.transcribeSpeech,pronunciationAssess=api.assessPronunciation,evaluateSpeaking=api.evaluateSpeaking,onChange=()=>{}}={}){
+export function createSpeakingController({session,recorder=createLocalAudioRecorder(),transcribe=api.transcribeSpeech,pronunciationAssess=api.assessPronunciation,evaluateSpeaking=api.evaluateSpeaking,persistAttempt=null,loadAttempts=null,onChange=()=>{}}={}){
   const payload=session?.payload||null;
   const segments=payload?.transcript?.segments||[];
   const ids=segments.map(segment=>segment.segment_id);
@@ -635,6 +667,10 @@ export function createSpeakingController({session,recorder=createLocalAudioRecor
     speakingEvaluation:null,
     speakingEvaluationErrorCategory:'',
     speakingEvaluationErrorMessage:'',
+    takeId:null,
+    attemptPersistStatus:'idle',
+    attemptHistory:[],
+    attemptProgress:null,
     pronunciationStatus:'idle',
     pronunciation:null,
     pronunciationError:'',
@@ -644,6 +680,32 @@ export function createSpeakingController({session,recorder=createLocalAudioRecor
   let speakingEvaluationGeneration=0;
   let asrGeneration=0;
   const changed=()=>onChange({...model});
+
+  async function persistCurrentAttempt(selectedSegment, result){
+    if(!model.takeId||typeof persistAttempt!=='function')return false;
+    try{
+      const response=await persistAttempt({
+        language:session.learning_language,
+        take_id:model.takeId,
+        asset_id:session.payload?.asset?.asset_id||'',
+        segment_id:selectedSegment.segment_id||'',
+        reference_text:selectedSegment.original_text||'',
+        transcript_text:model.asrTranscript,
+        evaluation:result,
+      });
+      if(response?.item&&typeof response.item==='object'){
+        const currentId=response.item.take_id||model.takeId;
+        model.attemptHistory=[response.item,...(Array.isArray(model.attemptHistory)?model.attemptHistory:[])
+          .filter(item=>item?.take_id!==currentId)].slice(0,100);
+      }
+      if(response?.progress&&typeof response.progress==='object')model.attemptProgress=response.progress;
+      model.attemptPersistStatus='saved';
+      return true;
+    }catch(error){
+      model.attemptPersistStatus=error?.category==='speaking_attempts_unconfigured'?'unavailable':'error';
+      return false;
+    }
+  }
 
   async function refreshSpeakingEvaluation(selectedSegment=segments.find(item=>item.segment_id===model.selected)){
     if(!selectedSegment||!model.asrTranscript||typeof evaluateSpeaking!=='function')return false;
@@ -665,6 +727,7 @@ export function createSpeakingController({session,recorder=createLocalAudioRecor
       if(generation!==speakingEvaluationGeneration)return false;
       model.speakingEvaluation=result;
       model.speakingEvaluationStatus='ready';
+      await persistCurrentAttempt(selectedSegment,result);
       changed();
       return true;
     }catch(error){
@@ -803,6 +866,7 @@ export function createSpeakingController({session,recorder=createLocalAudioRecor
             </div>
 
             <p class="o-speak-privacy">${esc(matchCopy().privacy)}</p>
+            ${speakingHistory(model)}
           </div>
 
           ${feedbackRail(model)}
@@ -831,6 +895,8 @@ export function createSpeakingController({session,recorder=createLocalAudioRecor
       model.speakingEvaluation=null;
       model.speakingEvaluationErrorCategory='';
       model.speakingEvaluationErrorMessage='';
+      model.takeId=null;
+      model.attemptPersistStatus='idle';
       selectSharedMediaSegment(session.learning_language,segmentId);
       changed();
       return true;
@@ -864,6 +930,8 @@ export function createSpeakingController({session,recorder=createLocalAudioRecor
       model.speakingEvaluation=null;
       model.speakingEvaluationErrorCategory='';
       model.speakingEvaluationErrorMessage='';
+      model.takeId=null;
+      model.attemptPersistStatus='idle';
       const started=await recorder.start();
       changed();
       return started;
@@ -879,6 +947,8 @@ export function createSpeakingController({session,recorder=createLocalAudioRecor
       }
       if(takeGeneration!==asrGeneration||model.selected!==takeSegmentId||!takeSegment)return false;
 
+      model.takeId=globalThis.crypto?.randomUUID?.()||`take-${Date.now()}-${Math.random().toString(36).slice(2,10)}`;
+      model.attemptPersistStatus='pending';
       model.attempts[model.selected]=(model.attempts[model.selected]||0)+1;
       model.asrStatus='loading';
       model.asrTranscript='';
@@ -973,6 +1043,8 @@ export function createSpeakingController({session,recorder=createLocalAudioRecor
         model.speakingEvaluation=null;
         model.speakingEvaluationErrorCategory='';
         model.speakingEvaluationErrorMessage='';
+        model.takeId=null;
+        model.attemptPersistStatus='idle';
         changed();
       }
       return discarded;
@@ -981,6 +1053,21 @@ export function createSpeakingController({session,recorder=createLocalAudioRecor
       if(![.75,1,1.25].includes(value))return false;
       model.playbackRate=value;
       return true;
+    },
+    async loadHistory(){
+      if(typeof loadAttempts!=='function')return false;
+      try{
+        const result=await loadAttempts(50);
+        model.attemptHistory=Array.isArray(result?.items)?result.items:[];
+        model.attemptProgress=result?.progress&&typeof result.progress==='object'?result.progress:null;
+        changed();
+        return true;
+      }catch(error){
+        model.attemptHistory=[];
+        model.attemptProgress=null;
+        changed();
+        return false;
+      }
     },
     cleanup(){recorder.cleanup();},
   };
@@ -1003,7 +1090,7 @@ function showRubric(){
     <p>${esc(matchCopy().privacy)}</p>`);
 }
 
-export async function renderSpeaking(root,{recorderFactory=createLocalAudioRecorder}={}){
+export async function renderSpeaking(root,{recorderFactory=createLocalAudioRecorder,persistAttempt=api.saveSpeakingAttempt,loadAttempts=api.speakingAttempts}={}){
   const session=getSharedMediaSession(state.language);
   if(!session){
     root.innerHTML=emptyPage();
@@ -1088,8 +1175,9 @@ export async function renderSpeaking(root,{recorderFactory=createLocalAudioRecor
     }
   };
 
-  controller=createSpeakingController({session,recorder:recorderFactory(),onChange:render});
+  controller=createSpeakingController({session,recorder:recorderFactory(),persistAttempt,loadAttempts,onChange:render});
   root._cleanupScreen=()=>{disposed=true;stopTicker();controller.cleanup();};
   render();
+  controller.loadHistory();
   return controller;
 }

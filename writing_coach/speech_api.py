@@ -2,12 +2,16 @@
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
+import json
+import math
 from typing import Any
 
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 from pydantic import BaseModel
 
 from writing_coach.core.errors import orena_http_error
+from writing_coach.core.request_context import current_language_code
 
 from writing_coach.speech_pronunciation import (
     SpeechPronunciationConversionFailed,
@@ -34,6 +38,7 @@ from writing_coach.speaking_evaluator import (
 router = APIRouter(prefix="/api/speech", tags=["speech"])
 _speech_asr_provider: SpeechAsrProvider | None = None
 _speech_pronunciation_provider: SpeechPronunciationProvider | None = None
+_speaking_attempt_repository: Any = None
 
 
 def configure_speech_asr(provider: SpeechAsrProvider | None) -> None:
@@ -44,6 +49,12 @@ def configure_speech_asr(provider: SpeechAsrProvider | None) -> None:
 def configure_speech_pronunciation(provider: SpeechPronunciationProvider | None) -> None:
     global _speech_pronunciation_provider
     _speech_pronunciation_provider = provider
+
+
+def configure_speaking_attempt_repository(repository: Any) -> None:
+    """Attach the scoped persistence boundary for completed Speaking takes."""
+    global _speaking_attempt_repository
+    _speaking_attempt_repository = repository
 
 
 def _provider() -> SpeechAsrProvider:
@@ -81,6 +92,188 @@ class SpeakingEvaluationIn(BaseModel):
     content_match: Any = None
     pronunciation: Any = None
     transcription_confidence: Any = None
+
+
+class SpeakingAttemptIn(BaseModel):
+    """Client envelope for one already-completed, audio-free evaluation."""
+
+    language: Any = ""
+    take_id: Any = ""
+    asset_id: Any = ""
+    segment_id: Any = ""
+    reference_text: Any = ""
+    transcript_text: Any = ""
+    evaluation: Any = None
+
+
+def _attempt_text(value: Any, field: str, *, max_chars: int, required: bool = True) -> str:
+    if not isinstance(value, str):
+        raise SpeakingEvaluationInvalid(f"{field} must be text.")
+    result = value.strip()
+    if required and not result:
+        raise SpeakingEvaluationInvalid(f"{field} must not be empty.")
+    if len(result) > max_chars:
+        raise SpeakingEvaluationInvalid(f"{field} is too long.")
+    return result
+
+
+def _normalize_speaking_attempt(payload: SpeakingAttemptIn) -> dict[str, Any]:
+    language = _attempt_text(payload.language, "language", max_chars=8).casefold()
+    if language not in {"en", "zh"}:
+        raise SpeakingEvaluationInvalid("language must be 'en' or 'zh'.")
+    scoped_language = current_language_code().strip().casefold()
+    if scoped_language in {"en", "zh"} and language != scoped_language:
+        raise SpeakingEvaluationInvalid("language does not match the learner scope.")
+    take_id = _attempt_text(payload.take_id, "take_id", max_chars=120)
+    asset_id = _attempt_text(payload.asset_id, "asset_id", max_chars=255, required=False)
+    segment_id = _attempt_text(payload.segment_id, "segment_id", max_chars=255)
+    reference = _attempt_text(payload.reference_text, "reference_text", max_chars=1200)
+    transcript = _attempt_text(payload.transcript_text, "transcript_text", max_chars=2400)
+    evaluation = payload.evaluation
+    if not isinstance(evaluation, dict):
+        raise SpeakingEvaluationInvalid("evaluation must be an object.")
+    dimensions = evaluation.get("dimensions")
+    provenance = evaluation.get("provenance")
+    evidence = evaluation.get("evidence")
+    if not isinstance(dimensions, dict) or not isinstance(provenance, dict) or not isinstance(evidence, dict):
+        raise SpeakingEvaluationInvalid("evaluation envelope is incomplete.")
+    if dimensions.get("proficiency") is not None:
+        raise SpeakingEvaluationInvalid("proficiency is not persisted by Speaking.")
+    bounded_dimensions: dict[str, float | None] = {}
+    for key in ("transcription_confidence", "content_match", "pronunciation", "fluency"):
+        value = dimensions.get(key)
+        if value is None:
+            bounded_dimensions[key] = None
+            continue
+        if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(float(value)) or not 0 <= float(value) <= 100:
+            raise SpeakingEvaluationInvalid(f"dimensions.{key} is invalid.")
+        bounded_dimensions[key] = round(float(value), 2)
+    def text_list(value: Any, field: str, limit: int) -> list[str]:
+        if not isinstance(value, list):
+            raise SpeakingEvaluationInvalid(f"{field} must be a list.")
+        result: list[str] = []
+        for item in value[:limit]:
+            if not isinstance(item, str):
+                raise SpeakingEvaluationInvalid(f"{field} must contain text.")
+            result.append(_attempt_text(item, field, max_chars=160))
+        return result
+
+    def score(value: Any, field: str) -> float | None:
+        if value is None:
+            return None
+        if isinstance(value, bool) or not isinstance(value, (int, float)):
+            raise SpeakingEvaluationInvalid(f"{field} is invalid.")
+        if not math.isfinite(float(value)) or not 0 <= float(value) <= 100:
+            raise SpeakingEvaluationInvalid(f"{field} is invalid.")
+        return round(float(value), 2)
+
+    if set(evidence) - {"reference_text", "recognized_text", "content", "pronunciation", "synthetic_demo", "highlights", "next_steps"}:
+        raise SpeakingEvaluationInvalid("evaluation evidence contains unsupported fields.")
+    normalized_evidence: dict[str, Any] = {}
+    for key in ("reference_text", "recognized_text"):
+        if key in evidence:
+            normalized_evidence[key] = _attempt_text(evidence[key], f"evidence.{key}", max_chars=2400)
+    content = evidence.get("content")
+    if content is not None:
+        if not isinstance(content, dict) or set(content) - {"missing_tokens", "extra_tokens"}:
+            raise SpeakingEvaluationInvalid("evidence.content is invalid.")
+        normalized_evidence["content"] = {
+            "missing_tokens": text_list(content.get("missing_tokens", []), "evidence.content.missing_tokens", 20),
+            "extra_tokens": text_list(content.get("extra_tokens", []), "evidence.content.extra_tokens", 20),
+        }
+    pronunciation = evidence.get("pronunciation")
+    if pronunciation is not None:
+        allowed_pronunciation = {"provider", "score_kind", "locale", "accuracy_score", "completeness_score", "prosody_score", "words"}
+        if not isinstance(pronunciation, dict) or set(pronunciation) - allowed_pronunciation:
+            raise SpeakingEvaluationInvalid("evidence.pronunciation is invalid.")
+        normalized_pronunciation: dict[str, Any] = {}
+        for key, max_chars in (("provider", 80), ("score_kind", 40), ("locale", 40)):
+            if key in pronunciation:
+                value = pronunciation[key]
+                if value is not None and not isinstance(value, str):
+                    raise SpeakingEvaluationInvalid(f"evidence.pronunciation.{key} is invalid.")
+                normalized_pronunciation[key] = None if value is None else value[:max_chars]
+        for key in ("accuracy_score", "completeness_score", "prosody_score"):
+            if key in pronunciation:
+                normalized_pronunciation[key] = score(pronunciation[key], f"evidence.pronunciation.{key}")
+        words = pronunciation.get("words", [])
+        if not isinstance(words, list):
+            raise SpeakingEvaluationInvalid("evidence.pronunciation.words is invalid.")
+        normalized_words: list[dict[str, Any]] = []
+        for word in words[:120]:
+            if not isinstance(word, dict) or set(word) - {"word", "accuracy_score", "error_type", "phonemes"}:
+                raise SpeakingEvaluationInvalid("evidence.pronunciation.words is invalid.")
+            word_text = _attempt_text(word.get("word", ""), "evidence.pronunciation.words.word", max_chars=120)
+            phonemes = word.get("phonemes", [])
+            if not isinstance(phonemes, list):
+                raise SpeakingEvaluationInvalid("evidence.pronunciation.words.phonemes is invalid.")
+            normalized_phonemes: list[dict[str, Any]] = []
+            for phoneme in phonemes[:80]:
+                if not isinstance(phoneme, dict) or set(phoneme) - {"phoneme", "accuracy_score"}:
+                    raise SpeakingEvaluationInvalid("evidence.pronunciation.words.phonemes is invalid.")
+                normalized_phonemes.append({
+                    "phoneme": _attempt_text(phoneme.get("phoneme", ""), "evidence.pronunciation.words.phonemes.phoneme", max_chars=40),
+                    "accuracy_score": score(phoneme.get("accuracy_score"), "evidence.pronunciation.words.phonemes.accuracy_score"),
+                })
+            error_type = word.get("error_type", "None")
+            if not isinstance(error_type, str):
+                raise SpeakingEvaluationInvalid("evidence.pronunciation.words.error_type is invalid.")
+            normalized_words.append({
+                "word": word_text,
+                "accuracy_score": score(word.get("accuracy_score"), "evidence.pronunciation.words.accuracy_score"),
+                "error_type": error_type[:60],
+                "phonemes": normalized_phonemes,
+            })
+        normalized_pronunciation["words"] = normalized_words
+        normalized_evidence["pronunciation"] = normalized_pronunciation
+    if "synthetic_demo" in evidence:
+        if not isinstance(evidence["synthetic_demo"], bool):
+            raise SpeakingEvaluationInvalid("evidence.synthetic_demo is invalid.")
+        normalized_evidence["synthetic_demo"] = evidence["synthetic_demo"]
+    if "highlights" in evidence:
+        normalized_evidence["highlights"] = text_list(evidence["highlights"], "evidence.highlights", 20)
+    if "next_steps" in evidence:
+        steps = evidence["next_steps"]
+        if not isinstance(steps, list):
+            raise SpeakingEvaluationInvalid("evidence.next_steps is invalid.")
+        normalized_steps: list[dict[str, Any]] = []
+        for step in steps[:20]:
+            if not isinstance(step, dict) or set(step) - {"kind", "words"} or not isinstance(step.get("kind"), str):
+                raise SpeakingEvaluationInvalid("evidence.next_steps is invalid.")
+            normalized_steps.append({"kind": step["kind"][:80], "words": text_list(step.get("words", []), "evidence.next_steps.words", 20)})
+        normalized_evidence["next_steps"] = normalized_steps
+    allowed_provenance = {
+        "transcription_confidence", "content_match", "pronunciation", "fluency", "proficiency",
+    }
+    if set(provenance) - allowed_provenance:
+        raise SpeakingEvaluationInvalid("evaluation provenance contains unsupported fields.")
+    safe_provenance: dict[str, str | None] = {}
+    for key in allowed_provenance:
+        if key not in provenance:
+            continue
+        value = provenance[key]
+        if value is not None and not isinstance(value, str):
+            raise SpeakingEvaluationInvalid(f"provenance.{key} is invalid.")
+        safe_provenance[key] = None if value is None else value[:120]
+    try:
+        encoded_evidence = json.dumps(normalized_evidence, ensure_ascii=False, separators=(",", ":"))
+        encoded_provenance = json.dumps(safe_provenance, ensure_ascii=False, separators=(",", ":"))
+    except (TypeError, ValueError) as exc:
+        raise SpeakingEvaluationInvalid("evaluation evidence is not JSON-safe.") from exc
+    if len(encoded_evidence) > 100_000 or len(encoded_provenance) > 8_000:
+        raise SpeakingEvaluationInvalid("evaluation evidence is too large.")
+    return {
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "language": language,
+        "take_id": take_id,
+        "asset_id": asset_id,
+        "segment_id": segment_id,
+        "reference_text": reference,
+        "transcript_text": transcript,
+        "dimensions": bounded_dimensions,
+        "provenance": safe_provenance,
+        "evidence": normalized_evidence,
+    }
 
 
 async def _read_upload_limited(file: UploadFile, *, max_bytes: int) -> bytes:
@@ -208,6 +401,38 @@ def evaluate_speaking(payload: SpeakingEvaluationIn) -> dict[str, Any]:
             "speaking_evaluation_invalid",
             str(exc),
         ) from exc
+
+
+@router.post("/attempts")
+def save_speaking_attempt(payload: SpeakingAttemptIn) -> dict[str, Any]:
+    """Persist normalized evaluator evidence without accepting raw audio."""
+    if _speaking_attempt_repository is None:
+        raise orena_http_error(
+            503,
+            "speaking_attempts_unconfigured",
+            "Speaking history is not configured on this environment.",
+        )
+    try:
+        values = _normalize_speaking_attempt(payload)
+        saved = _speaking_attempt_repository.create_speaking_attempt_record(values)
+    except SpeakingEvaluationInvalid as exc:
+        raise orena_http_error(422, "speaking_attempt_invalid", str(exc)) from exc
+    return {"item": saved, "progress": _speaking_attempt_repository.speaking_progress()}
+
+
+@router.get("/attempts")
+def list_speaking_attempts(limit: int = 20) -> dict[str, Any]:
+    if _speaking_attempt_repository is None:
+        raise orena_http_error(
+            503,
+            "speaking_attempts_unconfigured",
+            "Speaking history is not configured on this environment.",
+        )
+    bounded_limit = max(1, min(int(limit), 100))
+    return {
+        "items": _speaking_attempt_repository.list_speaking_attempt_records(bounded_limit),
+        "progress": _speaking_attempt_repository.speaking_progress(),
+    }
 
 _DEFAULT_PRONUNCIATION_MAX_BYTES = 8 * 1024 * 1024
 

@@ -43,6 +43,10 @@ def test_m16_shared_media_shadowing_governance_closeout_is_truthful() -> None:
     assert "r6 — speaking core: **complete / local acceptance pass**" in project_state.casefold()
     assert "r6 is **complete / local acceptance pass**" in project_state.casefold()
     assert "r6 is **in progress / internal**" not in project_state.casefold()
+    assert "r7 — speaking evaluation + pronunciation: complete / local acceptance pass" in project_state.casefold()
+    assert "audio-free" in project_state.casefold()
+    assert "durable attempts, public activation, and broader release work are not part of this slice" not in project_state.casefold()
+    assert "authenticated speaking attempts boundary" in handoff.casefold()
     assert "/api/speech/transcribe" in handoff
     assert "groq asr" in project_state.casefold()
     assert "not pronunciation" in project_state.casefold()

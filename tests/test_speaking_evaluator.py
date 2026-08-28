@@ -4,13 +4,22 @@ import asyncio
 import json
 
 import pytest
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 
 from writing_coach.speaking_evaluator import (
     SpeakingEvaluationInvalid,
     build_speaking_evaluation,
 )
-from writing_coach.speech_api import SpeakingEvaluationIn, evaluate_speaking, router as speech_router
+from writing_coach.core.request_context import LANGUAGE_CODE_CTX
+from writing_coach.speech_api import (
+    SpeakingAttemptIn,
+    SpeakingEvaluationIn,
+    configure_speaking_attempt_repository,
+    evaluate_speaking,
+    list_speaking_attempts,
+    save_speaking_attempt,
+    router as speech_router,
+)
 
 
 def _pronunciation(*, score_kind: str = "provider") -> dict:
@@ -180,6 +189,133 @@ def test_http_boundary_normalizes_over_limit_validation_to_canonical_error() -> 
     payload = json.loads(response_body)
     assert next(message["status"] for message in sent if message["type"] == "http.response.start") == 422
     assert payload["detail"]["category"] == "speaking_evaluation_invalid"
+
+
+def test_durable_attempt_route_persists_bounded_evidence_and_progress() -> None:
+    class FakeRepository:
+        def __init__(self) -> None:
+            self.items: list[dict] = []
+
+        def create_speaking_attempt_record(self, values: dict) -> dict:
+            item = {"id": len(self.items) + 1, **values}
+            self.items.append(item)
+            return item
+
+        def list_speaking_attempt_records(self, limit: int = 50) -> list[dict]:
+            return list(reversed(self.items))[:limit]
+
+        def speaking_progress(self) -> dict:
+            items = self.list_speaking_attempt_records(100)
+            return {"attempt_count": len(items), "proficiency": None}
+
+    repository = FakeRepository()
+    configure_speaking_attempt_repository(repository)
+    language_token = LANGUAGE_CODE_CTX.set("zh")
+    try:
+        result = save_speaking_attempt(SpeakingAttemptIn(
+            language="zh",
+            take_id="take-zh-1",
+            asset_id="asset-zh",
+            segment_id="segment-zh-1",
+            reference_text="你好。",
+            transcript_text="你好。",
+            evaluation={
+                "dimensions": {"transcription_confidence": None, "content_match": 100, "pronunciation": 79, "fluency": None, "proficiency": None},
+                "provenance": {"pronunciation": "azure-speech"},
+                "evidence": {"pronunciation": {"words": [{"word": "你", "phonemes": [{"phoneme": "nǐ"}]}]}},
+            },
+        ))
+        assert result["item"]["language"] == "zh"
+        assert "audio" not in json.dumps(result["item"], ensure_ascii=False).lower()
+        assert result["progress"]["attempt_count"] == 1
+        listed = list_speaking_attempts()
+        assert listed["items"][0]["segment_id"] == "segment-zh-1"
+        assert listed["progress"]["proficiency"] is None
+    finally:
+        LANGUAGE_CODE_CTX.reset(language_token)
+        configure_speaking_attempt_repository(None)
+
+
+def test_durable_attempt_route_rejects_unsupported_proficiency_claim() -> None:
+    class FakeRepository:
+        def create_speaking_attempt_record(self, values: dict) -> dict:
+            raise AssertionError("invalid attempt must not persist")
+
+    configure_speaking_attempt_repository(FakeRepository())
+    try:
+        with pytest.raises(HTTPException) as raised:
+            save_speaking_attempt(SpeakingAttemptIn(
+                language="en", take_id="take-1", segment_id="segment-1",
+                reference_text="Good morning.", transcript_text="Good morning.",
+                evaluation={"dimensions": {"proficiency": 72}, "provenance": {}, "evidence": {}},
+            ))
+        assert raised.value.detail["category"] == "speaking_attempt_invalid"
+    finally:
+        configure_speaking_attempt_repository(None)
+
+
+def test_durable_attempt_route_rejects_raw_audio_evidence() -> None:
+    class FakeRepository:
+        def create_speaking_attempt_record(self, values: dict) -> dict:
+            raise AssertionError("raw audio evidence must not persist")
+
+    configure_speaking_attempt_repository(FakeRepository())
+    try:
+        with pytest.raises(HTTPException) as raised:
+            save_speaking_attempt(SpeakingAttemptIn(
+                language="en", take_id="take-audio", segment_id="segment-1",
+                reference_text="Good morning.", transcript_text="Good morning.",
+                evaluation={
+                    "dimensions": {"content_match": 100, "proficiency": None},
+                    "provenance": {},
+                    "evidence": {"raw_audio": "base64-not-accepted"},
+                },
+            ))
+        assert raised.value.detail["category"] == "speaking_attempt_invalid"
+    finally:
+        configure_speaking_attempt_repository(None)
+
+
+def test_durable_attempt_route_rejects_neutral_key_raw_audio_provenance() -> None:
+    class FakeRepository:
+        def create_speaking_attempt_record(self, values: dict) -> dict:
+            raise AssertionError("raw audio provenance must not persist")
+
+    configure_speaking_attempt_repository(FakeRepository())
+    try:
+        with pytest.raises(HTTPException) as raised:
+            save_speaking_attempt(SpeakingAttemptIn(
+                language="en", take_id="take-provenance-audio", segment_id="segment-1",
+                reference_text="Good morning.", transcript_text="Good morning.",
+                evaluation={
+                    "dimensions": {"content_match": 100, "proficiency": None},
+                    "provenance": {"recording": "base64-not-accepted"},
+                    "evidence": {},
+                },
+            ))
+        assert raised.value.detail["category"] == "speaking_attempt_invalid"
+    finally:
+        configure_speaking_attempt_repository(None)
+
+
+def test_durable_attempt_route_rejects_language_scope_mismatch() -> None:
+    class FakeRepository:
+        def create_speaking_attempt_record(self, values: dict) -> dict:
+            raise AssertionError("mismatched language must not persist")
+
+    configure_speaking_attempt_repository(FakeRepository())
+    token = LANGUAGE_CODE_CTX.set("en")
+    try:
+        with pytest.raises(HTTPException) as raised:
+            save_speaking_attempt(SpeakingAttemptIn(
+                language="zh", take_id="take-mismatch", segment_id="segment-1",
+                reference_text="你好。", transcript_text="你好。",
+                evaluation={"dimensions": {"content_match": 100, "proficiency": None}, "provenance": {}, "evidence": {}},
+            ))
+        assert raised.value.detail["category"] == "speaking_attempt_invalid"
+    finally:
+        LANGUAGE_CODE_CTX.reset(token)
+        configure_speaking_attempt_repository(None)
 
 
 def test_phoneme_only_weakness_is_actionable_without_flagging_clean_words() -> None:

@@ -219,6 +219,35 @@ class ReadingAttempt(Base):
     total: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
 
 
+class SpeakingAttempt(Base):
+    """Privacy-bounded evaluator evidence for one completed Speaking take.
+
+    Raw audio is intentionally absent.  The JSON fields contain only the
+    already-normalized evaluator evidence needed to explain this take later.
+    """
+
+    __tablename__ = "speaking_attempts"
+    __table_args__ = (
+        UniqueConstraint("user_id", "language_code", "take_id", name="uq_speaking_attempt_scope_take"),
+        Index("ix_speaking_attempts_user_language_created", "user_id", "language_code", "created_at"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True)
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    language_code: Mapped[str] = mapped_column(String(20), nullable=False)
+    take_id: Mapped[str] = mapped_column(String(120), nullable=False)
+    asset_id: Mapped[str] = mapped_column(String(255), default="", nullable=False)
+    segment_id: Mapped[str] = mapped_column(String(255), default="", nullable=False)
+    reference_text: Mapped[str] = mapped_column(Text, nullable=False)
+    transcript_text: Mapped[str] = mapped_column(Text, nullable=False)
+    dimensions: Mapped[dict] = mapped_column(JSON, default=dict, nullable=False)
+    provenance: Mapped[dict] = mapped_column(JSON, default=dict, nullable=False)
+    evidence: Mapped[dict] = mapped_column(JSON, default=dict, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
 class PlanRecord(Base):
     __tablename__ = "plans"
 

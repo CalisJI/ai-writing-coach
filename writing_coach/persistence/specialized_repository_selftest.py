@@ -109,6 +109,13 @@ def main():
     session=sr.create_reading_session_record({'created_at':now,'language_code':'en','target_level':'B2','topic':'work','learner_goal':'work','title':'T','passage':'P','questions':[],'recycled_words':['focused work'],'generation_mode':'built-in'})
     sr.create_reading_attempt_record(session['id'],{'created_at':now,'answers':[],'correct_count':0,'total':0})
     assert sr.latest_reading_attempt(session['id'])['total']==0
+    try:
+        sr.create_speaking_attempt_record({'created_at':now,'language':'en','take_id':'take-1','asset_id':'asset-en','segment_id':'segment-1','reference_text':'Good morning.','transcript_text':'Good morning.','dimensions':{'content_match':100},'provenance':{},'evidence':{}})
+    except RuntimeError as exc:
+        assert 'PostgreSQL runtime' in str(exc)
+    else:
+        raise AssertionError('SQLite must not persist Speaking attempts')
+    assert not sr._has_table(c, 'speaking_attempts')
 
     # Real-data regression: older language DBs can contain saved_words but have
     # never initialized Active Recall / Reading optional tables.
@@ -153,5 +160,9 @@ def main():
     ps=pr.create_reading_session_record({'created_at':now,'language_code':'en','target_level':'B2','topic':'work','learner_goal':'work','title':'T','passage':'P','questions':[],'recycled_words':['focused work'],'generation_mode':'built-in'})
     pr.create_reading_attempt_record(ps['id'],{'created_at':now,'answers':[],'correct_count':0,'total':0})
     assert pr.latest_reading_attempt(ps['id'])['total']==0
+    pspeaking=pr.create_speaking_attempt_record({'created_at':now,'language':'en','take_id':'take-1','asset_id':'asset-en','segment_id':'segment-1','reference_text':'Good morning.','transcript_text':'Good morning.','dimensions':{'content_match':100,'pronunciation':88,'fluency':82,'proficiency':None},'provenance':{'pronunciation':'azure-speech'},'evidence':{'pronunciation':{'words':[]}}})
+    assert pspeaking['take_id']=='take-1'
+    assert pspeaking['language']=='en'
+    assert pr.speaking_progress()['average_fluency']==82.0
     print('BECOMING specialized persistence repository self-test OK')
 if __name__=='__main__': main()

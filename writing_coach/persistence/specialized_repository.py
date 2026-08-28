@@ -17,6 +17,7 @@ from writing_coach.persistence.models import (
     ReadingAttempt,
     ReadingSession,
     SavedWord,
+    SpeakingAttempt,
     User,
     UserLanguageProfile,
 )
@@ -39,6 +40,9 @@ class SpecializedLearningRepository(Protocol):
     def latest_reading_attempt(self, session_id: int) -> dict[str, Any] | None: ...
     def list_reading_session_records(self, limit: int) -> list[dict[str, Any]]: ...
     def create_reading_attempt_record(self, session_id: int, values: dict[str, Any]) -> None: ...
+    def create_speaking_attempt_record(self, values: dict[str, Any]) -> dict[str, Any]: ...
+    def list_speaking_attempt_records(self, limit: int = 50) -> list[dict[str, Any]]: ...
+    def speaking_progress(self) -> dict[str, Any]: ...
     def get_linguistic_essay(self, essay_id: int) -> dict[str, Any] | None: ...
     def update_essay_module_data(self, essay_id: int, module_data: dict[str, Any]) -> bool: ...
 
@@ -403,6 +407,15 @@ class SQLiteSpecializedLearningRepository:
                          (session_id,values["created_at"],json.dumps(values["answers"]),values["correct_count"],values["total"]))
             conn.commit()
 
+    def create_speaking_attempt_record(self, values: dict[str, Any]) -> dict[str, Any]:
+        raise RuntimeError("Durable Speaking attempts require the PostgreSQL runtime.")
+
+    def list_speaking_attempt_records(self, limit: int = 50) -> list[dict[str, Any]]:
+        raise RuntimeError("Durable Speaking attempts require the PostgreSQL runtime.")
+
+    def speaking_progress(self) -> dict[str, Any]:
+        raise RuntimeError("Durable Speaking attempts require the PostgreSQL runtime.")
+
     def get_linguistic_essay(self, essay_id: int) -> dict[str, Any] | None:
         with self._db() as conn:
             row=conn.execute("SELECT id,text,language_code,module_data_json FROM essays WHERE id=?",(essay_id,)).fetchone()
@@ -603,6 +616,76 @@ class PostgresSpecializedLearningRepository:
             max_id=s.scalar(select(func.max(ReadingAttempt.legacy_id))); legacy=int(max_id or 0)+1
             s.add(ReadingAttempt(id=stable_uuid("reading-attempt",self._key(),self._language_provider().casefold(),legacy),session_id=r.id,legacy_id=legacy,
                                  created_at=self._dt(values["created_at"]),answers=list(values["answers"]),correct_count=int(values["correct_count"]),total=int(values["total"])))
+
+    @staticmethod
+    def _speaking_payload(row: Any) -> dict[str, Any]:
+        return {
+            "id": str(row.id),
+            "created_at": PostgresSpecializedLearningRepository._iso(row.created_at),
+            "language": row.language_code,
+            "take_id": row.take_id,
+            "asset_id": row.asset_id,
+            "segment_id": row.segment_id,
+            "reference_text": row.reference_text,
+            "transcript_text": row.transcript_text,
+            "dimensions": dict(row.dimensions or {}),
+            "provenance": dict(row.provenance or {}),
+            "evidence": dict(row.evidence or {}),
+        }
+
+    def create_speaking_attempt_record(self, values: dict[str, Any]) -> dict[str, Any]:
+        uid, lang = self._scope()
+        attempt_id = stable_uuid("speaking-attempt", self._key(), lang, values["take_id"])
+        with Session(self.engine) as s, s.begin():
+            if s.get(User, uid) is None:
+                raise RuntimeError("PostgreSQL scope user missing; shadow/import must run first.")
+            row = s.get(SpeakingAttempt, attempt_id)
+            if row is None:
+                row = SpeakingAttempt(
+                    id=attempt_id, user_id=uid, language_code=lang,
+                    take_id=values["take_id"],
+                    asset_id=values.get("asset_id", ""), segment_id=values.get("segment_id", ""),
+                    reference_text=values["reference_text"], transcript_text=values["transcript_text"],
+                    dimensions=dict(values.get("dimensions", {})), provenance=dict(values.get("provenance", {})),
+                    evidence=dict(values.get("evidence", {})), created_at=self._dt(values["created_at"]),
+                )
+                s.add(row)
+            else:
+                row.created_at = self._dt(values["created_at"])
+                row.asset_id = values.get("asset_id", "")
+                row.segment_id = values.get("segment_id", "")
+                row.reference_text = values["reference_text"]
+                row.transcript_text = values["transcript_text"]
+                row.dimensions = dict(values.get("dimensions", {}))
+                row.provenance = dict(values.get("provenance", {}))
+                row.evidence = dict(values.get("evidence", {}))
+            s.flush()
+            return self._speaking_payload(row)
+
+    def list_speaking_attempt_records(self, limit: int = 50) -> list[dict[str, Any]]:
+        uid, lang = self._scope()
+        with Session(self.engine) as s:
+            rows = s.scalars(
+                select(SpeakingAttempt)
+                .where(SpeakingAttempt.user_id == uid, SpeakingAttempt.language_code == lang)
+                .order_by(SpeakingAttempt.created_at.desc())
+                .limit(max(1, min(int(limit), 100)))
+            ).all()
+            return [self._speaking_payload(row) for row in rows]
+
+    def speaking_progress(self) -> dict[str, Any]:
+        items = self.list_speaking_attempt_records(100)
+        def average(key: str) -> float | None:
+            values = [v for item in items if isinstance(v := item["dimensions"].get(key), (int, float))]
+            return round(sum(values) / len(values), 2) if values else None
+        return {
+            "attempt_count": len(items),
+            "average_content_match": average("content_match"),
+            "average_pronunciation": average("pronunciation"),
+            "average_fluency": average("fluency"),
+            "latest_at": items[0]["created_at"] if items else None,
+            "proficiency": None,
+        }
 
     def get_linguistic_essay(self, essay_id: int) -> dict[str, Any] | None:
         uid,lang=self._scope()

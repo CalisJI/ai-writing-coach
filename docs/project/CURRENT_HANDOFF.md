@@ -15,6 +15,9 @@ baseline.
 
 **Secondary / gated programs:**
 
+- R7 — Speaking Evaluation + Pronunciation: **COMPLETE / LOCAL ACCEPTANCE PASS**
+  for the internal durable-attempt/history slice; public promotion remains gated.
+
 - R6 — Speaking Core: **COMPLETE / LOCAL ACCEPTANCE PASS**
 - R2 — AI Capability Control Plane: **HUMAN GATE / READY, NOT PRODUCT-BLOCKING**
 
@@ -46,9 +49,10 @@ baseline.
   per-take matrix now carries optional ASR confidence and provider pronunciation
   evidence (including EN phonemes/stress and ZH tone-marked phonemes) through
   the evaluator, then renders measured versus unavailable dimensions without
-  composite claims. It
-  does not expose a public route, persist attempts, or activate the reserved AI
-  capability.
+  composite claims. Completed evaluator envelopes now flow through the
+  authenticated Speaking attempts boundary into audio-free, learner-scoped
+  history/progress retrieval. It does not expose public capability activation;
+  release promotion remains deferred.
 
 **Closed programs protected from casual rewrite:**
 
@@ -350,4 +354,5 @@ Stop and return to the human coordinator when:
 - an unresolved P0/P1 requires broader redesign;
 - the rollback path becomes unclear.
 
-**Next handoff owner:** R7 Speaking Evaluation agent for the next bounded internal checkpoint.
+**Next handoff owner:** R8 public-gate review owner; R7's internal durable-attempt
+acceptance is locally closed and no deployment or capability activation is implied.

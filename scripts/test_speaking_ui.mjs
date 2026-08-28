@@ -166,6 +166,29 @@ for(const [locale,copy,highlight] of [
 }
 state.supportLanguage='en';
 
+const failedPersistenceRecorder={
+  snapshot(){return {status:'idle',error:null,url:null,blob:null,mime_type:'audio/webm',supported:true};},
+  async start(){return true;},
+  async stop(){return {url:'blob:failed-save',blob:new Blob(['take'],{type:'audio/webm'}),mime_type:'audio/webm',size:4};},
+  discard(){return true;},
+  cleanup(){},
+};
+const failedPersistenceController=createSpeakingController({
+  session,
+  recorder:failedPersistenceRecorder,
+  transcribe:async()=>({text:'Listen for the first complete idea.',confidence:90,words:[]}),
+  evaluateSpeaking:async()=>({language:'en',dimensions:{transcription_confidence:90,content_match:100,pronunciation:null,fluency:null,proficiency:null},evidence:{},provenance:{}}),
+  persistAttempt:async()=>{throw {category:'speaking_attempts_unconfigured'};},
+});
+assert.equal(await failedPersistenceController.startRecording(),true);
+assert.equal(await failedPersistenceController.stopRecording(),true);
+assert.match(failedPersistenceController.html(),/Speaking history is not available in this environment\./);
+for(const [locale,copy] of [['vi','Lịch sử luyện nói chưa khả dụng trong môi trường này.'],['zh','当前环境无法使用口语记录。']]){
+  state.supportLanguage=locale;
+  assert.match(failedPersistenceController.html(),new RegExp(copy));
+}
+state.supportLanguage='en';
+
 assert.equal(await controller.assessPronunciation(),true);
 assert.equal(controller.model.pronunciationStatus,'ready');
 assert.equal(controller.model.pronunciation?.pron_score,88);
@@ -614,7 +637,12 @@ try{
       };
     };
     const renderedRoot=new RenderRoot();
-    const renderedController=await renderSpeaking(renderedRoot,{recorderFactory:()=>renderedRecorder});
+    const savedAttempts=[];
+    const renderedController=await renderSpeaking(renderedRoot,{
+      recorderFactory:()=>renderedRecorder,
+      loadAttempts:async()=>({items:[],progress:{attempt_count:0,average_content_match:null,average_pronunciation:null,average_fluency:null,proficiency:null}}),
+      persistAttempt:async attempt=>{savedAttempts.push(attempt);return {item:attempt,progress:{attempt_count:1}};},
+    });
     assert.ok(renderedController,`${item.language.toUpperCase()} rendered Speaking screen should mount`);
     assert.match(renderedRoot.innerHTML,/data-speaking-record/);
     await renderedRoot.querySelector('[data-speaking-record]').click();
@@ -633,6 +661,11 @@ try{
     assert.equal(renderedEvaluationPayloads[0].transcript_text,item.text);
     assert.equal(renderedEvaluationPayloads[0].transcription_confidence,item.confidence);
     assert.equal(renderedEvaluationPayloads[0].pronunciation,null);
+    assert.equal(savedAttempts.length,1);
+    assert.equal(savedAttempts[0].segment_id,item.language==='zh'?'segment-zh-001':'segment-001');
+    assert.match(renderedRoot.innerHTML,/data-speaking-history/);
+    assert.match(renderedRoot.innerHTML,/data-speaking-history-item/);
+    assert.match(renderedRoot.innerHTML,new RegExp(item.language==='zh'?'segment-zh-001':'segment-001'));
     assert.match(renderedRoot.innerHTML,/data-speaking-content-match/);
     assert.match(renderedRoot.innerHTML,/data-speaking-evaluation-state="ready"/);
     assert.equal(renderedRoot.innerHTML.includes(item.text),true);
@@ -657,6 +690,8 @@ try{
     assert.equal(renderedController.model.speakingEvaluationStatus,'ready',`${item.language.toUpperCase()} pronunciation feedback should resolve`);
     const pronunciationEvaluationPayload=renderedEvaluationPayloads.at(-1);
     assert.deepEqual(pronunciationEvaluationPayload.pronunciation,item.pronunciation);
+    assert.equal(savedAttempts.length,2);
+    assert.equal(savedAttempts[1].take_id,savedAttempts[0].take_id);
     assert.equal(renderedController.model.speakingEvaluation.dimensions.pronunciation,item.pronunciation.pron_score);
     assert.equal(renderedController.model.speakingEvaluation.dimensions.fluency,item.pronunciation.fluency_score);
     assert.match(renderedRoot.innerHTML,/data-speaking-pronunciation-evidence/);

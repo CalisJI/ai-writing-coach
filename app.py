@@ -67,6 +67,7 @@ from writing_coach.media_translation import (
 from writing_coach.speech_api import (
     configure_speech_asr,
     configure_speech_pronunciation,
+    configure_speaking_attempt_repository,
     router as speech_router,
 )
 from writing_coach.speech_asr import GroqSpeechAsrProvider
@@ -272,6 +273,11 @@ configure_media_fallback(
 app.include_router(media_learning_router)
 configure_speech_asr(_speech_asr_provider)
 configure_speech_pronunciation(build_speech_pronunciation_provider())
+configure_speaking_attempt_repository(
+    _specialized_learning_repository
+    if _persistence_runtime.backend == "postgresql"
+    else None
+)
 app.include_router(speech_router)
 install_platform_ai(app, require_admin)
 configure_becoming_memory(_specialized_learning_repository)

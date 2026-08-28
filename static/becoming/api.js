@@ -149,6 +149,12 @@ export const api={
     headers:JSON_HEADERS,
     body:JSON.stringify(payload||{}),
   }),
+  saveSpeakingAttempt:(payload)=>request('/api/speech/attempts',{
+    method:'POST',
+    headers:JSON_HEADERS,
+    body:JSON.stringify(payload||{}),
+  }),
+  speakingAttempts:(limit=20)=>request(`/api/speech/attempts?limit=${encodeURIComponent(limit)}`),
   essays:()=>request('/api/essays'),
   essay:(id)=>request(`/api/essays/${encodeURIComponent(id)}`),
   linguisticAnnotations:(id)=>request(`/api/essays/${encodeURIComponent(id)}/linguistic-annotations`,{

@@ -271,8 +271,9 @@ does not persist the audio take to the learner account.
 The recognized transcript is compared deterministically with the selected
 source segment to show content-match plus missing/extra token feedback. This
 is not pronunciation, fluency, or proficiency scoring. Speaking remains
-**DEVELOPMENT** and non-public. R2 `speech_asr` control-plane activation,
-`pronunciation_evaluator`, and `speaking_evaluator` remain later gates.
+**DEVELOPMENT** and non-public. R2 `speech_asr` control-plane activation and
+public `pronunciation_evaluator`/`speaking_evaluator` capability promotion
+remain later gates.
 
 ## R2 AI Capability Control Plane
 
@@ -358,13 +359,14 @@ The post-R5 roadmap uses one primary learner-visible lane.
   remain transient; no pronunciation, fluency, proficiency, or durable-progress
   claim is made. The verified R3/R4 Writing and Grammar-transfer contracts are
   unchanged.
-- **R7 — Speaking Evaluation + Pronunciation: INTERNAL PER-TAKE SLICE COMPLETE.**
+- **R7 — Speaking Evaluation + Pronunciation: COMPLETE / LOCAL ACCEPTANCE PASS.**
   Mounted EN/ZH take flows carry reference text, transcript, optional ASR
   confidence, content-match evidence, and optional pronunciation evidence into
   the existing evaluator. Feedback keeps measured dimensions separate and
   marks proficiency unassessed; synthetic and failure provenance remain
-  transient. Durable attempts, public activation, and broader release work are
-  not part of this slice.
+  explicit. Completed evaluator envelopes now persist as audio-free,
+  learner-scoped Speaking attempts with bounded history/progress retrieval;
+  public activation and broader release remain deferred.
 - **R2 — AI Capability Control Plane: HUMAN GATE / READY.**
   Static/runtime support exists. Production migration/config initialization,
   credentialed validation, activation, and rollback execution remain human

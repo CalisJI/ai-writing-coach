@@ -551,3 +551,30 @@ provider-to-provider fallback.
 **Supersedes / Superseded by:** Extends D-021 by changing its default provider.
 D-021's provider-neutral boundary and its rule that playback readiness does not
 depend on translation readiness both stand.
+
+## D-027 — Speaking attempts persist evaluator evidence without audio
+
+**Status:** Accepted
+
+**Decision:** Completed EN/ZH Speaking evaluations may be stored as bounded,
+learner-scoped attempt records containing the transcript, source segment
+reference, measured dimensions, provenance, evidence, and a server timestamp.
+Raw audio and proficiency claims are excluded. PostgreSQL is the sole durable
+runtime boundary; SQLite remains frozen rollback/archive and does not create or
+write Speaking-attempt tables. An explicit migration is required before any
+deployment cutover.
+
+**Reason:** R7's learner-visible history/progress acceptance requires completed
+take evidence to survive the transient recording screen while preserving the
+privacy boundary established by R6. A dedicated repository/API/UI contract
+keeps ownership and language scoping explicit without activating public
+Speaking capabilities.
+
+**Consequences:** The Speaking attempts API is authenticated and bounded,
+updates a take by deterministic `take_id`, and returns unavailable dimensions
+as `null`. The mounted EN/ZH screen can show history/progress from that
+contract. Migration SQL is prepared but production execution, raw-audio
+retention, provider activation, and public release remain human-gated.
+
+**Supersedes / Superseded by:** Extends the R6 transient-audio boundary and
+R7 per-take evaluator decision. Supersedes no earlier decision.
