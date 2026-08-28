@@ -99,6 +99,8 @@ _RATE_LIMIT_KEYS = (
     "tokens_remaining",
 )
 
+_COST_STATES = frozenset({"estimated", "unpriced", "partial", "unknown"})
+
 
 def normalized_rate_limit(value: object) -> dict[str, int | None]:
     """Keep only provider-reported non-negative integer rate-limit evidence."""
@@ -109,6 +111,52 @@ def normalized_rate_limit(value: object) -> dict[str, int | None]:
         item = source.get(key)
         result[key] = item if type(item) is int and item >= 0 else None
     return result
+
+
+def normalized_cost(value: object) -> dict[str, Any] | None:
+    """Keep only the versioned, prompt-free cost evidence contract."""
+
+    if not isinstance(value, dict) or value.get("state") not in _COST_STATES:
+        return None
+    currency = value.get("currency")
+    if currency is not None and (not isinstance(currency, str) or not re.fullmatch(r"[A-Z]{3}", currency)):
+        currency = None
+    amount = value.get("amount")
+    if type(amount) not in {int, float} or not math.isfinite(float(amount)) or amount < 0:
+        amount = None
+    provenance = value.get("provenance")
+    if not isinstance(provenance, dict):
+        provenance = {}
+    version = provenance.get("catalog_version")
+    if not isinstance(version, str) or not re.fullmatch(r"[0-9]{4}-[0-9]{2}-[0-9]{2}\.v[0-9]+", version):
+        version = None
+    provider = provenance.get("provider")
+    provider = str(provider or "")[:40] or None
+    if provider and not re.fullmatch(r"[a-z][a-z0-9_-]{0,39}", provider):
+        provider = None
+    model = provenance.get("model")
+    model = str(model or "")[:160] or None
+    if model and _SUSPICIOUS_TELEMETRY_VALUE.search(model):
+        model = "[redacted]"
+    reason = provenance.get("reason")
+    if not isinstance(reason, str) or not re.fullmatch(r"[a-z][a-z0-9_]{0,39}", reason):
+        reason = None
+    rates = {}
+    for key in ("input_per_million", "output_per_million"):
+        rate = provenance.get(key)
+        rates[key] = round(float(rate), 8) if type(rate) in {int, float} and math.isfinite(float(rate)) and rate >= 0 else None
+    return {
+        "state": value["state"],
+        "currency": currency,
+        "amount": round(float(amount), 8) if amount is not None else None,
+        "provenance": {
+            "catalog_version": version,
+            "provider": provider,
+            "model": model,
+            **rates,
+            "reason": reason,
+        },
+    }
 
 
 def normalized_latency(value: object) -> int | None:
@@ -162,7 +210,7 @@ def sanitize_telemetry(value: object) -> dict[str, Any] | None:
     error_class = value.get("error_class")
     if not isinstance(error_class, str) or not re.fullmatch(r"[a-z][a-z0-9_]{0,79}", error_class):
         error_class = None
-    return {
+    result = {
         "capability": capability,
         "provider": provider,
         "model": model,
@@ -174,6 +222,10 @@ def sanitize_telemetry(value: object) -> dict[str, Any] | None:
         "rate_limit": normalized_rate_limit(value.get("rate_limit")),
         "quota_available": "unknown",
     }
+    cost = normalized_cost(value.get("cost"))
+    if cost is not None:
+        result["cost"] = cost
+    return result
 
 
 def extract_json_object(text: str) -> dict[str, Any]:

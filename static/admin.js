@@ -60,16 +60,25 @@
         row.usage_unknown ? `${row.usage_unknown} usage unavailable` : '',
       ].filter(Boolean).join(' · ') || 'Usage complete';
       const quotaEvidence = `${quotaLabels[row.quota_state] || 'Rate limits unknown'} · ${row.rate_limit_reported_count || 0} reported`;
+      const costTotals = (row.cost_totals || []).map(item=>`${esc(item.currency)} ${Number(item.amount).toFixed(6)} (${item.evidence_count} events · ${esc(item.catalog_version || 'pricing unknown')})`).join(' · ') || 'Cost unpriced or unavailable';
+      const costStates = row.cost_state_counts || {};
+      const costEvidence = [
+        costStates.unpriced ? `${costStates.unpriced} unpriced` : '',
+        costStates.partial ? `${costStates.partial} partial cost` : '',
+        costStates.unknown ? `${costStates.unknown} cost unknown` : '',
+      ].filter(Boolean).join(' · ');
       const trend = (row.trend || []).slice(0, 7).map(bucket=>{
         const total = bucket.token_totals?.total_tokens == null ? 'tokens unknown' : `${bucket.token_totals.total_tokens} tokens`;
         const latency = bucket.avg_latency_ms == null ? 'latency unknown' : `${bucket.avg_latency_ms} ms avg`;
-        return `<span>${esc(bucket.bucket || 'unknown')} · ${bucket.request_count} requests · ${bucket.failure_count} failures · ${total} · ${latency}</span>`;
+        const bucketCost = (bucket.cost_totals || []).map(item=>`${esc(item.currency)} ${Number(item.amount).toFixed(6)}`).join(' · ') || 'cost unavailable';
+        return `<span>${esc(bucket.bucket || 'unknown')} · ${bucket.request_count} requests · ${bucket.failure_count} failures · ${total} · ${bucketCost} · ${latency}</span>`;
       }).join('') || '<span>No trend data</span>';
       return `<div class="admin-operation-row">
       <b>${esc(row.capability)}</b><strong>${esc(healthLabels[row.health_state] || 'Health unknown')}</strong>
       <span>${row.total} total · ${row.success} success · ${row.failure} failure · ${row.evidence_count ?? row.total} events sampled</span>
       <span>${row.failure_rate_percent == null ? 'Failure rate unknown' : `${row.failure_rate_percent}% failures`} · ${row.avg_latency_ms == null ? 'Latency unknown' : `${row.avg_latency_ms} ms average`} · ${row.usage_known ? `${row.usage_known} usage reported` : row.usage_partial ? 'Usage partial' : 'Usage unknown'}</span>
       <span>Tokens: ${tokenLabel('prompt_tokens')} · ${tokenLabel('completion_tokens')} · ${tokenLabel('total_tokens')} · ${usageEvidence}</span>
+      <span>Estimated cost: ${costTotals}${costEvidence ? ` · ${esc(costEvidence)}` : ''}</span>
       <span>${esc(quotaEvidence)}</span>
       <div class="admin-operation-trend"><small>Recent trend (${operations.trend_window_days || 7} days)</small>${trend}</div>
     </div>`;

@@ -78,6 +78,14 @@ baseline.
   Admin operations now also expose bounded UTC day-bucket trends for request,
   failure, latency, tokens, and rate-limit evidence; malformed timestamps stay
   in an explicit unknown bucket.
+- R14 cost observation now uses the exact-match, versioned provider/model
+  catalog in `writing_coach.ai.pricing`. Telemetry snapshots pricing
+  provenance at event creation; complete prompt/completion usage yields a
+  USD estimate while unknown models, partial usage, and absent usage remain
+  explicitly unpriced/partial/unknown. Admin capability and seven-day trend
+  aggregates group only estimated amounts by currency/catalog version. No
+  billing, quota enforcement, live price fetching, or provider activation is
+  implied.
 - R13 local acceptance is now closed by the deterministic
   `scripts/r13_release_matrix.mjs` runner and
   `docs/project/R13_LOCAL_ACCEPTANCE_MATRIX.json`. The matrix executes the

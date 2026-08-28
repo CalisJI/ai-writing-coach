@@ -22,6 +22,7 @@ from writing_coach.ai.base import (
     telemetry_error_class,
     sanitize_telemetry,
 )
+from writing_coach.ai.pricing import estimate_token_cost
 from writing_coach.ai.capabilities import all_capabilities, require_capability
 from writing_coach.ai.config import CapabilityConfig, validate_capability_config
 from writing_coach.ai.providers import build_providers, provider_definitions
@@ -128,6 +129,8 @@ def _operation_trend(events: list[dict[str, Any]]) -> list[dict[str, Any]]:
         usage_known = usage_partial = usage_unknown = 0
         rate_limit_reported = 0
         failures = 0
+        cost_totals: dict[tuple[str, str], dict[str, Any]] = {}
+        cost_state_counts = {state: 0 for state in ("estimated", "unpriced", "partial", "unknown")}
         for event in bucket_events:
             failures += event.get("outcome") == "failure"
             usage = event.get("usage") or {}
@@ -144,6 +147,19 @@ def _operation_trend(events: list[dict[str, Any]]) -> list[dict[str, Any]]:
             rate_limit = event.get("rate_limit") or {}
             if any(isinstance(rate_limit.get(name), int) for name in ("requests_limit", "requests_remaining", "tokens_limit", "tokens_remaining")):
                 rate_limit_reported += 1
+            cost = event.get("cost") if isinstance(event.get("cost"), dict) else {"state": "unknown"}
+            state = cost.get("state")
+            if state in cost_state_counts:
+                cost_state_counts[state] += 1
+            amount = cost.get("amount")
+            currency = cost.get("currency")
+            provenance = cost.get("provenance") or {}
+            if state == "estimated" and isinstance(amount, (int, float)) and currency:
+                version = str(provenance.get("catalog_version") or "unknown")
+                cost_key = (currency, version)
+                item = cost_totals.setdefault(cost_key, {"currency": currency, "amount": 0.0, "evidence_count": 0, "catalog_version": version})
+                item["amount"] = round(item["amount"] + float(amount), 8)
+                item["evidence_count"] += 1
         result.append({
             "bucket": key,
             "request_count": len(bucket_events),
@@ -154,6 +170,8 @@ def _operation_trend(events: list[dict[str, Any]]) -> list[dict[str, Any]]:
             "usage_unknown": usage_unknown,
             "token_totals": {name: token_totals[name] if name in token_seen else None for name in token_keys},
             "rate_limit_reported_count": rate_limit_reported,
+            "cost_totals": list(cost_totals.values()),
+            "cost_state_counts": cost_state_counts,
         })
     return result
 
@@ -309,11 +327,13 @@ class AIControlPlane:
                 "_token_totals": {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0},
                 "_token_seen": set(),
                 "_rate_limit_events": [],
+                "_cost_events": [],
                 "_trend_events": [],
                 "_health_events": [],
             })
             row["_health_events"].append(event)
             row["_rate_limit_events"].append(event.get("rate_limit") or {})
+            row["_cost_events"].append(event.get("cost") if isinstance(event.get("cost"), dict) else {"state": "unknown"})
             row["_trend_events"].append(event)
             row["total"] += 1
             if event["outcome"] == "success":
@@ -364,13 +384,32 @@ class AIControlPlane:
             row["quota_state"] = (
                 "reported_exhausted" if exhausted else "reported" if reported else "unavailable"
             )
+            cost_events = row.pop("_cost_events", [])
+            cost_totals: dict[tuple[str, str], dict[str, Any]] = {}
+            cost_state_counts = {state: 0 for state in ("estimated", "unpriced", "partial", "unknown")}
+            for cost in cost_events:
+                state = cost.get("state")
+                if state in cost_state_counts:
+                    cost_state_counts[state] += 1
+                amount = cost.get("amount")
+                currency = cost.get("currency")
+                provenance = cost.get("provenance") or {}
+                if state != "estimated" or not isinstance(amount, (int, float)) or not currency:
+                    continue
+                version = str(provenance.get("catalog_version") or "unknown")
+                cost_key = (currency, version)
+                item = cost_totals.setdefault(cost_key, {"currency": currency, "amount": 0.0, "evidence_count": 0, "catalog_version": version})
+                item["amount"] = round(item["amount"] + float(amount), 8)
+                item["evidence_count"] += 1
+            row["cost_totals"] = list(cost_totals.values())
+            row["cost_state_counts"] = cost_state_counts
             row["trend"] = _operation_trend(row.pop("_trend_events", []))
         return {
             "available": callable(loader),
             "has_data": bool(events),
             "recent": events,
             "by_capability": list(aggregates.values()),
-            "usage_note": "Provider usage is unknown when not reported; cost is not calculated.",
+            "usage_note": "Provider usage and token cost are explicit; unsupported models remain unpriced.",
             "trend_window_days": _TREND_WINDOW_DAYS,
         }
 
@@ -433,6 +472,7 @@ class AIControlPlane:
                 "latency_ms": normalized_latency((perf_counter() - started) * 1000),
                 "usage": normalized_usage(reported_usage),
                 "rate_limit": normalized_rate_limit(reported_rate_limit),
+                "cost": estimate_token_cost(result.get("provider"), model_display, normalized_usage(reported_usage)),
                 "quota_available": "unknown",
             }
             self._record_operation(result["telemetry"])
@@ -453,6 +493,7 @@ class AIControlPlane:
                 "latency_ms": normalized_latency((perf_counter() - started) * 1000),
                 "usage": normalized_usage(None),
                 "rate_limit": normalized_rate_limit(getattr(exc, "rate_limit", None)),
+                "cost": estimate_token_cost(provider, model_display, None),
                 "quota_available": "unknown",
             }
             self._record_operation(exc.telemetry)

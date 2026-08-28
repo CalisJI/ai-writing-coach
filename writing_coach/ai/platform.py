@@ -35,6 +35,7 @@ from writing_coach.ai.control_plane import (
     safe_capability_display,
     safe_model_display,
 )
+from writing_coach.ai.pricing import estimate_token_cost
 from writing_coach.ai.providers import build_providers
 from writing_coach.persistence.platform_repository import PlatformRepository
 
@@ -215,6 +216,7 @@ def generate_structured(
             "latency_ms": normalized_latency((perf_counter() - started) * 1000),
             "usage": normalized_usage(runtime),
             "rate_limit": normalized_rate_limit(runtime.get("rate_limit")),
+            "cost": estimate_token_cost(provider_id, model_display, normalized_usage(runtime)),
             "quota_available": "unknown",
         }
         _persist_operation_telemetry(runtime["telemetry"])
@@ -283,6 +285,7 @@ def generate_structured(
             "latency_ms": normalized_latency((perf_counter() - started) * 1000),
             "usage": normalized_usage(None),
             "rate_limit": normalized_rate_limit(getattr(exc, "rate_limit", None)),
+            "cost": estimate_token_cost(provider_id, model_display, None),
             "quota_available": "unknown",
         }
         _persist_operation_telemetry(exc.telemetry)

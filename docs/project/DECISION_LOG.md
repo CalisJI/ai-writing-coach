@@ -713,3 +713,24 @@ additive Alembic artifact is prepared for PostgreSQL authority, but production
 migration, runtime cutover, and public Listening promotion remain human-gated.
 
 **Supersedes / Superseded by:** Extends D-032. Supersedes no earlier decision.
+
+## D-034 - Token cost is event-time, versioned operator evidence
+
+**Status:** Accepted
+
+**Decision:** R14 may estimate token cost only from an exact provider/model
+entry in the code-owned versioned pricing catalog and complete provider-
+reported prompt/completion dimensions. Each telemetry event snapshots the
+catalog version and rates used. Unknown models, partial usage, and absent usage
+remain distinct unpriced/partial/unknown states; cost is observation only and
+never enforces billing, quota, or failover.
+
+**Reason:** Recomputing historical cost from mutable current rates would make
+Admin operations misleading. An explicit event-time provenance snapshot keeps
+operator evidence auditable while avoiding unsupported price assumptions.
+
+**Consequences:** Admin aggregates cost by currency and catalog version for
+capability and bounded trend buckets. Pricing changes require a new catalog
+version; no live price fetching or learner-facing behavior is introduced.
+
+**Supersedes / Superseded by:** Supersedes no earlier decision.

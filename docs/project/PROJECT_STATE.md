@@ -440,6 +440,13 @@ The post-R5 roadmap uses one primary learner-visible lane.
   remaining headers, reporting exhaustion only when remaining capacity is zero.
   Bounded UTC day-bucket trends expose request, failure, latency, token, and
   rate-limit evidence while preserving explicit unknown timestamp/usage states.
+- R14 cost evidence now snapshots exact-match provider/model pricing provenance
+  at telemetry creation. Complete prompt/completion usage is estimated only
+  for cataloged models; unknown models, partial usage, and absent usage remain
+  separate unpriced/partial/unknown states. Admin aggregates by currency and
+  catalog version for capability and seven-day trend buckets; this is
+  observation only, with no billing, quota enforcement, live price fetching,
+  or provider activation.
 - **R2 — AI Capability Control Plane: HUMAN GATE / READY.**
   Static/runtime support exists. Production migration/config initialization,
   credentialed validation, activation, and rollback execution remain human

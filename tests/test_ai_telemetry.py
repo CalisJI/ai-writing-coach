@@ -9,6 +9,7 @@ import writing_coach.ai.platform as platform
 from writing_coach.ai.base import AICapabilityUnsupported, AIProviderError, AIResult, sanitize_telemetry
 from writing_coach.ai.config import CapabilityConfig
 from writing_coach.ai.control_plane import AIControlPlane
+from writing_coach.ai.pricing import PRICING_CATALOG_VERSION, estimate_token_cost
 from writing_coach.persistence.platform_repository import CapabilityConfigRecord
 
 
@@ -95,11 +96,12 @@ def test_success_telemetry_keeps_capability_provider_model_and_reported_usage(
         "latency_ms": result.runtime["telemetry"]["latency_ms"],
         "usage": {"prompt_tokens": 7, "completion_tokens": 5, "total_tokens": 12},
         "rate_limit": {"requests_limit": None, "requests_remaining": None, "tokens_limit": None, "tokens_remaining": None},
+        "cost": {"state": "unpriced", "currency": None, "amount": None, "provenance": {"catalog_version": PRICING_CATALOG_VERSION, "provider": "openai", "model": "telemetry-model", "input_per_million": None, "output_per_million": None, "reason": "model_not_cataloged"}},
         "quota_available": "unknown",
     }
     assert isinstance(result.runtime["telemetry"]["latency_ms"], int)
     assert result.runtime["telemetry"]["latency_ms"] >= 0
-    assert "cost" not in result.runtime["telemetry"]
+    assert result.runtime["telemetry"]["cost"]["state"] == "unpriced"
     assert repository.events[0] == result.runtime["telemetry"]
 
 
@@ -156,6 +158,7 @@ def test_failure_telemetry_is_typed_and_redacts_suspicious_model(
         "latency_ms": caught.value.telemetry["latency_ms"],
         "usage": {"prompt_tokens": None, "completion_tokens": None, "total_tokens": None},
         "rate_limit": {"requests_limit": None, "requests_remaining": None, "tokens_limit": None, "tokens_remaining": None},
+        "cost": {"state": "unpriced", "currency": None, "amount": None, "provenance": {"catalog_version": PRICING_CATALOG_VERSION, "provider": "openai", "model": "[redacted]", "input_per_million": None, "output_per_million": None, "reason": "model_not_cataloged"}},
         "quota_available": "unknown",
     }
     assert "do-not-leak" not in repr(caught.value.telemetry)
@@ -202,6 +205,7 @@ def test_control_plane_success_uses_the_same_telemetry_contract() -> None:
         "latency_ms": result["telemetry"]["latency_ms"],
         "usage": {"prompt_tokens": 4, "completion_tokens": 3, "total_tokens": 7},
         "rate_limit": {"requests_limit": None, "requests_remaining": None, "tokens_limit": None, "tokens_remaining": None},
+        "cost": {"state": "unpriced", "currency": None, "amount": None, "provenance": {"catalog_version": PRICING_CATALOG_VERSION, "provider": "openai", "model": "telemetry-model", "input_per_million": None, "output_per_million": None, "reason": "model_not_cataloged"}},
         "quota_available": "unknown",
     }
     assert "_telemetry_rate_limit" not in result
@@ -282,14 +286,16 @@ def test_admin_operations_aggregate_sanitized_events_and_show_no_cost() -> None:
         "rate_limit_unknown_count": 2,
         "quota_state": "unavailable",
         "trend": [
-            {"bucket": "unknown", "request_count": 1, "failure_count": 1, "avg_latency_ms": None, "usage_known": 0, "usage_partial": 0, "usage_unknown": 1, "token_totals": {"prompt_tokens": None, "completion_tokens": None, "total_tokens": None}, "rate_limit_reported_count": 0},
-            {"bucket": "2026-08-28", "request_count": 1, "failure_count": 0, "avg_latency_ms": 20, "usage_known": 1, "usage_partial": 0, "usage_unknown": 0, "token_totals": {"prompt_tokens": 4, "completion_tokens": 3, "total_tokens": 7}, "rate_limit_reported_count": 0},
+            {"bucket": "unknown", "request_count": 1, "failure_count": 1, "avg_latency_ms": None, "usage_known": 0, "usage_partial": 0, "usage_unknown": 1, "token_totals": {"prompt_tokens": None, "completion_tokens": None, "total_tokens": None}, "rate_limit_reported_count": 0, "cost_totals": [], "cost_state_counts": {"estimated": 0, "unpriced": 0, "partial": 0, "unknown": 1}},
+            {"bucket": "2026-08-28", "request_count": 1, "failure_count": 0, "avg_latency_ms": 20, "usage_known": 1, "usage_partial": 0, "usage_unknown": 0, "token_totals": {"prompt_tokens": 4, "completion_tokens": 3, "total_tokens": 7}, "rate_limit_reported_count": 0, "cost_totals": [], "cost_state_counts": {"estimated": 0, "unpriced": 0, "partial": 0, "unknown": 1}},
         ],
         "health_state": "provider_failure",
         "evidence_count": 2,
         "failure_count": 1,
         "provider_failure_count": 1,
         "failure_rate_percent": 50,
+        "cost_totals": [],
+        "cost_state_counts": {"estimated": 0, "unpriced": 0, "partial": 0, "unknown": 2},
     }]
     assert "prompt" not in result["recent"][0]
     assert "cost" not in result["recent"][0]
@@ -328,6 +334,34 @@ def test_admin_operations_aggregate_provider_tokens_and_partial_usage() -> None:
     assert row["usage_partial"] == 1
     assert row["usage_unknown"] == 1
     assert "cost" not in AIControlPlane(repository).operations()["recent"][2]
+
+
+def test_cost_catalog_is_exact_and_cost_states_remain_distinct() -> None:
+    estimated = estimate_token_cost("openai", "gpt-4o-mini", {"prompt_tokens": 1000, "completion_tokens": 500})
+    assert estimated["state"] == "estimated"
+    assert estimated["currency"] == "USD"
+    assert estimated["amount"] == 0.00045
+    assert estimated["provenance"]["catalog_version"] == PRICING_CATALOG_VERSION
+    assert estimate_token_cost("openai", "gpt-4o-mini", {"total_tokens": 1500})["state"] == "unknown"
+    assert estimate_token_cost("openai", "gpt-4o-mini", {"prompt_tokens": 1500})["state"] == "partial"
+    assert estimate_token_cost("openai", "unknown-model", {"prompt_tokens": 1000, "completion_tokens": 500})["state"] == "unpriced"
+    oversized = estimate_token_cost("openai", "gpt-4o-mini", {"prompt_tokens": 10**20, "completion_tokens": 1})
+    assert oversized["state"] == "unknown"
+    assert oversized["provenance"]["reason"] == "usage_out_of_range"
+
+
+def test_admin_operations_aggregates_cost_by_catalog_and_trend() -> None:
+    repository = Repository(config())
+    repository.events = [
+        {"capability": "writing_evaluator", "provider": "openai", "model": "gpt-4o-mini", "outcome": "success", "created_at": "2026-08-28T10:00:00+00:00", "usage": {"prompt_tokens": 1000, "completion_tokens": 500}, "cost": estimate_token_cost("openai", "gpt-4o-mini", {"prompt_tokens": 1000, "completion_tokens": 500})},
+        {"capability": "writing_evaluator", "provider": "openai", "model": "gpt-4o-mini", "outcome": "success", "created_at": "2026-08-28T11:00:00+00:00", "usage": {"total_tokens": 10}, "cost": estimate_token_cost("openai", "gpt-4o-mini", {"total_tokens": 10})},
+        {"capability": "writing_evaluator", "provider": "openai", "model": "unknown-model", "outcome": "success", "created_at": "2026-08-28T12:00:00+00:00", "usage": {"prompt_tokens": 1, "completion_tokens": 1}, "cost": estimate_token_cost("openai", "unknown-model", {"prompt_tokens": 1, "completion_tokens": 1})},
+    ]
+    row = AIControlPlane(repository).operations()["by_capability"][0]
+    assert row["cost_totals"] == [{"currency": "USD", "amount": 0.00045, "evidence_count": 1, "catalog_version": PRICING_CATALOG_VERSION}]
+    assert row["cost_state_counts"] == {"estimated": 1, "unpriced": 1, "partial": 0, "unknown": 1}
+    bucket = row["trend"][0]
+    assert bucket["cost_totals"] == row["cost_totals"]
 
 
 def test_admin_operations_reports_latest_rate_limit_state_and_evidence_counts() -> None:
