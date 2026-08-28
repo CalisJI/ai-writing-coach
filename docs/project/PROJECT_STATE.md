@@ -398,8 +398,11 @@ The post-R5 roadmap uses one primary learner-visible lane.
   a localized return-to-Listening cue only for a recent language-scoped lesson;
   the handoff carries a source URL and bounded segment/mode context, and
   Listening restores valid state or falls back to the canonical first segment
-  and Follow mode. No transcript/audio payload is stored and public retention
-  promotion remains deferred.
+  and Follow mode. Home also surfaces the existing device-local Listening time
+  and daily goal, with a route back to Listening's established goal control;
+  malformed or unavailable local records remain explicitly unclaimed. No
+  transcript/audio payload is stored and public retention promotion remains
+  deferred.
 - **R2 — AI Capability Control Plane: HUMAN GATE / READY.**
   Static/runtime support exists. Production migration/config initialization,
   credentialed validation, activation, and rollback execution remain human

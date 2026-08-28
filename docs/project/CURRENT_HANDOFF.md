@@ -34,8 +34,11 @@ baseline.
   language-scoped return cue for a recent Listening lesson and hands off only
   the source URL plus bounded segment/mode context. Listening re-imports the
   asset and restores the valid selection/mode, falling back safely when the
-  history is empty or stale. No media payload is persisted and no public
-  capability was activated.
+  history is empty or stale. Home also surfaces the existing device-local
+  Listening time and daily goal, with a route back to Listening's established
+  goal control; malformed or unavailable local records remain explicitly
+  unclaimed. No media payload is persisted and no public capability was
+  activated.
 
 - R6 — Speaking Core: **COMPLETE / LOCAL ACCEPTANCE PASS**
 - R2 — AI Capability Control Plane: **HUMAN GATE / READY, NOT PRODUCT-BLOCKING**

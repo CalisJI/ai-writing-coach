@@ -4,6 +4,7 @@ import {state,saveDraft} from '../store.js';
 import {go} from '../router.js';
 import {homeInsight,metricOverview} from '../domain/feedback.js';
 import {requestLessonAutostart,resumableLesson} from '../domain/media-lesson-history.js';
+import {listeningHabitSnapshot} from '../domain/listening-habit.js';
 import {attr,esc,errorBlock,loadingBlock,runBusy,sectionHeading,helpTip} from '../components/primitives.js';
 import {t,categoryLabel,masteryLabel,statusLabel,practiceModeLabel,topicLabel,unitLabel,uiLocale} from '../domain/i18n.js';
 
@@ -487,6 +488,27 @@ function listeningResumeSignal(lesson){
   </section>`;
 }
 
+function listeningHabitSignal(snapshot){
+  if(!snapshot)return '';
+  const status=snapshot.status==='unavailable'||snapshot.status==='malformed'?snapshot.status:'ok';
+  const action=`<button class="o-btn o-btn--outline o-btn--compact" type="button" data-home-listening-goal>${esc(t('home.listening_habit_action'))}</button>`;
+  if(status!=='ok'){
+    return `<section class="o-card o-panel home-listening-habit" data-home-listening-habit data-state="${status}">
+      <div><span class="o-label">${esc(t('home.listening_habit_title'))}</span><p class="o-panel-copy">${esc(t(`home.listening_habit_${status}`))}</p></div>
+      ${action}
+    </section>`;
+  }
+  const minutes=value=>Math.max(0,Math.floor(Number(value||0)/60));
+  return `<section class="o-card o-panel home-listening-habit" data-home-listening-habit data-state="ok">
+    <div>
+      <span class="o-label">${esc(t('home.listening_habit_title'))}</span>
+      <p class="o-panel-copy">${esc(t('home.listening_habit_body',{today:minutes(snapshot.today_seconds),goal:snapshot.daily_goal_minutes}))}</p>
+      <small class="o-panel-copy">${esc(t('home.listening_habit_week',{week:minutes(snapshot.week_seconds)}))}</small>
+    </div>
+    ${action}
+  </section>`;
+}
+
 function homeCurrentPiece(currentEssay){
   if(!currentEssay){
     return `<aside class="o-hero-piece o-hero-piece--empty">
@@ -591,11 +613,13 @@ export async function renderHome(root){
     const personalized=recommendation && recommendation.intent!=='baseline';
     const currentEssay=sortedEssays(essays)[0]||null;
     const listeningResume=resumableLesson(state.language);
+    const listeningHabit=listeningHabitSnapshot();
 
     root.innerHTML=`<div class="o-page">
       <div class="o-home">
         ${homeHero(insight,personalized,currentEssay)}
         ${listeningResumeSignal(listeningResume)}
+        ${listeningHabitSignal(listeningHabit)}
         ${writingDashboardMarkup(dashboard,essays,memory)}
 
         <div class="o-home-split">
@@ -668,6 +692,7 @@ export async function renderHome(root){
       requestLessonAutostart(state.language,listeningResume.source_url,listeningResume);
       go('listen');
     });
+    root.querySelector('[data-home-listening-goal]')?.addEventListener('click',()=>go('listen'));
 
     root.querySelectorAll('[data-home-open-grammar]').forEach(button=>button.addEventListener('click',()=>{
       const id=button.dataset.homeOpenGrammar;

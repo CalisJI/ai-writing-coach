@@ -65,6 +65,7 @@ def main() -> None:
         root / "static" / "becoming" / "domain" / "skill-release.js",
         root / "static" / "becoming" / "domain" / "shadowing-practice.js",
         root / "static" / "becoming" / "domain" / "media-lesson-history.js",
+        root / "static" / "becoming" / "domain" / "listening-habit.js",
         root / "static" / "becoming" / "domain" / "shared-media-session.js",
         root / "static" / "becoming" / "components" / "audio-recorder.js",
         root / "static" / "becoming" / "screens" / "listening.js",
@@ -89,6 +90,7 @@ def main() -> None:
         root / "scripts" / "test_r9_shadowing_feedback.mjs",
         root / "scripts" / "test_r11_listening_progress.mjs",
         root / "scripts" / "test_r12_listening_return.mjs",
+        root / "scripts" / "test_r12_listening_habit_home.mjs",
         root / "scripts" / "test_r10_reading_flow.mjs",
         root / "scripts" / "test_speaking_core.mjs",
         root / "scripts" / "test_speaking_groq_flow.mjs",
@@ -424,6 +426,15 @@ def main() -> None:
     require_contains(errors, media_history, [
         "selected_segment_id", "takeLessonAutostartContext", "RESUME_WINDOW_MS",
     ], "Listening lesson resume context")
+    listening_habit = read("static/becoming/domain/listening-habit.js")
+    require_contains(errors, listening_habit, [
+        "LISTEN_TIME_KEY", "LISTEN_GOAL_KEY", "listeningHabitSnapshot",
+        "addListenedSeconds", "saveListeningGoal",
+    ], "device-local Listening habit state")
+    require_contains(errors, screens["home"], [
+        "listeningHabitSnapshot", "data-home-listening-habit",
+        "data-home-listening-goal", "listening_habit_unavailable",
+    ], "Home Listening habit snapshot")
 
     # Design philosophy contract: every current/future route requires explicit learner-goal metadata.
     route_match = re.search(r"VALID\s*=\s*new Set\(\[([^\]]+)\]\)", router, re.S)

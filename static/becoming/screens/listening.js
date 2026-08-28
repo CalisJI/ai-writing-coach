@@ -37,6 +37,7 @@ import {
 import {getSharedMediaSession,selectSharedMediaSegment,setSharedMediaMode,setSharedMediaSession} from '../domain/shared-media-session.js';
 import {clearPendingMediaImport,getPendingMediaImport,setPendingMediaImport} from '../domain/media-import-resume.js';
 import {listMediaLessons,rememberMediaLesson,takeLessonAutostartContext,resumableLesson} from '../domain/media-lesson-history.js';
+import {addListenedSeconds,listenedSeconds,listeningGoals,saveListeningGoal} from '../domain/listening-habit.js';
 import {skillMasthead} from '../components/skill-masthead.js';
 
 const COPY={
@@ -146,50 +147,6 @@ let listeningViewSequence=0;
  * one - it does not sync, and it is not a claim about the learner's practice
  * anywhere else.
  */
-const LISTEN_TIME_KEY='becoming.listening.minutes.v1';
-const LISTEN_GOAL_KEY='becoming.listening.goals.v1';
-
-const dayKey=(date=new Date())=>`${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
-
-function readJson(key,fallback){
-  try{return JSON.parse(globalThis.localStorage?.getItem(key)||'')||fallback;}catch{return fallback;}
-}
-function writeJson(key,value){
-  try{globalThis.localStorage?.setItem(key,JSON.stringify(value));}catch{}
-}
-
-function listenedSeconds(){
-  const store=readJson(LISTEN_TIME_KEY,{});
-  const today=Number(store[dayKey()])||0;
-  let week=0;
-  for(let back=0;back<7;back+=1){
-    const date=new Date();
-    date.setDate(date.getDate()-back);
-    week+=Number(store[dayKey(date)])||0;
-  }
-  return {today,week};
-}
-
-function addListenedSeconds(seconds){
-  if(!(seconds>0)||seconds>30)return;
-  const store=readJson(LISTEN_TIME_KEY,{});
-  const key=dayKey();
-  store[key]=(Number(store[key])||0)+seconds;
-  /* Thirty days is enough for the weekly figure; the rest is dead weight. */
-  const cutoff=new Date();
-  cutoff.setDate(cutoff.getDate()-30);
-  for(const day of Object.keys(store)){
-    if(day<dayKey(cutoff))delete store[day];
-  }
-  writeJson(LISTEN_TIME_KEY,store);
-}
-
-function listeningGoals(){
-  const stored=readJson(LISTEN_GOAL_KEY,{});
-  const daily=Number(stored.daily)>0?Math.min(600,Math.round(stored.daily)):40;
-  return {daily,weekly:daily*7};
-}
-
 const text=()=>COPY[uiLocale()]||COPY.en;
 const activeText=()=>ACTIVE_COPY[uiLocale()]||ACTIVE_COPY.en;
 const shadowText=()=>SHADOW_COPY[uiLocale()]||SHADOW_COPY.en;
@@ -1020,6 +977,7 @@ function listeningPage(model,viewId){
     </form>
     ${history}
     ${requirements}
+    ${ready?'':goalPanel()}
     <div id="listeningReady">${ready?workspace(model.payload,model.selected,model):''}</div>
   </div>`;
 }
@@ -1758,7 +1716,7 @@ export async function renderListening(root,{importMedia=api.importMedia,importSt
       const answer=globalThis.prompt?.(v.goalPrompt,String(current));
       const parsed=Number(answer);
       if(Number.isFinite(parsed)&&parsed>0){
-        writeJson(LISTEN_GOAL_KEY,{daily:Math.min(600,Math.round(parsed))});
+        saveListeningGoal(parsed);
         controller.select(controller.model.selected);
       }
     });
