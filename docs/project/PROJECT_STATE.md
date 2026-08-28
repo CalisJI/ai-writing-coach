@@ -367,6 +367,13 @@ The post-R5 roadmap uses one primary learner-visible lane.
   explicit. Completed evaluator envelopes now persist as audio-free,
   learner-scoped Speaking attempts with bounded history/progress retrieval;
   public activation and broader release remain deferred.
+- **R8 — Public Product Gate: Writing + Speaking EN/ZH: PRE-PUBLIC MATRIX
+  COMPLETE / HUMAN PROMOTION GATE.** The deterministic EN/ZH Writing and
+  Speaking matrix, degraded-state checks, and browser module graph pass locally;
+  persistence/runtime boundaries are recorded as static inspections alongside
+  separately executed backend contracts in `docs/project/R8_PRE_PUBLIC_MATRIX.json`.
+  Provider credentialed validation, production migration, capability activation,
+  and public promotion remain explicitly deferred.
 - **R2 — AI Capability Control Plane: HUMAN GATE / READY.**
   Static/runtime support exists. Production migration/config initialization,
   credentialed validation, activation, and rollback execution remain human

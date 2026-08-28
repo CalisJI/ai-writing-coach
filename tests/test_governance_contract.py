@@ -56,3 +56,15 @@ def test_m16_shared_media_shadowing_governance_closeout_is_truthful() -> None:
     assert "r2 — ai capability control plane: **human gate / ready, not product-blocking**" in project_state.casefold()
     assert "human-gated" in handoff.casefold()
     assert "r11" in combined and "planned" in combined
+
+
+def test_r8_pre_public_matrix_keeps_release_gates_deferred() -> None:
+    report = (ROOT / "docs/project/R8_PRE_PUBLIC_MATRIX.json").read_text(encoding="utf-8")
+    assert '"matrix": "R8-pre-public-en-zh"' in report
+    assert '"writing_public": false' in report
+    assert '"speaking_public": false' in report
+    assert '"capability_activation": false' in report
+    assert '"inspected": [' in report
+    assert '"status": "static-inspection"' in report
+    for gate in ("provider_credentials", "postgres_migration", "public_promotion"):
+        assert f'"gate": "{gate}"' in report

@@ -17,6 +17,8 @@ baseline.
 
 - R7 — Speaking Evaluation + Pronunciation: **COMPLETE / LOCAL ACCEPTANCE PASS**
   for the internal durable-attempt/history slice; public promotion remains gated.
+- R8 — Public Product Gate: Writing + Speaking EN/ZH: **PRE-PUBLIC MATRIX
+  COMPLETE / HUMAN PROMOTION GATE**.
 
 - R6 — Speaking Core: **COMPLETE / LOCAL ACCEPTANCE PASS**
 - R2 — AI Capability Control Plane: **HUMAN GATE / READY, NOT PRODUCT-BLOCKING**
@@ -53,6 +55,16 @@ baseline.
   authenticated Speaking attempts boundary into audio-free, learner-scoped
   history/progress retrieval. It does not expose public capability activation;
   release promotion remains deferred.
+- The R8 pre-public matrix now runs the representative EN/ZH Writing → Review
+  and Speaking record → ASR → evaluator → pronunciation → history contracts,
+  plus the browser ESM graph. Source-only persistence/runtime boundary checks
+  are labeled static inspections, while authenticated backend contracts are
+  executed separately in the application container. The report records
+  provider credentials, PostgreSQL migration execution, capability activation,
+  and public promotion as deferred human operations; no release state changes.
+  The deterministic report is checked in at
+  `docs/project/R8_PRE_PUBLIC_MATRIX.json` and verified byte-for-byte by the
+  runner's default mode.
 
 **Closed programs protected from casual rewrite:**
 

@@ -82,6 +82,8 @@ def main() -> None:
         root / "scripts" / "test_speaking_ui.mjs",
         root / "scripts" / "test_speaking_rnnoise_contract.mjs",
         root / "scripts" / "test_speaking_voice_enhancement_contract.mjs",
+        root / "scripts" / "r8_release_matrix.mjs",
+        root / "docs" / "project" / "R8_PRE_PUBLIC_MATRIX.json",
         root / "scripts" / "test_speech_api_bounds.py",
         root / "static" / "becoming" / "domain" / "rank.js",
         root / "static" / "becoming" / "domain" / "feedback-map.js",
@@ -170,6 +172,8 @@ def main() -> None:
     speech_asr = read("writing_coach/speech_asr.py")
     speech_pronunciation = read("writing_coach/speech_pronunciation.py")
     speaking_evaluator = read("writing_coach/speaking_evaluator.py")
+    r8_matrix = read("scripts/r8_release_matrix.mjs")
+    r8_matrix_report = read("docs/project/R8_PRE_PUBLIC_MATRIX.json")
     skill_registry = read("writing_coach/core/skill_registry.py")
     platform_api = read("writing_coach/core/platform_api.py")
     rank_domain = read("static/becoming/domain/rank.js")
@@ -609,6 +613,16 @@ def main() -> None:
         "deterministic_reference_alignment", '"proficiency": None',
         '"synthetic_demo"',
     ], "R7 per-take Speaking evaluation contract")
+    require_contains(errors, r8_matrix, [
+        "R8-pre-public-en-zh", "test_writing_evaluation_flow.mjs",
+        "test_speaking_ui.mjs", "provider_credentials", "public_promotion",
+        "writing_public:false", "speaking_public:false",
+    ], "R8 EN/ZH pre-public release matrix")
+    require_contains(errors, r8_matrix_report, [
+        '"matrix": "R8-pre-public-en-zh"', '"writing_public": false',
+        '"speaking_public": false', '"capability_activation": false',
+        '"provider_credentials"', '"postgres_migration"', '"public_promotion"',
+    ], "R8 matrix evidence report")
     for forbidden in [
         "fetch(", "FormData", "XMLHttpRequest",
         "SpeechRecognition", "pronunciation_evaluator",

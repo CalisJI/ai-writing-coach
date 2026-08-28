@@ -578,3 +578,29 @@ retention, provider activation, and public release remain human-gated.
 
 **Supersedes / Superseded by:** Extends the R6 transient-audio boundary and
 R7 per-take evaluator decision. Supersedes no earlier decision.
+
+## D-028 — R8 release readiness is a deterministic pre-public matrix
+
+**Status:** Accepted
+
+**Decision:** R8 local acceptance is represented by one deterministic EN/ZH
+matrix that exercises the existing Writing/Review and Speaking record,
+evaluation, pronunciation, and history flows, then records deferred provider,
+PostgreSQL migration, capability-activation, and public-promotion gates without
+changing learner release state.
+
+**Reason:** Writing (R3/R4) and Speaking (R6/R7) are locally closed, but their
+public gate requires joined multilingual evidence and truthful separation of
+offline verification from human-controlled operations. A successor matrix
+validator keeps that evidence reproducible and prevents a local pass from being
+reported as a public release.
+
+**Consequences:** `scripts/r8_release_matrix.mjs` runs the representative browser
+contracts, records source-only boundary checks explicitly as static inspections,
+and emits deterministic verified/inspected/deferred results. The canonical
+report is byte-for-byte checked when the runner is invoked without `--output`.
+Credentialed provider smoke, production migration, R2 activation, and promotion
+remain explicit human actions.
+
+**Supersedes / Superseded by:** Extends the R3/R4 and R6/R7 local acceptance
+decisions. Supersedes no earlier decision.
