@@ -669,10 +669,22 @@ stop, cancel, failure, and lifecycle suspension. Android RECORD_AUDIO and iOS
 microphone usage configuration are present; raw audio is not persisted or
 sent to a provider.
 
-**Next handoff:** R19-E cache, lifecycle, and resume implementation/review
-agent. Continue from the verified R19-D media boundary; do not add mobile ASR,
-scoring, uploads, raw-audio persistence, provider activation, signing, or
-store-release behavior.
+**R19-E local acceptance closeout:** COMPLETE / LOCAL ACCEPTANCE PASS. The
+mobile client validates and bounds the immutable Chinese stroke-order
+representation, sends If-None-Match and reuses matching 304 data, rejects
+no-store/unavailable caching, and exposes safe stale-cache behavior for
+transient read failures. Its persisted cache index remains bounded across
+cache instances and only accepts explicit public immutable responses. Compact
+media status is reduced to canonical asset and opaque resume identifiers;
+foreground and Expo Network/TanStack online reconnect events cancel and
+revalidate bootstrap, reference, and media queries without local authority
+drift. Shared EN/ZH degraded-state messages cover offline, timeout,
+authentication expiry, unavailable, stale, and refresh states.
+
+**Next handoff:** R19-F reproducible Android/iOS build preparation
+implementation/review agent. Continue from the verified R19-D/R19-E mobile
+boundaries; do not add mobile ASR, scoring, uploads, raw-audio persistence,
+provider activation, signing, or store-release behavior.
 
 ## R18 immutable reference-data cache contract
 

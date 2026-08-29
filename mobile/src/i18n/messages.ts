@@ -45,6 +45,12 @@ export const messages = {
     'media.stop': 'Stop recording',
     'media.play': 'Play temporary recording',
     'media.cancel': 'Discard temporary audio',
+    'cache.offline': 'You are offline. Showing only safe cached reference data.',
+    'cache.timeout': 'The refresh took too long. Showing safe cached data if available.',
+    'cache.auth_expired': 'Your session expired. Sign in again to refresh this data.',
+    'cache.unavailable': 'This data is temporarily unavailable. No progress was changed.',
+    'cache.stale': 'Showing safe cached reference data until the service reconnects.',
+    'cache.refreshing': 'Refreshing safely…',
   },
   zh: {
     'app.name': 'Orena',
@@ -92,6 +98,12 @@ export const messages = {
     'media.stop': '停止录音',
     'media.play': '播放临时录音',
     'media.cancel': '丢弃临时音频',
+    'cache.offline': '你当前处于离线状态，仅显示安全的缓存参考数据。',
+    'cache.timeout': '刷新时间过长；如果有安全缓存，将暂时显示缓存数据。',
+    'cache.auth_expired': '登录会话已过期，请重新登录后刷新数据。',
+    'cache.unavailable': '此数据暂时不可用，学习进度没有改变。',
+    'cache.stale': '服务重新连接前，将显示安全的缓存参考数据。',
+    'cache.refreshing': '正在安全刷新……',
   },
 } as const;
 

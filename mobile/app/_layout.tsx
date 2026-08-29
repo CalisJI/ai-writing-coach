@@ -8,6 +8,12 @@ import {AppErrorBoundary} from '../src/components/AppErrorBoundary';
 import {ThemeProvider, useTheme} from '../src/theme/ThemeProvider';
 import {QueryClientProvider} from '@tanstack/react-query';
 import {queryClient} from '../src/query/queryClient';
+import {useLifecycleRevalidation} from '../src/query/lifecycleRevalidation';
+
+function LifecycleRevalidationBridge() {
+  useLifecycleRevalidation(queryClient);
+  return null;
+}
 
 function RootStack() {
   const {scheme} = useTheme();
@@ -18,6 +24,7 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <QueryClientProvider client={queryClient}>
+        <LifecycleRevalidationBridge />
         <ThemeProvider>
           <I18nProvider>
             <SessionProvider>

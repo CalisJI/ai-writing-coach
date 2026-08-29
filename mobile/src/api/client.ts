@@ -2,6 +2,7 @@ import {configuredApiBaseUrl, normalizeApiBaseUrl} from './config';
 import {ApiError, normalizeUnknownError} from './errors';
 import {logoutResponseSchema, nativeSessionExchangeSchema, type NativeSessionExchange} from './contracts/nativeAuth';
 import {sessionBootstrapSchema, type SessionBootstrap} from './contracts/session';
+import {compactMediaStatusSchema, strokeOrderSchema, type CompactMediaStatus, type StrokeOrder} from './contracts/reference';
 
 type FetchLike = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
 
@@ -17,7 +18,12 @@ export type RequestOptions = {
   signal?: AbortSignal;
   /** The signed server session cookie value, supplied by the native session layer. */
   sessionCookie?: string;
+  ifNoneMatch?: string;
 };
+
+export type StrokeOrderResult =
+  | {kind: 'fresh'; data: StrokeOrder; etag: string | null; cacheControl: string | null}
+  | {kind: 'not_modified'; etag: string; cacheControl: string | null};
 
 export class ApiClient {
   private readonly baseUrl: string;
@@ -43,6 +49,28 @@ export class ApiClient {
     await this.request('/auth/logout', options, logoutResponseSchema.parse, 'POST');
   }
 
+  async getChineseStrokeOrder(word: string, options: RequestOptions = {}): Promise<StrokeOrderResult> {
+    if (typeof word !== 'string' || word.trim() === '') throw new ApiError('request_rejected', 'Stroke-order word is required');
+    const response = await this.rawRequest(`/api/chinese/stroke-order?word=${encodeURIComponent(word)}`, options);
+    const etag = response.headers.get('etag');
+    const cacheControl = response.headers.get('cache-control');
+    if (response.status === 304) {
+      if (!etag) throw new ApiError('invalid_response', 'Invalid server response', response.status);
+      return {kind: 'not_modified', etag, cacheControl};
+    }
+    this.throwForResponse(response);
+    let body: unknown;
+    try { body = await response.json(); } catch { throw new ApiError('invalid_response', 'Invalid server response', response.status); }
+    try {
+      return {kind: 'fresh', data: strokeOrderSchema.parse(body), etag, cacheControl};
+    } catch { throw new ApiError('invalid_response', 'Invalid server response', response.status); }
+  }
+
+  async getMediaImportStatus(resumeHandle: string, options: RequestOptions = {}): Promise<CompactMediaStatus> {
+    if (typeof resumeHandle !== 'string' || resumeHandle.trim() === '') throw new ApiError('request_rejected', 'Media resume handle is required');
+    return this.request('/api/media-learning/import/status', options, compactMediaStatusSchema.parse, 'POST', {job_id: resumeHandle, compact: true});
+  }
+
   getBaseUrl(): string {
     return this.baseUrl;
   }
@@ -54,6 +82,27 @@ export class ApiClient {
     method: 'GET' | 'POST' = 'GET',
     payload?: unknown,
   ): Promise<T> {
+    const response = await this.rawRequest(path, options, method, payload);
+    this.throwForResponse(response);
+    let body: unknown;
+    try {
+      body = await response.json();
+    } catch {
+      throw new ApiError('invalid_response', 'Invalid server response', response.status);
+    }
+    try {
+      return parse(body);
+    } catch {
+      throw new ApiError('invalid_response', 'Invalid server response', response.status);
+    }
+  }
+
+  private async rawRequest(
+    path: string,
+    options: RequestOptions,
+    method: 'GET' | 'POST' = 'GET',
+    payload?: unknown,
+  ): Promise<Response> {
     const controller = new AbortController();
     let timedOut = false;
     let removeExternalAbort: () => void = () => undefined;
@@ -72,6 +121,7 @@ export class ApiClient {
     try {
       const headers: Record<string, string> = {Accept: 'application/json'};
       if (options.sessionCookie) headers.Cookie = `${SESSION_COOKIE_NAME}=${options.sessionCookie}`;
+      if (options.ifNoneMatch) headers['If-None-Match'] = options.ifNoneMatch;
       if (payload !== undefined) headers['Content-Type'] = 'application/json';
       const response = await this.fetchImpl(`${this.baseUrl}${path}`, {
         method,
@@ -80,21 +130,7 @@ export class ApiClient {
         cache: 'no-store',
         signal: controller.signal,
       });
-      if (response.status === 401) throw new ApiError('authentication_required', 'Authentication required', 401);
-      if (response.status === 403) throw new ApiError('permission_denied', 'Permission denied', 403);
-      if (response.status >= 500) throw new ApiError('server_unavailable', 'Server unavailable', response.status);
-      if (!response.ok) throw new ApiError('request_rejected', 'Request rejected', response.status);
-      let body: unknown;
-      try {
-        body = await response.json();
-      } catch {
-        throw new ApiError('invalid_response', 'Invalid server response', response.status);
-      }
-      try {
-        return parse(body);
-      } catch {
-        throw new ApiError('invalid_response', 'Invalid server response', response.status);
-      }
+      return response;
     } catch (error) {
       if (error instanceof ApiError) throw error;
       if (timedOut) throw new ApiError('timeout', 'Request timed out');
@@ -105,6 +141,13 @@ export class ApiClient {
       clearTimeout(timeout);
       removeExternalAbort();
     }
+  }
+
+  private throwForResponse(response: Response): void {
+    if (response.status === 401) throw new ApiError('authentication_required', 'Authentication required', 401);
+    if (response.status === 403) throw new ApiError('permission_denied', 'Permission denied', 403);
+    if (response.status >= 500) throw new ApiError('server_unavailable', 'Server unavailable', response.status);
+    if (!response.ok) throw new ApiError('request_rejected', 'Request rejected', response.status);
   }
 }
 

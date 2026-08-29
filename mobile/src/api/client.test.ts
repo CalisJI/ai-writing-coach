@@ -20,6 +20,12 @@ function response(status: number, body: unknown): Response {
   return {status, ok: status >= 200 && status < 300, json: async () => body} as Response;
 }
 
+const strokeOrder = {
+  word: '学', glyph_size: 1024,
+  characters: [{character: '学', stroke_count: 8, stroke_paths: ['M1'], medians: [[1, 2]], radical_strokes: []}],
+  unavailable: [], source: 'make-me-a-hanzi', source_version: 'hanzi-writer-data-2.0.1',
+};
+
 describe('typed mobile API client', () => {
   it('normalizes public base URLs and rejects unsafe configuration', () => {
     expect(normalizeApiBaseUrl('https://learn.example.test///')).toBe('https://learn.example.test');
@@ -93,5 +99,31 @@ describe('typed mobile API client', () => {
     const request = cancelled.getSessionBootstrap({signal: controller.signal});
     controller.abort();
     await expect(request).rejects.toMatchObject({category: 'cancelled'});
+  });
+
+  it('sends ETags and preserves the immutable stroke-order response shape', async () => {
+    const requests: RequestInit[] = [];
+    const client = new ApiClient({baseUrl: 'https://learn.example.test', fetchImpl: async (_input, init) => {
+      requests.push(init ?? {});
+      return requests.length === 1
+        ? {...response(200, strokeOrder), headers: new Headers({'ETag': '"stroke-v1"', 'Cache-Control': 'public, max-age=31536000, immutable'})} as Response
+        : {status: 304, ok: false, headers: new Headers({'ETag': '"stroke-v1"'}), json: async () => null} as Response;
+    }});
+    const first = await client.getChineseStrokeOrder('学');
+    const second = await client.getChineseStrokeOrder('学', {ifNoneMatch: first.etag ?? undefined});
+    expect(first).toMatchObject({kind: 'fresh', etag: '"stroke-v1"', data: {source_version: 'hanzi-writer-data-2.0.1'}});
+    expect(second).toEqual({kind: 'not_modified', etag: '"stroke-v1"', cacheControl: null});
+    expect((requests[1]?.headers as Record<string, string>)['If-None-Match']).toBe('"stroke-v1"');
+  });
+
+  it('posts only the compact media resume request and validates its bounded response', async () => {
+    let request: RequestInit | undefined;
+    const client = new ApiClient({baseUrl: 'https://learn.example.test', fetchImpl: async (_input, init) => {
+      request = init;
+      return response(200, {status: 'processing', asset: {asset_id: 'youtube:fixture', processing_state: 'processing'}, import_job: {resume_handle: 'opaque-resume-handle-123456', state: 'queued', source: 'supadata', failure_kind: null, resumable: true}});
+    }});
+    const result = await client.getMediaImportStatus('opaque-resume-handle-123456');
+    expect(result.asset.asset_id).toBe('youtube:fixture');
+    expect(request?.body).toBe(JSON.stringify({job_id: 'opaque-resume-handle-123456', compact: true}));
   });
 });
