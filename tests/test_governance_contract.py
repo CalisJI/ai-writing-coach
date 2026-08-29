@@ -126,7 +126,15 @@ def test_r13_local_admin_matrix_is_reproducible_and_runtime_safe() -> None:
 def test_r17_local_foundation_closeout_records_verified_route_boundary() -> None:
     project_state = (ROOT / "docs/project/PROJECT_STATE.md").read_text(encoding="utf-8")
     handoff = (ROOT / "docs/project/CURRENT_HANDOFF.md").read_text(encoding="utf-8")
+    roadmap = (ROOT / "docs/project/ROADMAP.md").read_text(encoding="utf-8")
     route_test = (ROOT / "tests/test_r17_admin_routes.py").read_text(encoding="utf-8")
+    activity_contract = (ROOT / "scripts/test_product_activity_contract.mjs").read_text(encoding="utf-8")
+    retention_contract = (ROOT / "scripts/test_r17_admin_retention.mjs").read_text(encoding="utf-8")
+    readiness_contract = (ROOT / "scripts/test_r17_readiness_contract.mjs").read_text(encoding="utf-8")
+    readiness_summary = (ROOT / "scripts/test_r17_readiness_summary.mjs").read_text(encoding="utf-8")
+    normalized_roadmap = " ".join(roadmap.split())
+    r17_section = roadmap.split("## R17 — Product Analytics & Operational Observability", 1)[1].split("## R18", 1)[0]
+    normalized_r17 = " ".join(r17_section.split())
     assert "R17 — Product Analytics & Operational Observability: **COMPLETE / LOCAL" in project_state
     assert "R17 — Product Analytics & Operational Observability: **IN PROGRESS / LOCAL" not in project_state
     assert "R17 — Product Analytics & Operational Observability: **IN PROGRESS / LOCAL" not in handoff
@@ -137,6 +145,14 @@ def test_r17_local_foundation_closeout_records_verified_route_boundary() -> None
     assert 'headers={"x-test-admin": "1"}' in route_test
     for sensitive in ("private-user", "private learner text", "private prompt", "private.example"):
         assert sensitive in route_test
+    assert "| R17 | Product Analytics & Operational Observability | COMPLETE / LOCAL ACCEPTANCE PASS |" in roadmap
+    assert "| R17 | Product Analytics & Operational Observability | PLANNED / POST-R12 PLATFORM TRACK |" not in roadmap
+    assert "**COMPLETE / LOCAL ACCEPTANCE PASS.**" in r17_section
+    assert "authenticated Admin-only product-activity, retention, source-specific funnel" in normalized_r17
+    assert "ready, degraded, insufficient, unavailable, and deferred states remain explicit" in normalized_r17
+    assert "live PostgreSQL observation remains an explicit human gate." in normalized_r17
+    for contract in (activity_contract, retention_contract, readiness_contract, readiness_summary):
+        assert "PASS" in contract
 
 
 def test_r18_reference_data_cache_contract_is_recorded() -> None:

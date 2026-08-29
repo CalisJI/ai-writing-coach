@@ -44,7 +44,7 @@ require approval and must remain consistent with `PROJECT_STATE.md` and
 | R14 | AI Usage, Cost, Quota & Provider Operations | COMPLETE / LOCAL ACCEPTANCE PASS |
 | R15 | SaaS Plans, Entitlements & Usage Policy | COMPLETE / LOCAL ACCEPTANCE PASS |
 | R16 | Advanced Learning Intelligence | PLANNED / POST-R12 PRODUCT TRACK |
-| R17 | Product Analytics & Operational Observability | PLANNED / POST-R12 PLATFORM TRACK |
+| R17 | Product Analytics & Operational Observability | COMPLETE / LOCAL ACCEPTANCE PASS |
 | R18 | Mobile/API Readiness | PLANNED / POST-R12 PLATFORM TRACK |
 
 ## Historical execution order
@@ -512,7 +512,16 @@ invent unsupported proficiency claims.
 
 ## R17 — Product Analytics & Operational Observability
 
-**PLANNED / POST-R12 PLATFORM TRACK.**
+**COMPLETE / LOCAL ACCEPTANCE PASS.**
+
+The authenticated Admin-only product-activity, retention, source-specific
+funnel, learner-impact, cost, and readiness views are locally accepted. Routes
+require authorization and expose bounded aggregates only: learner identifiers,
+raw content, media URLs, and event rows are redacted, while ready, degraded,
+insufficient, unavailable, and deferred states remain explicit. No learner-event
+writes, learner-scoring changes, entitlement enforcement, provider activation,
+or production release is implied; live PostgreSQL observation remains an
+explicit human gate.
 
 R17 provides product and operational visibility without changing learner-facing
 scoring semantics.
