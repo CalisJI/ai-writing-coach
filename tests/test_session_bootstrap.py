@@ -67,3 +67,26 @@ def test_bootstrap_rejects_missing_and_expired_sessions_without_identity(monkeyp
     for response in responses:
         assert response.json() == {"detail": "Authentication required"}
         assert all(secret not in response.text for secret in ("user-1", "email", "role", "language"))
+
+
+def test_bootstrap_accepts_native_style_session_cookie_header(monkeypatch):
+    """The native client attaches the existing signed session as a Cookie header."""
+    monkeypatch.setattr(auth_support, "AUTH_ENABLED", True)
+    monkeypatch.setattr(auth_support, "auth_user", lambda sub: {"google_sub": sub, "role": "user"})
+    monkeypatch.setattr(auth_support, "ensure_user_db", lambda: None)
+
+    async def exercise():
+        cookie = _session_cookie(user_sub="native-user", language="zh")
+        transport = httpx.ASGITransport(app=app_module.app)
+        async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+            return await client.get(
+                "/api/session/bootstrap",
+                headers={"Cookie": f"writing_coach_session={cookie}"},
+            )
+
+    response = asyncio.run(exercise())
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["authenticated"] is True
+    assert payload["language"]["active"] == "zh"
+    assert payload["user"] == {"role": "user", "is_admin": False}

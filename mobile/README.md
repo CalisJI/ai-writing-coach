@@ -22,9 +22,9 @@ npx expo run:ios
 The shell currently provides signed-out and authenticated route groups through
 an in-memory development harness. It includes safe-area support, automatic
 system/light/dark theme behavior, shared EN/ZH messages, accessible controls,
-and a truthful localized error boundary. API/session bootstrap, secure session
-storage, OAuth, audio, and learner flows are intentionally reserved for later
-R19 clusters.
+a truthful localized error boundary, and the R19-B API/session bootstrap
+boundary. Secure session storage, OAuth, audio, and learner flows are
+intentionally reserved for later R19 clusters.
 
 The interface locale starts from the device language (`zh` selects Chinese;
 other or unavailable device locales fall back to English) and can be changed
@@ -33,6 +33,16 @@ state and is independent from the server-authoritative learning language.
 
 Public configuration names are `EXPO_PUBLIC_API_BASE_URL` and
 `EXPO_PUBLIC_APP_ENV`; no private credentials belong in this workspace.
+
+R19-B's typed API client is the single network boundary. It normalizes and
+validates `GET /api/session/bootstrap` (`orena.session-bootstrap.v1`), attaches
+the backend-compatible `writing_coach_session` cookie when supplied by the
+native session layer, uses bounded no-store reads, supports cancellation and timeout handling, and maps
+network, authentication, permission, server, rejection, and invalid-response
+failures to safe categories without retaining response bodies. A missing or
+invalid `EXPO_PUBLIC_API_BASE_URL` renders the truthful unavailable shell
+state; a server 401 renders signed-out navigation. Bootstrap data is query
+state with zero stale time and is never treated as local session authority.
 
 Android package and iOS bundle identifiers default to `org.chillpickle.orena`.
 `eas.json` contains development, preview, and production build profiles without
