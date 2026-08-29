@@ -18,11 +18,11 @@ operational state.
 
 - Application version: `1.4.0`
 - BECOMING frontend version: `2.17.5`
-- Current Orena program: R8 — Public Product Gate; the Writing and Speaking
-  EN/ZH pre-public matrix is locally complete, while public promotion remains
-  an explicit human gate. R12–R18 local foundations are complete; no autonomous
-  work should reopen them while R2 activation, R8/R11 promotion, and production
-  operations remain deferred.
+- Current Orena program: Governance handoff — all documented non-production
+  foundations are locally complete. The R8/R11 Writing, Speaking, and Listening
+  promotion decisions remain explicit human gates; no autonomous implementation
+  lane is open while R2 activation, production operations, billing, and public
+  promotion remain deferred.
 
 ## Orena UI/UX integration
 

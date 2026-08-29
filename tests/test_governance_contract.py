@@ -127,7 +127,7 @@ def test_r18_reference_data_cache_contract_is_recorded() -> None:
     handoff = (ROOT / "docs/project/CURRENT_HANDOFF.md").read_text(encoding="utf-8")
     route_test = (ROOT / "tests/test_reference_data_cache.py").read_text(encoding="utf-8")
     assert "R18 — Mobile/API Readiness: **COMPLETE / LOCAL ACCEPTANCE PASS**" in project_state
-    assert "Current Orena program: R8 — Public Product Gate" in project_state
+    assert "Current Orena program: Governance handoff — all documented non-production" in project_state
     assert "R18 — Mobile/API Readiness: **COMPLETE / LOCAL ACCEPTANCE PASS**" in handoff
     assert "R18 — Mobile/API Readiness: **IN PROGRESS / LOCAL FOUNDATION**" not in project_state
     assert "R18 — Mobile/API Readiness: **IN PROGRESS / LOCAL FOUNDATION**" not in handoff
@@ -264,7 +264,7 @@ def test_post_r12_governance_pointer_reconciles_completed_ledger() -> None:
     handoff = (ROOT / "docs/project/CURRENT_HANDOFF.md").read_text(encoding="utf-8")
     roadmap = (ROOT / "docs/project/ROADMAP.md").read_text(encoding="utf-8")
 
-    assert "Current Orena program: R8 — Public Product Gate" in project_state
+    assert "Current Orena program: Governance handoff — all documented non-production" in project_state
     assert "Current Orena program: R18" not in project_state
     assert "R3 — Writing Evaluation Completion: **COMPLETE / LOCAL ACCEPTANCE PASS**" in project_state
     normalized_state = " ".join(project_state.split())
@@ -290,10 +290,12 @@ def test_post_r12_governance_pointer_reconciles_completed_ledger() -> None:
     ):
         assert status in normalized_handoff
     assert "Current governance lane (2026-08-29)" in handoff
-    assert "R8 public-product-gate owner" in handoff
+    assert "No autonomous implementation owner is assigned" in normalized_handoff
+    assert "R8 public-product-gate owner" not in handoff
     assert "mobile/API-readiness follow-on owner" not in handoff
     assert "R2 capability-activation" in handoff
     assert "R8" in handoff and "R11" in handoff and "human gate" in handoff.casefold()
+    assert "**Next handoff:** Human governance decision for R8/R11 public promotion" in normalized_handoff
     assert "R8 — Public Product Gate" in project_state
     assert "R11" in project_state and "human gate" in project_state.casefold()
     assert "| R12 | Retention & Growth | PLANNED |" in roadmap
