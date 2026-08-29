@@ -1,0 +1,48 @@
+{
+  "name": "@orena/mobile",
+  "version": "0.1.0",
+  "private": true,
+  "main": "expo-router/entry",
+  "scripts": {
+    "start": "expo start",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "jest --runInBand",
+    "test:watch": "jest --watch",
+    "validate": "npm run lint && npm run typecheck && npm test"
+  },
+  "dependencies": {
+    "@expo/vector-icons": "~14.0.4",
+    "expo": "~52.0.46",
+    "expo-constants": "~17.0.8",
+    "expo-linking": "~7.0.5",
+    "expo-localization": "~16.0.1",
+    "expo-router": "~4.0.21",
+    "expo-status-bar": "~2.0.1",
+    "expo-system-ui": "~4.0.9",
+    "react": "18.3.1",
+    "react-native": "0.76.9",
+    "react-native-safe-area-context": "4.12.0",
+    "react-native-screens": "~4.4.0"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.14",
+    "@types/react": "~18.3.12",
+    "@types/react-test-renderer": "^18.3.1",
+    "eslint": "^8.57.0",
+    "eslint-config-expo": "~8.0.1",
+    "jest": "^29.7.0",
+    "jest-expo": "~52.0.6",
+    "react-test-renderer": "18.3.1",
+    "typescript": "~5.3.3"
+  },
+  "jest": {
+    "preset": "jest-expo",
+    "testMatch": ["<rootDir>/src/**/*.test.ts", "<rootDir>/src/**/*.test.tsx"],
+    "transformIgnorePatterns": [
+      "node_modules/(?!((jest-)?react-native|@react-native(-community)?|expo(nent)?|@expo(nent)?/.*|@unimodules/.*|unimodules|sentry-expo|native-base|react-navigation|@react-navigation/.*))"
+    ]
+  }
+}

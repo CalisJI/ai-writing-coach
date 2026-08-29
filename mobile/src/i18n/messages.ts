@@ -1,0 +1,63 @@
+export const messages = {
+  en: {
+    'app.name': 'Orena',
+    'app.tagline': 'A calm place to build language skill.',
+    'auth.signed_out_title': 'Welcome to Orena',
+    'auth.signed_out_body': 'Sign in to continue your learning journey.',
+    'auth.sign_in': 'Continue in development mode',
+    'auth.sign_out': 'Sign out',
+    'nav.home': 'Home',
+    'nav.writing': 'Writing',
+    'nav.review': 'Review',
+    'nav.grammar': 'Grammar',
+    'nav.reading': 'Reading',
+    'nav.listening': 'Listening',
+    'nav.speaking': 'Speaking',
+    'nav.library': 'Library',
+    'nav.journey': 'Journey',
+    'nav.profile': 'Profile',
+    'shell.placeholder': 'This native route is ready for its next vertical slice.',
+    'theme.system': 'System theme',
+    'theme.light': 'Light theme',
+    'theme.dark': 'Dark theme',
+    'locale.english': 'English interface',
+    'locale.chinese': 'Chinese interface',
+    'error.title': 'Orena could not show this screen',
+    'error.body': 'Your progress is safe. Try again, or return to Home.',
+    'error.retry': 'Try again',
+  },
+  zh: {
+    'app.name': 'Orena',
+    'app.tagline': '在平静的空间里持续提升语言能力。',
+    'auth.signed_out_title': '欢迎来到 Orena',
+    'auth.signed_out_body': '登录后继续你的学习旅程。',
+    'auth.sign_in': '使用开发模式继续',
+    'auth.sign_out': '退出登录',
+    'nav.home': '首页',
+    'nav.writing': '写作',
+    'nav.review': '复习',
+    'nav.grammar': '语法',
+    'nav.reading': '阅读',
+    'nav.listening': '听力',
+    'nav.speaking': '口语',
+    'nav.library': '词库',
+    'nav.journey': '学习旅程',
+    'nav.profile': '个人设置',
+    'shell.placeholder': '原生页面已准备好，下一步将接入对应学习流程。',
+    'theme.system': '跟随系统主题',
+    'theme.light': '浅色主题',
+    'theme.dark': '深色主题',
+    'locale.english': '英文界面',
+    'locale.chinese': '中文界面',
+    'error.title': 'Orena 暂时无法显示此页面',
+    'error.body': '你的学习进度是安全的。请重试，或返回首页。',
+    'error.retry': '重试',
+  },
+} as const;
+
+export type Locale = keyof typeof messages;
+export type MessageId = keyof typeof messages.en;
+
+export function translate(locale: Locale, id: MessageId): string {
+  return messages[locale][id];
+}
