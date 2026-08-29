@@ -30,7 +30,7 @@ require approval and must remain consistent with `PROJECT_STATE.md` and
 | R1 | Production Staging + Cloudflare + Google OAuth | CLOSED |
 | R2 | AI Capability Control Plane | HUMAN GATE / READY, NOT PRODUCT-BLOCKING |
 | M1 | Media Learning Foundation (cross-cutting) | CLOSED / FOUNDATION COMPLETE |
-| R3 | Writing Evaluation Completion | IN PROGRESS / PRIMARY |
+| R3 | Writing Evaluation Completion | COMPLETE / LOCAL ACCEPTANCE PASS |
 | R4 | Writing Learning Loop + Grammar Transfer | PLANNED |
 | R5 | Grammar Knowledge System | CLOSED |
 | R6 | Speaking Core | IN PROGRESS / INTERNAL / SECONDARY |
@@ -47,16 +47,20 @@ require approval and must remain consistent with `PROJECT_STATE.md` and
 | R17 | Product Analytics & Operational Observability | PLANNED / POST-R12 PLATFORM TRACK |
 | R18 | Mobile/API Readiness | PLANNED / POST-R12 PLATFORM TRACK |
 
-## Current execution order
+## Historical execution order
 
-Primary execution from the post-R5 checkpoint is:
+The historical primary execution from the post-R5 checkpoint was:
 
 `R3 → R4 → finish remaining R6 core gaps → R7 → R8`
 
+R3 is now complete at its local-acceptance checkpoint. Current ownership and
+promotion gates are recorded in `CURRENT_HANDOFF.md` and `PROJECT_STATE.md`;
+there is no active autonomous R3/R4 implementation lane.
+
 R2 production activation is an independent human gate and should be completed
 before it is required for public runtime behavior, but it must not block R3/R4
-product development. R6 remains usable internally and may receive bounded
-regression fixes while R3/R4 are primary.
+product development in that historical sequence. R6 remains usable internally
+and may receive bounded regression fixes while R3/R4 were primary.
 
 ## R0 — Product Release Architecture
 
@@ -118,10 +122,13 @@ parallel media pipelines.
 
 ## R3 — Writing Evaluation Completion
 
-**IN PROGRESS / PRIMARY.**
+**COMPLETE / LOCAL ACCEPTANCE PASS.**
 
 R3 finishes the trustworthy Writing evaluation contract and its learner-facing
-feedback. Existing foundations already include a shared evaluator request/schema,
+feedback. The shared EN/ZH evaluator request/schema, grounded evidence,
+revision/review handoff, and degraded-state contracts are locally accepted;
+public promotion remains governed by R8 and the R2 capability-activation gate.
+Existing foundations already include a shared evaluator request/schema,
 language policy, weighted scoring, literal learner-fragment evidence, confidence
 filtering, and the shared `writing_evaluator` capability identity.
 
@@ -295,11 +302,15 @@ The extension follows these rules:
   behavior exposed by advanced features must preserve the multilingual
   invariant.
 
-### Extended execution relationship
+### Historical execution relationship
 
-The existing primary path remains:
+The historical primary path was:
 
 `R3 → R4 → finish remaining R6 core gaps → R7 → R8`
+
+This sequence is retained for traceability; current ownership and promotion
+gates are governed by `CURRENT_HANDOFF.md` and `PROJECT_STATE.md`, with no active
+autonomous R3/R4 implementation lane.
 
 Then the existing post-R8 learner roadmap remains:
 
