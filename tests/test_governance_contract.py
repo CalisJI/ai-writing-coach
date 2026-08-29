@@ -165,7 +165,15 @@ def test_r18_reference_data_cache_contract_is_recorded() -> None:
     assert "R18 — Mobile/API Readiness: **IN PROGRESS / LOCAL FOUNDATION**" not in project_state
     assert "R18 — Mobile/API Readiness: **IN PROGRESS / LOCAL FOUNDATION**" not in handoff
     roadmap = (ROOT / "docs/project/ROADMAP.md").read_text(encoding="utf-8")
-    assert "| R18 | Mobile/API Readiness | PLANNED / POST-R12 PLATFORM TRACK |" in roadmap
+    normalized_roadmap = " ".join(roadmap.split())
+    r18_section = roadmap.split("## R18 — Mobile/API Readiness", 1)[1].split("## Multilingual roadmap principle", 1)[0]
+    normalized_r18 = " ".join(r18_section.split())
+    assert "| R18 | Mobile/API Readiness | COMPLETE / LOCAL ACCEPTANCE PASS |" in roadmap
+    assert "| R18 | Mobile/API Readiness | PLANNED / POST-R12 PLATFORM TRACK |" not in roadmap
+    assert "**COMPLETE / LOCAL ACCEPTANCE PASS.**" in r18_section
+    assert "immutable reference-data cache, authenticated session bootstrap, and compact resumable media-status contracts" in normalized_r18
+    assert "Mobile-client implementation, provider activation, production release, and deployment remain explicit human gates." in normalized_r18
+    assert "| R18 | Mobile/API Readiness | COMPLETE / LOCAL ACCEPTANCE PASS |" in normalized_roadmap
     assert "R18 local-foundation closeout" in handoff
     assert "R18 immutable reference-data cache contract" in handoff
     for contract in ("source_version", "If-None-Match", "no-store", "ASGITransport"):

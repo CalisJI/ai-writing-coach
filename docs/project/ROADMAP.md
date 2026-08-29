@@ -45,7 +45,7 @@ require approval and must remain consistent with `PROJECT_STATE.md` and
 | R15 | SaaS Plans, Entitlements & Usage Policy | COMPLETE / LOCAL ACCEPTANCE PASS |
 | R16 | Advanced Learning Intelligence | PLANNED / POST-R12 PRODUCT TRACK |
 | R17 | Product Analytics & Operational Observability | COMPLETE / LOCAL ACCEPTANCE PASS |
-| R18 | Mobile/API Readiness | PLANNED / POST-R12 PLATFORM TRACK |
+| R18 | Mobile/API Readiness | COMPLETE / LOCAL ACCEPTANCE PASS |
 
 ## Historical execution order
 
@@ -543,7 +543,16 @@ engagement alone.
 
 ## R18 — Mobile/API Readiness
 
-**PLANNED / POST-R12 PLATFORM TRACK.**
+**COMPLETE / LOCAL ACCEPTANCE PASS.**
+
+The immutable reference-data cache, authenticated session bootstrap, and
+compact resumable media-status contracts are locally accepted for shared web
+and future-mobile consumers. Versioned source metadata, ETag/conditional
+caching, authentication, bounded response shaping, and truthful unavailable
+states preserve server ownership and cache safety without duplicating datasets
+or changing full media acquisition behavior. Mobile-client implementation,
+provider activation, production release, and deployment remain explicit human
+gates.
 
 R18 prepares Orena's existing web/server product contracts for a mobile client
 without forking the product model.
