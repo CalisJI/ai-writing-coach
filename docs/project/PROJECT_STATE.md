@@ -427,9 +427,11 @@ The post-R5 roadmap uses one primary learner-visible lane.
   persistence, new provider, or public capability activation was added.
 - **R10 — Reading Completion: COMPLETE / LOCAL ACCEPTANCE PASS.** The mounted
   EN/ZH Reading contract verifies session creation, comprehension answers tied
-  to exact passage evidence, learner-scoped history reopening, and saved-word
-  handoff to Library. Results remain passage-specific and make no CEFR/HSK
-  mastery claim; public Reading promotion remains deferred.
+  to exact passage evidence, learner-scoped history reopening, saved-word
+  handoff to Library, and contextual dictionary lookup with explicit
+  unavailable states. The deterministic pre-public matrix is recorded in
+  `R10_PRE_PUBLIC_MATRIX.json`; provider credentials, production mutation, and
+  public Reading promotion remain deferred.
 - **R11 — Listening Completion: PRE-PUBLIC MATRIX COMPLETE / HUMAN PROMOTION
   GATE.** The deterministic EN/ZH matrix covers mounted Active reconstruction
   resume, Shadowing round resume, Shadowing-to-Speaking feedback continuity,

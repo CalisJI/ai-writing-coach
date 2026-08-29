@@ -217,9 +217,13 @@ completed R18 foundation.
   scoring and public activation remain outside this local checkpoint.
 - R10 now has an internal EN/ZH Reading learning-loop acceptance: mounted
   session creation, comprehension answers with exact passage evidence,
-  audio-free learner history reopening, and saved-key-word handoff to Library.
-  The result is passage-specific and does not claim CEFR/HSK mastery; public
-  Reading promotion remains a separate human gate.
+  audio-free learner history reopening, saved-key-word handoff to Library, and
+  contextual dictionary lookup with explicit unavailable handling. The
+  deterministic pre-public matrix is checked in at
+  `docs/project/R10_PRE_PUBLIC_MATRIX.json` and its default runner mode checks
+  the canonical report byte-for-byte. The result is passage-specific and does
+  not claim CEFR/HSK mastery; provider credentials, production mutation, and
+  public Reading promotion remain separate human gates.
 - R11 now has a deterministic EN/ZH pre-public Listening matrix covering the
   mounted Active reconstruction resume and Shadowing round resume flows,
   Shadowing-to-Speaking feedback continuity, localized unavailable/failure

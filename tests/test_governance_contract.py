@@ -192,6 +192,32 @@ def test_r12_local_retention_foundation_closeout_is_recorded() -> None:
         assert "en" in script and "zh" in script
 
 
+def test_r10_reading_matrix_records_en_zh_evidence_and_deferred_gates() -> None:
+    project_state = (ROOT / "docs/project/PROJECT_STATE.md").read_text(encoding="utf-8")
+    handoff = (ROOT / "docs/project/CURRENT_HANDOFF.md").read_text(encoding="utf-8")
+    report = (ROOT / "docs/project/R10_PRE_PUBLIC_MATRIX.json").read_text(encoding="utf-8")
+    runner = (ROOT / "scripts/r10_release_matrix.mjs").read_text(encoding="utf-8")
+
+    assert "R10" in project_state and "Reading Completion" in project_state
+    assert "**R10 — Reading Completion: COMPLETE / LOCAL ACCEPTANCE PASS.**" in project_state
+    assert "R10 — Reading Completion: **COMPLETE / LOCAL ACCEPTANCE PASS**" in handoff
+    assert "R10_PRE_PUBLIC_MATRIX.json" in handoff
+    assert "contextual dictionary lookup" in handoff
+    assert "R10-pre-public-en-zh-reading" in report
+    assert "canonical R10 matrix report is stale" in runner
+    for check in (
+        "scripts/test_r10_reading_flow.mjs",
+        "scripts/test_r16_reading_contextual_dictionary.mjs",
+        "scripts/test_r16_contextual_dictionary.mjs",
+    ):
+        assert f'"check": "{check}"' in report
+        assert check in runner
+    for gate in ("provider_credentials", "production_mutation", "public_promotion"):
+        assert f'"gate": "{gate}"' in report
+    assert '"reading_public": false' in report
+    assert '"provider_activation": false' in report
+
+
 def test_r14_local_operations_foundation_closeout_is_recorded() -> None:
     project_state = (ROOT / "docs/project/PROJECT_STATE.md").read_text(encoding="utf-8")
     handoff = (ROOT / "docs/project/CURRENT_HANDOFF.md").read_text(encoding="utf-8")
