@@ -42,7 +42,7 @@ require approval and must remain consistent with `PROJECT_STATE.md` and
 | R12 | Retention & Growth | COMPLETE / LOCAL ACCEPTANCE PASS |
 | R13 | Platform Admin Completion | COMPLETE / LOCAL ACCEPTANCE PASS |
 | R14 | AI Usage, Cost, Quota & Provider Operations | COMPLETE / LOCAL ACCEPTANCE PASS |
-| R15 | SaaS Plans, Entitlements & Usage Policy | PLANNED / POST-R12 PLATFORM TRACK |
+| R15 | SaaS Plans, Entitlements & Usage Policy | COMPLETE / LOCAL ACCEPTANCE PASS |
 | R16 | Advanced Learning Intelligence | PLANNED / POST-R12 PRODUCT TRACK |
 | R17 | Product Analytics & Operational Observability | PLANNED / POST-R12 PLATFORM TRACK |
 | R18 | Mobile/API Readiness | PLANNED / POST-R12 PLATFORM TRACK |
@@ -456,7 +456,15 @@ providers automatically.
 
 ## R15 — SaaS Plans, Entitlements & Usage Policy
 
-**PLANNED / POST-R12 PLATFORM TRACK.**
+**COMPLETE / LOCAL ACCEPTANCE PASS.**
+
+The authenticated account-state API, localized learner Profile, and read-only
+Admin account surface are locally accepted. They expose the existing
+Free/Premium plan, subscription, feature-entitlement, and monthly-usage facts
+with truthful known, unavailable, exhausted, unlimited, inactive, and unknown
+states, without exposing subscription-provider identifiers or enforcing access.
+Billing integration, entitlement enforcement, production subscription mutation,
+and public release remain explicit human gates.
 
 R15 turns existing account/product foundations into explicit product-plan and
 entitlement behavior.

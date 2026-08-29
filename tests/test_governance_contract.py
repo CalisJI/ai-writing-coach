@@ -340,8 +340,38 @@ def test_post_r12_governance_pointer_reconciles_completed_ledger() -> None:
     assert "**Next handoff:** Human governance decision for R8/R11 public promotion" in normalized_handoff
     assert "R8 — Public Product Gate" in project_state
     assert "R11" in project_state and "human gate" in project_state.casefold()
-    assert "| R12 | Retention & Growth | PLANNED |" in roadmap
-    assert "| R14 | AI Usage, Cost, Quota & Provider Operations | PLANNED / POST-R12 PLATFORM TRACK |" in roadmap
+    assert "| R12 | Retention & Growth | COMPLETE / LOCAL ACCEPTANCE PASS |" in roadmap
+    assert "| R13 | Platform Admin Completion | COMPLETE / LOCAL ACCEPTANCE PASS |" in roadmap
+    assert "| R14 | AI Usage, Cost, Quota & Provider Operations | COMPLETE / LOCAL ACCEPTANCE PASS |" in roadmap
+    assert "| R15 | SaaS Plans, Entitlements & Usage Policy | COMPLETE / LOCAL ACCEPTANCE PASS |" in roadmap
+
+
+def test_r15_local_account_state_closeout_is_recorded() -> None:
+    project_state = (ROOT / "docs/project/PROJECT_STATE.md").read_text(encoding="utf-8")
+    handoff = (ROOT / "docs/project/CURRENT_HANDOFF.md").read_text(encoding="utf-8")
+    roadmap = (ROOT / "docs/project/ROADMAP.md").read_text(encoding="utf-8")
+    contract = (ROOT / "scripts/test_r15_account_state.mjs").read_text(encoding="utf-8")
+    normalized_roadmap = " ".join(roadmap.split())
+    r15_section = roadmap.split("## R15 — SaaS Plans, Entitlements & Usage Policy", 1)[1].split("## R16", 1)[0]
+    normalized_r15 = " ".join(r15_section.split())
+
+    assert "R15 — SaaS Plans, Entitlements & Usage Policy: **COMPLETE / LOCAL" in project_state
+    assert "R15 - SaaS Plans, Entitlements & Usage Policy: **COMPLETE / LOCAL ACCEPTANCE PASS**" in handoff
+    assert "R15 account-state visibility closeout" in handoff
+    assert "| R15 | SaaS Plans, Entitlements & Usage Policy | COMPLETE / LOCAL ACCEPTANCE PASS |" in roadmap
+    assert "| R15 | SaaS Plans, Entitlements & Usage Policy | PLANNED / POST-R12 PLATFORM TRACK |" not in roadmap
+    assert "**COMPLETE / LOCAL ACCEPTANCE PASS.**" in r15_section
+    assert "truthful known, unavailable, exhausted, unlimited, inactive, and unknown states" in normalized_r15
+    assert "Billing integration, entitlement enforcement, production subscription mutation, and public release remain explicit human gates." in normalized_r15
+    for contract_token in (
+        "productMe",
+        "usage_state",
+        "renderAccountState",
+        "product_me",
+        "product_admin_account",
+        "unavailable",
+    ):
+        assert contract_token in contract
 
 
 def test_r3_roadmap_status_matches_verified_local_closeout() -> None:
