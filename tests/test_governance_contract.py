@@ -193,7 +193,15 @@ def test_r12_local_retention_foundation_closeout_is_recorded() -> None:
     assert "R12 local-foundation closeout" in handoff
     assert "R12 — Retention & Growth: IN PROGRESS / LOCAL FOUNDATION" not in project_state
     assert "R12 — Retention & Growth: **IN PROGRESS / LOCAL FOUNDATION**" not in handoff
-    assert "| R12 | Retention & Growth | PLANNED |" in roadmap
+    normalized_roadmap = " ".join(roadmap.split())
+    r12_section = roadmap.split("## R12 — Retention & Growth", 1)[1].split("## Post-R12", 1)[0]
+    normalized_r12 = " ".join(r12_section.split())
+    assert "| R12 | Retention & Growth | COMPLETE / LOCAL ACCEPTANCE PASS |" in roadmap
+    assert "| R12 | Retention & Growth | PLANNED |" not in roadmap
+    assert "**COMPLETE / LOCAL ACCEPTANCE PASS.**" in r12_section
+    assert "R12 focuses on return-to-practice" in normalized_r12
+    assert "Server-side tracking, production operations, and public promotion remain explicit human gates." in normalized_r12
+    assert "| R12 | Retention & Growth | COMPLETE / LOCAL ACCEPTANCE PASS |" in normalized_roadmap
     for script in (return_test, habit_test, plan_test, onboarding_test):
         assert "en" in script and "zh" in script
 

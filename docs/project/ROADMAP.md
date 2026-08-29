@@ -39,7 +39,7 @@ require approval and must remain consistent with `PROJECT_STATE.md` and
 | R9 | Speaking Advanced / Shadowing Studio | COMPLETE / LOCAL ACCEPTANCE PASS |
 | R10 | Reading Completion → separate public release | COMPLETE / LOCAL ACCEPTANCE PASS |
 | R11 | Listening Completion → separate public release | PRE-PUBLIC MATRIX COMPLETE / HUMAN PROMOTION GATE |
-| R12 | Retention & Growth | PLANNED |
+| R12 | Retention & Growth | COMPLETE / LOCAL ACCEPTANCE PASS |
 | R13 | Platform Admin Completion | PLANNED / POST-R12 PLATFORM TRACK |
 | R14 | AI Usage, Cost, Quota & Provider Operations | PLANNED / POST-R12 PLATFORM TRACK |
 | R15 | SaaS Plans, Entitlements & Usage Policy | PLANNED / POST-R12 PLATFORM TRACK |
@@ -306,6 +306,15 @@ public Listening promotion remain explicit human gates.
 R11 remains the Listening completion and public-release-readiness gate.
 
 ## R12 — Retention & Growth
+
+**COMPLETE / LOCAL ACCEPTANCE PASS.**
+
+The EN/ZH return-to-practice, device-local Listening habit, prioritized
+cross-skill next-practice, and baseline Writing onboarding contracts are
+locally accepted. They preserve bounded language/segment/mode handoffs,
+truthful unavailable/no-action states, and no transcript/audio persistence.
+Server-side tracking, production operations, and public promotion remain
+explicit human gates.
 
 R12 focuses on return-to-practice, useful progress visibility, habit support,
 onboarding/activation, and growth without weakening learning quality,
