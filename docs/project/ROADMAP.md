@@ -40,7 +40,7 @@ require approval and must remain consistent with `PROJECT_STATE.md` and
 | R10 | Reading Completion → separate public release | COMPLETE / LOCAL ACCEPTANCE PASS |
 | R11 | Listening Completion → separate public release | PRE-PUBLIC MATRIX COMPLETE / HUMAN PROMOTION GATE |
 | R12 | Retention & Growth | COMPLETE / LOCAL ACCEPTANCE PASS |
-| R13 | Platform Admin Completion | PLANNED / POST-R12 PLATFORM TRACK |
+| R13 | Platform Admin Completion | COMPLETE / LOCAL ACCEPTANCE PASS |
 | R14 | AI Usage, Cost, Quota & Provider Operations | PLANNED / POST-R12 PLATFORM TRACK |
 | R15 | SaaS Plans, Entitlements & Usage Policy | PLANNED / POST-R12 PLATFORM TRACK |
 | R16 | Advanced Learning Intelligence | PLANNED / POST-R12 PRODUCT TRACK |
@@ -377,7 +377,15 @@ contract, or verified blocker.
 
 ## R13 — Platform Admin Completion
 
-**PLANNED / POST-R12 PLATFORM TRACK.**
+**COMPLETE / LOCAL ACCEPTANCE PASS.**
+
+The capability-centric Platform Admin matrix and scoped configuration flow are
+locally accepted. It distinguishes configurable, deterministic, reserved,
+unavailable, and saved-state provenance without exposing credentials; scoped
+saves and explicit click-only health checks preserve sanitized failure states
+without activating learner runtime or legacy global controls. Credentialed
+provider health validation, production mutation, and runtime activation remain
+explicit human gates.
 
 R13 completes the current Platform Admin surface so it matches the capability-
 centric R2 architecture instead of the older one-global-model UI.

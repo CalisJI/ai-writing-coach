@@ -97,6 +97,10 @@ def test_r13_local_admin_matrix_is_reproducible_and_runtime_safe() -> None:
     runner = (ROOT / "scripts/r13_release_matrix.mjs").read_text(encoding="utf-8")
     project_state = (ROOT / "docs/project/PROJECT_STATE.md").read_text(encoding="utf-8")
     handoff = (ROOT / "docs/project/CURRENT_HANDOFF.md").read_text(encoding="utf-8")
+    roadmap = (ROOT / "docs/project/ROADMAP.md").read_text(encoding="utf-8")
+    normalized_roadmap = " ".join(roadmap.split())
+    r13_section = roadmap.split("## R13 — Platform Admin Completion", 1)[1].split("## R14", 1)[0]
+    normalized_r13 = " ".join(r13_section.split())
     assert '"matrix": "R13-local-admin-acceptance"' in report
     assert '"r13_local_complete": true' in report
     assert '"learner_runtime_activation": false' in report
@@ -110,6 +114,13 @@ def test_r13_local_admin_matrix_is_reproducible_and_runtime_safe() -> None:
     assert "config_provenance" in runner
     assert "R13 — Platform Admin Completion: COMPLETE / LOCAL ACCEPTANCE PASS" in project_state
     assert "R13 local acceptance is now closed" in handoff
+    assert "| R13 | Platform Admin Completion | COMPLETE / LOCAL ACCEPTANCE PASS |" in roadmap
+    assert "| R13 | Platform Admin Completion | PLANNED / POST-R12 PLATFORM TRACK |" not in roadmap
+    assert "**COMPLETE / LOCAL ACCEPTANCE PASS.**" in r13_section
+    assert "capability-centric Platform Admin matrix" in normalized_r13
+    assert "scoped saves and explicit click-only health checks" in normalized_r13
+    assert "Credentialed provider health validation, production mutation, and runtime activation remain explicit human gates." in normalized_r13
+    assert "| R13 | Platform Admin Completion | COMPLETE / LOCAL ACCEPTANCE PASS |" in normalized_roadmap
 
 
 def test_r17_local_foundation_closeout_records_verified_route_boundary() -> None:
