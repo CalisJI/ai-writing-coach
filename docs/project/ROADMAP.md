@@ -34,7 +34,7 @@ require approval and must remain consistent with `PROJECT_STATE.md` and
 | R4 | Writing Learning Loop + Grammar Transfer | COMPLETE / LOCAL ACCEPTANCE PASS |
 | R5 | Grammar Knowledge System | CLOSED |
 | R6 | Speaking Core | COMPLETE / LOCAL ACCEPTANCE PASS |
-| R7 | Speaking Evaluation + Pronunciation Completion | PLANNED |
+| R7 | Speaking Evaluation + Pronunciation Completion | COMPLETE / LOCAL ACCEPTANCE PASS |
 | R8 | Public Product Gate: Writing + Speaking EN/ZH | PLANNED |
 | R9 | Speaking Advanced / Shadowing Studio | PLANNED |
 | R10 | Reading Completion → separate public release | PLANNED |
@@ -234,9 +234,14 @@ governed by the status and human gates recorded in `CURRENT_HANDOFF.md` and
 
 ## R7 — Speaking Evaluation + Pronunciation Completion
 
-**PLANNED.**
+**COMPLETE / LOCAL ACCEPTANCE PASS.**
 
-R7 adds the evaluation layer required for Speaking COMPLETE:
+The EN/ZH evaluator, pronunciation evidence, localized feedback, and durable
+learner-scoped attempt/history contracts are locally accepted. Transcription
+confidence, pronunciation, fluency, and proficiency remain separate dimensions;
+R2 capability activation and R8 public promotion remain explicit human gates.
+
+R7 provides the evaluation layer required for Speaking COMPLETE:
 
 - control-plane-integrated `speech_asr` when the R2 human gate is approved;
 - `pronunciation_evaluator`;

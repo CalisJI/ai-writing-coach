@@ -366,6 +366,23 @@ def test_r6_roadmap_status_matches_verified_speaking_core_closeout() -> None:
     assert "R7 — Speaking Evaluation + Pronunciation: **COMPLETE / LOCAL ACCEPTANCE PASS**" in handoff
 
 
+def test_r7_roadmap_status_matches_verified_speaking_evaluation_closeout() -> None:
+    project_state = (ROOT / "docs/project/PROJECT_STATE.md").read_text(encoding="utf-8")
+    handoff = (ROOT / "docs/project/CURRENT_HANDOFF.md").read_text(encoding="utf-8")
+    roadmap = (ROOT / "docs/project/ROADMAP.md").read_text(encoding="utf-8")
+    normalized_roadmap = " ".join(roadmap.split())
+    r7_section = roadmap.split("## R7 — Speaking Evaluation + Pronunciation Completion", 1)[1].split("## R8", 1)[0]
+
+    assert "| R7 | Speaking Evaluation + Pronunciation Completion | COMPLETE / LOCAL ACCEPTANCE PASS |" in roadmap
+    assert "| R7 | Speaking Evaluation + Pronunciation Completion | PLANNED |" not in roadmap
+    assert "**COMPLETE / LOCAL ACCEPTANCE PASS.**" in r7_section
+    assert "The EN/ZH evaluator, pronunciation evidence, localized feedback, and durable learner-scoped attempt/history contracts are locally accepted." in normalized_roadmap
+    assert "Transcription confidence, pronunciation, fluency, and proficiency remain separate dimensions" in normalized_roadmap
+    assert "R2 capability activation and R8 public promotion remain explicit human gates." in normalized_roadmap
+    assert "R7 — Speaking Evaluation + Pronunciation: COMPLETE / LOCAL ACCEPTANCE PASS." in project_state
+    assert "R7 — Speaking Evaluation + Pronunciation: **COMPLETE / LOCAL ACCEPTANCE PASS**" in handoff
+
+
 def test_r16_local_foundation_closeout_records_complete_evidence_chain() -> None:
     project_state = (ROOT / "docs/project/PROJECT_STATE.md").read_text(encoding="utf-8")
     handoff = (ROOT / "docs/project/CURRENT_HANDOFF.md").read_text(encoding="utf-8")
