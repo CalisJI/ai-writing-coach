@@ -352,7 +352,7 @@ function hasWeakPronunciationEvidence(word){
 
 const stamp=ms=>`${Math.floor(ms/60000)}:${String(Math.floor(ms/1000)%60).padStart(2,'0')}`;
 const transcriptTokenMarkup=value=>transcriptTokens(value).map(token=>token.word
-  ?`<span class="transcript-token">${esc(token.text)}</span>`
+  ?`<span class="transcript-token" data-it-term="${esc(token.text)}" tabindex="0" role="button">${esc(token.text)}</span>`
   :esc(token.text)).join('');
 
 function translationFor(payload,segmentId){
@@ -817,7 +817,7 @@ export function createSpeakingController({session,recorder=createLocalAudioRecor
             </section>
 
             ${model.readText&&segment?`<div class="o-ref-text">
-              <p class="o-ref-source" aria-label="${esc(segment.original_text)}">${transcriptTokenMarkup(segment.original_text)}</p>
+              <p class="o-ref-source speaking-source" data-segment-id="${esc(segment.segment_id)}" aria-label="${esc(segment.original_text)}">${transcriptTokenMarkup(segment.original_text)}</p>
               ${meaning?`<p class="o-ref-meaning"><b>${esc(c.meaning)}</b> ${esc(meaning)}</p>`:''}
             </div>`:''}
 
