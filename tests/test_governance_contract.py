@@ -71,6 +71,9 @@ def test_r8_pre_public_matrix_keeps_release_gates_deferred() -> None:
 def test_r11_pre_public_listening_matrix_records_behavioral_and_deferred_evidence() -> None:
     report = (ROOT / "docs/project/R11_PRE_PUBLIC_MATRIX.json").read_text(encoding="utf-8")
     runner = (ROOT / "scripts/r11_release_matrix.mjs").read_text(encoding="utf-8")
+    roadmap = (ROOT / "docs/project/ROADMAP.md").read_text(encoding="utf-8")
+    normalized_roadmap = " ".join(roadmap.split())
+    r11_section = roadmap.split("## R11 — Listening Completion", 1)[1].split("## R12", 1)[0]
     assert '"matrix": "R11-pre-public-en-zh-listening"' in report
     assert '"scope": "behavioral"' in report
     assert '"scope": "source-boundary"' in report
@@ -82,6 +85,11 @@ def test_r11_pre_public_listening_matrix_records_behavioral_and_deferred_evidenc
     assert "test_r9_shadowing_feedback.mjs" in runner
     assert "canonical R11 matrix report is stale" in runner
     assert "if(output)" in runner
+    assert "| R11 | Listening Completion → separate public release | PRE-PUBLIC MATRIX COMPLETE / HUMAN PROMOTION GATE |" in roadmap
+    assert "| R11 | Listening Completion → separate public release | PLANNED |" not in roadmap
+    assert "**PRE-PUBLIC MATRIX COMPLETE / HUMAN PROMOTION GATE.**" in r11_section
+    assert "The EN/ZH Active Listening reconstruction, Shadowing rounds, Shadowing-to-Speaking feedback continuity, and truthful restore/degraded states are locally accepted through the deterministic pre-public matrix." in normalized_roadmap
+    assert "Production migration, capability activation, and public Listening promotion remain explicit human gates." in normalized_roadmap
 
 
 def test_r13_local_admin_matrix_is_reproducible_and_runtime_safe() -> None:

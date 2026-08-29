@@ -38,7 +38,7 @@ require approval and must remain consistent with `PROJECT_STATE.md` and
 | R8 | Public Product Gate: Writing + Speaking EN/ZH | PLANNED |
 | R9 | Speaking Advanced / Shadowing Studio | COMPLETE / LOCAL ACCEPTANCE PASS |
 | R10 | Reading Completion → separate public release | COMPLETE / LOCAL ACCEPTANCE PASS |
-| R11 | Listening Completion → separate public release | PLANNED |
+| R11 | Listening Completion → separate public release | PRE-PUBLIC MATRIX COMPLETE / HUMAN PROMOTION GATE |
 | R12 | Retention & Growth | PLANNED |
 | R13 | Platform Admin Completion | PLANNED / POST-R12 PLATFORM TRACK |
 | R14 | AI Usage, Cost, Quota & Provider Operations | PLANNED / POST-R12 PLATFORM TRACK |
@@ -290,10 +290,18 @@ public promotion remain explicit human gates.
 
 ## R11 — Listening Completion → separate public release
 
+**PRE-PUBLIC MATRIX COMPLETE / HUMAN PROMOTION GATE.**
+
+The EN/ZH Active Listening reconstruction, Shadowing rounds,
+Shadowing-to-Speaking feedback continuity, and truthful restore/degraded states
+are locally accepted through the deterministic pre-public matrix. Durable
+progress remains learner-scoped and audio-free, and imported media remains
+shared with Speaking Shadowing.
+
 R11 turns the existing internal M1 Listening foundation into a complete learner
 product with durable progress, richer active practice, acceptance evidence, and
-its own public-release gate. Imported media remains shared with Speaking
-Shadowing.
+its own public-release gate. Production migration, capability activation, and
+public Listening promotion remain explicit human gates.
 
 R11 remains the Listening completion and public-release-readiness gate.
 
