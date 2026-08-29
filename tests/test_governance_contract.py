@@ -50,9 +50,7 @@ def test_m16_shared_media_shadowing_governance_closeout_is_truthful() -> None:
     assert "/api/speech/transcribe" in handoff
     assert "groq asr" in project_state.casefold()
     assert "not pronunciation" in project_state.casefold()
-    # ROADMAP retains the approved execution table until its next governance
-    # checkpoint; the verified project state above is the canonical closeout.
-    assert "| r6 | speaking core | in progress / internal / secondary |" in roadmap.casefold()
+    assert "| r6 | speaking core | complete / local acceptance pass |" in roadmap.casefold()
     assert "r2 — ai capability control plane: **human gate / ready, not product-blocking**" in project_state.casefold()
     assert "human-gated" in handoff.casefold()
     assert "r11" in combined and "planned" in combined
@@ -347,6 +345,25 @@ def test_r4_roadmap_status_matches_verified_learning_loop_closeout() -> None:
     assert "R4 — Writing Learning Loop + Grammar Transfer: **COMPLETE / LOCAL ACCEPTANCE PASS**" in handoff
     assert "R2 — AI Capability Control Plane: **HUMAN GATE / READY, NOT PRODUCT-BLOCKING**" in project_state
     assert "R8 — Public Product Gate: Writing + Speaking EN/ZH: **PRE-PUBLIC MATRIX" in handoff
+
+
+def test_r6_roadmap_status_matches_verified_speaking_core_closeout() -> None:
+    project_state = (ROOT / "docs/project/PROJECT_STATE.md").read_text(encoding="utf-8")
+    handoff = (ROOT / "docs/project/CURRENT_HANDOFF.md").read_text(encoding="utf-8")
+    roadmap = (ROOT / "docs/project/ROADMAP.md").read_text(encoding="utf-8")
+    normalized_roadmap = " ".join(roadmap.split())
+    r6_section = roadmap.split("## R6 — Speaking Core", 1)[1].split("## R7", 1)[0]
+
+    assert "| R6 | Speaking Core | COMPLETE / LOCAL ACCEPTANCE PASS |" in roadmap
+    assert "| R6 | Speaking Core | IN PROGRESS / INTERNAL / SECONDARY |" not in roadmap
+    assert "**COMPLETE / LOCAL ACCEPTANCE PASS.**" in r6_section
+    assert "The EN/ZH record-to-transcript-to-feedback boundary is locally accepted." in normalized_roadmap
+    assert "pronunciation, fluency, or proficiency scoring" in normalized_roadmap
+    assert "those dimensions remain R7 work" in normalized_roadmap
+    assert "R2 activation and R8 public promotion remain explicit human gates" in normalized_roadmap
+    assert "R6 — Speaking Core: **COMPLETE / LOCAL ACCEPTANCE PASS**" in project_state
+    assert "R6 — Speaking Core: **COMPLETE / LOCAL ACCEPTANCE PASS**" in handoff
+    assert "R7 — Speaking Evaluation + Pronunciation: **COMPLETE / LOCAL ACCEPTANCE PASS**" in handoff
 
 
 def test_r16_local_foundation_closeout_records_complete_evidence_chain() -> None:

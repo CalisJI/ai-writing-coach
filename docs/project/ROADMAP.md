@@ -33,7 +33,7 @@ require approval and must remain consistent with `PROJECT_STATE.md` and
 | R3 | Writing Evaluation Completion | COMPLETE / LOCAL ACCEPTANCE PASS |
 | R4 | Writing Learning Loop + Grammar Transfer | COMPLETE / LOCAL ACCEPTANCE PASS |
 | R5 | Grammar Knowledge System | CLOSED |
-| R6 | Speaking Core | IN PROGRESS / INTERNAL / SECONDARY |
+| R6 | Speaking Core | COMPLETE / LOCAL ACCEPTANCE PASS |
 | R7 | Speaking Evaluation + Pronunciation Completion | PLANNED |
 | R8 | Public Product Gate: Writing + Speaking EN/ZH | PLANNED |
 | R9 | Speaking Advanced / Shadowing Studio | PLANNED |
@@ -212,11 +212,16 @@ curriculum extension, or an accepted architecture decision.
 
 ## R6 — Speaking Core
 
-**IN PROGRESS / INTERNAL / SECONDARY.**
+**COMPLETE / LOCAL ACCEPTANCE PASS.**
 
 The current core reuses shared Media Learning, local microphone recording,
 RNNoise enhancement when available, transient Groq ASR, and deterministic
 transcript content-match feedback.
+
+The EN/ZH record-to-transcript-to-feedback boundary is locally accepted. This
+closeout does not add pronunciation, fluency, or proficiency scoring: those
+dimensions remain R7 work, while R2 activation and R8 public promotion remain
+explicit human gates.
 
 Preserve the distinction:
 
