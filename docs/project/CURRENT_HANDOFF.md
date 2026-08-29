@@ -141,12 +141,13 @@ completed R18 foundation.
 
 - R15 - SaaS Plans, Entitlements & Usage Policy: **COMPLETE / LOCAL ACCEPTANCE PASS**
 
-**Current working lane (2026-08-28):**
+**Current working lane (2026-08-29):**
 
 - R16 contextual dictionary foundation is locally complete across the existing
-  Writing, Review, and Media sentence/segment flows. The shared authenticated
-  contract requires visible learner evidence and exposes truthful unavailable
-  states; provider activation and credentialed live validation remain deferred.
+  Writing, Review, Reading, and shared Listening/Speaking transcript
+  sentence/segment flows. The shared authenticated contract requires visible
+  learner evidence and exposes truthful unavailable states; provider activation
+  and credentialed live validation remain deferred.
 - R16 adaptive Writing difficulty now derives a bounded one-step length change
   only from verified, language-scoped practice outcomes or revision wins. Home
   and Write carry the provenance and localized stretch/scaffold/hold or
@@ -160,6 +161,10 @@ completed R18 foundation.
   Home and Journey render one localized source cue and reuse established
   skill handoffs; malformed, stale, or unlinked records produce an explicit
   no-evidence state without a shared proficiency or completion claim.
+- The completed R16 evidence chain also includes the R12 scheduled Library
+  review handoff: Home presents only a valid due review, opens the
+  existing Library review action, and preserves the established scheduling
+  semantics without inventing a completion claim.
 
 - Writing learner-flow work is checkpointed through `c2e16de` and the R3/R4
   acceptance matrix is locally complete: EN/ZH evaluator contracts and the
@@ -511,6 +516,21 @@ language-scoped records with a concrete source-specific handoff from Writing,
 Reading, Listening, or Speaking. Home and Journey render one localized cue
 with literal provenance and preserve an explicit no-transfer-evidence state;
 no shared proficiency, mastery, or completion score is inferred or persisted.
+
+## R16 local-foundation evidence reconciliation
+
+The complete local R16 chain is covered by focused contracts: contextual
+dictionary source grounding (`scripts/test_r16_contextual_dictionary.mjs`,
+`scripts/run_r16_contextual_dictionary.py`), Reading and shared
+Listening/Speaking transcript lookup (`scripts/test_r16_reading_contextual_dictionary.mjs`,
+`scripts/test_r16_shared_transcript_contextual_dictionary.mjs`), adaptive
+Writing difficulty (`scripts/test_adaptive_difficulty_locale.mjs`,
+`scripts/run_r16_adaptive_practice.py`), error-memory review cues
+(`scripts/test_review_cue_locale.mjs`), cross-skill transfer
+(`scripts/test_cross_skill_transfer_locale.mjs`), and scheduled Library review
+(`scripts/test_home_library_review_handoff.mjs`). EN/ZH behavior remains
+shared through existing contracts, while provider credentials, production
+activation, and public promotion remain deferred gates.
 
 ## R17 privacy-bounded product activity trends
 

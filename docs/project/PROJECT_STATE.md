@@ -147,12 +147,13 @@ authority.
   states. Billing and feature enforcement remain disabled.
 
 - R16 — Advanced Learning Intelligence: **COMPLETE / LOCAL ACCEPTANCE
-  PASS** for the contextual dictionary, adaptive Writing difficulty, and
-  error-memory review-cue, and cross-skill transfer foundations. Contextual
-  lookups share one authenticated, source-grounded contract; next-task length
-  changes, review cues, and cross-skill cues use only verified,
-  language-scoped evidence with explicit insufficient/no-actionable-evidence
-  states. Provider activation and live credentialed validation remain deferred.
+  PASS** for contextual dictionary lookups in Writing, Review, Reading, and
+  shared Listening/Speaking transcripts; adaptive Writing difficulty;
+  error-memory review cues; cross-skill transfer; and the scheduled Library
+  review handoff. These behaviors share authenticated, source-grounded,
+  language-scoped contracts with explicit insufficient, unavailable, and
+  no-actionable-evidence states. Provider activation and live credentialed
+  validation remain deferred.
 
 	- R17 — Product Analytics & Operational Observability: **COMPLETE / LOCAL
 	  ACCEPTANCE PASS**. Admin-only activity, return, source-specific funnel,
@@ -500,6 +501,14 @@ The post-R5 roadmap uses one primary learner-visible lane.
   evidence in `R14_LOCAL_ACCEPTANCE_MATRIX.json`. Credentialed provider
   validation, production observation, billing/quota enforcement, and learner
   runtime activation remain explicit human-gated deferrals.
+- **R16 — Advanced Learning Intelligence: COMPLETE / LOCAL ACCEPTANCE PASS.**
+  Focused local contracts verify contextual dictionary grounding in Reading and
+  shared Listening/Speaking transcript tokens, adaptive Writing difficulty,
+  localized error-memory review cues, cross-skill transfer handoffs, and the
+  scheduled Library review action. The evidence chain preserves EN/ZH parity,
+  literal learner context, language-scoped provenance, and explicit unavailable
+  or insufficient states without inventing proficiency. Credentialed provider
+  checks, production activation, and public promotion remain deferred.
 - **R2 — AI Capability Control Plane: HUMAN GATE / READY.**
   Static/runtime support exists. Production migration/config initialization,
   credentialed validation, activation, and rollback execution remain human

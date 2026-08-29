@@ -272,3 +272,30 @@ def test_post_r12_governance_pointer_reconciles_completed_ledger() -> None:
     assert "R11" in project_state and "human gate" in project_state.casefold()
     assert "| R12 | Retention & Growth | PLANNED |" in roadmap
     assert "| R14 | AI Usage, Cost, Quota & Provider Operations | PLANNED / POST-R12 PLATFORM TRACK |" in roadmap
+
+
+def test_r16_local_foundation_closeout_records_complete_evidence_chain() -> None:
+    project_state = (ROOT / "docs/project/PROJECT_STATE.md").read_text(encoding="utf-8")
+    handoff = (ROOT / "docs/project/CURRENT_HANDOFF.md").read_text(encoding="utf-8")
+    normalized_state = " ".join(project_state.split())
+    normalized_handoff = " ".join(handoff.split())
+
+    assert "R16 — Advanced Learning Intelligence: **COMPLETE / LOCAL ACCEPTANCE PASS** for contextual dictionary lookups in Writing, Review, Reading, and shared Listening/Speaking transcripts" in normalized_state
+    assert "the scheduled Library review handoff" in normalized_state
+    assert "R16 local-foundation evidence reconciliation" in handoff
+    assert "Home presents only a valid due review" in normalized_handoff
+    assert "due/due-soon" not in normalized_handoff
+    for evidence in (
+        "scripts/test_r16_contextual_dictionary.mjs",
+        "scripts/run_r16_contextual_dictionary.py",
+        "scripts/test_r16_reading_contextual_dictionary.mjs",
+        "scripts/test_r16_shared_transcript_contextual_dictionary.mjs",
+        "scripts/test_adaptive_difficulty_locale.mjs",
+        "scripts/run_r16_adaptive_practice.py",
+        "scripts/test_review_cue_locale.mjs",
+        "scripts/test_cross_skill_transfer_locale.mjs",
+        "scripts/test_home_library_review_handoff.mjs",
+    ):
+        assert evidence in normalized_handoff
+    assert "EN/ZH behavior remains shared through existing contracts" in normalized_handoff
+    assert "provider credentials, production activation, and public promotion remain deferred gates" in normalized_handoff
