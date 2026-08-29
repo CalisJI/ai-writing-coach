@@ -6,3 +6,5 @@ __pycache__
 data/*.db
 *.zip
 .upgrade_backups
+.env
+.env.*

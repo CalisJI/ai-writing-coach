@@ -74,6 +74,30 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
 
+  writing-coach-tests:
+    profiles:
+      - test
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+      args:
+        BASE_IMAGE: ai-writing-coach:local
+    image: ai-writing-coach-tests:local
+    environment:
+      APP_ENV: development
+      PERSISTENCE_BACKEND: sqlite
+    command:
+      - python
+      - -m
+      - pytest
+      - -q
+      - -p
+      - no:cacheprovider
+      - tests/test_r17_admin_routes.py
+      - tests/test_reference_data_cache.py
+      - tests/test_session_bootstrap.py
+      - tests/test_media_status_compact.py
+
   postgres:
     image: postgres:17-alpine
     restart: unless-stopped
