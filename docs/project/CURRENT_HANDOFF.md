@@ -27,6 +27,18 @@ baseline.
   immutable reference-data cache, authenticated session-bootstrap, and compact
   media-status contracts; mobile-client implementation and production release
   remain deferred.
+- R13 — Platform Admin Completion: **COMPLETE / LOCAL ACCEPTANCE PASS**.
+- R14 — AI Usage, Cost, Quota & Provider Operations: **COMPLETE / LOCAL
+  ACCEPTANCE PASS**; credentialed provider and production operations remain
+  deferred.
+
+**Current governance lane (2026-08-29):**
+
+R12–R18 local foundations are complete and evidence-backed. The next owner is
+the R8 public-product-gate owner, coordinating the explicit R8/R11 promotion
+review and preserving the R2 capability-activation and production-operation
+gates. There is no autonomous mobile/API follow-on task to assign from the
+completed R18 foundation.
 
 **Secondary / gated programs:**
 
@@ -615,9 +627,9 @@ reference-data cache, session bootstrap, and compact media-status contracts
 are directly implemented and locally verified; mobile-client implementation,
 provider activation, and production release remain human-gated and deferred.
 
-**Next handoff owner:** mobile/API-readiness follow-on owner. Consume these
-verified contracts without reopening R17 metrics or changing provider
-activation, billing, deployment, or learner scoring behavior.
+**Next handoff owner:** R8 public-product-gate owner. Consume the verified
+R12–R18 contracts without reopening completed foundations or changing provider
+activation, billing, deployment, learner scoring, or production behavior.
 
 ## R18 immutable reference-data cache contract
 

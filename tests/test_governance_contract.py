@@ -126,8 +126,8 @@ def test_r18_reference_data_cache_contract_is_recorded() -> None:
     project_state = (ROOT / "docs/project/PROJECT_STATE.md").read_text(encoding="utf-8")
     handoff = (ROOT / "docs/project/CURRENT_HANDOFF.md").read_text(encoding="utf-8")
     route_test = (ROOT / "tests/test_reference_data_cache.py").read_text(encoding="utf-8")
-    assert "Current Orena program: R18" in project_state
     assert "R18 — Mobile/API Readiness: **COMPLETE / LOCAL ACCEPTANCE PASS**" in project_state
+    assert "Current Orena program: R8 — Public Product Gate" in project_state
     assert "R18 — Mobile/API Readiness: **COMPLETE / LOCAL ACCEPTANCE PASS**" in handoff
     assert "R18 — Mobile/API Readiness: **IN PROGRESS / LOCAL FOUNDATION**" not in project_state
     assert "R18 — Mobile/API Readiness: **IN PROGRESS / LOCAL FOUNDATION**" not in handoff
@@ -144,7 +144,7 @@ def test_r18_session_bootstrap_contract_is_recorded() -> None:
     handoff = (ROOT / "docs/project/CURRENT_HANDOFF.md").read_text(encoding="utf-8")
     auth_source = (ROOT / "auth_support.py").read_text(encoding="utf-8")
     route_test = (ROOT / "tests/test_session_bootstrap.py").read_text(encoding="utf-8")
-    assert "authenticated session-bootstrap contracts" in project_state
+    assert "authenticated session-bootstrap" in handoff
     assert "R18 authenticated session-bootstrap contract" in handoff
     assert "GET /api/session/bootstrap" in handoff
     assert "/api/session/bootstrap" in auth_source
@@ -161,7 +161,7 @@ def test_r18_compact_media_status_contract_is_recorded() -> None:
     api_source = (ROOT / "static/becoming/api.js").read_text(encoding="utf-8")
     route_test = (ROOT / "tests/test_media_status_compact.py").read_text(encoding="utf-8")
     accessor_test = (ROOT / "scripts/test_media_status_compact_accessor.mjs").read_text(encoding="utf-8")
-    assert "compact media" in project_state
+    assert "compact media" in handoff
     assert "R18 resumable media-status response shaping" in handoff
     assert "compact: true" in handoff
     assert 'compact: bool = False' in media_source
@@ -231,3 +231,44 @@ def test_r14_local_operations_foundation_closeout_is_recorded() -> None:
         "test_live_test_failure_taxonomy_is_distinct_and_sanitized",
     ):
         assert contract in telemetry_tests or contract in control_plane_tests
+
+
+def test_post_r12_governance_pointer_reconciles_completed_ledger() -> None:
+    project_state = (ROOT / "docs/project/PROJECT_STATE.md").read_text(encoding="utf-8")
+    handoff = (ROOT / "docs/project/CURRENT_HANDOFF.md").read_text(encoding="utf-8")
+    roadmap = (ROOT / "docs/project/ROADMAP.md").read_text(encoding="utf-8")
+
+    assert "Current Orena program: R8 — Public Product Gate" in project_state
+    assert "Current Orena program: R18" not in project_state
+    assert "R3 — Writing Evaluation Completion: **COMPLETE / LOCAL ACCEPTANCE PASS**" in project_state
+    normalized_state = " ".join(project_state.split())
+    normalized_handoff = " ".join(handoff.split())
+    for status in (
+        "**R12 — Retention & Growth: COMPLETE / LOCAL ACCEPTANCE PASS.**",
+        "**R13 — Platform Admin Completion: COMPLETE / LOCAL ACCEPTANCE PASS.**",
+        "**R14 — AI Usage, Cost, Quota & Provider Operations: COMPLETE / LOCAL ACCEPTANCE PASS.**",
+        "R15 — SaaS Plans, Entitlements & Usage Policy: **COMPLETE / LOCAL ACCEPTANCE PASS**.",
+        "R16 — Advanced Learning Intelligence: **COMPLETE / LOCAL ACCEPTANCE PASS** for",
+        "R17 — Product Analytics & Operational Observability: **COMPLETE / LOCAL ACCEPTANCE PASS**.",
+        "R18 — Mobile/API Readiness: **COMPLETE / LOCAL ACCEPTANCE PASS**.",
+    ):
+        assert status in normalized_state
+    for status in (
+        "R12 — Retention & Growth: **COMPLETE / LOCAL ACCEPTANCE PASS**",
+        "R13 — Platform Admin Completion: **COMPLETE / LOCAL ACCEPTANCE PASS**.",
+        "R14 — AI Usage, Cost, Quota & Provider Operations: **COMPLETE / LOCAL ACCEPTANCE PASS**",
+        "R15 - SaaS Plans, Entitlements & Usage Policy: **COMPLETE / LOCAL ACCEPTANCE PASS**",
+        "R16 — Advanced Learning Intelligence: **COMPLETE / LOCAL ACCEPTANCE PASS**",
+        "R17 — Product Analytics & Operational Observability: **COMPLETE / LOCAL ACCEPTANCE PASS**",
+        "R18 — Mobile/API Readiness: **COMPLETE / LOCAL ACCEPTANCE PASS**",
+    ):
+        assert status in normalized_handoff
+    assert "Current governance lane (2026-08-29)" in handoff
+    assert "R8 public-product-gate owner" in handoff
+    assert "mobile/API-readiness follow-on owner" not in handoff
+    assert "R2 capability-activation" in handoff
+    assert "R8" in handoff and "R11" in handoff and "human gate" in handoff.casefold()
+    assert "R8 — Public Product Gate" in project_state
+    assert "R11" in project_state and "human gate" in project_state.casefold()
+    assert "| R12 | Retention & Growth | PLANNED |" in roadmap
+    assert "| R14 | AI Usage, Cost, Quota & Provider Operations | PLANNED / POST-R12 PLATFORM TRACK |" in roadmap

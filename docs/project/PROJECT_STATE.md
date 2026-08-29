@@ -18,11 +18,11 @@ operational state.
 
 - Application version: `1.4.0`
 - BECOMING frontend version: `2.17.5`
-- Current Orena program: R18 — Mobile/API Readiness; the immutable
-  reference-data cache and authenticated session-bootstrap contracts are locally
-  implemented, with compact media status shaping now added alongside them;
-  mutable dictionary caching, live validation, and production release remain
-  governed separately.
+- Current Orena program: R8 — Public Product Gate; the Writing and Speaking
+  EN/ZH pre-public matrix is locally complete, while public promotion remains
+  an explicit human gate. R12–R18 local foundations are complete; no autonomous
+  work should reopen them while R2 activation, R8/R11 promotion, and production
+  operations remain deferred.
 
 ## Orena UI/UX integration
 
@@ -180,7 +180,7 @@ authority.
 - R1 — Production Staging + Cloudflare + Google OAuth: **CLOSED / PASS**.
 - R2 — AI Capability Control Plane: **HUMAN GATE / READY, NOT PRODUCT-BLOCKING**.
 - M1 — Media Learning Foundation: **CLOSED / FOUNDATION COMPLETE**.
-- R3 — Writing Evaluation Completion: **IN PROGRESS / PRIMARY**.
+- R3 — Writing Evaluation Completion: **COMPLETE / LOCAL ACCEPTANCE PASS**.
 - R5 — Grammar Knowledge System: **CLOSED / APPROVED / merged via PR #44**.
 - R6 — Speaking Core: **COMPLETE / LOCAL ACCEPTANCE PASS**.
 
