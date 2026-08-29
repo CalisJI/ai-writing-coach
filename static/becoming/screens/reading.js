@@ -5,6 +5,7 @@ import {esc,errorBlock,loadingBlock,toast,runBusy} from '../components/primitive
 import {t,uiLocale} from '../domain/i18n.js';
 import {oIcon} from '../orena/icons.js';
 import {installSelectEnhancements} from '../components/select-field.js';
+import {contextualResultMarkup} from '../components/dictionary.js';
 
 /* ORENA-READING-*: one passage, read full width, with a rail that answers
  * questions about what is under the cursor.
@@ -459,6 +460,13 @@ function understandingMarkup(view){
     return `<p class="o-panel-copy">${esc(c.selectPrompt)}</p>`;
   }
   const payload=view.lookup;
+  if(payload?.claim==='contextual_dictionary'||payload?.claim==='contextual_dictionary_unavailable'){
+    return `<div class="o-understanding-body" data-reading-contextual-state="${payload.claim==='contextual_dictionary'?'ready':'unavailable'}">
+      ${contextualResultMarkup(payload)}
+      ${payload.claim==='contextual_dictionary'&&payload.available===true
+        ?`<button type="button" class="o-btn o-btn--outline o-btn--compact" data-reading-save>${oIcon('check')}<span>${esc(c.addToVocabulary)}</span></button>`:''}
+    </div>`;
+  }
   const definitions=Array.isArray(payload?.definitions)?payload.definitions:[];
   const first=definitions.find(entry=>entry&&typeof entry==='object')||{};
   return `<div class="o-understanding-body">
@@ -633,11 +641,23 @@ export async function renderReading(root){
 
   async function lookUp(){
     if(!view.selection)return;
+    const passageText=String(session.passage||'').trim();
+    if(!passageText.toLocaleLowerCase().includes(view.selection.toLocaleLowerCase())){
+      view.lookup=null;
+      view.status='error';
+      paintUnderstanding();
+      return;
+    }
     view.status='loading';
     view.lookup=null;
     paintUnderstanding();
     try{
-      view.lookup=await api.dictionary(view.selection);
+      view.lookup=await api.contextualDictionary({
+        text:view.selection,
+        context:passageText,
+        source_language:state.language,
+        target_language:state.supportLanguage||state.profile?.native_language||'vi',
+      });
       view.status='ready';
     }catch{
       view.status='error';
@@ -647,17 +667,22 @@ export async function renderReading(root){
 
   async function saveSelection(){
     const payload=view.lookup;
-    if(!payload)return;
+    if(!payload||payload.available!==true||payload.claim!=='contextual_dictionary')return;
+    const selected=typeof payload.selected_text==='string'&&payload.selected_text.trim()
+      ?payload.selected_text.trim():view.selection;
+    const summary=typeof payload.summary==='string'?payload.summary.trim():'';
+    const translation=typeof payload.natural_translation==='string'?payload.natural_translation.trim():'';
+    if(!selected||(!summary&&!translation))return;
     const definitions=Array.isArray(payload.definitions)?payload.definitions:[];
     const first=definitions.find(entry=>entry&&typeof entry==='object')||{};
     try{
       await api.saveLibraryVocabulary({
-        word:payload.word||view.selection,
+        word:selected,
         phonetic:payload.phonetic||'',
         part_of_speech:payload.part_of_speech||first.part_of_speech||'',
-        definition:first.definition||payload.definition||'',
+        definition:summary||translation,
         translation_vi:payload.translation_vi||'',
-        source_fragment:first.example||'',
+        source_fragment:selected,
         source_kind:'dictionary',
         focus_note:payload.usage_note_vi||'',
       });

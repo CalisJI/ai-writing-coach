@@ -28,6 +28,16 @@ def main() -> None:
         try:
             media_interaction.contextual_dictionary(
                 media_interaction.ContextualDictionaryIn(
+                    text="学习", context="我喜欢学习。", source_language="zh", target_language="vi"
+                )
+            )
+        except HTTPException as exc:
+            assert exc.status_code == 409
+        else:
+            raise AssertionError("request language mismatch was accepted")
+        try:
+            media_interaction.contextual_dictionary(
+                media_interaction.ContextualDictionaryIn(
                     text="usually", context="I walk to school.", source_language="en", target_language="vi"
                 )
             )
