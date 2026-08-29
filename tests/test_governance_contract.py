@@ -193,8 +193,11 @@ def test_r12_local_retention_foundation_closeout_is_recorded() -> None:
 def test_r10_reading_matrix_records_en_zh_evidence_and_deferred_gates() -> None:
     project_state = (ROOT / "docs/project/PROJECT_STATE.md").read_text(encoding="utf-8")
     handoff = (ROOT / "docs/project/CURRENT_HANDOFF.md").read_text(encoding="utf-8")
+    roadmap = (ROOT / "docs/project/ROADMAP.md").read_text(encoding="utf-8")
     report = (ROOT / "docs/project/R10_PRE_PUBLIC_MATRIX.json").read_text(encoding="utf-8")
     runner = (ROOT / "scripts/r10_release_matrix.mjs").read_text(encoding="utf-8")
+    normalized_roadmap = " ".join(roadmap.split())
+    r10_section = roadmap.split("## R10 — Reading Completion", 1)[1].split("## R11", 1)[0]
 
     assert "R10" in project_state and "Reading Completion" in project_state
     assert "**R10 — Reading Completion: COMPLETE / LOCAL ACCEPTANCE PASS.**" in project_state
@@ -214,6 +217,11 @@ def test_r10_reading_matrix_records_en_zh_evidence_and_deferred_gates() -> None:
         assert f'"gate": "{gate}"' in report
     assert '"reading_public": false' in report
     assert '"provider_activation": false' in report
+    assert "| R10 | Reading Completion → separate public release | COMPLETE / LOCAL ACCEPTANCE PASS |" in roadmap
+    assert "| R10 | Reading Completion → separate public release | PLANNED |" not in roadmap
+    assert "**COMPLETE / LOCAL ACCEPTANCE PASS.**" in r10_section
+    assert "The EN/ZH Reading session, exact passage-evidence comprehension, learner-scoped history, Library vocabulary, and contextual-dictionary contracts are locally accepted without mastery or proficiency claims." in normalized_roadmap
+    assert "credentialed provider validation, production mutation, and public promotion remain explicit human gates." in normalized_roadmap
 
 
 def test_r14_local_operations_foundation_closeout_is_recorded() -> None:

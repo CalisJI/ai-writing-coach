@@ -37,7 +37,7 @@ require approval and must remain consistent with `PROJECT_STATE.md` and
 | R7 | Speaking Evaluation + Pronunciation Completion | COMPLETE / LOCAL ACCEPTANCE PASS |
 | R8 | Public Product Gate: Writing + Speaking EN/ZH | PLANNED |
 | R9 | Speaking Advanced / Shadowing Studio | COMPLETE / LOCAL ACCEPTANCE PASS |
-| R10 | Reading Completion → separate public release | PLANNED |
+| R10 | Reading Completion → separate public release | COMPLETE / LOCAL ACCEPTANCE PASS |
 | R11 | Listening Completion → separate public release | PLANNED |
 | R12 | Retention & Growth | PLANNED |
 | R13 | Platform Admin Completion | PLANNED / POST-R12 PLATFORM TRACK |
@@ -280,9 +280,13 @@ explicit human gates after the core release review.
 
 ## R10 — Reading Completion → separate public release
 
-R10 completes Reading, including integration with shared learning evidence,
-Vocabulary/Library, and Grammar where useful. Reading remains a separate public
-release after the first Writing + Speaking product.
+**COMPLETE / LOCAL ACCEPTANCE PASS.**
+
+The EN/ZH Reading session, exact passage-evidence comprehension, learner-scoped
+history, Library vocabulary, and contextual-dictionary contracts are locally
+accepted without mastery or proficiency claims. Reading remains a separate
+public release; credentialed provider validation, production mutation, and
+public promotion remain explicit human gates.
 
 ## R11 — Listening Completion → separate public release
 
