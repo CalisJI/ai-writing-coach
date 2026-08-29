@@ -24,7 +24,9 @@ an in-memory development harness. It includes safe-area support, automatic
 system/light/dark theme behavior, shared EN/ZH messages, accessible controls,
 a truthful localized error boundary, and the R19-B API/session bootstrap
 boundary. R19-C adds SecureStore-backed native sessions and a system-browser
-OAuth handoff; audio and learner flows remain reserved for later R19 clusters.
+OAuth handoff. R19-D adds the Expo Audio microphone permission and transient
+recording/playback boundary; raw audio is released locally and never enters
+learner persistence.
 
 The interface locale starts from the device language (`zh` selects Chinese;
 other or unavailable device locales fall back to English) and can be changed

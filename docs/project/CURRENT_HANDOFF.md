@@ -34,11 +34,11 @@ baseline.
 
 **Current governance lane (2026-08-29):**
 
-R12–R18 local foundations are complete and evidence-backed. No autonomous
-implementation owner is assigned: the R8/R11 promotion review is an explicit
-human governance decision, preserving the R2 capability-activation and
-production-operation gates. There is no autonomous mobile/API follow-on task
-to assign from the completed R18 foundation.
+R12–R18 local foundations are complete and evidence-backed. The autonomous
+R19 implementation lane is active: R19-D closes the native media capability
+boundary locally while the R8/R11 promotion review remains an explicit human
+governance decision, preserving the R2 capability-activation and
+production-operation gates.
 
 **Secondary / gated programs:**
 
@@ -652,14 +652,27 @@ are directly implemented and locally verified. Actual mobile-client
 implementation now belongs to R19–R21; only production/provider/store actions
 remain human-gated.
 
-**Next handoff:** R19 Native Mobile App Foundation implementation/review agent.
+**R19 handoff:** Native Mobile App Foundation implementation/review lane.
 Before any R19-R21 implementation or review, read
 docs/project/MOBILE_IMPLEMENTATION_SPEC.md; it is the canonical native-mobile
 build contract for Android and iOS.
-Start the dedicated React Native + Expo + TypeScript `mobile/` workspace and
-consume the verified R18 contracts. R8/R11 public promotion, R2 production
+The dedicated React Native + Expo + TypeScript `mobile/` workspace now
+consumes the verified R18 contracts. R8/R11 public promotion, R2 production
 activation, store credentials/signing, billing, and deployment remain deferred
 human gates and must not block non-production R19/R20 work.
+
+**R19-D local acceptance closeout:** COMPLETE / LOCAL ACCEPTANCE PASS. The
+native Expo Audio microphone boundary requests permission only when invoked,
+models denied/restricted/unavailable/interrupted/failed/suspended states in
+shared EN/ZH UI, and releases transient recordings and playback resources on
+stop, cancel, failure, and lifecycle suspension. Android RECORD_AUDIO and iOS
+microphone usage configuration are present; raw audio is not persisted or
+sent to a provider.
+
+**Next handoff:** R19-E cache, lifecycle, and resume implementation/review
+agent. Continue from the verified R19-D media boundary; do not add mobile ASR,
+scoring, uploads, raw-audio persistence, provider activation, signing, or
+store-release behavior.
 
 ## R18 immutable reference-data cache contract
 
