@@ -653,6 +653,9 @@ implementation now belongs to R19–R21; only production/provider/store actions
 remain human-gated.
 
 **Next handoff:** R19 Native Mobile App Foundation implementation/review agent.
+Before any R19-R21 implementation or review, read
+docs/project/MOBILE_IMPLEMENTATION_SPEC.md; it is the canonical native-mobile
+build contract for Android and iOS.
 Start the dedicated React Native + Expo + TypeScript `mobile/` workspace and
 consume the verified R18 contracts. R8/R11 public promotion, R2 production
 activation, store credentials/signing, billing, and deployment remain deferred

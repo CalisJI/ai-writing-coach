@@ -604,6 +604,9 @@ canonical current multi-agent program roadmap.
 ## R19 — Native Mobile App Foundation
 
 **PLANNED / NEXT AUTONOMOUS PRIMARY.**
+Canonical implementation contract: docs/project/MOBILE_IMPLEMENTATION_SPEC.md.
+Every R19-R21 Worker and Reviewer task must read and follow it before changing
+mobile code or mobile-facing shared contracts.
 
 R19 creates the first real Orena mobile client rather than another responsive
 web view. The accepted implementation direction is **React Native + Expo +

@@ -93,6 +93,9 @@ entry, and corresponding current-state and handoff updates.
 
 ## Mobile
 
+- docs/project/MOBILE_IMPLEMENTATION_SPEC.md is the canonical implementation
+  contract for R19-R21. Mobile implementation and review must not contradict it
+  without an explicit accepted architecture decision.
 - The native mobile client uses **React Native + Expo + TypeScript** in a
   dedicated `mobile/` workspace.
 - Mobile consumes the same authoritative backend/domain contracts as web; there
