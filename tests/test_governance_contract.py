@@ -316,6 +316,9 @@ def test_r3_roadmap_status_matches_verified_local_closeout() -> None:
     assert "R3 — Writing Evaluation Completion: **COMPLETE / LOCAL ACCEPTANCE PASS**" in handoff
     assert "R2 — AI Capability Control Plane: **HUMAN GATE / READY, NOT PRODUCT-BLOCKING**" in project_state
     assert "R8 — Public Product Gate: Writing + Speaking EN/ZH: **PRE-PUBLIC MATRIX" in handoff
+    assert "During the historical R3/R4 primary lane" in roadmap
+    assert "While R3/R4 are the primary lane" not in roadmap
+    assert "Current R6 ownership and any promotion remain governed" in normalized_roadmap
     assert "human governance decision" in handoff.casefold()
     assert "## Historical execution order" in roadmap
     assert "The historical primary execution from the post-R5 checkpoint was:" in roadmap
@@ -326,6 +329,24 @@ def test_r3_roadmap_status_matches_verified_local_closeout() -> None:
     assert "The historical primary path was:" in roadmap
     assert "The existing primary path remains:" not in roadmap
     assert "no active autonomous R3/R4 implementation lane" in normalized_roadmap
+
+
+def test_r4_roadmap_status_matches_verified_learning_loop_closeout() -> None:
+    project_state = (ROOT / "docs/project/PROJECT_STATE.md").read_text(encoding="utf-8")
+    handoff = (ROOT / "docs/project/CURRENT_HANDOFF.md").read_text(encoding="utf-8")
+    roadmap = (ROOT / "docs/project/ROADMAP.md").read_text(encoding="utf-8")
+    normalized_roadmap = " ".join(roadmap.split())
+    r4_section = roadmap.split("## R4 — Writing Learning Loop + Grammar Transfer", 1)[1].split("## R5", 1)[0]
+
+    assert "| R4 | Writing Learning Loop + Grammar Transfer | COMPLETE / LOCAL ACCEPTANCE PASS |" in roadmap
+    assert "| R4 | Writing Learning Loop + Grammar Transfer | PLANNED |" not in roadmap
+    assert "**COMPLETE / LOCAL ACCEPTANCE PASS.**" in r4_section
+    assert "The shared EN/ZH evidence-to-grammar, targeted-practice, revision-lineage, and downstream Review/Journey/Library contracts are locally accepted." in normalized_roadmap
+    assert "Public promotion remains governed by R8 and the R2 capability-activation gate." in normalized_roadmap
+    assert "**R4 — Writing Learning Loop + Grammar Transfer: COMPLETE / LOCAL ACCEPTANCE PASS.**" in project_state
+    assert "R4 — Writing Learning Loop + Grammar Transfer: **COMPLETE / LOCAL ACCEPTANCE PASS**" in handoff
+    assert "R2 — AI Capability Control Plane: **HUMAN GATE / READY, NOT PRODUCT-BLOCKING**" in project_state
+    assert "R8 — Public Product Gate: Writing + Speaking EN/ZH: **PRE-PUBLIC MATRIX" in handoff
 
 
 def test_r16_local_foundation_closeout_records_complete_evidence_chain() -> None:

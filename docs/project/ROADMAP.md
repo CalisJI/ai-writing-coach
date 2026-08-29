@@ -31,7 +31,7 @@ require approval and must remain consistent with `PROJECT_STATE.md` and
 | R2 | AI Capability Control Plane | HUMAN GATE / READY, NOT PRODUCT-BLOCKING |
 | M1 | Media Learning Foundation (cross-cutting) | CLOSED / FOUNDATION COMPLETE |
 | R3 | Writing Evaluation Completion | COMPLETE / LOCAL ACCEPTANCE PASS |
-| R4 | Writing Learning Loop + Grammar Transfer | PLANNED |
+| R4 | Writing Learning Loop + Grammar Transfer | COMPLETE / LOCAL ACCEPTANCE PASS |
 | R5 | Grammar Knowledge System | CLOSED |
 | R6 | Speaking Core | IN PROGRESS / INTERNAL / SECONDARY |
 | R7 | Speaking Evaluation + Pronunciation Completion | PLANNED |
@@ -158,11 +158,15 @@ of Writing evaluation completion itself, not a bolt-on after an English product.
 
 ## R4 — Writing Learning Loop + Grammar Transfer
 
-**PLANNED.**
+**COMPLETE / LOCAL ACCEPTANCE PASS.**
 
 R4 converts trustworthy R3 evaluation evidence into a complete learning loop:
 
 `Write → Evaluate → Understand → Targeted Practice → Revise → Compare → Progress`
+
+The shared EN/ZH evidence-to-grammar, targeted-practice, revision-lineage, and
+downstream Review/Journey/Library contracts are locally accepted. Public
+promotion remains governed by R8 and the R2 capability-activation gate.
 
 R4 consumes the CLOSED R5 Grammar Knowledge System through stable Grammar
 Concept IDs and shared contracts. It must not copy or regenerate a second
@@ -218,8 +222,10 @@ Preserve the distinction:
 
 `transcript match ≠ pronunciation score ≠ fluency score ≠ proficiency score`
 
-While R3/R4 are the primary lane, R6 should receive only bounded core completion
-or regression fixes. Do not broadly rewrite stable Speaking/media integration.
+During the historical R3/R4 primary lane, R6 received only bounded core
+completion or regression fixes. Current R6 ownership and any promotion remain
+governed by the status and human gates recorded in `CURRENT_HANDOFF.md` and
+`PROJECT_STATE.md`; do not broadly rewrite stable Speaking/media integration.
 
 ## R7 — Speaking Evaluation + Pronunciation Completion
 
