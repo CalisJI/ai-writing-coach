@@ -259,6 +259,9 @@ def test_r14_local_operations_foundation_closeout_is_recorded() -> None:
     runner = (ROOT / "scripts/r14_release_matrix.mjs").read_text(encoding="utf-8")
     telemetry_tests = (ROOT / "tests/test_ai_telemetry.py").read_text(encoding="utf-8")
     control_plane_tests = (ROOT / "tests/test_ai_control_plane.py").read_text(encoding="utf-8")
+    normalized_roadmap = " ".join(roadmap.split())
+    r14_section = roadmap.split("## R14 — AI Usage, Cost, Quota & Provider Operations", 1)[1].split("## R15", 1)[0]
+    normalized_r14 = " ".join(r14_section.split())
 
     state_start = project_state.find("R14 — AI Usage, Cost, Quota & Provider Operations:")
     assert state_start >= 0
@@ -268,7 +271,13 @@ def test_r14_local_operations_foundation_closeout_is_recorded() -> None:
     assert "IN PROGRESS / LOCAL FOUNDATION" not in state_section
     assert "R14 — AI Usage, Cost, Quota & Provider Operations: **COMPLETE / LOCAL ACCEPTANCE PASS**" in handoff
     assert "R14 local-operations closeout" in handoff
-    assert "| R14 | AI Usage, Cost, Quota & Provider Operations | PLANNED / POST-R12 PLATFORM TRACK |" in roadmap
+    assert "| R14 | AI Usage, Cost, Quota & Provider Operations | COMPLETE / LOCAL ACCEPTANCE PASS |" in roadmap
+    assert "| R14 | AI Usage, Cost, Quota & Provider Operations | PLANNED / POST-R12 PLATFORM TRACK |" not in roadmap
+    assert "**COMPLETE / LOCAL ACCEPTANCE PASS.**" in r14_section
+    assert "sanitized capability/provider telemetry" in normalized_r14
+    assert "read-only Admin operations surface" in normalized_r14
+    assert "Credentialed validation, production observation, billing/quota enforcement, and runtime activation remain explicit human gates." in normalized_r14
+    assert "| R14 | AI Usage, Cost, Quota & Provider Operations | COMPLETE / LOCAL ACCEPTANCE PASS |" in normalized_roadmap
 
     assert '"matrix": "R14-local-ai-operations-foundation"' in report
     assert '"r14_local_complete": true' in report

@@ -41,7 +41,7 @@ require approval and must remain consistent with `PROJECT_STATE.md` and
 | R11 | Listening Completion → separate public release | PRE-PUBLIC MATRIX COMPLETE / HUMAN PROMOTION GATE |
 | R12 | Retention & Growth | COMPLETE / LOCAL ACCEPTANCE PASS |
 | R13 | Platform Admin Completion | COMPLETE / LOCAL ACCEPTANCE PASS |
-| R14 | AI Usage, Cost, Quota & Provider Operations | PLANNED / POST-R12 PLATFORM TRACK |
+| R14 | AI Usage, Cost, Quota & Provider Operations | COMPLETE / LOCAL ACCEPTANCE PASS |
 | R15 | SaaS Plans, Entitlements & Usage Policy | PLANNED / POST-R12 PLATFORM TRACK |
 | R16 | Advanced Learning Intelligence | PLANNED / POST-R12 PRODUCT TRACK |
 | R17 | Product Analytics & Operational Observability | PLANNED / POST-R12 PLATFORM TRACK |
@@ -417,7 +417,16 @@ R13 must not redesign the R2 control plane or silently migrate production state.
 
 ## R14 — AI Usage, Cost, Quota & Provider Operations
 
-**PLANNED / POST-R12 PLATFORM TRACK.**
+**COMPLETE / LOCAL ACCEPTANCE PASS.**
+
+The sanitized capability/provider telemetry, PostgreSQL audit aggregation, and
+read-only Admin operations surface are locally accepted. Missing or partial
+usage and rate-limit data remain explicit; bounded health, cost, quota, and
+trend evidence never exposes credentials or performs provider probes. Scoped
+provider controls preserve primary/standby separation without billing, quota
+enforcement, automatic failover, or learner-runtime mutation. Credentialed
+validation, production observation, billing/quota enforcement, and runtime
+activation remain explicit human gates.
 
 R14 makes AI runtime economics and provider health observable before learners are
 affected.
