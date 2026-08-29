@@ -6,7 +6,7 @@ import type {SessionBootstrap} from '../api/contracts/session';
 
 export const sessionBootstrapKey = ['session', 'bootstrap'] as const;
 
-export function useSessionBootstrap(client?: ApiClient): UseQueryResult<SessionBootstrap, ApiError> {
+export function useSessionBootstrap(client?: ApiClient, sessionCookie?: string | null): UseQueryResult<SessionBootstrap, ApiError> {
   const configured = useMemo(() => {
     if (client) return {client};
     try {
@@ -18,8 +18,9 @@ export function useSessionBootstrap(client?: ApiClient): UseQueryResult<SessionB
   return useQuery<SessionBootstrap, ApiError>({
     queryKey: sessionBootstrapKey,
     queryFn: ({signal}) => configured.client
-      ? configured.client.getSessionBootstrap({signal})
+      ? configured.client.getSessionBootstrap({signal, sessionCookie: sessionCookie ?? undefined})
       : Promise.reject(configured.error),
+    enabled: client ? sessionCookie !== null : typeof sessionCookie === 'string' && sessionCookie.length > 0,
     retry: false,
     staleTime: 0,
     gcTime: 0,

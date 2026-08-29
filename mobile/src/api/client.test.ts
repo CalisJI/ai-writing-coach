@@ -54,6 +54,25 @@ describe('typed mobile API client', () => {
     await expect(client.getSessionBootstrap()).rejects.toMatchObject({category, status});
   });
 
+  it('exchanges a server handoff and logs out with the same cookie attachment', async () => {
+    const requests: {url: string; init?: RequestInit}[] = [];
+    const client = new ApiClient({
+      baseUrl: 'https://learn.example.test',
+      fetchImpl: async (input, init) => {
+        requests.push({url: String(input), init});
+        return String(input).includes('/exchange')
+          ? response(200, {version: 'orena.native-session.v1', session_cookie: 'issued-cookie'})
+          : response(200, {ok: true});
+      },
+    });
+    const exchanged = await client.exchangeNativeSession('one-use-code', 'verifier');
+    await client.logout({sessionCookie: exchanged.session_cookie});
+    expect(exchanged.session_cookie).toBe('issued-cookie');
+    expect(requests[0]?.init?.method).toBe('POST');
+    expect(requests[0]?.init?.body).toBe(JSON.stringify({code: 'one-use-code', code_verifier: 'verifier'}));
+    expect(requests[1]?.init?.headers).toEqual({Accept: 'application/json', Cookie: `${SESSION_COOKIE_NAME}=issued-cookie`});
+  });
+
   it('maps invalid JSON/schema and network failures to safe categories', async () => {
     const invalidJson = new ApiClient({baseUrl: 'https://learn.example.test', fetchImpl: async () => ({status: 200, ok: true, json: async () => {throw new Error('raw learner payload');}} as unknown as Response)});
     await expect(invalidJson.getSessionBootstrap()).rejects.toMatchObject({category: 'invalid_response'});

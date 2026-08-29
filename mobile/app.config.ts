@@ -21,7 +21,7 @@ const config: ExpoConfig = {
   experiments: {
     typedRoutes: true,
   },
-  plugins: ['expo-router'],
+  plugins: ['expo-router', 'expo-secure-store'],
   extra: {
     apiBaseUrl: process.env.EXPO_PUBLIC_API_BASE_URL ?? '',
     appEnv: process.env.EXPO_PUBLIC_APP_ENV ?? 'development',

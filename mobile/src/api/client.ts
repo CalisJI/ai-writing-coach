@@ -1,5 +1,6 @@
 import {configuredApiBaseUrl, normalizeApiBaseUrl} from './config';
 import {ApiError, normalizeUnknownError} from './errors';
+import {logoutResponseSchema, nativeSessionExchangeSchema, type NativeSessionExchange} from './contracts/nativeAuth';
 import {sessionBootstrapSchema, type SessionBootstrap} from './contracts/session';
 
 type FetchLike = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
@@ -33,7 +34,26 @@ export class ApiClient {
     return this.request('/api/session/bootstrap', options, sessionBootstrapSchema.parse);
   }
 
-  private async request<T>(path: string, options: RequestOptions, parse: (value: unknown) => T): Promise<T> {
+  async exchangeNativeSession(code: string, codeVerifier: string, options: RequestOptions = {}): Promise<NativeSessionExchange> {
+    if (typeof code !== 'string' || code.trim() === '' || typeof codeVerifier !== 'string' || codeVerifier.trim() === '') throw new ApiError('request_rejected', 'Authentication exchange was invalid');
+    return this.request('/api/auth/native/exchange', options, nativeSessionExchangeSchema.parse, 'POST', {code, code_verifier: codeVerifier});
+  }
+
+  async logout(options: RequestOptions = {}): Promise<void> {
+    await this.request('/auth/logout', options, logoutResponseSchema.parse, 'POST');
+  }
+
+  getBaseUrl(): string {
+    return this.baseUrl;
+  }
+
+  private async request<T>(
+    path: string,
+    options: RequestOptions,
+    parse: (value: unknown) => T,
+    method: 'GET' | 'POST' = 'GET',
+    payload?: unknown,
+  ): Promise<T> {
     const controller = new AbortController();
     let timedOut = false;
     let removeExternalAbort: () => void = () => undefined;
@@ -52,9 +72,11 @@ export class ApiClient {
     try {
       const headers: Record<string, string> = {Accept: 'application/json'};
       if (options.sessionCookie) headers.Cookie = `${SESSION_COOKIE_NAME}=${options.sessionCookie}`;
+      if (payload !== undefined) headers['Content-Type'] = 'application/json';
       const response = await this.fetchImpl(`${this.baseUrl}${path}`, {
-        method: 'GET',
+        method,
         headers,
+        ...(payload === undefined ? {} : {body: JSON.stringify(payload)}),
         cache: 'no-store',
         signal: controller.signal,
       });

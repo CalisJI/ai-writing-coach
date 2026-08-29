@@ -2,6 +2,7 @@
 
 import asyncio
 import base64
+import hashlib
 import json
 
 import httpx
@@ -90,3 +91,71 @@ def test_bootstrap_accepts_native_style_session_cookie_header(monkeypatch):
     assert payload["authenticated"] is True
     assert payload["language"]["active"] == "zh"
     assert payload["user"] == {"role": "user", "is_admin": False}
+
+
+def test_native_handoff_exchange_issues_cookie_accepted_by_bootstrap(monkeypatch):
+    monkeypatch.setattr(auth_support, "AUTH_ENABLED", True)
+    monkeypatch.setattr(auth_support, "auth_user", lambda sub: {"google_sub": sub, "role": "user"})
+    monkeypatch.setattr(auth_support, "ensure_user_db", lambda: None)
+
+    async def exercise():
+        verifier = "native-verifier"
+        challenge = base64.urlsafe_b64encode(hashlib.sha256(verifier.encode()).digest()).rstrip(b"=").decode()
+        assert any(char.isupper() for char in challenge)
+        assert any(char.islower() for char in challenge)
+        handoff = auth_support.issue_native_handoff("native-user", challenge)
+        transport = httpx.ASGITransport(app=app_module.app)
+        async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+            exchange = await client.post(
+                "/api/auth/native/exchange",
+                json={"code": handoff, "code_verifier": verifier},
+            )
+            cookie = exchange.json()["session_cookie"]
+            bootstrap = await client.get(
+                "/api/session/bootstrap",
+                headers={"Cookie": f"writing_coach_session={cookie}"},
+            )
+            replay = await client.post("/api/auth/native/exchange", json={"code": handoff})
+            return exchange, bootstrap, replay
+
+    exchange, bootstrap, replay = asyncio.run(exercise())
+    assert exchange.status_code == 200
+    assert exchange.json()["version"] == "orena.native-session.v1"
+    assert exchange.headers["cache-control"] == "no-store"
+    assert bootstrap.status_code == 200
+    assert bootstrap.json()["authenticated"] is True
+    assert replay.status_code == 401
+
+
+def test_native_handoff_requires_the_bound_verifier_and_logout_endpoint_is_best_effort(monkeypatch):
+    monkeypatch.setattr(auth_support, "AUTH_ENABLED", True)
+    monkeypatch.setattr(auth_support, "auth_user", lambda sub: {"google_sub": sub, "role": "user"})
+    monkeypatch.setattr(auth_support, "ensure_user_db", lambda: None)
+
+    async def exchange(client, verifier_payload):
+        verifier = "bound-verifier"
+        handoff = auth_support.issue_native_handoff(
+            "native-user",
+            base64.urlsafe_b64encode(hashlib.sha256(verifier.encode()).digest()).rstrip(b"=").decode(),
+        )
+        payload = {"code": handoff, **verifier_payload}
+        return await client.post("/api/auth/native/exchange", json=payload)
+
+    async def exercise():
+        transport = httpx.ASGITransport(app=app_module.app)
+        async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+            missing = await exchange(client, {})
+            wrong = await exchange(client, {"code_verifier": "wrong-verifier"})
+            valid = await exchange(client, {"code_verifier": "bound-verifier"})
+            cookie = valid.json()["session_cookie"]
+            logout = await client.post(
+                "/auth/logout",
+                headers={"Cookie": f"writing_coach_session={cookie}"},
+            )
+            return missing, wrong, valid, logout
+
+    missing, wrong, valid, logout = asyncio.run(exercise())
+    assert missing.status_code == 401
+    assert wrong.status_code == 401
+    assert valid.status_code == 200
+    assert logout.status_code == 200
