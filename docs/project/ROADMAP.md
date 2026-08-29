@@ -43,9 +43,12 @@ require approval and must remain consistent with `PROJECT_STATE.md` and
 | R13 | Platform Admin Completion | COMPLETE / LOCAL ACCEPTANCE PASS |
 | R14 | AI Usage, Cost, Quota & Provider Operations | COMPLETE / LOCAL ACCEPTANCE PASS |
 | R15 | SaaS Plans, Entitlements & Usage Policy | COMPLETE / LOCAL ACCEPTANCE PASS |
-| R16 | Advanced Learning Intelligence | PLANNED / POST-R12 PRODUCT TRACK |
+| R16 | Advanced Learning Intelligence | COMPLETE / LOCAL ACCEPTANCE PASS |
 | R17 | Product Analytics & Operational Observability | COMPLETE / LOCAL ACCEPTANCE PASS |
 | R18 | Mobile/API Readiness | COMPLETE / LOCAL ACCEPTANCE PASS |
+| R19 | Native Mobile App Foundation | PLANNED / NEXT AUTONOMOUS PRIMARY |
+| R20 | Mobile Learning Experience Parity | PLANNED |
+| R21 | Mobile Release Readiness | PLANNED / HUMAN STORE-RELEASE GATE |
 
 ## Historical execution order
 
@@ -58,9 +61,16 @@ promotion gates are recorded in `CURRENT_HANDOFF.md` and `PROJECT_STATE.md`;
 there is no active autonomous R3/R4 implementation lane.
 
 R2 production activation is an independent human gate and should be completed
-before it is required for public runtime behavior, but it must not block R3/R4
-product development in that historical sequence. R6 remains usable internally
-and may receive bounded regression fixes while R3/R4 were primary.
+before it is required for public runtime behavior, but it must not block
+non-production product development.
+
+The next autonomous implementation path after the locally complete R12–R18
+foundations is:
+
+`R19 Mobile Foundation → R20 Mobile Learning Parity → R21 Mobile Release Readiness`
+
+R8/R11 public-promotion decisions and R2 production activation remain deferred
+human gates and must not block R19/R20 non-production mobile implementation.
 
 ## R0 — Product Release Architecture
 
@@ -486,7 +496,7 @@ entitlement contract is sufficient.
 
 ## R16 — Advanced Learning Intelligence
 
-**PLANNED / POST-R12 PRODUCT TRACK.**
+**COMPLETE / LOCAL ACCEPTANCE PASS.**
 
 R16 formalizes advanced learner-facing intelligence that is currently distributed
 across Writing, Review, Grammar, Dictionary, Media, Journey, and supporting
@@ -550,9 +560,9 @@ compact resumable media-status contracts are locally accepted for shared web
 and future-mobile consumers. Versioned source metadata, ETag/conditional
 caching, authentication, bounded response shaping, and truthful unavailable
 states preserve server ownership and cache safety without duplicating datasets
-or changing full media acquisition behavior. Mobile-client implementation,
-provider activation, production release, and deployment remain explicit human
-gates.
+or changing full media acquisition behavior. Mobile-client implementation is intentionally owned by R19–R21 and is an
+autonomous non-production development lane. Provider activation, production
+release, store credentials/signing, and deployment remain explicit human gates.
 
 R18 prepares Orena's existing web/server product contracts for a mobile client
 without forking the product model.
@@ -590,3 +600,107 @@ languages implement the same shared contract.
 [`docs/PUBLIC_PRODUCT_RELEASE_ROADMAP.md`](../PUBLIC_PRODUCT_RELEASE_ROADMAP.md)
 is supporting historical R0/release-contract context. This document is the
 canonical current multi-agent program roadmap.
+
+## R19 — Native Mobile App Foundation
+
+**PLANNED / NEXT AUTONOMOUS PRIMARY.**
+
+R19 creates the first real Orena mobile client rather than another responsive
+web view. The accepted implementation direction is **React Native + Expo +
+TypeScript** in a dedicated `mobile/` workspace. The mobile app consumes the
+same authoritative Orena backend, learner identities, EN/ZH contracts, Media
+Learning assets, and PostgreSQL-backed product state; it must not fork learning
+logic or embed provider secrets.
+
+R19 completion requires:
+
+- create a reproducible `mobile/` Expo/TypeScript workspace with lint, typecheck,
+  unit-test, and local development commands;
+- establish app navigation, shared theme tokens, light/dark behavior,
+  accessibility defaults, safe-area handling, and EN/ZH localization;
+- add one typed mobile API client over the existing server contracts, including
+  explicit loading, offline, timeout, authentication-required, unavailable, and
+  degraded states;
+- consume the R18 session-bootstrap, cache, and compact resumable-media
+  contracts instead of inventing mobile-only equivalents;
+- define a native authentication/session transport that keeps Google/OAuth and
+  server authority intact, stores sensitive session material only in OS secure
+  storage, and never ships provider/API secrets in the app bundle;
+- provide a development-safe sign-in/session harness that can be exercised
+  without production OAuth credentials; real OAuth redirect registration and
+  production credentials remain deferred;
+- establish bounded local cache/state rules: immutable/versioned reference data
+  may be cached, mutable learner/server truth is not treated as authoritative
+  offline state, and large server datasets are not bundled by default;
+- establish native microphone/audio/media permission boundaries without
+  persisting raw learner audio by default;
+- add Android and iOS smoke-build/test evidence for the shell and API/session
+  contracts, with no store publication.
+
+R19 must not wrap the existing site in a WebView as the primary product, copy
+web DOM/CSS into a parallel UI system, create mobile-only learner progress, or
+change production authentication/provider state.
+
+## R20 — Mobile Learning Experience Parity
+
+**PLANNED.**
+
+R20 turns the R19 shell into a learner-usable mobile product by implementing the
+existing Orena learning loops as native mobile vertical slices while consuming
+the same backend and domain contracts.
+
+R20 completion requires coherent EN/ZH mobile flows for:
+
+- Home/onboarding and the existing next-practice/return-to-practice handoffs;
+- Writing → Evaluate → Review → Grammar targeted practice → Revise;
+- Reading comprehension, saved-word/Library handoff, and contextual dictionary;
+- Listening follow/active practice, resumable progress, and shared-media state;
+- Speaking recording, transient ASR/evaluation, pronunciation feedback where
+  available, and Shadowing Studio return flow;
+- Grammar, Library/Active Recall, Journey/progress, and Profile/settings;
+- plan/entitlement and truthful exhausted/unavailable states without enforcing
+  unsupported mobile-only policy;
+- device rotation/safe areas, keyboard handling, screen-reader semantics,
+  reduced-motion/system text-size behavior, and representative phone/tablet
+  layouts;
+- poor-network recovery, resumable requests where supported, and no duplicated
+  large reference/media datasets;
+- cross-platform regression coverage that verifies mobile and web consumers
+  continue to agree on shared API/domain semantics.
+
+R20 may use native platform capabilities only where they improve the same Orena
+learning behavior. Native implementation must not redefine scores, mastery,
+language scope, Grammar IDs, Media Learning identity, or persistence ownership.
+
+## R21 — Mobile Release Readiness
+
+**PLANNED / HUMAN STORE-RELEASE GATE.**
+
+R21 prepares the completed mobile product for controlled Android and iOS
+distribution without making store publication autonomous.
+
+R21 completion requires:
+
+- stable application/package/bundle identifiers, version/build-number policy,
+  app icon/splash assets, permission copy, and environment separation;
+- production-safe OAuth/deep-link redirect design and verified sign-in/sign-out
+  behavior on Android and iOS;
+- release build pipelines and reproducible signed-build preparation, while
+  signing keys and store credentials remain outside the repository;
+- privacy review for microphone/audio, learner content, analytics, diagnostics,
+  caches, and secure session storage;
+- crash/error diagnostics that follow the existing privacy-bounded observability
+  rules and do not leak learner content or credentials;
+- Android/iOS device QA across EN/ZH, light/dark, accessibility, auth expiry,
+  offline/degraded states, media resume, microphone permissions, and upgrade
+  paths;
+- mobile monetization/store-entitlement readiness that consumes the R15
+  account/entitlement model without activating billing automatically;
+- store-listing/privacy metadata preparation and a release checklist separating
+  locally verified readiness from production/store actions;
+- an explicit human gate for Google Play/App Store credentials, signing,
+  production OAuth-console changes, production API/provider activation,
+  billing/store purchase activation, and public store submission.
+
+R21 does not mark any learner skill PUBLIC merely because a mobile binary
+builds. Existing product release gates remain authoritative.

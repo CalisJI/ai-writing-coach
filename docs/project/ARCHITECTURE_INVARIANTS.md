@@ -90,8 +90,32 @@ entry, and corresponding current-state and handoff updates.
 - Persisted fallback policy is metadata until runtime activation explicitly
   implements its behavior.
 
-## Operations
 
+## Mobile
+
+- The native mobile client uses **React Native + Expo + TypeScript** in a
+  dedicated `mobile/` workspace.
+- Mobile consumes the same authoritative backend/domain contracts as web; there
+  is no mobile-only learning architecture, scoring model, Grammar curriculum,
+  Media Learning model, or learner-progress authority.
+- Web DOM/CSS is not copied into mobile as a second presentation implementation,
+  and a WebView is not the primary mobile product shell.
+- Provider/API secrets remain server-side. Mobile configuration may contain only
+  non-secret public endpoints/identifiers intended for client distribution.
+- Sensitive authentication/session material is stored only through OS-backed
+  secure storage; ordinary app cache/storage must not hold reusable secrets.
+- EN/ZH parity, accessibility, light/dark behavior, language-scoped learner data,
+  and truthful degraded/unavailable states apply equally to mobile.
+- Immutable/versioned reference data may use bounded client caching; mutable
+  learner/server state remains server-authoritative. Large server datasets are
+  not bundled into the app by default.
+- Microphone/audio capture remains transient by default and must not introduce
+  raw-audio persistence without an explicit accepted decision.
+- Android and iOS share one product contract. Platform-specific adapters are
+  allowed only for genuine native differences such as permissions, audio,
+  secure storage, deep links, and system integration.
+
+## Operations
 - Never use `docker compose down -v`.
 - Never print or commit secrets, credential-bearing URLs, authorization
   headers, or raw sensitive provider responses.

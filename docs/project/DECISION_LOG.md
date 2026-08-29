@@ -754,3 +754,32 @@ explicit requests and remain subject to existing server-managed credentials and
 human release gates.
 
 **Supersedes / Superseded by:** Supersedes no earlier decision.
+
+## D-036 - Native mobile client uses React Native + Expo + TypeScript
+
+**Status:** Accepted
+
+**Decision:** Orena's first real native mobile client is implemented in a
+dedicated `mobile/` workspace using React Native + Expo + TypeScript. It
+consumes the existing authenticated backend, R18 mobile/API contracts, shared
+EN/ZH domain semantics, Media Learning identities, and PostgreSQL-backed server
+authority. The app is not a WebView wrapper and must not copy web DOM/CSS or
+fork learner scoring, Grammar, progress, or provider logic.
+
+**Reason:** R18 intentionally completed only the server/API readiness layer.
+There is no Android/iOS client workspace in the repository, so mobile remains a
+real product gap. React Native + Expo provides one Android/iOS implementation
+with strong TypeScript tooling and native access to microphone/audio, secure
+storage, deep links, and app lifecycle behavior while preserving the existing
+server architecture.
+
+**Consequences:** R19 owns the mobile shell, typed API/session layer,
+localization/theme/accessibility foundation, secure native session handling,
+bounded caching, and native media permission boundaries. R20 owns learner-flow
+parity. R21 owns release readiness and store-entitlement integration on top of
+R15. Provider secrets remain server-side; production OAuth-console changes,
+signing keys, store credentials, production activation, billing activation, and
+public store submission remain explicit human gates.
+
+**Supersedes / Superseded by:** Extends R18 mobile/API readiness and the shared
+web/server product architecture. Supersedes no earlier decision.

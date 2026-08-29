@@ -648,13 +648,15 @@ Stop and return to the human coordinator when:
 
 **R18 local-foundation closeout:** COMPLETE / LOCAL ACCEPTANCE PASS. The
 reference-data cache, session bootstrap, and compact media-status contracts
-are directly implemented and locally verified; mobile-client implementation,
-provider activation, and production release remain human-gated and deferred.
+are directly implemented and locally verified. Actual mobile-client
+implementation now belongs to R19–R21; only production/provider/store actions
+remain human-gated.
 
-**Next handoff:** Human governance decision for R8/R11 public promotion.
-Consume the verified R12–R18 contracts without reopening completed foundations
-or changing provider activation, billing, deployment, learner scoring, or
-production behavior.
+**Next handoff:** R19 Native Mobile App Foundation implementation/review agent.
+Start the dedicated React Native + Expo + TypeScript `mobile/` workspace and
+consume the verified R18 contracts. R8/R11 public promotion, R2 production
+activation, store credentials/signing, billing, and deployment remain deferred
+human gates and must not block non-production R19/R20 work.
 
 ## R18 immutable reference-data cache contract
 

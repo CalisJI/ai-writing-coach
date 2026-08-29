@@ -18,11 +18,11 @@ operational state.
 
 - Application version: `1.4.0`
 - BECOMING frontend version: `2.17.5`
-- Current Orena program: Governance handoff — all documented non-production
-  foundations are locally complete. The R8/R11 Writing, Speaking, and Listening
-  promotion decisions remain explicit human gates; no autonomous implementation
-  lane is open while R2 activation, production operations, billing, and public
-  promotion remain deferred.
+- Current Orena program: **R19 Native Mobile App Foundation — NEXT AUTONOMOUS
+  PRIMARY.** R0–R18 local foundations are preserved; R19–R21 add the real native
+  mobile client on top of those contracts. R8/R11 promotion, R2 activation,
+  production operations, store signing/credentials, billing, and public release
+  remain deferred human gates and do not block non-production mobile development.
 
 ## Orena UI/UX integration
 
@@ -528,3 +528,24 @@ The intended product sequence is:
 
 R2 production activation is completed when explicitly authorized and before a
 public capability-dependent release requires it.
+
+## R19–R21 mobile product direction
+
+- **R18 is API/mobile readiness, not the mobile application.** It is locally
+  complete and remains the server-contract foundation for native clients.
+- **R19 — Native Mobile App Foundation: NEXT AUTONOMOUS PRIMARY.** Build a
+  dedicated React Native + Expo + TypeScript `mobile/` workspace with shared
+  EN/ZH behavior, typed API/session contracts, secure native session storage,
+  navigation/theme/accessibility foundations, bounded caching, and native
+  microphone/media permission boundaries. No provider secret is bundled in the
+  app and no production/store action is implied.
+- **R20 — Mobile Learning Experience Parity: PLANNED.** Implement the existing
+  Writing, Review, Grammar, Reading, Listening, Speaking/Shadowing, Library,
+  Journey, Home, onboarding, and Profile flows as native mobile vertical slices
+  consuming the same backend/domain contracts.
+- **R21 — Mobile Release Readiness: PLANNED / HUMAN STORE-RELEASE GATE.** Prepare
+  Android/iOS release builds, OAuth/deep-link configuration, privacy/device QA,
+  diagnostics, store metadata, and R15-compatible mobile entitlement/billing
+  readiness. Signing keys, store credentials, production OAuth changes,
+  production activation, billing activation, and public store submission remain
+  explicit human gates.
