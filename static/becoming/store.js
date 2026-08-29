@@ -87,6 +87,8 @@ export const state={
   practiceRecommendation:null,
   latestPracticeOutcome:null,
   libraryVocabulary:null,
+  libraryReviewWord:null,
+  libraryReviewLanguage:null,
   readingSession:null,
   readingResult:null,
   readingSessions:[],
@@ -133,6 +135,8 @@ export function resetDraft(defaults={}){
 
 export function activateLanguage(language,{allowLegacyMigration=false}={}){
   state.language=normalizeTargetLanguage(language);
+  state.libraryReviewWord=null;
+  state.libraryReviewLanguage=null;
   state.draft=loadDraft(state.language,{allowLegacyMigration});
   clearLanguageDerivedState();
   return state.draft;

@@ -491,7 +491,9 @@ export async function renderLibrary(root){
   const c=copy();
   const items=payload.items||[];
   const summary=payload.summary||{total:items.length,due:0,available:0};
-  const view={tab:'all',filter:'all',sort:'next',page:1,lookup:null,showLookup:false};
+  const handoffMatches=state.libraryReviewLanguage===state.language;
+  const requestedWord=handoffMatches&&typeof state.libraryReviewWord==='string'?state.libraryReviewWord.trim():'';
+  const view={tab:'all',filter:'all',sort:'next',page:1,lookup:null,showLookup:false,showRecall:false};
   const settings=readSettings();
   let goal=readGoal();
 
@@ -539,7 +541,11 @@ export async function renderLibrary(root){
     return sorted;
   };
 
-  const due=items.find(item=>item.due)||null;
+  const requestedDue=requestedWord&&items.find(item=>item.due&&String(item.word||'').trim()===requestedWord);
+  const due=requestedDue||items.find(item=>item.due)||null;
+  if(requestedDue) view.showRecall=true;
+  state.libraryReviewWord=null;
+  state.libraryReviewLanguage=null;
 
   const html=()=>{
     const rows=visible();

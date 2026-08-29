@@ -596,6 +596,47 @@ function nextPracticePlanSignal(plan){
   </section>`;
 }
 
+function dueLibraryReview(payload){
+  const items=Array.isArray(payload)
+    ?payload
+    :payload&&typeof payload==='object'&&!Array.isArray(payload)&&Array.isArray(payload.items)
+      ?payload.items:[];
+  return items
+    .map((item,index)=>{
+      if(!item||typeof item!=='object'||Array.isArray(item)||item.due!==true||typeof item.word!=='string')return null;
+      const word=item.word.trim();
+      const next=typeof item.next_review_at==='string'?item.next_review_at.trim():'';
+      const timestamp=next?Date.parse(next):NaN;
+      if(!word||!next||!Number.isFinite(timestamp))return null;
+      return {word,next,timestamp,index};
+    })
+    .filter(Boolean)
+    .sort((a,b)=>a.timestamp-b.timestamp||a.index-b.index)[0]||null;
+}
+
+function normalizedLibraryItems(payload){
+  const items=Array.isArray(payload)
+    ?payload
+    :payload&&typeof payload==='object'&&!Array.isArray(payload)&&Array.isArray(payload.items)
+      ?payload.items:[];
+  return items.filter(item=>item&&typeof item==='object'&&!Array.isArray(item)
+    &&typeof item.word==='string'&&item.word.trim()!=='');
+}
+
+function libraryReviewSignal(item){
+  if(!item)return `<section class="o-card o-panel home-library-review" data-home-library-review-state="none">
+    <span class="o-label">${esc(t('home.library_review_title'))}</span>
+    <p class="o-panel-copy">${esc(t('home.library_review_neutral'))}</p>
+  </section>`;
+  return `<section class="o-card o-panel home-library-review" data-home-library-review-state="due" data-home-library-review-word="${attr(item.word)}">
+    <div><span class="o-label">${esc(t('home.library_review_title'))}</span>
+      <h2>${esc(t('home.library_review_due'))}</h2>
+      <p class="o-panel-copy">${esc(t('home.library_review_body',{word:item.word}))}</p>
+    </div>
+    <button class="o-btn o-btn--primary o-btn--compact" type="button" data-home-library-review-action>${esc(t('home.library_review_action'))}</button>
+  </section>`;
+}
+
 function practiceDifficultyMarkup(recommendation){
   const difficulty=difficultyAdjustment(recommendation);
   return difficulty
@@ -695,10 +736,12 @@ export async function renderHome(root){
     ]);
     /* The library panel is additive: Home is still useful without it, so a
        failure here degrades that one card rather than the screen. */
+    let libraryPayload=null;
     let library=[];
     try{
       const saved=await api.libraryVocabulary();
-      library=Array.isArray(saved)?saved:(saved?.items||[]);
+      libraryPayload=saved;
+      library=normalizedLibraryItems(saved);
     }catch{ library=[]; }
     state.dashboard=dashboard;
     state.essays=essays;
@@ -712,6 +755,7 @@ export async function renderHome(root){
     const listeningResume=resumableLesson(state.language);
     const listeningHabit=listeningHabitSnapshot();
     const nextPlan=nextPracticePlan({recommendation,readingHistory,speakingHistory,listeningResume});
+    const dueReview=dueLibraryReview(libraryPayload);
 
     root.innerHTML=`<div class="o-page">
       <div class="o-home">
@@ -719,6 +763,7 @@ export async function renderHome(root){
         ${listeningResumeSignal(listeningResume)}
         ${listeningHabitSignal(listeningHabit)}
         ${nextPracticePlanSignal(nextPlan)}
+        ${libraryReviewSignal(dueReview)}
         ${crossSkillCueMarkup(crossCue,{learningLanguage:state.language})}
         ${writingDashboardMarkup(dashboard,essays,memory)}
 
@@ -803,6 +848,12 @@ export async function renderHome(root){
       go('listen');
     });
     root.querySelector('[data-home-listening-goal]')?.addEventListener('click',()=>go('listen'));
+    root.querySelector('[data-home-library-review-action]')?.addEventListener('click',()=>{
+      if(!dueReview)return;
+      state.libraryReviewWord=dueReview.word;
+      state.libraryReviewLanguage=state.language;
+      go('library');
+    });
     root.querySelector('[data-home-next-plan-action]')?.addEventListener('click',async()=>{
       if(!nextPlan)return;
       if(nextPlan.kind==='writing-draft'){
