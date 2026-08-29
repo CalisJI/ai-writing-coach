@@ -383,6 +383,24 @@ def test_r7_roadmap_status_matches_verified_speaking_evaluation_closeout() -> No
     assert "R7 — Speaking Evaluation + Pronunciation: **COMPLETE / LOCAL ACCEPTANCE PASS**" in handoff
 
 
+def test_r9_roadmap_status_matches_verified_shadowing_closeout() -> None:
+    project_state = (ROOT / "docs/project/PROJECT_STATE.md").read_text(encoding="utf-8")
+    handoff = (ROOT / "docs/project/CURRENT_HANDOFF.md").read_text(encoding="utf-8")
+    roadmap = (ROOT / "docs/project/ROADMAP.md").read_text(encoding="utf-8")
+    normalized_roadmap = " ".join(roadmap.split())
+    r9_section = roadmap.split("## R9 — Speaking Advanced / Shadowing Studio", 1)[1].split("## R10", 1)[0]
+
+    assert "| R9 | Speaking Advanced / Shadowing Studio | COMPLETE / LOCAL ACCEPTANCE PASS |" in roadmap
+    assert "| R9 | Speaking Advanced / Shadowing Studio | PLANNED |" not in roadmap
+    assert "**COMPLETE / LOCAL ACCEPTANCE PASS.**" in r9_section
+    assert "The EN/ZH Shadowing Studio flow is locally accepted for canonical shared-media selection, transcript practice, Speaking-feedback continuity, and resumable learner state." in normalized_roadmap
+    assert "same Media Learning asset/transcript/translation contracts established by M1" in normalized_roadmap
+    assert "Public productization and provider activation remain explicit human gates" in normalized_roadmap
+    assert "R9 — Speaking Advanced / Shadowing Studio: COMPLETE / LOCAL ACCEPTANCE PASS." in project_state
+    assert "R9 — Speaking Advanced / Shadowing Studio: **COMPLETE / LOCAL ACCEPTANCE PASS**" in handoff
+    assert "R8 — Public Product Gate: Writing + Speaking EN/ZH: **PRE-PUBLIC MATRIX" in handoff
+
+
 def test_r16_local_foundation_closeout_records_complete_evidence_chain() -> None:
     project_state = (ROOT / "docs/project/PROJECT_STATE.md").read_text(encoding="utf-8")
     handoff = (ROOT / "docs/project/CURRENT_HANDOFF.md").read_text(encoding="utf-8")

@@ -36,7 +36,7 @@ require approval and must remain consistent with `PROJECT_STATE.md` and
 | R6 | Speaking Core | COMPLETE / LOCAL ACCEPTANCE PASS |
 | R7 | Speaking Evaluation + Pronunciation Completion | COMPLETE / LOCAL ACCEPTANCE PASS |
 | R8 | Public Product Gate: Writing + Speaking EN/ZH | PLANNED |
-| R9 | Speaking Advanced / Shadowing Studio | PLANNED |
+| R9 | Speaking Advanced / Shadowing Studio | COMPLETE / LOCAL ACCEPTANCE PASS |
 | R10 | Reading Completion → separate public release | PLANNED |
 | R11 | Listening Completion → separate public release | PLANNED |
 | R12 | Retention & Growth | PLANNED |
@@ -269,9 +269,14 @@ promote Writing and Speaking to PUBLIC.
 
 ## R9 — Speaking Advanced / Shadowing Studio
 
-R9 productizes advanced Shadowing after the first public core is stable. It
-continues to consume the same shared Media Learning asset/transcript/translation
-contracts established by M1 rather than inventing a new media pipeline.
+**COMPLETE / LOCAL ACCEPTANCE PASS.**
+
+The EN/ZH Shadowing Studio flow is locally accepted for canonical shared-media
+selection, transcript practice, Speaking-feedback continuity, and resumable
+learner state. It continues to consume the same Media Learning
+asset/transcript/translation contracts established by M1 rather than inventing
+a parallel media pipeline. Public productization and provider activation remain
+explicit human gates after the core release review.
 
 ## R10 — Reading Completion → separate public release
 
