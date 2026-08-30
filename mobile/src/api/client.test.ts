@@ -146,7 +146,7 @@ describe('typed mobile API client', () => {
   it('consumes the server-authoritative R15 product account state', async () => {
     const account = {
       available: true,
-      plan: {id: 'free', name: 'Free', description: 'Core writing practice.', price_label: 'Free', entitlements: [{key: 'writing.evaluate', enabled: true, monthly_limit: 30}]},
+      plan: {id: 'free', name: 'Free', description: 'Core writing practice.', price_label: 'Free'},
       subscription: {state: 'active', status: 'active'}, plan_state: 'active', billing_ready: false,
       features: {'writing.evaluate': {key: 'writing.evaluate', enabled: true, monthly_limit: 30, used: 30, remaining: 0, usage_state: 'known', entitlement_state: 'exhausted'}},
     };
@@ -156,6 +156,12 @@ describe('typed mobile API client', () => {
     expect(request?.headers).toEqual({Accept: 'application/json', Cookie: `${SESSION_COOKIE_NAME}=cookie`});
     const invalid = new ApiClient({baseUrl: 'https://learn.example.test', fetchImpl: async () => response(200, {...account, billing_ready: true})});
     await expect(invalid.getProductMe()).rejects.toMatchObject({category: 'invalid_response'});
+  });
+
+  it('accepts the degraded product account state the server emits when the subscription store is unavailable', async () => {
+    const degraded = {available: false, plan: null, subscription: {state: 'unknown', status: 'unknown'}, features: {}, billing_ready: false};
+    const client = new ApiClient({baseUrl: 'https://learn.example.test', fetchImpl: async () => response(200, degraded)});
+    await expect(client.getProductMe({sessionCookie: 'cookie'})).resolves.toEqual(degraded);
   });
 
   it('consumes Grammar, Library recall, and Journey server contracts', async () => {

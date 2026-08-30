@@ -18,7 +18,7 @@ jest.mock('../../src/query/useLearnerProfile', () => ({useLearnerProfile: () => 
 jest.mock('../../src/query/useProductMe', () => ({useProductMe: () => mockProduct}));
 
 const account = (featureState: 'enabled' | 'exhausted' | 'unavailable') => ({
-  available: true, plan: {id: 'free', name: 'Free', description: 'Core writing practice.', price_label: 'Free', entitlements: []}, subscription: {state: 'active', status: 'active'}, plan_state: 'active', billing_ready: false,
+  available: true, plan: {id: 'free', name: 'Free', description: 'Core writing practice.', price_label: 'Free'}, subscription: {state: 'active', status: 'active'}, plan_state: 'active', billing_ready: false,
   features: {'writing.evaluate': {key: 'writing.evaluate', enabled: featureState === 'enabled', monthly_limit: 30, used: featureState === 'exhausted' ? 30 : 0, remaining: featureState === 'exhausted' ? 0 : 30, usage_state: featureState === 'unavailable' ? 'unavailable' : 'known', entitlement_state: featureState}},
 });
 

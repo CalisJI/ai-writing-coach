@@ -20,7 +20,7 @@ const mockOutcomes = {isPending: false, isError: false, data: {items: [{essay_id
 const mockProfile = {isPending: false, isError: false, data: {exists: true, language: 'en', goal: 'everyday', style: 'guided', pinyin: 'auto', native_language: 'vi', theme_preset: 'editorial', updated_at: '2026-01-01'}};
 const mockSaveProfile = {isPending: false, isError: false, mutateAsync: jest.fn(() => Promise.resolve({}))};
 const mockSetLanguage = {isPending: false, isError: false, mutateAsync: jest.fn(() => Promise.resolve({ok: true, active: 'zh'}))};
-const mockProduct = {isPending: false, isError: false, data: {available: true, plan: {id: 'free', name: 'Free', description: 'Core writing practice.', price_label: 'Free', entitlements: []}, subscription: {state: 'active', status: 'active'}, plan_state: 'active', billing_ready: false, features: {}}};
+const mockProduct = {isPending: false, isError: false, data: {available: true, plan: {id: 'free', name: 'Free', description: 'Core writing practice.', price_label: 'Free'}, subscription: {state: 'active', status: 'active'}, plan_state: 'active', billing_ready: false, features: {}}};
 
 jest.mock('expo-router', () => ({useRouter: () => ({push: mockPush, replace: jest.fn()})}));
 jest.mock('../../src/auth/SessionHarness', () => ({useSession: () => ({sessionCookie: mockCookie, session: {status: mockCookie ? 'authenticated' : 'signed_out'}})}));
