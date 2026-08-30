@@ -794,12 +794,32 @@ Android Studio/JDK/device and macOS/Xcode/iOS simulator checks remain deferred
 human actions, as do signing, store credentials, OAuth registration, and store
 release.
 
+**Native OAuth needs no Google console change — correcting an earlier claim in
+this document.** This lane previously recorded that device QA of authenticated
+learner flows was blocked behind a Google-console redirect registration. That
+was wrong. `auth_support.google_flow` sets `flow.redirect_uri =
+GOOGLE_REDIRECT_URI`, the same web callback already registered, so Google never
+sees `orena://auth/callback`; that scheme is only how the backend bounces back
+to the app *after* Google has returned, carrying a one-use handoff the app
+exchanges at `/api/auth/native/exchange`.
+
+The real constraint is origin, not registration: the app's
+`EXPO_PUBLIC_API_BASE_URL` must be the **same origin** as `GOOGLE_REDIRECT_URI`.
+The OAuth state, nonce, PKCE verifier, and `native_redirect_uri` all live in the
+session cookie set when the browser opens `/auth/google`; pointing the app at
+`http://10.0.2.2:8000` while the callback lands on the public host would drop
+that cookie and break the flow at the callback. Pointed at the public origin,
+the flow was verified on the Android 36 emulator through to Google's real
+sign-in page for the configured domain. Completing sign-in needs the operator's
+own credentials and is theirs to enter.
+
 **Next handoff:** R21 mobile release-readiness completion. R20 is locally closed,
-so the remaining work is the R21 checklist itself — OAuth/deep-link redirect
-verification, reproducible signed-build preparation, and the device-QA matrix
-across EN/ZH, light/dark, accessibility, auth expiry, offline/degraded states,
-media resume, and upgrade paths. Do not add provider activation, raw-audio
-persistence, billing, signing, or store-release behavior: those stay human gates.
+so the remaining work is the R21 checklist itself — reproducible signed-build
+preparation, and the device-QA matrix across EN/ZH, light/dark, accessibility,
+auth expiry, offline/degraded states, media resume, and upgrade paths, which can
+now run against a real authenticated session. Do not add provider activation,
+raw-audio persistence, billing, signing, or store-release behavior: those stay
+human gates.
 
 ## R18 immutable reference-data cache contract
 
