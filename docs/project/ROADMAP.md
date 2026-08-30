@@ -603,7 +603,7 @@ canonical current multi-agent program roadmap.
 
 ## R19 — Native Mobile App Foundation
 
-**PLANNED / NEXT AUTONOMOUS PRIMARY.**
+**COMPLETE / LOCAL ACCEPTANCE PASS.**
 Canonical implementation contract: docs/project/MOBILE_IMPLEMENTATION_SPEC.md.
 Every R19-R21 Worker and Reviewer task must read and follow it before changing
 mobile code or mobile-facing shared contracts.
@@ -637,8 +637,9 @@ R19 completion requires:
   offline state, and large server datasets are not bundled by default;
 - establish native microphone/audio/media permission boundaries without
   persisting raw learner audio by default;
-- add Android and iOS smoke-build/test evidence for the shell and API/session
-  contracts, with no store publication.
+- add Android and iOS portable config/build-preparation evidence for the shell
+  and API/session contracts, with host/device smoke validation and store
+  publication deferred as human actions.
 
 R19 must not wrap the existing site in a WebView as the primary product, copy
 web DOM/CSS into a parallel UI system, create mobile-only learner progress, or
@@ -646,7 +647,7 @@ change production authentication/provider state.
 
 ## R20 — Mobile Learning Experience Parity
 
-**PLANNED.**
+**PLANNED / NEXT AUTONOMOUS PRIMARY.**
 
 R20 turns the R19 shell into a learner-usable mobile product by implementing the
 existing Orena learning loops as native mobile vertical slices while consuming

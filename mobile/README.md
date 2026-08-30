@@ -12,12 +12,21 @@ npm ci
 npm run lint
 npm run typecheck
 npm test
+npm run validate:config
+npm run validate:prebuild
 npx expo start
 npx expo run:android
 npx expo run:ios
 ```
 
-`npm run validate` runs lint, strict typecheck, and the focused shell tests.
+`npm run validate` runs lint, strict typecheck, all mobile tests, and the
+portable Expo public-config check. `npm run validate:prebuild` is a separate
+disposable Android/iOS native-project check; CI runs both after `npm ci` without
+credentials or native SDKs. The prebuild check copies the workspace to a
+temporary directory, verifies generated native projects, and removes the
+temporary output. On Windows it verifies Android and reports iOS prebuild as
+deferred; Linux CI verifies both. Neither command claims device or Xcode
+execution.
 
 The shell currently provides signed-out and authenticated route groups through
 an in-memory development harness. It includes safe-area support, automatic
@@ -60,7 +69,11 @@ local clearing truthfully until a durable server revocation store is adopted.
 The development
 harness remains available without production OAuth registration or credentials.
 
-Android package and iOS bundle identifiers default to `org.chillpickle.orena`.
-`eas.json` contains development, preview, and production build profiles without
-signing material. Store credentials, signing, OAuth registration, and device or
-Xcode-only validation remain human actions.
+Android package and iOS bundle identifiers are both `org.chillpickle.orena`.
+The shared app version starts at `0.1.0` with build number `1`; production EAS
+increments build numbers while keeping the version source local and explicit.
+`eas.json` contains development, preview (APK), and production (AAB) profiles
+without signing material. `npx expo config --type public --json` and the
+portable build-policy regression verify deep-link, microphone, splash, and
+Android/iOS metadata. Store credentials, signing, OAuth registration, and
+device or Xcode-only validation remain human actions.

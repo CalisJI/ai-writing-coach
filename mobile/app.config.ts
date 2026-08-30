@@ -1,22 +1,34 @@
 import type {ExpoConfig} from 'expo/config';
 
+export const MOBILE_VERSION = '0.1.0';
+export const MOBILE_BUILD_NUMBER = 1;
+export const MOBILE_ANDROID_PACKAGE = 'org.chillpickle.orena';
+export const MOBILE_IOS_BUNDLE_IDENTIFIER = 'org.chillpickle.orena';
+export const MOBILE_DEEP_LINK_SCHEME = 'orena';
+
 const config: ExpoConfig = {
   name: 'Orena',
   slug: 'orena',
-  version: '0.1.0',
+  version: MOBILE_VERSION,
   orientation: 'default',
-  scheme: 'orena',
+  scheme: MOBILE_DEEP_LINK_SCHEME,
   userInterfaceStyle: 'automatic',
   platforms: ['android', 'ios'],
+  splash: {
+    backgroundColor: '#F7FAFC',
+    resizeMode: 'contain',
+  },
   android: {
-    package: 'org.chillpickle.orena',
+    package: MOBILE_ANDROID_PACKAGE,
+    versionCode: MOBILE_BUILD_NUMBER,
     permissions: ['android.permission.RECORD_AUDIO'],
     adaptiveIcon: {
       backgroundColor: '#102A43',
     },
   },
   ios: {
-    bundleIdentifier: 'org.chillpickle.orena',
+    bundleIdentifier: MOBILE_IOS_BUNDLE_IDENTIFIER,
+    buildNumber: String(MOBILE_BUILD_NUMBER),
     supportsTablet: true,
     infoPlist: {
       NSMicrophoneUsageDescription: 'Orena uses the microphone only for temporary speaking practice.',

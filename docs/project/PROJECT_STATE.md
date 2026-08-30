@@ -18,8 +18,8 @@ operational state.
 
 - Application version: `1.4.0`
 - BECOMING frontend version: `2.17.5`
-- Current Orena program: **R19 Native Mobile App Foundation — NEXT AUTONOMOUS
-  PRIMARY.** R0–R18 local foundations are preserved; R19–R21 add the real native
+- Current Orena program: **R20 Mobile Learning Experience Parity — NEXT
+  AUTONOMOUS PRIMARY.** R0–R19 local foundations are preserved; R20–R21 add the real native
   mobile client on top of those contracts. R8/R11 promotion, R2 activation,
   production operations, store signing/credentials, billing, and public release
   remain deferred human gates and do not block non-production mobile development.
@@ -533,13 +533,14 @@ public capability-dependent release requires it.
 
 - **R18 is API/mobile readiness, not the mobile application.** It is locally
   complete and remains the server-contract foundation for native clients.
-- **R19 — Native Mobile App Foundation: NEXT AUTONOMOUS PRIMARY.** Build a
-  dedicated React Native + Expo + TypeScript `mobile/` workspace with shared
+- **R19 — Native Mobile App Foundation: COMPLETE / LOCAL ACCEPTANCE PASS.** The
+  dedicated React Native + Expo + TypeScript `mobile/` workspace has shared
   EN/ZH behavior, typed API/session contracts, secure native session storage,
-  navigation/theme/accessibility foundations, bounded caching, and native
-  microphone/media permission boundaries. No provider secret is bundled in the
-  app and no production/store action is implied.
-- **R20 — Mobile Learning Experience Parity: PLANNED.** Implement the existing
+  navigation/theme/accessibility foundations, bounded caching, native
+  microphone/media boundaries, and portable Android/iOS build preparation.
+  Host/device validation, signing, stores, and production actions remain human
+  gates.
+- **R20 — Mobile Learning Experience Parity: PLANNED / NEXT AUTONOMOUS PRIMARY.** Implement the existing
   Writing, Review, Grammar, Reading, Listening, Speaking/Shadowing, Library,
   Journey, Home, onboarding, and Profile flows as native mobile vertical slices
   consuming the same backend/domain contracts.

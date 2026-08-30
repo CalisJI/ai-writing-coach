@@ -27,18 +27,22 @@ baseline.
   immutable reference-data cache, authenticated session-bootstrap, and compact
   media-status contracts; mobile-client implementation and production release
   remain deferred.
+- R19 — Native Mobile App Foundation: **COMPLETE / LOCAL ACCEPTANCE PASS** for
+  the native shell, secure session/media boundaries, immutable cache/lifecycle
+  resume contracts, and portable Android/iOS build preparation; device,
+  signing, store, and production actions remain human-gated.
 - R13 — Platform Admin Completion: **COMPLETE / LOCAL ACCEPTANCE PASS**.
 - R14 — AI Usage, Cost, Quota & Provider Operations: **COMPLETE / LOCAL
   ACCEPTANCE PASS**; credentialed provider and production operations remain
   deferred.
 
-**Current governance lane (2026-08-29):**
+**Current governance lane (2026-08-30):**
 
-R12–R18 local foundations are complete and evidence-backed. The autonomous
-R19 implementation lane is active: R19-D closes the native media capability
-boundary locally while the R8/R11 promotion review remains an explicit human
-governance decision, preserving the R2 capability-activation and
-production-operation gates.
+R12–R19 local foundations are complete and evidence-backed. The autonomous
+R20 implementation lane is next: native learner vertical slices may build on
+the verified R19 foundation while the R8/R11 promotion review remains an
+explicit human governance decision, preserving the R2 capability-activation
+and production-operation gates.
 
 **Secondary / gated programs:**
 
@@ -681,10 +685,21 @@ revalidate bootstrap, reference, and media queries without local authority
 drift. Shared EN/ZH degraded-state messages cover offline, timeout,
 authentication expiry, unavailable, stale, and refresh states.
 
-**Next handoff:** R19-F reproducible Android/iOS build preparation
-implementation/review agent. Continue from the verified R19-D/R19-E mobile
-boundaries; do not add mobile ASR, scoring, uploads, raw-audio persistence,
-provider activation, signing, or store-release behavior.
+**R19-F local acceptance closeout:** COMPLETE / LOCAL ACCEPTANCE PASS. The
+portable Expo config, shared version/build-number and Android/iOS identifier
+policy, development/preview/production EAS profiles, CI-ready validation
+workflow, and secret-free config regression are checked in. The disposable
+prebuild harness validates Android on Windows and both Android/iOS projects in
+Linux CI, without retaining generated native folders. Windows-local validation
+covers lint, strict typecheck, tests, public Expo config, and Android prebuild;
+Android Studio/JDK/device and macOS/Xcode/iOS simulator checks remain deferred
+human actions, as do signing, store credentials, OAuth registration, and store
+release.
+
+**Next handoff:** R20 mobile learning vertical-slice implementation/review
+agent. Continue from the verified R19-A through R19-F native boundaries; do not
+add provider activation, raw-audio persistence, billing, signing, or store-release
+behavior.
 
 ## R18 immutable reference-data cache contract
 

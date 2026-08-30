@@ -7,11 +7,13 @@
     "start": "expo start",
     "android": "expo run:android",
     "ios": "expo run:ios",
+    "validate:config": "expo config --type public --json",
+    "validate:prebuild": "node scripts/validate-prebuild.mjs",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "jest --runInBand",
     "test:watch": "jest --watch",
-    "validate": "npm run lint && npm run typecheck && npm test"
+    "validate": "npm run lint && npm run typecheck && npm test && npm run validate:config"
   },
   "dependencies": {
     "@expo/vector-icons": "~14.0.4",
