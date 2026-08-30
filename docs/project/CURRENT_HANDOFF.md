@@ -44,6 +44,54 @@ the verified R19 foundation while the R8/R11 promotion review remains an
 explicit human governance decision, preserving the R2 capability-activation
 and production-operation gates.
 
+**Native mobile lane on `claude/integration-v2` (2026-08-30):**
+
+Ownership returned to Claude as primary implementation owner after a Codex
+interval. `claude/integration-v2` HEAD matches `origin/codex/work`; nothing
+diverged and no historical branch was merged wholesale.
+
+- R20 native vertical slices are **IMPLEMENTED / NOT YET ACCEPTANCE-CLOSED**
+  through `69b0ff6`: Reading with contextual dictionary and saved-word Library
+  handoff, Listening follow/active practice/resume, Speaking evaluation and
+  Shadowing return, Grammar, Active Recall, Journey, Profile/Settings,
+  cross-skill resilience, accessibility, and layout parity. R20 has no
+  deterministic acceptance matrix comparable to R10/R11/R13/R14, so `ROADMAP.md`
+  status is deliberately unchanged pending that evidence.
+- R21 readiness work through `d1e27a1` covers privacy boundaries, diagnostics,
+  store metadata, and entitlement presentation with an explicit deferred
+  purchase boundary. Store credentials, signing, billing activation, and
+  submission remain human-gated and untouched.
+- **Takeover finding (closed, `302ed95`):** the native strict
+  `productPlanSchema` required a `plan.entitlements` array that
+  `ProductService.account_state` never returns. Mobile fixtures had invented the
+  field, so the suites agreed with themselves while any real
+  `GET /api/product/me` response would have failed `.parse()` on device and left
+  Profile permanently rendering `profile.unavailable`. The field is removed,
+  fixtures now match the emitted payload, and drift guards were added on both
+  sides — a backend test comparing `account_state`'s plan keys against the field
+  names declared in the mobile schema, a pin on the degraded
+  (`available: false`) envelope, and a client test parsing that envelope. The
+  backend guard was confirmed to fail against the pre-fix schema.
+- A follow-up audit compared every other mobile contract envelope against its
+  backend response builder (learner profile, platform language, practice
+  recommendation, practice task, grammar practice, reading session/list/answer,
+  library vocabulary list/save, listening progress, journey dashboard). No
+  further mismatch was found.
+- Verification actually executed locally at `302ed95`: mobile ESLint PASS,
+  `tsc --noEmit` PASS, Jest `33 suites / 120 tests` PASS, architecture validator
+  PASS, browser ESM graph PASS (`52 modules`), all nine CI Node media contracts
+  PASS, `git diff --check` PASS, `ruff check` PASS on the changed test file, and
+  the changed backend product tests executed directly on the host (stdlib-only
+  imports).
+- **Outstanding verification gap:** the containerized `pytest -q test_app.py
+  tests` regression has still not run for the R21 entitlement work or this fix.
+  Codex could not run it (no Python in its host); this lane could not run it
+  either because Docker Desktop is wedged — `dockerDesktopLinuxEngine` is absent
+  and `docker ps` / `docker desktop status` / `docker desktop restart` all time
+  out while the `docker-desktop` WSL distro reports Running. No CI evidence
+  exists for any of this work. Recovering the Docker runtime and running that
+  suite is the next required verification step.
+
 **Secondary / gated programs:**
 
 - R7 — Speaking Evaluation + Pronunciation: **COMPLETE / LOCAL ACCEPTANCE PASS**
@@ -696,10 +744,13 @@ Android Studio/JDK/device and macOS/Xcode/iOS simulator checks remain deferred
 human actions, as do signing, store credentials, OAuth registration, and store
 release.
 
-**Next handoff:** R20 mobile learning vertical-slice implementation/review
-agent. Continue from the verified R19-A through R19-F native boundaries; do not
-add provider activation, raw-audio persistence, billing, signing, or store-release
-behavior.
+**Next handoff:** R20 mobile learning vertical-slice verification and acceptance
+closeout. The slices are implemented; what is missing is evidence. Recover the
+Docker runtime, run the containerized `pytest -q test_app.py tests` regression
+for the R20/R21 mobile work, then produce a deterministic R20 acceptance matrix
+comparable to R10/R11/R13/R14 before any `ROADMAP.md` status transition. Do not
+add provider activation, raw-audio persistence, billing, signing, or
+store-release behavior.
 
 ## R18 immutable reference-data cache contract
 

@@ -160,7 +160,7 @@ def test_r18_reference_data_cache_contract_is_recorded() -> None:
     handoff = (ROOT / "docs/project/CURRENT_HANDOFF.md").read_text(encoding="utf-8")
     route_test = (ROOT / "tests/test_reference_data_cache.py").read_text(encoding="utf-8")
     assert "R18 — Mobile/API Readiness: **COMPLETE / LOCAL ACCEPTANCE PASS**" in project_state
-    assert "Current Orena program: Governance handoff — all documented non-production" in project_state
+    assert "Current Orena program: **R20 Mobile Learning Experience Parity — NEXT" in project_state
     assert "R18 — Mobile/API Readiness: **COMPLETE / LOCAL ACCEPTANCE PASS**" in handoff
     assert "R18 — Mobile/API Readiness: **IN PROGRESS / LOCAL FOUNDATION**" not in project_state
     assert "R18 — Mobile/API Readiness: **IN PROGRESS / LOCAL FOUNDATION**" not in handoff
@@ -172,7 +172,8 @@ def test_r18_reference_data_cache_contract_is_recorded() -> None:
     assert "| R18 | Mobile/API Readiness | PLANNED / POST-R12 PLATFORM TRACK |" not in roadmap
     assert "**COMPLETE / LOCAL ACCEPTANCE PASS.**" in r18_section
     assert "immutable reference-data cache, authenticated session bootstrap, and compact resumable media-status contracts" in normalized_r18
-    assert "Mobile-client implementation, provider activation, production release, and deployment remain explicit human gates." in normalized_r18
+    assert "Mobile-client implementation is intentionally owned by R19–R21 and is an autonomous non-production development lane." in normalized_r18
+    assert "Provider activation, production release, store credentials/signing, and deployment remain explicit human gates." in normalized_r18
     assert "| R18 | Mobile/API Readiness | COMPLETE / LOCAL ACCEPTANCE PASS |" in normalized_roadmap
     assert "R18 local-foundation closeout" in handoff
     assert "R18 immutable reference-data cache contract" in handoff
@@ -330,7 +331,7 @@ def test_post_r12_governance_pointer_reconciles_completed_ledger() -> None:
     handoff = (ROOT / "docs/project/CURRENT_HANDOFF.md").read_text(encoding="utf-8")
     roadmap = (ROOT / "docs/project/ROADMAP.md").read_text(encoding="utf-8")
 
-    assert "Current Orena program: Governance handoff — all documented non-production" in project_state
+    assert "Current Orena program: **R20 Mobile Learning Experience Parity — NEXT" in project_state
     assert "Current Orena program: R18" not in project_state
     assert "R3 — Writing Evaluation Completion: **COMPLETE / LOCAL ACCEPTANCE PASS**" in project_state
     normalized_state = " ".join(project_state.split())
@@ -355,13 +356,16 @@ def test_post_r12_governance_pointer_reconciles_completed_ledger() -> None:
         "R18 — Mobile/API Readiness: **COMPLETE / LOCAL ACCEPTANCE PASS**",
     ):
         assert status in normalized_handoff
-    assert "Current governance lane (2026-08-29)" in handoff
-    assert "No autonomous implementation owner is assigned" in normalized_handoff
+    assert "Current governance lane (2026-08-30)" in handoff
+    # D-036 assigns R19-R21 as autonomous non-production implementation lanes,
+    # superseding the earlier "no autonomous implementation owner" pointer.
+    assert "The autonomous R20 implementation lane is next" in normalized_handoff
+    assert "the R8/R11 promotion review remains an explicit human governance decision" in normalized_handoff
     assert "R8 public-product-gate owner" not in handoff
     assert "mobile/API-readiness follow-on owner" not in handoff
     assert "R2 capability-activation" in handoff
     assert "R8" in handoff and "R11" in handoff and "human gate" in handoff.casefold()
-    assert "**Next handoff:** Human governance decision for R8/R11 public promotion" in normalized_handoff
+    assert "**Next handoff:** R20 mobile learning vertical-slice verification and acceptance closeout" in normalized_handoff
     assert "R8 — Public Product Gate" in project_state
     assert "R11" in project_state and "human gate" in project_state.casefold()
     assert "| R12 | Retention & Growth | COMPLETE / LOCAL ACCEPTANCE PASS |" in roadmap
