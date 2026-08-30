@@ -83,14 +83,31 @@ diverged and no historical branch was merged wholesale.
   PASS, `git diff --check` PASS, `ruff check` PASS on the changed test file, and
   the changed backend product tests executed directly on the host (stdlib-only
   imports).
-- **Outstanding verification gap:** the containerized `pytest -q test_app.py
-  tests` regression has still not run for the R21 entitlement work or this fix.
-  Codex could not run it (no Python in its host); this lane could not run it
-  either because Docker Desktop is wedged — `dockerDesktopLinuxEngine` is absent
-  and `docker ps` / `docker desktop status` / `docker desktop restart` all time
-  out while the `docker-desktop` WSL distro reports Running. No CI evidence
-  exists for any of this work. Recovering the Docker runtime and running that
-  suite is the next required verification step.
+- **Containerized regression closed:** `pytest -q test_app.py tests` now reports
+  **676 passed, 0 failed, 3 warnings** (local execution, not CI). Reaching it
+  required recovering the Docker runtime — dockerd had deadlocked (32 threads in
+  `futex_wait_queue`, SIGTERM ignored, no `docker.sock`) and Docker Desktop's
+  supervisor would not respawn it, so Desktop was restarted. All four project
+  containers came back and every named volume, including
+  `ai-writing-coach-postgres-data`, is intact. No volume was deleted and
+  `down -v` was never used.
+- Two environment contaminations had to be cleared before the suite reflected
+  application state, extending the `POSTGRES_RUNTIME_URL` caveat already in
+  `CLAUDE.md`: Compose injects `.env`, so `APP_ENV` and the Google client
+  variables make `auth_enabled` true and turn seven learner/admin route tests
+  into `401`s. The CI-equivalent invocation additionally passes
+  `-e APP_ENV=development` and blanks the provider/OAuth variables by name.
+- Three genuine failures survived that and were inherited from the Codex lane
+  (`13087f7`, `af69c01`, both 2026-08-26, absent from `main`) — never caught
+  because that lane had no Python. All three were defects in the tests, not the
+  application, and each was corrected to assert its stated intent rather than
+  relaxed: the confidence-tie case used `word_order`, which the English
+  `ERROR_CATEGORIES` allowlist correctly drops, so it silently tested the
+  allowlist instead of tie ordering; the degraded-notice case asserted the
+  summary's wording against the priority line; and the provider-leak case
+  asserted `provider_error not in message`, which cannot hold when the token is
+  `unavailable` and the truthful learner copy reads "temporarily unavailable" —
+  it now pins the full raw provider string instead.
 
 **Secondary / gated programs:**
 
