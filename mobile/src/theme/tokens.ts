@@ -14,6 +14,11 @@ export const palette = {
   dangerSurface: '#FEE4E2',
 } as const;
 
+// A single reading measure for every learner screen. Without it a full-width
+// container stretches a call to action across a landscape phone or a tablet,
+// which reads as a banner rather than a control.
+export const MAX_CONTENT_WIDTH = 640;
+
 export type ColorScheme = 'light' | 'dark';
 
 export type ThemeTokens = {

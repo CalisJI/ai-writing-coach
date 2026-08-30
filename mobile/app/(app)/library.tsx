@@ -5,6 +5,7 @@ import {createConfiguredApiClient} from '../../src/api/client';
 import {useSession} from '../../src/auth/SessionHarness';
 import {useI18n} from '../../src/i18n/I18nProvider';
 import {useTheme} from '../../src/theme/ThemeProvider';
+import {MAX_CONTENT_WIDTH} from '../../src/theme/tokens';
 import {useLibraryVocabulary, useReviewLibraryVocabulary} from '../../src/query/useReadingLibrary';
 
 export default function LibraryScreen() {
@@ -19,15 +20,18 @@ export default function LibraryScreen() {
   const review = useReviewLibraryVocabulary(client, sessionCookie);
   const [notice, setNotice] = useState<string | null>(null);
   const [revealed, setRevealed] = useState<Set<string>>(() => new Set());
-  const unavailable = !client || !sessionCookie || library.isError;
+  // Not signed in is a different fact from the service being unavailable.
+  const signedOut = !sessionCookie;
+  const unavailable = !signedOut && (!client || library.isError);
   return (
     <ScrollView contentContainerStyle={[styles.container, {backgroundColor: tokens.colors.background}]}>
       <Text accessibilityRole="header" style={[styles.title, {color: tokens.colors.text}]}>{t('library.title')}</Text>
       {library.isLoading && <Text style={{color: tokens.colors.mutedText}}>{t('library.loading')}</Text>}
+      {signedOut && <Text style={{color: tokens.colors.mutedText}}>{t('library.signed_out' as never)}</Text>}
       {unavailable && <Text accessibilityRole="alert" style={{color: tokens.colors.danger}}>{t('library.unavailable')}</Text>}
-      {!unavailable && !library.isLoading && library.data?.items.length === 0 && <Text style={{color: tokens.colors.mutedText}}>{t('library.empty')}</Text>}
-      {!unavailable && !library.isLoading && library.data && library.data.items.filter((item) => item.due).length > 0 && <Text style={{color: tokens.colors.mutedText}}>{library.data.items.filter((item) => item.due).length} {t('library.due_count')}</Text>}
-      {!unavailable && library.data?.items.map((item) => (
+      {!unavailable && !signedOut && !library.isLoading && library.data?.items.length === 0 && <Text style={{color: tokens.colors.mutedText}}>{t('library.empty')}</Text>}
+      {!unavailable && !signedOut && !library.isLoading && library.data && library.data.items.filter((item) => item.due).length > 0 && <Text style={{color: tokens.colors.mutedText}}>{library.data.items.filter((item) => item.due).length} {t('library.due_count')}</Text>}
+      {!unavailable && !signedOut && library.data?.items.map((item) => (
         <View key={item.word + item.added_at} style={[styles.card, {backgroundColor: tokens.colors.surface}]}>
           <Text style={[styles.word, {color: tokens.colors.text}]}>{item.word}</Text>
           {(!item.due || revealed.has(item.word)) ? <><Text style={{color: tokens.colors.text}}>{item.definition}</Text>{item.translation_vi && <Text style={{color: tokens.colors.mutedText}}>{item.translation_vi}</Text>}</> : <Pressable accessibilityRole="button" onPress={() => setRevealed((current) => { const next = new Set(current); next.add(item.word); return next; })} style={[styles.smallButton, {borderColor: tokens.colors.accent}]}><Text style={{color: tokens.colors.accent}}>{t('library.reveal')}</Text></Pressable>}
@@ -45,7 +49,7 @@ export default function LibraryScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {flexGrow: 1, padding: 24, gap: 12},
+  container: {flexGrow: 1, padding: 24, gap: 12, width: '100%', maxWidth: MAX_CONTENT_WIDTH, alignSelf: 'center'},
   title: {fontSize: 28, fontWeight: '700'},
   card: {padding: 16, borderRadius: 12, gap: 6},
   word: {fontSize: 22, fontWeight: '700'},
