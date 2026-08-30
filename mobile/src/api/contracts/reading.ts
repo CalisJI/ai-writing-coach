@@ -1,0 +1,10 @@
+import {z} from 'zod';
+export const readingGenerateInputSchema = z.object({topic: z.enum(['random', 'daily_life', 'work', 'science', 'culture', 'community']), material: z.enum(['article', 'book', 'news', 'quote']), target_level: z.string().max(12), recycle_library: z.boolean()}).strict();
+export type ReadingGenerateInput = z.infer<typeof readingGenerateInputSchema>;
+const questionSchema = z.object({id: z.number().int().positive(), question: z.string().min(1), options: z.array(z.string().min(1)).length(4)}).passthrough();
+export const readingSessionSchema = z.object({id: z.number().int().positive(), created_at: z.string(), language_code: z.enum(['en', 'zh']), target_level: z.string(), topic: z.string(), learner_goal: z.string(), title: z.string(), passage: z.string().min(1), questions: z.array(questionSchema), recycled_words: z.array(z.string()), generation_mode: z.string(), material: z.string().optional()}).passthrough();
+export type ReadingSession = z.infer<typeof readingSessionSchema>;
+export const readingSessionsSchema = z.object({items: z.array(z.object({id: z.number().int().positive(), title: z.string(), topic: z.string(), target_level: z.string(), latest_attempt: z.object({correct_count: z.number(), total: z.number()}).nullable().optional()}).passthrough())}).strict();
+export const readingSessionResponseSchema = z.object({found: z.boolean(), session: readingSessionSchema.nullable()}).strict();
+export const readingAnswerResultSchema = z.object({found: z.boolean(), valid: z.boolean().optional(), session_id: z.number().int().positive().optional(), correct_count: z.number().int().nonnegative().optional(), total: z.number().int().nonnegative().optional(), accuracy: z.number().min(0).max(1).optional(), claim: z.literal('comprehension_check_only').optional(), results: z.array(z.object({id: z.number(), question: z.string(), options: z.array(z.string()), selected_index: z.number(), correct_index: z.number(), correct: z.boolean(), explanation_vi: z.string(), evidence_fragment: z.string()}).passthrough()).optional(), message: z.string().optional()}).strict();
+export type ReadingAnswerResult = z.infer<typeof readingAnswerResultSchema>;

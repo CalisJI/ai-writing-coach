@@ -7,6 +7,7 @@ export const MOBILE_IOS_BUNDLE_IDENTIFIER = 'org.chillpickle.orena';
 export const MOBILE_DEEP_LINK_SCHEME = 'orena';
 
 const config: ExpoConfig = {
+  owner: 'calis-iots-team',
   name: 'Orena',
   slug: 'orena',
   version: MOBILE_VERSION,
@@ -41,6 +42,9 @@ const config: ExpoConfig = {
   extra: {
     apiBaseUrl: process.env.EXPO_PUBLIC_API_BASE_URL ?? '',
     appEnv: process.env.EXPO_PUBLIC_APP_ENV ?? 'development',
+	eas: {
+    projectId: '92edba74-095a-4838-839e-5ee7ab595f7d',
+    },
   },
 };
 

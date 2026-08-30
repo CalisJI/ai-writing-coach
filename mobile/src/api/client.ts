@@ -4,6 +4,8 @@ import {logoutResponseSchema, nativeSessionExchangeSchema, type NativeSessionExc
 import {sessionBootstrapSchema, type SessionBootstrap} from './contracts/session';
 import {compactMediaStatusSchema, strokeOrderSchema, type CompactMediaStatus, type StrokeOrder} from './contracts/reference';
 import {evaluationInputSchema, evaluationResultSchema, grammarPracticeSchema, learnerProfileSchema, learnerProfileInputSchema, learningLanguageSchema, practiceRecommendationSchema, practiceTaskSchema, type EvaluationInput, type EvaluationResult, type GrammarPractice, type LearnerProfile, type LearnerProfileInput, type LearningLanguage, type PracticeRecommendation, type PracticeTask} from './contracts/learning';
+import {readingAnswerResultSchema, readingGenerateInputSchema, readingSessionResponseSchema, readingSessionSchema, type ReadingAnswerResult, type ReadingGenerateInput, type ReadingSession} from './contracts/reading';
+import {dictionaryInputSchema, dictionaryResultSchema, librarySchema, saveLibraryInputSchema, saveLibraryResultSchema, type DictionaryInput, type DictionaryResult} from './contracts/library';
 
 type FetchLike = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
 
@@ -107,6 +109,13 @@ export class ApiClient {
     const suffix = typeof evidence === 'string' && evidence.trim() ? `?evidence=${encodeURIComponent(evidence.trim())}` : '';
     return this.request(`/api/grammar/${encodeURIComponent(grammarId)}${'/practice'}${suffix}`, options, grammarPracticeSchema.parse);
   }
+
+  async createReadingSession(input: ReadingGenerateInput, options: RequestOptions = {}): Promise<ReadingSession> { let payload: ReadingGenerateInput; try { payload = readingGenerateInputSchema.parse(input); } catch { throw new ApiError('request_rejected', 'Reading request was invalid'); } return this.request('/api/reading/session', options, readingSessionSchema.parse, 'POST', payload); }
+  async getReadingSession(id: number, options: RequestOptions = {}): Promise<ReadingSession> { if (!Number.isInteger(id) || id < 1) throw new ApiError('request_rejected', 'Reading session is invalid'); const result = await this.request(`/api/reading/session/${id}`, options, readingSessionResponseSchema.parse); if (!result.found || !result.session) throw new ApiError('request_rejected', 'Reading session was not found', 404); return result.session; }
+  async submitReadingAnswers(id: number, answers: number[], options: RequestOptions = {}): Promise<ReadingAnswerResult> { if (!Number.isInteger(id) || id < 1 || !Array.isArray(answers)) throw new ApiError('request_rejected', 'Reading answers were invalid'); return this.request(`/api/reading/session/${id}/answer`, options, readingAnswerResultSchema.parse, 'POST', {answers}); }
+  async contextualDictionary(input: DictionaryInput, options: RequestOptions = {}): Promise<DictionaryResult> { let payload: DictionaryInput; try { payload = dictionaryInputSchema.parse(input); } catch { throw new ApiError('request_rejected', 'Dictionary request was invalid'); } return this.request('/api/dictionary/contextual', options, dictionaryResultSchema.parse, 'POST', payload); }
+  async listLibraryVocabulary(options: RequestOptions = {}): Promise<Awaited<ReturnType<typeof librarySchema.parse>>> { return this.request('/api/library/vocabulary', options, librarySchema.parse); }
+  async saveLibraryVocabulary(input: Parameters<typeof saveLibraryInputSchema.parse>[0], options: RequestOptions = {}): Promise<Awaited<ReturnType<typeof saveLibraryResultSchema.parse>>> { let payload; try { payload = saveLibraryInputSchema.parse(input); } catch { throw new ApiError('request_rejected', 'Library word was invalid'); } return this.request('/api/library/vocabulary', options, saveLibraryResultSchema.parse, 'POST', payload); }
 
   getBaseUrl(): string {
     return this.baseUrl;

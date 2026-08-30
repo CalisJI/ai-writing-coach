@@ -1,3 +1,48 @@
-import {ShellScreen} from '../../src/components/ShellScreen';
+import {useMemo} from 'react';
+import {Pressable, ScrollView, StyleSheet, Text, View} from 'react-native';
+import {useRouter} from 'expo-router';
+import {createConfiguredApiClient} from '../../src/api/client';
+import {useSession} from '../../src/auth/SessionHarness';
 import {useI18n} from '../../src/i18n/I18nProvider';
-export default function LibraryScreen() { const {t} = useI18n(); return <ShellScreen title={t('nav.library')} />; }
+import {useTheme} from '../../src/theme/ThemeProvider';
+import {useLibraryVocabulary} from '../../src/query/useReadingLibrary';
+
+export default function LibraryScreen() {
+  const {t} = useI18n();
+  const {tokens} = useTheme();
+  const {sessionCookie} = useSession();
+  const router = useRouter();
+  const client = useMemo(() => {
+    try { return createConfiguredApiClient(); } catch { return null; }
+  }, []);
+  const library = useLibraryVocabulary(client, sessionCookie);
+  const unavailable = !client || !sessionCookie || library.isError;
+  return (
+    <ScrollView contentContainerStyle={[styles.container, {backgroundColor: tokens.colors.background}]}>
+      <Text accessibilityRole="header" style={[styles.title, {color: tokens.colors.text}]}>{t('library.title')}</Text>
+      {library.isLoading && <Text style={{color: tokens.colors.mutedText}}>{t('library.loading')}</Text>}
+      {unavailable && <Text accessibilityRole="alert" style={{color: tokens.colors.danger}}>{t('library.unavailable')}</Text>}
+      {!unavailable && !library.isLoading && library.data?.items.length === 0 && <Text style={{color: tokens.colors.mutedText}}>{t('library.empty')}</Text>}
+      {!unavailable && library.data?.items.map((item) => (
+        <View key={item.word + item.added_at} style={[styles.card, {backgroundColor: tokens.colors.surface}]}>
+          <Text style={[styles.word, {color: tokens.colors.text}]}>{item.word}</Text>
+          <Text style={{color: tokens.colors.text}}>{item.definition}</Text>
+          {item.translation_vi && <Text style={{color: tokens.colors.mutedText}}>{item.translation_vi}</Text>}
+          <Text style={{color: tokens.colors.mutedText}}>{item.stage_label}</Text>
+        </View>
+      ))}
+      <Pressable accessibilityRole="button" onPress={() => router.replace('/(app)/reading')} style={[styles.button, {backgroundColor: tokens.colors.accent}]}>
+        <Text style={styles.buttonText}>{t('library.open_reading')}</Text>
+      </Pressable>
+    </ScrollView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {flexGrow: 1, padding: 24, gap: 12},
+  title: {fontSize: 28, fontWeight: '700'},
+  card: {padding: 16, borderRadius: 12, gap: 6},
+  word: {fontSize: 22, fontWeight: '700'},
+  button: {padding: 16, borderRadius: 12, alignItems: 'center'},
+  buttonText: {color: '#fff', fontWeight: '700'},
+});
