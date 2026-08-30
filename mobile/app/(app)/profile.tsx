@@ -1,18 +1,26 @@
+import {useMemo, useState} from 'react';
+import {Pressable, ScrollView} from 'react-native';
+import {createConfiguredApiClient} from '../../src/api/client';
+import {useSession} from '../../src/auth/SessionHarness';
 import {useI18n} from '../../src/i18n/I18nProvider';
 import {ThemeSelector} from '../../src/components/ThemeSelector';
 import {LocaleSelector} from '../../src/components/LocaleSelector';
 import {SafeAreaView} from 'react-native-safe-area-context';
-import {StyleSheet, Text} from 'react-native';
+import {StyleSheet, Text, View} from 'react-native';
 import {useTheme} from '../../src/theme/ThemeProvider';
+import {useLearnerProfile, useSaveLearnerProfile, useSetLearningLanguage} from '../../src/query/useLearnerProfile';
+import type {LearnerProfileInput} from '../../src/api/contracts/learning';
 
 export default function ProfileScreen() {
-  const {t} = useI18n();
+  const {t} = useI18n(); const {sessionCookie} = useSession();
   const {tokens} = useTheme();
-  return <SafeAreaView style={[styles.container, {backgroundColor: tokens.colors.background}]}>
-    <Text accessibilityRole="header" style={[styles.title, {color: tokens.colors.text}]}>{t('nav.profile')}</Text>
-    <LocaleSelector />
-    <ThemeSelector />
-  </SafeAreaView>;
+  const client = useMemo(() => { try { return createConfiguredApiClient(); } catch { return null; } }, []); const profile = useLearnerProfile(client, sessionCookie); const save = useSaveLearnerProfile(client, sessionCookie); const language = useSetLearningLanguage(client, sessionCookie);
+  const [draft, setDraft] = useState<LearnerProfileInput | null>(null); const [notice, setNotice] = useState<string | null>(null); const value = draft ?? (profile.data ? {goal: profile.data.goal, style: profile.data.style, pinyin: profile.data.pinyin, native_language: profile.data.native_language, theme_preset: profile.data.theme_preset} : null);
+  if (!client || !sessionCookie || profile.isError) return <SafeAreaView style={[styles.container, {backgroundColor: tokens.colors.background}]}><Text accessibilityRole="header" style={[styles.title, {color: tokens.colors.text}]}>{t('profile.title')}</Text><Text accessibilityRole="alert" style={{color: tokens.colors.danger}}>{t('profile.unavailable')}</Text></SafeAreaView>;
+  if (profile.isPending || !value) return <SafeAreaView style={[styles.container, {backgroundColor: tokens.colors.background}]}><Text style={{color: tokens.colors.text}}>{t('profile.loading')}</Text></SafeAreaView>;
+  const choose = <T extends string>(label: string, items: readonly T[], selected: T, update: (item: T) => void, translate: (item: T) => string) => <View><Text style={[styles.label, {color: tokens.colors.text}]}>{label}</Text><View style={styles.choices}>{items.map((item) => <Pressable key={item} accessibilityRole="radio" accessibilityLabel={`${label}: ${translate(item)}`} accessibilityState={{selected: selected === item}} onPress={() => update(item)} style={[styles.choice, {borderColor: selected === item ? tokens.colors.accent : tokens.colors.mutedText, backgroundColor: selected === item ? tokens.colors.surface : 'transparent'}]}><Text style={{color: tokens.colors.text}}>{translate(item)}</Text></Pressable>)}</View></View>;
+  const update = <K extends keyof LearnerProfileInput>(key: K, item: LearnerProfileInput[K]) => setDraft({...value, [key]: item}); const submit = () => { setNotice(null); void save.mutateAsync(value).then(() => setNotice(t('profile.saved'))).catch(() => setNotice(t('profile.save_failed'))); }; const changeLanguage = (next: 'en' | 'zh') => { setNotice(null); void language.mutateAsync(next).then(() => setNotice(t('profile.language_saved'))).catch(() => setNotice(t('profile.language_failed'))); };
+  return <ScrollView contentContainerStyle={[styles.container, {backgroundColor: tokens.colors.background}]}><Text accessibilityRole="header" style={[styles.title, {color: tokens.colors.text}]}>{t('profile.title')}</Text>{choose(t('profile.goal'), ['everyday', 'work', 'exam', 'voice'], value.goal, (item) => update('goal', item as LearnerProfileInput['goal']), (item) => t(`goal.${item}` as never))}{choose(t('profile.style'), ['guided', 'examples', 'concise', 'deep'], value.style, (item) => update('style', item as LearnerProfileInput['style']), (item) => t(`style.${item}` as never))}{choose(t('profile.native_language'), ['vi', 'en', 'zh'], value.native_language, (item) => update('native_language', item as LearnerProfileInput['native_language']), (item) => t(`language.${item}` as never))}{choose(t('profile.pinyin'), ['auto', 'on', 'off'], value.pinyin, (item) => update('pinyin', item as LearnerProfileInput['pinyin']), (item) => item)}{choose(t('profile.theme'), ['editorial', 'sage', 'clay', 'blueprint'], value.theme_preset, (item) => update('theme_preset', item as LearnerProfileInput['theme_preset']), (item) => item)}{choose(t('profile.learning_language'), ['en', 'zh'], profile.data.language, changeLanguage, (item) => t(`language.${item}` as never))}<LocaleSelector /><ThemeSelector />{notice && <Text accessibilityRole="alert" style={{color: notice.includes('failed') || notice.includes('未') ? tokens.colors.danger : tokens.colors.text}}>{notice}</Text>}<Pressable accessibilityRole="button" disabled={save.isPending || language.isPending} onPress={submit} style={[styles.button, {backgroundColor: tokens.colors.accent, opacity: save.isPending ? 0.6 : 1}]}><Text style={styles.buttonText}>{save.isPending ? t('profile.saving') : t('profile.save')}</Text></Pressable></ScrollView>;
 }
 
-const styles = StyleSheet.create({container: {flex: 1, padding: 24, gap: 16}, title: {fontSize: 28, fontWeight: '700'}});
+const styles = StyleSheet.create({container: {flexGrow: 1, padding: 24, gap: 16}, title: {fontSize: 28, fontWeight: '700'}, label: {fontSize: 16, fontWeight: '700', marginTop: 8}, choices: {gap: 8}, choice: {borderWidth: 1, borderRadius: 12, padding: 14}, button: {padding: 16, borderRadius: 12, alignItems: 'center'}, buttonText: {color: '#fff', fontWeight: '700'}});

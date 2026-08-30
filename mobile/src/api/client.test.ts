@@ -142,4 +142,29 @@ describe('typed mobile API client', () => {
     expect(calls[2]?.init?.body).toBe(JSON.stringify({goal: 'work', style: 'guided', pinyin: 'auto', native_language: 'en', theme_preset: 'editorial'}));
     expect(calls.every((call) => (call.init?.headers as Record<string, string>).Cookie === `${SESSION_COOKIE_NAME}=cookie`)).toBe(true);
   });
+
+  it('consumes Grammar, Library recall, and Journey server contracts', async () => {
+    const grammarLibrary = {lessons: [{id: 'en-articles', title: 'Articles', level: 'B1', kind: 'grammar', completed: false}], total: 1, completed: 0, levels: ['B1'], level_names: {B1: 'B1'}, language: 'en'};
+    const grammarLesson = {id: 'en-articles', title: 'Articles', level: 'B1', completed: false, examples: [{target: 'A learner writes.'}], quick_reference: {rule: 'Use a before consonant sounds.'}};
+    const library = {items: [], summary: {total: 0, due: 0, available: 0}};
+    const calls: string[] = [];
+    const dashboard = {essay_count: 0, revision_count: 0, skill_score: 0, cefr: '—', streak: 0, recent_average: 0, trend: [], metrics: {}, error_counts: {}, error_memory: [], next_level: null, version: '2.17.3'};
+    const outcomes = {items: [], latest: null};
+    const client = new ApiClient({baseUrl: 'https://learn.example.test', fetchImpl: async (input) => { const url = String(input); calls.push(url); if (url.endsWith('/api/library/grammar')) return response(200, grammarLibrary); if (url.includes('/api/library/grammar/en-articles/complete')) return response(200, {completed: true, lesson_id: 'en-articles'}); if (url.includes('/api/library/grammar/en-articles')) return response(200, grammarLesson); if (url.endsWith('/api/library/vocabulary')) return response(200, library); if (url.includes('/review')) return response(200, {found: false}); if (url.endsWith('/api/dashboard')) return response(200, dashboard); return response(200, outcomes); }});
+    expect((await client.listGrammarLibrary()).lessons[0]?.id).toBe('en-articles');
+    expect((await client.getGrammarLesson('en-articles')).title).toBe('Articles');
+    expect(await client.completeGrammarLesson('en-articles')).toMatchObject({completed: true});
+    expect((await client.listLibraryVocabulary()).summary.total).toBe(0);
+    expect(await client.reviewLibraryVocabulary('word', 'got_it')).toEqual({found: false});
+    expect((await client.listDashboard()).essay_count).toBe(0);
+    expect((await client.listPracticeOutcomes()).items).toEqual([]);
+    expect(calls.some((url) => url.includes('/api/library/grammar/en-articles/complete'))).toBe(true);
+    expect(calls.some((url) => url.includes('/api/library/vocabulary/word/review'))).toBe(true);
+  });
+
+  it('rejects malformed Journey responses instead of fabricating progress', async () => {
+    const client = new ApiClient({baseUrl: 'https://learn.example.test', fetchImpl: async () => response(200, {essay_count: 0})});
+    await expect(client.listDashboard()).rejects.toMatchObject({category: 'invalid_response'});
+    await expect(client.listPracticeOutcomes()).rejects.toMatchObject({category: 'invalid_response'});
+  });
 });

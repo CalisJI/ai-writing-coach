@@ -98,3 +98,24 @@ export type EvaluationInput = z.infer<typeof evaluationInputSchema>;
 
 export const grammarPracticeSchema = z.object({grammar_id: z.string().min(1), title: z.string().min(1), level: z.string().min(2), target_level: z.string().min(2), prompt: z.string().min(1), practice_blueprint: z.record(z.unknown()), practice_context: practiceContextSchema, source: z.string().min(1)}).strict();
 export type GrammarPractice = z.infer<typeof grammarPracticeSchema>;
+
+const grammarLessonSummarySchema = z.object({id: z.string().min(1), title: z.string().min(1), level: z.string().min(2), kind: z.string().optional(), completed: z.boolean().optional()}).passthrough();
+export const grammarLibrarySchema = z.object({lessons: z.array(grammarLessonSummarySchema), total: z.number().int().nonnegative(), completed: z.number().int().nonnegative(), levels: z.array(z.string()), level_names: z.record(z.string()), language: z.enum(['en', 'zh'])}).passthrough();
+export type GrammarLessonSummary = z.infer<typeof grammarLessonSummarySchema>;
+export type GrammarLibrary = z.infer<typeof grammarLibrarySchema>;
+export const grammarLessonDetailSchema = grammarLessonSummarySchema.extend({examples: z.array(z.record(z.unknown())).optional(), quick_reference: z.record(z.unknown()).optional(), cross_skill: z.record(z.unknown()).optional(), learning_model: z.record(z.unknown()).optional(), content_status: z.string().optional(), source: z.string().optional(), completion_claim: z.string().optional()}).passthrough();
+export type GrammarLessonDetail = z.infer<typeof grammarLessonDetailSchema>;
+
+const dashboardTrendSchema = z.object({id: z.number().int().positive(), series_id: z.number().int().positive(), revision_no: z.number().int().positive(), date: z.string().min(1), overall: z.number()}).passthrough();
+const dashboardMemorySchema = z.object({category: z.string(), focus_family: z.string().optional(), evidence: z.string().optional(), status: z.string().optional(), total: z.number().int().nonnegative().optional()}).passthrough();
+const dashboardNextLevelSchema = z.object({level: z.string().min(1), threshold: z.number(), remaining: z.number()}).passthrough();
+export const journeyDashboardSchema = z.object({
+  essay_count: z.number().int().nonnegative(), revision_count: z.number().int().nonnegative(), skill_score: z.number(), cefr: z.string(), streak: z.number().int().nonnegative(), recent_average: z.number(), trend: z.array(dashboardTrendSchema), metrics: z.record(z.number()), error_counts: z.record(z.number()), error_memory: z.array(dashboardMemorySchema), next_level: dashboardNextLevelSchema.nullable(), version: z.string().min(1),
+}).passthrough();
+export type JourneyDashboard = z.infer<typeof journeyDashboardSchema>;
+
+const practiceOutcomeSchema = z.object({
+  essay_id: z.number().int().positive(), series_id: z.number().int().positive(), revision_no: z.number().int().positive(), created_at: z.string().min(1), overall: z.number(), status: z.string().min(1), intent: z.string().min(1), focus_family: z.string().min(1), focus_category: z.string().min(1), focus_label: z.string().min(1), grammar_id: z.string(), grammar_title: z.string(), issue_count: z.number().int().nonnegative(), previous_issue_count: z.number().int().nonnegative().nullable(), strength_count: z.number().int().nonnegative(), error_evidence: z.array(z.string()), strength_evidence: z.array(z.string()), practice: z.record(z.unknown()),
+}).passthrough();
+export const journeyOutcomesSchema = z.object({items: z.array(practiceOutcomeSchema), latest: practiceOutcomeSchema.nullable()}).passthrough();
+export type JourneyOutcomes = z.infer<typeof journeyOutcomesSchema>;
