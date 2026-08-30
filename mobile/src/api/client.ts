@@ -6,6 +6,7 @@ import {compactMediaStatusSchema, strokeOrderSchema, type CompactMediaStatus, ty
 import {evaluationInputSchema, evaluationResultSchema, grammarPracticeSchema, learnerProfileSchema, learnerProfileInputSchema, learningLanguageSchema, practiceRecommendationSchema, practiceTaskSchema, type EvaluationInput, type EvaluationResult, type GrammarPractice, type LearnerProfile, type LearnerProfileInput, type LearningLanguage, type PracticeRecommendation, type PracticeTask} from './contracts/learning';
 import {readingAnswerResultSchema, readingGenerateInputSchema, readingSessionResponseSchema, readingSessionSchema, type ReadingAnswerResult, type ReadingGenerateInput, type ReadingSession} from './contracts/reading';
 import {dictionaryInputSchema, dictionaryResultSchema, librarySchema, saveLibraryInputSchema, saveLibraryResultSchema, type DictionaryInput, type DictionaryResult} from './contracts/library';
+import {listeningProgressListSchema, listeningProgressResponseSchema, mediaImportInputSchema, mediaLessonSchema, type ListeningProgressInput, type MediaImportInput, type MediaLesson} from './contracts/listening';
 
 type FetchLike = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
 
@@ -116,6 +117,18 @@ export class ApiClient {
   async contextualDictionary(input: DictionaryInput, options: RequestOptions = {}): Promise<DictionaryResult> { let payload: DictionaryInput; try { payload = dictionaryInputSchema.parse(input); } catch { throw new ApiError('request_rejected', 'Dictionary request was invalid'); } return this.request('/api/dictionary/contextual', options, dictionaryResultSchema.parse, 'POST', payload); }
   async listLibraryVocabulary(options: RequestOptions = {}): Promise<Awaited<ReturnType<typeof librarySchema.parse>>> { return this.request('/api/library/vocabulary', options, librarySchema.parse); }
   async saveLibraryVocabulary(input: Parameters<typeof saveLibraryInputSchema.parse>[0], options: RequestOptions = {}): Promise<Awaited<ReturnType<typeof saveLibraryResultSchema.parse>>> { let payload; try { payload = saveLibraryInputSchema.parse(input); } catch { throw new ApiError('request_rejected', 'Library word was invalid'); } return this.request('/api/library/vocabulary', options, saveLibraryResultSchema.parse, 'POST', payload); }
+  async importMedia(input: MediaImportInput, options: RequestOptions = {}): Promise<MediaLesson> {
+    let payload: MediaImportInput;
+    try { payload = mediaImportInputSchema.parse(input); } catch { throw new ApiError('request_rejected', 'Media lesson request was invalid'); }
+    return this.request('/api/media-learning/import', options, mediaLessonSchema.parse, 'POST', payload);
+  }
+  async listListeningProgress(assetId: string, options: RequestOptions = {}): Promise<Awaited<ReturnType<typeof listeningProgressListSchema.parse>>> {
+    if (typeof assetId !== 'string' || assetId.trim() === '') throw new ApiError('request_rejected', 'Listening asset is required');
+    return this.request(`/api/listening/progress?asset_id=${encodeURIComponent(assetId.trim())}`, options, listeningProgressListSchema.parse);
+  }
+  async saveListeningProgress(input: ListeningProgressInput, options: RequestOptions = {}): Promise<Awaited<ReturnType<typeof listeningProgressResponseSchema.parse>>> {
+    return this.request('/api/listening/progress', options, listeningProgressResponseSchema.parse, 'POST', input);
+  }
 
   getBaseUrl(): string {
     return this.baseUrl;

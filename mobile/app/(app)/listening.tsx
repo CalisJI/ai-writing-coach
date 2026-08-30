@@ -1,3 +1,139 @@
-import {ShellScreen} from '../../src/components/ShellScreen';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {AppState, Pressable, ScrollView, StyleSheet, Text, TextInput, View} from 'react-native';
+import {useAudioPlayer, useAudioPlayerStatus, type AudioPlayer, type AudioStatus} from 'expo-audio';
+import {useRouter} from 'expo-router';
+import {createConfiguredApiClient, type ApiClient} from '../../src/api/client';
+import type {ListeningProgress, MediaLesson} from '../../src/api/contracts/listening';
+import {useSession} from '../../src/auth/SessionHarness';
 import {useI18n} from '../../src/i18n/I18nProvider';
-export default function ListeningScreen() { const {t} = useI18n(); return <ShellScreen title={t('nav.listening')} />; }
+import {useTheme} from '../../src/theme/ThemeProvider';
+import {useImportMedia, useListeningProgress, useSaveListeningProgress} from '../../src/query/useListening';
+import {useMediaImportStatus, createMediaResumeStore} from '../../src/query/useMediaImportStatus';
+import {clearListeningPending, clearListeningResume, readListeningPending, readListeningResume, secureListeningResumeStorage, secureMediaResumeStorage, writeListeningPending, writeListeningResume, type ListeningPending, type ListeningResume} from '../../src/features/listening/listeningResume';
+import type {ResumeState} from '../../src/api/mediaClient';
+import type {KeyValueStorage} from '../../src/storage/boundedCache';
+
+type ListeningMode = 'follow' | 'active';
+export type ListeningScreenProps = {client?: ApiClient; resumeStorage?: KeyValueStorage; mediaResumeStorage?: KeyValueStorage};
+
+function Button({label, onPress, disabled = false, secondary = false}: {label: string; onPress: () => void; disabled?: boolean; secondary?: boolean}) {
+  const {tokens} = useTheme();
+  return <Pressable accessibilityRole="button" accessibilityLabel={label} disabled={disabled} onPress={onPress} style={[styles.button, {backgroundColor: secondary ? tokens.colors.surface : tokens.colors.accent, borderColor: tokens.colors.accent, opacity: disabled ? 0.55 : 1}]}><Text style={{color: secondary ? tokens.colors.accent : '#fff', fontWeight: '700'}}>{label}</Text></Pressable>;
+}
+
+function PlayerControl({url, player, status}: {url: string; player: AudioPlayer; status: AudioStatus}) {
+  const {t} = useI18n();
+  const playing = Boolean(status?.playing);
+  return <Button label={playing ? t('listening.pause') : t('listening.play')} onPress={() => playing ? player.pause() : player.play()} disabled={!url || status?.isLoaded === false} />;
+}
+
+function ReadyLesson({lesson, mode, selectedId, progress, progressPending, progressError, answer, setAnswer, onMode, onSelect, onSave, onReveal, onRestart, player, playerStatus}: {lesson: MediaLesson; mode: ListeningMode; selectedId: string; progress: ListeningProgress[]; progressPending: boolean; progressError: boolean; answer: string; setAnswer: (value: string) => void; onMode: (mode: ListeningMode) => void; onSelect: (id: string) => void; onSave: () => void; onReveal: () => void; onRestart: () => void; player: AudioPlayer; playerStatus: AudioStatus}) {
+  const {t} = useI18n();
+  const {tokens} = useTheme();
+  const selected = lesson.transcript?.segments.find((segment) => segment.segment_id === selectedId) ?? lesson.transcript?.segments[0];
+  const selectedProgress = progress.find((item) => item.segment_id === selected?.segment_id);
+  const revealed = selectedProgress?.presentation === 'revealed';
+  const checked = selectedProgress?.presentation === 'checked' || revealed;
+  const checkedCount = progress.reduce((total, item) => total + item.checked_attempt_count, 0);
+  return <ScrollView contentContainerStyle={[styles.container, {backgroundColor: tokens.colors.background}]}>
+    <Text accessibilityRole="header" style={[styles.title, {color: tokens.colors.text}]}>{lesson.asset.title || t('listening.title')}</Text>
+    <Text style={{color: tokens.colors.mutedText}}>{mode === 'follow' ? t('listening.follow_body') : t('listening.active_body')}</Text>
+    <PlayerControl url={lesson.playback.url} player={player} status={playerStatus} />
+    <View accessibilityRole="tablist" style={styles.modeRow}>
+      <Pressable accessibilityRole="tab" accessibilityLabel={t('listening.follow')} accessibilityState={{selected: mode === 'follow'}} onPress={() => onMode('follow')} style={[styles.mode, mode === 'follow' && {backgroundColor: tokens.colors.surface, borderColor: tokens.colors.accent}]}><Text style={{color: tokens.colors.text}}>{t('listening.follow')}</Text></Pressable>
+      <Pressable accessibilityRole="tab" accessibilityLabel={t('listening.active')} accessibilityState={{selected: mode === 'active'}} onPress={() => onMode('active')} style={[styles.mode, mode === 'active' && {backgroundColor: tokens.colors.surface, borderColor: tokens.colors.accent}]}><Text style={{color: tokens.colors.text}}>{t('listening.active')}</Text></Pressable>
+    </View>
+    <Text style={[styles.sectionLabel, {color: tokens.colors.text}]}>{t('listening.segment')}</Text>
+    <View style={styles.segmentList}>{lesson.transcript?.segments.map((segment) => <Pressable key={segment.segment_id} accessibilityRole="button" accessibilityLabel={segment.original_text} accessibilityState={{selected: segment.segment_id === selected?.segment_id}} onPress={() => onSelect(segment.segment_id)} style={[styles.segment, {borderColor: segment.segment_id === selected?.segment_id ? tokens.colors.accent : tokens.colors.mutedText}]}><Text style={{color: tokens.colors.text}}>{segment.original_text}</Text></Pressable>)}</View>
+    {selected && mode === 'active' && <View style={[styles.card, {backgroundColor: tokens.colors.surface}]}>
+      <Text style={{color: tokens.colors.text, fontWeight: '700'}}>{t('listening.answer')}</Text>
+      <TextInput accessibilityLabel={t('listening.answer')} value={answer} onChangeText={setAnswer} placeholder={t('listening.answer_placeholder')} placeholderTextColor={tokens.colors.mutedText} multiline style={[styles.input, {color: tokens.colors.text, borderColor: tokens.colors.mutedText}]} />
+      <View style={styles.actionRow}><Button label={t('listening.check')} onPress={onSave} disabled={!answer.trim()} /><Button label={t('listening.reveal')} onPress={onReveal} secondary /></View>
+      {checked && <Text accessibilityLiveRegion="polite" style={{color: tokens.colors.text}}>{revealed ? t('listening.revealed') : t('listening.checked')}</Text>}
+      {revealed && <Text style={{color: tokens.colors.text}}>{selected.original_text}</Text>}
+    </View>}
+    {mode === 'follow' && selected && <Text style={[styles.selectedText, {color: tokens.colors.text}]}>{selected.original_text}</Text>}
+    <View style={[styles.card, {backgroundColor: tokens.colors.surface}]}><Text style={{color: tokens.colors.text, fontWeight: '700'}}>{t('listening.progress')}</Text>{progressPending ? <Text style={{color: tokens.colors.mutedText}}>{t('listening.progress_loading')}</Text> : <Text style={{color: tokens.colors.text}}>{checkedCount}</Text>}{progressError && <Text accessibilityRole="alert" style={{color: tokens.colors.danger}}>{t('listening.progress_unavailable')}</Text>}</View>
+    <Button label={t('listening.resume_cancel')} onPress={onRestart} secondary />
+  </ScrollView>;
+}
+
+export default function ListeningScreen({client: providedClient, resumeStorage = secureListeningResumeStorage, mediaResumeStorage = secureMediaResumeStorage}: ListeningScreenProps) {
+  const {t, locale} = useI18n();
+  const {tokens} = useTheme();
+  const {sessionCookie} = useSession();
+  const router = useRouter();
+  const client = useMemo(() => { if (providedClient) return providedClient; try { return createConfiguredApiClient(); } catch { return null; } }, [providedClient]);
+  const mediaStore = useMemo(() => client ? createMediaResumeStore(client, mediaResumeStorage) : null, [client, mediaResumeStorage]);
+  const [sourceUrl, setSourceUrl] = useState('');
+  const [resume, setResume] = useState<ListeningResume | null>(null);
+  const [pending, setPending] = useState<ListeningPending | null>(null);
+  const [mediaResume, setMediaResume] = useState<ResumeState | null>(null);
+  const [mediaResumeHandle, setMediaResumeHandle] = useState('');
+  const [lesson, setLesson] = useState<MediaLesson | null>(null);
+  const [mode, setMode] = useState<ListeningMode>('follow');
+  const [selectedId, setSelectedId] = useState('');
+  const [answer, setAnswer] = useState('');
+  const [progress, setProgress] = useState<ListeningProgress[]>([]);
+  const [notice, setNotice] = useState<string | null>(null);
+  const operation = useRef(0);
+  const rehydrating = useRef(false);
+  const attemptedReadyHandle = useRef<string | null>(null);
+  const importMedia = useImportMedia(client, sessionCookie);
+  const progressQuery = useListeningProgress(client, sessionCookie, lesson?.asset.asset_id ?? '');
+  const saveProgress = useSaveListeningProgress(client, sessionCookie);
+  const player = useAudioPlayer(lesson?.playback.url ?? null, {updateInterval: 500});
+  const playerStatus = useAudioPlayerStatus(player);
+  const mediaStatus = useMediaImportStatus(mediaResumeHandle, mediaStore, sessionCookie);
+
+  useEffect(() => { let mounted = true; void Promise.all([readListeningResume(resumeStorage), readListeningPending(resumeStorage), mediaStore?.read() ?? Promise.resolve(null)]).then(([ready, waiting, media]) => { if (!mounted) return; setResume(ready); setPending(waiting); setMediaResume(media); if (waiting && media) setMediaResumeHandle(media.resumeHandle); }); return () => { mounted = false; }; }, [mediaStore, resumeStorage]);
+  useEffect(() => { if (progressQuery.data?.items) setProgress(progressQuery.data.items); }, [progressQuery.data]);
+  useEffect(() => { const subscription = AppState.addEventListener('change', (state) => { if (state === 'background' || state === 'inactive') { player.pause(); setNotice(t('listening.interrupted')); } }); return () => subscription.remove(); }, [player, t]);
+  const prepare = useCallback((value: string) => {
+    const normalized = value.trim();
+    if (!normalized || !sessionCookie || !client) return;
+    const current = ++operation.current;
+    setSourceUrl(normalized); setNotice(null); setLesson(null); setProgress([]); setAnswer('');
+    importMedia.mutate({source_url: normalized, target_language: locale, include_word_timing: false, include_translation: true}, {onSuccess: async (next) => {
+      if (current !== operation.current) return;
+      if (next.asset.processing_state !== 'ready' || !next.transcript?.segments.length) {
+        if (next.asset.processing_state === 'processing' && next.import_job?.job_id && mediaStore) {
+          const waiting: ListeningPending = {assetId: next.asset.asset_id, mode, sourceUrl: normalized};
+          await mediaStore.persist({assetId: next.asset.asset_id, resumeHandle: next.import_job.job_id, status: 'processing', resumable: true});
+          await writeListeningPending(waiting, resumeStorage);
+          setPending(waiting); setMediaResume({assetId: next.asset.asset_id, resumeHandle: next.import_job.job_id, status: 'processing', resumable: true}); setMediaResumeHandle(next.import_job.job_id);
+        }
+        setNotice(next.asset.processing_state === 'processing' ? t('listening.processing') : t('listening.no_transcript')); return;
+      }
+      const restored = resume?.assetId === next.asset.asset_id && resume.sourceUrl === normalized ? resume : null;
+      const segment = next.transcript.segments.some((item) => item.segment_id === restored?.segmentId) ? restored!.segmentId : next.transcript.segments[0]!.segment_id;
+      const nextMode = restored?.mode ?? 'follow';
+      rehydrating.current = false;
+      setLesson(next); setSelectedId(segment); setMode(nextMode); setResume(null); setPending(null); setMediaResume(null); setMediaResumeHandle(''); await mediaStore?.clear(); await clearListeningPending(resumeStorage);
+      await writeListeningResume({assetId: next.asset.asset_id, segmentId: segment, mode: nextMode, sourceUrl: normalized}, resumeStorage);
+    }, onError: () => { if (current === operation.current) { rehydrating.current = false; setNotice(t('listening.unavailable')); } }});
+  }, [client, importMedia, locale, mediaStore, mode, resume, resumeStorage, sessionCookie, t]);
+  useEffect(() => {
+    const state = mediaStatus.data?.state;
+    if (!state) return;
+    setMediaResume(state);
+    if (state.status === 'ready' && pending && sourceUrl.trim() === pending.sourceUrl && !rehydrating.current && attemptedReadyHandle.current !== state.resumeHandle) {
+      attemptedReadyHandle.current = state.resumeHandle;
+      rehydrating.current = true;
+      prepare(pending.sourceUrl);
+    } else if (state.status === 'failed') {
+      setMediaResumeHandle(''); setMediaResume(null); setPending(null); void mediaStore?.clear(); void clearListeningPending(resumeStorage); setNotice(t('listening.unavailable'));
+    }
+  }, [mediaStatus.data, pending, sourceUrl, mediaStore, resumeStorage, t, prepare]);
+  const cancel = () => { operation.current += 1; rehydrating.current = false; importMedia.reset(); setNotice(null); };
+  const select = (segmentId: string) => { setSelectedId(segmentId); setAnswer(''); if (lesson) void writeListeningResume({assetId: lesson.asset.asset_id, segmentId, mode, sourceUrl: lesson.asset.source_url}, resumeStorage); };
+  const changeMode = (nextMode: ListeningMode) => { setMode(nextMode); if (lesson) void writeListeningResume({assetId: lesson.asset.asset_id, segmentId: selectedId, mode: nextMode, sourceUrl: lesson.asset.source_url}, resumeStorage); };
+  const save = (presentation: 'checked' | 'revealed') => { const segment = lesson?.transcript?.segments.find((item) => item.segment_id === selectedId); if (!lesson || !segment) return; const current = progress.find((item) => item.segment_id === segment.segment_id); saveProgress.mutate({asset_id: lesson.asset.asset_id, segment_id: segment.segment_id, presentation, revealed: presentation === 'revealed', checked_attempt_count: presentation === 'checked' ? (current?.checked_attempt_count ?? 0) + 1 : current?.checked_attempt_count ?? 0, best_exact: false, last_answer: presentation === 'checked' ? answer.trim() : current?.last_answer ?? ''}, {onSuccess: (result) => setProgress((items) => [...items.filter((item) => item.segment_id !== result.item.segment_id), result.item]), onError: () => setNotice(t('listening.unavailable'))}); };
+
+  if (!sessionCookie || !client) return <View style={[styles.container, {backgroundColor: tokens.colors.background}]}><Text accessibilityRole="header" style={[styles.title, {color: tokens.colors.text}]}>{t('listening.title')}</Text><Text style={{color: tokens.colors.mutedText}}>{t('listening.signed_out')}</Text><Button label={t('listening.back')} onPress={() => router.replace('/(app)')} secondary /></View>;
+  if (!lesson) return <ScrollView contentContainerStyle={[styles.container, {backgroundColor: tokens.colors.background}]}><Text accessibilityRole="header" style={[styles.title, {color: tokens.colors.text}]}>{t('listening.title')}</Text><Text style={{color: tokens.colors.mutedText}}>{t('listening.body')}</Text>{(resume || (pending && mediaResume)) && <View style={[styles.card, {backgroundColor: tokens.colors.surface}]}><Text style={{color: tokens.colors.text}}>{t('listening.resume_found')}</Text><Button label={t('listening.resume')} onPress={() => { if (pending && mediaResume) { setSourceUrl(pending.sourceUrl); attemptedReadyHandle.current = null; rehydrating.current = false; if (mediaResume.resumable) setMediaResumeHandle(mediaResume.resumeHandle); else { rehydrating.current = true; prepare(pending.sourceUrl); } } else if (resume) { setSourceUrl(resume.sourceUrl); prepare(resume.sourceUrl); } }} /><Button label={t('listening.resume_cancel')} onPress={() => { void clearListeningResume(resumeStorage); void clearListeningPending(resumeStorage); void mediaStore?.clear(); setResume(null); setPending(null); setMediaResume(null); setMediaResumeHandle(''); }} secondary /></View>}<TextInput accessibilityLabel={t('listening.source_url')} value={sourceUrl} onChangeText={setSourceUrl} placeholder={t('listening.source_placeholder')} placeholderTextColor={tokens.colors.mutedText} autoCapitalize="none" autoCorrect={false} style={[styles.input, {color: tokens.colors.text, borderColor: tokens.colors.mutedText}]} />{notice && <Text accessibilityRole="alert" style={{color: tokens.colors.danger}}>{notice}</Text>}{importMedia.isPending ? <View style={styles.actionRow}><Button label={t('listening.preparing')} onPress={() => undefined} disabled /><Button label={t('listening.cancel')} onPress={cancel} secondary /></View> : <Button label={t('listening.prepare')} onPress={() => prepare(sourceUrl)} disabled={!sourceUrl.trim()} />}</ScrollView>;
+  const restart = () => { operation.current += 1; rehydrating.current = false; importMedia.reset(); setLesson(null); setProgress([]); setAnswer(''); setSourceUrl(''); setNotice(null); setResume(null); setPending(null); setMediaResume(null); setMediaResumeHandle(''); void clearListeningResume(resumeStorage); void clearListeningPending(resumeStorage); void mediaStore?.clear(); };
+  return <ReadyLesson lesson={lesson} mode={mode} selectedId={selectedId} progress={progress} progressPending={progressQuery.isPending} progressError={progressQuery.isError} answer={answer} setAnswer={setAnswer} onMode={changeMode} onSelect={select} onSave={() => save('checked')} onReveal={() => save('revealed')} onRestart={restart} player={player} playerStatus={playerStatus} />;
+}
+
+const styles = StyleSheet.create({container: {flexGrow: 1, padding: 24, gap: 12}, title: {fontSize: 28, fontWeight: '700'}, card: {padding: 16, borderRadius: 12, gap: 12}, input: {minHeight: 52, borderWidth: 1, borderRadius: 12, padding: 14, fontSize: 16}, button: {minHeight: 48, padding: 14, borderRadius: 12, borderWidth: 1, alignItems: 'center', justifyContent: 'center'}, actionRow: {gap: 8}, modeRow: {flexDirection: 'row', gap: 8}, mode: {flex: 1, padding: 12, borderWidth: 1, borderColor: 'transparent', borderRadius: 10, alignItems: 'center'}, sectionLabel: {fontSize: 18, fontWeight: '700'}, segmentList: {gap: 8}, segment: {padding: 12, borderWidth: 1, borderRadius: 10}, selectedText: {fontSize: 18, lineHeight: 28}});

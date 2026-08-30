@@ -57,7 +57,8 @@
     "preset": "jest-expo",
     "testMatch": [
       "<rootDir>/src/**/*.test.ts",
-      "<rootDir>/src/**/*.test.tsx"
+      "<rootDir>/src/**/*.test.tsx",
+      "<rootDir>/app/**/*.test.tsx"
     ],
     "setupFilesAfterEnv": [
       "<rootDir>/test/setup.ts"

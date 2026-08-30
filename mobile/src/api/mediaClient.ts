@@ -51,6 +51,10 @@ export class MediaResumeStore {
     catch { await this.storage.removeItem(RESUME_KEY); return null; }
   }
 
+  async persist(state: ResumeState): Promise<void> {
+    await this.storage.setItem(RESUME_KEY, JSON.stringify(resumeStateSchema.parse(state)));
+  }
+
   async clear(): Promise<void> {
     await this.storage.removeItem(RESUME_KEY);
   }
