@@ -27,8 +27,8 @@ describe('Reading and Library contracts', () => {
     let body = '';
     const client = new ApiClient({baseUrl: 'https://learn.example.test', fetchImpl: async (_input, init) => { body = String(init?.body); return response({saved: true, item}); }});
     const result = {available: true, source_language: 'en', target_language: 'zh', selected_text: 'steady', summary: 'Meaning in context', natural_translation: '稳定的', vocabulary: [{fragment: 'steady', meaning: 'reliable', pos: 'adjective', pronunciation: '/ˈstedi/'}], claim: 'contextual_dictionary'};
-    const input = dictionaryWordToLibraryInput(result, ' a steady pace ');
-    expect(input).toEqual({word: 'steady', phonetic: '/ˈstedi/', part_of_speech: 'adjective', definition: 'reliable', translation_vi: '', source_fragment: 'a steady pace', source_kind: 'dictionary', focus_note: 'Meaning in context'});
+    const input = dictionaryWordToLibraryInput(result, ' steady ');
+    expect(input).toEqual({word: 'steady', phonetic: '/ˈstedi/', part_of_speech: 'adjective', definition: 'reliable', translation_vi: '', source_fragment: 'steady', source_kind: 'dictionary', focus_note: 'Meaning in context'});
     expect(await client.saveLibraryVocabulary(input!, {sessionCookie: 'cookie'})).toMatchObject({saved: true, item: {word: 'steady'}});
     expect(body).toBe(JSON.stringify(input));
   });
@@ -37,5 +37,13 @@ describe('Reading and Library contracts', () => {
     const base = {source_language: 'en', target_language: 'zh', selected_text: '', claim: 'contextual_dictionary_unavailable'};
     expect(dictionaryWordToLibraryInput({available: false, ...base}, 'steady')).toBeNull();
     expect(dictionaryWordToLibraryInput({available: true, ...base, vocabulary: []}, 'steady')).toBeNull();
+    expect(dictionaryWordToLibraryInput({available: true, source_language: 'en', target_language: 'zh', selected_text: 'steady', summary: 'Meaning in context', claim: 'contextual_dictionary', vocabulary: [{fragment: 'other', meaning: 'wrong', pos: 'noun', pronunciation: ''}]}, 'different')).toBeNull();
+    expect(dictionaryWordToLibraryInput({available: true, source_language: 'en', target_language: 'zh', selected_text: 'steady', summary: 'Meaning in context', claim: 'contextual_dictionary', vocabulary: [{fragment: 'steady', meaning: 'right', pos: 'adjective', pronunciation: ''}]}, 'unsteady')).toBeNull();
+  });
+
+  it('ignores an unrelated first vocabulary entry when the server confirms a later match', () => {
+    const input = dictionaryWordToLibraryInput({available: true, source_language: 'en', target_language: 'zh', selected_text: 'steady', summary: 'Meaning', claim: 'contextual_dictionary', vocabulary: [{fragment: 'unrelated', meaning: 'wrong', pos: 'noun', pronunciation: ''}, {fragment: 'steady', meaning: 'right', pos: 'adjective', pronunciation: '/steady/'}]}, 'steady');
+    expect(input?.word).toBe('steady');
+    expect(input?.definition).toBe('right');
   });
 });

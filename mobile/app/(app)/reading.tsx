@@ -9,6 +9,17 @@ import {useContextualDictionary, useCreateReadingSession, useSaveLibraryVocabula
 import {dictionaryWordToLibraryInput} from '../../src/features/reading/readingLibraryHandoff';
 import type {ReadingSession} from '../../src/api/contracts/reading';
 
+export function ReadingSaveFailureNotice({visible}: {visible: boolean}) {
+  const {t} = useI18n();
+  const {tokens} = useTheme();
+  return visible ? <Text accessibilityRole="alert" style={{color: tokens.colors.danger}}>{t('reading.save_failed')}</Text> : null;
+}
+
+export function ReadingQuestionList({session, answers, onAnswer}: {session: ReadingSession; answers: number[]; onAnswer: (questionIndex: number, optionIndex: number) => void}) {
+  const {tokens} = useTheme();
+  return <>{session.questions.map((question, questionIndex) => <View key={question.id} style={[styles.card, {backgroundColor: tokens.colors.surface}]}><Text style={{color: tokens.colors.text}}>{question.question}</Text>{question.options.map((option, optionIndex) => <Pressable key={`${question.id}-${optionIndex}`} accessibilityRole="radio" accessibilityState={{selected: answers[questionIndex] === optionIndex}} onPress={() => onAnswer(questionIndex, optionIndex)} style={styles.option}><Text style={{color: tokens.colors.text}}>{answers[questionIndex] === optionIndex ? '◉ ' : '○ '}{option}</Text></Pressable>)}</View>)}</>;
+}
+
 export default function ReadingScreen() {
   const {t, locale} = useI18n();
   const {tokens} = useTheme();
@@ -49,16 +60,7 @@ export default function ReadingScreen() {
     <ScrollView contentContainerStyle={[styles.container, {backgroundColor: tokens.colors.background}]}>
       <Text accessibilityRole="header" style={[styles.title, {color: tokens.colors.text}]}>{session.title}</Text>
       <Text style={[styles.passage, {color: tokens.colors.text}]}>{session.passage}</Text>
-      {session.questions.map((question, questionIndex) => (
-        <View key={question.id} style={[styles.card, {backgroundColor: tokens.colors.surface}]}>
-          <Text style={{color: tokens.colors.text}}>{question.question}</Text>
-          {question.options.map((option, optionIndex) => (
-            <Pressable key={`${question.id}-${optionIndex}`} accessibilityRole="radio" accessibilityState={{selected: answers[questionIndex] === optionIndex}} onPress={() => setAnswers((current) => current.map((answer, index) => index === questionIndex ? optionIndex : answer))} style={styles.option}>
-              <Text style={{color: tokens.colors.text}}>{answers[questionIndex] === optionIndex ? '◉ ' : '○ '}{option}</Text>
-            </Pressable>
-          ))}
-        </View>
-      ))}
+      <ReadingQuestionList session={session} answers={answers} onAnswer={(questionIndex, optionIndex) => setAnswers((current) => current.map((answer, index) => index === questionIndex ? optionIndex : answer))} />
       {submit.isError && <Text accessibilityRole="alert" style={{color: tokens.colors.danger}}>{t('reading.submit_failed')}</Text>}
       {submit.data?.claim === 'comprehension_check_only' && <Text style={{color: tokens.colors.text}}>{t('reading.result')}: {submit.data.correct_count}/{submit.data.total}</Text>}
       <Pressable accessibilityRole="button" disabled={submit.isPending || answers.some((answer) => answer < 0)} onPress={submitAnswers} style={[styles.button, {backgroundColor: tokens.colors.accent}]}>
@@ -69,6 +71,7 @@ export default function ReadingScreen() {
         <Text style={styles.buttonText}>{dictionary.isPending ? t('reading.explaining') : t('reading.explain')}</Text>
       </Pressable>
       {dictionary.isError && <Text accessibilityRole="alert" style={{color: tokens.colors.danger}}>{t('reading.dictionary_failed')}</Text>}
+      <ReadingSaveFailureNotice visible={save.isError} />
       {dictionary.data?.available && savedWord && (
         <View style={[styles.card, {backgroundColor: tokens.colors.surface}]}>
           <Text style={{color: tokens.colors.text}}>{dictionary.data.summary}</Text>
