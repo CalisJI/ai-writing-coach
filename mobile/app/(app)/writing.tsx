@@ -1,3 +1,8 @@
-import {ShellScreen} from '../../src/components/ShellScreen';
+import {Pressable, StyleSheet, Text, View} from 'react-native';
+import {useRouter} from 'expo-router';
+import {useState} from 'react';
 import {useI18n} from '../../src/i18n/I18nProvider';
-export default function WritingScreen() { const {t} = useI18n(); return <ShellScreen title={t('nav.writing')} />; }
+import {useTheme} from '../../src/theme/ThemeProvider';
+import {consumePracticeHandoff} from '../../src/features/home/practiceHandoff';
+export default function WritingScreen() { const {t} = useI18n(); const {tokens} = useTheme(); const router = useRouter(); const [task] = useState(consumePracticeHandoff); return <View style={[styles.container, {backgroundColor: tokens.colors.background}]}>{task ? <><Text accessibilityRole="header" style={[styles.title, {color: tokens.colors.text}]}>{task.title || t('writing.practice_title')}</Text><Text style={{color: tokens.colors.text}}>{task.instruction}</Text><Text style={{color: tokens.colors.mutedText}}>{t('home.target')}: {task.target_level}</Text><Text style={{color: tokens.colors.mutedText}}>{t('writing.practice_source')}</Text>{task.checklist.map((item) => <Text key={item} style={{color: tokens.colors.text}}>• {item}</Text>)}</> : <Text style={{color: tokens.colors.text}}>{t('writing.no_task')}</Text>}<Pressable accessibilityRole="button" onPress={() => router.replace('/(app)')} style={[styles.button, {backgroundColor: tokens.colors.accent}]}><Text style={styles.buttonText}>{t('writing.back_home')}</Text></Pressable></View>; }
+const styles = StyleSheet.create({container: {flex: 1, padding: 24, gap: 12}, title: {fontSize: 28, fontWeight: '700'}, button: {padding: 16, borderRadius: 12, alignItems: 'center', marginTop: 12}, buttonText: {color: '#fff', fontWeight: '700'}});

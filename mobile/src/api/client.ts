@@ -3,6 +3,7 @@ import {ApiError, normalizeUnknownError} from './errors';
 import {logoutResponseSchema, nativeSessionExchangeSchema, type NativeSessionExchange} from './contracts/nativeAuth';
 import {sessionBootstrapSchema, type SessionBootstrap} from './contracts/session';
 import {compactMediaStatusSchema, strokeOrderSchema, type CompactMediaStatus, type StrokeOrder} from './contracts/reference';
+import {learnerProfileSchema, learnerProfileInputSchema, learningLanguageSchema, practiceRecommendationSchema, practiceTaskSchema, type LearnerProfile, type LearnerProfileInput, type LearningLanguage, type PracticeRecommendation, type PracticeTask} from './contracts/learning';
 
 type FetchLike = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
 
@@ -71,6 +72,30 @@ export class ApiClient {
     return this.request('/api/media-learning/import/status', options, compactMediaStatusSchema.parse, 'POST', {job_id: resumeHandle, compact: true});
   }
 
+  async getLearnerProfile(options: RequestOptions = {}): Promise<LearnerProfile> {
+    return this.request('/api/learner-profile', options, learnerProfileSchema.parse);
+  }
+
+  async setLearningLanguage(language: 'en' | 'zh', options: RequestOptions = {}): Promise<LearningLanguage> {
+    if (language !== 'en' && language !== 'zh') throw new ApiError('request_rejected', 'Learning language was invalid');
+    return this.request('/api/platform/language', options, learningLanguageSchema.parse, 'POST', {language});
+  }
+
+  async saveLearnerProfile(profile: LearnerProfileInput, options: RequestOptions = {}): Promise<LearnerProfile> {
+    let payload: LearnerProfileInput;
+    try { payload = learnerProfileInputSchema.parse(profile); } catch { throw new ApiError('request_rejected', 'Learner profile choices were invalid'); }
+    return this.request('/api/learner-profile', options, learnerProfileSchema.parse, 'PUT', payload);
+  }
+
+  async getPracticeRecommendation(options: RequestOptions = {}): Promise<PracticeRecommendation> {
+    return this.request('/api/practice-recommendation', options, practiceRecommendationSchema.parse);
+  }
+
+  async getNextPractice(targetLevel: string, options: RequestOptions = {}): Promise<PracticeTask> {
+    if (typeof targetLevel !== 'string' || targetLevel.trim() === '') throw new ApiError('request_rejected', 'Practice target level is required');
+    return this.request('/api/practice/next', options, practiceTaskSchema.parse, 'POST', {target_level: targetLevel});
+  }
+
   getBaseUrl(): string {
     return this.baseUrl;
   }
@@ -79,7 +104,7 @@ export class ApiClient {
     path: string,
     options: RequestOptions,
     parse: (value: unknown) => T,
-    method: 'GET' | 'POST' = 'GET',
+    method: 'GET' | 'POST' | 'PUT' = 'GET',
     payload?: unknown,
   ): Promise<T> {
     const response = await this.rawRequest(path, options, method, payload);
@@ -100,7 +125,7 @@ export class ApiClient {
   private async rawRequest(
     path: string,
     options: RequestOptions,
-    method: 'GET' | 'POST' = 'GET',
+    method: 'GET' | 'POST' | 'PUT' = 'GET',
     payload?: unknown,
   ): Promise<Response> {
     const controller = new AbortController();

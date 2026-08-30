@@ -1,6 +1,7 @@
 export const messages = {
   en: {
     'app.name': 'Orena',
+    'onboarding.learning_language': 'Language you are learning',
     'app.tagline': 'A calm place to build language skill.',
     'auth.signed_out_title': 'Welcome to Orena',
     'auth.signed_out_body': 'Sign in to continue your learning journey.',
@@ -51,9 +52,11 @@ export const messages = {
     'cache.unavailable': 'This data is temporarily unavailable. No progress was changed.',
     'cache.stale': 'Showing safe cached reference data until the service reconnects.',
     'cache.refreshing': 'Refreshing safely…',
+    'home.title': 'Your learning home', 'home.greeting': 'A clear next step, whenever you are ready.', 'home.loading': 'Loading your learning plan…', 'home.unavailable_title': 'Home is temporarily unavailable', 'home.unavailable_body': 'We could not confirm your learner data. No progress was changed.', 'home.empty_title': 'Set up your learning plan', 'home.empty_body': 'Choose a few preferences so Orena can prepare your first practice.', 'home.recommendation_title': 'Your next practice', 'home.focus': 'Focus', 'home.reason': 'Why this helps', 'home.evidence': 'Based on', 'home.target': 'Target', 'home.start_practice': 'Start practice', 'home.starting': 'Preparing practice…', 'home.retry': 'Try again', 'home.start_failed': 'Practice could not be prepared. Your progress was not changed.', 'home.no_recommendation': 'No practice is ready yet.', 'onboarding.title': 'Set up your learning plan', 'onboarding.body': 'These choices personalize practice. You can change them later.', 'onboarding.goal': 'Your goal', 'onboarding.style': 'Guidance style', 'onboarding.native_language': 'Your preferred language', 'onboarding.save': 'Save preferences', 'onboarding.saving': 'Saving preferences…', 'onboarding.save_failed': 'Preferences could not be saved. Try again.', 'goal.everyday': 'Everyday communication', 'goal.work': 'Work', 'goal.exam': 'Exam preparation', 'goal.voice': 'Find my voice', 'style.guided': 'Step by step', 'style.examples': 'More examples', 'style.concise': 'Concise', 'style.deep': 'Deep explanations', 'language.vi': 'Vietnamese', 'language.en': 'English', 'language.zh': 'Chinese', 'writing.practice_title': 'Practice brief', 'writing.practice_source': 'Prepared by your learning plan', 'writing.no_task': 'No practice brief is open.', 'writing.back_home': 'Back to Home',
   },
   zh: {
     'app.name': 'Orena',
+    'onboarding.learning_language': '你正在学习的语言',
     'app.tagline': '在平静的空间里持续提升语言能力。',
     'auth.signed_out_title': '欢迎来到 Orena',
     'auth.signed_out_body': '登录后继续你的学习旅程。',
@@ -104,6 +107,7 @@ export const messages = {
     'cache.unavailable': '此数据暂时不可用，学习进度没有改变。',
     'cache.stale': '服务重新连接前，将显示安全的缓存参考数据。',
     'cache.refreshing': '正在安全刷新……',
+    'home.title': '你的学习首页', 'home.greeting': '随时开始下一步，清晰而脚踏实地前进。', 'home.loading': '正在加载你的学习计划……', 'home.unavailable_title': '首页暂时不可用', 'home.unavailable_body': '暂时无法确认你的学习数据，进度没有改变。', 'home.empty_title': '设置学习计划', 'home.empty_body': '选择几项偏好，Orena 就能准备第一次练习。', 'home.recommendation_title': '你的下一次练习', 'home.focus': '重点', 'home.reason': '为什么有帮助', 'home.evidence': '根据', 'home.target': '目标', 'home.start_practice': '开始练习', 'home.starting': '正在准备练习……', 'home.retry': '重试', 'home.start_failed': '无法准备练习，你的进度没有改变。', 'home.no_recommendation': '暂时没有可用的练习。', 'onboarding.title': '设置学习计划', 'onboarding.body': '这些选择会用于个性化练习，之后可随时修改。', 'onboarding.goal': '你的目标', 'onboarding.style': '指导方式', 'onboarding.native_language': '你的偏好语言', 'onboarding.save': '保存偏好', 'onboarding.saving': '正在保存偏好……', 'onboarding.save_failed': '无法保存偏好，请重试。', 'goal.everyday': '日常交流', 'goal.work': '工作', 'goal.exam': '考试准备', 'goal.voice': '形成自己的风格', 'style.guided': '逐步引导', 'style.examples': '更多例子', 'style.concise': '简洁', 'style.deep': '深入解释', 'language.vi': '越南语', 'language.en': '英语', 'language.zh': '中文', 'writing.practice_title': '练习提示', 'writing.practice_source': '根据你的学习计划准备', 'writing.no_task': '当前没有打开的练习提示。', 'writing.back_home': '返回首页',
   },
 } as const;
 

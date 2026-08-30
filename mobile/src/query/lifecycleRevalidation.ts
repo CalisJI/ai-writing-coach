@@ -37,7 +37,7 @@ export class LifecycleRevalidator {
 
 export function useLifecycleRevalidation(queryClient: QueryClient, reconnect: ReconnectSource = expoReconnectSource): void {
   useEffect(() => {
-    const revalidator = new LifecycleRevalidator(queryClient, [['session', 'bootstrap'], ['reference'], ['media', 'status']]);
+    const revalidator = new LifecycleRevalidator(queryClient, [['session', 'bootstrap'], ['learner-profile'], ['practice', 'recommendation'], ['reference'], ['media', 'status']]);
     let previous: AppStateStatus = AppState.currentState;
     const appStateSubscription = AppState.addEventListener('change', (next) => {
       if (next === 'active' && previous !== 'active') void revalidator.revalidate();

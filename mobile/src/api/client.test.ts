@@ -126,4 +126,20 @@ describe('typed mobile API client', () => {
     expect(result.asset.asset_id).toBe('youtube:fixture');
     expect(request?.body).toBe(JSON.stringify({job_id: 'opaque-resume-handle-123456', compact: true}));
   });
+
+  it('validates learner profile and practice contracts and forwards secure requests', async () => {
+    const calls: {url: string; init?: RequestInit}[] = [];
+    const profile = {exists: true, language: 'en', goal: 'work', style: 'guided', pinyin: 'auto', native_language: 'en', theme_preset: 'editorial', updated_at: '2026-01-01T00:00:00Z'};
+    const recommendation = {language: 'en', intent: 'repair', focus_category: 'grammar', focus_label: 'Articles', focus_family: 'grammar', focus_status: 'watch', evidence: 'Repeated pattern', goal: 'work', guidance_style: 'guided', task_type: 'email', topic: 'Email', target_level: 'B1', word_target: 80, difficulty: {state: 'hold', word_target: 80, length_delta: 0, provenance: {source: 'none', evidence_count: 0}} , reason: 'Practice this pattern', focus_instruction: 'Use articles', action_label: 'Practice'};
+    const task = {title: 'Practice', instruction: 'Write an email.', checklist: ['Be clear', 'Use examples'], word_target: 80, task_type: 'email', topic: 'Email', source: 'personalized', personalization: recommendation, prompt: 'Write.', target_level: 'B1'};
+    const client = new ApiClient({baseUrl: 'https://learn.example.test', fetchImpl: async (input, init) => { calls.push({url: String(input), init}); const url = String(input); const body = url.endsWith('/learner-profile') ? profile : url.includes('/platform/language') ? {ok: true, active: 'zh'} : url.includes('/practice-recommendation') ? recommendation : task; return response(200, body); }});
+    expect(await client.getLearnerProfile({sessionCookie: 'cookie'})).toEqual(profile);
+    expect(await client.setLearningLanguage('zh', {sessionCookie: 'cookie'})).toEqual({ok: true, active: 'zh'});
+    expect(await client.saveLearnerProfile({goal: 'work', style: 'guided', pinyin: 'auto', native_language: 'en', theme_preset: 'editorial'}, {sessionCookie: 'cookie'})).toEqual(profile);
+    expect(await client.getPracticeRecommendation({sessionCookie: 'cookie'})).toEqual(recommendation);
+    expect(await client.getNextPractice('B1', {sessionCookie: 'cookie'})).toEqual(task);
+    expect(calls.map((call) => call.init?.method)).toEqual(['GET', 'POST', 'PUT', 'GET', 'POST']);
+    expect(calls[2]?.init?.body).toBe(JSON.stringify({goal: 'work', style: 'guided', pinyin: 'auto', native_language: 'en', theme_preset: 'editorial'}));
+    expect(calls.every((call) => (call.init?.headers as Record<string, string>).Cookie === `${SESSION_COOKIE_NAME}=cookie`)).toBe(true);
+  });
 });
