@@ -160,7 +160,7 @@ def test_r18_reference_data_cache_contract_is_recorded() -> None:
     handoff = (ROOT / "docs/project/CURRENT_HANDOFF.md").read_text(encoding="utf-8")
     route_test = (ROOT / "tests/test_reference_data_cache.py").read_text(encoding="utf-8")
     assert "R18 — Mobile/API Readiness: **COMPLETE / LOCAL ACCEPTANCE PASS**" in project_state
-    assert "Current Orena program: **R20 Mobile Learning Experience Parity — NEXT" in project_state
+    assert "Current Orena program: **R21 Mobile Release Readiness — HUMAN STORE-RELEASE" in project_state
     assert "R18 — Mobile/API Readiness: **COMPLETE / LOCAL ACCEPTANCE PASS**" in handoff
     assert "R18 — Mobile/API Readiness: **IN PROGRESS / LOCAL FOUNDATION**" not in project_state
     assert "R18 — Mobile/API Readiness: **IN PROGRESS / LOCAL FOUNDATION**" not in handoff
@@ -331,7 +331,7 @@ def test_post_r12_governance_pointer_reconciles_completed_ledger() -> None:
     handoff = (ROOT / "docs/project/CURRENT_HANDOFF.md").read_text(encoding="utf-8")
     roadmap = (ROOT / "docs/project/ROADMAP.md").read_text(encoding="utf-8")
 
-    assert "Current Orena program: **R20 Mobile Learning Experience Parity — NEXT" in project_state
+    assert "Current Orena program: **R21 Mobile Release Readiness — HUMAN STORE-RELEASE" in project_state
     assert "Current Orena program: R18" not in project_state
     assert "R3 — Writing Evaluation Completion: **COMPLETE / LOCAL ACCEPTANCE PASS**" in project_state
     normalized_state = " ".join(project_state.split())
@@ -359,13 +359,13 @@ def test_post_r12_governance_pointer_reconciles_completed_ledger() -> None:
     assert "Current governance lane (2026-08-30)" in handoff
     # D-036 assigns R19-R21 as autonomous non-production implementation lanes,
     # superseding the earlier "no autonomous implementation owner" pointer.
-    assert "The autonomous R20 implementation lane is next" in normalized_handoff
+    assert "R20 — Mobile Learning Experience Parity: COMPLETE / LOCAL ACCEPTANCE PASS." in normalized_handoff
     assert "the R8/R11 promotion review remains an explicit human governance decision" in normalized_handoff
     assert "R8 public-product-gate owner" not in handoff
     assert "mobile/API-readiness follow-on owner" not in handoff
     assert "R2 capability-activation" in handoff
     assert "R8" in handoff and "R11" in handoff and "human gate" in handoff.casefold()
-    assert "**Next handoff:** R20 mobile learning vertical-slice verification and acceptance closeout" in normalized_handoff
+    assert "**Next handoff:** R21 mobile release-readiness completion" in normalized_handoff
     assert "R8 — Public Product Gate" in project_state
     assert "R11" in project_state and "human gate" in project_state.casefold()
     assert "| R12 | Retention & Growth | COMPLETE / LOCAL ACCEPTANCE PASS |" in roadmap
@@ -528,3 +528,53 @@ def test_r16_local_foundation_closeout_records_complete_evidence_chain() -> None
         assert evidence in normalized_handoff
     assert "EN/ZH behavior remains shared through existing contracts" in normalized_handoff
     assert "provider credentials, production activation, and public promotion remain deferred gates" in normalized_handoff
+
+
+def test_r20_local_mobile_matrix_is_reproducible_and_release_safe() -> None:
+    report = (ROOT / "docs/project/R20_LOCAL_ACCEPTANCE_MATRIX.json").read_text(encoding="utf-8")
+    runner = (ROOT / "scripts/r20_release_matrix.mjs").read_text(encoding="utf-8")
+    project_state = (ROOT / "docs/project/PROJECT_STATE.md").read_text(encoding="utf-8")
+    handoff = (ROOT / "docs/project/CURRENT_HANDOFF.md").read_text(encoding="utf-8")
+    roadmap = (ROOT / "docs/project/ROADMAP.md").read_text(encoding="utf-8")
+    r20_section = roadmap.split("## R20 — Mobile Learning Experience Parity", 1)[1].split("## R21", 1)[0]
+    normalized_r20 = " ".join(r20_section.split())
+
+    assert '"matrix": "R20-local-mobile-learning-parity"' in report
+    assert '"r20_local_complete": true' in report
+    for gated in ("device_qa", "store_release", "billing_activation", "public_skill_promotion"):
+        assert f'"{gated}": false' in report
+        assert f'"gate": "{gated}"' in report
+    assert '"scope": "mobile-jest-project"' in report
+    assert '"status": "static-contract"' in report
+
+    # Every R20 learner flow must be proved by a mounted native suite, not by a
+    # handoff-only unit test.
+    for suite in (
+        "src/features/home/HomeScreen.test.tsx",
+        "app/(app)/r20-writing-review.test.tsx",
+        "src/features/reading/readingScreen.test.tsx",
+        "app/(app)/listening.test.tsx",
+        "app/(app)/speaking.test.tsx",
+        "app/(app)/r20-6.test.tsx",
+    ):
+        assert f'"scope": "mounted-native:{suite}"' in report
+        assert (ROOT / "mobile" / suite).is_file()
+
+    assert "canonical R20 matrix report is stale" in runner
+    assert "if(output)" in runner
+    assert "must not restate scoring or mastery" in runner
+    assert "Speaking must not persist raw learner audio" in runner
+
+    assert "R20 — Mobile Learning Experience Parity: COMPLETE / LOCAL ACCEPTANCE PASS." in project_state
+    assert "R20 — Mobile Learning Experience Parity: PLANNED / NEXT AUTONOMOUS PRIMARY." not in project_state
+    assert "R20 — Mobile Learning Experience Parity: COMPLETE / LOCAL ACCEPTANCE PASS." in handoff
+    assert "| R20 | Mobile Learning Experience Parity | COMPLETE / LOCAL ACCEPTANCE PASS |" in roadmap
+    assert "| R20 | Mobile Learning Experience Parity | PLANNED |" not in roadmap
+    assert "**COMPLETE / LOCAL ACCEPTANCE PASS.**" in r20_section
+    assert "scripts/r20_release_matrix.mjs" in normalized_r20
+    assert (
+        "Device QA, provider credentials, store release, billing activation, and public skill promotion remain explicit human gates."
+        in normalized_r20
+    )
+    # A native binary must never imply a public skill.
+    assert "| R21 | Mobile Release Readiness | PLANNED / HUMAN STORE-RELEASE GATE |" in roadmap

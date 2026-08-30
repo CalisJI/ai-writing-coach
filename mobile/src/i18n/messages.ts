@@ -144,6 +144,10 @@ const flowMessages = {
     'grammar.title': '语法练习', 'grammar.loading': '正在加载语法课程……', 'grammar.empty': '暂时没有可用的语法课程。', 'grammar.unavailable': '语法暂时不可用，学习进度没有改变。', 'grammar.select': '选择课程', 'grammar.practice': '练习这节课', 'grammar.completing': '正在保存课程活动……', 'grammar.complete': '标记活动完成', 'grammar.completed': '活动已记录，这不代表掌握程度。', 'grammar.detail_loading': '正在加载课程详情……', 'grammar.detail_failed': '课程详情暂时不可用。',
   },
 } as const;
+// Exposed so EN/ZH parity can be asserted across every catalogue: `translate`
+// falls back to returning the raw id, so a missing ZH key would otherwise reach
+// a learner as literal text like "profile.title".
+export const MESSAGE_CATALOGUES = {messages, speaking: speakingMessages, flow: flowMessages} as const;
 export type MessageId = keyof typeof messages.en | keyof typeof speakingMessages.en | keyof typeof flowMessages.en | 'speaking.pronunciation_unavailable' | 'speaking.profile_loading' | 'speaking.profile_failed';
 
 export function translate(locale: Locale, id: MessageId): string {

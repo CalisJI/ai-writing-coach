@@ -1,0 +1,117 @@
+{
+  "schema_version": 1,
+  "matrix": "R20-local-mobile-learning-parity",
+  "verified": [
+    {
+      "check": "Home next-practice and return-to-practice",
+      "status": "pass",
+      "scope": "mounted-native:src/features/home/HomeScreen.test.tsx"
+    },
+    {
+      "check": "Writing -> Evaluate -> Review -> Grammar -> Revise",
+      "status": "pass",
+      "scope": "mounted-native:app/(app)/r20-writing-review.test.tsx"
+    },
+    {
+      "check": "Reading comprehension, dictionary, and Library handoff",
+      "status": "pass",
+      "scope": "mounted-native:src/features/reading/readingScreen.test.tsx"
+    },
+    {
+      "check": "Listening follow, active practice, and resume",
+      "status": "pass",
+      "scope": "mounted-native:app/(app)/listening.test.tsx"
+    },
+    {
+      "check": "Speaking record, evaluation, and Shadowing return",
+      "status": "pass",
+      "scope": "mounted-native:app/(app)/speaking.test.tsx"
+    },
+    {
+      "check": "Grammar, Active Recall, Journey, and Profile/Settings",
+      "status": "pass",
+      "scope": "mounted-native:app/(app)/r20-6.test.tsx"
+    },
+    {
+      "check": "Entitlement presentation and deferred purchase boundary",
+      "status": "pass",
+      "scope": "mounted-native:app/(app)/r21-entitlement.test.tsx"
+    },
+    {
+      "check": "Mobile suite executed in full",
+      "status": "pass",
+      "scope": "mobile-jest-project"
+    },
+    {
+      "check": "EN/ZH parity across every message catalogue",
+      "status": "pass",
+      "scope": "mounted-native:src/i18n/messages.test.tsx"
+    }
+  ],
+  "inspected": [
+    {
+      "check": "Server-authoritative learner contracts",
+      "status": "static-contract",
+      "scope": "mobile/src/api/client.ts"
+    },
+    {
+      "check": "Typed response validation on every read",
+      "status": "static-contract",
+      "scope": "mobile/src/api/client.ts"
+    },
+    {
+      "check": "No native scoring, mastery, or Grammar-ID redefinition across nine learner screens",
+      "status": "static-contract",
+      "scope": "mobile/app/(app)"
+    },
+    {
+      "check": "Screen-reader semantics present on every learner screen",
+      "status": "static-contract",
+      "scope": "mobile/app/(app)"
+    },
+    {
+      "check": "Speaking keeps audio transient; no raw learner audio is persisted",
+      "status": "static-contract",
+      "scope": "mobile/app/(app)/speaking.tsx"
+    },
+    {
+      "check": "Entitlement contract pins billing_ready false; no mobile-only policy is enforced",
+      "status": "static-contract",
+      "scope": "mobile/src/api/contracts/product.ts"
+    }
+  ],
+  "deferred": [
+    {
+      "gate": "device_qa",
+      "status": "deferred",
+      "reason": "Android/iOS on-device QA across rotation, keyboard, screen reader, and system text size requires physical or emulated devices outside this local matrix."
+    },
+    {
+      "gate": "provider_credentials",
+      "status": "deferred",
+      "reason": "Credentialed ASR, pronunciation, and evaluation providers remain human-gated; no secret is available to this local matrix."
+    },
+    {
+      "gate": "store_release",
+      "status": "deferred",
+      "reason": "Signing keys, store credentials, and public submission remain explicit human gates under R21."
+    },
+    {
+      "gate": "billing_activation",
+      "status": "deferred",
+      "reason": "R20 presents entitlement state only; purchase and billing activation require an explicit product decision."
+    },
+    {
+      "gate": "public_skill_promotion",
+      "status": "deferred",
+      "reason": "A native binary does not promote any learner skill; R8/R11 promotion remains a human governance decision."
+    }
+  ],
+  "release": {
+    "r20_local_complete": true,
+    "device_qa": false,
+    "store_release": false,
+    "billing_activation": false,
+    "public_skill_promotion": false
+  }
+}

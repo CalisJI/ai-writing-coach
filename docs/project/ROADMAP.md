@@ -46,8 +46,8 @@ require approval and must remain consistent with `PROJECT_STATE.md` and
 | R16 | Advanced Learning Intelligence | COMPLETE / LOCAL ACCEPTANCE PASS |
 | R17 | Product Analytics & Operational Observability | COMPLETE / LOCAL ACCEPTANCE PASS |
 | R18 | Mobile/API Readiness | COMPLETE / LOCAL ACCEPTANCE PASS |
-| R19 | Native Mobile App Foundation | PLANNED / NEXT AUTONOMOUS PRIMARY |
-| R20 | Mobile Learning Experience Parity | PLANNED |
+| R19 | Native Mobile App Foundation | COMPLETE / LOCAL ACCEPTANCE PASS |
+| R20 | Mobile Learning Experience Parity | COMPLETE / LOCAL ACCEPTANCE PASS |
 | R21 | Mobile Release Readiness | PLANNED / HUMAN STORE-RELEASE GATE |
 
 ## Historical execution order
@@ -647,7 +647,11 @@ change production authentication/provider state.
 
 ## R20 — Mobile Learning Experience Parity
 
-**PLANNED / NEXT AUTONOMOUS PRIMARY.**
+**COMPLETE / LOCAL ACCEPTANCE PASS.** The deterministic
+`scripts/r20_release_matrix.mjs` runner executes the mounted native suites and
+records the result in `docs/project/R20_LOCAL_ACCEPTANCE_MATRIX.json`. Device
+QA, provider credentials, store release, billing activation, and public skill
+promotion remain explicit human gates.
 
 R20 turns the R19 shell into a learner-usable mobile product by implementing the
 existing Orena learning loops as native mobile vertical slices while consuming

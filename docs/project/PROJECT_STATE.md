@@ -18,9 +18,9 @@ operational state.
 
 - Application version: `1.4.0`
 - BECOMING frontend version: `2.17.5`
-- Current Orena program: **R20 Mobile Learning Experience Parity — NEXT
-  AUTONOMOUS PRIMARY.** R0–R19 local foundations are preserved; R20–R21 add the real native
-  mobile client on top of those contracts. R8/R11 promotion, R2 activation,
+- Current Orena program: **R21 Mobile Release Readiness — HUMAN STORE-RELEASE
+  GATE.** R0–R20 local foundations are preserved; R20 delivered the real native
+  learner flows on top of those contracts and R21 prepares controlled release. R8/R11 promotion, R2 activation,
   production operations, store signing/credentials, billing, and public release
   remain deferred human gates and do not block non-production mobile development.
 
@@ -540,10 +540,15 @@ public capability-dependent release requires it.
   microphone/media boundaries, and portable Android/iOS build preparation.
   Host/device validation, signing, stores, and production actions remain human
   gates.
-- **R20 — Mobile Learning Experience Parity: PLANNED / NEXT AUTONOMOUS PRIMARY.** Implement the existing
-  Writing, Review, Grammar, Reading, Listening, Speaking/Shadowing, Library,
-  Journey, Home, onboarding, and Profile flows as native mobile vertical slices
-  consuming the same backend/domain contracts.
+- **R20 — Mobile Learning Experience Parity: COMPLETE / LOCAL ACCEPTANCE PASS.**
+  The existing Writing, Review, Grammar, Reading, Listening, Speaking/Shadowing,
+  Library, Journey, Home, onboarding, and Profile flows are implemented as
+  native mobile vertical slices consuming the same backend/domain contracts.
+  `scripts/r20_release_matrix.mjs` executes the mounted native suites and pins
+  the result in `docs/project/R20_LOCAL_ACCEPTANCE_MATRIX.json`: nine verified
+  mounted checks, six static contract inspections, and five explicit human
+  deferrals. Device QA, provider credentials, store release, billing
+  activation, and public skill promotion remain gated.
 - **R21 — Mobile Release Readiness: PLANNED / HUMAN STORE-RELEASE GATE.** Prepare
   Android/iOS release builds, OAuth/deep-link configuration, privacy/device QA,
   diagnostics, store metadata, and R15-compatible mobile entitlement/billing

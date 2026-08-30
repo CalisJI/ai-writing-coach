@@ -50,13 +50,30 @@ Ownership returned to Claude as primary implementation owner after a Codex
 interval. `claude/integration-v2` HEAD matches `origin/codex/work`; nothing
 diverged and no historical branch was merged wholesale.
 
-- R20 native vertical slices are **IMPLEMENTED / NOT YET ACCEPTANCE-CLOSED**
-  through `69b0ff6`: Reading with contextual dictionary and saved-word Library
-  handoff, Listening follow/active practice/resume, Speaking evaluation and
-  Shadowing return, Grammar, Active Recall, Journey, Profile/Settings,
-  cross-skill resilience, accessibility, and layout parity. R20 has no
-  deterministic acceptance matrix comparable to R10/R11/R13/R14, so `ROADMAP.md`
-  status is deliberately unchanged pending that evidence.
+- **R20 — Mobile Learning Experience Parity: COMPLETE / LOCAL ACCEPTANCE PASS.**
+  The native vertical slices landed through `69b0ff6` (Reading with contextual
+  dictionary and saved-word Library handoff, Listening follow/active
+  practice/resume, Speaking evaluation and Shadowing return, Grammar, Active
+  Recall, Journey, Profile/Settings, cross-skill resilience, accessibility, and
+  layout parity), and acceptance is now closed by the deterministic
+  `scripts/r20_release_matrix.mjs` runner and
+  `docs/project/R20_LOCAL_ACCEPTANCE_MATRIX.json`: nine verified mounted checks,
+  six static contract inspections, five explicit human deferrals, with the
+  canonical report checked byte-for-byte in the runner's default mode.
+- Closing R20 exposed one real parity gap: **Writing and Review had no mounted
+  test at all**, so the loop R20 names first — Writing → Evaluate → Review →
+  Grammar targeted practice → Revise — was the only flow with no native
+  evidence. `mobile/app/(app)/r20-writing-review.test.tsx` now mounts both
+  screens across EN/ZH and covers the real evaluation payload, the practice
+  brief versus revision distinction (`parent_essay_id` linkage), literal server
+  evidence in the interface language, the R5 Grammar handoff, single-consumption
+  handoffs, and truthful empty/disabled/failure states.
+- A second gap: EN/ZH parity was asserted only over the main message catalogue,
+  while `speakingMessages` and `flowMessages` went unchecked. Because
+  `translate` falls back to returning the message id, a missing ZH key would
+  have reached a learner as literal text like `profile.title`. `MESSAGE_CATALOGUES`
+  is now exported and the i18n suite asserts parity across every catalogue and
+  that no id is ever rendered raw. Parity held; the check now guards it.
 - R21 readiness work through `d1e27a1` covers privacy boundaries, diagnostics,
   store metadata, and entitlement presentation with an explicit deferred
   purchase boundary. Store credentials, signing, billing activation, and
@@ -761,13 +778,12 @@ Android Studio/JDK/device and macOS/Xcode/iOS simulator checks remain deferred
 human actions, as do signing, store credentials, OAuth registration, and store
 release.
 
-**Next handoff:** R20 mobile learning vertical-slice verification and acceptance
-closeout. The slices are implemented; what is missing is evidence. Recover the
-Docker runtime, run the containerized `pytest -q test_app.py tests` regression
-for the R20/R21 mobile work, then produce a deterministic R20 acceptance matrix
-comparable to R10/R11/R13/R14 before any `ROADMAP.md` status transition. Do not
-add provider activation, raw-audio persistence, billing, signing, or
-store-release behavior.
+**Next handoff:** R21 mobile release-readiness completion. R20 is locally closed,
+so the remaining work is the R21 checklist itself — OAuth/deep-link redirect
+verification, reproducible signed-build preparation, and the device-QA matrix
+across EN/ZH, light/dark, accessibility, auth expiry, offline/degraded states,
+media resume, and upgrade paths. Do not add provider activation, raw-audio
+persistence, billing, signing, or store-release behavior: those stay human gates.
 
 ## R18 immutable reference-data cache contract
 
