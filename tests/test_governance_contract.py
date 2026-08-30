@@ -551,11 +551,11 @@ def test_r20_local_mobile_matrix_is_reproducible_and_release_safe() -> None:
     # handoff-only unit test.
     for suite in (
         "src/features/home/HomeScreen.test.tsx",
-        "app/(app)/r20-writing-review.test.tsx",
+        "test/routes/r20-writing-review.test.tsx",
         "src/features/reading/readingScreen.test.tsx",
-        "app/(app)/listening.test.tsx",
-        "app/(app)/speaking.test.tsx",
-        "app/(app)/r20-6.test.tsx",
+        "test/routes/listening.test.tsx",
+        "test/routes/speaking.test.tsx",
+        "test/routes/r20-6.test.tsx",
     ):
         assert f'"scope": "mounted-native:{suite}"' in report
         assert (ROOT / "mobile" / suite).is_file()
@@ -563,6 +563,11 @@ def test_r20_local_mobile_matrix_is_reproducible_and_release_safe() -> None:
     assert "canonical R20 matrix report is stale" in runner
     assert "if(output)" in runner
     assert "must not restate scoring or mastery" in runner
+    # Expo Router bundles everything under app/ as a route, so a stray test file
+    # there crashes the app at launch while every unit test stays green.
+    assert "test files must not live under mobile/app" in runner
+    assert not list((ROOT / "mobile/app").rglob("*.test.tsx"))
+    assert not list((ROOT / "mobile/app").rglob("*.spec.tsx"))
     assert "Speaking must not persist raw learner audio" in runner
 
     assert "R20 — Mobile Learning Experience Parity: COMPLETE / LOCAL ACCEPTANCE PASS." in project_state

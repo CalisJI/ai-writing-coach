@@ -4,7 +4,7 @@
 // boundaries that cannot be proved by mounting are recorded as static
 // inspections, and device/store/billing actions stay explicit human deferrals.
 import assert from 'node:assert/strict';
-import {existsSync, readFileSync, writeFileSync} from 'node:fs';
+import {existsSync, readdirSync, readFileSync, writeFileSync} from 'node:fs';
 import {resolve} from 'node:path';
 import {spawnSync} from 'node:child_process';
 
@@ -46,12 +46,12 @@ for(const path of requiredFiles) assert.ok(existsSync(resolve(root,path)),`missi
 // actually renders its screen; a handoff-only unit test is not parity evidence.
 const mountedSuites=[
   ['Home next-practice and return-to-practice','src/features/home/HomeScreen.test.tsx'],
-  ['Writing -> Evaluate -> Review -> Grammar -> Revise','app/(app)/r20-writing-review.test.tsx'],
+  ['Writing -> Evaluate -> Review -> Grammar -> Revise','test/routes/r20-writing-review.test.tsx'],
   ['Reading comprehension, dictionary, and Library handoff','src/features/reading/readingScreen.test.tsx'],
-  ['Listening follow, active practice, and resume','app/(app)/listening.test.tsx'],
-  ['Speaking record, evaluation, and Shadowing return','app/(app)/speaking.test.tsx'],
-  ['Grammar, Active Recall, Journey, and Profile/Settings','app/(app)/r20-6.test.tsx'],
-  ['Entitlement presentation and deferred purchase boundary','app/(app)/r21-entitlement.test.tsx'],
+  ['Listening follow, active practice, and resume','test/routes/listening.test.tsx'],
+  ['Speaking record, evaluation, and Shadowing return','test/routes/speaking.test.tsx'],
+  ['Grammar, Active Recall, Journey, and Profile/Settings','test/routes/r20-6.test.tsx'],
+  ['Entitlement presentation and deferred purchase boundary','test/routes/r21-entitlement.test.tsx'],
 ];
 for(const [,suite] of mountedSuites) assert.ok(existsSync(resolve(root,'mobile',suite)),`missing mounted R20 suite: ${suite}`);
 assert.ok(existsSync(resolve(root,'mobile/node_modules')),'mobile dependencies are not installed; run `npm ci` in mobile/ before this matrix');
@@ -68,6 +68,14 @@ assert.ok(totals,`could not read mobile jest totals from:\n${jestOutput}`);
 assert.equal(totals[1],totals[2],'every mobile test must pass');
 for(const [label,suite] of mountedSuites) verified.push({check:label,status:'pass',scope:`mounted-native:${suite}`});
 verified.push({check:'Mobile suite executed in full',status:'pass',scope:'mobile-jest-project'});
+
+// Expo Router turns every file under app/ into a route, so a test file there is
+// bundled and executed at runtime, where `jest` does not exist: the app crashed
+// on launch while all unit tests stayed green. Device QA caught it; this keeps it caught.
+const routeFiles=readdirSync(resolve(root,'mobile/app'),{recursive:true,encoding:'utf8'});
+const strayTests=routeFiles.filter(name=>/\.(test|spec)\.[jt]sx?$/.test(String(name)));
+assert.deepEqual(strayTests,[],`test files must not live under mobile/app (Expo Router would bundle them as routes): ${strayTests.join(', ')}`);
+inspected.push({check:'No test files under mobile/app; Expo Router routes stay executable',status:'static-contract',scope:'mobile/app'});
 
 // EN/ZH parity is a product invariant. It is executed, not inspected: the i18n
 // suite compares every catalogue and proves `translate` never falls through to a

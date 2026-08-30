@@ -4,8 +4,8 @@ import {I18nProvider} from '../../src/i18n/I18nProvider';
 import {ThemeProvider} from '../../src/theme/ThemeProvider';
 import {clearWritingHandoff, setGrammarWritingHandoff, setPracticeWritingHandoff, setRevisionWritingHandoff} from '../../src/features/writing/writingHandoff';
 import {clearReviewHandoff, consumeReviewHandoff, setReviewHandoff} from '../../src/features/review/reviewHandoff';
-import WritingScreen from './writing';
-import ReviewScreen from './review';
+import WritingScreen from '../../app/(app)/writing';
+import ReviewScreen from '../../app/(app)/review';
 
 const mockPush = jest.fn();
 const mockReplace = jest.fn();

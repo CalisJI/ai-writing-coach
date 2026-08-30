@@ -5,7 +5,7 @@ import {I18nProvider} from '../../src/i18n/I18nProvider';
 import {ThemeProvider} from '../../src/theme/ThemeProvider';
 import {MemoryKeyValueStorage} from '../../src/storage/boundedCache';
 import {readListeningPending, writeListeningResume} from '../../src/features/listening/listeningResume';
-import ListeningScreen from './listening';
+import ListeningScreen from '../../app/(app)/listening';
 
 let mockCookie: string | null = null;
 let mockAppStateHandler: ((state: AppStateStatus) => void) | null = null;

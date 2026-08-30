@@ -68,6 +68,22 @@ diverged and no historical branch was merged wholesale.
   brief versus revision distinction (`parent_essay_id` linkage), literal server
   evidence in the interface language, the R5 Grammar handoff, single-consumption
   handoffs, and truthful empty/disabled/failure states.
+- **P0 found by Android emulator QA, after R20 was first recorded complete:** the
+  app crashed on launch. Expo Router registers every file under `app/` as a
+  route, so the five `.test.tsx` files there — four inherited from the Codex lane
+  plus the one this lane added following that convention — were bundled and
+  executed at runtime, where `jest` does not exist. Metro reported
+  `Route "./(app)/listening.test.tsx" is missing the required default export`
+  for each, then `ReferenceError: Property 'jest' doesn't exist`, and the app
+  showed the error overlay instead of the sign-in screen. All 138 unit tests
+  were green throughout; no static check could see it. The tests moved to
+  `mobile/test/routes/`, `jest.testMatch` follows them, and the matrix now
+  asserts no test file lives under `mobile/app` — a guard verified to fail when
+  one is reintroduced. After the fix the bundle is `1228` modules with no
+  warning or error (previously `1238` with five route warnings and four
+  runtime errors) and the app boots to "Welcome to Orena".
+  **The earlier R20 completion claim in this document was therefore wrong when
+  written: the product could not start.** It is accurate only as of this fix.
 - A second gap: EN/ZH parity was asserted only over the main message catalogue,
   while `speakingMessages` and `flowMessages` went unchecked. Because
   `translate` falls back to returning the message id, a missing ZH key would

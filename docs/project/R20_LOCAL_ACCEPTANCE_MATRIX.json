@@ -10,7 +10,7 @@
     {
       "check": "Writing -> Evaluate -> Review -> Grammar -> Revise",
       "status": "pass",
-      "scope": "mounted-native:app/(app)/r20-writing-review.test.tsx"
+      "scope": "mounted-native:test/routes/r20-writing-review.test.tsx"
     },
     {
       "check": "Reading comprehension, dictionary, and Library handoff",
@@ -20,22 +20,22 @@
     {
       "check": "Listening follow, active practice, and resume",
       "status": "pass",
-      "scope": "mounted-native:app/(app)/listening.test.tsx"
+      "scope": "mounted-native:test/routes/listening.test.tsx"
     },
     {
       "check": "Speaking record, evaluation, and Shadowing return",
       "status": "pass",
-      "scope": "mounted-native:app/(app)/speaking.test.tsx"
+      "scope": "mounted-native:test/routes/speaking.test.tsx"
     },
     {
       "check": "Grammar, Active Recall, Journey, and Profile/Settings",
       "status": "pass",
-      "scope": "mounted-native:app/(app)/r20-6.test.tsx"
+      "scope": "mounted-native:test/routes/r20-6.test.tsx"
     },
     {
       "check": "Entitlement presentation and deferred purchase boundary",
       "status": "pass",
-      "scope": "mounted-native:app/(app)/r21-entitlement.test.tsx"
+      "scope": "mounted-native:test/routes/r21-entitlement.test.tsx"
     },
     {
       "check": "Mobile suite executed in full",
@@ -49,6 +49,11 @@
     }
   ],
   "inspected": [
+    {
+      "check": "No test files under mobile/app; Expo Router routes stay executable",
+      "status": "static-contract",
+      "scope": "mobile/app"
+    },
     {
       "check": "Server-authoritative learner contracts",
       "status": "static-contract",

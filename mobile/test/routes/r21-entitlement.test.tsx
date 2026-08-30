@@ -2,7 +2,7 @@ import React from 'react';
 import renderer, {act} from 'react-test-renderer';
 import {I18nProvider} from '../../src/i18n/I18nProvider';
 import {ThemeProvider} from '../../src/theme/ThemeProvider';
-import ProfileScreen from './profile';
+import ProfileScreen from '../../app/(app)/profile';
 
 const mockProfile = {isPending: false, isError: false, data: {exists: true, language: 'en', goal: 'everyday', style: 'guided', pinyin: 'auto', native_language: 'vi', theme_preset: 'editorial', updated_at: '2026-01-01'}};
 const mockSave = {isPending: false, mutateAsync: jest.fn(() => Promise.resolve({}))};

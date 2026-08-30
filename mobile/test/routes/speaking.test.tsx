@@ -3,7 +3,7 @@ import renderer, {act} from 'react-test-renderer';
 import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
 import {I18nProvider} from '../../src/i18n/I18nProvider';
 import {ThemeProvider} from '../../src/theme/ThemeProvider';
-import SpeakingScreen from './speaking';
+import SpeakingScreen from '../../app/(app)/speaking';
 
 jest.mock('expo-audio', () => ({AudioModule: {}, RecordingPresets: {LOW_QUALITY: {}}, createAudioPlayer: jest.fn(), getRecordingPermissionsAsync: jest.fn(), requestRecordingPermissionsAsync: jest.fn(), setAudioModeAsync: jest.fn()}));
 

@@ -2,10 +2,10 @@ import React from 'react';
 import renderer, {act} from 'react-test-renderer';
 import {I18nProvider} from '../../src/i18n/I18nProvider';
 import {ThemeProvider} from '../../src/theme/ThemeProvider';
-import GrammarScreen from './grammar';
-import LibraryScreen from './library';
-import JourneyScreen from './journey';
-import ProfileScreen from './profile';
+import GrammarScreen from '../../app/(app)/grammar';
+import LibraryScreen from '../../app/(app)/library';
+import JourneyScreen from '../../app/(app)/journey';
+import ProfileScreen from '../../app/(app)/profile';
 
 const mockPush = jest.fn();
 let mockCookie: string | null = 'cookie';
