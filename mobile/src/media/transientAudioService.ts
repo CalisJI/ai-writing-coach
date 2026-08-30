@@ -1,7 +1,5 @@
 import {
   AudioModule,
-  PLAYBACK_STATUS_UPDATE,
-  RECORDING_STATUS_UPDATE,
   RecordingPresets,
   createAudioPlayer,
   getRecordingPermissionsAsync,
@@ -70,7 +68,7 @@ const defaultAdapter: AudioAdapter = {
       },
       getURI: () => uri ?? recording.uri,
       setOnRecordingStatusUpdate: (listener) => {
-        subscription = recording.addListener(RECORDING_STATUS_UPDATE, (status) => listener({
+        subscription = recording.addListener('recordingStatusUpdate', (status) => listener({
           isRecording: !status.isFinished,
           isDoneRecording: status.isFinished,
         }));
@@ -84,7 +82,7 @@ const defaultAdapter: AudioAdapter = {
   },
   createSound: async (uri, onFinished) => {
     const player = createAudioPlayer({uri});
-    const subscription = player.addListener(PLAYBACK_STATUS_UPDATE, (status) => {
+    const subscription = player.addListener('playbackStatusUpdate', (status) => {
       if (status.didJustFinish) onFinished();
     });
     return {

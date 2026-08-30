@@ -1,6 +1,5 @@
 import React from 'react';
 import renderer, {act} from 'react-test-renderer';
-import {Pressable} from 'react-native';
 import {Text} from 'react-native';
 import {AccessibleButton} from './AccessibleButton';
 import {AppErrorBoundary, TestShellProviders} from './AppErrorBoundary';
@@ -8,7 +7,11 @@ import {AppErrorBoundary, TestShellProviders} from './AppErrorBoundary';
 describe('shell accessibility and degraded state', () => {
   it('exposes a labeled touch-sized button', () => {
     const tree = renderer.create(<TestShellProviders><AccessibleButton label="Continue" /></TestShellProviders>);
-    const button = tree.root.findByType(Pressable);
+    // React 19's test renderer exposes the function inside React Native's
+    // memoized Pressable wrapper, so locate the learner-visible control by its
+    // stable accessibility contract instead of renderer internals.
+    const button = tree.root.findAllByProps({accessibilityRole: 'button', accessibilityLabel: 'Continue'})[0];
+    if (!button) throw new Error('Continue button was not rendered');
     expect(button.props.accessible).toBe(true);
     expect(button.props.accessibilityRole).toBe('button');
     expect(button.props.accessibilityLabel).toBe('Continue');
