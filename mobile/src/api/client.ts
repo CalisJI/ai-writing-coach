@@ -3,7 +3,7 @@ import {ApiError, normalizeUnknownError} from './errors';
 import {logoutResponseSchema, nativeSessionExchangeSchema, type NativeSessionExchange} from './contracts/nativeAuth';
 import {sessionBootstrapSchema, type SessionBootstrap} from './contracts/session';
 import {compactMediaStatusSchema, strokeOrderSchema, type CompactMediaStatus, type StrokeOrder} from './contracts/reference';
-import {learnerProfileSchema, learnerProfileInputSchema, learningLanguageSchema, practiceRecommendationSchema, practiceTaskSchema, type LearnerProfile, type LearnerProfileInput, type LearningLanguage, type PracticeRecommendation, type PracticeTask} from './contracts/learning';
+import {evaluationInputSchema, evaluationResultSchema, grammarPracticeSchema, learnerProfileSchema, learnerProfileInputSchema, learningLanguageSchema, practiceRecommendationSchema, practiceTaskSchema, type EvaluationInput, type EvaluationResult, type GrammarPractice, type LearnerProfile, type LearnerProfileInput, type LearningLanguage, type PracticeRecommendation, type PracticeTask} from './contracts/learning';
 
 type FetchLike = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
 
@@ -94,6 +94,18 @@ export class ApiClient {
   async getNextPractice(targetLevel: string, options: RequestOptions = {}): Promise<PracticeTask> {
     if (typeof targetLevel !== 'string' || targetLevel.trim() === '') throw new ApiError('request_rejected', 'Practice target level is required');
     return this.request('/api/practice/next', options, practiceTaskSchema.parse, 'POST', {target_level: targetLevel});
+  }
+
+  async evaluateWriting(input: EvaluationInput, options: RequestOptions = {}): Promise<EvaluationResult> {
+    let payload: EvaluationInput;
+    try { payload = evaluationInputSchema.parse(input); } catch { throw new ApiError('request_rejected', 'Writing submission was invalid'); }
+    return this.request('/api/evaluate', options, evaluationResultSchema.parse, 'POST', payload);
+  }
+
+  async getGrammarPractice(grammarId: string, evidence = '', options: RequestOptions = {}): Promise<GrammarPractice> {
+    if (typeof grammarId !== 'string' || grammarId.trim() === '') throw new ApiError('request_rejected', 'Grammar lesson is required');
+    const suffix = typeof evidence === 'string' && evidence.trim() ? `?evidence=${encodeURIComponent(evidence.trim())}` : '';
+    return this.request(`/api/grammar/${encodeURIComponent(grammarId)}${'/practice'}${suffix}`, options, grammarPracticeSchema.parse);
   }
 
   getBaseUrl(): string {

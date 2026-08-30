@@ -1,7 +1,7 @@
 export const messages = {
   en: {
     'app.name': 'Orena',
-    'onboarding.learning_language': 'Language you are learning',
+    'onboarding.learning_language': 'Language you are learning', 'writing.revise_title': 'Revise your writing', 'writing.response_label': 'Your writing', 'writing.response_placeholder': 'Write at least a few sentences…', 'writing.submit': 'Submit for review', 'writing.submitting': 'Reviewing your writing…', 'writing.submit_failed': 'Your writing was not submitted. No progress was changed.', 'review.title': 'Writing review', 'review.summary': 'Server feedback', 'review.grammar': 'Practice this grammar', 'review.revise': 'Revise this writing', 'review.no_result': 'No review is open.', 'review.loading_practice': 'Loading grammar practice…', 'review.practice_failed': 'Grammar practice is temporarily unavailable.',
     'app.tagline': 'A calm place to build language skill.',
     'auth.signed_out_title': 'Welcome to Orena',
     'auth.signed_out_body': 'Sign in to continue your learning journey.',
@@ -56,7 +56,7 @@ export const messages = {
   },
   zh: {
     'app.name': 'Orena',
-    'onboarding.learning_language': '你正在学习的语言',
+    'onboarding.learning_language': '你正在学习的语言', 'writing.revise_title': '修改你的写作', 'writing.response_label': '你的写作', 'writing.response_placeholder': '请写几句话……', 'writing.submit': '提交并查看复习', 'writing.submitting': '正在分析你的写作……', 'writing.submit_failed': '写作未提交，学习进度没有改变。', 'review.title': '写作复习', 'review.summary': '服务器反馈', 'review.grammar': '练习这个语法', 'review.revise': '修改这篇写作', 'review.no_result': '当前没有打开的复习结果。', 'review.loading_practice': '正在加载语法练习……', 'review.practice_failed': '语法练习暂时不可用。',
     'app.tagline': '在平静的空间里持续提升语言能力。',
     'auth.signed_out_title': '欢迎来到 Orena',
     'auth.signed_out_body': '登录后继续你的学习旅程。',

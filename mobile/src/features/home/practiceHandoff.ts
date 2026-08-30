@@ -1,18 +1,16 @@
 import {practiceTaskSchema, type PracticeTask} from '../../api/contracts/learning';
-
-let pending: PracticeTask | null = null;
+import {clearWritingHandoff, consumeWritingHandoff, setPracticeWritingHandoff} from '../writing/writingHandoff';
 
 /** Navigation-only context; server responses remain the source of learner truth. */
 export function setPracticeHandoff(task: PracticeTask): void {
-  pending = practiceTaskSchema.parse(task);
+  setPracticeWritingHandoff(practiceTaskSchema.parse(task));
 }
 
 export function consumePracticeHandoff(): PracticeTask | null {
-  const task = pending;
-  pending = null;
-  return task;
+  const value = consumeWritingHandoff();
+  return value?.kind === 'practice' ? value.task : null;
 }
 
 export function clearPracticeHandoff(): void {
-  pending = null;
+  clearWritingHandoff();
 }

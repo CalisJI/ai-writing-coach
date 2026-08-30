@@ -1,3 +1,19 @@
-import {ShellScreen} from '../../src/components/ShellScreen';
+import {useMemo, useState} from 'react';
+import {Pressable, ScrollView, StyleSheet, Text, View} from 'react-native';
+import {useRouter} from 'expo-router';
+import {createConfiguredApiClient} from '../../src/api/client';
+import {useSession} from '../../src/auth/SessionHarness';
 import {useI18n} from '../../src/i18n/I18nProvider';
-export default function ReviewScreen() { const {t} = useI18n(); return <ShellScreen title={t('nav.review')} />; }
+import {useTheme} from '../../src/theme/ThemeProvider';
+import {useGrammarPractice} from '../../src/query/useWritingEvaluation';
+import {consumeReviewHandoff} from '../../src/features/review/reviewHandoff';
+import {setGrammarWritingHandoff, setRevisionWritingHandoff} from '../../src/features/writing/writingHandoff';
+
+export default function ReviewScreen() {
+  const {t, locale} = useI18n(); const {tokens} = useTheme(); const {sessionCookie} = useSession(); const router = useRouter(); const [handoff] = useState(consumeReviewHandoff);
+  const client = useMemo(() => { try { return createConfiguredApiClient(); } catch { return null; } }, []); const grammar = useGrammarPractice(client, sessionCookie);
+  if (!handoff) return <View style={[styles.container, {backgroundColor: tokens.colors.background}]}><Text style={{color: tokens.colors.text}}>{t('review.no_result')}</Text></View>;
+  const {result, input} = handoff;
+  return <ScrollView contentContainerStyle={[styles.container, {backgroundColor: tokens.colors.background}]}><Text accessibilityRole="header" style={[styles.title, {color: tokens.colors.text}]}>{t('review.title')}</Text><Text style={[styles.heading, {color: tokens.colors.text}]}>{t('review.summary')}</Text><Text style={{color: tokens.colors.text}}>{result.summary_vi}</Text><Text style={{color: tokens.colors.mutedText}}>{result.app_cefr} · {result.overall}</Text>{result.errors.map((error, index) => { const explanation = locale === 'zh' ? (error.explanation_zh ?? error.explanation_vi ?? error.explanation) : (error.explanation_en ?? error.explanation_vi ?? error.explanation); const rule = locale === 'zh' ? (error.mini_rule_zh ?? error.mini_rule_vi ?? '') : (error.mini_rule_en ?? error.mini_rule_vi ?? ''); return <View key={error.id ?? `issue-${index}`} style={[styles.card, {backgroundColor: tokens.colors.surface}]}><Text style={{color: tokens.colors.text}}>{typeof error.fragment === 'string' ? error.fragment : ''}</Text><Text style={{color: tokens.colors.mutedText}}>{explanation}</Text><Text style={{color: tokens.colors.text}}>{rule}</Text><Text style={{color: tokens.colors.text}}>{typeof error.suggestion === 'string' ? error.suggestion : ''}</Text></View>; })}{result.grammar_links.map((link) => <Pressable key={link.grammar_id} accessibilityRole="button" disabled={grammar.isPending} onPress={() => grammar.mutate({grammarId: link.grammar_id, evidence: link.evidence}, {onSuccess: (task) => { setGrammarWritingHandoff(task, input.learning_language ?? 'en'); router.push('/(app)/writing'); }})} style={[styles.button, {backgroundColor: tokens.colors.accent}]}><Text style={styles.buttonText}>{t('review.grammar')}: {link.title ?? link.grammar_id}</Text></Pressable>)}<Pressable accessibilityRole="button" onPress={() => { setRevisionWritingHandoff(result.id, input.text, input.prompt, input.target_cefr, input.learning_language ?? 'en'); router.push('/(app)/writing'); }} style={[styles.button, {backgroundColor: tokens.colors.accent}]}><Text style={styles.buttonText}>{t('review.revise')}</Text></Pressable>{grammar.isError && <Text accessibilityRole="alert" style={{color: tokens.colors.danger}}>{t('review.practice_failed')}</Text>}</ScrollView>;
+}
+const styles = StyleSheet.create({container: {flexGrow: 1, padding: 24, gap: 12}, title: {fontSize: 28, fontWeight: '700'}, heading: {fontSize: 20, fontWeight: '700'}, card: {padding: 16, borderRadius: 12, gap: 6}, button: {padding: 16, borderRadius: 12, alignItems: 'center'}, buttonText: {color: '#fff', fontWeight: '700'}});

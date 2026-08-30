@@ -79,3 +79,22 @@ export const practiceTaskSchema = z.object({
 }).strict();
 
 export type PracticeTask = z.infer<typeof practiceTaskSchema>;
+
+export const practiceContextSchema = z.object({
+  intent: z.enum(['repair', 'reinforce', 'transfer', 'baseline']), focus_category: z.string().max(80), focus_label: z.string().max(120),
+  focus_family: z.enum(['grammar', 'vocabulary', 'coherence', 'task_achievement', 'naturalness', 'expression']), focus_status: z.string().max(40).optional(), task_type: z.string().max(32), topic: z.string().max(120), target_level: z.string().max(12), action_label: z.string().max(120), reason: z.string().max(1600), evidence: z.string().max(600), focus_instruction: z.string().max(1600), grammar_id: z.string().max(160).optional(), grammar_title: z.string().max(240).optional(),
+}).strict();
+export type PracticeContext = z.infer<typeof practiceContextSchema>;
+
+const evaluationIssueSchema = z.object({id: z.union([z.string(), z.number()]).optional(), category: z.string().optional(), fragment: z.string().optional(), explanation: z.string().optional(), explanation_vi: z.string().optional(), explanation_en: z.string().optional(), explanation_zh: z.string().optional(), mini_rule_vi: z.string().optional(), mini_rule_en: z.string().optional(), mini_rule_zh: z.string().optional(), suggestion: z.string().optional(), confidence: z.number().optional(), grammar_link_id: z.string().optional()}).passthrough();
+const grammarLinkSchema = z.object({grammar_id: z.string().min(1), title: z.string().optional(), level: z.string().optional(), issue_id: z.string().optional(), category: z.string().optional(), reason: z.string().optional(), evidence: z.string().optional(), source: z.string().optional()}).passthrough();
+export const evaluationResultSchema = z.object({
+  id: z.number().int().positive(), series_id: z.number().int().positive(), revision_no: z.number().int().positive(), parent_id: z.number().int().positive().nullable().optional(), overall: z.number(), app_cefr: z.string(), evaluator: z.string(), summary_vi: z.string(), strengths_vi: z.array(z.string()), strength_evidence: z.array(z.unknown()), priorities_vi: z.array(z.string()), errors: z.array(evaluationIssueSchema), grammar_links: z.array(grammarLinkSchema), delta: z.unknown().nullable().optional(), grammar: z.unknown().optional(), vocabulary: z.unknown().optional(), coherence: z.unknown().optional(), task_achievement: z.unknown().optional(), naturalness: z.unknown().optional(), cefr_estimate: z.string().optional(),
+}).passthrough();
+export type EvaluationResult = z.infer<typeof evaluationResultSchema>;
+
+export const evaluationInputSchema = z.object({prompt: z.string().max(5000), text: z.string().min(10).max(20000), target_cefr: z.string().min(2).max(12), parent_essay_id: z.number().int().positive().optional(), practice_context: practiceContextSchema.optional(), learning_language: z.enum(['en', 'zh']).optional()}).strict();
+export type EvaluationInput = z.infer<typeof evaluationInputSchema>;
+
+export const grammarPracticeSchema = z.object({grammar_id: z.string().min(1), title: z.string().min(1), level: z.string().min(2), target_level: z.string().min(2), prompt: z.string().min(1), practice_blueprint: z.record(z.unknown()), practice_context: practiceContextSchema, source: z.string().min(1)}).strict();
+export type GrammarPractice = z.infer<typeof grammarPracticeSchema>;
