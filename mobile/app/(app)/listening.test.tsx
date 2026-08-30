@@ -9,7 +9,7 @@ import ListeningScreen from './listening';
 
 let mockCookie: string | null = null;
 let mockAppStateHandler: ((state: AppStateStatus) => void) | null = null;
-const mockRouter = {replace: jest.fn()};
+const mockRouter = {replace: jest.fn(), push: jest.fn()};
 const mockImport = {isPending: false, mutate: jest.fn(), reset: jest.fn()};
 const mockSave = {isPending: false, mutate: jest.fn()};
 const mockProgress = {isPending: false, isError: false, data: {items: []}};
@@ -22,7 +22,7 @@ const lesson = {
   translations: [],
 };
 
-jest.mock('expo-router', () => ({useRouter: () => mockRouter}));
+jest.mock('expo-router', () => ({useRouter: () => mockRouter, useLocalSearchParams: () => ({})}));
 jest.mock('../../src/auth/SessionHarness', () => ({useSession: () => ({session: {status: mockCookie ? 'authenticated' : 'signed-out', source: 'server'}, sessionCookie: mockCookie})}));
 jest.mock('../../src/api/client', () => ({createConfiguredApiClient: () => ({}), ApiClient: class {}}));
 jest.mock('../../src/query/useListening', () => ({useImportMedia: () => mockImport, useListeningProgress: () => mockProgress, useSaveListeningProgress: () => mockSave}));
@@ -42,6 +42,7 @@ describe('native Listening R20-4 Follow/Active and resume contract', () => {
   beforeEach(() => {
     mockCookie = null;
     mockRouter.replace.mockReset();
+    mockRouter.push.mockReset();
     mockImport.isPending = false;
     mockImport.mutate.mockReset();
     mockImport.reset.mockReset();
@@ -81,6 +82,16 @@ describe('native Listening R20-4 Follow/Active and resume contract', () => {
     act(() => { view.root.findByProps({accessibilityLabel: 'Save checked attempt'}).props.onPress(); });
     expect(mockSave.mutate).toHaveBeenCalledWith(expect.objectContaining({asset_id: 'asset-en-1', segment_id: 'segment-1', presentation: 'checked', checked_attempt_count: 1, last_answer: 'Good morning.'}), expect.any(Object));
     await expect(storage.getItem('orena.listening.resume.v1')).resolves.toContain('asset-en-1');
+  });
+
+  it('hands the selected canonical segment to Shadowing', async () => {
+    mockCookie = 'cookie';
+    mockImport.mutate.mockImplementation((_input: unknown, options: {onSuccess: (value: unknown) => void}) => options.onSuccess(lesson));
+    const {view} = renderListening('en');
+    act(() => { view.root.findByProps({accessibilityLabel: 'Media URL'}).props.onChangeText('https://youtu.be/example'); });
+    await act(async () => { view.root.findByProps({accessibilityLabel: 'Prepare listening lesson'}).props.onPress(); await Promise.resolve(); });
+    act(() => { view.root.findByProps({accessibilityLabel: 'Return to this Listening segment'}).props.onPress(); });
+    expect(mockRouter.push).toHaveBeenCalledWith(expect.objectContaining({params: expect.objectContaining({mode: 'shadowing', assetId: 'asset-en-1', segmentId: 'segment-1', referenceText: 'Good morning.'})}));
   });
 
   it('restores a canonical ZH resume segment and mode, while rejecting unavailable preparation', async () => {

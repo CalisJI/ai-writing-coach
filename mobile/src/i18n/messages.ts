@@ -118,8 +118,21 @@ export const messages = {
 } as const;
 
 export type Locale = keyof typeof messages;
-export type MessageId = keyof typeof messages.en;
+const speakingMessages = {
+  en: {
+    'speaking.title': 'Speaking studio', 'speaking.body': 'Record one transient take and review server-confirmed evidence.', 'speaking.shadowing': 'Shadowing', 'speaking.reference': 'Source segment', 'speaking.start': 'Allow microphone and record', 'speaking.stop': 'Stop and evaluate', 'speaking.cancel': 'Discard take', 'speaking.recording': 'Recording temporarily. Nothing is saved to your account.', 'speaking.transcribing': 'Transcribing your take…', 'speaking.evaluating': 'Preparing server evidence…', 'speaking.evidence': 'Server-confirmed evidence', 'speaking.transcript': 'Recognized text', 'speaking.pronunciation': 'Pronunciation', 'speaking.fluency': 'Fluency', 'speaking.next_steps': 'Next steps', 'speaking.step_focus_words': 'Focus words', 'speaking.step_missing_tokens': 'Words to include', 'speaking.step_fluency': 'Steady your pace', 'speaking.step_complete_line': 'Complete the line', 'speaking.unavailable': 'Speaking is temporarily unavailable. No progress was changed.', 'speaking.permission': 'Microphone permission is required to record.', 'speaking.no_reference': 'Choose a Listening segment before starting Shadowing.', 'speaking.back_listening': 'Back to Listening', 'speaking.open_listening': 'Return to this Listening segment',
+  },
+  zh: {
+    'speaking.title': '口语工作室', 'speaking.body': '录制一段临时音频，并查看服务器确认的证据。', 'speaking.shadowing': '跟读', 'speaking.reference': '来源片段', 'speaking.start': '允许麦克风并录音', 'speaking.stop': '停止并分析', 'speaking.cancel': '丢弃录音', 'speaking.recording': '正在临时录音，不会保存到你的账户。', 'speaking.transcribing': '正在转写录音……', 'speaking.evaluating': '正在准备服务器证据……', 'speaking.evidence': '服务器确认的证据', 'speaking.transcript': '识别文本', 'speaking.pronunciation': '发音', 'speaking.fluency': '流利度', 'speaking.next_steps': '下一步', 'speaking.step_focus_words': '重点词语', 'speaking.step_missing_tokens': '需要补上的词', 'speaking.step_fluency': '放慢并稳定语速', 'speaking.step_complete_line': '说完整句子', 'speaking.unavailable': '口语服务暂时不可用，学习进度没有改变。', 'speaking.permission': '需要麦克风权限才能录音。', 'speaking.no_reference': '开始跟读前，请先选择听力片段。', 'speaking.back_listening': '返回听力', 'speaking.open_listening': '返回此听力片段',
+  },
+} as const;
+const speakingDegradedMessages = {en: 'Pronunciation evidence is unavailable; transcript evidence is shown without a pronunciation score.', zh: '发音证据暂时不可用；现显示转写证据，不提供发音分数。'} as const;
+const speakingProfileMessages = {en: {loading: 'Confirming your learning language…', failed: 'Your learning language could not be confirmed. Recording is unavailable until it is loaded.'}, zh: {loading: '正在确认你的学习语言……', failed: '无法确认你的学习语言。加载完成前不能录音。'}} as const;
+export type MessageId = keyof typeof messages.en | keyof typeof speakingMessages.en | 'speaking.pronunciation_unavailable' | 'speaking.profile_loading' | 'speaking.profile_failed';
 
 export function translate(locale: Locale, id: MessageId): string {
-  return messages[locale][id];
+  if (id === 'speaking.pronunciation_unavailable') return speakingDegradedMessages[locale];
+  if (id === 'speaking.profile_loading') return speakingProfileMessages[locale].loading;
+  if (id === 'speaking.profile_failed') return speakingProfileMessages[locale].failed;
+  return (messages[locale] as Record<string, string>)[id] ?? (speakingMessages[locale] as Record<string, string>)[id] ?? id;
 }

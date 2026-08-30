@@ -115,6 +115,10 @@ export class TransientAudioService {
     return this.snapshot;
   }
 
+  getRecordingUri(): string | null {
+    return this.uri;
+  }
+
   subscribe(listener: (snapshot: TransientAudioSnapshot) => void): () => void {
     this.listeners.add(listener);
     return () => this.listeners.delete(listener);

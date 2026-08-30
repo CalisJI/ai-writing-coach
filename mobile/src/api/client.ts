@@ -7,6 +7,7 @@ import {evaluationInputSchema, evaluationResultSchema, grammarPracticeSchema, le
 import {readingAnswerResultSchema, readingGenerateInputSchema, readingSessionResponseSchema, readingSessionSchema, type ReadingAnswerResult, type ReadingGenerateInput, type ReadingSession} from './contracts/reading';
 import {dictionaryInputSchema, dictionaryResultSchema, librarySchema, saveLibraryInputSchema, saveLibraryResultSchema, type DictionaryInput, type DictionaryResult} from './contracts/library';
 import {listeningProgressListSchema, listeningProgressResponseSchema, mediaImportInputSchema, mediaLessonSchema, type ListeningProgressInput, type MediaImportInput, type MediaLesson} from './contracts/listening';
+import {speechAttemptResponseSchema, speechEvaluationSchema, speechTranscriptionSchema, type SpeechEvaluation, type SpeechAttemptResponse, type SpeechTranscription} from './contracts/speech';
 
 type FetchLike = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
 
@@ -129,6 +130,21 @@ export class ApiClient {
   async saveListeningProgress(input: ListeningProgressInput, options: RequestOptions = {}): Promise<Awaited<ReturnType<typeof listeningProgressResponseSchema.parse>>> {
     return this.request('/api/listening/progress', options, listeningProgressResponseSchema.parse, 'POST', input);
   }
+  async transcribeSpeaking(uri: string, language: 'en' | 'zh', options: RequestOptions = {}): Promise<SpeechTranscription> {
+    return this.speechUpload('/api/speech/transcribe', uri, language, undefined, options, speechTranscriptionSchema.parse);
+  }
+  async assessSpeakingPronunciation(uri: string, language: 'en' | 'zh', referenceText: string, options: RequestOptions = {}): Promise<Record<string, unknown>> {
+    return this.speechUpload('/api/speech/pronunciation', uri, language, referenceText, options, (value) => {
+      if (!value || typeof value !== 'object') throw new Error('invalid pronunciation response');
+      return value as Record<string, unknown>;
+    });
+  }
+  async evaluateSpeaking(input: Record<string, unknown>, options: RequestOptions = {}): Promise<SpeechEvaluation> {
+    return this.request('/api/speech/evaluation', options, speechEvaluationSchema.parse, 'POST', input);
+  }
+  async saveSpeakingAttempt(input: Record<string, unknown>, options: RequestOptions = {}): Promise<SpeechAttemptResponse> {
+    return this.request('/api/speech/attempts', options, speechAttemptResponseSchema.parse, 'POST', input);
+  }
 
   getBaseUrl(): string {
     return this.baseUrl;
@@ -156,6 +172,19 @@ export class ApiClient {
     }
   }
 
+  private async speechUpload<T>(path: string, uri: string, language: 'en' | 'zh', referenceText: string | undefined, options: RequestOptions, parse: (value: unknown) => T): Promise<T> {
+    if (typeof uri !== 'string' || uri.trim() === '') throw new ApiError('request_rejected', 'Recording is unavailable');
+    const form = new FormData();
+    form.append('file', {uri, name: 'recording.m4a', type: 'audio/m4a'} as unknown as Blob);
+    form.append('language', language);
+    if (referenceText !== undefined) form.append('reference_text', referenceText);
+    const response = await this.rawRequest(path, options, 'POST', form);
+    this.throwForResponse(response);
+    let body: unknown;
+    try { body = await response.json(); } catch { throw new ApiError('invalid_response', 'Invalid server response', response.status); }
+    try { return parse(body); } catch { throw new ApiError('invalid_response', 'Invalid server response', response.status); }
+  }
+
   private async rawRequest(
     path: string,
     options: RequestOptions,
@@ -181,11 +210,12 @@ export class ApiClient {
       const headers: Record<string, string> = {Accept: 'application/json'};
       if (options.sessionCookie) headers.Cookie = `${SESSION_COOKIE_NAME}=${options.sessionCookie}`;
       if (options.ifNoneMatch) headers['If-None-Match'] = options.ifNoneMatch;
-      if (payload !== undefined) headers['Content-Type'] = 'application/json';
+      const multipart = typeof FormData !== 'undefined' && payload instanceof FormData;
+      if (payload !== undefined && !multipart) headers['Content-Type'] = 'application/json';
       const response = await this.fetchImpl(`${this.baseUrl}${path}`, {
         method,
         headers,
-        ...(payload === undefined ? {} : {body: JSON.stringify(payload)}),
+        ...(payload === undefined ? {} : {body: multipart ? payload as BodyInit : JSON.stringify(payload)}),
         cache: 'no-store',
         signal: controller.signal,
       });
