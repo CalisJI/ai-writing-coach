@@ -143,6 +143,21 @@ describe('typed mobile API client', () => {
     expect(calls.every((call) => (call.init?.headers as Record<string, string>).Cookie === `${SESSION_COOKIE_NAME}=cookie`)).toBe(true);
   });
 
+  it('consumes the server-authoritative R15 product account state', async () => {
+    const account = {
+      available: true,
+      plan: {id: 'free', name: 'Free', description: 'Core writing practice.', price_label: 'Free', entitlements: [{key: 'writing.evaluate', enabled: true, monthly_limit: 30}]},
+      subscription: {state: 'active', status: 'active'}, plan_state: 'active', billing_ready: false,
+      features: {'writing.evaluate': {key: 'writing.evaluate', enabled: true, monthly_limit: 30, used: 30, remaining: 0, usage_state: 'known', entitlement_state: 'exhausted'}},
+    };
+    let request: RequestInit | undefined;
+    const client = new ApiClient({baseUrl: 'https://learn.example.test', fetchImpl: async (_input, init) => { request = init; return response(200, account); }});
+    await expect(client.getProductMe({sessionCookie: 'cookie'})).resolves.toEqual(account);
+    expect(request?.headers).toEqual({Accept: 'application/json', Cookie: `${SESSION_COOKIE_NAME}=cookie`});
+    const invalid = new ApiClient({baseUrl: 'https://learn.example.test', fetchImpl: async () => response(200, {...account, billing_ready: true})});
+    await expect(invalid.getProductMe()).rejects.toMatchObject({category: 'invalid_response'});
+  });
+
   it('consumes Grammar, Library recall, and Journey server contracts', async () => {
     const grammarLibrary = {lessons: [{id: 'en-articles', title: 'Articles', level: 'B1', kind: 'grammar', completed: false}], total: 1, completed: 0, levels: ['B1'], level_names: {B1: 'B1'}, language: 'en'};
     const grammarLesson = {id: 'en-articles', title: 'Articles', level: 'B1', completed: false, examples: [{target: 'A learner writes.'}], quick_reference: {rule: 'Use a before consonant sounds.'}};

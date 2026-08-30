@@ -64,7 +64,7 @@ describe('mobile lifecycle revalidation', () => {
   it('revalidates every mutable learner-flow read on foreground or reconnect', async () => {
     const client = new QueryClient();
     const keys = [
-      ['learner-profile'], ['practice', 'recommendation'], ['listening', 'progress', 'asset-1'],
+      ['learner-profile'], ['product', 'me'], ['practice', 'recommendation'], ['listening', 'progress', 'asset-1'],
       ['library', 'vocabulary'], ['grammar', 'library'], ['grammar', 'lesson', 'en-articles'],
       ['dashboard'], ['journey', 'practice-outcomes'],
     ] as const;

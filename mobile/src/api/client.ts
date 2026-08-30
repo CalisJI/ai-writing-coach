@@ -8,6 +8,7 @@ import {readingAnswerResultSchema, readingGenerateInputSchema, readingSessionRes
 import {dictionaryInputSchema, dictionaryResultSchema, librarySchema, saveLibraryInputSchema, saveLibraryResultSchema, type DictionaryInput, type DictionaryResult} from './contracts/library';
 import {listeningProgressListSchema, listeningProgressResponseSchema, mediaImportInputSchema, mediaLessonSchema, type ListeningProgressInput, type MediaImportInput, type MediaLesson} from './contracts/listening';
 import {speechAttemptResponseSchema, speechEvaluationSchema, speechTranscriptionSchema, type SpeechEvaluation, type SpeechAttemptResponse, type SpeechTranscription} from './contracts/speech';
+import {productAccountStateSchema, type ProductAccountState} from './contracts/product';
 
 type FetchLike = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
 
@@ -78,6 +79,10 @@ export class ApiClient {
 
   async getLearnerProfile(options: RequestOptions = {}): Promise<LearnerProfile> {
     return this.request('/api/learner-profile', options, learnerProfileSchema.parse);
+  }
+
+  async getProductMe(options: RequestOptions = {}): Promise<ProductAccountState> {
+    return this.request('/api/product/me', options, productAccountStateSchema.parse);
   }
 
   async setLearningLanguage(language: 'en' | 'zh', options: RequestOptions = {}): Promise<LearningLanguage> {

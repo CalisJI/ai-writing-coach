@@ -40,6 +40,7 @@ export function useLifecycleRevalidation(queryClient: QueryClient, reconnect: Re
     const revalidator = new LifecycleRevalidator(queryClient, [
       ['session', 'bootstrap'],
       ['learner-profile'],
+      ['product', 'me'],
       ['practice', 'recommendation'],
       ['reference'],
       ['media', 'status'],
