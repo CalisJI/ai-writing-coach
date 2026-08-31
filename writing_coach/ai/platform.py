@@ -508,7 +508,12 @@ def _credential_test(provider_id: str, values: dict[str, Any]) -> list[str]:
     try:
         return item.discover_models_live()
     except (AIProviderNotConfigured, AIProviderUnavailable, AIProviderError, AIProviderResponseInvalid) as exc:
-        raise HTTPException(502, "Provider connection validation failed.") from exc
+        # Provider adapters deliberately expose only sanitized failure classes
+        # and status codes. Returning that safe detail makes key restrictions,
+        # invalid credentials, and network failures distinguishable without
+        # leaking provider response bodies or credential material.
+        detail = str(exc).strip() or "Provider request failed."
+        raise HTTPException(502, f"Provider connection validation failed: {detail}") from exc
 
 
 @router.get("/credentials")
