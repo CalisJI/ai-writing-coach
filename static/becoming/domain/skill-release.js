@@ -16,6 +16,7 @@ export function skillAvailable(item,{internal=false}={}){
 }
 
 export function routeAvailable(route,skills,{internal=false}={}){
+  if(route==='admin')return internal;
   const key=SKILL_BY_ROUTE[route];
   return !key || skillAvailable(byKey(skills).get(key),{internal});
 }
@@ -27,4 +28,10 @@ export function applySkillNavigation(skills,{internal=false,root=document}={}){
     link.hidden=hidden;
     link.classList.toggle('hidden',hidden);
   });
+  const adminLink=root.querySelector('[data-admin-route]');
+  if(adminLink){
+    const hidden=!internal;
+    adminLink.hidden=hidden;
+    adminLink.classList.toggle('hidden',hidden);
+  }
 }

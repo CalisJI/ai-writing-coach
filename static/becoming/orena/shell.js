@@ -22,6 +22,7 @@ const TITLE_KEYS = {
   grammar: 'title.grammar',
   journey: 'title.journey',
   profile: 'title.profile',
+  admin: 'title.admin',
   onboarding: 'title.onboarding',
 };
 

@@ -331,6 +331,22 @@ def admin_ai_config(request: Request) -> dict[str, Any]:
     return result
 
 
+@router.get("/catalog")
+def admin_ai_catalog(request: Request) -> dict[str, Any]:
+    """Return the provider model catalog for the explicit Admin picker.
+
+    Catalog discovery is read-only and intentionally separate from the
+    network-free capability inspection endpoint. It never changes the active
+    model, capability settings, learner routing, or production state.
+    """
+
+    _require_admin(request)
+    return {
+        "providers": [_provider_snapshot(value) for value in providers().values()],
+        "read_only": True,
+    }
+
+
 @router.get("/operations")
 def admin_ai_operations(request: Request, limit: int = 100) -> dict[str, Any]:
     _require_admin(request)
