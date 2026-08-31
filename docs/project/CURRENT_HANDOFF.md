@@ -12,7 +12,7 @@ secret backup/restore, production authentication, live-provider validation,
 runtime activation, and public release remain human-gated.
 
 **Application/runtime baseline:**
-`6c93d05b3cb1c79c2986af0ab4a83cf664eae3a9`
+`7cdd4ad`
 
 This baseline is the locally verified Orena UI/UX `2.17.5` integration code
 checkpoint. It inherits the reviewed R5 Grammar Knowledge System closeout

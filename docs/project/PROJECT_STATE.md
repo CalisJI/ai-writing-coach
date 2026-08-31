@@ -19,7 +19,7 @@ historical narrative.
 - Product: Orena / BECOMING codebase
 - Repository: `CalisJI/ai-writing-coach`
 - Last verified application/runtime baseline:
-  `6c93d05b3cb1c79c2986af0ab4a83cf664eae3a9`
+  `7cdd4ad`
 
 This SHA identifies the verified application/runtime baseline inherited by this
 governance checkpoint. Documentation-only or governance-only descendant commits
