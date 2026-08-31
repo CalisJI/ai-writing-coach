@@ -2,6 +2,9 @@ import type {PropsWithChildren, ReactNode} from 'react';
 import {Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle} from 'react-native';
 import {useTheme} from '../theme/ThemeProvider';
 import {ASIDE_WIDTH, useScreenLayout} from '../theme/layout';
+import {fontSizes as orenaText} from '../theme/tokens';
+
+export {fontSizes as orenaText} from '../theme/tokens';
 
 /**
  * The Orena shell primitives, mirrored from `static/becoming/orena/*.css`.
@@ -10,7 +13,6 @@ import {ASIDE_WIDTH, useScreenLayout} from '../theme/layout';
  * body 15, heading 17, title 20. Screens compose `Hero` and `Panel` from these
  * rather than each inventing its own card.
  */
-export const orenaText = {meta: 12, label: 13, ui: 14, body: 15, heading: 17, title: 20} as const;
 
 /** `.o-label` — the small heading that opens a panel. */
 export function Label({children}: PropsWithChildren) {
@@ -22,7 +24,7 @@ export function Label({children}: PropsWithChildren) {
 export function Panel({children, style}: PropsWithChildren<{style?: StyleProp<ViewStyle>}>) {
   const {tokens} = useTheme();
   return (
-    <View style={[styles.panel, {backgroundColor: tokens.colors.surface, borderColor: tokens.colors.border, borderRadius: tokens.radius.card}, style]}>
+    <View style={[styles.panel, tokens.elevation.card, {backgroundColor: tokens.colors.surface, borderColor: tokens.colors.border, borderRadius: tokens.radius.card}, style]}>
       {children}
     </View>
   );
@@ -78,7 +80,7 @@ export function Hero({greeting, statement, lede, actions, aside}: {greeting: str
   // `.o-hero` is two columns above 1023px and one below, and the statement
   // steps down from its clamp to 26px on the narrow layout.
   return (
-    <View style={[styles.hero, wide ? styles.heroWide : styles.heroNarrow, {backgroundColor: tokens.colors.surface, borderColor: tokens.colors.border, borderRadius: tokens.radius.card}]}>
+    <View style={[styles.hero, wide ? styles.heroWide : styles.heroNarrow, tokens.elevation.raised, {backgroundColor: tokens.colors.surface, borderColor: tokens.colors.border, borderRadius: tokens.radius.card}]}>
       <View style={styles.heroCopy}>
         <Text style={[styles.heroGreet, {color: tokens.colors.mutedText}]}>{greeting}</Text>
         <Text accessibilityRole="header" style={[wide ? styles.heroStatement : styles.heroStatementNarrow, {color: tokens.colors.heading}]}>{statement}</Text>
@@ -131,7 +133,7 @@ const styles = StyleSheet.create({
   heroGreet: {fontSize: orenaText.ui, marginBottom: 14},
   // `.o-hero-statement`: 600 weight on tight leading and negative tracking.
   heroStatement: {fontSize: 38, fontWeight: '600', lineHeight: 42, letterSpacing: -0.9, marginBottom: 14},
-  heroStatementNarrow: {fontSize: 26, fontWeight: '600', lineHeight: 31, letterSpacing: -0.5, marginBottom: 14},
+  heroStatementNarrow: {fontSize: 20, fontWeight: '600', lineHeight: 31, letterSpacing: -0.5, marginBottom: 14},
   heroLede: {fontSize: orenaText.body, lineHeight: 24, marginBottom: 26},
   heroActions: {flexDirection: 'row', flexWrap: 'wrap', gap: 12},
   metric: {gap: 2, minWidth: 96},

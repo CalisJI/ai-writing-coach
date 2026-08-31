@@ -28,4 +28,4 @@ export function OnboardingForm({onSubmit, isSaving, failed}: {onSubmit: (profile
   </ScrollView>;
 }
 
-const formStyles = StyleSheet.create({container: {padding: 24, gap: 12, flexGrow: 1}, title: {fontSize: 28, fontWeight: '700'}, body: {fontSize: 16, lineHeight: 24}, label: {fontSize: 16, fontWeight: '700', marginTop: 12}, choiceGroup: {gap: 8}, choice: {borderWidth: 1, borderRadius: 10, padding: 14}, button: {padding: 16, borderRadius: 10, alignItems: 'center', minHeight: 44, justifyContent: 'center', marginTop: 12}, buttonText: {fontSize: 14, fontWeight: '700'}});
+const formStyles = StyleSheet.create({container: {padding: 24, gap: 12, flexGrow: 1}, title: {fontSize: 20, fontWeight: '700'}, body: {fontSize: 15, lineHeight: 24}, label: {fontSize: 15, fontWeight: '700', marginTop: 12}, choiceGroup: {gap: 8}, choice: {borderWidth: 1, borderRadius: 15, padding: 14}, button: {padding: 16, borderRadius: 15, alignItems: 'center', minHeight: 44, justifyContent: 'center', marginTop: 12}, buttonText: {fontSize: 14, fontWeight: '700'}});

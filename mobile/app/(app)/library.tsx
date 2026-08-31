@@ -50,11 +50,11 @@ export default function LibraryScreen() {
 
 const styles = StyleSheet.create({
   container: {flexGrow: 1, padding: 24, gap: 12, width: '100%', maxWidth: CONTENT_MAX, alignSelf: 'center'},
-  title: {fontSize: 28, fontWeight: '700'},
-  card: {padding: 16, borderRadius: 18, gap: 6, borderWidth: 1},
-  word: {fontSize: 22, fontWeight: '700'},
-  button: {padding: 16, borderRadius: 10, alignItems: 'center', minHeight: 44, justifyContent: 'center'},
+  title: {fontSize: 20, fontWeight: '700'},
+  card: {padding: 16, borderRadius: 20, gap: 6, borderWidth: 1},
+  word: {fontSize: 17, fontWeight: '700'},
+  button: {padding: 16, borderRadius: 15, alignItems: 'center', minHeight: 44, justifyContent: 'center'},
   buttonText: {fontSize: 14, fontWeight: '700'},
   actions: {flexDirection: 'row', gap: 8},
-  smallButton: {flex: 1, padding: 12, borderRadius: 10, borderWidth: 1, alignItems: 'center'},
+  smallButton: {flex: 1, padding: 12, borderRadius: 15, borderWidth: 1, alignItems: 'center'},
 });

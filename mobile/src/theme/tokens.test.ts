@@ -1,70 +1,89 @@
-import {PALETTE_PRESETS, fontSizes, radii, space, tokensFor} from './tokens';
+import {PALETTE_PRESETS, elevation, fontSizes, metrics, radii, tokensFor} from './tokens';
 
-describe('native theme tokens', () => {
-  it('keeps light and dark surfaces readable', () => {
+describe('Orena design tokens', () => {
+  // static/becoming/orena/tokens.css is authoritative: its values were measured
+  // off docs/visual-references/Orena-prod/*.png. An earlier port read the legacy
+  // theme.css instead, so the app was built on superseded values.
+  it('takes the light surfaces and ink from the --o- layer, not theme.css', () => {
     const light = tokensFor('light');
-    const dark = tokensFor('dark');
-    expect(light.colors.background).not.toBe(light.colors.text);
-    expect(dark.colors.background).not.toBe(dark.colors.text);
-    expect(light.spacing.medium).toBe(16);
-  });
-
-  // static/becoming/theme.css is authoritative. The native client had invented a
-  // navy/blue palette of its own, so the app did not look like the product.
-  it('matches the web Orena tokens rather than a native-only palette', () => {
-    const light = tokensFor('light');
-    expect(light.colors.background).toBe('#F7F7F5');
+    expect(light.colors.background).toBe('#F2EFEA');
     expect(light.colors.surface).toBe('#FFFFFF');
-    expect(light.colors.heading).toBe('#111214');
-    expect(light.colors.text).toBe('#303236');
-    expect(light.colors.mutedText).toBe('#72757B');
-    expect(light.colors.accent).toBe('#FF6A1A');
+    expect(light.colors.surfaceSunken).toBe('#F8F5F1');
+    expect(light.colors.border).toBe('#EFECE7');
+    expect(light.colors.borderStrong).toBe('#DFDAD4');
+    expect(light.colors.text).toBe('#16161A');
+    expect(light.colors.mutedText).toBe('#6B6B76');
+    expect(light.colors.faintText).toBe('#9A9AA4');
+    // The legacy values must not creep back.
+    expect(light.colors.background).not.toBe('#F7F7F5');
+    expect(light.colors.text).not.toBe('#303236');
+  });
 
+  it('uses the measured reference orange, which is deeper than the legacy accent', () => {
+    const light = tokensFor('light');
+    expect(light.colors.accent).toBe('#FD5703');
+    expect(light.colors.accentHover).toBe('#E84A00');
+    expect(light.colors.accent).not.toBe('#FF6A1A');
+  });
+
+  it('takes the dark surfaces from the --o- layer', () => {
     const dark = tokensFor('dark');
-    expect(dark.colors.background).toBe('#111310');
-    expect(dark.colors.surface).toBe('#181B17');
-    expect(dark.colors.heading).toBe('#F5F4EF');
-    expect(dark.colors.accent).toBe('#FF7A2F');
+    expect(dark.colors.background).toBe('#08090B');
+    expect(dark.colors.surface).toBe('#15181C');
+    expect(dark.colors.raised).toBe('#1A1E23');
+    expect(dark.colors.text).toBe('#F4F4F6');
+    expect(dark.colors.border).toBe('#22262A');
+    // Dark keeps the same accent; only the three non-editorial palettes swap it.
+    expect(dark.colors.accent).toBe('#FD5703');
   });
 
-  it('uses the web spacing, radius and type steps', () => {
-    expect(space).toMatchObject({1: 4, 2: 8, 3: 12, 4: 16, 6: 24, 8: 32});
-    expect(radii).toEqual({small: 8, control: 10, object: 14, surface: 18, hero: 22});
-    expect(fontSizes).toMatchObject({meta: 12, ui: 14, body: 16, bodyLarge: 18, h3: 22, h2: 28, h1: 36});
+  it('carries the semantic colours the web declares', () => {
+    expect(tokensFor('light').colors.positive).toBe('#1B7F3B');
+    expect(tokensFor('light').colors.attention).toBe('#B4770F');
+    expect(tokensFor('light').colors.danger).toBe('#C43D2E');
+    expect(tokensFor('dark').colors.positive).toBe('#5BB878');
+    expect(tokensFor('dark').colors.danger).toBe('#E4776A');
+  });
+
+  it('uses the --o- radius, type and layout metrics', () => {
+    expect(radii).toEqual({card: 20, field: 15, chip: 10, pill: 999});
+    expect(fontSizes).toEqual({meta: 12, label: 13, ui: 14, body: 15, heading: 17, title: 20});
+    expect(metrics).toEqual({gutter: 32, gap: 28, headerHeight: 80, sidebarWidth: 244, asideWidth: 288});
     const tokens = tokensFor('light');
-    expect(tokens.radius.control).toBe(radii.control);
-    expect(tokens.radius.card).toBe(radii.surface);
+    expect(tokens.radius.card).toBe(20);
+    expect(tokens.radius.control).toBe(15);
   });
 
-  it('serves every learner-selectable palette in both schemes', () => {
+  it('gives surfaces real elevation instead of leaving them flat outlines', () => {
+    // Without --o-shadow-card the cards read as outlines, which is the effect
+    // the token file's own comments say the design rejected.
+    for (const scheme of ['light', 'dark'] as const) {
+      expect(elevation[scheme].card.shadowRadius).toBeGreaterThan(0);
+      expect(elevation[scheme].card.elevation).toBeGreaterThan(0);
+      expect(elevation[scheme].raised.shadowRadius).toBeGreaterThan(elevation[scheme].card.shadowRadius);
+    }
+    // Dark mode carries far heavier shadows in the reference.
+    expect(elevation.dark.card.shadowOpacity).toBeGreaterThan(elevation.light.card.shadowOpacity);
+  });
+
+  it('serves every learner-selectable palette with a distinct accent', () => {
     expect(PALETTE_PRESETS).toEqual(['editorial', 'sage', 'clay', 'blueprint']);
     const seen = new Set<string>();
     for (const preset of PALETTE_PRESETS) {
       for (const scheme of ['light', 'dark'] as const) {
         const tokens = tokensFor(scheme, preset);
         expect(tokens.preset).toBe(preset);
-        // Each palette must be distinct, or the learner's choice does nothing.
-        seen.add(`${tokens.colors.background}|${tokens.colors.accent}`);
-        // Text on an accent fill must not be the accent itself.
         expect(tokens.colors.onAccent).not.toBe(tokens.colors.accent);
+        seen.add(tokens.colors.accent);
       }
     }
-    expect(seen.size).toBe(PALETTE_PRESETS.length * 2);
-  });
-
-  it('never leaves a button label hardcoded white on a light accent', () => {
-    // sage and blueprint use light accents in dark mode, where the old
-    // hardcoded '#fff' label was unreadable.
-    for (const preset of PALETTE_PRESETS) {
-      const dark = tokensFor('dark', preset);
-      expect(dark.colors.onAccent).toBe('#111310');
-      expect(tokensFor('light', preset).colors.onAccent).toBe('#FFFFFF');
-    }
+    // Editorial shares one accent across schemes; the other three do not.
+    expect(seen.size).toBe(PALETTE_PRESETS.length * 2 - 1);
   });
 
   it('falls back to the default face for an unknown palette instead of rendering nothing', () => {
     const tokens = tokensFor('light', 'unknown' as never);
     expect(tokens.preset).toBe('editorial');
-    expect(tokens.colors.background).toBe('#F7F7F5');
+    expect(tokens.colors.background).toBe('#F2EFEA');
   });
 });

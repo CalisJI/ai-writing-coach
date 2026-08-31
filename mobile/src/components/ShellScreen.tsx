@@ -16,6 +16,6 @@ export function ShellScreen({title}: {title: string}) {
 
 const styles = StyleSheet.create({
   container: {flex: 1, padding: 24, gap: 12},
-  title: {fontSize: 28, fontWeight: '700'},
-  body: {fontSize: 16, lineHeight: 24},
+  title: {fontSize: 20, fontWeight: '700'},
+  body: {fontSize: 15, lineHeight: 24},
 });

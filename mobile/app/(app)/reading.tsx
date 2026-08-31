@@ -88,12 +88,12 @@ export default function ReadingScreen() {
 
 const styles = StyleSheet.create({
   container: {flexGrow: 1, padding: 24, gap: 12, width: '100%', maxWidth: CONTENT_MAX, alignSelf: 'center'},
-  title: {fontSize: 28, fontWeight: '700'},
-  passage: {fontSize: 18, lineHeight: 30},
-  card: {padding: 16, borderRadius: 18, gap: 8, borderWidth: 1},
+  title: {fontSize: 20, fontWeight: '700'},
+  passage: {fontSize: 15, lineHeight: 30},
+  card: {padding: 16, borderRadius: 20, gap: 8, borderWidth: 1},
   option: {paddingVertical: 8},
-  input: {borderWidth: 1, borderRadius: 10, padding: 14, minHeight: 48},
-  button: {padding: 16, borderRadius: 10, alignItems: 'center', minHeight: 44, justifyContent: 'center'},
+  input: {borderWidth: 1, borderRadius: 15, padding: 14, minHeight: 48},
+  button: {padding: 16, borderRadius: 15, alignItems: 'center', minHeight: 44, justifyContent: 'center'},
   buttonText: {fontSize: 14, fontWeight: '700'},
   link: {paddingVertical: 8},
 });

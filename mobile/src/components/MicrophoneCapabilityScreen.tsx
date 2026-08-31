@@ -35,4 +35,4 @@ export function MicrophoneCapabilityScreen({service: suppliedService}: {service?
   </SafeAreaView>;
 }
 
-const styles = StyleSheet.create({container: {flex: 1, padding: 24, gap: 16}, title: {fontSize: 28, fontWeight: '700'}, body: {fontSize: 16, lineHeight: 24}, actions: {gap: 12}});
+const styles = StyleSheet.create({container: {flex: 1, padding: 24, gap: 16}, title: {fontSize: 20, fontWeight: '700'}, body: {fontSize: 15, lineHeight: 24}, actions: {gap: 12}});
