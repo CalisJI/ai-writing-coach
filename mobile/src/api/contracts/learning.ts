@@ -138,3 +138,12 @@ export const learningMemorySchema = z.object({
   language: z.string(), essay_count: z.number().int().nonnegative(), revision_count: z.number().int().nonnegative(), focus: memoryPatternSchema.nullable(), patterns: z.array(memoryPatternSchema), strengths: z.array(memoryStrengthSchema), revision_wins: z.array(memoryRevisionWinSchema), review_cue: memoryReviewCueSchema.nullable(),
 }).passthrough();
 export type LearningMemory = z.infer<typeof learningMemorySchema>;
+
+// GET /api/practice-outcome/{essay_id} -- writing_coach/becoming_outcomes.py's get_practice_outcome().
+export const practiceOutcomeResponseSchema = z.object({found: z.boolean(), outcome: practiceOutcomeSchema.nullable()}).passthrough();
+export type PracticeOutcomeResponse = z.infer<typeof practiceOutcomeResponseSchema>;
+
+// GET /api/review-cue?essay_id= -- writing_coach/becoming_memory.py's get_review_cue(); same
+// shape as learningMemorySchema's review_cue but this endpoint also returns grammar_id.
+export const reviewCueSchema = z.object({available: z.boolean(), state: z.string().optional(), source: z.string().optional(), status: z.string().optional(), category: z.string().optional(), evidence: z.string().optional(), essay_id: z.number().int().positive().nullable().optional(), grammar_id: z.string().optional()}).passthrough();
+export type ReviewCue = z.infer<typeof reviewCueSchema>;

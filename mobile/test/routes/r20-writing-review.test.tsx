@@ -17,6 +17,7 @@ jest.mock('expo-router', () => ({useRouter: () => ({push: mockPush, replace: moc
 jest.mock('../../src/auth/SessionHarness', () => ({useSession: () => ({sessionCookie: mockCookie, session: {status: mockCookie ? 'authenticated' : 'signed_out'}})}));
 jest.mock('../../src/api/client', () => ({createConfiguredApiClient: () => ({}), ApiClient: class {}}));
 jest.mock('../../src/query/useWritingEvaluation', () => ({useEvaluateWriting: () => mockEvaluate, useGrammarPractice: () => mockGrammarPractice}));
+jest.mock('../../src/query/useReview', () => ({usePracticeOutcome: () => ({data: undefined, isPending: false, isError: false}), useReviewCue: () => ({data: undefined, isPending: false, isError: false})}));
 
 const render = (screen: React.ReactNode, locale: 'en' | 'zh' = 'en') => renderer.create(<I18nProvider initialLocale={locale}><ThemeProvider>{screen}</ThemeProvider></I18nProvider>);
 const texts = (view: renderer.ReactTestRenderer, value: string) => view.root.findAll((node) => node.props.children === value);
@@ -131,7 +132,9 @@ describe('R20 native Writing -> Evaluate -> Review -> Grammar -> Revise loop', (
     setReviewHandoff(evaluation, evaluationInput);
     const view = render(<ReviewScreen />, locale);
     expect(texts(view, 'Bài viết đủ ý nhưng còn lỗi chia động từ.')).not.toHaveLength(0);
-    expect(texts(view, 'I has')).not.toHaveLength(0);
+    // The fragment now renders as a quoted blockquote, matching review.js's
+    // own `“${fragment}”` treatment, rather than as the row's bare title.
+    expect(texts(view, '“I has”')).not.toHaveLength(0);
     expect(texts(view, 'I have')).not.toHaveLength(0);
     expect(texts(view, locale === 'zh' ? '主语和动词不一致。' : 'The subject and verb do not agree.')).not.toHaveLength(0);
     expect(texts(view, locale === 'zh' ? 'I 要用 have。' : 'Use have with I.')).not.toHaveLength(0);
