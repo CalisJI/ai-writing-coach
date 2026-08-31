@@ -1,6 +1,6 @@
 # Mobile Visual Parity Audit
 
-Status: **AUDIT COMPLETE / P0–P1 REMEDIATION IN PROGRESS**
+Status: **P0 CLOSED / FOUNDATION P1s CLOSED / PER-SCREEN P1 IN PROGRESS**
 
 The responsive web application is the canonical visual source. This audit
 compares the native client against it and classifies every divergence. It is a
@@ -126,13 +126,19 @@ palette from Finding 0.
 
 Tokens first, as the token layer is what every screen reads.
 
-1. **P1 Finding 0** — re-port the token layer from `orena/tokens.css`.
-2. **P1 Finding 3** — add elevation, rim and sheen to the surface primitives.
-3. **P0 Finding 1** — build the shell: topbar and drawer navigation.
-4. **P1 Finding 2** — port the Orena icon set.
-5. **P1 Finding 4** — move screens onto the Orena type scale.
+1. ~~**P1 Finding 0** — re-port the token layer from `orena/tokens.css`.~~ Done.
+2. ~~**P1 Finding 3** — add elevation to the surface primitives.~~ Done. The web
+   rim and sheen are CSS gradients with no single-view React Native equivalent,
+   so the shadow carries the lift alone; that remains a P3 difference.
+3. ~~**P0 Finding 1** — build the shell: topbar and drawer navigation.~~ Done,
+   including the skill gating the web applies from `/api/platform/skills`.
+4. ~~**P1 Finding 2** — port the Orena icon set.~~ Done: thirteen nav and UI
+   icons as `react-native-svg` geometry copied verbatim from `icons.js`, at the
+   web's 1.7 stroke on the 24 grid. No emoji stand in for a designed icon.
+5. ~~**P1 Finding 4** — move screens onto the Orena type scale.~~ Done.
 6. **P1 per-screen** — compose each screen from its web counterpart, in the
-   roadmap order Home → Writing → Review → Grammar → Reading → Listening →
-   Speaking → Library → Journey → Profile.
+   roadmap order Home → ~~Writing~~ → Review → Grammar → Reading → Listening →
+   Speaking → Library → Journey → Profile. Home and Writing are done; the
+   remaining eight screens are the open work.
 
 No web file is changed by any of this.
