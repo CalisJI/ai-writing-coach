@@ -115,8 +115,8 @@ Colour/Type/Space/Component/Layout are scored against the web implementation.
 | Review | `screens/review.js` | `PromptCard` + confidence-banded `IssueRow` findings + revision-delta + practice-outcome/review-cue signal cards + aside actions | ✓ | ✓ | ✓ | ~ | ✓ | ✓ | ✓ | ✓ | ✓ | P2 |
 | Grammar | `screens/grammar.js`, `orena/grammar.css` | curriculum overview + lesson detail | ✓ | ✓ | ✓ | ~ | ✓ | ✓ | ✓ | ✓ | ✓ | P2 |
 | Reading | `screens/reading.js`, `orena/reading.css` | create form + recent-passages history + article header + passage + rail | ✓ | ✓ | ✓ | ~ | ✓ | ✓ | ✓ | ✓ | ✓ | P2 |
-| Listening | `screens/listening.js`, `orena/listening.css` | import + Follow/Active + resume, panel-restyled | ✓ | ✓ | ✓ | ~ | ~ | ✓ | ✓ | ✓ | ✓ | P2 |
-| Speaking | `screens/speaking.js`, `orena/speaking.css` | record + evidence, panel-restyled | ✓ | ✓ | ✓ | ~ | ~ | ✓ | ✓ | ✓ | ✓ | P2 |
+| Listening | `screens/listening.js`, `orena/listening.css` | import + real YouTube IFrame video frame + transport + Follow/Active + resume | ✓ | ✓ | ✓ | ~ | ~ | ✓ | ✓ | ✓ | ✓ | P2 |
+| Speaking | `screens/speaking.js`, `orena/speaking.css` | record + elapsed-time ruler + auto-stop + evidence, panel-restyled | ✓ | ✓ | ✓ | ~ | ~ | ✓ | ✓ | ✓ | ✓ | P2 |
 | Library | `screens/library.js`, `orena/library.css` | word list + reveal/recall | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | P3 |
 | Journey | `screens/journey.js`, `orena/journey.css` | metric row + current-focus trend + reliable strengths + recent improvement + outcomes panels | ✓ | ✓ | ✓ | ~ | ~ | ✓ | ✓ | ✓ | ✓ | P2 |
 | Profile | `screens/profile.js`, `orena/profile.css` | one settings Panel with grouped radio pills | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | P3 |
@@ -161,9 +161,11 @@ Tokens first, as the token layer is what every screen reads.
    block-composition not reproduced), Reading (P2, no OS text-selection
    surface, no scroll-progress/font controls, no focus mode, no
    clipboard copy -- its recent-passages history is reproduced, see below),
-   Listening and Speaking (P2 each, the web's full studio -- video/audio
-   player, transport, waveform -- has no native surface beyond bare
-   expo-audio playback), Journey (P2, pattern gauges/outcome history/
+   Listening (P2, real YouTube video frame and transport now built -- see
+   below -- but no word-timing highlight, Shadowing-layout variant, or
+   vocabulary rail) and Speaking (P2, no pronunciation heatmap on the
+   transcript; neither screen ever had a real waveform to reproduce, per
+   speaking.js's own comment -- see below), Journey (P2, pattern gauges/outcome history/
    timeline/target rail not reproduced). Home, Library and Profile carry no
    residual beyond the universal, Finding-3-tracked elevation/sheen/rim gap
    (see below for how Home got here).
@@ -264,29 +266,64 @@ Tokens first, as the token layer is what every screen reads.
    (started/first-win/momentum/upcoming), and the target rail with its own
    dialog. Recorded as a P2 residual, not claimed as done.
 
-   Speaking's residual matches Listening's: the web is a studio (waveform
-   recorder, pronunciation heatmap on the transcript) that native's
-   record/transcribe/evaluate flow via `expo-audio` has no visual surface
-   for. The functional flow (record, transcribe, evaluate, save an attempt,
-   the Listening handoff) was already correct and untouched; only the bare
-   bordered Views became Panels and the bold-Text headings became Labels.
-   `test/routes/speaking.test.tsx` passes unchanged. Recorded as a P2
-   residual, not claimed as done.
+   Speaking and Listening were revisited in a later pass of this same
+   session after research (prompted by the user asking for a media-library
+   recommendation before any native dependency was added) found the
+   "waveform" and "no player surface" framing below partly wrong. speaking.js
+   itself has a code comment on its recording meter: "Ticks, not a waveform.
+   Nothing here measures loudness" -- the web never had a real waveform
+   anywhere, on Speaking or Listening, so no waveform library was ever
+   needed. Speaking gained that same fixed elapsed-time ruler (MAX_RECORDING_MS
+   = 180000, `stamp()`'s `M:SS` format, ported verbatim) plus the 3-minute
+   auto-stop the web has and native previously lacked entirely -- a real,
+   if minor, functional gap, not just a styling one. Device-verified on
+   emulator-5556: the idle-state clock and empty ruler render correctly
+   (`0:00 / 3:00`); the filling-ruler behavior during an actual recording
+   was not device-verified this session (the microphone-permission button
+   did not respond to automated taps in this environment).
 
-   Listening's residual gap is the largest of any screen so far: the web is a
-   full studio (an embedded video/audio player with transport controls, a
-   waveform-backed transcript, a Shadowing-mode layout variant, a vocabulary
-   rail) that the native client has no player surface for beyond `expo-audio`
-   bare playback -- `screens/listening.js` alone is over 2000 lines, several
-   times any other screen's web source. What native functionally has (import
-   a source, Follow/Active practice on a segment list, resume across an app
-   restart, hand a segment to Shadowing) was restyled onto the Orena panel/
-   label/chip primitives without changing any of its logic (all 8 of
-   `test/routes/listening.test.tsx`'s behavioural tests -- resume, pending-
-   import rehydration, Shadowing handoff, interrupted playback -- still pass
-   unchanged). The studio layout itself (video frame, transport bar, vocab
-   rail) is not reproduced and is recorded here as a P2 residual, not claimed
-   as done.
+   Listening's actual gap was larger than "no player surface" suggested, in
+   a different way: `screens/listening.js`'s "video" is a YouTube IFrame
+   Player API embed (components/media-player.js's playbackAdapter(),
+   youtube-nocookie.com), not a self-hosted file, and the backend confirms
+   this is the *only* playback shape it ever produces -- every playback
+   record has `kind: "embed"` (writing_coach/media_providers/youtube.py is
+   the only registered provider). The previous native pass fed that same
+   embed URL straight into expo-audio's `useAudioPlayer`, which cannot play
+   an HTML page as an audio stream: Play/Pause was silently inert for every
+   real lesson, a functional defect inherited from the very first Listening
+   port, not merely a missing studio. Fixed with `react-native-youtube-iframe`
+   (peer-compatible with Expo SDK 54's bundled `react-native-webview`
+   13.15.0; chosen after checking it is actively maintained -- pushed
+   2026-04, latest release 2.4.1 -- explicitly claims Expo support, and
+   wraps the same official IFrame Player API the web uses rather than a
+   different playback mechanism), giving a real video frame, working
+   play/pause/skip-back/skip-forward, and a current-time source for the
+   listening-habit tick (previously read from expo-audio's status). What
+   native functionally already had (import a source, Follow/Active practice
+   on a segment list, resume across an app restart, hand a segment to
+   Shadowing) is unchanged; all 9 of `test/routes/listening.test.tsx`'s
+   behavioural tests still pass. Not reproduced: time-synced "Word timing"
+   transcript highlighting, a Shadowing-mode layout variant, and a
+   vocabulary rail.
+
+   Adding the native dependency required a full native rebuild (`npx expo
+   prebuild` regenerated android/, then a `gradlew assembleDebug`), unlike
+   every other change this session, which was JS/TS-only. The rebuild
+   succeeded and the reinstalled app launches cleanly with no crash, and
+   the Listening setup screen renders correctly. Actually importing a real
+   YouTube URL and confirming the video frame plays was not device-verified
+   this session: text-input automation into the Media URL field proved
+   unreliable in this emulator session (taps intermittently failed to focus
+   the field, and one attempt unexpectedly navigated to an unrelated Android
+   system settings screen), and this was not resolved before the session
+   ended. This is recorded honestly as an unverified live flow, not claimed
+   as device-tested -- the fix is correct by code review against the
+   confirmed real backend contract and passes the full local test suite,
+   but the actual video-plays-on-a-real-device claim needs a follow-up
+   session with reliable input automation (or manual verification) before
+   being treated as proven. Recorded as a P2 residual (word-timing/
+   Shadowing-layout/vocab-rail), not claimed as fully done.
 
    Reading's residual gap: the web triggers its contextual lookup from a mouse
    text selection (`window.getSelection()`), which has no stable cross-platform

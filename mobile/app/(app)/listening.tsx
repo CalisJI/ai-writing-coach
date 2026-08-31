@@ -1,6 +1,6 @@
-import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {useCallback, useEffect, useMemo, useRef, useState, type MutableRefObject} from 'react';
 import {AppState, Pressable, ScrollView, StyleSheet, Text, TextInput, View} from 'react-native';
-import {useAudioPlayer, useAudioPlayerStatus, type AudioPlayer, type AudioStatus} from 'expo-audio';
+import YoutubePlayer, {type YoutubeIframeRef} from 'react-native-youtube-iframe';
 import {useLocalSearchParams, useRouter} from 'expo-router';
 import {createConfiguredApiClient, type ApiClient} from '../../src/api/client';
 import type {ListeningProgress, MediaLesson} from '../../src/api/contracts/listening';
@@ -19,15 +19,27 @@ import {Button as OrenaButton, Chip, Label as OrenaLabel, Panel} from '../../src
 /**
  * Ported from static/becoming/screens/listening.js and orena/listening.css.
  *
- * The web is a full studio -- an embedded video/audio player with transport
- * controls, a waveform-backed transcript, a Shadowing-mode layout variant,
- * and a vocabulary rail -- built around media the native client has no
- * player surface for beyond `expo-audio`'s bare playback. The functional
- * surface native actually has (import a source, Follow/Active practice on a
- * segment list, resume across an app restart, hand a segment to Shadowing)
- * is restyled here with the Orena panel/label/chip primitives; the studio
- * layout itself (video frame, transport bar, vocab rail) is not reproduced
- * and is tracked as a residual in MOBILE_VISUAL_PARITY_AUDIT.md.
+ * The web's "video" is a YouTube IFrame Player API embed
+ * (components/media-player.js's playbackAdapter(), youtube-nocookie.com) --
+ * not a self-hosted file. The backend confirms this: every playback record
+ * the server ever produces has `kind: "embed"`
+ * (writing_coach/media_providers/youtube.py, the only provider registered),
+ * so there is no other playback shape to support. The previous native pass
+ * fed that same embed URL straight into expo-audio's useAudioPlayer, which
+ * cannot play an HTML page as an audio stream -- Play/Pause was silently
+ * inert for every real lesson. Fixed here with react-native-youtube-iframe,
+ * a WebView wrapper around the same official IFrame Player API the web
+ * uses, giving a real video frame, working play/pause/skip, and a current-
+ * time source for the listening-habit tick (previously read from
+ * expo-audio's status, now from the player's own getCurrentTime()).
+ *
+ * Not reproduced: time-synced "Word timing" transcript highlighting (the
+ * segment list stays tap-to-select, as before), a Shadowing-mode layout
+ * variant, and a vocabulary rail -- tracked as a residual in
+ * MOBILE_VISUAL_PARITY_AUDIT.md. The web's own "waveform" language for
+ * Speaking's recorder is not real either -- speaking.js's own comment says
+ * "Ticks, not a waveform. Nothing here measures loudness" -- so no waveform
+ * library was needed anywhere in this app.
  */
 
 type ListeningMode = 'follow' | 'active';
@@ -37,10 +49,37 @@ function Button({label, onPress, disabled = false, secondary = false}: {label: s
   return <OrenaButton label={label} onPress={onPress} disabled={disabled} variant={secondary ? 'outline' : 'primary'} />;
 }
 
-function PlayerControl({url, player, status}: {url: string; player: AudioPlayer; status: AudioStatus}) {
+// The only playback shape the backend ever produces is {kind:"embed", provider:"youtube",
+// url:"https://www.youtube-nocookie.com/embed/{id}"} -- matches web's playbackAdapter().
+function extractYouTubeVideoId(playback: {kind: string; provider: string; url: string} | undefined): string | null {
+  if (!playback || playback.kind !== 'embed' || playback.provider !== 'youtube') return null;
+  const match = /\/embed\/([A-Za-z0-9_-]{11})(?:[/?]|$)/.exec(playback.url);
+  return match ? match[1]! : null;
+}
+
+const SKIP_SECONDS = 10;
+
+function VideoPlayer({videoId, playing, onChangeState, playerRef}: {videoId: string | null; playing: boolean; onChangeState: (playing: boolean) => void; playerRef: MutableRefObject<YoutubeIframeRef | null>}) {
   const {t} = useI18n();
-  const playing = Boolean(status?.playing);
-  return <Button label={playing ? t('listening.pause') : t('listening.play')} onPress={() => playing ? player.pause() : player.play()} disabled={!url || status?.isLoaded === false} />;
+  const {tokens} = useTheme();
+  if (!videoId) return <Text style={{color: tokens.colors.mutedText}}>{t('listening.playback_unavailable' as never)}</Text>;
+  return (
+    <View style={styles.videoFrame}>
+      <YoutubePlayer ref={playerRef} height={220} videoId={videoId} play={playing} onChangeState={(state: string) => onChangeState(state === 'playing')} />
+    </View>
+  );
+}
+
+function TransportRow({videoId, playing, onTogglePlay, playerRef}: {videoId: string | null; playing: boolean; onTogglePlay: () => void; playerRef: MutableRefObject<YoutubeIframeRef | null>}) {
+  const {t} = useI18n();
+  const skip = (deltaSeconds: number) => { void playerRef.current?.getCurrentTime().then((seconds) => playerRef.current?.seekTo(Math.max(0, seconds + deltaSeconds), true)); };
+  return (
+    <View style={styles.transportRow}>
+      <Button label={t('listening.skip_back' as never)} onPress={() => skip(-SKIP_SECONDS)} disabled={!videoId} secondary />
+      <Button label={playing ? t('listening.pause') : t('listening.play')} onPress={onTogglePlay} disabled={!videoId} />
+      <Button label={t('listening.skip_forward' as never)} onPress={() => skip(SKIP_SECONDS)} disabled={!videoId} secondary />
+    </View>
+  );
 }
 
 function GoalPanel() {
@@ -74,7 +113,7 @@ function GoalPanel() {
   );
 }
 
-function ReadyLesson({lesson, mode, selectedId, progress, progressPending, progressError, answer, setAnswer, onMode, onSelect, onSave, onReveal, onRestart, player, playerStatus}: {lesson: MediaLesson; mode: ListeningMode; selectedId: string; progress: ListeningProgress[]; progressPending: boolean; progressError: boolean; answer: string; setAnswer: (value: string) => void; onMode: (mode: ListeningMode) => void; onSelect: (id: string) => void; onSave: () => void; onReveal: () => void; onRestart: () => void; player: AudioPlayer; playerStatus: AudioStatus}) {
+function ReadyLesson({lesson, mode, selectedId, progress, progressPending, progressError, answer, setAnswer, onMode, onSelect, onSave, onReveal, onRestart, videoId, playing, onChangeState, onTogglePlay, playerRef}: {lesson: MediaLesson; mode: ListeningMode; selectedId: string; progress: ListeningProgress[]; progressPending: boolean; progressError: boolean; answer: string; setAnswer: (value: string) => void; onMode: (mode: ListeningMode) => void; onSelect: (id: string) => void; onSave: () => void; onReveal: () => void; onRestart: () => void; videoId: string | null; playing: boolean; onChangeState: (playing: boolean) => void; onTogglePlay: () => void; playerRef: MutableRefObject<YoutubeIframeRef | null>}) {
   const {t} = useI18n();
   const {tokens} = useTheme();
   const selected = lesson.transcript?.segments.find((segment) => segment.segment_id === selectedId) ?? lesson.transcript?.segments[0];
@@ -85,7 +124,8 @@ function ReadyLesson({lesson, mode, selectedId, progress, progressPending, progr
   return <ScrollView style={{flex: 1, backgroundColor: tokens.colors.background}} contentContainerStyle={[styles.container, {backgroundColor: tokens.colors.background}]}>
     <Text accessibilityRole="header" style={[styles.title, {color: tokens.colors.heading}]}>{lesson.asset.title || t('listening.title')}</Text>
     <Text style={{color: tokens.colors.mutedText}}>{mode === 'follow' ? t('listening.follow_body') : t('listening.active_body')}</Text>
-    <PlayerControl url={lesson.playback.url} player={player} status={playerStatus} />
+    <VideoPlayer videoId={videoId} playing={playing} onChangeState={onChangeState} playerRef={playerRef} />
+    <TransportRow videoId={videoId} playing={playing} onTogglePlay={onTogglePlay} playerRef={playerRef} />
     <View accessibilityRole="tablist" style={styles.modeRow}>
       <Pressable accessibilityRole="tab" accessibilityLabel={t('listening.follow')} accessibilityState={{selected: mode === 'follow'}} onPress={() => onMode('follow')} style={[styles.mode, mode === 'follow' && {backgroundColor: tokens.colors.surface, borderColor: tokens.colors.accent}]}><Text style={{color: tokens.colors.text}}>{t('listening.follow')}</Text></Pressable>
       <Pressable accessibilityRole="tab" accessibilityLabel={t('listening.active')} accessibilityState={{selected: mode === 'active'}} onPress={() => onMode('active')} style={[styles.mode, mode === 'active' && {backgroundColor: tokens.colors.surface, borderColor: tokens.colors.accent}]}><Text style={{color: tokens.colors.text}}>{t('listening.active')}</Text></Pressable>
@@ -138,28 +178,38 @@ export default function ListeningScreen({client: providedClient, resumeStorage =
   const importMedia = useImportMedia(client, sessionCookie);
   const progressQuery = useListeningProgress(client, sessionCookie, lesson?.asset.asset_id ?? '');
   const saveProgress = useSaveListeningProgress(client, sessionCookie);
-  const player = useAudioPlayer(lesson?.playback.url ?? null, {updateInterval: 500});
-  const playerStatus = useAudioPlayerStatus(player);
+  const videoId = useMemo(() => extractYouTubeVideoId(lesson?.playback), [lesson]);
+  const [playing, setPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const playerRef = useRef<YoutubeIframeRef | null>(null);
   const mediaStatus = useMediaImportStatus(mediaResumeHandle, mediaStore, sessionCookie);
 
   useEffect(() => { let mounted = true; void Promise.all([readListeningResume(resumeStorage), readListeningPending(resumeStorage), mediaStore?.read() ?? Promise.resolve(null)]).then(([ready, waiting, media]) => { if (!mounted) return; setResume(ready); setPending(waiting); setMediaResume(media); if (waiting && media) setMediaResumeHandle(media.resumeHandle); }); return () => { mounted = false; }; }, [mediaStore, resumeStorage]);
   useEffect(() => { if (progressQuery.data?.items) setProgress(progressQuery.data.items); }, [progressQuery.data]);
   useEffect(() => { if (!lesson || handoff.assetId !== lesson.asset.asset_id || typeof handoff.segmentId !== 'string') return; if (lesson.transcript?.segments.some((segment) => segment.segment_id === handoff.segmentId)) setSelectedId(handoff.segmentId); }, [handoff.assetId, handoff.segmentId, lesson]);
-  useEffect(() => { const subscription = AppState.addEventListener('change', (state) => { if (state === 'background' || state === 'inactive') { player.pause(); setNotice(t('listening.interrupted')); } }); return () => subscription.remove(); }, [player, t]);
+  useEffect(() => { setPlaying(false); setCurrentTime(0); }, [videoId]);
+  useEffect(() => { const subscription = AppState.addEventListener('change', (state) => { if (state === 'background' || state === 'inactive') { setPlaying(false); setNotice(t('listening.interrupted')); } }); return () => subscription.remove(); }, [t]);
+  // Polls the player's own clock while playing -- react-native-youtube-iframe has no
+  // continuous onProgress callback, unlike expo-audio's status polling this replaces.
+  useEffect(() => {
+    if (!playing) return;
+    const interval = setInterval(() => { void playerRef.current?.getCurrentTime().then(setCurrentTime); }, 500);
+    return () => clearInterval(interval);
+  }, [playing]);
   // Device-local habit counter, ported from the web's orena:media-time tick
   // (static/becoming/screens/listening.js): wall-clock delta between ticks
   // while the position is actually advancing, dropping gaps over 2.5s so a
   // backgrounded or paused player never counts as listening.
   const habitTick = useRef<{time: number; position: number} | null>(null);
   useEffect(() => {
-    if (!playerStatus.playing) { habitTick.current = null; return; }
+    if (!playing) { habitTick.current = null; return; }
     const now = Date.now();
     const previous = habitTick.current;
-    if (previous && now - previous.time < 2500 && playerStatus.currentTime > previous.position) {
+    if (previous && now - previous.time < 2500 && currentTime > previous.position) {
       void addListenedSeconds((now - previous.time) / 1000);
     }
-    habitTick.current = {time: now, position: playerStatus.currentTime};
-  }, [playerStatus.playing, playerStatus.currentTime]);
+    habitTick.current = {time: now, position: currentTime};
+  }, [playing, currentTime]);
   const prepare = useCallback((value: string) => {
     const normalized = value.trim();
     if (!normalized || !sessionCookie || !client) return;
@@ -219,7 +269,7 @@ export default function ListeningScreen({client: providedClient, resumeStorage =
   </ScrollView>;
   const restart = () => { operation.current += 1; rehydrating.current = false; importMedia.reset(); setLesson(null); setProgress([]); setAnswer(''); setSourceUrl(''); setNotice(null); setResume(null); setPending(null); setMediaResume(null); setMediaResumeHandle(''); void clearListeningResume(resumeStorage); void clearListeningPending(resumeStorage); void mediaStore?.clear(); };
   const selectedSegment = lesson.transcript?.segments.find((item) => item.segment_id === selectedId) ?? lesson.transcript?.segments[0];
-  return <><ReadyLesson lesson={lesson} mode={mode} selectedId={selectedId} progress={progress} progressPending={progressQuery.isPending} progressError={progressQuery.isError} answer={answer} setAnswer={setAnswer} onMode={changeMode} onSelect={select} onSave={() => save('checked')} onReveal={() => save('revealed')} onRestart={restart} player={player} playerStatus={playerStatus} /><View style={{paddingHorizontal: 24, paddingBottom: 24}}><Button label={t('speaking.open_listening')} onPress={() => { if (!selectedSegment) return; router.push({pathname: '/(app)/speaking', params: {mode: 'shadowing', assetId: lesson.asset.asset_id, segmentId: selectedSegment.segment_id, sourceUrl: lesson.asset.source_url, referenceText: selectedSegment.original_text}} as never); }} /></View></>;
+  return <><ReadyLesson lesson={lesson} mode={mode} selectedId={selectedId} progress={progress} progressPending={progressQuery.isPending} progressError={progressQuery.isError} answer={answer} setAnswer={setAnswer} onMode={changeMode} onSelect={select} onSave={() => save('checked')} onReveal={() => save('revealed')} onRestart={restart} videoId={videoId} playing={playing} onChangeState={setPlaying} onTogglePlay={() => setPlaying((value) => !value)} playerRef={playerRef} /><View style={{paddingHorizontal: 24, paddingBottom: 24}}><Button label={t('speaking.open_listening')} onPress={() => { if (!selectedSegment) return; router.push({pathname: '/(app)/speaking', params: {mode: 'shadowing', assetId: lesson.asset.asset_id, segmentId: selectedSegment.segment_id, sourceUrl: lesson.asset.source_url, referenceText: selectedSegment.original_text}} as never); }} /></View></>;
 }
 
-const styles = StyleSheet.create({container: {flexGrow: 1, padding: 24, gap: 16, width: '100%', maxWidth: CONTENT_MAX, alignSelf: 'center'}, title: {fontSize: 20, fontWeight: '700'}, input: {minHeight: 52, borderWidth: 1, borderRadius: 15, padding: 14, fontSize: 15}, actionRow: {gap: 8}, modeRow: {flexDirection: 'row', gap: 8}, mode: {flex: 1, padding: 12, borderWidth: 1, borderColor: 'transparent', borderRadius: 15, alignItems: 'center'}, segmentList: {gap: 8}, segment: {padding: 12, borderWidth: 1, borderRadius: 15}, selectedText: {fontSize: 15, lineHeight: 28}, progressHead: {flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between'}, goalRow: {flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between'}, goalTrack: {height: 6, borderRadius: 999, overflow: 'hidden'}, goalFill: {height: '100%', borderRadius: 999}, goalEdit: {flexDirection: 'row', gap: 8, alignItems: 'center'}, goalInput: {flex: 1, borderWidth: 1, borderRadius: 15, padding: 10, minHeight: 44}});
+const styles = StyleSheet.create({container: {flexGrow: 1, padding: 24, gap: 16, width: '100%', maxWidth: CONTENT_MAX, alignSelf: 'center'}, title: {fontSize: 20, fontWeight: '700'}, videoFrame: {borderRadius: 15, overflow: 'hidden'}, transportRow: {flexDirection: 'row', gap: 8}, input: {minHeight: 52, borderWidth: 1, borderRadius: 15, padding: 14, fontSize: 15}, actionRow: {gap: 8}, modeRow: {flexDirection: 'row', gap: 8}, mode: {flex: 1, padding: 12, borderWidth: 1, borderColor: 'transparent', borderRadius: 15, alignItems: 'center'}, segmentList: {gap: 8}, segment: {padding: 12, borderWidth: 1, borderRadius: 15}, selectedText: {fontSize: 15, lineHeight: 28}, progressHead: {flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between'}, goalRow: {flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between'}, goalTrack: {height: 6, borderRadius: 999, overflow: 'hidden'}, goalFill: {height: '100%', borderRadius: 999}, goalEdit: {flexDirection: 'row', gap: 8, alignItems: 'center'}, goalInput: {flex: 1, borderWidth: 1, borderRadius: 15, padding: 10, minHeight: 44}});
