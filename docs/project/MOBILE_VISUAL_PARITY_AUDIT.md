@@ -108,7 +108,7 @@ Colour/Type/Space/Component/Layout are scored against the web implementation.
 | Home | `screens/home.js`, `orena/home.css` | hero + 3 panels + split | ~ | ✓ | ✓ | ~ | ✓ | ✓ | ✓ | ✓ | ✓ | P2 |
 | Writing | `screens/write.js`, `orena/writing.css` | prompt card + editor card + aside | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | P3 |
 | Review | `screens/review.js` | `PromptCard` + `IssueRow` findings + aside actions | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | P3 |
-| Grammar | `screens/grammar.js`, `orena/grammar.css` | lesson list + detail | ~ | ✗ | ~ | ✗ | ✗ | ✓ | ✓ | ✓ | ✓ | P1 |
+| Grammar | `screens/grammar.js`, `orena/grammar.css` | curriculum overview + lesson detail | ✓ | ✓ | ✓ | ~ | ✓ | ✓ | ✓ | ✓ | ✓ | P2 |
 | Reading | `screens/reading.js`, `orena/reading.css` | passage + questions | ~ | ✗ | ~ | ✗ | ✗ | ✓ | ✓ | ✓ | ✓ | P1 |
 | Listening | `screens/listening.js`, `orena/listening.css` | import + transcript | ~ | ✗ | ~ | ✗ | ✗ | ✓ | ✓ | ✓ | ✓ | P1 |
 | Speaking | `screens/speaking.js`, `orena/speaking.css` | record + evidence | ~ | ✗ | ~ | ✗ | ✗ | ✓ | ✓ | ✓ | ✓ | P1 |
@@ -137,8 +137,21 @@ Tokens first, as the token layer is what every screen reads.
    web's 1.7 stroke on the 24 grid. No emoji stand in for a designed icon.
 5. ~~**P1 Finding 4** — move screens onto the Orena type scale.~~ Done.
 6. **P1 per-screen** — compose each screen from its web counterpart, in the
-   roadmap order Home → ~~Writing~~ → ~~Review~~ → Grammar → Reading →
-   Listening → Speaking → Library → Journey → Profile. Home, Writing and
-   Review are done; the remaining seven screens are the open work.
+   roadmap order Home → ~~Writing~~ → ~~Review~~ → ~~Grammar~~ → Reading →
+   Listening → Speaking → Library → Journey → Profile. Home, Writing, Review
+   and Grammar are done; the remaining six screens are the open work.
+
+   Grammar's residual gap: a rich `learning_model` lesson is rendered on the
+   web by a second, large system (`components/grammar-learning.js` composing
+   pattern/timeline/scene/contrast blocks per `ORENA_GRAMMAR_LESSON_DESIGN_SYSTEM`).
+   The mobile contract carries that field only as an untyped `z.record(unknown())`,
+   and reproducing its block composition is out of scope for this pass. Native
+   renders such a lesson's localizable summary, contrasts, examples, mistakes
+   and guided practice (all of which the API exposes with a stable shape) with
+   the Orena panel primitives, and completion is unblocked rather than gated on
+   a production task that a rich lesson does not have. A legacy (non-rich)
+   lesson's rules/exceptions/production sections are reproduced in full,
+   including the two-example production gate on completion. This is tracked as
+   a P2 residual, not claimed as done.
 
 No web file is changed by any of this.
