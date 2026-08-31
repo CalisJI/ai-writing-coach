@@ -1,5 +1,10 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
+// Read the frontend version instead of hard-coding it. Pinning the literal
+// string made this test break on every release -- the same defect that left 35
+// validators permanently red (see scripts/archive/release-gates/README.md).
+// The contract is that these imports ARE versioned, not which version it is.
+const V=readFileSync(new URL('../BECOMING_FRONTEND_VERSION',import.meta.url),'utf-8').trim();
 
 const moduleUrl=new URL('../static/becoming/components/grammar-learning.js?test=phase2',import.meta.url);
 const {hasGrammarLearningModel,renderGrammarLearningModel}=await import(moduleUrl);
@@ -47,7 +52,7 @@ assert.match(zhHtml,/role-particle/);
 
 const screen=readFileSync(new URL('../static/becoming/screens/grammar.js',import.meta.url),'utf8');
 const css=readFileSync(new URL('../static/becoming/grammar.css',import.meta.url),'utf8');
-for(const needle of ['grammar-learning.js?v=2.17.3','renderGrammarLearningModel','grammarLearningCompletion','legacyLessonBody']){
+for(const needle of [`grammar-learning.js?v=${V}`,'renderGrammarLearningModel','grammarLearningCompletion','legacyLessonBody']){
   assert.equal(screen.includes(needle),true,`Missing ${needle}`);
 }
 assert.equal(css.includes('min-width:max-content'),false);

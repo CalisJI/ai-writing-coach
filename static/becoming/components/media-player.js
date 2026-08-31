@@ -110,6 +110,13 @@ function emitClock(root,controller){
       bubbles:true,
       detail:{
         time_ms:Math.max(0,Math.round(currentTime*1000)),
+        // The progress bar needs a length, not just a position. Duration is
+        // read from the same player object and is null until it is known,
+        // which the caller must treat as "no bar yet" rather than zero.
+        duration_ms:(()=>{
+          const total=Number(controller.player.getDuration?.());
+          return Number.isFinite(total)&&total>0?Math.round(total*1000):null;
+        })(),
         player_state:Number.isFinite(state)?state:null,
       },
     }));
@@ -232,6 +239,33 @@ export function replaySegment(root,playback,startMs,endMs=null,rate=1){
     segmentTimers.set(root,timer);
   }
   return true;
+}
+
+/* Nudge the position without leaving the segment machinery in a half state:
+   any pending "pause at the end of this segment" timer is dropped first, or it
+   would fire against a position the learner has already moved away from. */
+export function seekBy(root,playback,deltaSeconds){
+  const controller=controllers.get(root);
+  const step=Number(deltaSeconds);
+  if(!controller?.player||!Number.isFinite(step))return false;
+  try{
+    const current=Number(controller.player.getCurrentTime?.());
+    if(!Number.isFinite(current))return false;
+    clearSegmentTimer(root);
+    return sendCommand(root,playback,'seekTo',[Math.max(0,current+step),true]);
+  }catch{return false;}
+}
+
+/* Returns the new muted state, or null when the player cannot be reached, so
+   the caller can label its own button from the truth rather than a guess. */
+export function toggleMute(root,playback){
+  const controller=controllers.get(root);
+  if(!controller?.player)return null;
+  try{
+    const muted=Boolean(controller.player.isMuted?.());
+    const ok=sendCommand(root,playback,muted?'unMute':'mute');
+    return ok?!muted:null;
+  }catch{return null;}
 }
 
 export function togglePlayback(root,playback){

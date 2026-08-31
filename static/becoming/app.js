@@ -1,11 +1,14 @@
 import {api} from './api.js';
 import {state,saveProfile,activateLanguage,setSupportLanguage,supportLanguage} from './store.js';
-import {currentRoute,go,syncNav} from './router.js?v=2.17.3';
+import {currentRoute,go,syncNav} from './router.js?v=2.17.5';
 import {closeDialog,toast,setBusy,installTooltipLayer} from './components/primitives.js';
 import {installTheme,applyPalette,activePalette,storedPalette} from './theme.js';
-import {t,applyChromeI18n,uiHtmlLang} from './domain/i18n.js';
-import {screenContract} from './domain/screen-contract.js?v=2.17.3';
-import {applySkillNavigation,routeAvailable} from './domain/skill-release.js?v=2.17.3';
+import {installTempo,applyTempo,storedTempo,tempoForStyle} from './tempo.js';
+import {installSelectEnhancements,syncSelectField} from './components/select-field.js';
+import {t,applyChromeI18n,uiHtmlLang,localeLabel} from './domain/i18n.js';
+import {installOrenaShell,syncOrenaChrome,installDisclosures} from './orena/shell.js?v=2.17.5';
+import {screenContract} from './domain/screen-contract.js?v=2.17.5';
+import {applySkillNavigation,routeAvailable} from './domain/skill-release.js?v=2.17.5';
 import {renderOnboarding} from './screens/onboarding.js';
 import {renderHome} from './screens/home.js';
 import {renderWrite} from './screens/write.js';
@@ -14,7 +17,7 @@ import {renderReading} from './screens/reading.js';
 import {renderListening} from './screens/listening.js';
 import {renderSpeaking} from './screens/speaking.js';
 import {renderLibrary} from './screens/library.js';
-import {renderGrammar} from './screens/grammar.js?v=2.17.3';
+import {renderGrammar} from './screens/grammar.js?v=2.17.5';
 import {renderJourney} from './screens/journey.js';
 import {renderProfile} from './screens/profile.js';
 
@@ -69,7 +72,37 @@ function renderAccount(){
   if(me.picture){
     avatar.innerHTML=`<img src="${String(me.picture).replace(/"/g,'&quot;')}" alt="" referrerpolicy="no-referrer">`;
   }else{
-    avatar.textContent=display.slice(0,1).toUpperCase();
+    // Two initials where the learner has two names, as the reference draws it.
+    const initials=display.trim().split(/\s+/).slice(0,2).map(part=>part[0]||'').join('');
+    avatar.textContent=(initials||display.slice(0,1)).toUpperCase();
+  }
+}
+
+/* The sidebar foot.
+ *
+ * The reference puts a streak and a plan in the rail. The streak is a real
+ * learner number that arrives with the dashboard, so the card stays hidden
+ * until that number exists rather than showing a zero the learner has not
+ * earned. The plan has no backend yet: it reports what the account API
+ * actually says and otherwise states the honest default, never a made-up
+ * renewal date. */
+function renderRail(){
+  const streakCard=document.getElementById('streakCard');
+  const days=Number(state.dashboard?.streak);
+  if(streakCard){
+    const known=Number.isFinite(days)&&days>0;
+    streakCard.hidden=!known;
+    if(known){
+      document.getElementById('streakCount').textContent=String(days);
+      document.getElementById('streakLabel').textContent=t('chrome.day_streak');
+    }
+  }
+
+  const planName=document.getElementById('planName');
+  const planNote=document.getElementById('planNote');
+  if(planName&&planNote){
+    planName.textContent=state.me?.plan_name||t('chrome.plan_free');
+    planNote.textContent=state.me?.plan_note||t('chrome.plan_free_note');
   }
 }
 
@@ -78,14 +111,23 @@ function languageDisplayName(code){
   return item?.native_name||item?.name||String(code||'').toUpperCase();
 }
 
+const INTERFACE_LANGUAGES=['vi','en','zh'];
+
+/* The header used to hold the LEARNING language. Nobody switches the language
+   they are studying several times a session, and in that position -- top
+   right, beside the theme toggle -- people read it as the interface language
+   instead, which is what a control there normally means. So the header now
+   holds the interface language, which is genuinely worth reaching quickly,
+   and the learning language moved to Profile where a rare, consequential
+   choice belongs. */
 function renderLanguages(){
   const select=document.getElementById('languageSelect');
-  const enabled=(state.languages||[]).filter(item=>item.enabled);
-  select.innerHTML=enabled.map(item=>{
-    const label=item.native_name||item.name||String(item.code||'').toUpperCase();
-    return `<option value="${item.code}" ${item.code===state.language?'selected':''}>${label}</option>`;
-  }).join('');
-  select.disabled=enabled.length<2;
+  if(!select)return;
+  const current=supportLanguage()||'vi';
+  select.innerHTML=INTERFACE_LANGUAGES.map(code=>
+    `<option value="${code}" ${code===current?'selected':''}>${localeLabel(code)}</option>`
+  ).join('');
+  syncSelectField(select);
 }
 
 
@@ -116,6 +158,7 @@ async function loadProfileForActiveLanguage({allowLegacyMigration=true}={}){
     }
 
     applyPalette(remote.theme_preset||desiredPalette,{persist:true});
+    if(!storedTempo())applyTempo(tempoForStyle(remote.style));
     saveProfile(remote);
     return remote;
   }
@@ -143,33 +186,11 @@ async function loadProfileForActiveLanguage({allowLegacyMigration=true}={}){
   return null;
 }
 
-async function changeLanguage(language){
-  if(!language || language===state.language)return;
-  await api.setLanguage(language);
-
-  const previousRoute=currentRoute();
-  activateLanguage(language,{allowLegacyMigration:false});
-  setDocumentLanguage();
-  renderLanguages();
-
-  const profile=await loadProfileForActiveLanguage({allowLegacyMigration:false});
-  toast(t('toast.learning_space',{space:languageDisplayName(language)}));
-
-  if(!profile){
-    go('onboarding');
-    return;
-  }
-
-  // A review belongs to the language evidence that created it.
-  // Never keep an English review alive inside the Chinese space (or vice versa).
-  if(previousRoute==='review'){
-    go('write');
-    return;
-  }
-
-  await renderCurrent();
-}
-
+/* changeLanguage lived here to serve the header's learning-language select.
+   The header now carries the interface language, and Profile owns the learning
+   language -- it dispatches `becoming:language-changed`, which the listener in
+   bootstrap() handles with the same steps. Keeping a second, unreachable copy
+   of the switch would read like the real entry point to anyone looking next. */
 async function renderCurrent(){
   if(typeof root._cleanupScreen==='function'){
     root._cleanupScreen();
@@ -199,6 +220,7 @@ async function renderCurrent(){
 
   document.body.classList.toggle('onboarding-mode',route==='onboarding');
   syncNav(route);
+  syncOrenaChrome(route);
   const screen=SCREENS[route]||SCREENS.home;
   const contract=screenContract(route);
   if(!contract){
@@ -218,28 +240,54 @@ async function renderCurrent(){
       <div style="margin-top:6px">${String(error.message||error)}</div>
     </section>`;
   }finally{
+    // Screens re-render with innerHTML, so their selects are new elements every
+    // time. Enhancement marks what it has already done, so running it after
+    // every render is both correct and cheap.
+    installSelectEnhancements(root);
+    installDisclosures(root);
+    // The dashboard often arrives during the screen render, so the rail is
+    // refreshed after it rather than before.
+    renderRail();
     root.setAttribute('aria-busy','false');
     requestAnimationFrame(()=>root.focus({preventScroll:true}));
   }
 }
 
 function installHeaderEvents(){
+  // The interface-language select moved out of the header and into the account
+  // menu, which is where the reference keeps account-level settings.
+  installSelectEnhancements(document.getElementById('accountMenu'));
   document.getElementById('languageSelect').addEventListener('change',async event=>{
     const select=event.currentTarget;
+    const value=select.value;
     select.disabled=true;
     select.setAttribute('aria-busy','true');
-    document.querySelector('.header-actions')?.classList.add('is-processing');
+    document.querySelector('.o-topbar-actions')?.classList.add('is-processing');
     try{
-      await changeLanguage(select.value);
+      // Same full-shape save Profile uses: a partial patch would drop the
+      // fields it does not mention.
+      const saved=await api.saveLearnerProfile({
+        goal:state.profile?.goal??'everyday',
+        style:state.profile?.style??'guided',
+        pinyin:state.profile?.pinyin??'auto',
+        native_language:value,
+        theme_preset:state.profile?.theme_preset??activePalette(),
+      });
+      setSupportLanguage(saved.native_language||value);
+      saveProfile(saved);
+      applyChromeI18n();
+      renderLanguages();
+      await renderCurrent();
     }catch(error){
       toast(error.message||t('toast.switch_failed'));
       renderLanguages();
     }finally{
       select.disabled=false;
       select.removeAttribute('aria-busy');
-      document.querySelector('.header-actions')?.classList.remove('is-processing');
+      document.querySelector('.o-topbar-actions')?.classList.remove('is-processing');
     }
   });
+
 
   const accountButton=document.getElementById('accountButton');
   const accountMenu=document.getElementById('accountMenu');
@@ -283,7 +331,9 @@ function installDialogEvents(){
 }
 
 async function bootstrap(){
+  installOrenaShell();
   installTheme();
+  installTempo();
   installTooltipLayer();
   installHeaderEvents();
   installDialogEvents();
@@ -307,6 +357,7 @@ async function bootstrap(){
 
     setDocumentLanguage();
     renderAccount();
+    renderRail();
     renderLanguages();
 
     window.addEventListener('hashchange',renderCurrent);

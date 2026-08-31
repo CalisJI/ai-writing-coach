@@ -109,6 +109,25 @@ def main():
     session=sr.create_reading_session_record({'created_at':now,'language_code':'en','target_level':'B2','topic':'work','learner_goal':'work','title':'T','passage':'P','questions':[],'recycled_words':['focused work'],'generation_mode':'built-in'})
     sr.create_reading_attempt_record(session['id'],{'created_at':now,'answers':[],'correct_count':0,'total':0})
     assert sr.latest_reading_attempt(session['id'])['total']==0
+    try:
+        sr.create_speaking_attempt_record({'created_at':now,'language':'en','take_id':'take-1','asset_id':'asset-en','segment_id':'segment-1','reference_text':'Good morning.','transcript_text':'Good morning.','dimensions':{'content_match':100},'provenance':{},'evidence':{}})
+    except RuntimeError as exc:
+        assert 'PostgreSQL runtime' in str(exc)
+    else:
+        raise AssertionError('SQLite must not persist Speaking attempts')
+    assert not sr._has_table(c, 'speaking_attempts')
+    try:
+        sr.save_listening_progress_record({'asset_id':'asset-en','segment_id':'segment-1','presentation':'checked','revealed':False,'checked_attempt_count':2,'best_accuracy_percent':87,'best_exact':False,'last_answer':'Good morning.','updated_at':now})
+    except RuntimeError as exc:
+        assert 'PostgreSQL runtime' in str(exc)
+    else:
+        raise AssertionError('SQLite must not persist Active Listening progress')
+    try:
+        sr.save_shadowing_progress_record({'asset_id':'asset-en','segment_id':'segment-1','completed_rounds':2,'updated_at':now})
+    except RuntimeError as exc:
+        assert 'PostgreSQL runtime' in str(exc)
+    else:
+        raise AssertionError('SQLite must not persist Shadowing progress')
 
     # Real-data regression: older language DBs can contain saved_words but have
     # never initialized Active Recall / Reading optional tables.
@@ -153,5 +172,20 @@ def main():
     ps=pr.create_reading_session_record({'created_at':now,'language_code':'en','target_level':'B2','topic':'work','learner_goal':'work','title':'T','passage':'P','questions':[],'recycled_words':['focused work'],'generation_mode':'built-in'})
     pr.create_reading_attempt_record(ps['id'],{'created_at':now,'answers':[],'correct_count':0,'total':0})
     assert pr.latest_reading_attempt(ps['id'])['total']==0
+    pspeaking=pr.create_speaking_attempt_record({'created_at':now,'language':'en','take_id':'take-1','asset_id':'asset-en','segment_id':'segment-1','reference_text':'Good morning.','transcript_text':'Good morning.','dimensions':{'content_match':100,'pronunciation':88,'fluency':82,'proficiency':None},'provenance':{'pronunciation':'azure-speech'},'evidence':{'pronunciation':{'words':[]}}})
+    assert pspeaking['take_id']=='take-1'
+    assert pspeaking['language']=='en'
+    assert pr.speaking_progress()['average_fluency']==82.0
+    pactive=pr.save_listening_progress_record({'asset_id':'asset-en','segment_id':'segment-1','presentation':'checked','revealed':False,'checked_attempt_count':2,'best_accuracy_percent':87,'best_exact':False,'last_answer':'Good morning.','updated_at':now})
+    assert pactive['asset_id']=='asset-en'
+    assert pactive['checked_attempt_count']==2
+    assert pr.list_listening_progress_records('asset-en')[0]['segment_id']=='segment-1'
+    pshadow=pr.save_shadowing_progress_record({'asset_id':'asset-en','segment_id':'segment-1','completed_rounds':2,'updated_at':now})
+    assert pshadow['asset_id']=='asset-en'
+    assert pshadow['completed_rounds']==2
+    pshadow_stale=pr.save_shadowing_progress_record({'asset_id':'asset-en','segment_id':'segment-1','completed_rounds':1,'updated_at':now})
+    assert pshadow_stale['completed_rounds']==2
+    assert pr.list_shadowing_progress_records('asset-en')[0]['segment_id']=='segment-1'
+    assert pr.list_shadowing_progress_records('asset-en')[0]['completed_rounds']==2
     print('BECOMING specialized persistence repository self-test OK')
 if __name__=='__main__': main()

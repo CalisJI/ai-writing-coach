@@ -1,4 +1,8 @@
-import {loadRnnoise,RnnoiseWorkletNode} from '../vendor/web-noise-suppressor/index.js';
+/* The RNNoise vendor module touches AudioWorkletNode at import time, so a
+   static import here made this file - and every screen importing it - unusable
+   in the Node contract tests. It is only needed once a recording actually
+   starts, so it is loaded then: {loadRnnoise,RnnoiseWorkletNode} arrive from
+   the same module, just later. */
 
 const SPEECH_AUDIO_CONSTRAINTS={
   echoCancellation:{ideal:true},
@@ -48,6 +52,7 @@ async function buildRnnoisePipeline(stream,{
   }
 
   try{
+    const {loadRnnoise,RnnoiseWorkletNode}=await import('../vendor/web-noise-suppressor/index.js');
     const wasmBinary=await loadRnnoise({
       url:RNNOISE_ASSETS.wasm,
       simdUrl:RNNOISE_ASSETS.simdWasm,

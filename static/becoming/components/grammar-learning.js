@@ -1,3 +1,8 @@
+/* Pedagogy is decided one layer up (domain/grammar-pedagogy.js) and handed to
+   this renderer, which draws it. ORENA_GRAMMAR_LESSON_DESIGN_SYSTEM §26.3: the
+   renderer should not invent pedagogy. */
+import {deriveSegmentRole,isGenericLabel} from '../domain/grammar-pedagogy.js';
+
 import {esc} from './primitives.js';
 
 const COPY={
@@ -39,7 +44,8 @@ const ROLES={
     complement:'Complement',classifier:'Classifier',negation:'Negation',marker:'Marker',
     changed:'Changed',error:'Error',exception:'Exception',connector:'Connector',
     topic:'Topic',comment:'Comment',result:'Result',case:'Case',gender:'Gender',
-    agreement:'Agreement',stem:'Stem',ending:'Ending',honorific:'Honorific',register:'Register'
+    agreement:'Agreement',stem:'Stem',ending:'Ending',honorific:'Honorific',register:'Register',
+    agent:'Agent',patient:'Patient'
   },
   vi:{
     subject:'Chủ ngữ',verb:'Động từ',object:'Tân ngữ',noun:'Danh từ',pronoun:'Đại từ',
@@ -49,7 +55,8 @@ const ROLES={
     complement:'Bổ ngữ',classifier:'Lượng từ',negation:'Phủ định',marker:'Dấu hiệu',
     changed:'Phần thay đổi',error:'Phần sai',exception:'Ngoại lệ',connector:'Liên kết',
     topic:'Chủ đề',comment:'Thuyết minh',result:'Kết quả',case:'Cách',gender:'Giống',
-    agreement:'Hòa hợp',stem:'Thân từ',ending:'Đuôi từ',honorific:'Kính ngữ',register:'Sắc thái'
+    agreement:'Hòa hợp',stem:'Thân từ',ending:'Đuôi từ',honorific:'Kính ngữ',register:'Sắc thái',
+    agent:'Tác nhân',patient:'Đối thể'
   },
   zh:{
     subject:'主语',verb:'动词',object:'宾语',noun:'名词',pronoun:'代词',
@@ -59,7 +66,8 @@ const ROLES={
     classifier:'量词',negation:'否定',marker:'标记',changed:'变化部分',
     error:'错误部分',exception:'例外',connector:'连接',topic:'话题',comment:'说明',
     result:'结果',case:'格',gender:'语法性别',agreement:'一致关系',stem:'词干',
-    ending:'词尾',honorific:'敬语',register:'语体'
+    ending:'词尾',honorific:'敬语',register:'语体',
+    agent:'施事',patient:'受事'
   },
 };
 
@@ -129,7 +137,7 @@ function readingAidValue(item,context){
 function frame(block,context,body,{surface=false}={}){
   const id=`grammar-learning-${safeId(block.id)}`;
   const instruction=explanationText(block.instruction,context);
-  return `<section class="grammar-learning-block grammar-learning-${esc(block.type)} ${surface?'is-visual-surface':''}" data-learning-stage="${esc(block.stage)}" aria-labelledby="${id}">
+  return `<section class="grammar-learning-block grammar-learning-${esc(block.type)} ${surface?'is-visual-surface':''}" data-grammar-block-type="${esc(block.type)}" data-learning-stage="${esc(block.stage)}" aria-labelledby="${id}">
     <header class="grammar-learning-block-head">
       <span class="grammar-learning-stage">${esc(stageLabel(block.stage,context))}</span>
       <h3 id="${id}">${esc(explanationText(block.title,context))}</h3>
@@ -140,25 +148,97 @@ function frame(block,context,body,{surface=false}={}){
 function segments(payload,context,{insertion=false}={}){
   const items=Array.isArray(payload?.segments)?payload.segments:[];
   return `<div class="grammar-sentence-flow" role="list">${items.map(item=>{
-    const role=String(item.role||'segment');
+    /* The curriculum files nearly every part under `marker` and labels it by
+       position, while writing what the part actually is into the part itself -
+       "S", "把", "specific O", "Patient". The role is read back off that, so a
+       disposal sentence draws as subject → 把 → object → result instead of four
+       identical grey boxes. */
+    const role=deriveSegmentRole(item.text,item.role);
+    const authoredLabel=interfaceText(item.label,context);
     const aid=readingAidValue(item,context);
     const meaning=translationText(item.meaning,context);
     return `<span class="grammar-sentence-segment role-${esc(safeId(role))} ${item.inserted?'is-inserted':''}" role="listitem" data-grammar-role="${esc(role)}">
       ${item.inserted||insertion?'<i class="grammar-insertion-pin" aria-hidden="true"></i>':''}
       <b>${esc(targetText(item.text,context))}</b>
       ${aid?`<span class="grammar-reading-aid" data-grammar-reading-aid>${esc(aid)}</span>`:''}
-      <small>${esc(interfaceText(item.label,context)||roleLabel(role,context))}</small>
+      <small>${esc(isGenericLabel(authoredLabel)||!authoredLabel?roleLabel(role,context):authoredLabel)}</small>
       ${meaning?`<em>${esc(meaning)}</em>`:''}
     </span>`;
   }).join('')}</div>`;
 }
 
+/* A word-level difference between two sentences. Used to point at what
+   actually changed between a wrong form and its correction, instead of leaving
+   the reader to find it: the marked words are derived from the two strings, so
+   nothing is asserted that the content did not already say. */
+export function markedDifference(from,to){
+  const split=value=>String(value||'').split(/(\s+)/);
+  const norm=token=>token.toLowerCase().replace(/[^\p{L}\p{N}']/gu,'');
+  const a=split(from), b=split(to);
+  const aWords=[], bWords=[];
+  a.forEach((token,index)=>{if(token.trim())aWords.push(index);});
+  b.forEach((token,index)=>{if(token.trim())bWords.push(index);});
+  const A=aWords.map(index=>norm(a[index]));
+  const B=bWords.map(index=>norm(b[index]));
+
+  /* A longest-common-subsequence, not a set difference: many corrections in
+     this curriculum change nothing but word order - "Like I this song." against
+     "I like this song." is the same four words - and a set difference finds no
+     change at all there. */
+  const n=A.length, m=B.length;
+  const dp=Array.from({length:n+1},()=>new Array(m+1).fill(0));
+  for(let i=n-1;i>=0;i--){
+    for(let j=m-1;j>=0;j--){
+      dp[i][j]=A[i]===B[j]?dp[i+1][j+1]+1:Math.max(dp[i+1][j],dp[i][j+1]);
+    }
+  }
+  const keptA=new Set(), keptB=new Set();
+  let i=0, j=0;
+  while(i<n&&j<m){
+    if(A[i]===B[j]){keptA.add(i);keptB.add(j);i+=1;j+=1;}
+    else if(dp[i+1][j]>=dp[i][j+1])i+=1;
+    else j+=1;
+  }
+
+  const paint=(tokens,wordIndexes,kept,variant)=>{
+    const position=new Map();
+    wordIndexes.forEach((tokenIndex,order)=>position.set(tokenIndex,order));
+    return tokens.map((token,index)=>{
+      const order=position.get(index);
+      if(order===undefined||kept.has(order))return esc(token);
+      return `<mark class="grammar-diff grammar-diff--${variant}">${esc(token)}</mark>`;
+    }).join('');
+  };
+
+  return {
+    from:paint(a,aWords,keptA,'out'),
+    to:paint(b,bWords,keptB,'in'),
+  };
+}
+
 export function GrammarFormula(block,context='en'){
   const parts=Array.isArray(block.payload?.parts)?block.payload.parts:[];
+  /* Splitting a pattern into labelled parts is worth doing when the parts play
+     different grammatical roles. In this curriculum two thirds of the formulas
+     tag every part `marker` and label them "Part 1, Part 2, Part 3" - three
+     boxes of the same colour, carrying a sentence cut at arbitrary points, with
+     nothing to look at. When there is no distinction to draw, the pattern reads
+     as one line. */
+  const derived=parts.map(part=>deriveSegmentRole(part.text,part.role));
+  const undifferentiated=parts.length>0&&derived.every(role=>!role||role==='marker');
+  if(undifferentiated){
+    /* Rejoined with the plus the parts were cut on, so the pattern reads the
+       way it was authored - "have + participle", not two fragments run
+       together. */
+    const line=parts.map(part=>`<span>${esc(targetText(part.text,context))}</span>`)
+      .join('<i class="grammar-formula-plus" aria-hidden="true">+</i>');
+    return frame(block,context,`<div class="grammar-visual-canvas grammar-formula grammar-formula-band"><p class="grammar-formula-plain">${line}</p></div>`,{surface:true});
+  }
   return frame(block,context,`<div class="grammar-visual-canvas grammar-formula"><div class="grammar-formula-line">${parts.map((part,index)=>{
-    const role=String(part.role||'part');
+    const role=derived[index]||'part';
+    const authoredLabel=interfaceText(part.label,context);
     const aid=readingAidValue(part,context);
-    return `${index?'<span class="grammar-formula-join" aria-hidden="true">+</span>':''}<span class="grammar-formula-part role-${esc(safeId(role))}"><b>${esc(targetText(part.text,context))}</b>${aid?`<span class="grammar-reading-aid" data-grammar-reading-aid>${esc(aid)}</span>`:''}<small>${esc(interfaceText(part.label,context)||roleLabel(role,context))}</small></span>`;
+    return `${index?'<span class="grammar-formula-join" aria-hidden="true">+</span>':''}<span class="grammar-formula-part role-${esc(safeId(role))}"><b>${esc(targetText(part.text,context))}</b>${aid?`<span class="grammar-reading-aid" data-grammar-reading-aid>${esc(aid)}</span>`:''}<small>${esc(isGenericLabel(authoredLabel)||!authoredLabel?roleLabel(role,context):authoredLabel)}</small></span>`;
   }).join('')}</div></div>`,{surface:true});
 }
 
@@ -216,9 +296,14 @@ export function CommonMistake(block,context='en'){
   const p=block.payload||{};
   return frame(block,context,`<div class="grammar-common-mistake">
     ${p.context?`<p class="grammar-mistake-context"><strong>${esc(copy(context).contextLabel)}:</strong> ${esc(explanationText(p.context,context))}</p>`:''}
-    <div class="grammar-mistake-row is-incorrect"><span aria-hidden="true">×</span><div><small>${esc(copy(context).incorrect)}</small><strong>${esc(targetText(p.incorrect,context))}</strong></div></div>
+    ${(()=>{
+      const wrong=targetText(p.incorrect,context);
+      const right=targetText(p.correct,context);
+      const diff=markedDifference(wrong,right);
+      return `<div class="grammar-mistake-row is-incorrect"><span aria-hidden="true">×</span><div><small>${esc(copy(context).incorrect)}</small><strong>${diff.from}</strong></div></div>
     <div class="grammar-mistake-why"><strong>${esc(copy(context).why)}</strong><p>${esc(explanationText(p.why,context))}</p></div>
-    <div class="grammar-mistake-row is-correct"><span aria-hidden="true">✓</span><div><small>${esc(copy(context).corrected)}</small><strong>${esc(targetText(p.correct,context))}</strong></div></div>
+    <div class="grammar-mistake-row is-correct"><span aria-hidden="true">✓</span><div><small>${esc(copy(context).corrected)}</small><strong>${diff.to}</strong></div></div>`;
+    })()}
   </div>`,{surface:true});
 }
 
@@ -330,7 +415,7 @@ export function renderGrammarLearningModel(model,options={}){
   const remainingBlocks=primaryIndex>=0
     ?blocks.filter((_,index)=>index!==primaryIndex)
     :blocks;
-  return `<div class="grammar-learning-shell" data-grammar-learning-model="1" data-grammar-schema="${esc(model.schema_version)}" data-target-language="${esc(context.targetLanguage)}" data-interface-language="${esc(context.interfaceLanguage)}" data-explanation-language="${esc(context.explanationLanguage)}" data-translation-language="${esc(context.translationLanguage)}">
+  return `<div class="grammar-learning-shell" data-grammar-learning-model="1" data-grammar-visual-system="orena-grammar-v2" data-grammar-reference="orena-prod" data-grammar-schema="${esc(model.schema_version)}" data-target-language="${esc(context.targetLanguage)}" data-interface-language="${esc(context.interfaceLanguage)}" data-explanation-language="${esc(context.explanationLanguage)}" data-translation-language="${esc(context.translationLanguage)}">
     <nav class="grammar-learning-flow" aria-label="${esc(copy(context).flowLabel)}">${(model.flow||[]).map((stage,index)=>`<span data-flow-stage="${esc(stage)}"><i>${index+1}</i><b>${esc(stageLabel(stage,context))}</b></span>`).join('')}</nav>
     <section class="grammar-learning-hook"><span>${esc(explanationText(hook.eyebrow,context)||stageLabel('notice',context))}</span><h3>${esc(explanationText(hook.prompt,context))}</h3>${hasReadingAid(model)?`<button type="button" class="button button-tertiary grammar-reading-aid-toggle" data-reading-aid-toggle aria-pressed="true">${esc(copy(context).hideReadingAid)}</button>`:''}</section>
     <section class="grammar-learning-meaning"><span class="grammar-learning-stage">${esc(stageLabel('understand',context))}</span><h3>${esc(explanationText(meaning.summary,context))}</h3><p>${esc(explanationText(meaning.mental_model,context))}</p>${!modern&&useWhen.length?`<ul>${useWhen.map(item=>`<li>${esc(explanationText(item,context))}</li>`).join('')}</ul>`:''}</section>

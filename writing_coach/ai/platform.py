@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+from time import perf_counter
 from enum import Enum
 from pathlib import Path
 from typing import Any, Callable
@@ -9,6 +10,7 @@ from fastapi import APIRouter, FastAPI, HTTPException, Request
 from pydantic import BaseModel, ConfigDict, Field
 
 from writing_coach.ai.base import (
+    AICapabilityError,
     AICapabilityConfigInvalid,
     AICapabilityDisabled,
     AICapabilityNotConfigured,
@@ -20,10 +22,20 @@ from writing_coach.ai.base import (
     AIProviderResponseInvalid,
     AIProviderUnavailable,
     AIResult,
+    normalized_latency,
+    normalized_rate_limit,
+    normalized_usage,
+    sanitize_telemetry,
+    telemetry_error_class,
 )
 from writing_coach.ai.capabilities import require_capability
 from writing_coach.ai.config import CapabilityConfig, validate_capability_config
-from writing_coach.ai.control_plane import AIControlPlane, safe_model_display
+from writing_coach.ai.control_plane import (
+    AIControlPlane,
+    safe_capability_display,
+    safe_model_display,
+)
+from writing_coach.ai.pricing import estimate_token_cost
 from writing_coach.ai.providers import build_providers
 from writing_coach.persistence.platform_repository import PlatformRepository
 
@@ -60,6 +72,8 @@ class CapabilityConfigIn(BaseModel):
     enabled: bool
     provider: str = Field(min_length=1, max_length=40)
     model: str = Field(min_length=1, max_length=160)
+    backup_provider: str | None = Field(default=None, min_length=1, max_length=40)
+    backup_model: str | None = Field(default=None, min_length=1, max_length=160)
     timeout_seconds: int | None = None
     temperature: float | None = None
     fallback_policy: str = "none"
@@ -164,6 +178,20 @@ def active_ai_status() -> dict[str, Any]:
     }
 
 
+def _persist_operation_telemetry(telemetry: dict[str, Any]) -> None:
+    """Best-effort persistence through the installed platform repository."""
+
+    safe = sanitize_telemetry(telemetry)
+    recorder = getattr(_platform_repository, "record_ai_operation", None)
+    if safe is None or not callable(recorder):
+        return
+    try:
+        recorder(safe)
+    except Exception:
+        # Telemetry must never change learner/provider operation semantics.
+        return
+
+
 def generate_structured(
     *,
     messages: list[dict[str, str]],
@@ -173,52 +201,100 @@ def generate_structured(
     seed: int | None = None,
     capability_key: str | None = None,
 ) -> AIResult:
-    if runtime_mode() is AIRuntimeMode.LEGACY:
-        item, model = active_selection()
+    started = perf_counter()
+    provider_id: str | None = None
+    model: str | None = None
+
+    def finish(result: AIResult) -> AIResult:
+        runtime = dict(result.runtime or {})
+        provider_id = str(result.provider or "") or None
+        model_display, model_redacted = safe_model_display(result.model)
+        runtime["telemetry"] = {
+            "capability": safe_capability_display(capability_key) if capability_key else "legacy",
+            "origin": "learner",
+            "provider": provider_id,
+            "model": model_display or None,
+            "model_redacted": model_redacted,
+            "outcome": "success",
+            "error_class": None,
+            "latency_ms": normalized_latency((perf_counter() - started) * 1000),
+            "usage": normalized_usage(runtime),
+            "rate_limit": normalized_rate_limit(runtime.get("rate_limit")),
+            "cost": estimate_token_cost(provider_id, model_display, normalized_usage(runtime)),
+            "quota_available": "unknown",
+        }
+        _persist_operation_telemetry(runtime["telemetry"])
+        result.runtime = runtime
+        return result
+
+    try:
+        if runtime_mode() is AIRuntimeMode.LEGACY:
+            item, model = active_selection()
+            provider_id = str(getattr(item, "id", "") or "") or None
+            if not item.configured:
+                raise AIProviderUnavailable(f"{item.name} is not configured.")
+
+            # Do not silently fail over to a paid provider.
+            return finish(item.generate_json(
+                messages=messages,
+                schema=schema,
+                model=model,
+                max_output_tokens=max_output_tokens,
+                temperature=temperature,
+                seed=seed,
+            ))
+
+        if capability_key is None:
+            raise AICapabilityUnsupported("Capability mode requires an explicit AI capability.")
+        definition = require_capability(capability_key)
+        if not definition.implemented or not definition.provider_backed or not definition.configurable:
+            raise AICapabilityUnsupported(
+                f"AI capability {definition.key!r} is not provider-configurable."
+            )
+        row = _installed_platform_repository().get_capability_config(definition.key)
+        if row is None:
+            raise AICapabilityNotConfigured(
+                f"AI capability {definition.key!r} has no explicit configuration."
+            )
+        config = row.config
+        provider_id = config.provider
+        model = config.model
+        if not config.enabled:
+            raise AICapabilityDisabled(f"AI capability {definition.key!r} is disabled.")
+        validate_capability_config(definition.key, config)
+
+        item = providers().get(config.provider)
+        if item is None:
+            raise AICapabilityUnsupported(f"Unknown AI provider: {config.provider!r}.")
         if not item.configured:
             raise AIProviderUnavailable(f"{item.name} is not configured.")
-
-        # Do not silently fail over to a paid provider.
-        return item.generate_json(
+        generate_once = getattr(item, "generate_json_once", None) or item.generate_json
+        return finish(generate_once(
             messages=messages,
             schema=schema,
-            model=model,
+            model=config.model,
             max_output_tokens=max_output_tokens,
-            temperature=temperature,
+            temperature=config.temperature if config.temperature is not None else temperature,
             seed=seed,
-        )
-
-    if capability_key is None:
-        raise AICapabilityUnsupported("Capability mode requires an explicit AI capability.")
-    definition = require_capability(capability_key)
-    if not definition.implemented or not definition.provider_backed or not definition.configurable:
-        raise AICapabilityUnsupported(
-            f"AI capability {definition.key!r} is not provider-configurable."
-        )
-    row = _installed_platform_repository().get_capability_config(definition.key)
-    if row is None:
-        raise AICapabilityNotConfigured(
-            f"AI capability {definition.key!r} has no explicit configuration."
-        )
-    config = row.config
-    if not config.enabled:
-        raise AICapabilityDisabled(f"AI capability {definition.key!r} is disabled.")
-    validate_capability_config(definition.key, config)
-
-    item = providers().get(config.provider)
-    if item is None:
-        raise AICapabilityUnsupported(f"Unknown AI provider: {config.provider!r}.")
-    if not item.configured:
-        raise AIProviderUnavailable(f"{item.name} is not configured.")
-    generate_once = getattr(item, "generate_json_once", None) or item.generate_json
-    return generate_once(
-        messages=messages,
-        schema=schema,
-        model=config.model,
-        max_output_tokens=max_output_tokens,
-        temperature=config.temperature if config.temperature is not None else temperature,
-        seed=seed,
-    )
+        ))
+    except (AICapabilityError, AIProviderError) as exc:
+        model_display, model_redacted = safe_model_display(model)
+        exc.telemetry = {
+            "capability": safe_capability_display(capability_key) if capability_key else "legacy",
+            "origin": "learner",
+            "provider": provider_id,
+            "model": model_display or None,
+            "model_redacted": model_redacted,
+            "outcome": "failure",
+            "error_class": telemetry_error_class(exc),
+            "latency_ms": normalized_latency((perf_counter() - started) * 1000),
+            "usage": normalized_usage(None),
+            "rate_limit": normalized_rate_limit(getattr(exc, "rate_limit", None)),
+            "cost": estimate_token_cost(provider_id, model_display, None),
+            "quota_available": "unknown",
+        }
+        _persist_operation_telemetry(exc.telemetry)
+        raise
 
 
 def _require_admin(request: Request) -> dict[str, Any]:
@@ -253,6 +329,12 @@ def admin_ai_config(request: Request) -> dict[str, Any]:
     result = AIControlPlane(_installed_platform_repository()).inspect()
     result["learner_runtime"] = {"mode": runtime_mode().value}
     return result
+
+
+@router.get("/operations")
+def admin_ai_operations(request: Request, limit: int = 100) -> dict[str, Any]:
+    _require_admin(request)
+    return AIControlPlane(_installed_platform_repository()).operations(limit=limit)
 
 
 @router.put("/config", deprecated=True)
@@ -335,6 +417,8 @@ def _capability_config(payload: CapabilityConfigIn) -> CapabilityConfig:
         enabled=payload.enabled,
         provider=payload.provider,
         model=payload.model,
+        backup_provider=payload.backup_provider,
+        backup_model=payload.backup_model,
         timeout_seconds=payload.timeout_seconds,
         temperature=payload.temperature,
         fallback_policy=payload.fallback_policy,
@@ -362,6 +446,8 @@ def _live_failure(
     control_plane: AIControlPlane,
     capability_key: str,
     exc: Exception,
+    *,
+    standby: bool = False,
 ) -> HTTPException:
     if isinstance(exc, AICapabilityDisabled):
         status, error_class, message = 409, "capability_disabled", "Capability is disabled."
@@ -385,7 +471,7 @@ def _live_failure(
         raise exc
 
     try:
-        context = control_plane.diagnostic_context(capability_key)
+        context = control_plane.diagnostic_context(capability_key, standby=standby)
     except (AICapabilityConfigInvalid, AICapabilityUnsupported):
         context = {
             "capability": "[invalid]",
@@ -393,24 +479,46 @@ def _live_failure(
             "model": None,
             "model_redacted": False,
         }
+    raw_telemetry = getattr(exc, "telemetry", None)
+    telemetry = raw_telemetry if isinstance(raw_telemetry, dict) else {}
+    # The control plane attaches this shape before the route translates the
+    # typed exception; copy only normalized fields into the HTTP detail.
+    safe_telemetry = {
+        "capability": safe_capability_display(telemetry.get("capability") or capability_key),
+        "origin": "operator_test",
+        "provider": str(telemetry.get("provider") or "") or None,
+        "model": safe_model_display(telemetry.get("model"))[0] or None,
+        "model_redacted": bool(telemetry.get("model_redacted")),
+        "outcome": "failure",
+        "error_class": error_class,
+        "latency_ms": normalized_latency(telemetry.get("latency_ms")),
+        "usage": normalized_usage(telemetry.get("usage")),
+        "rate_limit": normalized_rate_limit(telemetry.get("rate_limit")),
+        "quota_available": "unknown",
+    }
     return HTTPException(
         status,
         {
             "ok": False,
             **context,
-            "latency_ms": None,
+            "latency_ms": safe_telemetry["latency_ms"],
             "error_class": error_class,
             "error": message,
+            "telemetry": safe_telemetry,
         },
     )
 
 
 @router.post("/test/{capability_key}")
-def admin_ai_capability_test(capability_key: str, request: Request) -> dict[str, Any]:
+def admin_ai_capability_test(
+    capability_key: str,
+    request: Request,
+    standby: bool = False,
+) -> dict[str, Any]:
     _require_admin(request)
     control_plane = AIControlPlane(_installed_platform_repository())
     try:
-        return control_plane.live_test(capability_key)
+        return control_plane.live_test(capability_key, standby=standby)
     except (
         AICapabilityConfigInvalid,
         AICapabilityDisabled,
@@ -418,7 +526,7 @@ def admin_ai_capability_test(capability_key: str, request: Request) -> dict[str,
         AICapabilityUnsupported,
         AIProviderError,
     ) as exc:
-        raise _live_failure(control_plane, capability_key, exc) from exc
+        raise _live_failure(control_plane, capability_key, exc, standby=standby) from exc
 
 
 def install_platform_ai(

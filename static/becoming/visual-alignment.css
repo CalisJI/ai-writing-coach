@@ -1968,19 +1968,19 @@ html[lang^="zh"] .writing-dashboard-head h2{
   overflow:hidden;
   border-radius:999px;
   background:color-mix(in srgb,var(--color-border-strong) 52%,transparent);
-  box-shadow:inset 0 1px 2px color-mix(in srgb,var(--color-ink-strong) 8%,transparent);
+  box-shadow:var(--elev-inset);
 }
 
 .dashboard-metric-track i{
   display:block;
   height:100%;
   border-radius:inherit;
-  background:
-    linear-gradient(
-      90deg,
-      color-mix(in srgb,var(--color-informational) 72%,var(--color-ink-muted)),
-      color-mix(in srgb,var(--color-positive) 68%,var(--color-informational))
-    );
+  /* Writing dimensions are magnitude, not status. Painting them with the
+     semantic informational/positive hues made the bar read blue-green in a
+     product whose palette is accent + neutrals, and implied a "good/info"
+     meaning the number does not carry. Neutral fill; the accent endpoint dot
+     from lively-details is the only emphasis. */
+  background:color-mix(in srgb,var(--color-ink-muted) 52%,var(--color-border-strong));
 }
 
 .dashboard-empty-metrics{
@@ -2660,9 +2660,18 @@ html[lang^="zh"] .editorial-title,
 
 .home-editorial-hero{
   min-height:0;
-  grid-template-columns:minmax(0,.78fr) minmax(500px,1.22fr);
-  gap:clamp(44px,5vw,88px);
-  align-items:start;
+  /* OREN-15 removed the editorial kicker/title/lead from this column, leaving
+     it with nothing but the 46px action row while the grid still reserved
+     ~40% of the hero width for it. Size the column to its content instead. */
+  grid-template-columns:max-content minmax(0,1fr);
+  gap:clamp(32px,4vw,64px);
+  align-items:center;
+}
+
+/* Let the folio use the width the copy column no longer needs. */
+.home-editorial-hero .home-folio{
+  width:100%;
+  justify-self:stretch;
 }
 
 .home-editorial-copy{

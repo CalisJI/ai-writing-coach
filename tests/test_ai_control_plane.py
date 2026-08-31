@@ -21,6 +21,7 @@ from writing_coach.ai.base import (
 from writing_coach.ai.capabilities import all_capabilities
 from writing_coach.ai.config import CapabilityConfig
 from writing_coach.ai.control_plane import AIControlPlane
+from writing_coach.ai.pricing import PRICING_CATALOG_VERSION, estimate_token_cost
 from writing_coach.ai.providers import OllamaProvider, OpenAICompatibleProvider
 from writing_coach.persistence.platform_repository import (
     AISelectionRecord,
@@ -46,6 +47,8 @@ class FakeRepository:
         self.legacy: AISelectionRecord | None = None
         self.capability_writes: list[tuple[str, CapabilityConfig, str]] = []
         self.legacy_writes: list[tuple[str, str, str]] = []
+        self.capability_metadata: dict[str, tuple[str, str]] = {}
+        self.ai_events: list[dict[str, Any]] = []
 
     def initialize(self) -> None:
         pass
@@ -61,11 +64,18 @@ class FakeRepository:
         config = self.capabilities.get(capability_key.strip().casefold())
         if config is None:
             return None
-        return CapabilityConfigRecord(capability_key.strip().casefold(), config)
+        key = capability_key.strip().casefold()
+        updated_at, updated_by = self.capability_metadata.get(key, ("", ""))
+        return CapabilityConfigRecord(key, config, updated_at=updated_at, updated_by=updated_by)
 
     def list_capability_configs(self) -> list[CapabilityConfigRecord]:
         return [
-            CapabilityConfigRecord(key, config)
+            CapabilityConfigRecord(
+                key,
+                config,
+                updated_at=self.capability_metadata.get(key, ("", ""))[0],
+                updated_by=self.capability_metadata.get(key, ("", ""))[1],
+            )
             for key, config in sorted(self.capabilities.items())
         ]
 
@@ -78,6 +88,12 @@ class FakeRepository:
     ) -> None:
         self.capabilities[capability_key] = config
         self.capability_writes.append((capability_key, config, updated_by))
+
+    def record_ai_operation(self, telemetry: dict[str, Any]) -> None:
+        self.ai_events.append(dict(telemetry))
+
+    def list_ai_operation_events(self, limit: int = 100) -> list[dict[str, Any]]:
+        return self.ai_events[:limit]
 
 
 @dataclass
@@ -213,7 +229,13 @@ def test_get_is_capability_centric_network_free_and_secret_safe(
     repository = FakeRepository()
     repository.legacy = AISelectionRecord("openai", "https://legacy:super-secret@example.invalid")
     repository.capabilities["writing_evaluator"] = capability_config(
-        model="abc?api_key=super-secret"
+        model="abc?api_key=super-secret",
+        backup_provider="deepseek",
+        backup_model="https://backup.invalid/model?token=super-secret",
+    )
+    repository.capability_metadata["writing_evaluator"] = (
+        "2026-08-28T14:00:00+07:00",
+        "admin-sub-secret-shaped",
     )
     provider = FakeProvider()
 
@@ -241,6 +263,20 @@ def test_get_is_capability_centric_network_free_and_secret_safe(
     ))
     assert states["writing_evaluator"]["config"]["model"] == "[redacted]"
     assert states["writing_evaluator"]["config"]["model_redacted"] is True
+    assert states["writing_evaluator"]["config"]["backup_model"] == "[redacted]"
+    assert states["writing_evaluator"]["config"]["backup_model_redacted"] is True
+    assert states["writing_evaluator"]["config_provenance"] == {
+        "saved": True,
+        "updated_at": "2026-08-28T14:00:00+07:00",
+        "updated_by_present": True,
+    }
+
+
+    assert states["reading_evaluator"]["config_provenance"] == {
+        "saved": False,
+        "updated_at": None,
+        "updated_by_present": False,
+    }
     assert payload["legacy_runtime"] == {
         "role": "live-global-routing-until-R2-activation",
         "selection_present": True,
@@ -250,7 +286,72 @@ def test_get_is_capability_centric_network_free_and_secret_safe(
     assert "super-secret" not in rendered
     assert "db-password" not in rendered
     assert "server-secret" not in rendered
+    assert "admin-sub-secret-shaped" not in rendered
     assert provider.discovery_calls == 0
+
+
+def test_operations_endpoint_is_read_only_and_aggregates_without_provider_probe(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    repository = FakeRepository()
+    repository.ai_events.append({
+        "capability": "writing_evaluator",
+        "provider": "openai",
+        "model": "gpt-4o-mini",
+        "outcome": "success",
+        "latency_ms": 12,
+        "usage": {"prompt_tokens": 2, "completion_tokens": 1, "total_tokens": 3},
+        "prompt": "never return",
+        "cost": estimate_token_cost("openai", "gpt-4o-mini", {"prompt_tokens": 2, "completion_tokens": 1}),
+    })
+    request = configure_platform(monkeypatch, repository)
+    monkeypatch.setattr(platform_module, "providers", lambda: pytest.fail("operations endpoint probed providers"))
+
+    result = platform_module.admin_ai_operations(request)
+
+    assert result["has_data"] is True
+    assert result["by_capability"][0]["capability"] == "writing_evaluator"
+    assert result["by_capability"][0]["usage_known"] == 1
+    assert result["by_capability"][0]["health_state"] == "healthy"
+    assert result["by_capability"][0]["evidence_count"] == 1
+    assert result["by_capability"][0]["failure_rate_percent"] == 0
+    assert result["by_capability"][0]["cost_totals"] == [{"currency": "USD", "amount": 0.0000009, "evidence_count": 1, "catalog_version": PRICING_CATALOG_VERSION}]
+    assert result["by_capability"][0]["token_totals"] == {
+        "prompt_tokens": 2,
+        "completion_tokens": 1,
+        "total_tokens": 3,
+    }
+    assert "prompt" not in result["recent"][0]
+    assert result["recent"][0]["cost"]["provenance"]["catalog_version"] == PRICING_CATALOG_VERSION
+
+
+def test_operations_endpoint_reports_mixed_rate_limit_evidence_without_probing(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    repository = FakeRepository()
+    repository.ai_events = [
+        {
+            "capability": "writing_evaluator",
+            "outcome": "success",
+            "rate_limit": {
+                "requests_limit": 100,
+                "requests_remaining": 0,
+                "tokens_limit": 2000,
+                "tokens_remaining": 10,
+            },
+        },
+        {"capability": "writing_evaluator", "outcome": "failure", "error_class": "provider_error"},
+    ]
+    request = configure_platform(monkeypatch, repository)
+    monkeypatch.setattr(platform_module, "providers", lambda: pytest.fail("operations endpoint probed providers"))
+
+    result = platform_module.admin_ai_operations(request)
+    row = result["by_capability"][0]
+
+    assert row["rate_limit_reported_count"] == 1
+    assert row["rate_limit_unknown_count"] == 1
+    assert row["quota_state"] == "reported_exhausted"
+    assert row["rate_limit"]["requests_remaining"] == 0
 
 
 def test_capability_put_updates_one_row_offline_without_legacy_or_network(
@@ -274,6 +375,70 @@ def test_capability_put_updates_one_row_offline_without_legacy_or_network(
     assert repository.legacy_writes == []
     assert offline.discovery_calls == 0
     assert offline.generation_calls == []
+
+
+def test_capability_backup_configuration_is_persisted_and_inspected_safely(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    repository = FakeRepository()
+    request = configure_platform(monkeypatch, repository)
+    response = platform_module.admin_ai_capability_config_update(
+        "writing_evaluator",
+        platform_module.CapabilityConfigIn(**valid_payload(
+            backup_provider="deepseek", backup_model="deepseek-chat"
+        )),
+        request,
+    )
+    saved = repository.capabilities["writing_evaluator"]
+    assert saved.backup_provider == "deepseek"
+    assert saved.backup_model == "deepseek-chat"
+    assert response["config"]["backup_provider"] == "deepseek"
+    assert response["config"]["backup_model"] == "deepseek-chat"
+    inspected = platform_module.admin_ai_config(request)
+    config = next(item for item in inspected["capabilities"] if item["key"] == "writing_evaluator")["config"]
+    assert config["backup_provider"] == "deepseek"
+    assert config["backup_model"] == "deepseek-chat"
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [
+        valid_payload(backup_provider="deepseek"),
+        valid_payload(backup_model="deepseek-chat"),
+        valid_payload(backup_provider="unknown", backup_model="model-2"),
+    ],
+)
+def test_capability_backup_configuration_requires_supported_complete_pair(
+    monkeypatch: pytest.MonkeyPatch,
+    payload: dict[str, Any],
+) -> None:
+    repository = FakeRepository()
+    request = configure_platform(monkeypatch, repository)
+    with pytest.raises(HTTPException) as caught:
+        platform_module.admin_ai_capability_config_update(
+            "writing_evaluator", platform_module.CapabilityConfigIn(**payload), request
+        )
+    assert caught.value.status_code == 400
+    assert repository.capabilities == {}
+
+
+def test_standby_health_check_is_explicit_and_does_not_touch_primary(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    repository = FakeRepository()
+    repository.capabilities["writing_evaluator"] = capability_config(
+        backup_provider="deepseek", backup_model="deepseek-chat"
+    )
+    primary = FakeProvider()
+    standby = FakeProvider(id="deepseek", name="DeepSeek API", models=("deepseek-chat",))
+    request = configure_platform(monkeypatch, repository, providers={"openai": primary, "deepseek": standby})
+    result = platform_module.admin_ai_capability_test("writing_evaluator", request, standby=True)
+    assert result["provider"] == "deepseek"
+    assert result["model"] == "deepseek-chat"
+    assert primary.discovery_calls == 0
+    assert primary.generation_calls == []
+    assert standby.discovery_calls == 1
+    assert standby.generation_calls[0]["model"] == "deepseek-chat"
 
 
 @pytest.mark.parametrize(
@@ -335,6 +500,16 @@ def test_live_test_failure_taxonomy_is_distinct_and_sanitized(
         platform_module.admin_ai_capability_test("writing_evaluator", request)
     assert caught.value.status_code >= 400
     assert caught.value.detail["error_class"] == error_class
+    telemetry = caught.value.detail["telemetry"]
+    assert telemetry["capability"] == "writing_evaluator"
+    assert telemetry["error_class"] == error_class
+    assert telemetry["outcome"] == "failure"
+    assert telemetry["usage"] == {
+        "prompt_tokens": None,
+        "completion_tokens": None,
+        "total_tokens": None,
+    }
+    assert telemetry["quota_available"] == "unknown"
     assert "raw network" not in str(caught.value.detail)
     assert repository.legacy_writes == []
 
@@ -386,6 +561,21 @@ def test_live_test_rejects_deterministic_and_reserved_capabilities(
     assert caught.value.detail["error_class"] == "capability_invalid"
 
 
+def test_live_test_invalid_capability_does_not_echo_caller_value(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    repository = FakeRepository()
+    request = configure_platform(monkeypatch, repository)
+    supplied = "unknown?token=do-not-leak"
+
+    with pytest.raises(HTTPException) as caught:
+        platform_module.admin_ai_capability_test(supplied, request)
+
+    assert caught.value.detail["telemetry"]["capability"] == "[invalid]"
+    assert caught.value.detail["capability"] == "[invalid]"
+    assert "do-not-leak" not in str(caught.value.detail)
+
+
 def test_live_test_invokes_exact_provider_model_once_and_validates_schema(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -407,6 +597,13 @@ def test_live_test_invokes_exact_provider_model_once_and_validates_schema(
         "model": "model-1",
         "error_class": None,
     } == response
+    assert response["telemetry"]["capability"] == "writing_evaluator"
+    assert response["telemetry"]["outcome"] == "success"
+    assert response["telemetry"]["usage"] == {
+        "prompt_tokens": None,
+        "completion_tokens": None,
+        "total_tokens": None,
+    }
     assert selected.discovery_calls == 1
     assert len(selected.generation_calls) == 1
     assert selected.generation_calls[0]["model"] == "model-1"
@@ -429,6 +626,8 @@ def test_live_test_invalid_response_and_raw_provider_errors_are_not_exposed(
         platform_module.admin_ai_capability_test("writing_evaluator", request)
     assert caught.value.detail["error_class"] == "provider_response_invalid"
     assert caught.value.detail["model"] == "[redacted]"
+    assert caught.value.detail["telemetry"]["model"] == "[redacted]"
+    assert caught.value.detail["telemetry"]["model_redacted"] is True
     assert "super-secret" not in str(caught.value.detail)
     assert len(malformed.generation_calls) == 1
 
@@ -442,6 +641,7 @@ def test_live_test_invalid_response_and_raw_provider_errors_are_not_exposed(
     with pytest.raises(HTTPException) as caught:
         platform_module.admin_ai_capability_test("writing_evaluator", request)
     assert caught.value.detail["error_class"] == "provider_error"
+    assert caught.value.detail["telemetry"]["error_class"] == "provider_error"
     assert "super-secret" not in str(caught.value.detail)
     assert "raw-body" not in str(caught.value.detail)
     assert len(failing.generation_calls) == 1
@@ -587,9 +787,10 @@ def test_one_shot_provider_request_has_typed_transport_and_response_failures(
 
 
 class ProviderResponse:
-    def __init__(self, payload: object) -> None:
+    def __init__(self, payload: object, *, headers: dict[str, str] | None = None, status_code: int = 200) -> None:
         self.payload = payload
-        self.status_code = 200
+        self.status_code = status_code
+        self.headers = headers or {}
 
     def raise_for_status(self) -> None:
         pass
@@ -601,6 +802,73 @@ class ProviderResponse:
 class InvalidJSONResponse(ProviderResponse):
     def json(self) -> object:
         raise ValueError("Authorization: Bearer super-secret raw-body")
+
+
+def test_openai_structured_response_captures_allowlisted_rate_limit_headers(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    provider = openai_provider(monkeypatch)
+    payload = {"choices": [{"message": {"content": '{"ok": true}'}}]}
+    response = ProviderResponse(
+        payload,
+        headers={
+            "X-RateLimit-Limit-Requests": "9" * 100,
+            "x-ratelimit-remaining-requests": "0",
+            "x-ratelimit-limit-tokens": "20000",
+            "x-ratelimit-remaining-tokens": "bad",
+            "x-ratelimit-reset-requests": "tomorrow",
+        },
+    )
+    monkeypatch.setattr(requests, "post", lambda *_args, **_kwargs: response)
+
+    result = provider.generate_json_once(
+        messages=[{"role": "user", "content": "test"}],
+        schema={"type": "object"},
+        model="model-1",
+        max_output_tokens=40,
+        temperature=0.0,
+    )
+
+    assert result.runtime["rate_limit"] == {
+        "requests_limit": None,
+        "requests_remaining": 0,
+        "tokens_limit": 20000,
+        "tokens_remaining": None,
+    }
+    assert "x-ratelimit-reset-requests" not in result.runtime["rate_limit"]
+
+
+def test_openai_provider_failure_retains_safe_rate_limit_headers(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    provider = openai_provider(monkeypatch)
+    response = ProviderResponse(
+        {"error": {"message": "rate limited"}},
+        status_code=429,
+        headers={
+            "x-ratelimit-remaining-requests": "0",
+            "x-ratelimit-remaining-tokens": "0",
+            "x-ratelimit-reset-requests": "secret-reset-value",
+        },
+    )
+    monkeypatch.setattr(requests, "post", lambda *_args, **_kwargs: response)
+
+    with pytest.raises(AIProviderError) as caught:
+        provider.generate_json_once(
+            messages=[{"role": "user", "content": "test"}],
+            schema={"type": "object"},
+            model="model-1",
+            max_output_tokens=40,
+            temperature=0.0,
+        )
+
+    assert caught.value.rate_limit == {
+        "requests_limit": None,
+        "requests_remaining": 0,
+        "tokens_limit": None,
+        "tokens_remaining": 0,
+    }
+    assert "secret-reset-value" not in repr(caught.value.rate_limit)
 
 
 @pytest.mark.parametrize(

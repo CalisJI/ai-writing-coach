@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+import json
 from typing import Any
 
 import pytest
@@ -102,7 +103,9 @@ def test_valid_and_invalid_chinese_levels_use_the_same_shared_implementation() -
 
 def test_strength_evidence_requires_exact_fragment_category_and_confidence() -> None:
     accepted = _normalize({"strength_evidence": [_strength()]})
-    assert accepted["strength_evidence"] == [_strength()]
+    assert accepted["strength_evidence"][0]["category"] == "grammar"
+    assert accepted["strength_evidence"][0]["fragment"] == LEARNER_TEXT
+    assert accepted["strength_evidence"][0]["span"] == {"start": 0, "end": len(LEARNER_TEXT)}
 
     rejected = _normalize(
         {
@@ -118,6 +121,26 @@ def test_strength_evidence_requires_exact_fragment_category_and_confidence() -> 
     assert rejected["strength_evidence"] == []
 
 
+def test_learner_facing_text_fields_reject_non_string_provider_values() -> None:
+    result = _normalize(
+        {
+            "summary_vi": {"message": "not learner copy"},
+            "strengths_vi": [{"message": "not learner copy"}, None, 7],
+            "priorities_vi": [{"message": "not learner copy"}, False],
+            "strength_evidence": [_strength(explanation_vi={"message": "not learner copy"})],
+            "errors": [_error(explanation_vi={"message": "not learner copy"}, mini_rule_vi=["not learner copy"])],
+        }
+    )
+
+    assert result["summary_vi"] == ""
+    assert result["strengths_vi"] == []
+    assert result["priorities_vi"] == []
+    assert result["strength_evidence"][0]["explanation_vi"] == ""
+    assert result["errors"][0]["explanation_vi"] == ""
+    assert result["errors"][0]["mini_rule_vi"] == ""
+    assert "not learner copy" not in repr(result)
+
+
 def test_strength_evidence_is_bounded() -> None:
     fragments = [f"good {index}" for index in range(8)]
     result = _normalize(
@@ -129,7 +152,9 @@ def test_strength_evidence_is_bounded() -> None:
 
 def test_errors_require_exact_evidence_meaningful_suggestion_and_confidence() -> None:
     accepted = _normalize({"errors": [_error()]})
-    assert accepted["errors"] == [_error()]
+    assert accepted["errors"][0]["category"] == "agreement"
+    assert accepted["errors"][0]["span"] == {"start": 0, "end": len(LEARNER_TEXT)}
+    assert accepted["issues"][0]["id"] == accepted["errors"][0]["id"]
 
     rejected = _normalize(
         {
@@ -183,7 +208,32 @@ def test_error_duplicates_collapse_by_exact_category_and_fragment_in_first_valid
             ]
         }
     )
-    assert result["errors"] == [first, _error(category="article", explanation_vi="different category")]
+    assert [(item["category"], item["fragment"], item["explanation_vi"]) for item in result["errors"]] == [
+        ("agreement", LEARNER_TEXT, "first"),
+        ("article", LEARNER_TEXT, "different category"),
+    ]
+
+
+def test_errors_are_prioritized_by_confidence_with_stable_ties() -> None:
+    result = _normalize(
+        {
+            "errors": [
+                _error(category="agreement", fragment="I has", confidence=0.8),
+                _error(category="article", fragment="a dog", confidence=0.95),
+                # `sentence_structure`, not `word_order`: the English profile's
+                # ERROR_CATEGORIES allowlist drops anything it does not name, so an
+                # invalid category here would test the allowlist, not the tie order.
+                _error(category="sentence_structure", fragment="I has a dog.", confidence=0.95),
+            ]
+        },
+        learner_text=LEARNER_TEXT,
+    )
+
+    assert [(item["category"], item["confidence"]) for item in result["errors"]] == [
+        ("article", 0.95),
+        ("sentence_structure", 0.95),
+        ("agreement", 0.8),
+    ]
 
 
 def test_strength_duplicates_collapse_by_exact_category_and_fragment_in_first_valid_order() -> None:
@@ -197,9 +247,9 @@ def test_strength_duplicates_collapse_by_exact_category_and_fragment_in_first_va
             ]
         }
     )
-    assert result["strength_evidence"] == [
-        first,
-        _strength(category="vocabulary", explanation_vi="different category"),
+    assert [(item["category"], item["fragment"], item["explanation_vi"]) for item in result["strength_evidence"]] == [
+        ("grammar", LEARNER_TEXT, "first"),
+        ("vocabulary", LEARNER_TEXT, "different category"),
     ]
 
 
@@ -251,7 +301,7 @@ def test_chinese_policy_allows_cjk_learner_facing_content() -> None:
 
 def test_response_shape_is_backward_compatible_and_excludes_internal_learner_text() -> None:
     result = _normalize({"__learner_text": "must not appear"})
-    assert set(result) == {
+    assert set(result) >= {
         "grammar",
         "vocabulary",
         "cefr_estimate",
@@ -260,7 +310,15 @@ def test_response_shape_is_backward_compatible_and_excludes_internal_learner_tex
         "priorities_vi",
         "strength_evidence",
         "errors",
+        "schema_version",
+        "text_hash",
+        "summary",
+        "dimensions",
+        "issues",
+        "strengths",
+        "next_actions",
     }
+    assert "__learner_text" not in result
 
 
 def test_app_validate_result_delegates_to_the_extracted_contract(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -312,3 +370,279 @@ def test_app_writing_evaluator_path_keeps_its_capability_identity(monkeypatch: p
     assert result["strength_evidence"] == []
     assert result["errors"] == []
     assert result["_ai_provider"] == "test-provider"
+
+
+def test_invalid_provider_response_uses_the_same_explicit_demo_fallback(monkeypatch: pytest.MonkeyPatch) -> None:
+    import app
+    from writing_coach.ai.base import AIProviderResponseInvalid
+
+    def invalid_provider(_payload: Any) -> dict[str, Any]:
+        raise AIProviderResponseInvalid("provider returned incomplete JSON")
+
+    monkeypatch.setattr(app, "evaluate_with_ai", invalid_provider)
+    monkeypatch.setattr(app, "ALLOW_FALLBACK", True)
+
+    result, evaluator = app.evaluate(app.EssayIn(text=LEARNER_TEXT, prompt="Test prompt"))
+
+    assert evaluator == "fallback-demo"
+    assert result["schema_version"] == "writing-evaluation-v2"
+    assert result["errors"][0]["fragment"] == "I has"
+    assert "Kết nối AI Coach" not in result["priorities_vi"][0]
+    # The degraded notice must say the evaluation is provisional. The priority
+    # line carries the re-run cue; the "chưa tạo được" phrasing lives in the summary.
+    assert "chạy lại khi AI Coach tạo được đánh giá đầy đủ" in result["priorities_vi"][0]
+    assert "chưa tạo được đánh giá đầy đủ" in result["summary_vi"]
+
+
+@pytest.mark.parametrize(
+    (
+        "language",
+        "target_level",
+        "learner_text",
+        "error_category",
+        "error_fragment",
+        "error_suggestion",
+        "strength_fragment",
+        "grammar_id",
+    ),
+    [
+        (
+            "en",
+            "B1",
+            "I has a dog.",
+            "agreement",
+            "I has",
+            "I have",
+            "dog",
+            "a1-agreement",
+        ),
+        (
+            "zh",
+            "HSK2",
+            "\u6211\u6bcf\u5929\u90fd\u8ba4\u771f\u5b66\u4e60\u6c49\u8bed\u3002",
+            "word_order",
+            "\u5b66\u4e60\u6c49\u8bed",
+            "\u6c49\u8bed\u5b66\u4e60",
+            "\u6211\u6bcf\u5929",
+            "hsk2-word-order",
+        ),
+    ],
+)
+def test_api_evaluate_end_to_end_preserves_en_zh_evidence_and_provenance(
+    monkeypatch: pytest.MonkeyPatch,
+    language: str,
+    target_level: str,
+    learner_text: str,
+    error_category: str,
+    error_fragment: str,
+    error_suggestion: str,
+    strength_fragment: str,
+    grammar_id: str,
+) -> None:
+    """The Write response must carry the evidence that Review and Journey consume."""
+    import app
+    from writing_coach.ai.base import AIResult
+    from writing_coach.languages.chinese.profile import (
+        ERROR_CATEGORIES as ZH_CATEGORIES,
+        PROFILE as ZH_PROFILE,
+        RUBRIC_WEIGHTS as ZH_WEIGHTS,
+        score_to_level as zh_score_to_level,
+    )
+    from writing_coach.languages.english.profile import (
+        ERROR_CATEGORIES as EN_CATEGORIES,
+        PROFILE as EN_PROFILE,
+        RUBRIC_WEIGHTS as EN_WEIGHTS,
+        score_to_level as en_score_to_level,
+    )
+
+    class FakeLearningRepository:
+        def __init__(self) -> None:
+            self.created: dict[str, Any] | None = None
+
+        def create_essay(self, values: dict[str, Any]) -> dict[str, int]:
+            self.created = values
+            return {"id": 41, "series_id": 41, "revision_no": 1}
+
+    repository = FakeLearningRepository()
+    monkeypatch.setattr(app, "_learning_repository", repository)
+    monkeypatch.setattr(app, "active_grammar_language_code", lambda: language)
+    monkeypatch.setattr(app, "is_chinese", lambda: language == "zh")
+
+    if language == "zh":
+        profile, weights, levels, score_to_level, categories = (
+            ZH_PROFILE,
+            ZH_WEIGHTS,
+            ZH_PROFILE.levels,
+            zh_score_to_level,
+            ZH_CATEGORIES,
+        )
+    else:
+        profile, weights, levels, score_to_level, categories = (
+            EN_PROFILE,
+            EN_WEIGHTS,
+            EN_PROFILE.levels,
+            en_score_to_level,
+            EN_CATEGORIES,
+        )
+    monkeypatch.setattr(app, "active_profile", lambda: profile)
+    monkeypatch.setattr(app, "active_rubric_weights", lambda: weights)
+    monkeypatch.setattr(app, "active_levels", lambda: levels)
+    monkeypatch.setattr(app, "active_score_to_level", score_to_level)
+    monkeypatch.setattr(app, "active_error_categories", lambda: categories)
+    monkeypatch.setattr(app, "active_system_prompt", lambda: "fixture system prompt")
+    monkeypatch.setattr(
+        app,
+        "active_grammar_knowledge_by_id",
+        lambda: {
+            grammar_id: {
+                "title": "Subject verb agreement" if language == "en" else "Word order",
+                "level": target_level,
+                "quick_reference": {"lookup_tags": [error_category.replace("_", " ")]},
+            }
+        },
+    )
+
+    raw_result = {
+        **{key: 70 for key in weights},
+        "cefr_estimate": target_level,
+        "summary_vi": "Bai viet co bang chung ro rang.",
+        "strengths_vi": ["Nguoi hoc trinh bay y ro rang."],
+        "strength_evidence": [
+            {
+                "category": "grammar",
+                "fragment": strength_fragment,
+                "explanation_vi": "Diem manh nay xuat hien ro trong cau.",
+                "confidence": 0.9,
+            }
+        ],
+        "priorities_vi": ["Sua mau loi nay trong lan viet tiep theo."],
+        "errors": [
+            {
+                "category": error_category,
+                "fragment": error_fragment,
+                "explanation_vi": "Cau truc nay can duoc dieu chinh.",
+                "suggestion": error_suggestion,
+                "mini_rule_vi": "Chon cau truc phu hop voi ngu canh.",
+                "confidence": 0.95,
+            }
+        ],
+    }
+
+    captured: dict[str, Any] = {}
+
+    def generate_structured(**kwargs: Any) -> AIResult:
+        captured.update(kwargs)
+        return AIResult(
+            data=raw_result,
+            provider=f"fixture-{language}",
+            model="v1",
+            runtime={"mode": "fixture"},
+        )
+
+    monkeypatch.setattr(app, "generate_structured", generate_structured)
+    response = app.api_evaluate(
+        app.EssayIn(
+            text=learner_text,
+            prompt="Write one short practice response.",
+            target_cefr=target_level,
+            learning_language=language,
+        )
+    )
+
+    assert captured["capability_key"] == "writing_evaluator"
+    assert response["id"] == 41
+    assert response["evaluator"] == f"fixture-{language}:v1"
+    assert response["schema_version"] == "writing-evaluation-v2"
+    assert response["errors"][0]["fragment"] == error_fragment
+    assert response["issues"][0]["quote"] == error_fragment
+    assert response["strength_evidence"][0]["fragment"] == strength_fragment
+    assert response["grammar_links"][0]["grammar_id"] == grammar_id
+    assert repository.created is not None
+    assert repository.created["evaluator"] == response["evaluator"]
+    assert json.loads(repository.created["errors_json"])[0]["fragment"] == error_fragment
+    assert json.loads(repository.created["strength_evidence_json"])[0]["fragment"] == strength_fragment
+
+
+def test_heuristic_fallback_keeps_high_confidence_feedback_and_v2_envelope(monkeypatch: pytest.MonkeyPatch) -> None:
+    import app
+
+    monkeypatch.setattr(app, "is_chinese", lambda: False)
+    result = app.heuristic_fallback(app.EssayIn(text="I has a dog."))
+
+    assert result["schema_version"] == "writing-evaluation-v2"
+    assert result["errors"][0]["fragment"] == "I has"
+    assert result["errors"][0]["suggestion"] == "I have"
+    assert result["issues"][0]["span"] == {"start": 0, "end": 5}
+
+
+@pytest.mark.parametrize(
+    ("provider_error", "status_code", "category", "retryable"),
+    (
+        ("unavailable", 503, "evaluation_unavailable", True),
+        ("invalid-response", 502, "evaluation_provider_failure", False),
+    ),
+)
+def test_provider_failures_use_canonical_learner_safe_evaluation_envelope(
+    monkeypatch: pytest.MonkeyPatch,
+    provider_error: str,
+    status_code: int,
+    category: str,
+    retryable: bool,
+) -> None:
+    import app
+    from fastapi import HTTPException
+    from writing_coach.ai.base import AIProviderError, AIProviderUnavailable
+
+    exception_type = AIProviderUnavailable if provider_error == "unavailable" else AIProviderError
+
+    def fail(_payload: Any) -> Any:
+        raise exception_type(f"raw provider detail: {provider_error}")
+
+    monkeypatch.setattr(app, "evaluate_with_ai", fail)
+    monkeypatch.setattr(app, "ALLOW_FALLBACK", False)
+
+    with pytest.raises(HTTPException) as raised:
+        app.evaluate(app.EssayIn(text="I write a short sentence."))
+
+    assert raised.value.status_code == status_code
+    detail = raised.value.detail
+    assert detail == {
+        "category": category,
+        "message": (
+            "AI evaluation is temporarily unavailable. Please try again."
+            if provider_error == "unavailable"
+            else "AI evaluation could not produce a usable result."
+        ),
+        "retryable": retryable,
+        "context": {},
+    }
+    # Assert the raw provider text does not leak. A bare `provider_error not in
+    # message` check cannot work here: "unavailable" is legitimately part of the
+    # canonical learner-facing copy, so it would fail on the truthful message.
+    assert f"raw provider detail: {provider_error}" not in str(detail)
+    assert "raw provider detail" not in str(detail)
+
+
+def test_language_scope_mismatch_uses_canonical_evaluation_envelope(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import app
+    from fastapi import HTTPException
+
+    monkeypatch.setattr(app, "active_grammar_language_code", lambda: "en")
+
+    with pytest.raises(HTTPException) as raised:
+        app.api_evaluate(
+            app.EssayIn(
+                text="I write a short sentence.",
+                learning_language="zh",
+            )
+        )
+
+    assert raised.value.status_code == 409
+    assert raised.value.detail == {
+        "category": "language_scope_mismatch",
+        "message": "Writing language does not match the selected learning language.",
+        "retryable": False,
+        "context": {"requested_language": "zh", "active_language": "en"},
+    }

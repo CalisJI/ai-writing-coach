@@ -1,4 +1,5 @@
 import json
+import hashlib
 import random
 import os
 import re
@@ -9,6 +10,7 @@ from typing import Any
 from urllib.parse import quote
 
 import requests
+from writing_coach.languages.chinese import stroke_order as chinese_stroke_order
 from writing_coach.languages.runtime import (
     active_error_categories,
     active_levels,
@@ -39,6 +41,7 @@ from writing_coach.writing_evaluator_contract import (
     build_writing_evaluator_request,
     build_writing_evaluator_schema,
 )
+from writing_coach.writing_grammar_transfer import grammar_links_for_issues
 from writing_coach.writing_analytics import parse_persisted_error_events
 from auth_support import APP_ENV, AUTH_ENABLED, current_db_path, install_auth, require_admin, AUTH_DB_PATH, configure_auth_repository
 from writing_coach.product.api import router as product_router
@@ -55,18 +58,31 @@ from writing_coach.media_providers.supadata import SupadataTranscriptClient
 from writing_coach.media_providers.youtube import YouTubeMediaProviderAdapter
 from writing_coach.media_providers.youtube_audio import YtDlpYouTubeAudioUrlResolver
 from writing_coach.media_timing import MediaTimingService
-from writing_coach.media_translation import LocalHttpTranslationProvider, MediaTranslationService
+from writing_coach.media_translation import (
+    GroqTranslationProvider,
+    LocalHttpTranslationProvider,
+    MediaTranslationService,
+    resolve_translation_provider_id,
+)
 from writing_coach.speech_api import (
     configure_speech_asr,
     configure_speech_pronunciation,
+    configure_speaking_attempt_repository,
     router as speech_router,
+)
+from writing_coach.media_interaction import contextual_router as contextual_dictionary_router
+from writing_coach.listening_api import (
+    configure_listening_progress,
+    router as listening_progress_router,
 )
 from writing_coach.speech_asr import GroqSpeechAsrProvider
 from writing_coach.speech_pronunciation import build_speech_pronunciation_provider
+from writing_coach.core.errors import orena_http_error
 from writing_coach.core.platform_api import router as platform_router
 from writing_coach.core.language_registry import is_enabled
 from writing_coach.ai.base import AICapabilityError, AIProviderError, AIProviderUnavailable
-from writing_coach.ai.platform import active_ai_label, active_ai_status, generate_structured, install_platform_ai, configure_platform_repository
+from writing_coach.ai.platform import active_ai_label, active_ai_status, admin_ai_operations, generate_structured, install_platform_ai, configure_platform_repository
+from writing_coach.ai.control_plane import AIControlPlane
 from writing_coach.product.service import configure_product_repository
 from writing_coach.persistence.runtime import build_runtime
 from writing_coach.persistence.learning_repository import (
@@ -74,13 +90,18 @@ from writing_coach.persistence.learning_repository import (
     SQLiteLearningRepository,
 )
 from writing_coach.persistence.specialized_repository import SQLiteSpecializedLearningRepository
-from writing_coach.becoming_memory import (LearnerProfileIn, configure_becoming_memory, get_learner_profile, get_learning_memory, put_learner_profile)
+from writing_coach.becoming_memory import (LearnerProfileIn, configure_becoming_memory, get_learner_profile, get_learning_memory, get_review_cue, put_learner_profile)
 from writing_coach.becoming_practice import PracticeNextIn, build_practice_recommendation, personalize_generated_task
 from writing_coach.becoming_outcomes import PracticeContextIn, configure_becoming_outcomes, get_practice_outcome, list_practice_outcomes
 from writing_coach.becoming_library import LibraryVocabularyIn, VocabularyReviewIn, configure_becoming_library, delete_library_vocabulary, list_library_vocabulary, review_library_vocabulary, save_library_vocabulary
 from writing_coach.becoming_linguistics import configure_becoming_linguistics, linguistic_annotations_for_essay
 from writing_coach.becoming_reading import ReadingAnswerIn, ReadingGenerateIn, configure_becoming_reading, create_reading_session, get_reading_session, list_reading_sessions, submit_reading_answers
-from fastapi import FastAPI, HTTPException
+from writing_coach.cross_skill_transfer import select_cross_skill_cue
+from writing_coach.product_activity_api import product_activity_response
+from writing_coach.readiness_summary import build_readiness_summary
+from fastapi import FastAPI, HTTPException, Query, Request, Response
+from fastapi.exception_handlers import request_validation_exception_handler as fastapi_validation_exception_handler
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
@@ -100,6 +121,15 @@ APP_VERSION = os.getenv(
 SCHEMA_VERSION = 11
 
 app = FastAPI(title="Orena", version=APP_VERSION)
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_error_response(request: Request, exc: RequestValidationError) -> Response:
+    """Preserve FastAPI validation bodies while marking mutable dictionary errors."""
+    response = await fastapi_validation_exception_handler(request, exc)
+    if request.url.path.rstrip("/") == "/api/dictionary":
+        response.headers["Cache-Control"] = "no-store"
+    return response
 app.mount("/static", StaticFiles(directory=ROOT / "static"), name="static")
 
 BECOMING_ASSET_ROOT = (ROOT / "static" / "becoming").resolve()
@@ -125,6 +155,7 @@ class EssayIn(BaseModel):
     target_cefr: str = Field(default="B2", min_length=2, max_length=12)
     parent_essay_id: int | None = Field(default=None, ge=1)
     practice_context: PracticeContextIn | None = None
+    learning_language: str | None = Field(default=None, min_length=2, max_length=8)
 
 
 class TaskGenerateIn(BaseModel):
@@ -220,13 +251,32 @@ configure_media_ingestion(
         source_language_supported=is_enabled,
     )
 )
-configure_media_translation(
-    MediaTranslationService(
-        LocalHttpTranslationProvider(
-            os.getenv("LOCAL_TRANSLATION_URL", "http://local-translator:8090")
-        )
+# Which engine translates shared media, resolved once here and never re-decided
+# per request. Groq is the default because it answers in about a second where
+# the local Marian service needed thirty-seven; the local service is kept as the
+# backup for a deployment with no external dependency. Switching between them is
+# an operator decision -- there is no automatic failover when one fails
+# (ARCHITECTURE_INVARIANTS.md, AI Platform).
+_GROQ_API_KEY = os.getenv("GROQ_API_KEY", "").strip()
+try:
+    _media_translation_provider_id = resolve_translation_provider_id(
+        os.getenv("MEDIA_TRANSLATION_PROVIDER", ""), groq_key=_GROQ_API_KEY
+    )
+except ValueError as exc:
+    raise RuntimeError(str(exc)) from exc
+
+_media_translation_provider = (
+    GroqTranslationProvider(
+        _GROQ_API_KEY,
+        model=os.getenv("GROQ_TRANSLATION_MODEL", "openai/gpt-oss-120b"),
+        base_url=os.getenv("GROQ_BASE_URL", "https://api.groq.com/openai/v1"),
+    )
+    if _media_translation_provider_id == "groq"
+    else LocalHttpTranslationProvider(
+        os.getenv("LOCAL_TRANSLATION_URL", "http://local-translator:8090")
     )
 )
+configure_media_translation(MediaTranslationService(_media_translation_provider))
 configure_media_timing(
     MediaTimingService(
         YtDlpYouTubeAudioUrlResolver(),
@@ -241,15 +291,27 @@ configure_media_fallback(
     else None
 )
 app.include_router(media_learning_router)
+app.include_router(contextual_dictionary_router)
 configure_speech_asr(_speech_asr_provider)
 configure_speech_pronunciation(build_speech_pronunciation_provider())
+configure_speaking_attempt_repository(
+    _specialized_learning_repository
+    if _persistence_runtime.backend == "postgresql"
+    else None
+)
 app.include_router(speech_router)
+configure_listening_progress(
+    _specialized_learning_repository
+    if _persistence_runtime.backend == "postgresql"
+    else None
+)
+app.include_router(listening_progress_router)
 install_platform_ai(app, require_admin)
 configure_becoming_memory(_specialized_learning_repository)
 configure_becoming_outcomes(_specialized_learning_repository)
 configure_becoming_library(_specialized_learning_repository)
 configure_becoming_reading(_specialized_learning_repository, generate_structured)
-configure_becoming_linguistics(_specialized_learning_repository, generate_structured)
+configure_becoming_linguistics(_specialized_learning_repository)
 
 def weighted_overall(result: dict[str, Any]) -> float:
     return calculate_weighted_overall(result, active_rubric_weights())
@@ -352,15 +414,30 @@ def heuristic_fallback(payload: EssayIn) -> dict[str, Any]:
         "naturalness": 52.0,
     }
     overall = weighted_overall(scores)
-    return {
+    errors: list[dict[str, Any]] = []
+    if not is_chinese():
+        for pattern, suggestion, explanation, rule in (
+            (r"\bI has\b", "I have", "The verb should agree with subject I.", "I goes with have."),
+            (r"\bhe have\b", "he has", "The verb should agree with subject he.", "He goes with has."),
+            (r"\bShe have\b", "She has", "The verb should agree with subject she.", "She goes with has."),
+        ):
+            match = re.search(pattern, text, flags=re.IGNORECASE)
+            if match:
+                errors.append({
+                    "category": "agreement", "fragment": match.group(0),
+                    "suggestion": suggestion, "explanation_vi": explanation,
+                    "mini_rule_vi": rule, "confidence": 0.99,
+                })
+    raw = {
         **scores,
         "cefr_estimate": app_cefr(overall),
-        "summary_vi": "Chế độ dự phòng chỉ dùng để kiểm tra luồng ứng dụng. Hãy bật AI Coach để nhận đánh giá đầy đủ.",
+        "summary_vi": "Đánh giá cục bộ tạm thời vì AI Coach chưa tạo được đánh giá đầy đủ có thể sử dụng. Phần điểm và bằng chứng này chỉ để kiểm tra luồng.",
         "strengths_vi": ["Bài viết có đủ nội dung để lưu vào hồ sơ tiến bộ."],
         "strength_evidence": [],
-        "priorities_vi": ["Kết nối AI Coach để bật đánh giá đầy đủ."],
-        "errors": [],
+        "priorities_vi": ["Dùng phần bằng chứng này như bản xem thử; hãy chạy lại khi AI Coach tạo được đánh giá đầy đủ."],
+        "errors": errors,
     }
+    return validate_result({**raw, "__learner_text": text})
 
 
 def evaluate(payload: EssayIn) -> tuple[dict[str, Any], str]:
@@ -371,11 +448,19 @@ def evaluate(payload: EssayIn) -> tuple[dict[str, Any], str]:
     except AIProviderUnavailable as exc:
         if ALLOW_FALLBACK:
             return heuristic_fallback(payload), "fallback-demo"
-        raise HTTPException(status_code=503, detail=f"AI engine unavailable: {exc}") from exc
+        raise orena_http_error(
+            503,
+            "evaluation_unavailable",
+            "AI evaluation is temporarily unavailable. Please try again.",
+        ) from exc
     except AIProviderError as exc:
         if ALLOW_FALLBACK:
             return heuristic_fallback(payload), "fallback-demo"
-        raise HTTPException(status_code=502, detail=f"AI engine returned invalid output: {exc}") from exc
+        raise orena_http_error(
+            502,
+            "evaluation_provider_failure",
+            "AI evaluation could not produce a usable result.",
+        ) from exc
 
 def row_to_dict(row: dict[str, Any], detail: bool = False) -> dict[str, Any]:
     d = dict(row)
@@ -391,6 +476,46 @@ def row_to_dict(row: dict[str, Any], detail: bool = False) -> dict[str, Any]:
             if isinstance(d["module_data"].get("practice"), dict)
             else None
         )
+        d["grammar_links"] = (
+            d["module_data"].get("grammar_links")
+            if isinstance(d["module_data"].get("grammar_links"), list)
+            else []
+        )
+        d["schema_version"] = "writing-evaluation-v2"
+        d["text_hash"] = hashlib.sha256(str(d.get("text", "")).encode("utf-8")).hexdigest()
+        d["summary"] = {
+            "headline": d["strengths_vi"][0] if d["strengths_vi"] else "",
+            "interpretation": d.get("summary_vi", ""),
+        }
+        dimension_keys = tuple(active_rubric_weights())
+        d["dimensions"] = {key: d[key] for key in dimension_keys if key in d}
+        d["issues"] = [
+            {
+                "id": item.get("id", f"issue-{index + 1}"),
+                "category": item.get("category", "other"),
+                "priority": "high" if index == 0 else "medium",
+                "span": item.get("span", {"start": 0, "end": 0}),
+                "quote": item.get("quote", item.get("fragment", "")),
+                "why": item.get("why", item.get("explanation_vi", "")),
+                "how": item.get("how", item.get("mini_rule_vi", "")),
+                "suggestion": item.get("suggestion", ""),
+                "examples": item.get("examples", []),
+            }
+            for index, item in enumerate(d["errors"])
+            if isinstance(item, dict)
+        ]
+        d["strengths"] = [
+            {
+                "id": item.get("id", f"strength-{index + 1}"),
+                "category": item.get("category", "strength"),
+                "span": item.get("span", {"start": 0, "end": 0}),
+                "quote": item.get("quote", item.get("fragment", "")),
+                "why": item.get("explanation_vi", ""),
+            }
+            for index, item in enumerate(d["strength_evidence"])
+            if isinstance(item, dict)
+        ]
+        d["next_actions"] = d["priorities_vi"]
     else:
         d.pop("strengths_json", None)
         d.pop("priorities_json", None)
@@ -402,12 +527,42 @@ def row_to_dict(row: dict[str, Any], detail: bool = False) -> dict[str, Any]:
     return d
 
 
-def revision_delta(current: dict[str, Any], previous: dict[str, Any] | None) -> dict[str, float]:
+def _issue_key(item: dict[str, Any]) -> tuple[str, str]:
+    return (str(item.get("category", "other")), str(item.get("fragment", item.get("quote", ""))))
+
+
+def revision_delta(current: dict[str, Any], previous: dict[str, Any] | None) -> dict[str, Any]:
     if not previous:
         return {}
-    out: dict[str, float] = {}
+    out: dict[str, Any] = {}
     for key in [*active_rubric_weights().keys(), "overall"]:
         out[key] = round(float(current[key]) - float(previous[key]), 1)
+    current_items = {
+        _issue_key(item): item
+        for item in current.get("errors", [])
+        if isinstance(item, dict)
+    }
+    previous_items = {
+        _issue_key(item): item
+        for item in previous.get("errors", [])
+        if isinstance(item, dict)
+    }
+    current_keys = set(current_items)
+    previous_keys = set(previous_items)
+    changed: list[dict[str, Any]] = []
+    for category in sorted({key[0] for key in current_keys} & {key[0] for key in previous_keys}):
+        old = next((key for key in previous_keys if key[0] == category), None)
+        new = next((key for key in current_keys if key[0] == category), None)
+        if old and new and old != new:
+            changed.append({"before": previous_items[old], "after": current_items[new]})
+            previous_keys.discard(old)
+            current_keys.discard(new)
+    out["issues"] = {
+        "removed": [previous_items[key] for key in sorted(previous_keys - current_keys)],
+        "persistent": [current_items[key] for key in sorted(current_keys & previous_keys)],
+        "new": [current_items[key] for key in sorted(current_keys - previous_keys)],
+        "changed": changed,
+    }
     return out
 
 
@@ -482,8 +637,16 @@ def startup() -> None:
 
 
 @app.get("/", response_class=HTMLResponse)
-def home() -> str:
-    return (ROOT / "templates" / "becoming" / "index.html").read_text(encoding="utf-8")
+def home() -> HTMLResponse:
+    # The shell carries the list of stylesheets and modules the app loads, so a
+    # cached copy of it keeps loading yesterday's asset list - a stylesheet
+    # added since is simply never requested, and the screen renders unstyled.
+    # Every asset already answers `no-store`; the document that names them has
+    # to as well.
+    return HTMLResponse(
+        (ROOT / "templates" / "becoming" / "index.html").read_text(encoding="utf-8"),
+        headers={"Cache-Control": "no-store, max-age=0"},
+    )
 
 
 
@@ -960,7 +1123,11 @@ def dictionary_ai_fallback(word: str) -> dict[str, Any]:
                 "content": (
                     "You are a compact English learner dictionary. Definitions must be short, clear English. "
                     "Examples must be original and natural. Do not claim an exact IPA if uncertain; use an empty "
-                    "phonetic string instead."
+                    "phonetic string instead. "
+                    "When the entry is a multi-word lexical unit rather than a single word, name the unit in "
+                    "part_of_speech using exactly one of: idiom, proverb, phrasal verb, collocation, phrase. Use the "
+                    "ordinary word class (noun, verb, adjective, adverb) for single words. Never guess a "
+                    "category to make an entry look richer."
                 ),
             },
             {"role": "user", "content": f"Define this English word or short phrase: {word}"},
@@ -1046,7 +1213,13 @@ def chinese_dictionary_ai(word: str) -> dict[str, Any]:
                     "a concise Vietnamese meaning, practical usage notes, and original natural examples. "
                     "If a traditional form is identical or not useful, return an empty traditional string. "
                     "Do not invent etymology. Character breakdown is only a learning aid; give literal/common "
-                    "character meanings, not false historical explanations."
+                    "character meanings, not false historical explanations. "
+                    "Name the lexical category in part_of_speech using exactly one of the standard Chinese "
+                    "terms: 成语 (four-character set idiom), 惯用语 (colloquial set expression), 谚语 "
+                    "(proverb), 歇后语 (two-part allegorical saying), 搭配 (collocation), 离合词 "
+                    "(separable verb), 量词 (measure word), 短语 (other multi-word phrase). For an ordinary "
+                    "single word use its word class (名词, 动词, 形容词, 副词). "
+                    "Never label an entry 成语 unless it really is one."
                 ),
             },
             {
@@ -1336,8 +1509,51 @@ def api_translate(payload: TranslateIn) -> dict[str, Any]:
         raise HTTPException(503, "AI translation is unavailable.") from exc
 
 @app.get("/api/dictionary")
-def api_dictionary(word: str) -> dict[str, Any]:
-    return lookup_dictionary(word)
+def api_dictionary(word: str, response: Response = None) -> dict[str, Any]:
+    """Return mutable/provider-backed dictionary data without shared caching."""
+    if response is not None:
+        response.headers["Cache-Control"] = "no-store"
+    try:
+        return lookup_dictionary(word)
+    except HTTPException as exc:
+        headers = dict(exc.headers or {})
+        headers["Cache-Control"] = "no-store"
+        exc.headers = headers
+        raise
+
+
+@app.get("/api/chinese/stroke-order")
+def api_chinese_stroke_order(word: str, request: Request = None, response: Response = None) -> dict[str, Any]:
+    """Verified stroke order for the Han characters in `word`.
+
+    Deterministic and offline: this reads the vendored Make Me a Hanzi pack and
+    never calls a provider, so it needs no AI capability and cannot degrade. A
+    character the pack does not carry comes back in `unavailable` rather than
+    being invented (`UPGRADE_REGRESSION_RULES.md` §33).
+    """
+    try:
+        payload = chinese_stroke_order.stroke_order_for(word)
+        source_version = str(payload.get("source_version") or chinese_stroke_order.SOURCE_VERSION)
+        etag_seed = f"{source_version}\x00{payload.get('word', '')}"
+        etag = '"' + hashlib.sha256(etag_seed.encode("utf-8")).hexdigest()[:24] + '"'
+        cache_headers = {
+            "Cache-Control": "public, max-age=31536000, immutable",
+            "ETag": etag,
+        }
+        if request is not None and request.headers.get("if-none-match") == etag:
+            return Response(status_code=304, headers=cache_headers)
+        if response is not None:
+            for key, value in cache_headers.items():
+                response.headers[key] = value
+        return payload
+    except chinese_stroke_order.StrokeDataUnavailable as exc:
+        error = orena_http_error(
+            503,
+            "stroke_data_unavailable",
+            "Stroke-order data is not installed on this server.",
+        )
+        error.headers = {**(error.headers or {}), "Cache-Control": "no-store"}
+        raise error from exc
 
 
 @app.get("/api/vocabulary")
@@ -1367,6 +1583,17 @@ def api_delete_vocabulary(word: str) -> dict[str, Any]:
 
 @app.post("/api/evaluate")
 def api_evaluate(payload: EssayIn) -> dict[str, Any]:
+    active_language = active_grammar_language_code()
+    if payload.learning_language:
+        requested_language = payload.learning_language.casefold().replace("_", "-")
+        active_scope = active_language.casefold().replace("_", "-")
+        if requested_language != active_scope and requested_language.split("-", 1)[0] != active_scope.split("-", 1)[0]:
+            raise orena_http_error(
+                409,
+                "language_scope_mismatch",
+                "Writing language does not match the selected learning language.",
+                context={"requested_language": requested_language, "active_language": active_language},
+            )
     previous: dict[str, Any] | None = None
     series_id: int | None = None
     revision_no = 1
@@ -1374,11 +1601,22 @@ def api_evaluate(payload: EssayIn) -> dict[str, Any]:
     if payload.parent_essay_id:
         previous = _learning_repository.get_essay(payload.parent_essay_id)
         if not previous:
-            raise HTTPException(404, "Parent essay not found")
+            category = _learning_repository.classify_essay_scope(payload.parent_essay_id)
+            raise orena_http_error(
+                404,
+                category,
+                "The earlier writing version is unavailable in this learning scope.",
+                context={"parent_essay_id": payload.parent_essay_id},
+            )
         series_id = int(previous["series_id"] or previous["id"])
         revision_no = _learning_repository.next_revision_no(series_id)
 
     result, evaluator = evaluate(payload)
+    result["grammar_links"] = grammar_links_for_issues(
+        result.get("errors", []),
+        active_grammar_knowledge_by_id(),
+        target_level=payload.target_cefr,
+    )
     overall = weighted_overall(result)
     word_count = writing_unit_count(payload.text)
     now = datetime.now().astimezone().isoformat(timespec="seconds")
@@ -1414,6 +1652,7 @@ def api_evaluate(payload: EssayIn) -> dict[str, Any]:
         "revision_no": revision_no,
         "parent_id": payload.parent_essay_id,
         "practice_context": practice_context,
+        "grammar_links": result["grammar_links"],
     })
     essay_id = int(created["id"])
     series_id = int(created["series_id"])
@@ -1580,15 +1819,67 @@ def becoming_learner_profile_put(payload: LearnerProfileIn) -> dict[str, Any]:
 @app.get("/api/learning-memory", name="becoming_learning_memory_get")
 def becoming_learning_memory_get() -> dict[str, Any]:
     return get_learning_memory()
+
+@app.get("/api/review-cue", name="becoming_review_cue_get")
+def becoming_review_cue_get(essay_id: int | None = None) -> dict[str, Any]:
+    return get_review_cue(essay_id)
+
+@app.get("/api/admin/product-activity", name="admin_product_activity")
+def admin_product_activity(request: Request, window_days: int = 7) -> dict[str, Any]:
+    return product_activity_response(request, _specialized_learning_repository, require_admin, window_days=window_days, operations_loader=lambda: admin_ai_operations(request, limit=500))
+
+@app.get("/api/admin/readiness-summary", name="admin_readiness_summary")
+def admin_readiness_summary(request: Request) -> dict[str, Any]:
+    require_admin(request)
+    config = AIControlPlane(_persistence_runtime.platform_repository).inspect()
+    operations = admin_ai_operations(request, limit=500)
+    product_activity = product_activity_response(request, _specialized_learning_repository, require_admin, window_days=7, operations_loader=lambda: operations)
+    return build_readiness_summary(config, operations, product_activity)
+
+@app.get("/api/cross-skill-cue", name="becoming_cross_skill_cue_get")
+def becoming_cross_skill_cue_get() -> dict[str, Any]:
+    """Return one language-scoped, evidence-backed cue without persistence."""
+    language = active_profile().code
+    try:
+        raw_writing = get_review_cue()
+        writing = {**raw_writing, "language": language} if isinstance(raw_writing, dict) else None
+    except Exception:
+        writing = None
+    try:
+        reading_payload = list_reading_sessions(20)
+        raw_reading = reading_payload.get("items", []) if isinstance(reading_payload, dict) else []
+        reading = [{**item, "language": language} for item in raw_reading if isinstance(item, dict)]
+    except Exception:
+        reading = []
+    try:
+        listening = _specialized_learning_repository.list_recent_listening_progress_records(20)
+    except Exception:
+        listening = []
+    try:
+        speaking = _specialized_learning_repository.list_speaking_attempt_records(20)
+    except Exception:
+        speaking = []
+    return select_cross_skill_cue(language=language, writing=writing, reading=reading, listening=listening, speaking=speaking)
 # === BECOMING MEMORY DIRECT ROUTES END ===
 
 # === BECOMING PERSONALIZED PRACTICE ROUTES START ===
+def _recommendation_outcomes() -> list[dict[str, Any]]:
+    try:
+        payload = list_practice_outcomes(8)
+    except Exception:
+        return []
+    items = payload.get("items") if isinstance(payload, dict) else None
+    return items if isinstance(items, list) else []
+
+
 @app.get("/api/practice-recommendation", name="becoming_practice_recommendation")
 def becoming_practice_recommendation() -> dict[str, Any]:
+    memory = get_learning_memory()
     return build_practice_recommendation(
         language=active_profile().code,
         profile=get_learner_profile(),
-        memory=get_learning_memory(),
+        memory=memory,
+        outcomes=_recommendation_outcomes(),
     )
 
 @app.post("/api/practice/next", name="becoming_practice_next")
@@ -1602,6 +1893,7 @@ def becoming_practice_next(payload: PracticeNextIn) -> dict[str, Any]:
         profile=get_learner_profile(),
         memory=get_learning_memory(),
         target_level=target_level,
+        outcomes=_recommendation_outcomes(),
     )
 
     task_payload = TaskGenerateIn(
@@ -1615,6 +1907,64 @@ def becoming_practice_next(payload: PracticeNextIn) -> dict[str, Any]:
     personalized["prompt"] = task_as_prompt(personalized, target_level)
     personalized["target_level"] = target_level
     return personalized
+
+
+@app.get("/api/grammar/{grammar_id}/practice", name="grammar_targeted_practice")
+def grammar_targeted_practice(
+    grammar_id: str,
+    evidence: str = Query(default="", max_length=600),
+) -> dict[str, Any]:
+    """Build a small practice brief from one authoritative R5 lesson."""
+    lesson = active_grammar_by_id().get(grammar_id)
+    if not lesson:
+        raise HTTPException(404, "Grammar lesson not found")
+    language = active_profile().code
+    title = str(lesson.get("title") or grammar_id)
+    level = str(lesson.get("level") or ("HSK4" if language == "zh" else "B2"))
+    blueprint = lesson.get("practice_blueprint") if isinstance(lesson.get("practice_blueprint"), dict) else {}
+    evidence = evidence.strip() if isinstance(evidence, str) else ""
+    base_target = "请写 3-5 句，使用本课的语法重点。" if language == "zh" else "Write 3–5 sentences using the grammar focus from this lesson."
+    if evidence:
+        target = (
+            f"{base_target} 请特别留意你之前写过的这段表达：“{evidence}”。"
+            if language == "zh"
+            else f'{base_target} Pay special attention to this evidence from your writing: “{evidence}”.'
+        )
+    else:
+        target = base_target
+    if language == "zh":
+        action_label = "练习这个语法"
+        reason = "根据你的 Writing 发现和静态 Grammar 课程选择的针对性练习。"
+        topic = "语法迁移练习"
+    else:
+        action_label = "Practice this grammar"
+        reason = "Targeted practice selected from a Writing finding and the static Grammar curriculum."
+        topic = "grammar transfer"
+    context = {
+        "intent": "repair",
+        "focus_category": "grammar",
+        "focus_label": title,
+        "focus_family": "grammar",
+        "task_type": "story",
+        "topic": topic,
+        "target_level": level,
+        "action_label": action_label,
+        "reason": reason,
+        "evidence": evidence,
+        "focus_instruction": target,
+        "grammar_id": grammar_id,
+        "grammar_title": title,
+    }
+    return {
+        "grammar_id": grammar_id,
+        "title": title,
+        "level": level,
+        "target_level": level,
+        "prompt": target,
+        "practice_blueprint": blueprint,
+        "practice_context": context,
+        "source": "static-grammar-kb",
+    }
 # === BECOMING PERSONALIZED PRACTICE ROUTES END ===
 
 # === BECOMING PRACTICE OUTCOME ROUTES START ===

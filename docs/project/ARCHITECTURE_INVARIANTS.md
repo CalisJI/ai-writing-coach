@@ -19,13 +19,20 @@ entry, and corresponding current-state and handoff updates.
 
 ## Frontend
 
-- `BECOMING_FRONTEND_VERSION` remains exactly `2.17.3` until an explicitly
+- `BECOMING_FRONTEND_VERSION` remains exactly `2.17.5` until an explicitly
   scoped, reviewed change updates it.
 - Backend and architecture tasks do not casually touch frontend code or assets.
 - Preserve shared responsive behavior, accessibility, EN/ZH parity, light/dark
   parity, shared tokens, and the established visual identity.
 - Journey, Review, Library / Active Recall UI, shared layout primitives,
   gutters, spacing, overflow, and container-width primitives are protected.
+- `static/becoming/orena/**` is the bounded frontend `2.17.5` presentation layer
+  for the shared Orena shell and learner screens. Its `--o-*` tokens and `.o-*`
+  primitives remain shared; dedicated screen styles may compose them but must
+  not copy shared tokens, layout primitives, or responsive contracts into new
+  page-local systems. D-024 completes the approved screen migration without
+  relaxing protected domain, persistence, EN/ZH, accessibility, or learner-flow
+  contracts.
 - `docs/visual-references/**` remains untouched unless explicitly scoped.
 
 ## Multilingual product
@@ -67,11 +74,15 @@ entry, and corresponding current-state and handoff updates.
 
 - The AI Control Plane owns AI infrastructure and AI workload configuration;
   it is not a general product-domain registry.
-- `reading_evaluator` is deterministic and not provider-configurable.
+- `reading_evaluator` and `writing_linguistic` are deterministic and not
+  provider-configurable. Word segmentation and part-of-speech tagging are a
+  solved local problem; a provider must never be routed either workload.
 - Speech capabilities are reserved and unimplemented until Speaking work
   explicitly implements them.
 - Capability configuration and diagnostics never persist or expose credentials.
 - No provider-to-provider fallback or silent paid-provider failover.
+- Shared-media translation may select Groq or local Marian once from explicit
+  configuration; a provider failure must stop rather than silently fail over.
 - Static configuration validation remains separate from live provider/model
   testing.
 - Learner `generate_structured()` remains on legacy `active_selection()` until
@@ -79,8 +90,35 @@ entry, and corresponding current-state and handoff updates.
 - Persisted fallback policy is metadata until runtime activation explicitly
   implements its behavior.
 
-## Operations
 
+## Mobile
+
+- docs/project/MOBILE_IMPLEMENTATION_SPEC.md is the canonical implementation
+  contract for R19-R21. Mobile implementation and review must not contradict it
+  without an explicit accepted architecture decision.
+- The native mobile client uses **React Native + Expo + TypeScript** in a
+  dedicated `mobile/` workspace.
+- Mobile consumes the same authoritative backend/domain contracts as web; there
+  is no mobile-only learning architecture, scoring model, Grammar curriculum,
+  Media Learning model, or learner-progress authority.
+- Web DOM/CSS is not copied into mobile as a second presentation implementation,
+  and a WebView is not the primary mobile product shell.
+- Provider/API secrets remain server-side. Mobile configuration may contain only
+  non-secret public endpoints/identifiers intended for client distribution.
+- Sensitive authentication/session material is stored only through OS-backed
+  secure storage; ordinary app cache/storage must not hold reusable secrets.
+- EN/ZH parity, accessibility, light/dark behavior, language-scoped learner data,
+  and truthful degraded/unavailable states apply equally to mobile.
+- Immutable/versioned reference data may use bounded client caching; mutable
+  learner/server state remains server-authoritative. Large server datasets are
+  not bundled into the app by default.
+- Microphone/audio capture remains transient by default and must not introduce
+  raw-audio persistence without an explicit accepted decision.
+- Android and iOS share one product contract. Platform-specific adapters are
+  allowed only for genuine native differences such as permissions, audio,
+  secure storage, deep links, and system integration.
+
+## Operations
 - Never use `docker compose down -v`.
 - Never print or commit secrets, credential-bearing URLs, authorization
   headers, or raw sensitive provider responses.

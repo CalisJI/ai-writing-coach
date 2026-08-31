@@ -1,0 +1,11 @@
+ARG BASE_IMAGE=ai-writing-coach:local
+FROM ${BASE_IMAGE}
+
+WORKDIR /workspace
+
+COPY requirements-test.txt /tmp/requirements-test.txt
+RUN pip install --no-cache-dir -r /tmp/requirements-test.txt
+
+COPY . /workspace
+
+CMD ["python", "-m", "pytest", "-q", "-p", "no:cacheprovider", "tests/test_r17_admin_routes.py", "tests/test_reference_data_cache.py", "tests/test_session_bootstrap.py", "tests/test_media_status_compact.py"]

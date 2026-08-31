@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en" data-theme="light" data-palette="editorial">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <title>Orena Grammar visual review</title>
+  <link rel="stylesheet" href="/static/becoming/tokens.css">
+  <link rel="stylesheet" href="/static/becoming/theme.css">
+  <link rel="stylesheet" href="/static/becoming/base.css">
+  <link rel="stylesheet" href="/static/becoming/app.css">
+  <link rel="stylesheet" href="/static/becoming/physical.css">
+  <link rel="stylesheet" href="/static/becoming/phase3.css">
+  <link rel="stylesheet" href="/static/becoming/phase4.css">
+  <link rel="stylesheet" href="/static/becoming/phase5.css">
+  <link rel="stylesheet" href="/static/becoming/phase6.css">
+  <link rel="stylesheet" href="/static/becoming/phase7.css">
+  <link rel="stylesheet" href="/static/becoming/phase8.css">
+  <link rel="stylesheet" href="/static/becoming/visual-alignment.css">
+  <link rel="stylesheet" href="/static/becoming/elevation.css">
+  <link rel="stylesheet" href="/static/becoming/consistency-v212.css">
+  <link rel="stylesheet" href="/static/becoming/trusted-ui-v213.css">
+  <link rel="stylesheet" href="/static/becoming/lively-details-v214.css">
+  <link rel="stylesheet" href="/static/becoming/grammar.css">
+  <link rel="stylesheet" href="/static/becoming/orena/tokens.css">
+  <link rel="stylesheet" href="/static/becoming/orena/shell.css">
+  <link rel="stylesheet" href="/static/becoming/orena/grammar.css?v=orena-prod-8">
+</head>
+<body>
+  <div id="app" class="o-shell" data-sidebar="expanded" data-drawer="closed">
+    <aside class="o-sidebar" aria-label="Orena navigation">
+      <a class="o-brand" href="#"><svg class="o-brand-mark" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/></svg><span>Orena</span></a>
+      <nav class="o-nav" aria-label="Primary">
+        <a href="#"><span class="o-nav-icon">⌂</span><span class="nav-label">Home</span></a>
+        <a href="#"><span class="o-nav-icon">✎</span><span class="nav-label">Write</span></a>
+        <a href="#"><span class="o-nav-icon">▣</span><span class="nav-label">Read</span></a>
+        <a href="#"><span class="o-nav-icon">◉</span><span class="nav-label">Listen</span></a>
+        <a href="#"><span class="o-nav-icon">◌</span><span class="nav-label">Speak</span></a>
+        <a class="active" href="#"><span class="o-nav-icon">A</span><span class="nav-label">Grammar</span></a>
+        <a href="#"><span class="o-nav-icon">▤</span><span class="nav-label">Library</span></a>
+        <a href="#"><span class="o-nav-icon">◇</span><span class="nav-label">Journey</span></a>
+        <a href="#"><span class="o-nav-icon">○</span><span class="nav-label">Profile</span></a>
+      </nav>
+      <div class="o-sidebar-foot"><button class="o-collapse" type="button"><span>←</span><span>Collapse</span></button></div>
+    </aside>
+
+    <div class="o-workspace">
+      <header class="o-topbar">
+        <h1 class="o-topbar-title">Grammar lesson</h1>
+        <div class="o-topbar-actions">
+          <button id="harnessTheme" class="o-icon-button" type="button" aria-label="Toggle theme">☼</button>
+          <button class="o-account-button" type="button"><span class="o-account-avatar">AK</span></button>
+        </div>
+      </header>
+      <main id="mainContent" data-screen-contract="grammar">
+        <div class="grammar-page has-open-lesson">
+          <div class="grammar-lesson-slot">
+            <button class="button button-secondary grammar-back-button" data-harness-back type="button"><span>Back to grammar</span></button>
+            <article class="grammar-lesson visual-raised-surface" data-grammar-lesson>
+              <header class="grammar-lesson-head">
+                <div><span class="editorial-kicker" data-kicker></span><h2 data-title>Loading lesson…</h2><p data-objective></p></div>
+                <span class="grammar-completion-chip" data-language-chip aria-label="Bookmarked"></span>
+              </header>
+              <div class="grammar-lesson-layout">
+                <main class="grammar-teach-column" data-learning-root></main>
+                <aside class="grammar-lesson-actions">
+                  <section class="grammar-lesson-rail-card grammar-lesson-progress-card">
+                    <div><span>Lesson progress</span><strong>25%</strong></div>
+                    <div class="grammar-lesson-progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="25"><span style="width:25%"></span></div>
+                  </section>
+                  <nav class="grammar-lesson-rail-card grammar-lesson-outline" data-outline aria-label="In this lesson"></nav>
+                  <section class="grammar-lesson-rail-card grammar-lesson-evidence-card">
+                    <span class="context-label">Learning actions</span><strong>Use it before you mark it done</strong>
+                    <p>Complete Apply, Recall and Transfer evidence before marking this lesson complete.</p>
+                    <button class="button button-primary" type="button">Mark activity complete</button>
+                    <button class="button button-tertiary" type="button">Use this in Writing</button>
+                  </section>
+                </aside>
+              </div>
+            </article>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script type="module">
+    import {renderGrammarLearningModel,localizedText} from '/static/becoming/components/grammar-learning.js?v=orena-prod-6';
+    import {oIcon} from '/static/becoming/orena/icons.js?v=orena-prod-3';
+
+    const query=new URLSearchParams(location.search);
+    const language=query.get('lang')==='zh'?'zh':'en';
+    const file=language==='zh'?'chinese':'english';
+    const requested=query.get('lesson')||'';
+    const lessons=await fetch(`/writing_coach/languages/${file}/grammar_knowledge.json`).then(response=>response.json());
+    const lesson=lessons.find(item=>item.id===requested)
+      ||lessons.find(item=>language==='en'&&/past-perfect/i.test(item.id))
+      ||lessons.find(item=>language==='zh'&&/(?:aspect-le|ba-construction)/i.test(item.id))
+      ||lessons[0];
+    const context={interfaceLanguage:'en',explanationLanguage:'en',translationLanguage:'en',targetLanguage:language};
+
+    document.documentElement.lang=language==='zh'?'zh-Hans':'en';
+    document.querySelector('[data-kicker]').textContent=lesson.level||'LESSON';
+    document.querySelector('[data-harness-back]').insertAdjacentHTML('afterbegin',oIcon('arrowLeft'));
+    document.querySelector('[data-title]').textContent=lesson.title;
+    document.querySelector('.o-topbar-title').dataset.grammarLessonTitle=lesson.title;
+    document.querySelector('[data-objective]').textContent=localizedText(lesson.learning_model?.meaning?.summary,'en');
+    document.querySelector('[data-language-chip]').innerHTML=oIcon('bookmark')+'<span class="sr-only">Bookmarked</span>';
+    document.querySelector('[data-learning-root]').innerHTML=renderGrammarLearningModel(lesson.learning_model,context);
+    document.querySelector('[data-grammar-lesson]').dataset.grammarLesson=lesson.id;
+
+    const outline=document.querySelector('[data-outline]');
+    const targets=[
+      '.grammar-learning-primary-pattern .grammar-learning-block',
+      '.grammar-learning-use-when',
+      '.grammar-learning-scene',
+      '.grammar-learning-contrast',
+      '.grammar-learning-common_mistake',
+      '.grammar-learning-micro_practice',
+    ].map(selector=>document.querySelector(selector)).filter(Boolean);
+    outline.innerHTML='<strong>In this lesson</strong>'+targets.map((target,index)=>{
+      const label=target.querySelector(':scope > .grammar-learning-block-head h3, :scope > .grammar-compact-heading h3')?.textContent?.trim()||target.dataset.grammarBlockType||'Lesson section';
+      return `<button class="${index===0?'is-active':''}" type="button"><span></span>${label}</button>`;
+    }).join('');
+
+    const collapsible=[...document.querySelectorAll([
+      '.grammar-learning-use-when',
+      '.grammar-learning-scene',
+      '.grammar-learning-contrast',
+      '.grammar-learning-common_mistake',
+    ].join(','))];
+    collapsible.forEach(block=>{
+      block.classList.add('is-mobile-collapsible','is-collapsed');
+      const heading=block.querySelector('.grammar-learning-block-head h3, .grammar-compact-heading h3')?.textContent?.trim()||block.dataset.grammarBlockType;
+      block.insertAdjacentHTML('afterbegin',`<button class="grammar-mobile-section-toggle" type="button" aria-expanded="false"><span>${heading}</span><span aria-hidden="true">⌄</span></button>`);
+    });
+    document.addEventListener('click',event=>{
+      const toggle=event.target.closest('.grammar-mobile-section-toggle');
+      if(toggle){const block=toggle.closest('.is-mobile-collapsible'); block.classList.toggle('is-collapsed'); toggle.setAttribute('aria-expanded',String(!block.classList.contains('is-collapsed')));}
+    });
+    document.querySelector('#harnessTheme').addEventListener('click',()=>{
+      document.documentElement.dataset.theme=document.documentElement.dataset.theme==='dark'?'light':'dark';
+    });
+  </script>
+</body>
+</html>

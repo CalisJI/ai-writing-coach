@@ -368,7 +368,7 @@ shown only when true word timestamps exist.
 
 ## D-021 — Media Meaning uses isolated local machine translation
 
-**Status:** Accepted
+**Status:** Superseded by D-026
 
 **Decision:** Normal Media Meaning translation uses a provider-neutral boundary
 whose default provider is an isolated local Marian service. Canonical transcript
@@ -383,4 +383,403 @@ in bounded batches. Completed translations are cached by engine version,
 language pair, and canonical transcript hash. Generic AI remains available only
 for explicit intelligence features, not normal Meaning generation.
 
-**Supersedes / Superseded by:** Narrows D-014 for Media Meaning; extends D-020.
+**Supersedes / Superseded by:** Narrows D-014 for Media Meaning; extends D-020;
+superseded by D-026 for the default provider selection.
+
+## D-022 — Orena UI migration uses one bounded shared namespace
+
+**Status:** Superseded by D-024
+
+**Decision:** Frontend `2.17.4` uses `static/becoming/orena/**` as a bounded,
+shared migration layer for the Orena shell and rebuilt Home, Writing, and Review
+surfaces. The `--o-*` tokens and `.o-*` primitives are shared contracts loaded
+after the legacy stylesheet stack. Screens not yet rebuilt are adopted through
+the shared compatibility layer rather than receiving copied page-local design
+systems.
+
+**Reason:** The reference-led interface requires a coherent responsive shell,
+depth, spacing, and interaction vocabulary while the protected Journey,
+Library, Grammar, Media Learning, and other stable screens remain operational.
+A namespaced migration boundary lets the product advance without a single
+high-risk rewrite or uncontrolled cascade conflicts.
+
+**Consequences:** New Orena work reuses the shared namespace, preserves EN/ZH,
+light/dark, accessibility, and existing learner-flow contracts, and must not
+duplicate tokens into screen-specific CSS. Legacy compatibility is transitional
+and may be removed only through a separately reviewed migration. This decision
+does not change backend, persistence, learner-skill release state, or production
+deployment.
+
+**Supersedes / Superseded by:** Extended the frontend invariant and OREN-16
+shared-primitives checkpoint; superseded by D-024 for completed screen scope.
+
+## D-023 — Hanzi stroke order is vendored data, never generated
+
+**Status:** Accepted
+
+**Decision:** Chinese stroke order is served from a glyph dataset vendored into
+the repository (Make Me a Hanzi, redistributed as `hanzi-writer-data`, Arphic
+Public License) through a deterministic Chinese language adapter,
+`writing_coach/languages/chinese/stroke_order.py`, and the route
+`GET /api/chinese/stroke-order`. No AI capability produces stroke data, and no
+runtime CDN is consulted. A character the pack does not carry is reported as
+unavailable; the learner then gets a shape-copying grid that makes no claim
+about stroke order.
+
+**Reason:** `UPGRADE_REGRESSION_RULES.md` §33 already forbade claiming verified
+stroke order without verified stroke data, which left the Chinese dictionary
+with a grid that could only show a finished character. Stroke order is exact,
+per-character geometry: a language model cannot produce it truthfully, so the
+only honest way to offer the feature is to ship real glyph data. Bundling it
+rather than fetching per character from a CDN keeps the feature working offline
+and in networks where public CDNs are unreachable — which includes the learner
+population this feature is for.
+
+**Consequences:** The repository carries ~14 MB of vendored stroke data
+(9,565 characters) plus `ARPHICPL.TXT`, retained unaltered as the licence
+requires, and a `README.md` carrying the §2a modification notice for the
+container-format change. `scripts/build_hanzi_stroke_pack.py` rebuilds the pack
+from the upstream package and `--check` verifies the committed one against its
+recorded digest. The renderer, `hanzi-writer` (MIT), is vendored under
+`static/becoming/vendor/` and imported lazily, so an English learner never
+downloads it. The stroke-order route needs no AI capability and cannot degrade
+with a provider. The numbered step diagram is built from the payload rather than
+by the renderer, so it survives a failed vendor import.
+
+**Supersedes / Superseded by:** Satisfies the condition `UPGRADE_REGRESSION_RULES.md`
+§33 left open. Supersedes no earlier decision.
+
+## D-024 — Orena completes the bounded learner-screen migration
+
+**Status:** Accepted
+
+**Decision:** Frontend `2.17.5` completes the bounded Orena presentation
+migration across Home, Writing, Review, Reading, Listening, Speaking, Grammar,
+Library, Journey, Profile, onboarding, and sign-in. Dedicated screen layers may
+compose the shared `static/becoming/orena/**` tokens and primitives. They do not
+own or replace domain models, stable identifiers, persistence boundaries,
+learner evidence, release state, or shared EN/ZH behavior.
+
+**Reason:** The explicitly requested resynchronization with `claude/work`
+provided a coherent second migration slice for the remaining learner screens,
+Grammar pedagogy presentation, Profile settings, and shared supporting
+contracts. Keeping these screens indefinitely behind a compatibility-only
+layer would leave two visual ownership models. Selective integration plus full
+regression, release-gate, and responsive runtime verification establishes one
+reviewable frontend boundary without reopening closed product systems.
+
+**Consequences:** New visual work continues through shared Orena tokens and
+primitives, with screen-local CSS limited to genuine screen composition.
+Journey, Review, Library / Active Recall, Grammar, Media Learning, shared
+layout, and overflow contracts remain protected and require focused validation
+when touched. R5 Static Grammar KB, stable Grammar Concept IDs, schema-v2
+models, completion semantics, PostgreSQL authority, application/frontend
+versions, deployment, and learner-skill release state are unchanged.
+
+**Supersedes / Superseded by:** Supersedes D-022 only for migration completion
+and screen ownership. Retains D-022's bounded namespace and shared-contract
+requirements.
+
+## D-025 — Segmentation and part-of-speech tagging are deterministic
+
+**Status:** Accepted
+
+**Decision:** `writing_linguistic` is a deterministic capability, not a
+provider-backed one. Word segmentation and part-of-speech tagging for EN and ZH
+are performed locally by `writing_coach/linguistic_annotation.py` (NLTK for
+English, jieba for Chinese, pypinyin for contextual readings), shared by the
+Writing/Review parts-of-speech lens and the Listening interactive transcript.
+
+**Reason:** The repository carried two implementations of one job. The
+transcript already tagged locally and for free; `becoming_linguistics` asked a
+model for the same result at 2 800 output tokens an essay. The local tagger's
+label set is a superset of the eleven labels the prompt requested — it also
+separates `proper_noun`, `classifier`, `auxiliary` and `interjection`, which the
+prompt collapsed into `other`. Measured against the AI annotations cached in
+eleven real learner essays: 92% of local annotations land on the identical span,
+and 82% of those agree on the label; of the disagreements, 67 are the local
+tagger being more specific. Neither tagger was ever validated against a gold
+standard, so this is a change of engine, not a documented loss of accuracy — and
+it makes Writing and Listening agree with each other, which they did not before.
+
+**Consequences:** `writing_linguistic` leaves the configurable provider catalog,
+so capability migration seeds seven explicit rows instead of eight and
+activation readiness reports seven capabilities. No production rows exist to
+orphan: the runtime carries no capability-config table and R2 activation remains
+an unexecuted human gate. `configure_becoming_linguistics` no longer takes a
+generator. The annotation cache, the literal-span validation, and the public
+payload shape are unchanged, so no frontend contract moves.
+
+**Supersedes / Superseded by:** Extends the deterministic-capability precedent
+set by `reading_evaluator`. Supersedes no earlier decision.
+
+## D-026 — Groq is the default translation provider; local Marian is the backup
+
+**Status:** Accepted
+
+**Decision:** Shared-media translation defaults to Groq through
+`GroqTranslationProvider`, which implements the same `TranslationProvider`
+boundary the local service does. Groq is also registered as a provider in the AI
+capability catalog, so provider-backed capabilities can be routed to it. The
+local Marian service is retained as the backup for a deployment with no external
+dependency. The engine is chosen once at startup by
+`MEDIA_TRANSLATION_PROVIDER`, defaulting to `groq` when `GROQ_API_KEY` is set
+and `local` otherwise.
+
+**Reason:** D-021 established a provider-neutral translation boundary whose
+default was the local Marian service, and that service has never worked: it is
+missing `protobuf`, and three of its four models were never provisioned.
+Measured against this account's key, Groq translates a three-segment batch in
+1.43 s with natural Vietnamese, where the local `qwen3:8b` needed 37 s for a
+single dictionary entry. Production has no GPU, which rules out a local model as
+the default.
+
+**Consequences:** Translation becomes a third-party runtime dependency bounded
+by a free-tier quota that is **per API key, so per product rather than per
+learner** — the response headers report 1 000 requests and 8 000 tokens a
+minute, and the provider records them in `last_quota` so an admin surface can
+report the budget before it is exhausted. Surfacing that is not yet built.
+Two behaviours were established by measurement and are encoded with their
+reasons: `response_format: json_object` is required, because without it a
+reasoning model spends its whole budget thinking and returns an empty string
+rather than an error; and `reasoning_effort` is deliberately not sent, because
+it is unnecessary in JSON mode and other Groq models reject it with HTTP 400.
+A failure raises and stops — selecting the other provider is an operator action,
+never an automatic switch, per the AI Platform invariant against
+provider-to-provider fallback.
+
+**Supersedes / Superseded by:** Extends D-021 by changing its default provider.
+D-021's provider-neutral boundary and its rule that playback readiness does not
+depend on translation readiness both stand.
+
+## D-027 — Speaking attempts persist evaluator evidence without audio
+
+**Status:** Accepted
+
+**Decision:** Completed EN/ZH Speaking evaluations may be stored as bounded,
+learner-scoped attempt records containing the transcript, source segment
+reference, measured dimensions, provenance, evidence, and a server timestamp.
+Raw audio and proficiency claims are excluded. PostgreSQL is the sole durable
+runtime boundary; SQLite remains frozen rollback/archive and does not create or
+write Speaking-attempt tables. An explicit migration is required before any
+deployment cutover.
+
+**Reason:** R7's learner-visible history/progress acceptance requires completed
+take evidence to survive the transient recording screen while preserving the
+privacy boundary established by R6. A dedicated repository/API/UI contract
+keeps ownership and language scoping explicit without activating public
+Speaking capabilities.
+
+**Consequences:** The Speaking attempts API is authenticated and bounded,
+updates a take by deterministic `take_id`, and returns unavailable dimensions
+as `null`. The mounted EN/ZH screen can show history/progress from that
+contract. Migration SQL is prepared but production execution, raw-audio
+retention, provider activation, and public release remain human-gated.
+
+**Supersedes / Superseded by:** Extends the R6 transient-audio boundary and
+R7 per-take evaluator decision. Supersedes no earlier decision.
+
+## D-028 — R8 release readiness is a deterministic pre-public matrix
+
+**Status:** Accepted
+
+**Decision:** R8 local acceptance is represented by one deterministic EN/ZH
+matrix that exercises the existing Writing/Review and Speaking record,
+evaluation, pronunciation, and history flows, then records deferred provider,
+PostgreSQL migration, capability-activation, and public-promotion gates without
+changing learner release state.
+
+**Reason:** Writing (R3/R4) and Speaking (R6/R7) are locally closed, but their
+public gate requires joined multilingual evidence and truthful separation of
+offline verification from human-controlled operations. A successor matrix
+validator keeps that evidence reproducible and prevents a local pass from being
+reported as a public release.
+
+**Consequences:** `scripts/r8_release_matrix.mjs` runs the representative browser
+contracts, records source-only boundary checks explicitly as static inspections,
+and emits deterministic verified/inspected/deferred results. The canonical
+report is byte-for-byte checked when the runner is invoked without `--output`.
+Credentialed provider smoke, production migration, R2 activation, and promotion
+remain explicit human actions.
+
+**Supersedes / Superseded by:** Extends the R3/R4 and R6/R7 local acceptance
+decisions. Supersedes no earlier decision.
+
+## D-029 — R9 shared-media Shadowing returns through Speaking feedback
+
+**Status:** Accepted
+
+**Decision:** R9's first Shadowing Studio slice reuses the canonical M1 media
+asset and segment session to open the existing Speaking recorder/evaluator, then
+restores the same selected segment and Shadowing mode when the learner returns
+to Listening.
+
+**Reason:** The learner-visible advanced Shadowing loop must not duplicate media
+ingestion or lose context at the Speaking boundary. Existing per-take feedback
+already separates content match, pronunciation, fluency, unavailable
+dimensions, and unassessed proficiency; this slice connects that loop without
+adding raw-audio persistence or new providers.
+
+**Consequences:** `setSharedMediaMode` records only the in-memory return mode,
+the R9 mounted EN/ZH contract verifies asset/language/segment continuity and
+dimension-specific evaluation, and provider scoring or public activation remain
+human-gated.
+
+**Supersedes / Superseded by:** Extends the M1.6 shared-media and R6/R7
+Speaking decisions. Supersedes no earlier decision.
+
+## D-030 — Reading internal comprehension loop
+
+**Status:** Accepted
+
+**Decision:** R10 Reading is locally complete for an internal EN/ZH loop from
+session creation through passage-specific comprehension evidence, learner
+history reopening, and saved-word handoff to Library. Reading results remain
+transient comprehension checks and must not be presented as CEFR/HSK mastery.
+
+**Reason:** The mounted contract exercises the existing authenticated Reading
+session and answer boundaries in both required languages without promoting the
+separate Reading release or introducing a schema/provider decision.
+
+**Consequences:** Future Reading work consumes the existing session/API and
+Vocabulary/Library contracts. Public Reading promotion remains a separate
+human gate; no production activation or migration is implied.
+
+**Supersedes / Superseded by:** Extends the R9 shared-media acceptance
+decision. Supersedes no earlier decision.
+
+## D-031 — Shadowing returns latest matching Speaking feedback
+
+**Status:** Accepted
+
+**Decision:** When Listening reopens an EN/ZH Shadowing segment, it may retrieve
+the authenticated learner's latest Speaking evaluator outcome only when its
+language, media asset, and canonical segment all match. The UI renders measured
+dimensions separately and keeps empty/unavailable states explicit; proficiency
+and raw audio are never surfaced.
+
+**Reason:** The R9 handoff already preserves the canonical media identity, but
+without this retrieval the learner returns to a score-free placeholder and
+cannot connect a completed Speaking take to the segment they practised.
+
+**Consequences:** Listening consumes the existing bounded Speaking attempts API
+without new persistence or provider behavior. Public Shadowing/Speaking
+promotion remains human-gated.
+
+**Supersedes / Superseded by:** Extends D-029. Supersedes no earlier decision.
+
+## D-032 — Durable Active Listening progress remains audio-free and scoped
+
+**Status:** Accepted
+
+**Decision:** R11 stores Active Listening reconstruction progress in a
+PostgreSQL-only specialized record keyed by authenticated learner, learning
+language, media asset, and canonical segment. The record contains only bounded
+presentation/reveal state, text-match evidence, attempt count, and the latest
+learner answer; raw audio, proficiency, and mastery claims are excluded.
+
+**Reason:** Session-only reconstruction state disappeared when a learner
+reopened a lesson, while the existing media object already provides stable
+asset and segment identities. A scoped, audio-free record closes that learner
+continuity gap without reopening M1 media ingestion or R9 Shadowing.
+
+**Consequences:** Listening restores matching progress and renders localized
+empty, unavailable, and persistence-failure states. The additive Alembic
+artifact is prepared for the PostgreSQL authority, but production migration,
+runtime cutover, and public Listening promotion remain human-gated.
+
+**Supersedes / Superseded by:** Extends D-005 and D-029. Supersedes no earlier
+decision.
+
+## D-033 — Durable Shadowing rounds remain separate from Active Listening progress
+
+**Status:** Accepted
+
+**Decision:** R11 stores completed Shadowing rounds in a distinct PostgreSQL-only
+specialized record keyed by authenticated learner, learning language, media
+asset, and canonical segment. Shadowing records contain only a bounded round
+count and timestamp; they never persist raw audio, transcript answers,
+proficiency, or mastery claims. Active Listening reconstruction records remain a
+separate table and state machine even when both practices use the same media
+identity.
+
+**Reason:** Shadowing and Active Listening have different learner evidence and
+restore semantics. Reusing the reconstruction row would allow one practice to
+overwrite or misrepresent the other when a learner revisits the same segment.
+
+**Consequences:** Listening can restore both bounded practice states independently
+with localized empty, unavailable, restored, and save-failure feedback. The
+additive Alembic artifact is prepared for PostgreSQL authority, but production
+migration, runtime cutover, and public Listening promotion remain human-gated.
+
+**Supersedes / Superseded by:** Extends D-032. Supersedes no earlier decision.
+
+## D-034 - Token cost is event-time, versioned operator evidence
+
+**Status:** Accepted
+
+**Decision:** R14 may estimate token cost only from an exact provider/model
+entry in the code-owned versioned pricing catalog and complete provider-
+reported prompt/completion dimensions. Each telemetry event snapshots the
+catalog version and rates used. Unknown models, partial usage, and absent usage
+remain distinct unpriced/partial/unknown states; cost is observation only and
+never enforces billing, quota, or failover.
+
+**Reason:** Recomputing historical cost from mutable current rates would make
+Admin operations misleading. An explicit event-time provenance snapshot keeps
+operator evidence auditable while avoiding unsupported price assumptions.
+
+**Consequences:** Admin aggregates cost by currency and catalog version for
+capability and bounded trend buckets. Pricing changes require a new catalog
+version; no live price fetching or learner-facing behavior is introduced.
+
+**Supersedes / Superseded by:** Supersedes no earlier decision.
+
+## D-035 - Standby provider configuration is explicit and non-routing
+
+**Status:** Accepted
+
+**Decision:** R14 capability configuration may persist an optional, complete
+standby provider/model pair after the same static operation validation as the
+primary pair. Admin may run a click-only standby health check against that
+saved pair. Learner runtime routing remains primary-only; no automatic retry,
+cross-provider failover, or activation is implied.
+
+**Reason:** Operators need readiness evidence without coupling preparation of a
+backup to learner traffic or silently changing provider behavior.
+
+**Consequences:** PostgreSQL platform settings and the Admin capability matrix
+expose sanitized primary/standby configuration provenance. Standby checks are
+explicit requests and remain subject to existing server-managed credentials and
+human release gates.
+
+**Supersedes / Superseded by:** Supersedes no earlier decision.
+
+## D-036 - Native mobile client uses React Native + Expo + TypeScript
+
+**Status:** Accepted
+
+**Decision:** Orena's first real native mobile client is implemented in a
+dedicated `mobile/` workspace using React Native + Expo + TypeScript. It
+consumes the existing authenticated backend, R18 mobile/API contracts, shared
+EN/ZH domain semantics, Media Learning identities, and PostgreSQL-backed server
+authority. The app is not a WebView wrapper and must not copy web DOM/CSS or
+fork learner scoring, Grammar, progress, or provider logic.
+
+**Reason:** R18 intentionally completed only the server/API readiness layer.
+There is no Android/iOS client workspace in the repository, so mobile remains a
+real product gap. React Native + Expo provides one Android/iOS implementation
+with strong TypeScript tooling and native access to microphone/audio, secure
+storage, deep links, and app lifecycle behavior while preserving the existing
+server architecture.
+
+**Consequences:** R19 owns the mobile shell, typed API/session layer,
+localization/theme/accessibility foundation, secure native session handling,
+bounded caching, and native media permission boundaries. R20 owns learner-flow
+parity. R21 owns release readiness and store-entitlement integration on top of
+R15. Provider secrets remain server-side; production OAuth-console changes,
+signing keys, store credentials, production activation, billing activation, and
+public store submission remain explicit human gates.
+
+**Supersedes / Superseded by:** Extends R18 mobile/API readiness and the shared
+web/server product architecture. Supersedes no earlier decision.

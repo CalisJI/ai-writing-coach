@@ -117,6 +117,8 @@ def _error_patterns(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
                     "newer": 0,
                     "series": set(),
                     "last_seen": "",
+                    "latest_essay_id": None,
+                    "example_essay_id": None,
                     "example": "",
                     "suggestion": "",
                 },
@@ -124,12 +126,14 @@ def _error_patterns(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
             item["total"] += 1
             item["series"].add(int(row["series_id"] or row["id"]))
             item["last_seen"] = str(row["created_at"])
+            item["latest_essay_id"] = rid
             if rid in older_ids:
                 item["older"] += 1
             if rid in newer_ids:
                 item["newer"] += 1
             if not item["example"] and err.get("fragment"):
                 item["example"] = str(err.get("fragment"))[:240]
+                item["example_essay_id"] = rid
             if not item["suggestion"] and err.get("suggestion"):
                 item["suggestion"] = str(err.get("suggestion"))[:320]
 
@@ -155,6 +159,8 @@ def _error_patterns(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
                 "newer": item["newer"],
                 "series_count": len(item["series"]),
                 "last_seen": item["last_seen"],
+                "latest_essay_id": item["latest_essay_id"],
+                "example_essay_id": item["example_essay_id"],
                 "example": item["example"],
                 "suggestion": item["suggestion"],
             }
@@ -163,6 +169,148 @@ def _error_patterns(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     priority = {"recurring": 0, "new": 1, "watch": 2, "improving": 3, "historical": 4}
     output.sort(key=lambda x: (priority.get(x["status"], 9), -int(x["total"])))
     return output
+
+
+_REVIEW_CUE_OUTCOME_STATUSES = {"still_working", "needs_attention"}
+_REVIEW_CUE_PATTERN_STATUSES = {"recurring", "new", "watch"}
+
+
+def _review_cue_from_outcome(outcome: dict[str, Any]) -> dict[str, Any] | None:
+    if not isinstance(outcome, dict):
+        return None
+    status = str(outcome.get("status") or "").strip().casefold()
+    if status not in _REVIEW_CUE_OUTCOME_STATUSES:
+        return None
+    raw_evidence = outcome.get("error_evidence")
+    if not isinstance(raw_evidence, list):
+        return None
+    evidence = next(
+        (
+            str(item).strip()[:260]
+            for item in raw_evidence
+            if isinstance(item, str) and item.strip()
+        ),
+        "",
+    )
+    essay_id = outcome.get("essay_id")
+    if isinstance(essay_id, bool) or not isinstance(essay_id, int) or essay_id <= 0 or not evidence:
+        return None
+    return {
+        "available": True,
+        "state": "unresolved",
+        "source": "practice_outcome",
+        "status": status,
+        "category": str(outcome.get("focus_category") or "expression")[:80],
+        "focus_family": str(outcome.get("focus_family") or "expression")[:40],
+        "evidence": evidence,
+        "suggestion": "",
+        "essay_id": essay_id,
+        "grammar_id": str(outcome.get("grammar_id") or "")[:160],
+        "total": None,
+    }
+
+
+def _review_cue_from_pattern(pattern: dict[str, Any], *, essay_id: int | None = None) -> dict[str, Any] | None:
+    if not isinstance(pattern, dict):
+        return None
+    status = str(pattern.get("status") or "").strip().casefold()
+    evidence = str(pattern.get("example") or "").strip()[:260]
+    latest_id = pattern.get("latest_essay_id")
+    evidence_id = pattern.get("example_essay_id")
+    if status not in _REVIEW_CUE_PATTERN_STATUSES or not evidence:
+        return None
+    if isinstance(latest_id, bool) or not isinstance(latest_id, int) or latest_id <= 0:
+        return None
+    if isinstance(evidence_id, bool) or not isinstance(evidence_id, int) or evidence_id <= 0:
+        return None
+    if essay_id is not None and evidence_id != essay_id:
+        return None
+    return {
+        "available": True,
+        "state": "recurring" if status == "recurring" else "unresolved",
+        "source": "error_memory",
+        "status": status,
+        "category": str(pattern.get("category") or "expression")[:80],
+        "focus_family": "",
+        "evidence": evidence,
+        "suggestion": str(pattern.get("suggestion") or "").strip()[:320],
+        "essay_id": evidence_id,
+        "grammar_id": "",
+        "total": int(pattern.get("total") or 0),
+    }
+
+
+def _review_cue(
+    rows: list[dict[str, Any]],
+    patterns: list[dict[str, Any]],
+    *,
+    essay_id: int | None = None,
+) -> dict[str, Any]:
+    """Select one literal, language-scoped cue without inferring mastery."""
+    if essay_id is not None:
+        target = next(
+            (row for row in rows if int(row["id"] or 0) == essay_id),
+            None,
+        )
+        if target:
+            try:
+                from writing_coach.becoming_outcomes import derive_practice_outcome
+
+                outcome = _review_cue_from_outcome(derive_practice_outcome(rows, target))
+            except Exception:
+                outcome = None
+            if outcome:
+                return outcome
+        for pattern in patterns:
+            cue = _review_cue_from_pattern(pattern, essay_id=essay_id)
+            if cue:
+                return cue
+
+        # An essay-scoped request must never receive a cue from another essay.
+        return {
+            "available": False,
+            "state": "none",
+            "source": "none",
+            "status": "",
+            "category": "",
+            "focus_family": "",
+            "evidence": "",
+            "suggestion": "",
+            "essay_id": None,
+            "grammar_id": "",
+            "total": 0,
+        }
+
+    for pattern in patterns:
+        cue = _review_cue_from_pattern(pattern)
+        if cue:
+            return cue
+
+    # A practice outcome can carry a more recent unresolved literal than the
+    # aggregate pattern list. Only use the repository's own rows and statuses.
+    try:
+        from writing_coach.becoming_outcomes import derive_practice_outcome
+
+        for row in reversed(rows):
+            cue = _review_cue_from_outcome(derive_practice_outcome(rows, row))
+            if cue:
+                return cue
+    except Exception:
+        pass
+
+    return {
+        "available": False,
+        "state": "none",
+        "source": "none",
+        "status": "",
+        "category": "",
+        "focus_family": "",
+        "evidence": "",
+        "suggestion": "",
+        "essay_id": None,
+        "grammar_id": "",
+        "total": 0,
+    }
 
 
 def _strength_patterns(rows: list[dict[str, Any]], error_patterns: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -300,6 +448,7 @@ def get_learning_memory() -> dict[str, Any]:
     patterns = _error_patterns(rows)
     strengths = _strength_patterns(rows, patterns)
     wins = _revision_wins(rows)
+    review_cue = _review_cue(rows, patterns)
 
     active_focus = next(
         (item for item in patterns if item["status"] in {"recurring", "new", "watch", "improving"}),
@@ -314,9 +463,16 @@ def get_learning_memory() -> dict[str, Any]:
         "patterns": patterns[:12],
         "strengths": strengths[:12],
         "revision_wins": wins[:8],
+        "review_cue": review_cue,
         "mastery_vocabulary": ["Emerging", "Developing", "Stable", "Mastered"],
         "mastery_note": (
             "Internal practice stability derived from repeated evidence. "
             "It is not a CEFR, TOEIC, IELTS or HSK equivalence."
         ),
     }
+
+
+def get_review_cue(essay_id: int | None = None) -> dict[str, Any]:
+    rows = _essay_rows()
+    patterns = _error_patterns(rows)
+    return _review_cue(rows, patterns, essay_id=essay_id)

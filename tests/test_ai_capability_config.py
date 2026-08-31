@@ -49,6 +49,8 @@ def test_config_round_trip_is_strict_and_secret_free() -> None:
         "enabled",
         "provider",
         "model",
+        "backup_provider",
+        "backup_model",
         "timeout_seconds",
         "temperature",
         "fallback_policy",
@@ -111,6 +113,29 @@ def test_static_validation_rejects_unsupported_operation(monkeypatch) -> None:
     monkeypatch.setattr(config_module, "get_provider_definition", lambda _provider: descriptor)
     with pytest.raises(AIProviderUnsupportedOperation, match="structured_text_generation"):
         validate_capability_config("writing_evaluator", config(temperature=None))
+
+
+def test_static_validation_requires_options_supported_by_primary_and_backup(monkeypatch) -> None:
+    primary = ProviderDefinition(
+        id="openai", name="primary", kind="cloud", secret_mode="server-managed",
+        supported_operations=frozenset({AIOperation.STRUCTURED_TEXT_GENERATION}),
+        supported_option_keys=frozenset({"temperature"}),
+    )
+    standby = ProviderDefinition(
+        id="deepseek", name="standby", kind="cloud", secret_mode="server-managed",
+        supported_operations=frozenset({AIOperation.STRUCTURED_TEXT_GENERATION}),
+        supported_option_keys=frozenset(),
+    )
+    monkeypatch.setattr(
+        config_module,
+        "get_provider_definition",
+        lambda provider: {"openai": primary, "deepseek": standby}.get(provider),
+    )
+    with pytest.raises(AIProviderUnsupportedOperation, match="Backup AI provider"):
+        validate_capability_config(
+            "writing_evaluator",
+            config(backup_provider="deepseek", backup_model="deepseek-chat", temperature=0.2),
+        )
 
 
 @pytest.mark.parametrize(

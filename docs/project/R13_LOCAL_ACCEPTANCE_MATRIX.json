@@ -1,0 +1,60 @@
+{
+  "schema_version": 1,
+  "matrix": "R13-local-admin-acceptance",
+  "verified": [
+    {
+      "check": "scripts/test_r13_admin_capability_matrix.mjs",
+      "status": "pass",
+      "scope": "mounted-behavior"
+    }
+  ],
+  "inspected": [
+    {
+      "check": "Canonical capability API",
+      "status": "static-contract",
+      "scope": "source-and-test-boundary"
+    },
+    {
+      "check": "Offline inspection/provenance",
+      "status": "static-contract",
+      "scope": "source-and-test-boundary"
+    },
+    {
+      "check": "Mounted Admin controls and health",
+      "status": "static-contract",
+      "scope": "source-and-test-boundary"
+    },
+    {
+      "check": "Admin scoped configuration surface",
+      "status": "static-contract",
+      "scope": "source-and-test-boundary"
+    },
+    {
+      "check": "Backend API contract coverage",
+      "status": "static-contract",
+      "scope": "source-and-test-boundary"
+    },
+    {
+      "check": "No automatic probes, runtime activation, or legacy global controls",
+      "status": "static-contract",
+      "scope": "Admin wiring"
+    }
+  ],
+  "deferred": [
+    {
+      "gate": "credentialed_provider_health",
+      "status": "deferred",
+      "reason": "Credentialed provider health validation remains human-gated; no secret is available to this local matrix."
+    },
+    {
+      "gate": "learner_runtime_activation",
+      "status": "deferred",
+      "reason": "Saved capability configuration must not activate learner runtime without explicit human approval."
+    }
+  ],
+  "release": {
+    "r13_local_complete": true,
+    "learner_runtime_activation": false,
+    "production_mutation": false
+  }
+}

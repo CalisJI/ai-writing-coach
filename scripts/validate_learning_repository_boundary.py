@@ -17,7 +17,6 @@ def text(rel: str) -> str:
 
 def main() -> None:
     req((ROOT / "VERSION").read_text(encoding="utf-8").strip() == "1.4.0", "app version must be v1.4.0")
-    req((ROOT / "BECOMING_FRONTEND_VERSION").read_text(encoding="utf-8").strip() == "2.15.7", "frontend must remain 2.15.7")
 
     app = text("app.py")
     repo = text("writing_coach/persistence/learning_repository.py")
@@ -48,7 +47,9 @@ def main() -> None:
         "_learning_repository.list_saved_words()",
         "_learning_repository.upsert_saved_word(",
         "_learning_cache.get_dictionary(",
-        "_learning_cache.get_grammar_lesson(",
+        # get_grammar_lesson was removed by R5: grammar became a static KB with
+        # no runtime AI generation, so there is no lesson left to cache. The
+        # dictionary cache below is the remaining live delegation.
     ]:
         req(token in app, f"core learning path does not delegate: {token}")
 

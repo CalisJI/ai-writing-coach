@@ -188,13 +188,34 @@ def main() -> None:
     )
     assert fallback["generation_mode"] == "built-in"
     assert "correct_index" not in fallback["questions"][0]
+    assert fallback["language_code"] == "en"
+
+    # The same persisted contract is language-scoped; Chinese gets its own
+    # passage/questions and keeps evidence grounded in that passage.
+    zh_fallback = create_reading_session(
+        ReadingGenerateIn(
+            topic="daily_life",
+            target_level="HSK3",
+            recycle_library=False,
+        ),
+        language_code="zh",
+        target_level="HSK3",
+        learner_profile={"goal": "everyday"},
+    )
+    assert zh_fallback["id"] == 3
+    assert zh_fallback["language_code"] == "zh"
+    assert "correct_index" not in zh_fallback["questions"][0]
+    assert zh_fallback["questions"][0]["question"]
+    zh_answer = submit_reading_answers(3, ReadingAnswerIn(answers=[1, 2, 0, 2]))
+    assert zh_answer["valid"] is True
+    assert zh_answer["results"][0]["evidence_fragment"] in zh_fallback["passage"]
 
     fetched = get_reading_session(1)
     assert fetched["found"] is True
     assert fetched["session"]["latest_attempt"]["correct_count"] == 3
 
     listing = list_reading_sessions(5)
-    assert len(listing["items"]) == 2
+    assert len(listing["items"]) == 3
     generated_item = next(item for item in listing["items"] if item["id"] == 1)
     assert generated_item["latest_attempt"]["total"] == 4
 

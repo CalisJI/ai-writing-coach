@@ -1,0 +1,86 @@
+{
+  "schema_version": 1,
+  "matrix": "R14-local-ai-operations-foundation",
+  "verified": [
+    {
+      "check": "scripts/test_r13_admin_capability_matrix.mjs",
+      "status": "pass",
+      "scope": "mounted-behavior"
+    }
+  ],
+  "inspected": [
+    {
+      "check": "Sanitized telemetry contract",
+      "status": "static-contract",
+      "scope": "source-and-test-boundary"
+    },
+    {
+      "check": "Learner/provider operation capture",
+      "status": "static-contract",
+      "scope": "source-and-test-boundary"
+    },
+    {
+      "check": "Bounded operations aggregation",
+      "status": "static-contract",
+      "scope": "source-and-test-boundary"
+    },
+    {
+      "check": "Exact-match cost observation",
+      "status": "static-contract",
+      "scope": "source-and-test-boundary"
+    },
+    {
+      "check": "PostgreSQL audit persistence boundary",
+      "status": "static-contract",
+      "scope": "source-and-test-boundary"
+    },
+    {
+      "check": "Read-only Admin operations view",
+      "status": "static-contract",
+      "scope": "source-and-test-boundary"
+    },
+    {
+      "check": "Telemetry runtime and safety tests",
+      "status": "static-contract",
+      "scope": "source-and-test-boundary"
+    },
+    {
+      "check": "Control-plane API and provider tests",
+      "status": "static-contract",
+      "scope": "source-and-test-boundary"
+    },
+    {
+      "check": "No automatic probes, learner routing, billing, or failover",
+      "status": "static-contract",
+      "scope": "Admin and runtime boundaries"
+    }
+  ],
+  "deferred": [
+    {
+      "gate": "provider_credentials",
+      "status": "deferred",
+      "reason": "Credentialed provider validation remains human-gated; no secret is available to this local matrix."
+    },
+    {
+      "gate": "billing_or_quota_enforcement",
+      "status": "deferred",
+      "reason": "R14 observes cost and quota evidence only; billing and enforcement require an explicit product decision."
+    },
+    {
+      "gate": "learner_runtime_activation",
+      "status": "deferred",
+      "reason": "Capability configuration and health checks must not activate learner runtime without explicit human approval."
+    },
+    {
+      "gate": "production_postgresql_observation",
+      "status": "deferred",
+      "reason": "Production persistence observation remains a human-gated operation outside this local checkpoint."
+    }
+  ],
+  "release": {
+    "r14_local_complete": true,
+    "learner_runtime_activation": false,
+    "production_mutation": false,
+    "billing_enforcement": false
+  }
+}

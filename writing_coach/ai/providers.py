@@ -36,6 +36,38 @@ class ProviderDefinition:
 
 
 _STRUCTURED_TEXT_OPERATIONS = frozenset({AIOperation.STRUCTURED_TEXT_GENERATION})
+
+_RATE_LIMIT_HEADER_KEYS = {
+    "x-ratelimit-limit-requests": "requests_limit",
+    "x-ratelimit-remaining-requests": "requests_remaining",
+    "x-ratelimit-limit-tokens": "tokens_limit",
+    "x-ratelimit-remaining-tokens": "tokens_remaining",
+}
+
+
+def _normalized_rate_limit_headers(headers: object) -> dict[str, int | None]:
+    """Extract only safe integer values from allowlisted response headers."""
+
+    result = {key: None for key in ("requests_limit", "requests_remaining", "tokens_limit", "tokens_remaining")}
+    if not hasattr(headers, "items"):
+        return result
+    for name, key in _RATE_LIMIT_HEADER_KEYS.items():
+        raw = next((value for header, value in headers.items() if str(header).casefold() == name), None)
+        if type(raw) is int and raw >= 0:
+            result[key] = raw
+            continue
+        if not isinstance(raw, str):
+            continue
+        value = raw.strip()
+        if len(value) > 15 or not re.fullmatch(r"\d+", value):
+            continue
+        try:
+            parsed = int(value)
+        except (TypeError, ValueError, OverflowError):
+            continue
+        if parsed <= 10**15:
+            result[key] = parsed
+    return result
 # generate_json() consumes temperature per request. Timeout is currently bound
 # to each runtime instance from environment configuration, so capability config
 # must not claim it is independently supported yet.
@@ -60,6 +92,14 @@ _PROVIDER_DEFINITIONS = (
     ProviderDefinition(
         id="deepseek",
         name="DeepSeek API",
+        kind="cloud",
+        secret_mode="server-managed",
+        supported_operations=_STRUCTURED_TEXT_OPERATIONS,
+        supported_option_keys=_TEXT_OPTION_KEYS,
+    ),
+    ProviderDefinition(
+        id="groq",
+        name="Groq API",
         kind="cloud",
         secret_mode="server-managed",
         supported_operations=_STRUCTURED_TEXT_OPERATIONS,
@@ -284,6 +324,7 @@ class OpenAICompatibleProvider:
         self.default_models = list(default_models)
         self.model_filter = model_filter
         self.timeout = int(os.getenv("CLOUD_AI_TIMEOUT", "180"))
+        self._last_rate_limit = _normalized_rate_limit_headers(None)
 
     @property
     def configured(self) -> bool:
@@ -313,6 +354,14 @@ class OpenAICompatibleProvider:
             if any(word in lowered for word in blocked):
                 return False
             return bool(lowered.startswith("gpt-") or re.match(r"^o\d", lowered))
+        if self.model_filter == "groq-text":
+            # Groq serves speech, text-to-speech and prompt-classification models
+            # from the same catalog endpoint. Only chat models belong in a
+            # structured-text picker; whisper is reached through the speech
+            # adapter, not through here.
+            lowered = model.casefold()
+            blocked = ("whisper", "orpheus", "prompt-guard", "safeguard", "tts")
+            return not any(word in lowered for word in blocked)
         return True
 
     def list_models(self) -> list[str]:
@@ -380,15 +429,18 @@ class OpenAICompatibleProvider:
             json=body,
             timeout=self.timeout,
         )
+        self._last_rate_limit = _normalized_rate_limit_headers(getattr(response, "headers", None))
         if response.status_code >= 400:
             detail = ""
             try:
                 detail = str(response.json().get("error", {}).get("message") or "")
             except Exception:
                 pass
-            raise AIProviderError(
+            error = AIProviderError(
                 f"{self.name} returned HTTP {response.status_code}. {detail[:300]}".strip()
             )
+            error.rate_limit = dict(self._last_rate_limit)
+            raise error
         try:
             return response.json()
         except ValueError as exc:
@@ -449,6 +501,7 @@ class OpenAICompatibleProvider:
                 "prompt_tokens": usage.get("prompt_tokens"),
                 "completion_tokens": usage.get("completion_tokens"),
                 "total_tokens": usage.get("total_tokens"),
+                "rate_limit": dict(self._last_rate_limit),
             },
         )
 
@@ -503,6 +556,7 @@ class OpenAICompatibleProvider:
                 "prompt_tokens": usage.get("prompt_tokens"),
                 "completion_tokens": usage.get("completion_tokens"),
                 "total_tokens": usage.get("total_tokens"),
+                "rate_limit": dict(self._last_rate_limit),
             },
         )
 
@@ -528,5 +582,18 @@ def build_providers() -> dict[str, Any]:
             default_base_url="https://api.deepseek.com",
             models_env="DEEPSEEK_MODELS",
             default_models=("deepseek-v4-flash", "deepseek-v4-pro"),
+        ),
+        # Groq speaks the OpenAI chat API, so it needs no adapter of its own.
+        # Measured against this account: a structured translation answers in
+        # about a second, where the local model needed thirty-seven.
+        "groq": OpenAICompatibleProvider(
+            provider_id="groq",
+            name="Groq API",
+            api_key_env="GROQ_API_KEY",
+            base_url_env="GROQ_BASE_URL",
+            default_base_url="https://api.groq.com/openai/v1",
+            models_env="GROQ_MODELS",
+            default_models=(),
+            model_filter="groq-text",
         ),
     }

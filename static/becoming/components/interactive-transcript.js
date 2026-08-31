@@ -419,6 +419,22 @@ export function applyPlayingSegment(root,segmentId){
   });
 }
 
+function tokenContext(element){
+  const shared=sharedSession();
+  const segments=Array.isArray(shared?.payload?.transcript?.segments)
+    ?shared.payload.transcript.segments:[];
+  const id=element?.closest?.('[data-segment-id]')?.dataset?.segmentId||shared?.selected_segment_id||'';
+  const index=segments.findIndex(item=>String(item?.segment_id||'')===String(id));
+  const segment=index>=0?segments[index]:null;
+  const selected=String(element?.dataset?.itTerm||sourceTextFor(element)).trim();
+  if(!segment||typeof segment.original_text!=='string'||!selected)return null;
+  const context=segments.slice(Math.max(0,index-1),Math.min(segments.length,index+2))
+    .map(item=>typeof item?.original_text==='string'?item.original_text.trim():'')
+    .filter(Boolean).join('\n');
+  return context&&context.toLocaleLowerCase().includes(selected.toLocaleLowerCase())
+    ?{context,segment}:null;
+}
+
 function setPlayingSegment(segmentId){
   lastPlayingSegmentId=segmentId;
   applyPlayingSegment(document,segmentId);
@@ -474,7 +490,8 @@ function handleClick(event){
   if(token){
     event.preventDefault();
     event.stopPropagation();
-    openDictionary(token.dataset.itTerm,{language:state.language});
+    const grounded=tokenContext(token);
+    openDictionary(token.dataset.itTerm,{language:state.language,context:grounded?.context||''});
   }
 }
 
@@ -482,7 +499,8 @@ function handleKeydown(event){
   const target=event.target instanceof Element?event.target.closest('.it-token[data-it-term],.transcript-token[data-it-term]'):null;
   if(!target||!['Enter',' '].includes(event.key))return;
   event.preventDefault();
-  openDictionary(target.dataset.itTerm,{language:state.language});
+  const grounded=tokenContext(target);
+  openDictionary(target.dataset.itTerm,{language:state.language,context:grounded?.context||''});
 }
 
 function refresh(root=document){

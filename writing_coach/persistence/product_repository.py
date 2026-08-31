@@ -12,11 +12,7 @@ from writing_coach.product.repository import ProductRepository, SubscriptionReco
 
 
 class PostgresProductRepository(ProductRepository):
-    """SQLAlchemy/PostgreSQL implementation of the existing product contract.
-
-    It is intentionally not selected by ProductService yet.  A later cutover
-    batch may opt into it only after shadow import/verification succeeds.
-    """
+    """SQLAlchemy/PostgreSQL implementation of the authoritative product contract."""
 
     def __init__(self, engine: Engine | None = None, *, url: str | None = None) -> None:
         self.engine = engine or create_shadow_engine(url)

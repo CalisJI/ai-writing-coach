@@ -2,16 +2,11 @@
 
 from __future__ import annotations
 
-from functools import lru_cache
 import re
 from typing import Any
 
 from fastapi import APIRouter, HTTPException
-import jieba.posseg as pseg
-from nltk import pos_tag
-from nltk.tokenize import TreebankWordTokenizer
 from pydantic import BaseModel, ConfigDict, Field, field_validator
-from pypinyin import Style, lazy_pinyin
 
 from writing_coach.ai.base import AICapabilityError, AIProviderError, AIProviderUnavailable
 from writing_coach.ai.platform import generate_structured
@@ -20,34 +15,20 @@ from writing_coach.core.support_languages import (
     UnsupportedSupportLanguage,
     normalize_support_language,
 )
+from writing_coach.linguistic_annotation import ALLOWED_POS as _SHARED_POS
+from writing_coach.linguistic_annotation import annotate as _annotate
 
 
 router = APIRouter()
+contextual_router = APIRouter(prefix="/api/dictionary", tags=["dictionary"])
 
-_ALLOWED_POS = {
-    "noun",
-    "verb",
-    "adjective",
-    "adverb",
-    "pronoun",
-    "determiner",
-    "preposition",
-    "conjunction",
-    "numeral",
-    "particle",
-    "auxiliary",
-    "interjection",
-    "classifier",
-    "proper_noun",
-    "other",
-}
+_ALLOWED_POS = _SHARED_POS
 _SUPPORT_LANGUAGE_NAMES = {
     "vi": "Vietnamese",
     "en": "English",
     "zh": "Simplified Chinese",
 }
 _MAX_ANNOTATIONS = 160
-_EN_TOKENIZER = TreebankWordTokenizer()
 
 
 class MediaAnnotateIn(BaseModel):
@@ -73,6 +54,12 @@ class MediaExplainIn(BaseModel):
     @classmethod
     def normalize_target_language(cls, value: str) -> str:
         return value.strip().casefold()
+
+
+class ContextualDictionaryIn(MediaExplainIn):
+    """A dictionary request grounded in the exact visible learner context."""
+
+    context: str = Field(min_length=1, max_length=2400)
 
 
 def _primary_language(value: str) -> str:
@@ -134,101 +121,8 @@ def _validated_annotations(source: str, raw: Any) -> list[dict[str, Any]]:
     return output
 
 
-def _english_pos(tag: str) -> str:
-    if tag in {"NNP", "NNPS"}: return "proper_noun"
-    if tag.startswith("NN"): return "noun"
-    if tag.startswith("VB"): return "verb"
-    if tag.startswith("JJ"): return "adjective"
-    if tag.startswith("RB"): return "adverb"
-    if tag in {"PRP", "PRP$", "WP", "WP$"}: return "pronoun"
-    if tag in {"DT", "PDT", "WDT"}: return "determiner"
-    if tag == "IN": return "preposition"
-    if tag == "CC": return "conjunction"
-    if tag == "CD": return "numeral"
-    if tag == "UH": return "interjection"
-    if tag == "TO": return "particle"
-    if tag == "MD": return "auxiliary"
-    return "other"
-
-
-def _english_lemma(word: str) -> str:
-    lower = word.casefold()
-    if lower.endswith("ies") and len(lower) > 3:
-        return lower[:-3] + "y"
-    if lower.endswith("s") and len(lower) > 3 and not lower.endswith("ss"):
-        return lower[:-1]
-    return lower
-
-
-def _english_annotations(source: str) -> list[dict[str, Any]]:
-    spans = list(_EN_TOKENIZER.span_tokenize(source))[:_MAX_ANNOTATIONS]
-    tokens = [source[start:end] for start, end in spans]
-    return [
-        {"fragment": token, "start": start, "end": end, "pos": _english_pos(tag), "pronunciation": "", "lemma": _english_lemma(token)}
-        for (start, end), (token, tag) in zip(spans, pos_tag(tokens, lang="eng"))
-        if re.search(r"[A-Za-z0-9]", token)
-    ]
-
-
-def _chinese_pos(tag: str) -> str:
-    if tag.startswith(("nr", "ns", "nt", "nz")):
-        return "proper_noun"
-    if tag.startswith("n"):
-        return "noun"
-    if tag.startswith("v"):
-        return "verb"
-    if tag.startswith("a"):
-        return "adjective"
-    if tag.startswith("d"):
-        return "adverb"
-    if tag.startswith("r"):
-        return "pronoun"
-    if tag.startswith("m"):
-        return "numeral"
-    if tag.startswith("q"):
-        return "classifier"
-    if tag.startswith("p"):
-        return "preposition"
-    if tag.startswith("c"):
-        return "conjunction"
-    if tag.startswith(("u", "y")):
-        return "particle"
-    if tag.startswith("e"):
-        return "interjection"
-    return "other"
-
-
-def _chinese_annotations(source: str) -> list[dict[str, Any]]:
-    output: list[dict[str, Any]] = []
-    cursor = 0
-    for item in pseg.cut(source):
-        word = str(item.word)
-        if not word or word.isspace() or not re.search(r"[\u3400-\u9fffA-Za-z0-9]", word):
-            continue
-        start = source.find(word, cursor)
-        if start < 0:
-            continue
-        end = start + len(word)
-        output.append(
-            {
-                "fragment": word,
-                "start": start,
-                "end": end,
-                "pos": _chinese_pos(str(item.flag)),
-                "pronunciation": " ".join(lazy_pinyin(word, style=Style.TONE)),
-                "lemma": word,
-            }
-        )
-        cursor = end
-        if len(output) == _MAX_ANNOTATIONS:
-            break
-    return output
-
-
-@lru_cache(maxsize=512)
 def _local_annotations(language: str, source: str) -> tuple[dict[str, Any], ...]:
-    annotations = _chinese_annotations(source) if language == "zh" else _english_annotations(source)
-    return tuple(annotations)
+    return tuple(_annotate(language, source, max_annotations=_MAX_ANNOTATIONS))
 
 
 def _run_structured(
@@ -372,3 +266,36 @@ def explain_media_text(payload: MediaExplainIn) -> dict[str, Any]:
         "usage_note": str(raw.get("usage_note") or "").strip()[:1600],
         "claim": "contextual_ai_explanation",
     }
+
+
+@contextual_router.post("/contextual")
+def contextual_dictionary(payload: ContextualDictionaryIn) -> dict[str, Any]:
+    source = payload.text.strip()
+    context = payload.context.strip()
+    if not source:
+        raise HTTPException(422, "Selected text is required.")
+    if source.casefold() not in context.casefold():
+        raise HTTPException(422, "Selected text must come from the supplied learner context.")
+    try:
+        result = explain_media_text(payload)
+    except HTTPException as exc:
+        if exc.status_code not in {502, 503}:
+            raise
+        return {
+            "available": False,
+            "source_language": _primary_language(payload.source_language),
+            "target_language": payload.target_language.strip().casefold(),
+            "selected_text": source,
+            "claim": "contextual_dictionary_unavailable",
+        }
+    if not str(result.get("summary") or "").strip():
+        return {
+            "available": False,
+            "source_language": _primary_language(payload.source_language),
+            "target_language": payload.target_language.strip().casefold(),
+            "selected_text": source,
+            "claim": "contextual_dictionary_unavailable",
+        }
+    result["available"] = True
+    result["claim"] = "contextual_dictionary"
+    return result

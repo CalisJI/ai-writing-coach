@@ -37,7 +37,7 @@
 /* speaking-content-match-release */
 .speaking-asr-result,.speaking-content-match{
   margin-top:1rem;padding:1rem;
-  border:1px solid var(--border-subtle,rgba(127,127,127,.22));
+  border:1px solid var(--color-border-subtle);
   border-radius:14px;
 }
 .speaking-content-match-score{
@@ -48,7 +48,7 @@
 .speaking-feedback-line p{margin:.45rem 0 0;}
 .speaking-feedback-token{
   display:inline-block;margin:.2rem .25rem .2rem 0;padding:.25rem .5rem;
-  border-radius:999px;background:var(--surface-soft,rgba(127,127,127,.12));
+  border-radius:999px;background:var(--color-surface-muted);
 }
 
 

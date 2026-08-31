@@ -3,38 +3,22 @@ from __future__ import annotations
 import hashlib
 import json
 from datetime import datetime
-from typing import Any, Callable
+from typing import Any
 
 
+from writing_coach.linguistic_annotation import ALLOWED_POS, annotate
 from writing_coach.persistence.specialized_repository import SpecializedLearningRepository
 
 _repository: SpecializedLearningRepository | None = None
-_ai_generate: Callable[..., Any] | None = None
-WRITING_LINGUISTIC_CAPABILITY = "writing_linguistic"
-
-ALLOWED_POS = {
-    "noun",
-    "verb",
-    "adjective",
-    "adverb",
-    "pronoun",
-    "determiner",
-    "preposition",
-    "conjunction",
-    "numeral",
-    "particle",
-    "other",
-}
 
 MAX_ANNOTATED_CHARS = 6000
 MAX_ANNOTATIONS = 220
 CACHE_KEY = "linguistic_annotations_v1"
 
 
-def configure_becoming_linguistics(repository: SpecializedLearningRepository, ai_generate: Callable[..., Any]) -> None:
-    global _repository, _ai_generate
+def configure_becoming_linguistics(repository: SpecializedLearningRepository) -> None:
+    global _repository
     _repository = repository
-    _ai_generate = ai_generate
 
 
 def _repo() -> SpecializedLearningRepository:
@@ -57,63 +41,6 @@ def _safe_module_data(raw: Any) -> dict[str, Any]:
     except Exception:
         return {}
     return value if isinstance(value, dict) else {}
-
-
-def _schema() -> dict[str, Any]:
-    return {
-        "type": "object",
-        "properties": {
-            "annotations": {
-                "type": "array",
-                "maxItems": MAX_ANNOTATIONS,
-                "items": {
-                    "type": "object",
-                    "properties": {
-                        "fragment": {"type": "string"},
-                        "pos": {
-                            "type": "string",
-                            "enum": sorted(ALLOWED_POS),
-                        },
-                    },
-                    "required": ["fragment", "pos"],
-                },
-            },
-        },
-        "required": ["annotations"],
-    }
-
-
-def _prompt(language: str, text: str) -> tuple[str, str]:
-    language_name = "Simplified Chinese" if language == "zh" else "English"
-    segmentation = (
-        "For Chinese, segment into meaningful learner-facing words or particles. "
-        "Do not annotate punctuation."
-        if language == "zh"
-        else
-        "For English, annotate lexical words and meaningful function words. "
-        "Do not annotate punctuation or whitespace."
-    )
-
-    system = (
-        "You are a linguistic annotation service for a language-learning product. "
-        "Return exact text spans only. Never rewrite the learner's text. "
-        "Every annotation fragment must be copied literally from the learner text. "
-        "Return annotations in the same order the fragments appear in the text. "
-        "Use only these POS labels: noun, verb, adjective, adverb, pronoun, "
-        "determiner, preposition, conjunction, numeral, particle, other. "
-        "If a token is ambiguous, choose the role it performs in this sentence. "
-        + segmentation
-    )
-    user = (
-        f"LANGUAGE: {language_name}\n"
-        f"TEXT LENGTH: {len(text)} characters\n\n"
-        "TEXT:\n"
-        f"{text}\n\n"
-        "Annotate the text for a visual parts-of-speech learning lens. "
-        "Prefer useful coverage over microscopic tokenization. "
-        "Fragments must match the supplied text exactly; do not return character offsets."
-    )
-    return system, user
 
 
 def _validated_annotations(
@@ -194,9 +121,6 @@ def _public_payload(
 
 
 def linguistic_annotations_for_essay(essay_id: int) -> dict[str, Any]:
-    if _ai_generate is None:
-        raise RuntimeError("BECOMING linguistics AI generator is not installed")
-
     row = _repo().get_linguistic_essay(essay_id)
     if not row:
         return {"found": False, "essay_id": essay_id, "annotations": []}
@@ -207,21 +131,13 @@ def linguistic_annotations_for_essay(essay_id: int) -> dict[str, Any]:
         annotations = _validated_annotations(source, cached.get("annotations"))
         return _public_payload(essay_id, language=language, annotations=annotations, cached=True, truncated=bool(cached.get("truncated", truncated)))
 
-    system, user = _prompt(language, source)
-    result = _ai_generate(
-        messages=[
-            {"role": "system", "content": system},
-            {"role": "user", "content": user},
-        ],
-        schema=_schema(),
-        max_output_tokens=2800,
-        temperature=0.0,
-        seed=42,
-        capability_key=WRITING_LINGUISTIC_CAPABILITY,
+    # Segmentation and tagging are deterministic, so this is a local computation
+    # rather than a provider call. The result still goes through the same
+    # validation as a cached payload: literal fragments, ordered, offsets that
+    # index back into the source.
+    annotations = _validated_annotations(
+        source, annotate(language, source, max_annotations=MAX_ANNOTATIONS)
     )
-    data = getattr(result, "data", result)
-    raw_annotations = data.get("annotations", []) if isinstance(data, dict) else []
-    annotations = _validated_annotations(source, raw_annotations)
 
     cache_payload = {
         "hash": digest,

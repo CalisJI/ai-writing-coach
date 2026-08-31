@@ -1,7 +1,14 @@
 import {api} from '../api.js';
-import {go} from '../router.js?v=2.17.3';
+import {go} from '../router.js?v=2.17.5';
+import {
+  classifyArchetype,
+  archetypeLabel,
+  composeLesson,
+  BLOCK_SLOT,
+} from '../domain/grammar-pedagogy.js';
 import {supportLanguage} from '../store.js';
 import {esc,errorBlock,loadingBlock,toast,runBusy} from '../components/primitives.js';
+import {oIcon} from '../orena/icons.js';
 import {
   hasGrammarLearningModel,
   renderGrammarLearningModel,
@@ -9,11 +16,14 @@ import {
   grammarLearningCompletion,
   localizedText,
   grammarLanguageContext,
-} from '../components/grammar-learning.js?v=2.17.3';
+} from '../components/grammar-learning.js?v=2.17.5';
 
 const COPY={
   en:{
     kicker:'GRAMMAR · CURRICULUM',
+    backToGrammar:'Back to grammar',inThisLesson:'In this lesson',lessonPosition:'Where you are',
+    positionNote:'How far down the lesson you have read. It is a position, not a score.',
+
     title:'BUILD STRUCTURE YOU CAN ACTUALLY USE.',
     lead:'Move through one connected curriculum. Learn the target, compare nearby forms, practice it, then carry it into real writing.',
     progress:'Curriculum progress',complete:'completed',next:'Continue curriculum',
@@ -35,6 +45,9 @@ const COPY={
   },
   vi:{
     kicker:'NGỮ PHÁP · GIÁO TRÌNH',
+    backToGrammar:'Về danh sách ngữ pháp',inThisLesson:'Trong bài này',lessonPosition:'Bạn đang ở đâu',
+    positionNote:'Bạn đã đọc tới đâu trong bài. Đây là vị trí, không phải điểm số.',
+
     title:'XÂY CẤU TRÚC ĐỂ THẬT SỰ DÙNG ĐƯỢC.',
     lead:'Học theo một curriculum liền mạch. Hiểu đúng target, phân biệt cấu trúc gần nhau, luyện tập rồi đưa nó vào Writing thật.',
     progress:'Tiến độ curriculum',complete:'đã hoàn thành',next:'Học bài tiếp theo',
@@ -56,6 +69,9 @@ const COPY={
   },
   zh:{
     kicker:'语法 · 课程',
+    backToGrammar:'返回语法列表',inThisLesson:'本课内容',lessonPosition:'你在哪一段',
+    positionNote:'这是你在本课中读到的位置，不是分数。',
+
     title:'把语法结构学到真正能用。',
     lead:'沿着完整课程前进：理解当前目标、区分相近结构、完成练习，再把它迁移到真实写作。',
     progress:'课程进度',complete:'已完成',next:'继续下一课',
@@ -131,9 +147,9 @@ function overviewMarkup(payload){
   const progress=progressOf(items);
   const next=nextIncomplete(items);
   const groups=groupByLevel(items,payload.levels||[]);
-  if(!items.length)return `<section class="page grammar-page">${errorBlock(c.empty)}</section>`;
+  if(!items.length)return `<section class="o-page grammar-page">${errorBlock(c.empty)}</section>`;
 
-  return `<section class="page grammar-page" data-grammar-ui>
+  return `<section class="o-page grammar-page" data-grammar-ui>
     <section class="grammar-hero visual-hero-surface">
       <div class="grammar-progress-visual" aria-label="${esc(c.progress)}">
         <div class="grammar-progress-number"><strong>${progress.percent}</strong><span>%</span></div>
@@ -298,6 +314,183 @@ function legacyLessonBody(detail,c){
     </section>`;
 }
 
+/* The reference lists the lesson's sections down the rail. The list is read
+   back off what actually rendered - the learning model decides which blocks a
+   concept has, so a hardcoded list would promise sections some lessons do not
+   contain. Clicking an entry moves to that section; the entry for whatever is
+   on screen is marked, and the meter beside it shows how far down the lesson
+   that is. */
+/* The generated content repeats itself: for most concepts the opening prompt,
+   the summary under it and the scene's setup line are the same sentence, and
+   the setup line is often just the pattern again. Printing one sentence three
+   times is what makes a lesson read as a wall with no focal point, so a
+   duplicate is dropped rather than restyled. Only exact repeats go - nothing
+   that says something new is touched. */
+function dropRepeatedText(slot){
+  /* Whitespace is dropped entirely rather than collapsed: the pattern band sets
+     its plus signs as their own elements, so its text reads "have+participle"
+     where the sentence that repeats it reads "have + participle". */
+  const norm=node=>(node?.textContent||'').replace(/\s+/g,'').toLowerCase();
+  const pattern=norm(slot.querySelector('.grammar-formula-plain,.grammar-formula-line'));
+  const summary=norm(slot.querySelector('.grammar-learning-meaning h3'));
+
+  const hook=slot.querySelector('.grammar-learning-hook');
+  if(hook&&summary&&norm(hook.querySelector('h3'))===summary)hook.remove();
+
+  slot.querySelectorAll('.grammar-scene-setup').forEach(setup=>{
+    const text=norm(setup);
+    if(text&&(text===pattern||text===summary))setup.remove();
+  });
+}
+
+/* Compose the lesson the way ORENA_GRAMMAR_LESSON_DESIGN_SYSTEM §19 lays it
+   out, rather than in the order the content happened to be authored:
+ *
+ *     Level / Title / Meaning
+ *     PRIMARY VISUAL MODEL
+ *     When to use   |   Examples
+ *     Compare
+ *     Common mistake
+ *     Quick practice
+ *
+ * The renderer draws the blocks; which one leads and what sits beside what is a
+ * pedagogical decision, so it is made here from the plan the pedagogy layer
+ * produced (§26.2: the model decides block ordering; §26.3: the renderer does
+ * not invent pedagogy). Blocks are moved, never rebuilt - every handler bound
+ * inside them survives, because moving a node keeps its listeners.
+ */
+function composeLessonBody(slot,detail){
+  const shell=slot.querySelector('.grammar-learning-shell');
+  if(!shell)return;
+  const plan=composeLesson(detail);
+
+  const typeOf=node=>{
+    const match=[...node.classList].find(name=>
+      name.startsWith('grammar-learning-')
+      &&!['grammar-learning-block','grammar-learning-blocks'].includes(name));
+    return match?match.replace('grammar-learning-',''):'';
+  };
+
+  const blocks=[...shell.querySelectorAll('.grammar-learning-block')];
+  const useWhen=shell.querySelector('.grammar-learning-use-when');
+  const meaning=shell.querySelector('.grammar-learning-meaning');
+  const hook=shell.querySelector('.grammar-learning-hook');
+
+  /* The eight-step flow is the lesson path, which §4 puts in the support
+     column - it is orientation, not teaching, and at the top of the body it
+     pushed the concept model below the fold. */
+  const flow=shell.querySelector('.grammar-learning-flow');
+  const pathSlot=slot.querySelector('[data-lesson-path]');
+  if(flow&&pathSlot)pathSlot.appendChild(flow);
+
+  const buckets=new Map();
+  const put=(name,node)=>{
+    if(!node)return;
+    if(!buckets.has(name))buckets.set(name,[]);
+    buckets.get(name).push(node);
+  };
+
+  let primaryTaken=false;
+  for(const block of blocks){
+    const type=typeOf(block);
+    if(!primaryTaken&&type===plan.primaryType){
+      block.classList.add('is-primary-model');
+      put('model',block);
+      primaryTaken=true;
+      continue;
+    }
+    put(BLOCK_SLOT[type]==='model'?'extra':(BLOCK_SLOT[type]||'extra'),block);
+  }
+  put('use',useWhen);
+
+  /* §19 pairs the two blocks a learner reads together. The pair only forms when
+     both halves exist; a concept with no examples keeps a full-width rule
+     rather than an empty column beside it. */
+  const uses=buckets.get('use')||[];
+  const examples=buckets.get('examples')||[];
+  let pair=null;
+  if(uses.length&&examples.length){
+    pair=document.createElement('div');
+    pair.className='grammar-lesson-pair';
+    pair.append(uses.shift(),examples.shift());
+  }
+
+  const ordered=[];
+  if(meaning)ordered.push(meaning);
+  if(hook)ordered.push(hook);
+  ordered.push(...(buckets.get('model')||[]));
+  if(pair)ordered.push(pair);
+  for(const name of plan.order){
+    if(name==='model')continue;
+    ordered.push(...(buckets.get(name)||[]));
+  }
+
+  for(const node of ordered)shell.appendChild(node);
+  /* The renderer's own wrappers are empty once their children have moved. */
+  shell.querySelectorAll('.grammar-learning-blocks,.grammar-learning-primary-pattern')
+    .forEach(wrapper=>{if(!wrapper.children.length)wrapper.remove();});
+}
+
+function wireLessonOutline(slot){
+  const list=slot.querySelector('[data-lesson-outline]');
+  const bar=slot.querySelector('[data-lesson-position-bar]');
+  const body=slot.querySelector('.grammar-teach-column');
+  if(!list||!body)return;
+
+  /* Read after composition, so the outline lists the lesson in the order the
+     learner meets it. The blocks are flat by then - the renderer's wrappers are
+     gone - so this asks for the blocks themselves rather than for a path
+     through containers that no longer exist. */
+  const sections=[...body.querySelectorAll(
+    '.grammar-learning-block,'
+    +'.grammar-learning-use-when,'
+    +'.grammar-teach-block,.grammar-guided-practice,.grammar-production',
+  )];
+  if(!sections.length){
+    list.closest('.grammar-rail-outline')?.remove();
+    return;
+  }
+
+  sections.forEach((section,index)=>{
+    if(!section.id)section.id=`grammar-section-${index}`;
+    /* The title first. A block's head opens with its stage label, so asking
+       for the first span instead gave every entry the stage name and three
+       sections in a row all read "Compare". Sections without a heading - the
+       when-to-use list - keep their own label. */
+    const heading=section.querySelector('h3,h4')
+      ||section.querySelector('.context-label,.grammar-learning-stage,span');
+    const label=(heading?.textContent||'').trim()||`${index+1}`;
+    const entry=document.createElement('li');
+    const button=document.createElement('button');
+    button.type='button';
+    button.textContent=label;
+    button.addEventListener('click',()=>section.scrollIntoView({behavior:'smooth',block:'start'}));
+    entry.appendChild(button);
+    list.appendChild(entry);
+  });
+
+  const entries=[...list.querySelectorAll('li')];
+  const mark=index=>{
+    entries.forEach((entry,i)=>entry.classList.toggle('is-current',i===index));
+    if(bar)bar.style.width=`${Math.round(((index+1)/sections.length)*100)}%`;
+  };
+  mark(0);
+
+  if(typeof IntersectionObserver!=='function')return;
+  const seen=new Map();
+  const observer=new IntersectionObserver(records=>{
+    records.forEach(record=>seen.set(record.target,record.intersectionRatio));
+    let best=-1,bestRatio=0;
+    sections.forEach((section,index)=>{
+      const ratio=seen.get(section)||0;
+      if(ratio>bestRatio){bestRatio=ratio;best=index;}
+    });
+    if(best>=0)mark(best);
+  },{rootMargin:'-25% 0px -55% 0px',threshold:[0,.25,.5,1]});
+  sections.forEach(section=>observer.observe(section));
+  slot._outlineObserver=observer;
+}
+
 function lessonMarkup(detail,payload){
   const c=copy();
   const items=Array.isArray(payload.lessons)?payload.lessons:[];
@@ -311,10 +504,14 @@ function lessonMarkup(detail,payload){
     :legacyObjective(detail);
 
   return `<article class="grammar-lesson visual-raised-surface" data-grammar-lesson="${esc(detail.id)}">
+    <button type="button" class="o-btn o-btn--outline o-btn--compact grammar-back grammar-back-button" data-grammar-back>${oIcon('arrowLeft')}<span>${esc(c.backToGrammar)}</span></button>
+
     <header class="grammar-lesson-head">
       <div>
-        <span class="editorial-kicker">${esc(detail.level)} · ${esc(kindLabel(detail.kind))}</span>
-        <h2>${esc(detail.title)}</h2>
+        <!-- What kind of grammar this is, classified from the concept itself
+             rather than from the word "lesson", which every lesson is. -->
+        <span class="editorial-kicker">${esc(detail.level)} · ${esc(archetypeLabel(classifyArchetype(detail),supportLanguage()||'en'))}</span>
+        <h2 data-grammar-lesson-title>${esc(detail.title)}</h2>
         <p>${esc(objective)}</p>
       </div>
       <span class="grammar-completion-chip ${detail.completed?'is-complete':''}">
@@ -329,7 +526,24 @@ function lessonMarkup(detail,payload){
           :legacyLessonBody(detail,c)}
       </main>
 
-      <aside class="grammar-lesson-actions">
+      <aside class="grammar-lesson-actions grammar-lesson-rail-card">
+        <!-- Position, not a score: the reference's percentage has no equivalent
+             here, and calling reading position "progress" would be a claim the
+             product cannot back. -->
+        <section class="grammar-rail-block grammar-rail-position">
+          <span class="context-label">${esc(c.lessonPosition)}</span>
+          <div class="grammar-rail-meter"><i data-lesson-position-bar style="width:0%"></i></div>
+          <small>${esc(c.positionNote)}</small>
+        </section>
+
+        <section class="grammar-rail-block grammar-rail-path" data-lesson-path></section>
+
+        <section class="grammar-rail-block grammar-rail-outline grammar-lesson-outline" data-grammar-lesson-outline>
+          <span class="context-label">${esc(c.inThisLesson)}</span>
+          <ol data-lesson-outline></ol>
+        </section>
+
+        <section class="grammar-rail-block">
         ${richLearning?`
           <span class="context-label">${esc(c.learningActions)}</span>
           <strong>${esc(c.learningEvidence)}</strong>
@@ -344,6 +558,7 @@ function lessonMarkup(detail,payload){
           ?`<button type="button" class="button button-secondary" data-grammar-uncomplete>${esc(c.undo)}</button>`
           :`<button type="button" class="button button-primary" data-grammar-complete>${esc(c.mark)}</button>`}
         <button type="button" class="button button-tertiary" data-grammar-writing>${esc(c.writeTransfer)}</button>
+        </section>
       </aside>
     </div>
 
@@ -356,22 +571,45 @@ function lessonMarkup(detail,payload){
 
 export async function renderGrammar(root){
   const c=copy();
-  root.innerHTML=`<section class="page grammar-page">${loadingBlock(6)}</section>`;
+  document.getElementById('pageTitle')?.removeAttribute('data-grammar-lesson-title');
+  root.innerHTML=`<section class="o-page grammar-page">${loadingBlock(6)}</section>`;
 
   let payload;
   try{
     payload=await api.grammarLibrary();
   }catch(error){
-    root.innerHTML=`<section class="page grammar-page">${errorBlock(error.message||String(error))}</section>`;
+    root.innerHTML=`<section class="o-page grammar-page">${errorBlock(error.message||String(error))}</section>`;
     return;
   }
 
   root.innerHTML=overviewMarkup(payload);
   const slot=root.querySelector('#grammarLessonSlot');
+  const page=root.querySelector('.grammar-page');
+  const pageTitle=document.getElementById('pageTitle');
+  let activeLessonId='';
+  let activeLessonOpener=null;
+
+  const lessonBackMarkup=()=>`<button type="button" class="o-btn o-btn--outline o-btn--compact grammar-back grammar-back-button" data-grammar-back>${oIcon('arrowLeft')}<span>${esc(c.backToGrammar)}</span></button>`;
+  const closeLesson=()=>{
+    const lessonId=activeLessonId;
+    const opener=activeLessonOpener;
+    activeLessonId='';
+    activeLessonOpener=null;
+    slot._outlineObserver?.disconnect();
+    slot.innerHTML='';
+    page?.classList.remove('has-open-lesson');
+    pageTitle?.removeAttribute('data-grammar-lesson-title');
+    page?.scrollIntoView({behavior:'smooth',block:'start'});
+    const target=opener?.isConnected
+      ?opener
+      :root.querySelector(`[data-grammar-open="${CSS.escape(lessonId)}"]`);
+    target?.focus({preventScroll:true});
+  };
+  const bindBack=()=>slot.querySelector('[data-grammar-back]')?.addEventListener('click',closeLesson);
 
   const bindOverview=()=>{
     root.querySelectorAll('[data-grammar-open]').forEach(button=>{
-      button.addEventListener('click',()=>openLesson(button.dataset.grammarOpen));
+      button.addEventListener('click',()=>openLesson(button.dataset.grammarOpen,button));
     });
     root.querySelectorAll('[data-grammar-level]').forEach(button=>{
       button.addEventListener('click',()=>{
@@ -386,25 +624,36 @@ export async function renderGrammar(root){
     });
   };
 
-  const openLesson=async lessonId=>{
+  const openLesson=async (lessonId,opener=null)=>{
     if(!lessonId)return;
-    slot.innerHTML=`<section class="grammar-lesson visual-raised-surface">${loadingBlock(5)}<p>${esc(c.loading)}</p></section>`;
+    activeLessonId=lessonId;
+    if(opener)activeLessonOpener=opener;
+    page?.classList.add('has-open-lesson');
+    slot.innerHTML=`${lessonBackMarkup()}<section class="grammar-lesson visual-raised-surface">${loadingBlock(5)}<p>${esc(c.loading)}</p></section>`;
+    bindBack();
     slot.scrollIntoView({behavior:'smooth',block:'start'});
 
     let detail;
     try{
       detail=await api.grammarLesson(lessonId);
     }catch(error){
-      slot.innerHTML=errorBlock(error.message||String(error));
+      slot.innerHTML=`${lessonBackMarkup()}${errorBlock(error.message||String(error))}`;
+      bindBack();
       return;
     }
 
     const languageContext=grammarContext(detail);
+    if(pageTitle)pageTitle.dataset.grammarLessonTitle=detail.title||c.lesson;
 
+    slot._outlineObserver?.disconnect();
     slot.innerHTML=lessonMarkup(detail,payload);
+    bindBack();
     if(hasGrammarLearningModel(detail.learning_model)){
       bindGrammarLearningInteractions(slot,languageContext);
     }
+    dropRepeatedText(slot);
+    composeLessonBody(slot,detail);
+    wireLessonOutline(slot);
 
     slot.querySelectorAll('[data-grammar-reveal]').forEach(button=>{
       button.addEventListener('click',()=>{
@@ -468,4 +717,12 @@ export async function renderGrammar(root){
   };
 
   bindOverview();
+  try{
+    const focusId=localStorage.getItem('becoming.grammar-focus');
+    if(focusId){
+      localStorage.removeItem('becoming.grammar-focus');
+      const opener=root.querySelector(`[data-grammar-open="${CSS.escape(focusId)}"]`);
+      opener?.click();
+    }
+  }catch{}
 }

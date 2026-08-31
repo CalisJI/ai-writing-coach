@@ -41,6 +41,10 @@ services:
       SUPADATA_MAX_WAIT_SECONDS: ${SUPADATA_MAX_WAIT_SECONDS:-150}
       SUPADATA_POLL_INTERVAL_SECONDS: ${SUPADATA_POLL_INTERVAL_SECONDS:-1}
       GROQ_API_KEY: ${GROQ_API_KEY:-}
+      GROQ_BASE_URL: ${GROQ_BASE_URL:-https://api.groq.com/openai/v1}
+      GROQ_MODELS: ${GROQ_MODELS:-}
+      GROQ_TRANSLATION_MODEL: ${GROQ_TRANSLATION_MODEL:-openai/gpt-oss-120b}
+      MEDIA_TRANSLATION_PROVIDER: ${MEDIA_TRANSLATION_PROVIDER:-}
       GROQ_ASR_MODEL: ${GROQ_ASR_MODEL:-whisper-large-v3-turbo}
       GROQ_ASR_TIMEOUT_SECONDS: ${GROQ_ASR_TIMEOUT_SECONDS:-120}
       GROQ_ASR_MAX_BYTES: ${GROQ_ASR_MAX_BYTES:-25165824}
@@ -69,6 +73,30 @@ services:
       - "${APP_BIND_HOST:-0.0.0.0}:8000:8000"
     extra_hosts:
       - "host.docker.internal:host-gateway"
+
+  writing-coach-tests:
+    profiles:
+      - test
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+      args:
+        BASE_IMAGE: ai-writing-coach:local
+    image: ai-writing-coach-tests:local
+    environment:
+      APP_ENV: development
+      PERSISTENCE_BACKEND: sqlite
+    command:
+      - python
+      - -m
+      - pytest
+      - -q
+      - -p
+      - no:cacheprovider
+      - tests/test_r17_admin_routes.py
+      - tests/test_reference_data_cache.py
+      - tests/test_session_bootstrap.py
+      - tests/test_media_status_compact.py
 
   postgres:
     image: postgres:17-alpine

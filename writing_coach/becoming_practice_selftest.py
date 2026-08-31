@@ -24,6 +24,63 @@ def main() -> None:
     assert recurring["focus_family"] == "grammar"
     assert recurring["word_target"] == 150
 
+    improved = build_practice_recommendation(
+        language="en",
+        profile={"goal": "everyday", "style": "guided"},
+        memory={"focus": {"category": "article", "status": "watch"}},
+        target_level="B2",
+        outcomes=[{
+            "language": "en", "status": "improved", "focus_family": "grammar",
+            "revision_no": 2, "previous_issue_count": 2, "issue_count": 0,
+            "essay_id": 21,
+        }],
+    )
+    assert improved["difficulty"]["state"] == "stretch"
+    assert improved["difficulty"]["word_target"] == 180
+    assert improved["difficulty"]["length_delta"] == 30
+    assert improved["difficulty"]["provenance"]["essay_id"] == 21
+
+    revision_evidence = build_practice_recommendation(
+        language="en",
+        profile={"goal": "everyday", "style": "guided"},
+        memory={
+            "focus": {"category": "article", "status": "watch"},
+            "revision_wins": [{"revisions": 2, "overall_delta": 5.0, "error_delta": -1, "latest_id": 23}],
+        },
+        target_level="B2",
+        outcomes=[],
+    )
+    assert revision_evidence["difficulty"]["state"] == "stretch"
+    assert revision_evidence["difficulty"]["provenance"]["source"] == "revision_win"
+
+    unresolved = build_practice_recommendation(
+        language="zh",
+        profile={"goal": "everyday", "style": "guided"},
+        memory={"focus": {"category": "aspect", "status": "watch"}},
+        target_level="HSK4",
+        outcomes=[{
+            "language": "zh", "status": "still_working", "focus_family": "grammar",
+            "revision_no": 1, "issue_count": 2, "essay_id": 22,
+        }],
+    )
+    assert unresolved["difficulty"]["state"] == "scaffold"
+    assert unresolved["difficulty"]["word_target"] == 60
+    assert unresolved["difficulty"]["length_delta"] == -20
+
+    insufficient = build_practice_recommendation(
+        language="en",
+        profile={"goal": "everyday", "style": "guided"},
+        memory={"focus": {"category": "article", "status": "watch"}},
+        target_level="B2",
+        outcomes=[
+            {"language": "zh", "status": "improved", "focus_family": "grammar", "revision_no": 2, "previous_issue_count": 2, "issue_count": 0},
+            {"language": "en", "status": "improved", "focus_family": "grammar", "revision_no": 1, "previous_issue_count": 2, "issue_count": 0},
+            {"language": "en", "status": "still_working", "focus_family": {"bad": True}, "revision_no": 1, "issue_count": 2},
+        ],
+    )
+    assert insufficient["difficulty"]["state"] == "insufficient"
+    assert insufficient["difficulty"]["provenance"]["source"] == "none"
+
     chinese = build_practice_recommendation(
         language="zh",
         profile={"goal": "exam", "style": "concise"},

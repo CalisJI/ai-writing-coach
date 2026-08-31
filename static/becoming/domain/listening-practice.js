@@ -64,7 +64,7 @@ export function evaluateListeningReconstruction({source_language,expected,answer
 }
 
 function emptySegmentState(){
-  return {draft:'',attempts:[],revealed:false,presentation:'prompt'};
+  return {draft:'',attempts:[],checked_attempt_count:0,best_result:null,last_attempt:null,revealed:false,presentation:'prompt'};
 }
 
 function requireSegment(session,segmentId){
@@ -103,6 +103,9 @@ export function recordListeningPracticeAttempt(session,result){
   const state=requireSegment(session,session.current_segment_id);
   const attempt={answer:state.draft,result:{...result}};
   state.attempts.push(attempt);
+  state.checked_attempt_count+=1;
+  if(!state.best_result||result.accuracy_percent>state.best_result.accuracy_percent)state.best_result={...result};
+  state.last_attempt=attempt;
   state.presentation='checked';
   return attempt;
 }
@@ -117,15 +120,16 @@ export function revealListeningPracticeAnswer(session){
 export function retryListeningPracticeSegment(session){
   const state=requireSegment(session,session.current_segment_id);
   state.draft='';
+  state.revealed=false;
   state.presentation='prompt';
   return state;
 }
 
 export function listeningPracticeSummary(session){
   const states=Object.values(session.segments);
-  const practiced=states.filter(state=>state.revealed||state.attempts.length).length;
-  const checkedAttempts=states.reduce((total,state)=>total+state.attempts.length,0);
-  const bestResults=states.map(state=>state.attempts.reduce((best,attempt)=>{
+  const practiced=states.filter(state=>state.revealed||state.attempts.length||Number(state.checked_attempt_count)>0).length;
+  const checkedAttempts=states.reduce((total,state)=>total+Number(state.checked_attempt_count??state.attempts.length),0);
+  const bestResults=states.map(state=>state.best_result||state.attempts.reduce((best,attempt)=>{
     return !best||attempt.result.accuracy_percent>best.accuracy_percent?attempt.result:best;
   },null)).filter(Boolean);
   const exactSegments=bestResults.filter(result=>result.exact).length;
@@ -140,4 +144,48 @@ export function listeningPracticeSummary(session){
     revealed_only_segments:states.filter(state=>state.revealed&&!state.attempts.length).length,
     average_best_text_match:averageBest,
   };
+}
+
+function normalizedProgressRecord(record,session){
+  if(!record||typeof record!=='object'||record.asset_id!==session.asset_id)return null;
+  const segmentId=typeof record.segment_id==='string'?record.segment_id:'';
+  if(!session.segments[segmentId])return null;
+  const presentation=['prompt','checked','revealed'].includes(record.presentation)?record.presentation:'prompt';
+  const count=Number(record.checked_attempt_count);
+  const accuracy=Number(record.best_accuracy_percent);
+  const hasResult=Number.isInteger(count)&&count>0&&Number.isFinite(accuracy)&&accuracy>=0&&accuracy<=100;
+  const revealed=record.revealed===true||presentation==='revealed';
+  if(presentation==='checked'&&!hasResult)return null;
+  if(presentation==='revealed'&&!revealed)return null;
+  return {
+    segmentId,
+    presentation:revealed?'revealed':presentation,
+    revealed,
+    checked_attempt_count:hasResult?count:0,
+    best_result:hasResult?{accuracy_percent:accuracy,exact:record.best_exact===true}:null,
+    last_answer:typeof record.last_answer==='string'?record.last_answer:'',
+  };
+}
+
+export function restoreListeningPracticeProgress(session,records,onRestore=()=>{}){
+  if(!session||!Array.isArray(records))return false;
+  let restored=false;
+  records.map(record=>normalizedProgressRecord(record,session)).filter(Boolean).forEach(record=>{
+    const state=session.segments[record.segmentId];
+    state.presentation=record.presentation;
+    state.revealed=record.revealed;
+    state.checked_attempt_count=record.checked_attempt_count;
+    state.best_result=record.best_result;
+    state.draft='';
+    state.last_attempt=null;
+    state.attempts=[];
+    if(record.presentation!=='prompt'&&record.checked_attempt_count&&record.best_result){
+      state.last_attempt={answer:record.last_answer,result:{...record.best_result}};
+      state.attempts=[state.last_attempt];
+      state.draft=record.last_answer;
+    }
+    onRestore(record.segmentId);
+    restored=true;
+  });
+  return restored;
 }

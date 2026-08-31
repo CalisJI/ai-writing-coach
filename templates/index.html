@@ -300,11 +300,62 @@
         </div>
       </div>
 
+      <div class="card panel admin-capability-panel">
+        <div class="panel-title">
+          <div>
+            <h2>Capability configuration</h2>
+            <p>Scoped saved configuration per capability; learner runtime remains separate.</p>
+          </div>
+          <span class="admin-read-only">SCOPED CONFIG</span>
+        </div>
+        <div id="adminCapabilityMatrix" class="admin-capability-matrix">
+          <div class="admin-capability-empty">Loading capability matrix…</div>
+        </div>
+      </div>
+
+      <div class="card panel admin-operations-panel">
+        <div class="panel-title">
+          <div>
+            <h2>AI operations</h2>
+            <p>Read-only capability activity; provider usage is unknown when not reported.</p>
+          </div>
+          <button id="adminRefreshOperations" class="ghost compact" type="button">Refresh activity</button>
+        </div>
+        <div id="adminOperations" class="admin-operations" aria-live="polite">
+          <div class="admin-capability-empty">No operation data yet.</div>
+        </div>
+      </div>
+
+      <div class="card panel admin-operations-panel">
+        <div class="panel-title">
+          <div>
+            <h2>Product activity and return trends</h2>
+            <p>Read-only aggregate learner activity, completion funnels, repeat-practice returns, and validated learner-impact failure trends by capability. Unsupported stages remain unavailable. No learner text, media URLs, or identifiers are shown; event rows are never exposed.</p>
+          </div>
+          <button id="adminRefreshProductActivity" class="ghost compact" type="button">Refresh activity</button>
+        </div>
+        <div id="adminProductActivity" class="admin-operations" aria-live="polite">
+          <div class="admin-capability-empty">Loading product activity…</div>
+        </div>
+        <div class="admin-section-head"><div><h2>Operational readiness evidence</h2><p>Read-only evidence summary; this is not production-release approval.</p></div></div>
+        <div id="adminReadinessSummary" class="admin-operations" aria-live="polite">
+          <div class="admin-capability-empty">Loading readiness evidence…</div>
+        </div>
+      </div>
+
+      <div class="card panel admin-account-panel">
+        <div class="panel-title">
+          <div><h2>Account state</h2><p>Read-only plan, entitlement and monthly usage for the signed-in administrator.</p></div>
+          <span class="admin-read-only">READ ONLY</span>
+        </div>
+        <div id="adminAccountState" class="admin-account-state"><div class="admin-capability-empty">Loading account state…</div></div>
+      </div>
+
       <div class="card panel">
         <div class="panel-title">
           <div>
-            <h2>AI Models</h2>
-            <p>Choose the engine used by the whole Writing Coach platform.</p>
+            <h2>Provider catalog</h2>
+            <p>Read-only provider/model availability. Configure supported capabilities above.</p>
           </div>
         </div>
 

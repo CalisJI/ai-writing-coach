@@ -1,0 +1,185 @@
+/**
+ * Orena design tokens for the native client.
+ *
+ * Ported from `static/becoming/orena/tokens.css`, which is the authoritative
+ * visual layer: its values were measured off `docs/visual-references/Orena-prod/*.png`
+ * rather than eyeballed, and it deliberately namespaces itself away from the
+ * twenty-two legacy stylesheets. An earlier port here read one of those legacy
+ * files (`theme.css`) instead, so the whole native app was built on superseded
+ * colours, radii and type sizes. Values below are copied from the `--o-` layer;
+ * when it changes, change these in the same revision.
+ */
+
+export type ColorScheme = 'light' | 'dark';
+
+/** The learner-selectable palettes, matching `theme_preset` in the profile contract. */
+export type PalettePreset = 'editorial' | 'sage' | 'clay' | 'blueprint';
+
+export const PALETTE_PRESETS: readonly PalettePreset[] = ['editorial', 'sage', 'clay', 'blueprint'];
+
+/**
+ * The `--o-` base layer. Presets override only the accent pair, exactly as
+ * `html[data-palette=...]` does; every surface and ink value is shared.
+ */
+const base = {
+  light: {
+    canvas: '#F2EFEA',
+    surface: '#FFFFFF',
+    surfaceSunken: '#F8F5F1',
+    raised: '#FFFFFF',
+    border: '#EFECE7',
+    borderStrong: '#DFDAD4',
+    ink: '#16161A',
+    inkMuted: '#6B6B76',
+    inkFaint: '#9A9AA4',
+    positive: '#1B7F3B',
+    attention: '#B4770F',
+    critical: '#C43D2E',
+    onAccent: '#FFFFFF',
+  },
+  dark: {
+    canvas: '#08090B',
+    surface: '#15181C',
+    surfaceSunken: '#101316',
+    raised: '#1A1E23',
+    border: '#22262A',
+    borderStrong: '#343940',
+    ink: '#F4F4F6',
+    inkMuted: '#9A9AA6',
+    inkFaint: '#6E7079',
+    positive: '#5BB878',
+    attention: '#D6A64A',
+    critical: '#E4776A',
+    onAccent: '#FFFFFF',
+  },
+} as const;
+
+/**
+ * Editorial keeps the measured reference orange, which is deeper than the legacy
+ * #FF6A1A. The other three hand their own accent to the layer, and dark mode
+ * inherits the same accent as light unless the palette says otherwise.
+ */
+const accents: Record<PalettePreset, Record<ColorScheme, {accent: string; accentHover: string}>> = {
+  editorial: {
+    light: {accent: '#FD5703', accentHover: '#E84A00'},
+    dark: {accent: '#FD5703', accentHover: '#E84A00'},
+  },
+  sage: {
+    light: {accent: '#55735B', accentHover: '#66856C'},
+    dark: {accent: '#8DB397', accentHover: '#9BC1A5'},
+  },
+  clay: {
+    light: {accent: '#A45F43', accentHover: '#B66B4E'},
+    dark: {accent: '#D08A68', accentHover: '#DE9A78'},
+  },
+  blueprint: {
+    light: {accent: '#466C85', accentHover: '#557E98'},
+    dark: {accent: '#82A9C0', accentHover: '#93B8CE'},
+  },
+};
+
+/** `--o-radius-*`. */
+export const radii = {card: 20, field: 15, chip: 10, pill: 999} as const;
+
+/** `--o-text-*`. */
+export const fontSizes = {meta: 12, label: 13, ui: 14, body: 15, heading: 17, title: 20} as const;
+
+/** `--o-gutter`, `--o-gap`, `--o-header-h`, `--o-sidebar-w`, `--o-aside-w`. */
+export const metrics = {gutter: 32, gap: 28, headerHeight: 80, sidebarWidth: 244, asideWidth: 288} as const;
+
+export const fontWeights = {regular: '400', medium: '500', semibold: '600', bold: '700'} as const;
+
+/**
+ * `--o-shadow-card` and `--o-shadow-raised` as React Native shadows.
+ *
+ * The web values are two-layer (a tight contact shadow plus a wide ambient one);
+ * RN takes a single shadow per view, so each maps to the ambient layer, which is
+ * what gives the card its lift. Without these the surfaces read as flat outlines
+ * rather than cards floating on the warm canvas.
+ */
+type Shadow = {shadowColor: string; shadowOpacity: number; shadowRadius: number; shadowOffset: {width: number; height: number}; elevation: number};
+
+export const elevation: Record<ColorScheme, {card: Shadow; raised: Shadow}> = {
+  light: {
+    card: {shadowColor: '#1C1917', shadowOpacity: 0.07, shadowRadius: 18, shadowOffset: {width: 0, height: 7}, elevation: 2},
+    raised: {shadowColor: '#1C1917', shadowOpacity: 0.11, shadowRadius: 24, shadowOffset: {width: 0, height: 10}, elevation: 4},
+  },
+  dark: {
+    card: {shadowColor: '#000000', shadowOpacity: 0.78, shadowRadius: 24, shadowOffset: {width: 0, height: 10}, elevation: 6},
+    raised: {shadowColor: '#000000', shadowOpacity: 0.85, shadowRadius: 36, shadowOffset: {width: 0, height: 16}, elevation: 10},
+  },
+};
+
+export type ThemeTokens = {
+  scheme: ColorScheme;
+  preset: PalettePreset;
+  colors: {
+    background: string;
+    surface: string;
+    surfaceSunken: string;
+    raised: string;
+    /** Body copy and headings share one ink in this layer. */
+    text: string;
+    heading: string;
+    mutedText: string;
+    faintText: string;
+    border: string;
+    borderStrong: string;
+    accent: string;
+    accentHover: string;
+    accentSoft: string;
+    onAccent: string;
+    positive: string;
+    attention: string;
+    danger: string;
+    dangerSurface: string;
+    informational: string;
+  };
+  spacing: {small: number; medium: number; large: number};
+  radius: {card: number; control: number};
+  radii: typeof radii;
+  fontSizes: typeof fontSizes;
+  fontWeights: typeof fontWeights;
+  metrics: typeof metrics;
+  elevation: {card: Shadow; raised: Shadow};
+};
+
+export const tokensFor = (scheme: ColorScheme, preset: PalettePreset = 'editorial'): ThemeTokens => {
+  const known = accents[preset] ? preset : 'editorial';
+  const surface = base[scheme];
+  const {accent, accentHover} = accents[known][scheme];
+  return {
+    scheme,
+    preset: known,
+    colors: {
+      background: surface.canvas,
+      surface: surface.surface,
+      surfaceSunken: surface.surfaceSunken,
+      raised: surface.raised,
+      text: surface.ink,
+      heading: surface.ink,
+      mutedText: surface.inkMuted,
+      faintText: surface.inkFaint,
+      border: surface.border,
+      borderStrong: surface.borderStrong,
+      accent,
+      accentHover,
+      // `--o-accent-soft` mixes the accent into the sidebar; the sunken surface
+      // is the closest static stand-in without a colour-mix at runtime.
+      accentSoft: surface.surfaceSunken,
+      onAccent: surface.onAccent,
+      positive: surface.positive,
+      attention: surface.attention,
+      danger: surface.critical,
+      dangerSurface: surface.surfaceSunken,
+      informational: surface.inkMuted,
+    },
+    spacing: {small: 8, medium: 16, large: 24},
+    radius: {card: radii.card, control: radii.field},
+    radii,
+    fontSizes,
+    fontWeights,
+    metrics,
+    elevation: elevation[scheme],
+  };
+};

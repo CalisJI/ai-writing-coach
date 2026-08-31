@@ -18,6 +18,7 @@ from writing_coach.persistence.models import (
 
 class LearningRepository(Protocol):
     def get_essay(self, essay_id: int) -> dict[str, Any] | None: ...
+    def classify_essay_scope(self, essay_id: int) -> str: ...
     def list_essays(self, limit: int = 200, *, ascending: bool = False) -> list[dict[str, Any]]: ...
     def list_latest_series(self) -> list[dict[str, Any]]: ...
     def list_series_revisions(self, series_id: int) -> list[dict[str, Any]]: ...
@@ -162,6 +163,15 @@ class SQLiteLearningRepository:
         with self.connect() as conn:
             return self._dict(conn.execute("SELECT * FROM essays WHERE id = ?", (essay_id,)).fetchone())
 
+    def classify_essay_scope(self, essay_id: int) -> str:
+        with self.connect() as conn:
+            row = conn.execute("SELECT language_code FROM essays WHERE id = ?", (essay_id,)).fetchone()
+        if row is None:
+            return "parent_essay_not_found"
+        if str(row["language_code"] or "en").casefold() != current_language_code().casefold():
+            return "language_scope_mismatch"
+        return "parent_essay_not_found"
+
     def list_essays(self, limit: int = 200, *, ascending: bool = False) -> list[dict[str, Any]]:
         order = "ASC" if ascending else "DESC"
         sql = f"SELECT * FROM essays ORDER BY id {order}"
@@ -218,6 +228,7 @@ class SQLiteLearningRepository:
 
     def create_essay(self, values: dict[str, Any]) -> dict[str, Any]:
         practice_context = values.get("practice_context")
+        grammar_links = values.get("grammar_links") or []
         with self.connect() as conn:
             cur = conn.execute(
                 """
@@ -238,10 +249,10 @@ class SQLiteLearningRepository:
                 ),
             )
             essay_id = int(cur.lastrowid)
-            if practice_context is not None:
+            if practice_context is not None or grammar_links:
                 conn.execute(
                     "UPDATE essays SET module_data_json = ? WHERE id = ?",
-                    (json.dumps({"practice": practice_context}, ensure_ascii=False), essay_id),
+                    (json.dumps({"practice": practice_context, "grammar_links": grammar_links}, ensure_ascii=False), essay_id),
                 )
             series_id = int(values.get("series_id") or essay_id)
             if values.get("series_id") is None:
@@ -458,6 +469,18 @@ class PostgresLearningRepository:
             revision = session.scalar(select(EssayRevision).where(EssayRevision.essay_id == essay.id))
             return self._essay_payload(essay, revision)
 
+    def classify_essay_scope(self, essay_id: int) -> str:
+        uid, lang = self._scope()
+        with Session(self.engine) as session:
+            essay = session.scalar(select(Essay).where(Essay.legacy_id == essay_id))
+            if essay is None:
+                return "parent_essay_not_found"
+            if essay.user_id != uid:
+                return "essay_scope_mismatch"
+            if str(essay.language_code or "").casefold() != lang:
+                return "language_scope_mismatch"
+            return "parent_essay_not_found"
+
     def list_essays(self, limit: int = 200, *, ascending: bool = False) -> list[dict[str, Any]]:
         with Session(self.engine) as session:
             rows = self._essay_rows(session, ascending=ascending)
@@ -514,7 +537,7 @@ class PostgresLearningRepository:
                 task_achievement=float(values["task_achievement"]), naturalness=float(values["naturalness"]), overall=float(values["overall"]),
                 level_estimate=values["cefr_estimate"], evaluator=values["evaluator"], summary_vi=values["summary_vi"],
                 strengths=json.loads(values["strengths_json"]), priorities=json.loads(values["priorities_json"]),
-                errors=json.loads(values["errors_json"]), module_data={"practice": values["practice_context"]} if values.get("practice_context") else {},
+                errors=json.loads(values["errors_json"]), module_data={"practice": values["practice_context"], "grammar_links": values.get("grammar_links") or []} if (values.get("practice_context") or values.get("grammar_links")) else {},
                 strength_evidence=json.loads(values["strength_evidence_json"]),
             )
             session.add(essay)

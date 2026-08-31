@@ -23,7 +23,13 @@ async function request(url, options={}){
     const looksLikeHtml=typeof rawMessage==='string'&&/(<!doctype|<html[\\s>])/i.test(rawMessage);
     const message=looksLikeHtml ? `Request failed (${response.status}). Please try again.` : rawMessage;
     const error=new Error(typeof message==='string'&&message ? message : `Request failed (${response.status})`);
+    /* The canonical envelope, §2.6: a stable category the caller can branch on,
+       an explicit answer to whether retrying is worth anything, and a context
+       bag for anything a screen needs beyond the sentence. Screens must not
+       have to read the human text to decide what happened. */
     if(structured&&typeof detail.category==='string')error.category=detail.category;
+    if(structured&&typeof detail.retryable==='boolean')error.retryable=detail.retryable;
+    if(structured&&detail.context&&typeof detail.context==='object')error.context=detail.context;
     error.status=response.status;
     throw error;
   }
@@ -32,6 +38,9 @@ async function request(url, options={}){
 
 export const api={
   me:()=>request('/api/me'),
+  sessionBootstrap:()=>request('/api/session/bootstrap'),
+  productMe:()=>request('/api/product/me'),
+  adminProductAccount:()=>request('/api/product/admin/account'),
   health:()=>request('/api/health'),
   languages:()=>request('/api/platform/languages'),
   skills:()=>request('/api/platform/skills'),
@@ -48,15 +57,28 @@ export const api={
     body:JSON.stringify(payload),
   }),
   learningMemory:()=>request('/api/learning-memory'),
+  reviewCue:(essayId)=>request(`/api/review-cue${essayId!=null?`?essay_id=${encodeURIComponent(essayId)}`:''}`),
+  crossSkillCue:()=>request('/api/cross-skill-cue'),
   practiceRecommendation:()=>request('/api/practice-recommendation'),
   nextPractice:(payload)=>request('/api/practice/next',{
     method:'POST',
     headers:JSON_HEADERS,
     body:JSON.stringify(payload||{}),
   }),
+  grammarPractice:(id,evidence='')=>{
+    const value=typeof evidence==='string'?evidence.trim():'';
+    const suffix=value?`?evidence=${encodeURIComponent(value)}`:'';
+    return request(`/api/grammar/${encodeURIComponent(id)}/practice${suffix}`);
+  },
   practiceOutcome:(id)=>request(`/api/practice-outcome/${encodeURIComponent(id)}`),
   practiceOutcomes:(limit=20)=>request(`/api/practice-outcomes?limit=${encodeURIComponent(limit)}`),
   dictionary:(word)=>request(`/api/dictionary?word=${encodeURIComponent(word)}`),
+  contextualDictionary:(payload)=>request('/api/dictionary/contextual',{
+    method:'POST',
+    headers:JSON_HEADERS,
+    body:JSON.stringify(payload||{}),
+  }),
+  chineseStrokeOrder:(word)=>request(`/api/chinese/stroke-order?word=${encodeURIComponent(word)}`),
   libraryVocabulary:()=>request('/api/library/vocabulary'),
   saveLibraryVocabulary:(payload)=>request('/api/library/vocabulary',{
     method:'POST',
@@ -103,6 +125,11 @@ export const api={
     headers:JSON_HEADERS,
     body:JSON.stringify(payload),
   }),
+  mediaImportStatusCompact:(payload)=>request('/api/media-learning/import/status',{
+    method:'POST',
+    headers:JSON_HEADERS,
+    body:JSON.stringify({...payload,compact:true}),
+  }),
   annotateMediaText:(payload)=>request('/api/media-learning/annotate',{
     method:'POST',
     headers:JSON_HEADERS,
@@ -132,6 +159,34 @@ export const api={
       body:form,
     });
   },
+  evaluateSpeaking:(payload)=>request('/api/speech/evaluation',{
+    method:'POST',
+    headers:JSON_HEADERS,
+    body:JSON.stringify(payload||{}),
+  }),
+  saveSpeakingAttempt:(payload)=>request('/api/speech/attempts',{
+    method:'POST',
+    headers:JSON_HEADERS,
+    body:JSON.stringify(payload||{}),
+  }),
+  speakingAttempts:(limit=20,assetId='',segmentId='')=>{
+    const params=new URLSearchParams({limit:String(limit)});
+    if(assetId)params.set('asset_id',String(assetId));
+    if(segmentId)params.set('segment_id',String(segmentId));
+    return request(`/api/speech/attempts?${params.toString()}`);
+  },
+  listeningProgress:(assetId)=>request(`/api/listening/progress?asset_id=${encodeURIComponent(assetId||'')}`),
+  saveListeningProgress:(payload)=>request('/api/listening/progress',{
+    method:'POST',
+    headers:JSON_HEADERS,
+    body:JSON.stringify(payload||{}),
+  }),
+  shadowingProgress:(assetId)=>request(`/api/listening/shadowing-progress?asset_id=${encodeURIComponent(assetId||'')}`),
+  saveShadowingProgress:(payload)=>request('/api/listening/shadowing-progress',{
+    method:'POST',
+    headers:JSON_HEADERS,
+    body:JSON.stringify(payload||{}),
+  }),
   essays:()=>request('/api/essays'),
   essay:(id)=>request(`/api/essays/${encodeURIComponent(id)}`),
   linguisticAnnotations:(id)=>request(`/api/essays/${encodeURIComponent(id)}/linguistic-annotations`,{

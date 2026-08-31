@@ -26,6 +26,8 @@ class PracticeContextIn(BaseModel):
     reason: str = Field(default="", max_length=1600)
     evidence: str = Field(default="", max_length=600)
     focus_instruction: str = Field(default="", max_length=1600)
+    grammar_id: str = Field(default="", max_length=160)
+    grammar_title: str = Field(default="", max_length=240)
 
 
 def configure_becoming_outcomes(repository: SpecializedLearningRepository) -> None:
@@ -80,7 +82,13 @@ def _practice_context(row: dict[str, Any]) -> dict[str, Any] | None:
     if not isinstance(module_data, dict):
         return None
     context = module_data.get("practice")
-    return context if isinstance(context, dict) else None
+    if not isinstance(context, dict):
+        return None
+    try:
+        normalized = PracticeContextIn(**context)
+    except Exception:
+        return None
+    return normalized.model_dump() if hasattr(normalized, "model_dump") else normalized.dict()
 
 
 def _category_key(value: Any) -> str:
@@ -225,6 +233,8 @@ def derive_practice_outcome(
         "focus_family": focus_family,
         "focus_category": str(context.get("focus_category") or "expression"),
         "focus_label": str(context.get("focus_label") or "Expression"),
+        "grammar_id": str(context.get("grammar_id") or ""),
+        "grammar_title": str(context.get("grammar_title") or ""),
         "issue_count": issue_count,
         "previous_issue_count": previous_issue_count,
         "strength_count": strength_count,

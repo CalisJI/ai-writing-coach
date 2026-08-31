@@ -52,7 +52,8 @@ const listening=readFileSync(
 );
 assert.match(listening,/setSharedMediaSession/);
 assert.match(listening,/selectSharedMediaSegment/);
-assert.match(listening,/controller\.restore\(shared\.payload,shared\.selected_segment_id\)/);
+assert.match(listening,/controller\.restore\(shared\.payload,shared\.selected_segment_id,shared\.mode\)/);
+assert.match(listening,/setSharedMediaMode/);
 assert.match(listening,/data-open-speaking/);
 assert.match(listening,/go\('speak'\)/);
 

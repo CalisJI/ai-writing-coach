@@ -1,7 +1,12 @@
 import json
 import sqlite3
 
-from writing_coach.becoming_outcomes import derive_practice_outcome
+from writing_coach.becoming_outcomes import (
+    configure_becoming_outcomes,
+    derive_practice_outcome,
+    get_practice_outcome,
+    list_practice_outcomes,
+)
 from writing_coach.persistence.specialized_repository import SQLiteSpecializedLearningRepository
 
 
@@ -83,6 +88,15 @@ def main() -> None:
     assert out2["previous_issue_count"] == 2
     assert out2["issue_count"] == 1
 
+    for malformed_context in (
+        {"intent": "", "focus_family": "grammar", "focus_category": "article"},
+        {"intent": "repair", "focus_family": "", "focus_category": "article"},
+        {"intent": {"bad": True}, "focus_family": "grammar", "focus_category": "article"},
+    ):
+        malformed_row = dict(row2)
+        malformed_row["module_data_json"] = json.dumps({"practice": malformed_context})
+        assert derive_practice_outcome(rows, malformed_row) is None
+
     rows = repo.memory_essay_rows()
     row3 = next(r for r in rows if r["id"] == 3)
     out3 = derive_practice_outcome(rows, row3)
@@ -119,6 +133,21 @@ def main() -> None:
     row4 = next(r for r in rows if r["id"] == 4)
     out4 = derive_practice_outcome(rows, row4)
     assert out4 and out4["status"] == "transferred"
+
+    # Exercise the public outcome service boundary against the same repository
+    # contract used by the runtime, not only the pure derivation helper above.
+    configure_becoming_outcomes(repo)
+    fetched = get_practice_outcome(2)
+    assert fetched["found"] is True
+    assert fetched["outcome"]["status"] == "improved"
+    assert fetched["outcome"]["previous_issue_count"] == 2
+
+    listed = list_practice_outcomes(3)
+    assert listed["items"]
+    assert listed["items"][0]["essay_id"] == 4
+    assert listed["latest"]["essay_id"] == 4
+    assert listed["items"][0]["revision_no"] == 1
+    assert {item["status"] for item in listed["items"]} >= {"transferred", "improved"}
 
     print("BECOMING Phase 6 practice-outcome self-test OK")
 

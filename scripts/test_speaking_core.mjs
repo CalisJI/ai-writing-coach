@@ -104,6 +104,10 @@ const speakingSource=readFileSync(
   new URL('../static/becoming/screens/speaking.js',import.meta.url),
   'utf8',
 );
+const speakingCss=readFileSync(
+  new URL('../static/becoming/orena/speaking.css',import.meta.url),
+  'utf8',
+);
 const apiSource=readFileSync(
   new URL('../static/becoming/api.js',import.meta.url),
   'utf8',
@@ -117,6 +121,10 @@ assert.match(speakingSource,/audio controls/);
 assert.match(speakingSource,/getSharedMediaSession/);
 assert.match(speakingSource,/transcribe=api\.transcribeSpeech/);
 assert.match(speakingSource,/await transcribe\(/);
+assert.match(speakingSource,/data-speaking-evaluation-highlights/);
+assert.match(speakingSource,/data-speaking-next-steps/);
+assert.match(speakingCss,/\.o-speaking-evaluation-highlights/);
+assert.match(speakingCss,/\.o-speaking-next-steps/);
 assert.match(apiSource,/transcribeSpeech:/);
 assert.match(apiSource,/\/api\/speech\/transcribe/);
 assert.match(apiSource,/new FormData\(\)/);

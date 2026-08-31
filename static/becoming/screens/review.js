@@ -1,13 +1,101 @@
 import {api} from '../api.js';
 import {state,saveDraft} from '../store.js';
 import {go} from '../router.js';
-import {metricsFrom,benchmarkLabel,changedSegments} from '../domain/feedback.js';
+import {metricsFrom,weakestMetric,benchmarkLabel,changedSegments} from '../domain/feedback.js';
 import {guidanceMode,guidanceLabel,feedbackBudget} from '../domain/adaptive.js';
 import {highlightedLearnerText,bindEvidenceLinks,sentenceContext,feedbackCategoryKey} from '../domain/feedback-map.js';
 import {esc,errorBlock,loadingBlock,metricRows,showDialog,toast,helpTip,runBusy,spinner,setBusy} from '../components/primitives.js';
-import {supportCopy,supportNote,categoryReason,categoryRule,nativeLanguage} from '../domain/support.js';
+import {supportCopy,supportNote,categoryReason,categoryRule} from '../domain/support.js';
 import {openDictionary} from '../components/dictionary.js';
-import {t,uiLocale,categoryLabel} from '../domain/i18n.js';
+import {t,uiLocale,categoryLabel,statusLabel,unitLabel} from '../domain/i18n.js';
+import {countUnits} from '../language.js';
+import {attr} from '../components/primitives.js';
+import {oIcon} from '../orena/icons.js';
+import {installDisclosures} from '../orena/shell.js';
+
+function reviewInfo(text){
+  if(!text)return '';
+  return `<button class="o-info" type="button" tabindex="0" data-tooltip="${attr(text)}" aria-label="${attr(t('chrome.details'))}">${oIcon('info')}</button>`;
+}
+
+function reviewSupportProfile(){
+  const profile=state.profile||{};
+  const locale=uiLocale();
+  return profile.native_language===locale
+    ?profile
+    :{...profile,native_language:locale};
+}
+
+function normalizedEvidenceItems(value){
+  if(!Array.isArray(value))return [];
+  return value
+    .filter(item=>item&&typeof item==='object'&&!Array.isArray(item))
+    .map(item=>({
+      ...item,
+      category:typeof item.category==='string'?item.category.trim():'',
+      fragment:typeof item.fragment==='string'?item.fragment.trim():'',
+      explanation_vi:typeof item.explanation_vi==='string'?item.explanation_vi.trim():'',
+      mini_rule_vi:typeof item.mini_rule_vi==='string'?item.mini_rule_vi.trim():'',
+      suggestion:typeof item.suggestion==='string'?item.suggestion.trim():'',
+    }))
+    .filter(item=>item.category&&item.fragment);
+}
+
+function normalizedSupportList(value){
+  if(!Array.isArray(value))return [];
+  return value
+    .filter(item=>typeof item==='string'&&item.trim())
+    .map(item=>item.trim());
+}
+
+function normalizedPriorityList(value){
+  if(Array.isArray(value)){
+    return value
+      .filter(item=>typeof item==='string'&&item.trim())
+      .map(item=>item.trim());
+  }
+  return typeof value==='string'&&value.trim()?[value.trim()]:[];
+}
+
+function normalizedGrammarLinks(value){
+  if(!Array.isArray(value))return [];
+  return value
+    .filter(link=>link&&typeof link==='object'&&!Array.isArray(link))
+    .map(link=>({
+      ...link,
+      issue_id:typeof link.issue_id==='string'?link.issue_id.trim():'',
+      category:typeof link.category==='string'?link.category.trim():'',
+      grammar_id:typeof link.grammar_id==='string'?link.grammar_id.trim():'',
+      title:typeof link.title==='string'?link.title.trim():'',
+      level:typeof link.level==='string'?link.level.trim():'',
+      reason:typeof link.reason==='string'?link.reason.trim():'',
+      evidence:typeof link.evidence==='string'?link.evidence.trim():'',
+    }))
+    .filter(link=>link.grammar_id);
+}
+
+function grammarTransferBlock(result={}){
+  const links=normalizedGrammarLinks(result.grammar_links);
+  if(!links.length)return '';
+  const issueCategories=new Map(
+    normalizedEvidenceItems(result.errors)
+      .filter(item=>typeof item.id==='string'&&item.id.trim())
+      .map(item=>[item.id,item.category]),
+  );
+  return `<section class="o-card o-panel review-grammar-transfer">
+    <h2 class="o-label">${esc(t('review.grammar_transfer'))}</h2>
+    <ul class="o-issues">${links.slice(0,4).map(link=>`<li class="o-issue">
+      <div class="o-issue-head"><strong>${esc(link.title||link.grammar_id||'Grammar')}</strong><span>${esc(link.level||'')}</span></div>
+      <p class="o-panel-copy">${esc(
+        (link.category||issueCategories.get(link.issue_id))
+          ?t('review.grammar_link_reason',{category:categoryLabel(link.category||issueCategories.get(link.issue_id))})
+          :link.reason||''
+      )}</p>
+      <button type="button" class="o-btn o-btn--outline o-btn--compact" data-open-grammar="${attr(link.grammar_id||'')}">${esc(t('review.open_grammar'))}</button>
+      <button type="button" class="o-btn o-btn--primary o-btn--compact" data-practice-grammar="${attr(link.grammar_id||'')}" data-practice-evidence="${attr(link.evidence||'')}">${esc(t('review.practice_grammar'))}</button>
+    </li>`).join('')}</ul>
+  </section>`;
+}
 
 function patternName(item={}){
   return categoryLabel(item.category||'expression');
@@ -38,8 +126,9 @@ function diffMarkup(before='',after='',language='en'){
 }
 
 function feedbackExplanation(item={}){
-  const locale=nativeLanguage(state.profile||{});
-  const concrete=categoryReason(item.category,state.profile||{});
+  const locale=uiLocale();
+  const profile=reviewSupportProfile();
+  const concrete=categoryReason(item.category,profile);
   if(locale==='vi' && item.explanation_vi){
     const original=String(item.explanation_vi).trim();
     if(!original)return concrete;
@@ -50,8 +139,9 @@ function feedbackExplanation(item={}){
 }
 
 function feedbackRule(item={}){
-  const locale=nativeLanguage(state.profile||{});
-  const reusable=categoryRule(item.category,state.profile||{});
+  const locale=uiLocale();
+  const profile=reviewSupportProfile();
+  const reusable=categoryRule(item.category,profile);
   if(locale==='vi' && item.mini_rule_vi){
     const original=String(item.mini_rule_vi).trim();
     if(!original)return reusable;
@@ -122,7 +212,7 @@ function evidenceItems(errors=[],{
     return `<article class="evidence-item contextual feedback-category-${esc(category)}" tabindex="0" data-feedback-key="error-${index}" data-feedback-category="${esc(category)}">
       <div class="evidence-item-head">
         <span class="pattern-label">${esc(patternName(item))}</span>
-        ${helpTip(supportCopy('current_focus_tip',state.profile||{}),t('common.current_focus'))}
+        ${helpTip(supportCopy('current_focus_tip',reviewSupportProfile()),t('common.current_focus'))}
       </div>
       ${sentence?`<div class="feedback-sentence-context">
         <span>${t('review.sentence_context')}</span>
@@ -154,14 +244,14 @@ function strengthEvidenceItems(items=[]){
     <article class="strength-evidence-item" tabindex="0" data-feedback-key="strength-${index}">
       <div class="evidence-item-head">
         <span class="strength-evidence-label">${esc(categoryLabel(item.category||'strength'))}</span>
-        ${helpTip(supportCopy('strength_tip',state.profile||{}),t('review.already_working'))}
+        ${helpTip(supportCopy('strength_tip',reviewSupportProfile()),t('review.already_working'))}
       </div>
       <blockquote>“${esc(item.fragment||'')}”</blockquote>
       ${pinyinPlaceholder(item.fragment,`strength-${index}`)}
       <p>${esc(
-        nativeLanguage(state.profile||{})==='vi' && item.explanation_vi
+        uiLocale()==='vi' && item.explanation_vi
           ?item.explanation_vi
-          :categoryReason(item.category,state.profile||{})
+          :categoryReason(item.category,reviewSupportProfile())
       )}</p>
       <div class="feedback-item-actions">
         <button class="text-link feedback-lookup" type="button" data-lookup-strength="${index}">${state.language==='zh'?`Pinyin · ${t('review.lookup')}`:t('review.lookup')}</button>
@@ -172,17 +262,54 @@ function strengthEvidenceItems(items=[]){
     </article>`).join('')}</div>`;
 }
 
-function practiceOutcomeBlock(outcome){
-  if(!outcome)return '';
-
-  const key=String(outcome.status||'');
-  const supported=new Set([
+const PRACTICE_OUTCOME_STATUSES=new Set([
     'improved','transferred','held','still_working',
     'needs_attention','not_observed','needs_more_evidence',
-  ]);
-  if(!supported.has(key))return '';
+]);
 
-  const evidence=(outcome.strength_evidence||[])[0]||(outcome.error_evidence||[])[0]||'';
+function normalizedPracticeOutcome(outcome){
+  if(!outcome||typeof outcome!=='object'||Array.isArray(outcome))return null;
+  const status=typeof outcome.status==='string'?outcome.status.trim().toLowerCase():'';
+  if(!PRACTICE_OUTCOME_STATUSES.has(status))return null;
+  const numberValue=value=>{
+    if(typeof value==='number'&&Number.isFinite(value))return value;
+    if(typeof value==='string'&&value.trim()!==''){
+      const parsed=Number(value);
+      if(Number.isFinite(parsed))return parsed;
+    }
+    return null;
+  };
+  const issueCount=numberValue(outcome.issue_count);
+  const revisionNo=numberValue(outcome.revision_no);
+  if(
+    issueCount===null||!Number.isInteger(issueCount)||issueCount<0
+    ||revisionNo===null||!Number.isInteger(revisionNo)||revisionNo<1
+  )return null;
+  let previous=null;
+  if(outcome.previous_issue_count!=null){
+    previous=numberValue(outcome.previous_issue_count);
+    if(previous===null||!Number.isInteger(previous)||previous<0)return null;
+  }
+  return {
+    ...outcome,
+    status,
+    focus_label:typeof outcome.focus_label==='string'?outcome.focus_label.trim():'',
+    grammar_id:typeof outcome.grammar_id==='string'?outcome.grammar_id.trim():'',
+    previous_issue_count:previous,
+    issue_count:issueCount,
+    revision_no:revisionNo,
+  };
+}
+
+function practiceOutcomeBlock(outcome){
+  outcome=normalizedPracticeOutcome(outcome);
+  if(!outcome)return '';
+
+  const key=outcome.status;
+
+  const evidence=normalizedSupportList(outcome.strength_evidence)[0]
+    ||normalizedSupportList(outcome.error_evidence)[0]
+    ||'';
   return `<section class="insight-block practice-check status-${esc(key)}">
     <span class="context-label">${t(`outcome.${key}.kicker`)}</span>
     <h2>${t(`outcome.${key}.title`)}</h2>
@@ -195,13 +322,76 @@ function practiceOutcomeBlock(outcome){
       <span>${esc(outcome.focus_label||t('common.current_focus'))}</span>
       <span>${t('outcome.revision')} ${esc(outcome.revision_no||1)}</span>
     </div>
+    ${outcome.grammar_id?`<div class="action-row">
+      <button type="button" class="o-btn o-btn--outline o-btn--compact" data-outcome-grammar="${attr(outcome.grammar_id)}">${esc(t('review.open_grammar'))}</button>
+      <button type="button" class="o-btn o-btn--primary o-btn--compact" data-practice-grammar="${attr(outcome.grammar_id)}" data-practice-evidence="${attr(evidence)}">${esc(t('review.practice_grammar'))}</button>
+    </div>`:''}
     ${evidence?`<blockquote>“${esc(evidence)}”</blockquote>`:''}
+  </section>`;
+}
+
+const REVIEW_CUE_STATUSES=new Set(['recurring','new','watch','still_working','needs_attention']);
+function normalizedReviewCue(value){
+  if(!value||typeof value!=='object'||Array.isArray(value)||value.available!==true)return null;
+  const state=typeof value.state==='string'?value.state.trim().toLowerCase():'';
+  const source=typeof value.source==='string'?value.source.trim().toLowerCase():'';
+  const status=typeof value.status==='string'?value.status.trim().toLowerCase():'';
+  const evidence=typeof value.evidence==='string'?value.evidence.trim().slice(0,260):'';
+  if(!['recurring','unresolved'].includes(state)||!['error_memory','practice_outcome'].includes(source)
+    ||!REVIEW_CUE_STATUSES.has(status)||!evidence)return null;
+  return {...value,state,source,status,evidence,
+    category:typeof value.category==='string'?value.category.trim():'',
+    grammar_id:typeof value.grammar_id==='string'?value.grammar_id.trim():'',
+  };
+}
+
+function reviewCueBlock(value){
+  const cue=normalizedReviewCue(value);
+  if(!cue)return '';
+  const titleKey=cue.state==='recurring'?'review.review_cue_title_recurring':'review.review_cue_title_unresolved';
+  const sourceKey=`review.review_cue_source_${cue.source}`;
+  return `<section class="o-card o-panel review-cue" data-review-cue-state="${esc(cue.state)}">
+    <span class="o-label">${esc(t('review.review_cue_kicker'))}</span>
+    <h2>${esc(t(titleKey))}</h2>
+    <p class="o-panel-copy">${esc(t('review.review_cue_body',{category:categoryLabel(cue.category||'expression'),status:statusLabel(cue.status),source:t(sourceKey)}))}</p>
+    <blockquote>“${esc(cue.evidence)}”</blockquote>
+    ${cue.grammar_id?`<div class="action-row"><button type="button" class="o-btn o-btn--primary o-btn--compact" data-practice-grammar="${attr(cue.grammar_id)}" data-practice-evidence="${attr(cue.evidence)}">${esc(t('review.practice_grammar'))}</button></div>`:''}
+  </section>`;
+}
+
+function revisionDeltaBlock(result={}){
+  const delta=result&&typeof result.delta==='object'&&!Array.isArray(result.delta)?result.delta:null;
+  const overall=typeof delta?.overall==='number'&&Number.isFinite(delta.overall)?delta.overall:null;
+  const after=typeof result.overall==='number'&&Number.isFinite(result.overall)?result.overall:null;
+  const issues=delta?.issues&&typeof delta.issues==='object'&&!Array.isArray(delta.issues)?delta.issues:null;
+  if(overall===null||after===null||!issues)return '';
+  const list=name=>Array.isArray(issues[name])
+    ?issues[name].filter(item=>item&&typeof item==='object'&&!Array.isArray(item))
+    :[];
+  const removed=list('removed');
+  const persistent=list('persistent');
+  const newly=list('new');
+  const changed=list('changed').filter(item=>
+    typeof item.before?.fragment==='string'&&item.before.fragment.trim()
+    &&typeof item.after?.fragment==='string'&&item.after.fragment.trim(),
+  );
+  const beforeCount=persistent.length+removed.length+changed.length;
+  const afterCount=persistent.length+newly.length+changed.length;
+  const before=after-overall;
+  const gain=`${overall>0?'+':''}${overall}`;
+  return `<section class="o-card o-panel review-revision-delta">
+    <h2 class="o-label">${esc(t('review.revision_delta_title'))}</h2>
+    <p class="o-panel-copy">${esc(t('review.revision_score_delta',{before:before.toFixed(1),after:after.toFixed(1),gain}))}</p>
+    <p class="o-panel-copy">${esc(t('review.revision_issue_delta',{before:beforeCount,after:afterCount}))}</p>
+    ${changed.length?`<div class="revision-delta-group"><span class="context-label">${esc(t('review.revision_changed'))}</span>${changed.slice(0,3).map(item=>diffMarkup(item.before.fragment,item.after.fragment,state.language)).join('')}</div>`:''}
+    ${removed.length?`<div class="revision-delta-group"><span class="context-label">${esc(t('review.revision_resolved'))}</span>${removed.slice(0,3).map(item=>`<blockquote>“${esc(item.fragment||item.quote||'')}”</blockquote>`).join('')}</div>`:''}
+    ${newly.length?`<div class="revision-delta-group"><span class="context-label">${esc(t('review.revision_new'))}</span>${newly.slice(0,3).map(item=>`<blockquote>“${esc(item.fragment||item.quote||'')}”</blockquote>`).join('')}</div>`:''}
   </section>`;
 }
 
 function disclosure(result,budget,learnerText=''){
   const metrics=metricsFrom(result);
-  const priorities=(result.priorities_vi||[]).slice(1);
+  const priorities=normalizedPriorityList(result.priorities_vi).slice(1);
   const errors=result.errors||[];
   const extra=errors.slice(
     budget.visibleEvidence,
@@ -408,6 +598,152 @@ function installMobileSheet(root){
   };
 }
 
+/* ---------------------------------------------------------------------------
+ * Review, rebuilt against docs/visual-references/Orena-prod/ORENA-WRITING-
+ * REIVEW-*. The reference reads the piece as one document with the findings
+ * numbered in the margin, rather than as a stack of separate feedback cards.
+ *
+ * What the reference could not know, and this build has to be honest about:
+ *
+ *  - The reference prints a score of 7.5. The evaluator returns 0-100 with one
+ *    decimal, and Home and Journey both show that scale. Showing 7.5 here would
+ *    mean two scales for the same number, so the real one is used.
+ *  - The reference labels each issue High / Medium / Low, which reads as
+ *    severity. The evaluator does not return severity; it returns `confidence`
+ *    in the evidence. The chip carries confidence and says so in its tooltip,
+ *    because relabelling it severity would assert something the data does not.
+ *  - The compact list in the reference hides the quote, the correction and the
+ *    save action that this screen already has. Each row expands instead of
+ *    dropping them.
+ * ------------------------------------------------------------------------ */
+
+/* The same six-step ladder Writing uses for the level chip. */
+const BAND_TIERS={
+  A1:'beginner',A2:'elementary',B1:'intermediate',
+  B2:'upper',C1:'advanced',C2:'proficient',
+  HSK1:'beginner',HSK2:'beginner',HSK3:'elementary',
+  HSK4:'intermediate',HSK5:'upper',HSK6:'advanced','HSK7-9':'proficient',
+};
+
+function bandLabel(level){
+  const tier=BAND_TIERS[String(level||'').toUpperCase()]||BAND_TIERS[level];
+  return tier?t(`band.${tier}`):'';
+}
+
+function scoreBand(overall){
+  const value=Number(overall);
+  if(!Number.isFinite(value))return '';
+  if(value>=90)return t('review.score_excellent');
+  if(value>=78)return t('review.score_strong');
+  if(value>=65)return t('review.score_good');
+  if(value>=50)return t('review.score_fair');
+  return t('review.score_weak');
+}
+
+/* The evaluator reports confidence in the evidence, not severity of the
+   mistake. Bands mirror the confidence filter the backend already applies. */
+function confidenceBand(item={}){
+  const value=Number(item.confidence);
+  if(!Number.isFinite(value))return 'medium';
+  if(value>=0.8)return 'high';
+  if(value>=0.6)return 'medium';
+  return 'low';
+}
+
+export function reviewSummaryText(result,focusMetric,strengthEvidence){
+  // Follow the active interface locale, which can briefly differ from the
+  // persisted profile while a learner switches language settings.
+  const locale=uiLocale();
+  const priorities=locale==='vi'?normalizedPriorityList(result.priorities_vi):[];
+  const written=priorities[0]||'';
+  if(written)return written.trim();
+  const strong=strengthEvidence[0]?categoryLabel(strengthEvidence[0].category):'';
+  const focus=focusMetric?categoryLabel(focusMetric.key||focusMetric):'';
+  if(strong&&focus)return t('review.summary_focus',{strong,focus});
+  return t('review.summary_plain');
+}
+
+export function evaluationNotice(result={}){
+  if(String(result.evaluator||'').trim().toLowerCase()!=='fallback-demo')return '';
+  return `<section class="o-card o-panel o-review-notice" data-review-evaluation-state="degraded" role="status">
+    <span class="o-label">${esc(t('review.fallback_notice'))}</span>
+  </section>`;
+}
+
+function reviewPromptBlock(result){
+  const text=String(result.prompt||state.draft.prompt||'').trim();
+  const level=result.target_cefr||state.draft.level||'';
+  return `<article class="o-card o-prompt">
+    <span class="o-prompt-tile" aria-hidden="true">${oIcon('document')}</span>
+    <div class="o-prompt-body">
+      <span class="o-prompt-kicker">${esc(t('write.prompt'))}</span>
+      <p class="o-prompt-text">${text?esc(text):esc(t('write.no_prompt'))}</p>
+      <div class="o-prompt-foot">
+        ${level?`<span class="o-chip">${esc(level)}</span>`:''}
+        ${level&&bandLabel(level)?`<span class="o-prompt-level">${esc(bandLabel(level))}</span>`:''}
+        <button id="reviewRubric" class="o-btn o-btn--outline o-btn--compact" type="button">${oIcon('rubric')}<span>${esc(t('write.view_rubric'))}</span></button>
+      </div>
+    </div>
+  </article>`;
+}
+
+/* One issue row: compact at rest, and carrying the full evidence when opened.
+   The number matches the badge on the mark inside the learner's text. */
+function issueRow(item,index,learnerText){
+  const band=confidenceBand(item);
+  const category=feedbackCategoryKey(item.category);
+  const sentence=sentenceContext(learnerText,item.fragment||'');
+  const lookupLabel=state.language==='zh'?`Pinyin · ${t('review.lookup')}`:t('review.lookup');
+  const canSave=item.suggestion&&String(item.suggestion).trim().length<=180;
+
+  return `<li class="o-issue o-disclosure feedback-category-${esc(category)}"
+      data-collapsible="always" data-open="false"
+      data-feedback-key="error-${index}" data-feedback-category="${esc(category)}">
+    <button class="o-disclosure__toggle o-issue-head" type="button">
+      <span class="o-issue-mark" data-band="${esc(band)}" aria-hidden="true">${index+1}</span>
+      <span class="o-issue-name">${esc(patternName(item))}</span>
+      <span class="o-chip o-chip--${esc(band)}">${esc(t('review.confidence_'+band))}</span>
+      ${oIcon('chevronUp')}
+    </button>
+    <div class="o-disclosure__body o-issue-body">
+      <blockquote>“${esc(item.fragment||sentence||t('review.evidence_unavailable'))}”</blockquote>
+      ${item.suggestion?diffMarkup(item.fragment||sentence,item.suggestion,state.language):''}
+      ${pinyinPlaceholder(item.suggestion||item.fragment,`error-${index}`)}
+      <p class="o-issue-why">${esc(feedbackExplanation(item))}</p>
+      <p class="o-issue-rule">${esc(feedbackRule(item))}</p>
+      <div class="o-issue-actions">
+        <button class="text-link feedback-lookup" type="button" data-lookup-feedback="${index}">${esc(lookupLabel)}</button>
+        ${canSave?`<button class="text-link feedback-save-library" type="button" data-save-library="${index}">${t('review.save_better')}</button>`:''}
+      </div>
+    </div>
+  </li>`;
+}
+
+function strengthRow(item,index){
+  const canSave=item.fragment&&String(item.fragment).trim().length<=180;
+  return `<li class="o-strength o-disclosure" data-collapsible="always" data-open="false"
+      data-feedback-key="strength-${index}">
+    <button class="o-disclosure__toggle o-strength-head" type="button">
+      <span class="o-strength-tick" aria-hidden="true">${oIcon('check')}</span>
+      <span>${esc(categoryLabel(item.category||'strength'))}</span>
+      ${oIcon('chevronUp')}
+    </button>
+    <div class="o-disclosure__body o-issue-body">
+      <blockquote>“${esc(item.fragment||'')}”</blockquote>
+      ${pinyinPlaceholder(item.fragment,`strength-${index}`)}
+      <p class="o-issue-why">${esc(
+        uiLocale()==='vi'&&item.explanation_vi
+          ?item.explanation_vi
+          :categoryReason(item.category,reviewSupportProfile())
+      )}</p>
+      <div class="o-issue-actions">
+        <button class="text-link feedback-lookup" type="button" data-lookup-strength="${index}">${state.language==='zh'?`Pinyin · ${t('review.lookup')}`:t('review.lookup')}</button>
+        ${canSave?`<button class="text-link feedback-save-library" type="button" data-save-strength="${index}">${t('review.save_useful')}</button>`:''}
+      </div>
+    </div>
+  </li>`;
+}
+
 export async function renderReview(root){
   if(typeof root._cleanupReviewSheet==='function')root._cleanupReviewSheet();
 
@@ -442,138 +778,223 @@ export async function renderReview(root){
     }
   }
 
+  let reviewCue=null;
+  if(result.id&&typeof api.reviewCue==='function'){
+    try{ reviewCue=(await api.reviewCue(result.id))||null; }catch{ reviewCue=null; }
+  }
+
   const learnerText=state.draft.text||result.text||'';
   const level=result.target_cefr||state.draft.level||'';
   const mode=guidanceMode(state.profile||{},state.language,level);
   const budget=feedbackBudget(mode);
-  const errors=result.errors||[];
-  const strengthEvidence=result.strength_evidence||[];
-  const locale=nativeLanguage(state.profile||{});
+  const errors=normalizedEvidenceItems(result.errors);
+  const strengthEvidence=normalizedEvidenceItems(result.strength_evidence);
+  const strengthsVi=normalizedSupportList(result.strengths_vi);
+  const locale=uiLocale();
   const benchmark=benchmarkLabel(result);
-  const strength=(locale==='vi'&&(result.strengths_vi||[])[0])
+  // OREN-15 removed this screen's editorial header and, with it, the insight
+  // object it came from -- but two non-editorial references to that object's
+  // weakest-metric field were left behind, so Review died with
+  // "insight is not defined" before rendering anything at all. Only the
+  // weakest metric is still needed, so compute it directly rather than
+  // restoring a header the UI-02 contract forbids.
+  const focusMetric=weakestMetric(metricsFrom(result));
+
+  const strength=(locale==='vi'&&strengthsVi[0])
     ||(strengthEvidence[0]
-      ?categoryReason(strengthEvidence[0].category,state.profile||{})
+      ?categoryReason(strengthEvidence[0].category,reviewSupportProfile())
       :'Your work contains useful evidence of what is already working.');
 
-  root.innerHTML=`<section class="page review guidance-${esc(mode)}">
-    <div class="review-hero">
-      <div>
-        ${supportNote('review_intro',state.profile||{})}
-        <div class="guidance-row">
-          <span class="guidance-badge">${esc(guidanceLabel(mode))}</span>
-          ${helpTip(supportCopy('score_tip',state.profile||{}),t('help.review'))}
-        </div>
-      </div>
-      <div class="review-benchmark">
-        <span class="section-title-row">${t('review.benchmark')} ${helpTip(supportCopy('benchmark_tip',state.profile||{}),t('help.benchmark'))}</span>
-        <strong>${result.overall!=null?esc(result.overall):'—'}</strong>
-        <span>${esc(benchmark||t('review.estimate_unavailable'))}</span>
-      </div>
-    </div>
+  const visibleErrors=errors.slice(0,budget.visibleEvidence);
+  const visibleStrengths=strengthEvidence.slice(0,3);
+  const units=countUnits(learnerText,state.language);
 
-    <div class="section-rule"></div>
+  root.innerHTML=`<div class="o-page guidance-${esc(mode)}">
+    <div class="o-review">
+      <div class="o-review-main">
+        ${reviewPromptBlock(result)}
+        ${evaluationNotice(result)}
 
-    <div class="review-grid">
-      <section class="learner-evidence review-paper-surface visual-raised-surface" aria-labelledby="workHeading">
-        <span class="context-label">${t('review.work')}</span>
-        <h2 id="workHeading" style="font-size:28px;margin:8px 0 12px">${t('review.work_title')}</h2>
-        <p class="review-density-note">${t('review.highlight_note')}</p>
-        ${supportNote('lookup_tip',state.profile||{})}
-        ${feedbackCategoryLegend(errors.slice(0,budget.visibleEvidence))}
+        <section class="o-card o-doc">
+          <div class="o-doc-tabs" role="tablist" aria-label="${attr(t('review.tab_review'))}">
+            <button class="o-doc-tab" type="button" role="tab" aria-selected="false" data-doc-tab="draft">${esc(t('review.tab_draft'))}</button>
+            <button class="o-doc-tab is-active" type="button" role="tab" aria-selected="true" data-doc-tab="review">${esc(t('review.tab_review'))}</button>
+            <span class="o-doc-count">${units} ${esc(unitLabel(state.language))}</span>
+            <button id="editDraftButton" class="o-btn o-btn--outline o-btn--compact" type="button">${oIcon('write')}<span>${esc(t('review.edit_draft'))}</span></button>
+          </div>
 
-        <div id="posLens" class="linguistic-lens-bar visual-section-surface" data-state="off" aria-labelledby="posLensTitle">
-          <span class="linguistic-lens-mark" aria-hidden="true">Aa</span>
-          <div class="linguistic-lens-copy">
+          <div id="learnerTextEvidence" class="o-doc-body learner-text contextual ${state.language==='zh'?'cjk':''}" lang="${state.language==='zh'?'zh-Hans':'en'}" data-doc-view="review">${highlightedLearnerText(learnerText,visibleErrors,visibleStrengths,[])}</div>
+          <div class="o-doc-body o-doc-plain hidden ${state.language==='zh'?'cjk':''}" data-doc-view="draft">${esc(learnerText)}</div>
+
+          ${state.language==='zh'&&state.profile?.pinyin!=='off'?`<section class="review-pinyin-summary o-review-pinyin-summary" aria-labelledby="reviewPinyinHeading">
             <div class="section-title-row">
-              <span class="context-label">${t('review.pos_kicker')}</span>
-              ${helpTip(t('review.pos_help'),t('review.pos_title'))}
+              <span id="reviewPinyinHeading" class="context-label">${esc(t('review.pinyin_title'))}</span>
+              ${reviewInfo(t('profile.pinyin_desc'))}
             </div>
-            <strong id="posLensTitle">${t('review.pos_title')}</strong>
-            <p>${t('review.pos_intro')}</p>
-            ${posLegend('pos-preview')}
-            <small id="posLensStatus" aria-live="polite">${t('review.pos_off')}</small>
+            <p>${esc(t('review.pinyin_desc'))}</p>
+            <div class="review-pinyin-overview">
+              ${visibleErrors.map((item,index)=>{
+                const term=String(item.suggestion||item.fragment||'').trim();
+                if(!term)return '';
+                return `<div class="review-pinyin-overview-row"><span>${esc(term)}</span>${pinyinPlaceholder(term,`overview-error-${index}`)}</div>`;
+              }).join('')}
+              ${!visibleErrors.length?visibleStrengths.slice(0,2).map((item,index)=>{
+                const term=String(item.fragment||'').trim();
+                if(!term)return '';
+                return `<div class="review-pinyin-overview-row"><span>${esc(term)}</span>${pinyinPlaceholder(term,`overview-strength-${index}`)}</div>`;
+              }).join(''):''}
+            </div>
+          </section>`:''}
+
+          <div id="posLens" class="o-lens" data-state="off" aria-labelledby="posLensTitle">
+            <span class="o-lens-mark" aria-hidden="true">Aa</span>
+            <span class="o-lens-copy">
+              <span class="o-label">${esc(t('review.pos_kicker'))}</span>
+              <strong id="posLensTitle">${esc(t('review.pos_title'))}</strong>
+              <small id="posLensStatus" aria-live="polite">${esc(t('review.pos_off'))}</small>
+              ${posLegend('pos-preview')}
+            </span>
+            <button id="posLensToggle" class="o-btn o-btn--outline o-btn--compact" type="button" aria-pressed="false">${esc(t('review.pos_show'))}</button>
           </div>
-          <button id="posLensToggle" class="button button-secondary linguistic-lens-toggle" type="button" aria-pressed="false">${t('review.pos_show')}</button>
-        </div>
-        <div id="posLensLegend" class="hidden">${posLegend()}</div>
+          <div id="posLensLegend" class="hidden o-lens-legend">${posLegend()}</div>
 
-        <div id="learnerTextEvidence" class="learner-text contextual ${state.language==='zh'?'cjk':''}" lang="${state.language==='zh'?'zh-Hans':'en'}">${highlightedLearnerText(learnerText,errors.slice(0,budget.visibleEvidence),strengthEvidence.slice(0,3),[])}</div>
-
-        ${state.language==='zh'&&state.profile?.pinyin!=='off'?`<div class="review-pinyin-summary">
-          <div class="section-title-row">
-            <span class="context-label">${t('review.pinyin_title')}</span>
-            ${helpTip(t('profile.pinyin_desc'),t('profile.pinyin'))}
+          <div class="o-doc-foot">
+            <button id="downloadFeedback" class="o-btn o-btn--outline" type="button">${oIcon('cloud')}<span>${esc(t('review.download_feedback'))}</span></button>
+            <button id="reviseButton" class="o-btn o-btn--primary" type="button"><span>${esc(t('review.revise_title'))}</span>${oIcon('arrowRight')}</button>
           </div>
-          <p>${t('review.pinyin_desc')}</p>
-          <div class="review-pinyin-overview">
-            ${errors.slice(0,budget.visibleEvidence).map((item,index)=>{
-              const term=String(item.suggestion||item.fragment||'').trim();
-              if(!term)return '';
-              return `<div class="review-pinyin-overview-row"><span>${esc(term)}</span>${pinyinPlaceholder(term,`overview-error-${index}`)}</div>`;
-            }).join('')}
-            ${!errors.length?strengthEvidence.slice(0,2).map((item,index)=>{
-              const term=String(item.fragment||'').trim();
-              if(!term)return '';
-              return `<div class="review-pinyin-overview-row"><span>${esc(term)}</span>${pinyinPlaceholder(term,`overview-strength-${index}`)}</div>`;
-            }).join(''):''}
-          </div>
-        </div>`:''}
+        </section>
+      </div>
 
-        <button id="mobileFeedbackTrigger" class="mobile-feedback-trigger" type="button" aria-controls="reviewSide" aria-expanded="false">
-          <span>
-            <strong>${t('review.mobile_focus')}</strong>
-            <span>${esc(insight.weak?.label||t('review.selected_feedback'))} · ${t('review.evidence_count',{count:Math.min(errors.length,budget.visibleEvidence)})}</span>
-          </span>
-          <span class="trigger-arrow" aria-hidden="true">↑</span>
-        </button>
-      </section>
-
-      <div id="reviewSheetBackdrop" class="review-sheet-backdrop" aria-hidden="true"></div>
-
-      <aside id="reviewSide" class="review-side" aria-label="${esc(t('review.feedback_aria'))}">
-        <div class="mobile-sheet-close">
-          <button id="mobileSheetClose" type="button" aria-label="${esc(t('review.close_feedback'))}">×</button>
-        </div>
-
-        <section class="insight-block functional-surface focus-surface review-focus-hero visual-hero-surface">
-          <div class="section-title-row"><span class="context-label">${t('review.start_here')}</span>${helpTip(supportCopy("current_focus_tip",state.profile||{}),t('help.focus'))}</div>
-          <h2>${esc(insight.weak?.label||t('common.current_focus'))}</h2>
-          <p class="review-density-note">${t('review.showing_count',{count:Math.min(errors.length,budget.visibleEvidence)})}</p>
-          ${evidenceItems(errors,{
-            count:budget.visibleEvidence,
-            showRule:budget.showRule,
-            learnerText,
-          })}
+      <aside class="o-review-aside" aria-label="${attr(t('review.summary_title'))}">
+        <section class="o-card o-panel">
+          <h2 class="o-label">${esc(t('review.summary_title'))}${reviewInfo(t('review.summary_help'))}</h2>
+          <p class="o-score">${esc(Number.isFinite(Number(result.overall))?String(result.overall):'—')}</p>
+          <p class="o-score-band">${esc(scoreBand(result.overall))}${benchmark?` · ${esc(benchmark)}`:''}</p>
+          <p class="o-panel-copy">${esc(reviewSummaryText(result,focusMetric,strengthEvidence))}</p>
+          <button id="fullRubricButton" class="o-btn o-btn--outline o-btn--compact" type="button">${esc(t('review.view_full_rubric'))}</button>
         </section>
 
-        <section class="insight-block functional-surface strength-surface visual-section-surface">
-          <div class="section-title-row"><span class="context-label">${t('review.already_working')}</span>${helpTip(supportCopy('strength_tip',state.profile||{}),t('help.strength'))}</div>
-          <div class="strength-line">
-            <span class="semantic-dot" aria-hidden="true"></span>
-            <p>${esc(strength)}</p>
-          </div>
-          ${strengthEvidence.length
-            ?strengthEvidenceItems(strengthEvidence)
-            :`<p class="review-density-note" style="margin-top:12px">${t('review.no_strength_fragment')}</p>`}
+        <section class="o-card o-panel">
+          <h2 class="o-label">${esc(t('review.priority_issues'))}${reviewInfo(t('review.priority_help'))}</h2>
+          ${visibleErrors.length
+            ?`<ol class="o-issues">${visibleErrors.map((item,index)=>issueRow(item,index,learnerText)).join('')}</ol>`
+            :`<p class="o-panel-copy">${esc(t('review.no_issues'))}</p>`}
         </section>
+
+        ${visibleStrengths.length?`<section class="o-card o-panel">
+          <h2 class="o-label">${esc(t('review.strengths_title'))}</h2>
+          <ul class="o-strengths">${visibleStrengths.map((item,index)=>strengthRow(item,index)).join('')}</ul>
+        </section>`:''}
+
+        ${revisionDeltaBlock(result)}
 
         ${practiceOutcomeBlock(result.practice_outcome)}
 
-        <section class="insight-block functional-surface next-action-surface visual-raised-surface">
-          <div class="section-title-row"><span class="context-label">${t('review.next_action')}</span>${helpTip(supportCopy('next_action_tip',state.profile||{}),t('help.next_action'))}</div>
-          <h2>${t('review.revise_title')}</h2>
-          <p>${t('review.revise_body')}</p>
-          ${supportNote('next_action_tip',state.profile||{})}
-          <div class="action-row" style="margin-top:18px">
-            <button id="reviseButton" class="button button-primary">${t('review.revise_title')}</button>
-            <button id="polishButton" class="button button-tertiary">${t('review.strong_compare')}</button>
-          </div>
-        </section>
+        ${reviewCueBlock(reviewCue)}
 
-        ${disclosure(result,budget,learnerText)}
+        ${grammarTransferBlock(result)}
+
+        <section class="o-card o-panel">
+          <h2 class="o-label">${esc(t('review.whats_next'))}</h2>
+          <p class="o-panel-copy">${esc(t('review.whats_next_body'))}</p>
+          <button id="startRevision" class="o-btn o-btn--outline" type="button">${esc(t('review.start_revision'))}</button>
+          <button id="polishButton" class="o-btn o-btn--outline o-btn--compact" type="button">${esc(t('review.strong_compare'))}</button>
+        </section>
       </aside>
     </div>
-  </section>`;
+  </div>`;
+
+  installDisclosures(root);
+  root.querySelectorAll('[data-open-grammar]').forEach(button=>button.addEventListener('click',()=>{
+    const lessonId=button.dataset.openGrammar;
+    if(!lessonId)return;
+    try{ localStorage.setItem('becoming.grammar-focus',lessonId); }catch{}
+    go('grammar');
+  }));
+  root.querySelectorAll('[data-practice-grammar]').forEach(button=>button.addEventListener('click',async()=>{
+    const id=button.dataset.practiceGrammar;
+    if(!id)return;
+    try{
+      const task=await api.grammarPractice(id,button.dataset.practiceEvidence||'');
+      if(!task||typeof task!=='object'||typeof task.prompt!=='string'||!task.prompt.trim()){
+        throw new Error(t('review.practice_failed'));
+      }
+      saveDraft({
+        prompt:task.prompt||'',
+        text:'',
+        html:'',
+        savedAt:null,
+        mode:task.practice_context?.task_type||state.draft.mode,
+        topic:task.practice_context?.topic||state.draft.topic,
+        level:task.target_level||task.practice_context?.target_level||state.draft.level,
+        practiceContext:task.practice_context||null,
+        generatedTask:null,
+        parentEssayId:Number.isInteger(result.id)&&result.id>0?result.id:null,
+      });
+      go('write');
+    }catch(error){ toast(error.message||String(error)); }
+  }));
+  root.querySelectorAll('[data-outcome-grammar]').forEach(button=>button.addEventListener('click',()=>{
+    const id=button.dataset.outcomeGrammar;
+    if(!id)return;
+    try{ localStorage.setItem('becoming.grammar-focus',id); }catch{}
+    go('grammar');
+  }));
+
+  /* Draft / Review tabs. Both bodies stay in the DOM so switching does not
+     re-run the annotation pass or lose the lens state. */
+  root.querySelectorAll('[data-doc-tab]').forEach(tab=>{
+    tab.addEventListener('click',()=>{
+      const view=tab.dataset.docTab;
+      root.querySelectorAll('[data-doc-tab]').forEach(other=>{
+        const on=other===tab;
+        other.classList.toggle('is-active',on);
+        other.setAttribute('aria-selected',on?'true':'false');
+      });
+      root.querySelectorAll('[data-doc-view]').forEach(body=>{
+        body.classList.toggle('hidden',body.dataset.docView!==view);
+      });
+    });
+  });
+
+  root.querySelector('#editDraftButton').addEventListener('click',()=>{
+    saveDraft({text:learnerText,parentEssayId:result.id||null});
+    go('write');
+  });
+
+  const rubricDialog=()=>showDialog(t('write.rubric_title'),
+    `<p>${esc(t('write.rubric_intro'))}</p>${metricRows(metricsFrom(result))}`);
+  root.querySelector('#reviewRubric').addEventListener('click',rubricDialog);
+  root.querySelector('#fullRubricButton').addEventListener('click',rubricDialog);
+
+  /* The feedback the learner can keep. Built from the same evidence shown on
+     screen, so the file and the page never disagree. */
+  root.querySelector('#downloadFeedback').addEventListener('click',()=>{
+    const lines=[
+      `${t('review.summary_title')}: ${result.overall} ${scoreBand(result.overall)}`,
+      '',
+      result.prompt?`${t('write.prompt')}: ${result.prompt}`:'',
+      '',
+      learnerText,
+      '',
+      `${t('review.priority_issues')}:`,
+      ...visibleErrors.map((item,index)=>
+        `  ${index+1}. ${patternName(item)} [${t('review.confidence_'+confidenceBand(item))}]\n     “${item.fragment||''}”\n     ${item.suggestion?'→ '+item.suggestion:''}\n     ${feedbackExplanation(item)}`),
+      '',
+      `${t('review.strengths_title')}:`,
+      ...visibleStrengths.map(item=>`  · ${categoryLabel(item.category||'strength')} — “${item.fragment||''}”`),
+    ].filter(line=>line!==undefined);
+
+    const blob=new Blob([lines.join('\n')],{type:'text/plain;charset=utf-8'});
+    const url=URL.createObjectURL(blob);
+    const link=document.createElement('a');
+    link.href=url;
+    link.download=`${t('review.download_name')}-${result.id||'draft'}.txt`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  });
 
   bindEvidenceLinks(root);
   installMobileSheet(root);
@@ -595,6 +1016,7 @@ export async function renderReview(root){
       await openDictionary(term,{
         title:state.language==='zh'?`Pinyin · ${t('dictionary.title')}`:t('dictionary.title'),
         language:state.language,
+        context:learnerText,
       });
     });
   });
@@ -606,6 +1028,7 @@ export async function renderReview(root){
       await openDictionary(item?.fragment||'',{
         title:state.language==='zh'?`Pinyin · ${t('dictionary.title')}`:t('dictionary.title'),
         language:state.language,
+        context:learnerText,
       });
     });
   });
@@ -666,7 +1089,7 @@ export async function renderReview(root){
     });
   });
 
-  root.querySelector('#reviseButton').addEventListener('click',()=>{
+  const beginRevision=()=>{
     saveDraft({
       text:learnerText,
       prompt:result.prompt||state.draft.prompt||'',
@@ -675,7 +1098,9 @@ export async function renderReview(root){
       practiceContext:result.practice_context||state.draft.practiceContext||state.draft.generatedTask?.personalization||null,
     });
     go('write');
-  });
+  };
+  root.querySelector('#reviseButton').addEventListener('click',beginRevision);
+  root.querySelector('#startRevision').addEventListener('click',beginRevision);
 
   root.querySelector('#polishButton').addEventListener('click',async()=>{
     const button=root.querySelector('#polishButton');
@@ -690,7 +1115,7 @@ export async function renderReview(root){
           <div class="strong-version-intro">
             <div class="section-title-row">
               <span class="context-label">${t('review.strong_kicker')}</span>
-              ${helpTip(supportCopy('compare_tip',state.profile||{}),t('review.strong_compare'))}
+              ${helpTip(supportCopy('compare_tip',reviewSupportProfile()),t('review.strong_compare'))}
             </div>
             <p>${t('review.strong_body')}</p>
           </div>

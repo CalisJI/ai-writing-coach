@@ -5,6 +5,8 @@ from __future__ import annotations
 from typing import Any
 
 from fastapi import APIRouter, HTTPException
+
+from writing_coach.core.errors import orena_http_error
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from writing_coach.core.request_context import current_language_code, current_user_key
@@ -64,6 +66,7 @@ class MediaImportStatusIn(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     job_id: str = Field(min_length=20, max_length=200)
+    compact: bool = False
 
 
 class MediaTranslationAssetIn(BaseModel):
@@ -180,6 +183,32 @@ def _serialize_processing_result(
     return response
 
 
+def _serialize_compact_status(result: MediaFallbackResult) -> dict[str, Any]:
+    """Serialize only bounded state needed to resume an opaque import job."""
+    asset = result.acquisition.media_object.asset
+    asset_state = (
+        "processing"
+        if result.status == "processing"
+        else "failed"
+        if result.status == "failed"
+        else "ready"
+    )
+    return {
+        "status": result.status,
+        "asset": {
+            "asset_id": asset.asset_id,
+            "processing_state": asset_state,
+        },
+        "import_job": {
+            "resume_handle": result.job_id,
+            "state": result.provider_state or result.status,
+            "source": result.source,
+            "failure_kind": result.failure_kind,
+            "resumable": result.status == "processing" and bool(result.job_id),
+        },
+    }
+
+
 def _ready_response(
     acquisition: MediaAcquisition,
     *,
@@ -224,9 +253,10 @@ def import_media(payload: MediaImportIn) -> dict[str, Any]:
             learning_language,
         )
     except MediaImportError as exc:
-        raise HTTPException(
+        raise orena_http_error(
             _STATUS_BY_CATEGORY[exc.category],
-            {"category": exc.category.value, "message": exc.learner_message},
+            exc.category.value,
+            exc.learner_message,
         ) from exc
 
     timing: MediaTimingEnrichment | None = None
@@ -279,12 +309,15 @@ def import_media(payload: MediaImportIn) -> dict[str, Any]:
 def import_media_status(payload: MediaImportStatusIn) -> dict[str, Any]:
     service = _media_fallback_service
     if service is None:
-        raise HTTPException(
+        raise orena_http_error(
             404,
-            {
-                "category": "media_job_unavailable",
-                "message": "This transcript job is no longer available.",
-            },
+            "media_job_unavailable",
+            "This transcript job is no longer available.",
+            context=(
+                {"status": "unavailable", "resumable": False}
+                if payload.compact
+                else None
+            ),
         )
     try:
         result = service.poll(
@@ -293,13 +326,19 @@ def import_media_status(payload: MediaImportStatusIn) -> dict[str, Any]:
             learning_language=current_language_code(),
         )
     except KeyError as exc:
-        raise HTTPException(
+        raise orena_http_error(
             404,
-            {
-                "category": "media_job_unavailable",
-                "message": "This transcript job is unavailable or expired.",
-            },
+            "media_job_unavailable",
+            "This transcript job is unavailable or expired.",
+            context=(
+                {"status": "unavailable", "resumable": False}
+                if payload.compact
+                else None
+            ),
         ) from exc
+
+    if payload.compact:
+        return _serialize_compact_status(result)
 
     if result.status == "ready":
         if not result.target_language:
@@ -344,12 +383,10 @@ def _media_object_for_translation(payload: MediaTranslationIn) -> MediaLearningO
         )
         return MediaLearningObject(asset=asset, transcript=transcript)
     except (MediaLearningContractError, ValueError) as exc:
-        raise HTTPException(
+        raise orena_http_error(
             422,
-            {
-                "category": "invalid_media_transcript",
-                "message": "The prepared media transcript is invalid.",
-            },
+            "invalid_media_transcript",
+            "The prepared media transcript is invalid.",
         ) from exc
 
 

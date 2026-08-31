@@ -45,6 +45,7 @@ def main() -> None:
         root / "writing_coach" / "becoming_outcomes.py",
         root / "writing_coach" / "becoming_library.py",
         root / "writing_coach" / "becoming_reading.py",
+        root / "writing_coach" / "becoming_reading_selftest.py",
         root / "writing_coach" / "becoming_linguistics.py",
         root / "writing_coach" / "core" / "skill_registry.py",
         root / "templates" / "becoming" / "index.html",
@@ -63,21 +64,44 @@ def main() -> None:
         root / "static" / "becoming" / "domain" / "screen-contract.js",
         root / "static" / "becoming" / "domain" / "skill-release.js",
         root / "static" / "becoming" / "domain" / "shadowing-practice.js",
+        root / "static" / "becoming" / "domain" / "media-lesson-history.js",
+        root / "static" / "becoming" / "domain" / "listening-habit.js",
         root / "static" / "becoming" / "domain" / "shared-media-session.js",
         root / "static" / "becoming" / "components" / "audio-recorder.js",
         root / "static" / "becoming" / "screens" / "listening.js",
+        root / "static" / "becoming" / "domain" / "listening-practice.js",
+        root / "writing_coach" / "listening_api.py",
+        root / "tests" / "test_listening_progress.py",
+        root / "writing_coach" / "persistence" / "models.py",
+        root / "migrations" / "versions" / "20260828_0003_listening_progress.py",
+        root / "migrations" / "versions" / "20260828_0004_shadowing_progress.py",
         root / "static" / "becoming" / "screens" / "speaking.js",
         root / "static" / "becoming" / "speaking.css",
+        root / "static" / "becoming" / "orena" / "speaking.css",
         root / "writing_coach" / "speech_api.py",
         root / "writing_coach" / "speech_asr.py",
         root / "writing_coach" / "speech_pronunciation.py",
+        root / "writing_coach" / "speaking_evaluator.py",
         root / "tests" / "test_speech_pronunciation.py",
+        root / "tests" / "test_speaking_evaluator.py",
         root / "scripts" / "test_m3_pronunciation_contract.mjs",
         root / "scripts" / "test_shadowing_practice.mjs",
+        root / "scripts" / "test_r9_shadowing_speaking_flow.mjs",
+        root / "scripts" / "test_r9_shadowing_feedback.mjs",
+        root / "scripts" / "test_r11_listening_progress.mjs",
+        root / "scripts" / "test_r12_listening_return.mjs",
+        root / "scripts" / "test_r12_listening_habit_home.mjs",
+        root / "scripts" / "test_r12_next_practice_plan.mjs",
+        root / "scripts" / "test_r10_reading_flow.mjs",
         root / "scripts" / "test_speaking_core.mjs",
         root / "scripts" / "test_speaking_groq_flow.mjs",
+        root / "scripts" / "test_speaking_ui.mjs",
         root / "scripts" / "test_speaking_rnnoise_contract.mjs",
         root / "scripts" / "test_speaking_voice_enhancement_contract.mjs",
+        root / "scripts" / "r8_release_matrix.mjs",
+        root / "docs" / "project" / "R8_PRE_PUBLIC_MATRIX.json",
+        root / "scripts" / "r11_release_matrix.mjs",
+        root / "docs" / "project" / "R11_PRE_PUBLIC_MATRIX.json",
         root / "scripts" / "test_speech_api_bounds.py",
         root / "static" / "becoming" / "domain" / "rank.js",
         root / "static" / "becoming" / "domain" / "feedback-map.js",
@@ -105,6 +129,14 @@ def main() -> None:
         root / "static" / "becoming" / "screens" / "profile.js",
         root / "static" / "becoming" / "screens" / "onboarding.js",
         root / "BECOMING_FRONTEND_VERSION",
+        root / "static" / "becoming" / "tempo.css",
+        root / "static" / "becoming" / "tempo.js",
+        root / "static" / "becoming" / "orena" / "tokens.css",
+        root / "static" / "becoming" / "orena" / "shell.css",
+        root / "static" / "becoming" / "orena" / "shell.js",
+        root / "static" / "becoming" / "orena" / "home.css",
+        root / "static" / "becoming" / "orena" / "writing.css",
+        root / "static" / "becoming" / "orena" / "adopt.css",
         root / "scripts" / "validate_browser_esm_graph.mjs",
         root / "docs" / "BECOMING_UIUX_SKILL.md",
         root / "docs" / "BECOMING_DESIGN_TOKENS.json",
@@ -135,6 +167,11 @@ def main() -> None:
     theme_js = read("static/becoming/theme.js")
     theme_css = read("static/becoming/theme.css")
     visual_css = read("static/becoming/visual-alignment.css")
+    orena_tokens = read("static/becoming/orena/tokens.css")
+    orena_shell_css = read("static/becoming/orena/shell.css")
+    orena_home_css = read("static/becoming/orena/home.css")
+    orena_writing_css = read("static/becoming/orena/writing.css")
+    orena_profile_css = read("static/becoming/orena/profile.css")
     router = read("static/becoming/router.js")
     primitives = read("static/becoming/components/primitives.js")
     dictionary = read("static/becoming/components/dictionary.js")
@@ -146,11 +183,18 @@ def main() -> None:
     shared_media_session = read("static/becoming/domain/shared-media-session.js")
     audio_recorder = read("static/becoming/components/audio-recorder.js")
     listening_screen = read("static/becoming/screens/listening.js")
+    media_history = read("static/becoming/domain/media-lesson-history.js")
     speaking_screen = read("static/becoming/screens/speaking.js")
     speaking_css = read("static/becoming/speaking.css")
+    orena_speaking_css = read("static/becoming/orena/speaking.css")
     speech_api = read("writing_coach/speech_api.py")
     speech_asr = read("writing_coach/speech_asr.py")
     speech_pronunciation = read("writing_coach/speech_pronunciation.py")
+    speaking_evaluator = read("writing_coach/speaking_evaluator.py")
+    r8_matrix = read("scripts/r8_release_matrix.mjs")
+    r8_matrix_report = read("docs/project/R8_PRE_PUBLIC_MATRIX.json")
+    r11_matrix = read("scripts/r11_release_matrix.mjs")
+    r11_matrix_report = read("docs/project/R11_PRE_PUBLIC_MATRIX.json")
     skill_registry = read("writing_coach/core/skill_registry.py")
     platform_api = read("writing_coach/core/platform_api.py")
     rank_domain = read("static/becoming/domain/rank.js")
@@ -160,7 +204,7 @@ def main() -> None:
     phase7_css = read("static/becoming/phase7.css")
     screens = {
         name: read(f"static/becoming/screens/{name}.js")
-        for name in ["home", "write", "review", "reading", "library", "journey", "profile", "onboarding"]
+        for name in ["home", "write", "review", "reading", "listening", "library", "journey", "profile", "onboarding"]
     }
     memory_service = root / "writing_coach" / "becoming_memory.py"
     practice_service = root / "writing_coach" / "becoming_practice.py"
@@ -251,7 +295,7 @@ def main() -> None:
         ("configure_becoming_outcomes(db)", "configure_becoming_outcomes(_learning_repository.connect)", "configure_becoming_outcomes(_specialized_learning_repository)"),
         ("configure_becoming_library(db)", "configure_becoming_library(_learning_repository.connect)", "configure_becoming_library(_specialized_learning_repository)"),
         ("configure_becoming_reading(db, generate_structured)", "configure_becoming_reading(_learning_repository.connect, generate_structured)", "configure_becoming_reading(_specialized_learning_repository, generate_structured)"),
-        ("configure_becoming_linguistics(db, generate_structured)", "configure_becoming_linguistics(_learning_repository.connect, generate_structured)", "configure_becoming_linguistics(_specialized_learning_repository, generate_structured)"),
+        ("configure_becoming_linguistics(db, generate_structured)", "configure_becoming_linguistics(_learning_repository.connect, generate_structured)", "configure_becoming_linguistics(_specialized_learning_repository)"),
     ]
     for old_needle, core_needle, specialized_needle in adapter_contracts:
         if old_needle not in app and core_needle not in app and specialized_needle not in app:
@@ -287,7 +331,8 @@ def main() -> None:
     ], "API client")
     if "api.practiceRecommendation()" not in screens["home"] or "api.nextPractice(" not in screens["home"]:
         errors.append("Home does not use the server personalized-practice engine")
-    if "practice_context:state.draft.practiceContext" not in screens["write"]:
+    compact_write = re.sub(r"\s+", "", screens["write"])
+    if "practice_context:state.draft.practiceContext" not in compact_write:
         errors.append("Writing does not submit persisted practice context")
     if "api.practiceOutcome(result.id)" not in screens["write"]:
         errors.append("Writing does not resolve immediate practice outcome")
@@ -304,6 +349,10 @@ def main() -> None:
         "def create_reading_session", "def submit_reading_answers", "def _public_question",
         "comprehension_check_only", "def _term_occurs",
     ], "Reading service")
+    require_contains(errors, screens["reading"], [
+        "data-reading-evidence", "data-find-evidence", "data-reading-save-all",
+        "data-reading-open", "data-reading-library",
+    ], "Reading mounted learning-loop contract")
     require_contains(errors, specialized_repository_text, [
         "CREATE TABLE IF NOT EXISTS vocabulary_learning",
         "CREATE TABLE IF NOT EXISTS reading_sessions",
@@ -360,6 +409,39 @@ def main() -> None:
         errors.append("Reading explanation_vi can leak into non-Vietnamese interface locale")
     if "uiLocale()==='vi'?item.translation_vi" not in screens["library"]:
         errors.append("Library translation_vi can leak into non-Vietnamese interface locale")
+    require_contains(errors, screens["listening"], [
+        "speakingAttempts(1", "data-speaking-feedback-state", "shadowingFeedback",
+    ], "Shadowing Speaking-feedback continuity")
+    require_contains(errors, screens["listening"], [
+        "loadListeningProgress", "saveListeningProgress", "restorePracticeProgress",
+        "data-listening-persistence-state", "progressFailed",
+    ], "Active Listening durable progress")
+    require_contains(errors, screens["listening"], [
+        "loadShadowingProgress", "saveShadowingProgress", "restoreShadowingProgress",
+        "data-shadowing-persistence-state", "markShadowingProgressUnavailable",
+    ], "Shadowing durable progress")
+    require_contains(errors, screens["home"], [
+        "resumableLesson", "requestLessonAutostart", "data-home-resume-listening",
+        "listening_resume_title", "listening_resume_action",
+    ], "Home Listening return-to-practice handoff")
+    require_contains(errors, media_history, [
+        "selected_segment_id", "takeLessonAutostartContext", "RESUME_WINDOW_MS",
+    ], "Listening lesson resume context")
+    listening_habit = read("static/becoming/domain/listening-habit.js")
+    require_contains(errors, listening_habit, [
+        "LISTEN_TIME_KEY", "LISTEN_GOAL_KEY", "listeningHabitSnapshot",
+        "addListenedSeconds", "saveListeningGoal",
+    ], "device-local Listening habit state")
+    require_contains(errors, screens["home"], [
+        "listeningHabitSnapshot", "data-home-listening-habit",
+        "data-home-listening-goal", "listening_habit_unavailable",
+    ], "Home Listening habit snapshot")
+    require_contains(errors, screens["home"], [
+        "nextPracticePlan", "data-home-next-plan", "data-home-next-plan-action",
+        "readingReturnEvidence", "speakingReturnEvidence", "intent==='baseline'",
+        "next_plan_baseline_title", "startRecommendedPractice", "hasLocalWritingDraft",
+        "writing-draft",
+    ], "Home cross-skill next-practice plan")
 
     # Design philosophy contract: every current/future route requires explicit learner-goal metadata.
     route_match = re.search(r"VALID\s*=\s*new Set\(\[([^\]]+)\]\)", router, re.S)
@@ -541,7 +623,7 @@ def main() -> None:
     # non-persistent; pronunciation scores are per-take evidence, not proficiency.
     require_contains(errors, shared_media_session, [
         "setSharedMediaSession", "getSharedMediaSession",
-        "selectSharedMediaSegment", "learning_language",
+        "selectSharedMediaSegment", "setSharedMediaMode", "learning_language",
     ], "shared media session bridge")
     for forbidden in ["fetch(", "localStorage", "sessionStorage"]:
         if forbidden in shared_media_session:
@@ -562,6 +644,10 @@ def main() -> None:
         "data-speaking-asr-result", "data-speaking-content-match",
         "data-speaking-pronunciation", "data-score-kind", "synthetic_demo",
     ], "internal Speaking Core")
+    require_contains(errors, listening_screen, [
+        "openSpeaking()", "controller.openSpeaking()", "setSharedMediaMode",
+        "controller.restore(shared.payload,shared.selected_segment_id,shared.mode)",
+    ], "R9 Shadowing-to-Speaking handoff")
     require_contains(errors, api, [
         "transcribeSpeech:", "/api/speech/transcribe", "new FormData()",
         "assessPronunciation:", "/api/speech/pronunciation",
@@ -584,6 +670,32 @@ def main() -> None:
         "Pronunciation-Assessment", "pcm_s16le", "zh-CN", "en-US",
         "DemoPronunciationProvider", "synthetic_demo", "PRONUNCIATION_PROVIDER",
     ], "Azure pronunciation assessment adapter")
+    require_contains(errors, speaking_evaluator, [
+        "build_speaking_evaluation", "LANGUAGE_LOCALES", "transcription_confidence",
+        "deterministic_reference_alignment", '"proficiency": None',
+        '"synthetic_demo"',
+    ], "R7 per-take Speaking evaluation contract")
+    require_contains(errors, r8_matrix, [
+        "R8-pre-public-en-zh", "test_writing_evaluation_flow.mjs",
+        "test_speaking_ui.mjs", "provider_credentials", "public_promotion",
+        "writing_public:false", "speaking_public:false",
+    ], "R8 EN/ZH pre-public release matrix")
+    require_contains(errors, r8_matrix_report, [
+        '"matrix": "R8-pre-public-en-zh"', '"writing_public": false',
+        '"speaking_public": false', '"capability_activation": false',
+        '"provider_credentials"', '"postgres_migration"', '"public_promotion"',
+    ], "R8 matrix evidence report")
+    require_contains(errors, r11_matrix, [
+        "R11-pre-public-en-zh-listening", "test_r11_listening_progress.mjs",
+        "test_r9_shadowing_feedback.mjs", "source-boundary",
+        "postgres_migration", "public_promotion", "listening_public:false",
+    ], "R11 EN/ZH pre-public Listening release matrix")
+    require_contains(errors, r11_matrix_report, [
+        '"matrix": "R11-pre-public-en-zh-listening"',
+        '"scope": "behavioral"', '"scope": "source-boundary"',
+        '"listening_public": false', '"capability_activation": false',
+        '"postgres_migration"', '"public_promotion"',
+    ], "R11 matrix evidence report")
     for forbidden in [
         "fetch(", "FormData", "XMLHttpRequest",
         "SpeechRecognition", "pronunciation_evaluator",
@@ -603,6 +715,10 @@ def main() -> None:
     require_contains(errors, screen_contract, ["speak:{", "Record my voice"], "Speaking screen contract")
     if ".speaking-workspace" not in speaking_css or ".speaking-recorder" not in speaking_css:
         errors.append("Speaking Core product-visible layout styles missing")
+    require_contains(errors, orena_speaking_css, [
+        ".o-pronunciation-evidence", ".o-pronunciation-word-head",
+        ".o-pronunciation-phoneme",
+    ], "Orena Speaking pronunciation evidence styles")
 
     # Orena Phase 2 Grammar Learning Model foundation.
     grammar_learning_component = read("static/becoming/components/grammar-learning.js")
@@ -940,11 +1056,26 @@ def main() -> None:
     if template.find('/becoming-assets/visual-alignment.css') < template.find('/becoming-assets/phase8.css'):
         errors.append("visual-alignment.css must load after phase CSS so shared calibration wins without page-specific patches")
 
-    # Canonical product shell: same route IA, stronger composed desktop navigation.
+    # Canonical product shell: same route IA, Orena desktop rail and mobile drawer.
     require_contains(errors, template, [
-        'class="app-sidebar"', 'class="app-workspace"', 'class="nav-icon"',
+        'id="app" class="o-shell"', 'class="o-sidebar"', 'class="o-workspace"',
+        'class="o-nav-icon"', 'data-sidebar="expanded"', 'data-drawer="closed"',
+        'id="drawerToggle"', 'aria-controls="primaryNav"',
         'data-i18n-label', 'data-learning-language-label',
     ], "canonical product shell")
+    require_contains(errors, orena_tokens, [
+        '--o-sidebar-w:', '--o-header-h:', '--o-shadow-card:', '--o-motion:',
+    ], "Orena visual tokens")
+    require_contains(errors, orena_shell_css, [
+        '.o-shell{', '.o-sidebar{', '.o-workspace{', '.o-nav{',
+        '@media (max-width:1023px)', '.o-shell[data-drawer="open"]',
+    ], "Orena responsive shell")
+    require_contains(errors, orena_home_css, [
+        '.o-hero{', '.o-home-split{', '.o-journey{', '.o-stages{',
+    ], "Orena Home composition")
+    require_contains(errors, orena_writing_css, [
+        '.o-write{', '.o-editor{', '.o-review{', '.o-doc{',
+    ], "Orena Writing and Review composition")
     require_contains(errors, visual_css, [
         '--shell-sidebar-width:', '.app-sidebar{', '.app-workspace{',
         '.home-editorial-hero{', '.home-folio{', '.folio-spread{',
@@ -974,12 +1105,12 @@ def main() -> None:
         errors.append("canonical dark orange signal is not preserved")
 
     visual_screen_contracts = {
-        "home": ["home-folio", "folio-spread", "home-journey-panel", "home-stage-track"],
-        "write": ["writing-hero-surface", "visual-hero-surface"],
-        "review": ["review-focus-hero", "visual-hero-surface", "review-paper-surface"],
-        "reading": ["reading-hero-surface", "visual-hero-surface"],
-        "library": ["library-recall-hero", "visual-hero-surface"],
-        "journey": ["progress-hero", "visual-hero-surface", "progress-support-list"],
+        "home": ["o-hero", "o-journey", "o-stages"],
+        "write": ["o-write", "o-editor", "o-write-aside", "o-write-sticky"],
+        "review": ["o-review", "o-doc", "o-review-aside"],
+        "reading": ["o-reader", "o-reading-grid", "data-reading-rail"],
+        "library": ["o-recall-head", "o-lib-body", "o-lib-rail"],
+        "journey": ["o-journey-focus", "o-journey-body-grid", "o-target"],
         "profile": ["visual-identity-column"],
         "onboarding": ["visual-onboarding-stage"],
     }
@@ -999,8 +1130,8 @@ def main() -> None:
         errors.append("dictionary/Pinyin lookup does not show immediate loading state before existing API call")
     if ".busy-spinner" not in app_css or "@keyframes becoming-spin" not in app_css:
         errors.append("shared visible busy indicator styles missing")
-    if "header-actions')?.classList.add('is-processing')" not in app_js:
-        errors.append("learning-language switch lacks visible processing state")
+    if "o-topbar-actions')?.classList.add('is-processing')" not in app_js:
+        errors.append("interface-language switch lacks visible processing state")
 
     # Chinese Review Pinyin: visible by default (auto/on), hidden only by explicit Profile setting.
     review = screens["review"]
@@ -1024,10 +1155,12 @@ def main() -> None:
         if f'html[data-palette="{palette}"]' not in theme_css:
             errors.append(f"theme CSS palette missing: {palette}")
     require_contains(errors, profile, [
-        "profileTheme", "theme-choice-grid", "applyPalette", "theme_preset",
+        "profileTheme", "THEME_PALETTES.map", "applyPalette", "theme_preset",
     ], "Profile theme preference")
-    if ".theme-choice-grid" not in app_css or ".theme-swatch" not in app_css:
-        errors.append("theme selector visual system missing")
+    require_contains(errors, orena_profile_css, [
+        ".profile-page .theme-choice-grid", ".profile-page .theme-choice.selected",
+        ".profile-page .theme-swatch",
+    ], "Profile palette selector visual system")
 
     # Growth Rank: original evidence-derived identity frame, not activity XP or external benchmark.
     require_contains(errors, rank_domain, [
@@ -1075,7 +1208,7 @@ def main() -> None:
         root / "writing_coach" / "persistence" / "importer.py",
         root / "writing_coach" / "persistence" / "product_repository.py",
         root / "scripts" / "postgres_shadow.py",
-        root / "scripts" / "validate_postgres_foundation.py",
+        root / "scripts" / "archive" / "release-gates" / "validate_postgres_foundation.py",
         root / "docs" / "POSTGRES_FOUNDATION.md",
     ]
     for path in postgres_required:
@@ -1145,7 +1278,7 @@ def main() -> None:
         root / "writing_coach" / "persistence" / "platform_repository.py",
         root / "writing_coach" / "persistence" / "read_compare.py",
         root / "scripts" / "persistence_readiness.py",
-        root / "scripts" / "validate_persistence_readiness.py",
+        root / "scripts" / "archive" / "release-gates" / "validate_persistence_readiness.py",
         root / "docs" / "PERSISTENCE_RUNTIME_READINESS.md",
     ]
     for path in readiness_required:
