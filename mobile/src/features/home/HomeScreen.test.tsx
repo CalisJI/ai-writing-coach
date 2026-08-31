@@ -12,6 +12,9 @@ const mockNextMutate = jest.fn();
 let mockProfileExists = true;
 const mockDashboard = {essay_count: 2, revision_count: 3, skill_score: 82, cefr: 'B2', streak: 4, recent_average: 80, trend: [], metrics: {}, error_counts: {}, error_memory: [], next_level: null, version: '2.17.3'};
 const mockLibrary = {items: [], summary: {total: 0, due: 0, available: 0}};
+const mockEssays: unknown[] = [];
+const mockMemory = {language: 'en', essay_count: 0, revision_count: 0, focus: null, patterns: [], strengths: [], revision_wins: [], review_cue: null};
+const mockReadingHistory = {items: []};
 
 jest.mock('expo-router', () => ({useRouter: () => ({push: mockPush, replace: jest.fn()})}));
 jest.mock('../../auth/SessionHarness', () => ({useSession: () => ({session: {status: 'authenticated', source: 'server', userLabel: 'Learner'}, sessionCookie: 'cookie'})}));
@@ -19,6 +22,9 @@ jest.mock('../../api/client', () => ({createConfiguredApiClient: () => ({}), Api
 // Home now shows the same writing-evidence and recall signals the web home does.
 jest.mock('../../query/useJourney', () => ({useJourneyDashboard: () => ({data: mockDashboard, isPending: false, isError: false}), useJourneyOutcomes: () => ({data: undefined, isPending: false, isError: false})}));
 jest.mock('../../query/useReadingLibrary', () => ({useLibraryVocabulary: () => ({data: mockLibrary, isPending: false, isError: false})}));
+jest.mock('../../query/useHome', () => ({useEssays: () => ({data: mockEssays, isPending: false, isError: false}), useLearningMemory: () => ({data: mockMemory, isPending: false, isError: false}), useReadingSessionHistory: () => ({data: mockReadingHistory, isPending: false, isError: false})}));
+jest.mock('../../features/listening/listeningResume', () => ({readListeningResume: () => Promise.resolve(null)}));
+jest.mock('../../features/listening/listeningHabit', () => ({listeningHabitSnapshot: () => Promise.resolve({status: 'unavailable', todaySeconds: 0, weekSeconds: 0, dailyGoalMinutes: 40})}));
 jest.mock('../../query/useLearnerProfile', () => ({useLearnerProfile: () => ({data: {exists: mockProfileExists}, isPending: false, isError: false, refetch: jest.fn()}), useSaveLearnerProfile: () => ({mutate: mockSaveMutate, mutateAsync: mockSaveMutateAsync, isPending: false, isError: false}), useSetLearningLanguage: () => ({mutateAsync: mockLanguageMutateAsync, isPending: false, isError: false})}));
 jest.mock('../../query/usePracticeRecommendation', () => ({usePracticeRecommendation: () => ({data: {language: 'en', intent: 'repair', focus_category: 'grammar', focus_label: 'Articles', focus_family: 'grammar', focus_status: 'watch', evidence: 'Repeated pattern', goal: 'work', guidance_style: 'guided', task_type: 'email', topic: 'Email', target_level: 'B1', word_target: 80, difficulty: {state: 'hold', word_target: 80, length_delta: 0, provenance: {source: 'none', evidence_count: 0}}, reason: 'Practice this pattern', focus_instruction: 'Use articles', action_label: 'Practice'}, isPending: false, isError: false, refetch: jest.fn()}), useNextPractice: () => ({mutate: mockNextMutate, isPending: false, isError: false})}));
 

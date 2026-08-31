@@ -11,6 +11,7 @@ import {CONTENT_MAX} from '../../src/theme/layout';
 import {useImportMedia, useListeningProgress, useSaveListeningProgress} from '../../src/query/useListening';
 import {useMediaImportStatus, createMediaResumeStore} from '../../src/query/useMediaImportStatus';
 import {clearListeningPending, clearListeningResume, readListeningPending, readListeningResume, secureListeningResumeStorage, secureMediaResumeStorage, writeListeningPending, writeListeningResume, type ListeningPending, type ListeningResume} from '../../src/features/listening/listeningResume';
+import {addListenedSeconds, listeningHabitSnapshot, saveListeningGoal, type ListeningHabitSnapshot} from '../../src/features/listening/listeningHabit';
 import type {ResumeState} from '../../src/api/mediaClient';
 import type {KeyValueStorage} from '../../src/storage/boundedCache';
 import {Button as OrenaButton, Chip, Label as OrenaLabel, Panel} from '../../src/components/orena';
@@ -40,6 +41,37 @@ function PlayerControl({url, player, status}: {url: string; player: AudioPlayer;
   const {t} = useI18n();
   const playing = Boolean(status?.playing);
   return <Button label={playing ? t('listening.pause') : t('listening.play')} onPress={() => playing ? player.pause() : player.play()} disabled={!url || status?.isLoaded === false} />;
+}
+
+function GoalPanel() {
+  const {t} = useI18n();
+  const {tokens} = useTheme();
+  const [snapshot, setSnapshot] = useState<ListeningHabitSnapshot | null>(null);
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState('');
+  const refresh = useCallback(() => { void listeningHabitSnapshot().then(setSnapshot); }, []);
+  useEffect(() => { refresh(); }, [refresh]);
+  if (!snapshot || snapshot.status !== 'ok') return null;
+  const mins = (seconds: number) => Math.floor(seconds / 60);
+  const weeklyGoal = snapshot.dailyGoalMinutes * 7;
+  const bar = (value: number, total: number) => <View style={[styles.goalTrack, {backgroundColor: tokens.colors.surfaceSunken}]}><View style={[styles.goalFill, {width: `${total ? Math.min(100, Math.round((value / total) * 100)) : 0}%`, backgroundColor: tokens.colors.accent}]} /></View>;
+  return (
+    <Panel>
+      <OrenaLabel>{t('listening.goal_title' as never)}</OrenaLabel>
+      <View style={styles.goalRow}><Text style={{color: tokens.colors.text}}>{t('listening.daily' as never)}</Text><Text style={{color: tokens.colors.text}}>{mins(snapshot.todaySeconds)} / {snapshot.dailyGoalMinutes} {t('listening.minutes' as never)}</Text></View>
+      {bar(mins(snapshot.todaySeconds), snapshot.dailyGoalMinutes)}
+      <View style={styles.goalRow}><Text style={{color: tokens.colors.text}}>{t('listening.weekly' as never)}</Text><Text style={{color: tokens.colors.text}}>{mins(snapshot.weekSeconds)} / {weeklyGoal} {t('listening.minutes' as never)}</Text></View>
+      {bar(mins(snapshot.weekSeconds), weeklyGoal)}
+      {editing ? (
+        <View style={styles.goalEdit}>
+          <TextInput accessibilityLabel={t('listening.goal_prompt' as never)} value={draft} onChangeText={setDraft} keyboardType="number-pad" placeholder={String(snapshot.dailyGoalMinutes)} placeholderTextColor={tokens.colors.mutedText} style={[styles.goalInput, {color: tokens.colors.text, borderColor: tokens.colors.borderStrong}]} />
+          <OrenaButton label={t('listening.save_goal' as never)} compact onPress={() => { const minutes = Number(draft); if (Number.isFinite(minutes) && minutes > 0) void saveListeningGoal(minutes).then(refresh); setEditing(false); setDraft(''); }} />
+        </View>
+      ) : (
+        <OrenaButton label={t('listening.edit_goals' as never)} variant="outline" compact onPress={() => { setDraft(String(snapshot.dailyGoalMinutes)); setEditing(true); }} />
+      )}
+    </Panel>
+  );
 }
 
 function ReadyLesson({lesson, mode, selectedId, progress, progressPending, progressError, answer, setAnswer, onMode, onSelect, onSave, onReveal, onRestart, player, playerStatus}: {lesson: MediaLesson; mode: ListeningMode; selectedId: string; progress: ListeningProgress[]; progressPending: boolean; progressError: boolean; answer: string; setAnswer: (value: string) => void; onMode: (mode: ListeningMode) => void; onSelect: (id: string) => void; onSave: () => void; onReveal: () => void; onRestart: () => void; player: AudioPlayer; playerStatus: AudioStatus}) {
@@ -76,6 +108,7 @@ function ReadyLesson({lesson, mode, selectedId, progress, progressPending, progr
       {progressPending ? <Text style={{color: tokens.colors.mutedText}}>{t('listening.progress_loading')}</Text> : null}
       {progressError && <Text accessibilityRole="alert" style={{color: tokens.colors.danger}}>{t('listening.progress_unavailable')}</Text>}
     </Panel>
+    <GoalPanel />
     <Button label={t('listening.resume_cancel')} onPress={onRestart} secondary />
   </ScrollView>;
 }
@@ -113,6 +146,20 @@ export default function ListeningScreen({client: providedClient, resumeStorage =
   useEffect(() => { if (progressQuery.data?.items) setProgress(progressQuery.data.items); }, [progressQuery.data]);
   useEffect(() => { if (!lesson || handoff.assetId !== lesson.asset.asset_id || typeof handoff.segmentId !== 'string') return; if (lesson.transcript?.segments.some((segment) => segment.segment_id === handoff.segmentId)) setSelectedId(handoff.segmentId); }, [handoff.assetId, handoff.segmentId, lesson]);
   useEffect(() => { const subscription = AppState.addEventListener('change', (state) => { if (state === 'background' || state === 'inactive') { player.pause(); setNotice(t('listening.interrupted')); } }); return () => subscription.remove(); }, [player, t]);
+  // Device-local habit counter, ported from the web's orena:media-time tick
+  // (static/becoming/screens/listening.js): wall-clock delta between ticks
+  // while the position is actually advancing, dropping gaps over 2.5s so a
+  // backgrounded or paused player never counts as listening.
+  const habitTick = useRef<{time: number; position: number} | null>(null);
+  useEffect(() => {
+    if (!playerStatus.playing) { habitTick.current = null; return; }
+    const now = Date.now();
+    const previous = habitTick.current;
+    if (previous && now - previous.time < 2500 && playerStatus.currentTime > previous.position) {
+      void addListenedSeconds((now - previous.time) / 1000);
+    }
+    habitTick.current = {time: now, position: playerStatus.currentTime};
+  }, [playerStatus.playing, playerStatus.currentTime]);
   const prepare = useCallback((value: string) => {
     const normalized = value.trim();
     if (!normalized || !sessionCookie || !client) return;
@@ -175,4 +222,4 @@ export default function ListeningScreen({client: providedClient, resumeStorage =
   return <><ReadyLesson lesson={lesson} mode={mode} selectedId={selectedId} progress={progress} progressPending={progressQuery.isPending} progressError={progressQuery.isError} answer={answer} setAnswer={setAnswer} onMode={changeMode} onSelect={select} onSave={() => save('checked')} onReveal={() => save('revealed')} onRestart={restart} player={player} playerStatus={playerStatus} /><View style={{paddingHorizontal: 24, paddingBottom: 24}}><Button label={t('speaking.open_listening')} onPress={() => { if (!selectedSegment) return; router.push({pathname: '/(app)/speaking', params: {mode: 'shadowing', assetId: lesson.asset.asset_id, segmentId: selectedSegment.segment_id, sourceUrl: lesson.asset.source_url, referenceText: selectedSegment.original_text}} as never); }} /></View></>;
 }
 
-const styles = StyleSheet.create({container: {flexGrow: 1, padding: 24, gap: 16, width: '100%', maxWidth: CONTENT_MAX, alignSelf: 'center'}, title: {fontSize: 20, fontWeight: '700'}, input: {minHeight: 52, borderWidth: 1, borderRadius: 15, padding: 14, fontSize: 15}, actionRow: {gap: 8}, modeRow: {flexDirection: 'row', gap: 8}, mode: {flex: 1, padding: 12, borderWidth: 1, borderColor: 'transparent', borderRadius: 15, alignItems: 'center'}, segmentList: {gap: 8}, segment: {padding: 12, borderWidth: 1, borderRadius: 15}, selectedText: {fontSize: 15, lineHeight: 28}, progressHead: {flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between'}});
+const styles = StyleSheet.create({container: {flexGrow: 1, padding: 24, gap: 16, width: '100%', maxWidth: CONTENT_MAX, alignSelf: 'center'}, title: {fontSize: 20, fontWeight: '700'}, input: {minHeight: 52, borderWidth: 1, borderRadius: 15, padding: 14, fontSize: 15}, actionRow: {gap: 8}, modeRow: {flexDirection: 'row', gap: 8}, mode: {flex: 1, padding: 12, borderWidth: 1, borderColor: 'transparent', borderRadius: 15, alignItems: 'center'}, segmentList: {gap: 8}, segment: {padding: 12, borderWidth: 1, borderRadius: 15}, selectedText: {fontSize: 15, lineHeight: 28}, progressHead: {flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between'}, goalRow: {flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between'}, goalTrack: {height: 6, borderRadius: 999, overflow: 'hidden'}, goalFill: {height: '100%', borderRadius: 999}, goalEdit: {flexDirection: 'row', gap: 8, alignItems: 'center'}, goalInput: {flex: 1, borderWidth: 1, borderRadius: 15, padding: 10, minHeight: 44}});
