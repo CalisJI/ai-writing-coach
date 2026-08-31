@@ -114,7 +114,7 @@ Colour/Type/Space/Component/Layout are scored against the web implementation.
 | Writing | `screens/write.js`, `orena/writing.css` | prompt card + editor card + aside, plus a mode/level/topic/length setup panel for a self-directed session | ✓ | ✓ | ✓ | ~ | ✓ | ✓ | ✓ | ✓ | ✓ | P2 |
 | Review | `screens/review.js` | `PromptCard` + confidence-banded `IssueRow` findings + revision-delta + practice-outcome/review-cue signal cards + aside actions | ✓ | ✓ | ✓ | ~ | ✓ | ✓ | ✓ | ✓ | ✓ | P2 |
 | Grammar | `screens/grammar.js`, `orena/grammar.css` | curriculum overview + lesson detail | ✓ | ✓ | ✓ | ~ | ✓ | ✓ | ✓ | ✓ | ✓ | P2 |
-| Reading | `screens/reading.js`, `orena/reading.css` | create form + article header + passage + rail | ✓ | ✓ | ✓ | ~ | ✓ | ✓ | ✓ | ✓ | ✓ | P2 |
+| Reading | `screens/reading.js`, `orena/reading.css` | create form + recent-passages history + article header + passage + rail | ✓ | ✓ | ✓ | ~ | ✓ | ✓ | ✓ | ✓ | ✓ | P2 |
 | Listening | `screens/listening.js`, `orena/listening.css` | import + Follow/Active + resume, panel-restyled | ✓ | ✓ | ✓ | ~ | ~ | ✓ | ✓ | ✓ | ✓ | P2 |
 | Speaking | `screens/speaking.js`, `orena/speaking.css` | record + evidence, panel-restyled | ✓ | ✓ | ✓ | ~ | ~ | ✓ | ✓ | ✓ | ✓ | P2 |
 | Library | `screens/library.js`, `orena/library.css` | word list + reveal/recall | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | P3 |
@@ -239,9 +239,13 @@ Tokens first, as the token layer is what every screen reads.
    equivalent for a React Native `Text` view. Native keeps the manual-entry
    lookup (type the word or phrase) as the platform adaptation for that one
    mechanic. Also not reproduced: the live scroll-progress rail, font-size and
-   line-spacing controls, focus mode, clipboard copy, and the recent-passages
-   history list (the web reads `api.readingSessions`, which the mobile API
-   client does not yet expose). Tracked as a P2 residual, not claimed as done.
+   line-spacing controls, focus mode, and clipboard copy. The recent-passages
+   history list is now reproduced -- `GET /api/reading/sessions` (already
+   exposed via `listReadingSessions`, built for Home's next-practice signal)
+   and `GET /api/reading/session/{id}` (already exposed via
+   `getReadingSession`) back a "Recent passages" panel below the create form,
+   device-verified opening a scored history item on emulator-5556. Tracked as
+   a P2 residual, not claimed as done.
 
    Grammar's residual gap: a rich `learning_model` lesson is rendered on the
    web by a second, large system (`components/grammar-learning.js` composing

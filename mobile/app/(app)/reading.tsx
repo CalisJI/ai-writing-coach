@@ -5,7 +5,8 @@ import {createConfiguredApiClient} from '../../src/api/client';
 import {useSession} from '../../src/auth/SessionHarness';
 import {useI18n} from '../../src/i18n/I18nProvider';
 import {useTheme} from '../../src/theme/ThemeProvider';
-import {useCreateReadingSession, useSubmitReadingAnswers, useContextualDictionary, useSaveLibraryVocabulary} from '../../src/query/useReadingLibrary';
+import {useCreateReadingSession, useOpenReadingSession, useSubmitReadingAnswers, useContextualDictionary, useSaveLibraryVocabulary} from '../../src/query/useReadingLibrary';
+import {useReadingSessionHistory} from '../../src/query/useHome';
 import {useLearnerProfile} from '../../src/query/useLearnerProfile';
 import {dictionaryWordToLibraryInput} from '../../src/features/reading/readingLibraryHandoff';
 import type {ReadingSession, ReadingAnswerResult} from '../../src/api/contracts/reading';
@@ -20,12 +21,13 @@ import {Button, Chip, Label, Panel, PanelCopy, Split} from '../../src/components
  * view. Native keeps the already-working manual-entry lookup as the platform
  * adaptation for that one mechanic; everything else (session creation with a
  * real level/material/topic picker, the article header, the comprehension
- * check, the understanding and key-vocabulary rail) is ported to the Orena
- * primitives. The live scroll-progress rail, font/line-spacing controls,
- * focus mode, clipboard copy, and the recent-passages history list (the web
- * reads `api.readingSessions`, which the mobile client does not yet expose)
- * are not reproduced -- tracked as residuals in MOBILE_VISUAL_PARITY_AUDIT.md
- * rather than claimed as done.
+ * check, the understanding and key-vocabulary rail, and the recent-passages
+ * history list backed by GET /api/reading/sessions + GET
+ * /api/reading/session/{id}, the same shared backend the web calls) is
+ * ported to the Orena primitives. The live scroll-progress rail, font/
+ * line-spacing controls, focus mode, and clipboard copy are not reproduced
+ * -- tracked as residuals in MOBILE_VISUAL_PARITY_AUDIT.md rather than
+ * claimed as done.
  */
 
 const TOPIC_KEYS = ['random', 'daily_life', 'work', 'science', 'culture', 'community'] as const;
@@ -37,6 +39,10 @@ const LEVELS_BY_LANGUAGE: Record<'en' | 'zh', readonly string[]> = {
 };
 const DEFAULT_LEVEL: Record<'en' | 'zh', string> = {en: 'B2', zh: 'HSK4'};
 const WORDS_PER_MINUTE = 200;
+
+function topicLabel(t: (id: never) => string, topic: string): string {
+  return t((TOPIC_KEYS as readonly string[]).includes(topic) ? `reading.topic_${topic}` as never : 'reading.topic_random' as never);
+}
 
 function wordCount(passage: string, language: 'en' | 'zh'): number {
   const text = passage.trim();
@@ -123,6 +129,12 @@ export default function ReadingScreen() {
   const submit = useSubmitReadingAnswers(client, sessionCookie, session?.id);
   const dictionary = useContextualDictionary(client, sessionCookie);
   const save = useSaveLibraryVocabulary(client, sessionCookie);
+  const history = useReadingSessionHistory(client, sessionCookie);
+  const openSession = useOpenReadingSession(client, sessionCookie);
+
+  const openFromHistory = (id: number) => {
+    openSession.mutate(id, {onSuccess: (value) => { setSession(value); setAnswers(Array(value.questions.length).fill(-1)); setSelected(''); }});
+  };
 
   const shell = (body: ReactNode) => (
     <View style={[styles.container, {backgroundColor: tokens.colors.background}]}>
@@ -221,6 +233,30 @@ export default function ReadingScreen() {
           {create.isError ? <Text accessibilityRole="alert" style={{color: tokens.colors.danger}}>{t('reading.unavailable')}</Text> : null}
           <Button label={create.isPending ? t('reading.loading') : t('reading.create' as never)} disabled={create.isPending} onPress={startSession} />
         </Panel>
+
+        {history.data && history.data.items.length > 0 ? (
+          <Panel>
+            <Label>{t('reading.recent' as never)}</Label>
+            {openSession.isError ? <Text accessibilityRole="alert" style={{color: tokens.colors.danger}}>{t('reading.open_failed' as never)}</Text> : null}
+            <View style={styles.historyList}>
+              {history.data.items.slice(0, 6).map((item) => (
+                <Pressable
+                  key={item.id}
+                  accessibilityRole="button"
+                  disabled={openSession.isPending}
+                  onPress={() => openFromHistory(item.id)}
+                  style={[styles.historyRow, {borderColor: tokens.colors.border}]}
+                >
+                  <View style={{flex: 1, minWidth: 0}}>
+                    <Text style={[styles.historyTitle, {color: tokens.colors.heading}]} numberOfLines={1}>{item.title}</Text>
+                    <Text style={{color: tokens.colors.mutedText}}>{item.target_level} · {topicLabel(t, item.topic)}</Text>
+                  </View>
+                  <Text style={{color: tokens.colors.mutedText}}>{item.latest_attempt ? `${item.latest_attempt.correct_count}/${item.latest_attempt.total}` : t('reading.unread' as never)}</Text>
+                </Pressable>
+              ))}
+            </View>
+          </Panel>
+        ) : null}
       </ScrollView>
     );
   }
@@ -354,6 +390,9 @@ const styles = StyleSheet.create({
   materialName: {fontSize: 15, fontWeight: '600'},
   materialDesc: {fontSize: 13, lineHeight: 19},
   recycleRow: {flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 4},
+  historyList: {gap: 8},
+  historyRow: {flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, borderRadius: 15, borderWidth: 1},
+  historyTitle: {fontSize: 15, fontWeight: '600'},
   recycleLabel: {fontSize: 15, fontWeight: '600'},
   input: {borderWidth: 1, borderRadius: 15, padding: 12, minHeight: 44},
   lookupResult: {gap: 8, paddingTop: 4},

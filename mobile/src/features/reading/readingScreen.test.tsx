@@ -8,13 +8,16 @@ const mockCreate = {isPending: false, isError: false, mutate: jest.fn()};
 const mockSubmit = {isPending: false, isError: false, data: undefined, mutate: jest.fn()};
 const mockDictionary = {isPending: false, isError: false, data: undefined, mutate: jest.fn()};
 const mockSave = {isPending: false, mutate: jest.fn()};
+const mockOpenSession = {isPending: false, isError: false, mutate: jest.fn()};
+const mockHistory = {data: undefined, isPending: false, isError: false};
 const mockProfile = {isPending: false, isError: false, data: {exists: true, language: 'en', goal: 'everyday', style: 'guided', pinyin: 'auto', native_language: 'vi', theme_preset: 'editorial', updated_at: '2026-01-01'}};
 let mockCookie: string | null = null;
 
 jest.mock('expo-router', () => ({useRouter: () => ({push: jest.fn(), replace: jest.fn()})}));
 jest.mock('../../auth/SessionHarness', () => ({useSession: () => ({session: {status: 'authenticated', source: 'server', userLabel: 'Learner'}, sessionCookie: mockCookie})}));
 jest.mock('../../api/client', () => ({createConfiguredApiClient: () => ({}), ApiClient: class {}}));
-jest.mock('../../query/useReadingLibrary', () => ({useCreateReadingSession: () => mockCreate, useSubmitReadingAnswers: () => mockSubmit, useContextualDictionary: () => mockDictionary, useSaveLibraryVocabulary: () => mockSave}));
+jest.mock('../../query/useReadingLibrary', () => ({useCreateReadingSession: () => mockCreate, useSubmitReadingAnswers: () => mockSubmit, useContextualDictionary: () => mockDictionary, useSaveLibraryVocabulary: () => mockSave, useOpenReadingSession: () => mockOpenSession}));
+jest.mock('../../query/useHome', () => ({useReadingSessionHistory: () => mockHistory}));
 jest.mock('../../query/useLearnerProfile', () => ({useLearnerProfile: () => mockProfile}));
 
 const renderReading = (locale: 'en' | 'zh' = 'en') => {
