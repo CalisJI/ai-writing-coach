@@ -112,7 +112,7 @@ Colour/Type/Space/Component/Layout are scored against the web implementation.
 | Reading | `screens/reading.js`, `orena/reading.css` | create form + article header + passage + rail | ✓ | ✓ | ✓ | ~ | ✓ | ✓ | ✓ | ✓ | ✓ | P2 |
 | Listening | `screens/listening.js`, `orena/listening.css` | import + Follow/Active + resume, panel-restyled | ✓ | ✓ | ✓ | ~ | ~ | ✓ | ✓ | ✓ | ✓ | P2 |
 | Speaking | `screens/speaking.js`, `orena/speaking.css` | record + evidence, panel-restyled | ✓ | ✓ | ✓ | ~ | ~ | ✓ | ✓ | ✓ | ✓ | P2 |
-| Library | `screens/library.js`, `orena/library.css` | word list + recall | ~ | ✗ | ~ | ✗ | ✗ | ✓ | ✓ | ✓ | ✓ | P1 |
+| Library | `screens/library.js`, `orena/library.css` | word list + reveal/recall | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | P3 |
 | Journey | `screens/journey.js`, `orena/journey.css` | metric row + cards | ~ | ✗ | ~ | ✗ | ✗ | ✓ | ✓ | ✓ | ✓ | P1 |
 | Profile | `screens/profile.js`, `orena/profile.css` | radio groups | ~ | ✗ | ~ | ✗ | ✗ | ✓ | ✓ | ✓ | ✓ | P1 |
 | Entitlement | in `profile.js` | bordered list | ~ | ✗ | ~ | ✗ | ~ | ✓ | ✓ | ✓ | ✓ | P2 |
@@ -138,9 +138,14 @@ Tokens first, as the token layer is what every screen reads.
 5. ~~**P1 Finding 4** — move screens onto the Orena type scale.~~ Done.
 6. **P1 per-screen** — compose each screen from its web counterpart, in the
    roadmap order Home → ~~Writing~~ → ~~Review~~ → ~~Grammar~~ → ~~Reading~~ →
-   ~~Listening~~ → ~~Speaking~~ → Library → Journey → Profile. Home, Writing,
-   Review, Grammar, Reading, Listening and Speaking are done; the remaining
-   three screens are the open work.
+   ~~Listening~~ → ~~Speaking~~ → ~~Library~~ → Journey → Profile. Home,
+   Writing, Review, Grammar, Reading, Listening, Speaking and Library are
+   done; Journey and Profile are the remaining open work.
+
+   Library carries no residual: unlike Listening/Speaking/Grammar/Reading,
+   the web's own composition (a word list with a per-word reveal gate and an
+   Again/Got it recall action) is exactly what the mobile API already
+   supports, so this port is full parity rather than a restyle-with-gaps.
 
    Speaking's residual matches Listening's: the web is a studio (waveform
    recorder, pronunciation heatmap on the transcript) that native's
