@@ -16,7 +16,8 @@ const mockGrammarPractice = {isPending: false, isError: false, mutate: jest.fn()
 jest.mock('expo-router', () => ({useRouter: () => ({push: mockPush, replace: mockReplace})}));
 jest.mock('../../src/auth/SessionHarness', () => ({useSession: () => ({sessionCookie: mockCookie, session: {status: mockCookie ? 'authenticated' : 'signed_out'}})}));
 jest.mock('../../src/api/client', () => ({createConfiguredApiClient: () => ({}), ApiClient: class {}}));
-jest.mock('../../src/query/useWritingEvaluation', () => ({useEvaluateWriting: () => mockEvaluate, useGrammarPractice: () => mockGrammarPractice}));
+jest.mock('../../src/query/useWritingEvaluation', () => ({useEvaluateWriting: () => mockEvaluate, useGrammarPractice: () => mockGrammarPractice, useGenerateTask: () => ({isPending: false, isError: false, mutate: jest.fn()})}));
+jest.mock('../../src/query/useLearnerProfile', () => ({useLearnerProfile: () => ({data: undefined, isPending: false, isError: false})}));
 jest.mock('../../src/query/useReview', () => ({usePracticeOutcome: () => ({data: undefined, isPending: false, isError: false}), useReviewCue: () => ({data: undefined, isPending: false, isError: false})}));
 
 const render = (screen: React.ReactNode, locale: 'en' | 'zh' = 'en') => renderer.create(<I18nProvider initialLocale={locale}><ThemeProvider>{screen}</ThemeProvider></I18nProvider>);
@@ -106,9 +107,9 @@ describe('R20 native Writing -> Evaluate -> Review -> Grammar -> Revise loop', (
     expect(view.root.findByProps({accessibilityRole: 'alert'})).toBeDefined();
   });
 
-  it.each(['en', 'zh'] as const)('states plainly that no brief is open instead of inventing one in %s', (locale) => {
+  it.each(['en', 'zh'] as const)('offers the setup panel to start a new session instead of inventing a brief in %s', (locale) => {
     const view = render(<WritingScreen />, locale);
-    expect(texts(view, locale === 'zh' ? '当前没有打开的练习提示。' : 'No practice brief is open.')).not.toHaveLength(0);
+    expect(texts(view, locale === 'zh' ? '选择要写的内容' : 'Choose what to write')).not.toHaveLength(0);
     expect(mockEvaluate.mutate).not.toHaveBeenCalled();
     act(() => buttonLabelled(view, locale === 'zh' ? '返回首页' : 'Back to Home').props.onPress());
     expect(mockReplace).toHaveBeenCalledWith('/(app)');
@@ -182,7 +183,7 @@ describe('R20 native Writing -> Evaluate -> Review -> Grammar -> Revise loop', (
     setGrammarWritingHandoff(grammarTask, 'en');
     render(<WritingScreen />);
     const second = render(<WritingScreen />);
-    expect(texts(second, 'No practice brief is open.')).not.toHaveLength(0);
+    expect(texts(second, 'Choose what to write')).not.toHaveLength(0);
     setRevisionWritingHandoff(41, 'I has a dog and I write every day.', 'Write about an ordinary weekday.', 'B1', 'zh');
     const revision = render(<WritingScreen />, 'zh');
     expect(texts(revision, '修改你的写作')).not.toHaveLength(0);

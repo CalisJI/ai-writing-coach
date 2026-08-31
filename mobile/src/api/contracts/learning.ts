@@ -147,3 +147,11 @@ export type PracticeOutcomeResponse = z.infer<typeof practiceOutcomeResponseSche
 // shape as learningMemorySchema's review_cue but this endpoint also returns grammar_id.
 export const reviewCueSchema = z.object({available: z.boolean(), state: z.string().optional(), source: z.string().optional(), status: z.string().optional(), category: z.string().optional(), evidence: z.string().optional(), essay_id: z.number().int().positive().nullable().optional(), grammar_id: z.string().optional()}).passthrough();
 export type ReviewCue = z.infer<typeof reviewCueSchema>;
+
+// POST /api/tasks/generate -- app.py's api_generate_task(). Same shape as
+// practiceTaskSchema minus `personalization`, which only /api/practice/next
+// (the personalized wrapper) adds.
+export const freeTaskSchema = z.object({title: z.string().min(1), instruction: z.string().min(1), checklist: z.array(z.string()), word_target: z.number().int().positive(), task_type: taskTypeSchema, topic: z.string(), source: z.string(), prompt: z.string().min(1), target_level: z.string().min(2)}).passthrough();
+export type FreeTask = z.infer<typeof freeTaskSchema>;
+export const generateTaskInputSchema = z.object({task_type: taskTypeSchema, topic: z.string().min(1).max(120), target_cefr: z.string().min(2).max(12), word_target: z.number().int().min(20).max(500)}).strict();
+export type GenerateTaskInput = z.infer<typeof generateTaskInputSchema>;
