@@ -16,6 +16,7 @@ import {useNextPractice, usePracticeRecommendation} from '../../query/usePractic
 import {setPracticeHandoff} from './practiceHandoff';
 import {OnboardingForm} from './OnboardingForm';
 import {setReviewHandoff} from '../review/reviewHandoff';
+import {setReadingResumeHandoff} from '../reading/readingResumeHandoff';
 import type {EssaySummary, EvaluationInput, JourneyDashboard, LearningMemory, PracticeRecommendation} from '../../api/contracts/learning';
 import type {ReadingSessions} from '../../api/contracts/reading';
 import {readListeningResume, type ListeningResume} from '../../features/listening/listeningResume';
@@ -449,7 +450,7 @@ export function HomeScreen({client: providedClient}: {client?: ApiClient}) {
       onLibrary={() => router.push('/(app)/library')}
       onOpenReview={openReview}
       openReviewFailed={openEssay.isError}
-      onReadResume={() => router.push('/(app)/reading')}
+      onReadResume={(sessionId) => { setReadingResumeHandoff(sessionId); router.push('/(app)/reading'); }}
       onListenResume={() => router.push('/(app)/listening')}
       onLibraryReview={() => router.push('/(app)/library')}
       onListeningGoal={() => router.push('/(app)/listening')}

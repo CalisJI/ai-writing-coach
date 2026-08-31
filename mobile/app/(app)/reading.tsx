@@ -1,4 +1,4 @@
-import {useMemo, useState, type ReactNode} from 'react';
+import {useEffect, useMemo, useState, type ReactNode} from 'react';
 import {Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View} from 'react-native';
 import {useRouter} from 'expo-router';
 import {createConfiguredApiClient} from '../../src/api/client';
@@ -9,6 +9,7 @@ import {useCreateReadingSession, useOpenReadingSession, useSubmitReadingAnswers,
 import {useReadingSessionHistory} from '../../src/query/useHome';
 import {useLearnerProfile} from '../../src/query/useLearnerProfile';
 import {dictionaryWordToLibraryInput} from '../../src/features/reading/readingLibraryHandoff';
+import {consumeReadingResumeHandoff} from '../../src/features/reading/readingResumeHandoff';
 import type {ReadingSession, ReadingAnswerResult} from '../../src/api/contracts/reading';
 import {Button, Chip, Label, Panel, PanelCopy, Split} from '../../src/components/orena';
 
@@ -135,6 +136,8 @@ export default function ReadingScreen() {
   const openFromHistory = (id: number) => {
     openSession.mutate(id, {onSuccess: (value) => { setSession(value); setAnswers(Array(value.questions.length).fill(-1)); setSelected(''); }});
   };
+  const [resumeId] = useState(consumeReadingResumeHandoff);
+  useEffect(() => { if (resumeId) openFromHistory(resumeId); }, []);
 
   const shell = (body: ReactNode) => (
     <View style={[styles.container, {backgroundColor: tokens.colors.background}]}>

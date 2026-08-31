@@ -189,7 +189,13 @@ Tokens first, as the token layer is what every screen reads.
    use) and opens the real Writing Review for that exact essay --
    device-verified on emulator-5556 tapping Current piece's Open button and
    landing on that essay's real findings, grammar links and review-cue
-   cards, not a generic Journey redirect.
+   cards, not a generic Journey redirect. The Next-practice plan's reading
+   branch had the identical defect (`onReadResume(sessionId)` also
+   discarded its argument and opened the bare Reading setup form); it now
+   sets a new resumeId handoff (readingResumeHandoff.ts, mirroring
+   writingHandoff.ts's pattern) that Reading consumes on mount and opens via
+   the same `getReadingSession()` already built for Reading's own recent-
+   passages panel above.
 
    Writing gained a mode/level/topic/length setup panel
    (backed by the same `POST /api/tasks/generate` the web calls) so a
