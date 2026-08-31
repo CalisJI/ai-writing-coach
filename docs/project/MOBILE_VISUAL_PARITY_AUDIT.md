@@ -1,6 +1,8 @@
 # Mobile Visual Parity Audit
 
-Status: **P0 CLOSED / FOUNDATION P1s CLOSED / PER-SCREEN P1 IN PROGRESS**
+Status: **P0 CLOSED / FOUNDATION P1s CLOSED / PER-SCREEN P1 CLOSED — all ten
+roadmap screens ported; six carry a documented P2 residual (see remediation
+order §6)**
 
 The responsive web application is the canonical visual source. This audit
 compares the native client against it and classifies every divergence. It is a
@@ -114,8 +116,8 @@ Colour/Type/Space/Component/Layout are scored against the web implementation.
 | Speaking | `screens/speaking.js`, `orena/speaking.css` | record + evidence, panel-restyled | ✓ | ✓ | ✓ | ~ | ~ | ✓ | ✓ | ✓ | ✓ | P2 |
 | Library | `screens/library.js`, `orena/library.css` | word list + reveal/recall | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | P3 |
 | Journey | `screens/journey.js`, `orena/journey.css` | metric row + focus + outcomes panels | ✓ | ✓ | ✓ | ~ | ~ | ✓ | ✓ | ✓ | ✓ | P2 |
-| Profile | `screens/profile.js`, `orena/profile.css` | radio groups | ~ | ✗ | ~ | ✗ | ✗ | ✓ | ✓ | ✓ | ✓ | P1 |
-| Entitlement | in `profile.js` | bordered list | ~ | ✗ | ~ | ✗ | ~ | ✓ | ✓ | ✓ | ✓ | P2 |
+| Profile | `screens/profile.js`, `orena/profile.css` | one settings Panel with grouped radio pills | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | P3 |
+| Entitlement | in `profile.js` | Panel + Chip per feature | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | P3 |
 | Degraded states | `components/primitives.js` | truthful, escapable | ~ | ✗ | ~ | ✗ | ✓ | ✓ | ✓ | ✓ | ✓ | P2 |
 
 Light/dark, EN and ZH pass everywhere because those were verified on device in
@@ -136,11 +138,27 @@ Tokens first, as the token layer is what every screen reads.
    icons as `react-native-svg` geometry copied verbatim from `icons.js`, at the
    web's 1.7 stroke on the 24 grid. No emoji stand in for a designed icon.
 5. ~~**P1 Finding 4** — move screens onto the Orena type scale.~~ Done.
-6. **P1 per-screen** — compose each screen from its web counterpart, in the
+6. ~~**P1 per-screen**~~ — compose each screen from its web counterpart, in the
    roadmap order Home → ~~Writing~~ → ~~Review~~ → ~~Grammar~~ → ~~Reading~~ →
-   ~~Listening~~ → ~~Speaking~~ → ~~Library~~ → ~~Journey~~ → Profile. Home,
-   Writing, Review, Grammar, Reading, Listening, Speaking, Library and
-   Journey are done; Profile is the last remaining screen.
+   ~~Listening~~ → ~~Speaking~~ → ~~Library~~ → ~~Journey~~ → ~~Profile~~.
+   Done — all ten screens in the roadmap are ported. Profile's settings
+   groups (goal/style/native language/pinyin/theme/learning language) kept
+   their exact radio semantics and `accessibilityLabel` format (asserted by
+   r20-6.test.tsx) while moving onto one settings Panel with Label-headed
+   pill groups, matching the web's single `.o-card.o-set` composition; the
+   entitlements section became a Panel with a Chip per feature's
+   available/exhausted/unavailable state. No residual: both sections' web
+   composition is exactly what the mobile API already supports.
+
+   Screens carrying a residual (documented at each screen's commit and
+   summarized here): Home (P2, elevation-only sheen/rim gap), Grammar (P2,
+   rich `learning_model` block-composition not reproduced), Reading (P2, no
+   OS text-selection surface, no scroll-progress/font controls, no passage
+   history endpoint), Listening and Speaking (P2 each, the web's full studio
+   -- video/audio player, transport, waveform -- has no native surface
+   beyond bare expo-audio playback), Journey (P2, pattern gauges/outcome
+   history/timeline/target rail not reproduced). Writing, Review, Library
+   and Profile carry no residual.
 
    Library carries no residual: unlike Listening/Speaking/Grammar/Reading,
    the web's own composition (a word list with a per-word reveal gate and an

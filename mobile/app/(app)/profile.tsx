@@ -14,6 +14,15 @@ import {useLearnerProfile, useSaveLearnerProfile, useSetLearningLanguage} from '
 import {useProductMe} from '../../src/query/useProductMe';
 import {useTheme} from '../../src/theme/ThemeProvider';
 import {CONTENT_MAX} from '../../src/theme/layout';
+import {Button, Chip, Label, Panel} from '../../src/components/orena';
+
+/**
+ * Ported from static/becoming/screens/profile.js and orena/profile.css.
+ *
+ * The web is one settings card (`.o-card.o-set`) holding each preference
+ * group in sequence, plus a separate entitlements/about card -- this keeps
+ * that two-panel shape rather than a Panel per group.
+ */
 
 const featureLabels: Record<string, string> = {
   'writing.evaluate': 'profile.feature_writing_evaluate', 'writing.improve': 'profile.feature_writing_improve', 'library.grammar': 'profile.feature_library_grammar', 'dictionary.lookup': 'profile.feature_dictionary_lookup', 'vocabulary.save': 'profile.feature_vocabulary_save', 'analytics.basic': 'profile.feature_analytics_basic', 'analytics.advanced': 'profile.feature_analytics_advanced', 'practice.personalized': 'profile.feature_practice_personalized', 'export.report': 'profile.feature_export_report',
@@ -33,13 +42,68 @@ export default function ProfileScreen() {
   const value = draft ?? (profile.data ? {goal: profile.data.goal, style: profile.data.style, pinyin: profile.data.pinyin, native_language: profile.data.native_language, theme_preset: profile.data.theme_preset} : null);
   const activePreset = value?.theme_preset;
   useEffect(() => { if (activePreset) setPreset(activePreset); }, [activePreset, setPreset]);
-  if (signedOut || !sessionCookie) return <SafeAreaView style={[styles.container, {backgroundColor: tokens.colors.background}]}><Text accessibilityRole="header" style={[styles.title, {color: tokens.colors.heading}]}>{t('profile.title')}</Text><Text accessibilityRole="alert" style={{color: tokens.colors.mutedText}}>{t('profile.signed_out' as never)}</Text><Pressable accessibilityRole="button" onPress={() => router.replace('/(app)')} style={[styles.button, {backgroundColor: tokens.colors.accent}]}><Text style={[styles.buttonText, {color: tokens.colors.onAccent}]}>{t('nav.back_home' as never)}</Text></Pressable></SafeAreaView>;
+  if (signedOut || !sessionCookie) return <SafeAreaView style={[styles.container, {backgroundColor: tokens.colors.background}]}><Text accessibilityRole="header" style={[styles.title, {color: tokens.colors.heading}]}>{t('profile.title')}</Text><Text accessibilityRole="alert" style={{color: tokens.colors.mutedText}}>{t('profile.signed_out' as never)}</Text><Button label={t('nav.back_home' as never)} onPress={() => router.replace('/(app)')} /></SafeAreaView>;
   if (!client || profile.isError || product.isError) return <SafeAreaView style={[styles.container, {backgroundColor: tokens.colors.background}]}><Text accessibilityRole="header" style={[styles.title, {color: tokens.colors.heading}]}>{t('profile.title')}</Text><Text accessibilityRole="alert" style={{color: tokens.colors.danger}}>{t('profile.unavailable')}</Text></SafeAreaView>;
   if (profile.isPending || product.isPending || !value) return <SafeAreaView style={[styles.container, {backgroundColor: tokens.colors.background}]}><Text style={{color: tokens.colors.text}}>{t('profile.loading')}</Text></SafeAreaView>;
-  const choose = <T extends string>(label: string, items: readonly T[], selected: T, update: (item: T) => void, translate: (item: T) => string) => <View><Text style={[styles.label, {color: tokens.colors.text}]}>{label}</Text><View style={styles.choices}>{items.map((item) => <Pressable key={item} accessibilityRole="radio" accessibilityLabel={`${label}: ${translate(item)}`} accessibilityState={{selected: selected === item}} onPress={() => update(item)} style={[styles.choice, {borderColor: selected === item ? tokens.colors.accent : tokens.colors.mutedText, backgroundColor: selected === item ? tokens.colors.surface : 'transparent'}]}><Text style={{color: tokens.colors.text}}>{translate(item)}</Text></Pressable>)}</View></View>;
+  const choose = <T extends string>(label: string, items: readonly T[], selected: T, update: (item: T) => void, translate: (item: T) => string) => (
+    <View style={styles.group}>
+      <Label>{label}</Label>
+      <View style={styles.choices}>
+        {items.map((item) => (
+          <Pressable key={item} accessibilityRole="radio" accessibilityLabel={`${label}: ${translate(item)}`} accessibilityState={{selected: selected === item}} onPress={() => update(item)} style={[styles.choice, {borderColor: selected === item ? tokens.colors.accent : tokens.colors.border, backgroundColor: selected === item ? tokens.colors.surfaceSunken : 'transparent'}]}>
+            <Text style={{color: tokens.colors.text, fontWeight: selected === item ? '700' : '400'}}>{translate(item)}</Text>
+          </Pressable>
+        ))}
+      </View>
+    </View>
+  );
   const update = <K extends keyof LearnerProfileInput>(key: K, item: LearnerProfileInput[K]) => setDraft({...value, [key]: item}); const submit = () => { setNotice(null); void save.mutateAsync(value).then(() => setNotice(t('profile.saved'))).catch(() => setNotice(t('profile.save_failed'))); }; const changeLanguage = (next: 'en' | 'zh') => { setNotice(null); void language.mutateAsync(next).then(() => setNotice(t('profile.language_saved'))).catch(() => setNotice(t('profile.language_failed'))); }; const purchase = () => { if (requestPurchaseHandoff().status === 'unsupported') setNotice(t('profile.purchase_unavailable' as never)); };
-  const account = product.data; const features = Object.entries(account.features).map(([key, item]) => <View key={key} style={styles.feature}><Text style={[styles.featureName, {color: tokens.colors.text}]}>{t((featureLabels[key] ?? 'profile.feature_unknown') as never)}</Text><Text style={{color: tokens.colors.mutedText}}>{accessCopy(t, item)}</Text></View>); const planName = account.plan ? (account.plan.id === 'premium' ? t('profile.plan_premium' as never) : t('profile.plan_free' as never)) : t('profile.plan_unavailable' as never); const planState = account.available === false ? t('profile.plan_unavailable' as never) : account.plan_state === 'active' ? t('profile.plan_active' as never) : account.plan_state === 'unknown' ? t('profile.plan_unknown' as never) : t('profile.plan_default' as never);
-  return <ScrollView style={{flex: 1, backgroundColor: tokens.colors.background}} contentContainerStyle={[styles.container, {backgroundColor: tokens.colors.background}]}><Text accessibilityRole="header" style={[styles.title, {color: tokens.colors.heading}]}>{t('profile.title')}</Text><View accessibilityRole="summary" style={[styles.entitlements, {borderColor: tokens.colors.mutedText}]}><Text style={[styles.sectionTitle, {color: tokens.colors.text}]}>{t('profile.entitlements' as never)}</Text><Text style={[styles.planName, {color: tokens.colors.text}]}>{planName}</Text><Text style={{color: tokens.colors.mutedText}}>{planState}</Text>{features}</View><Pressable accessibilityRole="button" onPress={purchase} style={[styles.secondaryButton, {borderColor: tokens.colors.accent}]}><Text style={{color: tokens.colors.accent}}>{t('profile.purchase' as never)}</Text></Pressable>{choose(t('profile.goal'), ['everyday', 'work', 'exam', 'voice'], value.goal, (item) => update('goal', item as LearnerProfileInput['goal']), (item) => t(`goal.${item}` as never))}{choose(t('profile.style'), ['guided', 'examples', 'concise', 'deep'], value.style, (item) => update('style', item as LearnerProfileInput['style']), (item) => t(`style.${item}` as never))}{choose(t('profile.native_language'), ['vi', 'en', 'zh'], value.native_language, (item) => update('native_language', item as LearnerProfileInput['native_language']), (item) => t(`language.${item}` as never))}{choose(t('profile.pinyin'), ['auto', 'on', 'off'], value.pinyin, (item) => update('pinyin', item as LearnerProfileInput['pinyin']), (item) => item)}{choose(t('profile.theme'), ['editorial', 'sage', 'clay', 'blueprint'], value.theme_preset, (item) => update('theme_preset', item as LearnerProfileInput['theme_preset']), (item) => item)}{choose(t('profile.learning_language'), ['en', 'zh'], profile.data.language, changeLanguage, (item) => t(`language.${item}` as never))}<LocaleSelector /><ThemeSelector />{notice && <Text accessibilityRole="alert" style={{color: tokens.colors.danger}}>{notice}</Text>}<Pressable accessibilityRole="button" disabled={save.isPending || language.isPending} onPress={submit} style={[styles.button, {backgroundColor: tokens.colors.accent, opacity: save.isPending ? 0.6 : 1}]}><Text style={[styles.buttonText, {color: tokens.colors.onAccent}]}>{save.isPending ? t('profile.saving') : t('profile.save')}</Text></Pressable></ScrollView>;
+  const account = product.data;
+  const planName = account.plan ? (account.plan.id === 'premium' ? t('profile.plan_premium' as never) : t('profile.plan_free' as never)) : t('profile.plan_unavailable' as never);
+  const planState = account.available === false ? t('profile.plan_unavailable' as never) : account.plan_state === 'active' ? t('profile.plan_active' as never) : account.plan_state === 'unknown' ? t('profile.plan_unknown' as never) : t('profile.plan_default' as never);
+  return (
+    <ScrollView style={{flex: 1, backgroundColor: tokens.colors.background}} contentContainerStyle={[styles.container, {backgroundColor: tokens.colors.background}]}>
+      <Text accessibilityRole="header" style={[styles.title, {color: tokens.colors.heading}]}>{t('profile.title')}</Text>
+
+      <Panel>
+        <View accessibilityRole="summary">
+          <Label>{t('profile.entitlements' as never)}</Label>
+          <Text style={[styles.planName, {color: tokens.colors.heading}]}>{planName}</Text>
+          <Text style={{color: tokens.colors.mutedText}}>{planState}</Text>
+          {Object.entries(account.features).map(([key, item]) => (
+            <View key={key} style={styles.feature}>
+              <Text style={[styles.featureName, {color: tokens.colors.text}]}>{t((featureLabels[key] ?? 'profile.feature_unknown') as never)}</Text>
+              <Chip>{accessCopy(t, item)}</Chip>
+            </View>
+          ))}
+        </View>
+        <Button label={t('profile.purchase' as never)} variant="outline" onPress={purchase} />
+      </Panel>
+
+      <Panel>
+        {choose(t('profile.goal'), ['everyday', 'work', 'exam', 'voice'], value.goal, (item) => update('goal', item as LearnerProfileInput['goal']), (item) => t(`goal.${item}` as never))}
+        {choose(t('profile.style'), ['guided', 'examples', 'concise', 'deep'], value.style, (item) => update('style', item as LearnerProfileInput['style']), (item) => t(`style.${item}` as never))}
+        {choose(t('profile.native_language'), ['vi', 'en', 'zh'], value.native_language, (item) => update('native_language', item as LearnerProfileInput['native_language']), (item) => t(`language.${item}` as never))}
+        {choose(t('profile.pinyin'), ['auto', 'on', 'off'], value.pinyin, (item) => update('pinyin', item as LearnerProfileInput['pinyin']), (item) => item)}
+        {choose(t('profile.theme'), ['editorial', 'sage', 'clay', 'blueprint'], value.theme_preset, (item) => update('theme_preset', item as LearnerProfileInput['theme_preset']), (item) => item)}
+        {choose(t('profile.learning_language'), ['en', 'zh'], profile.data.language, changeLanguage, (item) => t(`language.${item}` as never))}
+      </Panel>
+
+      <LocaleSelector />
+      <ThemeSelector />
+      {notice && <Text accessibilityRole="alert" style={{color: tokens.colors.danger}}>{notice}</Text>}
+      <Button label={save.isPending ? t('profile.saving') : t('profile.save')} disabled={save.isPending || language.isPending} onPress={submit} />
+    </ScrollView>
+  );
 }
 
-const styles = StyleSheet.create({container: {flexGrow: 1, padding: 24, gap: 16, width: '100%', maxWidth: CONTENT_MAX, alignSelf: 'center'}, title: {fontSize: 20, fontWeight: '700'}, label: {fontSize: 15, fontWeight: '700', marginTop: 8}, choices: {gap: 8}, choice: {borderWidth: 1, borderRadius: 15, padding: 14}, entitlements: {borderWidth: 1, borderRadius: 20, padding: 16, gap: 8}, sectionTitle: {fontSize: 15, fontWeight: '700'}, planName: {fontSize: 17, fontWeight: '700'}, feature: {paddingTop: 8, gap: 2}, featureName: {fontWeight: '600'}, secondaryButton: {borderWidth: 1, borderRadius: 15, padding: 14, alignItems: 'center'}, button: {padding: 16, borderRadius: 15, alignItems: 'center', minHeight: 44, justifyContent: 'center'}, buttonText: {fontSize: 14, fontWeight: '700'}});
+const styles = StyleSheet.create({
+  container: {flexGrow: 1, padding: 24, gap: 16, width: '100%', maxWidth: CONTENT_MAX, alignSelf: 'center'},
+  title: {fontSize: 20, fontWeight: '700'},
+  group: {gap: 8, marginTop: 4},
+  choices: {flexDirection: 'row', flexWrap: 'wrap', gap: 8},
+  choice: {borderWidth: 1, borderRadius: 15, paddingHorizontal: 14, paddingVertical: 10},
+  planName: {fontSize: 17, fontWeight: '700', marginTop: 4},
+  feature: {flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, paddingTop: 10},
+  featureName: {fontWeight: '600', flex: 1, minWidth: 0},
+});
