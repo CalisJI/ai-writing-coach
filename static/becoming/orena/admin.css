@@ -105,7 +105,7 @@
 .admin-page .admin-provider-config-identity p{margin:4px 0 0;color:var(--o-ink-muted);font-size:var(--o-text-meta)}
 .admin-page .admin-provider-setup-form{display:grid;gap:12px}
 .admin-page .admin-provider-fields{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
-.admin-page .admin-provider-fields label{display:grid;gap:6px;color:var(--o-ink-muted);font-size:var(--o-text-meta);font-weight:600}
+.admin-page .admin-provider-fields label{display:grid;align-self:start;gap:6px;color:var(--o-ink-muted);font-size:var(--o-text-meta);font-weight:600}
 .admin-page .admin-provider-fields input,.admin-page .admin-provider-fields textarea,.admin-page .admin-provider-fields select,.admin-page .admin-provider-fields .orena-select-button{width:100%;min-width:0;border:1px solid var(--o-border-strong);border-radius:var(--o-radius-field);background:var(--o-surface);color:var(--o-ink);font:400 var(--o-text-ui)/1.35 var(--o-font);box-shadow:var(--o-shadow-inset)}
 .admin-page .admin-provider-fields input{min-height:40px;padding:0 12px}
 .admin-page .admin-provider-fields textarea{padding:10px 12px;resize:vertical}
