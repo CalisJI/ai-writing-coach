@@ -110,7 +110,7 @@ Colour/Type/Space/Component/Layout are scored against the web implementation.
 | Review | `screens/review.js` | `PromptCard` + `IssueRow` findings + aside actions | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | P3 |
 | Grammar | `screens/grammar.js`, `orena/grammar.css` | curriculum overview + lesson detail | ✓ | ✓ | ✓ | ~ | ✓ | ✓ | ✓ | ✓ | ✓ | P2 |
 | Reading | `screens/reading.js`, `orena/reading.css` | create form + article header + passage + rail | ✓ | ✓ | ✓ | ~ | ✓ | ✓ | ✓ | ✓ | ✓ | P2 |
-| Listening | `screens/listening.js`, `orena/listening.css` | import + transcript | ~ | ✗ | ~ | ✗ | ✗ | ✓ | ✓ | ✓ | ✓ | P1 |
+| Listening | `screens/listening.js`, `orena/listening.css` | import + Follow/Active + resume, panel-restyled | ✓ | ✓ | ✓ | ~ | ~ | ✓ | ✓ | ✓ | ✓ | P2 |
 | Speaking | `screens/speaking.js`, `orena/speaking.css` | record + evidence | ~ | ✗ | ~ | ✗ | ✗ | ✓ | ✓ | ✓ | ✓ | P1 |
 | Library | `screens/library.js`, `orena/library.css` | word list + recall | ~ | ✗ | ~ | ✗ | ✗ | ✓ | ✓ | ✓ | ✓ | P1 |
 | Journey | `screens/journey.js`, `orena/journey.css` | metric row + cards | ~ | ✗ | ~ | ✗ | ✗ | ✓ | ✓ | ✓ | ✓ | P1 |
@@ -138,8 +138,24 @@ Tokens first, as the token layer is what every screen reads.
 5. ~~**P1 Finding 4** — move screens onto the Orena type scale.~~ Done.
 6. **P1 per-screen** — compose each screen from its web counterpart, in the
    roadmap order Home → ~~Writing~~ → ~~Review~~ → ~~Grammar~~ → ~~Reading~~ →
-   Listening → Speaking → Library → Journey → Profile. Home, Writing, Review,
-   Grammar and Reading are done; the remaining five screens are the open work.
+   ~~Listening~~ → Speaking → Library → Journey → Profile. Home, Writing,
+   Review, Grammar, Reading and Listening are done; the remaining four
+   screens are the open work.
+
+   Listening's residual gap is the largest of any screen so far: the web is a
+   full studio (an embedded video/audio player with transport controls, a
+   waveform-backed transcript, a Shadowing-mode layout variant, a vocabulary
+   rail) that the native client has no player surface for beyond `expo-audio`
+   bare playback -- `screens/listening.js` alone is over 2000 lines, several
+   times any other screen's web source. What native functionally has (import
+   a source, Follow/Active practice on a segment list, resume across an app
+   restart, hand a segment to Shadowing) was restyled onto the Orena panel/
+   label/chip primitives without changing any of its logic (all 8 of
+   `test/routes/listening.test.tsx`'s behavioural tests -- resume, pending-
+   import rehydration, Shadowing handoff, interrupted playback -- still pass
+   unchanged). The studio layout itself (video frame, transport bar, vocab
+   rail) is not reproduced and is recorded here as a P2 residual, not claimed
+   as done.
 
    Reading's residual gap: the web triggers its contextual lookup from a mouse
    text selection (`window.getSelection()`), which has no stable cross-platform

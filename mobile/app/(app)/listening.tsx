@@ -13,13 +13,27 @@ import {useMediaImportStatus, createMediaResumeStore} from '../../src/query/useM
 import {clearListeningPending, clearListeningResume, readListeningPending, readListeningResume, secureListeningResumeStorage, secureMediaResumeStorage, writeListeningPending, writeListeningResume, type ListeningPending, type ListeningResume} from '../../src/features/listening/listeningResume';
 import type {ResumeState} from '../../src/api/mediaClient';
 import type {KeyValueStorage} from '../../src/storage/boundedCache';
+import {Button as OrenaButton, Chip, Label as OrenaLabel, Panel} from '../../src/components/orena';
+
+/**
+ * Ported from static/becoming/screens/listening.js and orena/listening.css.
+ *
+ * The web is a full studio -- an embedded video/audio player with transport
+ * controls, a waveform-backed transcript, a Shadowing-mode layout variant,
+ * and a vocabulary rail -- built around media the native client has no
+ * player surface for beyond `expo-audio`'s bare playback. The functional
+ * surface native actually has (import a source, Follow/Active practice on a
+ * segment list, resume across an app restart, hand a segment to Shadowing)
+ * is restyled here with the Orena panel/label/chip primitives; the studio
+ * layout itself (video frame, transport bar, vocab rail) is not reproduced
+ * and is tracked as a residual in MOBILE_VISUAL_PARITY_AUDIT.md.
+ */
 
 type ListeningMode = 'follow' | 'active';
 export type ListeningScreenProps = {client?: ApiClient; resumeStorage?: KeyValueStorage; mediaResumeStorage?: KeyValueStorage};
 
 function Button({label, onPress, disabled = false, secondary = false}: {label: string; onPress: () => void; disabled?: boolean; secondary?: boolean}) {
-  const {tokens} = useTheme();
-  return <Pressable accessibilityRole="button" accessibilityLabel={label} disabled={disabled} onPress={onPress} style={[styles.button, {backgroundColor: secondary ? tokens.colors.surface : tokens.colors.accent, borderColor: tokens.colors.accent, opacity: disabled ? 0.55 : 1}]}><Text style={{color: secondary ? tokens.colors.accent : '#fff', fontWeight: '700'}}>{label}</Text></Pressable>;
+  return <OrenaButton label={label} onPress={onPress} disabled={disabled} variant={secondary ? 'outline' : 'primary'} />;
 }
 
 function PlayerControl({url, player, status}: {url: string; player: AudioPlayer; status: AudioStatus}) {
@@ -44,17 +58,24 @@ function ReadyLesson({lesson, mode, selectedId, progress, progressPending, progr
       <Pressable accessibilityRole="tab" accessibilityLabel={t('listening.follow')} accessibilityState={{selected: mode === 'follow'}} onPress={() => onMode('follow')} style={[styles.mode, mode === 'follow' && {backgroundColor: tokens.colors.surface, borderColor: tokens.colors.accent}]}><Text style={{color: tokens.colors.text}}>{t('listening.follow')}</Text></Pressable>
       <Pressable accessibilityRole="tab" accessibilityLabel={t('listening.active')} accessibilityState={{selected: mode === 'active'}} onPress={() => onMode('active')} style={[styles.mode, mode === 'active' && {backgroundColor: tokens.colors.surface, borderColor: tokens.colors.accent}]}><Text style={{color: tokens.colors.text}}>{t('listening.active')}</Text></Pressable>
     </View>
-    <Text style={[styles.sectionLabel, {color: tokens.colors.text}]}>{t('listening.segment')}</Text>
-    <View style={styles.segmentList}>{lesson.transcript?.segments.map((segment) => <Pressable key={segment.segment_id} accessibilityRole="button" accessibilityLabel={segment.original_text} accessibilityState={{selected: segment.segment_id === selected?.segment_id}} onPress={() => onSelect(segment.segment_id)} style={[styles.segment, {borderColor: segment.segment_id === selected?.segment_id ? tokens.colors.accent : tokens.colors.mutedText}]}><Text style={{color: tokens.colors.text}}>{segment.original_text}</Text></Pressable>)}</View>
-    {selected && mode === 'active' && <View style={[styles.card, {backgroundColor: tokens.colors.surface, borderColor: tokens.colors.border}]}>
-      <Text style={{color: tokens.colors.text, fontWeight: '700'}}>{t('listening.answer')}</Text>
-      <TextInput accessibilityLabel={t('listening.answer')} value={answer} onChangeText={setAnswer} placeholder={t('listening.answer_placeholder')} placeholderTextColor={tokens.colors.mutedText} multiline style={[styles.input, {color: tokens.colors.text, borderColor: tokens.colors.mutedText}]} />
+    <OrenaLabel>{t('listening.segment')}</OrenaLabel>
+    <View style={styles.segmentList}>{lesson.transcript?.segments.map((segment) => <Pressable key={segment.segment_id} accessibilityRole="button" accessibilityLabel={segment.original_text} accessibilityState={{selected: segment.segment_id === selected?.segment_id}} onPress={() => onSelect(segment.segment_id)} style={[styles.segment, {borderColor: segment.segment_id === selected?.segment_id ? tokens.colors.accent : tokens.colors.border, backgroundColor: segment.segment_id === selected?.segment_id ? tokens.colors.surfaceSunken : tokens.colors.surface}]}><Text style={{color: tokens.colors.text}}>{segment.original_text}</Text></Pressable>)}</View>
+    {selected && mode === 'active' && <Panel>
+      <OrenaLabel>{t('listening.answer')}</OrenaLabel>
+      <TextInput accessibilityLabel={t('listening.answer')} value={answer} onChangeText={setAnswer} placeholder={t('listening.answer_placeholder')} placeholderTextColor={tokens.colors.mutedText} multiline style={[styles.input, {color: tokens.colors.text, borderColor: tokens.colors.borderStrong, backgroundColor: tokens.colors.surfaceSunken}]} />
       <View style={styles.actionRow}><Button label={t('listening.check')} onPress={onSave} disabled={!answer.trim()} /><Button label={t('listening.reveal')} onPress={onReveal} secondary /></View>
       {checked && <Text accessibilityLiveRegion="polite" style={{color: tokens.colors.text}}>{revealed ? t('listening.revealed') : t('listening.checked')}</Text>}
       {revealed && <Text style={{color: tokens.colors.text}}>{selected.original_text}</Text>}
-    </View>}
-    {mode === 'follow' && selected && <Text style={[styles.selectedText, {color: tokens.colors.text}]}>{selected.original_text}</Text>}
-    <View style={[styles.card, {backgroundColor: tokens.colors.surface, borderColor: tokens.colors.border}]}><Text style={{color: tokens.colors.text, fontWeight: '700'}}>{t('listening.progress')}</Text>{progressPending ? <Text style={{color: tokens.colors.mutedText}}>{t('listening.progress_loading')}</Text> : <Text style={{color: tokens.colors.text}}>{checkedCount}</Text>}{progressError && <Text accessibilityRole="alert" style={{color: tokens.colors.danger}}>{t('listening.progress_unavailable')}</Text>}</View>
+    </Panel>}
+    {mode === 'follow' && selected && <Panel><Text style={[styles.selectedText, {color: tokens.colors.text}]}>{selected.original_text}</Text></Panel>}
+    <Panel>
+      <View style={styles.progressHead}>
+        <OrenaLabel>{t('listening.progress')}</OrenaLabel>
+        {!progressPending ? <Chip>{checkedCount}</Chip> : null}
+      </View>
+      {progressPending ? <Text style={{color: tokens.colors.mutedText}}>{t('listening.progress_loading')}</Text> : null}
+      {progressError && <Text accessibilityRole="alert" style={{color: tokens.colors.danger}}>{t('listening.progress_unavailable')}</Text>}
+    </Panel>
     <Button label={t('listening.resume_cancel')} onPress={onRestart} secondary />
   </ScrollView>;
 }
@@ -134,10 +155,24 @@ export default function ListeningScreen({client: providedClient, resumeStorage =
   const save = (presentation: 'checked' | 'revealed') => { const segment = lesson?.transcript?.segments.find((item) => item.segment_id === selectedId); if (!lesson || !segment) return; const current = progress.find((item) => item.segment_id === segment.segment_id); saveProgress.mutate({asset_id: lesson.asset.asset_id, segment_id: segment.segment_id, presentation, revealed: presentation === 'revealed', checked_attempt_count: presentation === 'checked' ? (current?.checked_attempt_count ?? 0) + 1 : current?.checked_attempt_count ?? 0, best_exact: false, last_answer: presentation === 'checked' ? answer.trim() : current?.last_answer ?? ''}, {onSuccess: (result) => setProgress((items) => [...items.filter((item) => item.segment_id !== result.item.segment_id), result.item]), onError: () => setNotice(t('listening.unavailable'))}); };
 
   if (!sessionCookie || !client) return <View style={[styles.container, {backgroundColor: tokens.colors.background}]}><Text accessibilityRole="header" style={[styles.title, {color: tokens.colors.heading}]}>{t('listening.title')}</Text><Text style={{color: tokens.colors.mutedText}}>{t('listening.signed_out')}</Text><Button label={t('listening.back')} onPress={() => router.replace('/(app)')} secondary /></View>;
-  if (!lesson) return <ScrollView style={{flex: 1, backgroundColor: tokens.colors.background}} contentContainerStyle={[styles.container, {backgroundColor: tokens.colors.background}]}><Text accessibilityRole="header" style={[styles.title, {color: tokens.colors.heading}]}>{t('listening.title')}</Text><Text style={{color: tokens.colors.mutedText}}>{t('listening.body')}</Text>{(resume || (pending && mediaResume)) && <View style={[styles.card, {backgroundColor: tokens.colors.surface, borderColor: tokens.colors.border}]}><Text style={{color: tokens.colors.text}}>{t('listening.resume_found')}</Text><Button label={t('listening.resume')} onPress={() => { if (pending && mediaResume) { setSourceUrl(pending.sourceUrl); attemptedReadyHandle.current = null; rehydrating.current = false; if (mediaResume.resumable) setMediaResumeHandle(mediaResume.resumeHandle); else { rehydrating.current = true; prepare(pending.sourceUrl); } } else if (resume) { setSourceUrl(resume.sourceUrl); prepare(resume.sourceUrl); } }} /><Button label={t('listening.resume_cancel')} onPress={() => { void clearListeningResume(resumeStorage); void clearListeningPending(resumeStorage); void mediaStore?.clear(); setResume(null); setPending(null); setMediaResume(null); setMediaResumeHandle(''); }} secondary /></View>}<TextInput accessibilityLabel={t('listening.source_url')} value={sourceUrl} onChangeText={setSourceUrl} placeholder={t('listening.source_placeholder')} placeholderTextColor={tokens.colors.mutedText} autoCapitalize="none" autoCorrect={false} style={[styles.input, {color: tokens.colors.text, borderColor: tokens.colors.mutedText}]} />{notice && <Text accessibilityRole="alert" style={{color: tokens.colors.danger}}>{notice}</Text>}{importMedia.isPending ? <View style={styles.actionRow}><Button label={t('listening.preparing')} onPress={() => undefined} disabled /><Button label={t('listening.cancel')} onPress={cancel} secondary /></View> : <Button label={t('listening.prepare')} onPress={() => prepare(sourceUrl)} disabled={!sourceUrl.trim()} />}</ScrollView>;
+  if (!lesson) return <ScrollView style={{flex: 1, backgroundColor: tokens.colors.background}} contentContainerStyle={[styles.container, {backgroundColor: tokens.colors.background}]}>
+    <Text accessibilityRole="header" style={[styles.title, {color: tokens.colors.heading}]}>{t('listening.title')}</Text>
+    <Text style={{color: tokens.colors.mutedText}}>{t('listening.body')}</Text>
+    {(resume || (pending && mediaResume)) && <Panel>
+      <Text style={{color: tokens.colors.text}}>{t('listening.resume_found')}</Text>
+      <Button label={t('listening.resume')} onPress={() => { if (pending && mediaResume) { setSourceUrl(pending.sourceUrl); attemptedReadyHandle.current = null; rehydrating.current = false; if (mediaResume.resumable) setMediaResumeHandle(mediaResume.resumeHandle); else { rehydrating.current = true; prepare(pending.sourceUrl); } } else if (resume) { setSourceUrl(resume.sourceUrl); prepare(resume.sourceUrl); } }} />
+      <Button label={t('listening.resume_cancel')} onPress={() => { void clearListeningResume(resumeStorage); void clearListeningPending(resumeStorage); void mediaStore?.clear(); setResume(null); setPending(null); setMediaResume(null); setMediaResumeHandle(''); }} secondary />
+    </Panel>}
+    <Panel>
+      <OrenaLabel>{t('listening.source_url')}</OrenaLabel>
+      <TextInput accessibilityLabel={t('listening.source_url')} value={sourceUrl} onChangeText={setSourceUrl} placeholder={t('listening.source_placeholder')} placeholderTextColor={tokens.colors.mutedText} autoCapitalize="none" autoCorrect={false} style={[styles.input, {color: tokens.colors.text, borderColor: tokens.colors.borderStrong, backgroundColor: tokens.colors.surfaceSunken}]} />
+      {notice && <Text accessibilityRole="alert" style={{color: tokens.colors.danger}}>{notice}</Text>}
+      {importMedia.isPending ? <View style={styles.actionRow}><Button label={t('listening.preparing')} onPress={() => undefined} disabled /><Button label={t('listening.cancel')} onPress={cancel} secondary /></View> : <Button label={t('listening.prepare')} onPress={() => prepare(sourceUrl)} disabled={!sourceUrl.trim()} />}
+    </Panel>
+  </ScrollView>;
   const restart = () => { operation.current += 1; rehydrating.current = false; importMedia.reset(); setLesson(null); setProgress([]); setAnswer(''); setSourceUrl(''); setNotice(null); setResume(null); setPending(null); setMediaResume(null); setMediaResumeHandle(''); void clearListeningResume(resumeStorage); void clearListeningPending(resumeStorage); void mediaStore?.clear(); };
   const selectedSegment = lesson.transcript?.segments.find((item) => item.segment_id === selectedId) ?? lesson.transcript?.segments[0];
   return <><ReadyLesson lesson={lesson} mode={mode} selectedId={selectedId} progress={progress} progressPending={progressQuery.isPending} progressError={progressQuery.isError} answer={answer} setAnswer={setAnswer} onMode={changeMode} onSelect={select} onSave={() => save('checked')} onReveal={() => save('revealed')} onRestart={restart} player={player} playerStatus={playerStatus} /><View style={{paddingHorizontal: 24, paddingBottom: 24}}><Button label={t('speaking.open_listening')} onPress={() => { if (!selectedSegment) return; router.push({pathname: '/(app)/speaking', params: {mode: 'shadowing', assetId: lesson.asset.asset_id, segmentId: selectedSegment.segment_id, sourceUrl: lesson.asset.source_url, referenceText: selectedSegment.original_text}} as never); }} /></View></>;
 }
 
-const styles = StyleSheet.create({container: {flexGrow: 1, padding: 24, gap: 12, width: '100%', maxWidth: CONTENT_MAX, alignSelf: 'center'}, title: {fontSize: 20, fontWeight: '700'}, card: {padding: 16, borderRadius: 20, gap: 12, borderWidth: 1}, input: {minHeight: 52, borderWidth: 1, borderRadius: 15, padding: 14, fontSize: 15}, button: {minHeight: 48, padding: 14, borderRadius: 15, borderWidth: 1, alignItems: 'center', justifyContent: 'center'}, actionRow: {gap: 8}, modeRow: {flexDirection: 'row', gap: 8}, mode: {flex: 1, padding: 12, borderWidth: 1, borderColor: 'transparent', borderRadius: 15, alignItems: 'center'}, sectionLabel: {fontSize: 15, fontWeight: '700'}, segmentList: {gap: 8}, segment: {padding: 12, borderWidth: 1, borderRadius: 15}, selectedText: {fontSize: 15, lineHeight: 28}});
+const styles = StyleSheet.create({container: {flexGrow: 1, padding: 24, gap: 16, width: '100%', maxWidth: CONTENT_MAX, alignSelf: 'center'}, title: {fontSize: 20, fontWeight: '700'}, input: {minHeight: 52, borderWidth: 1, borderRadius: 15, padding: 14, fontSize: 15}, actionRow: {gap: 8}, modeRow: {flexDirection: 'row', gap: 8}, mode: {flex: 1, padding: 12, borderWidth: 1, borderColor: 'transparent', borderRadius: 15, alignItems: 'center'}, segmentList: {gap: 8}, segment: {padding: 12, borderWidth: 1, borderRadius: 15}, selectedText: {fontSize: 15, lineHeight: 28}, progressHead: {flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between'}});
