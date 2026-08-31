@@ -145,6 +145,41 @@ export function Chip({children}: PropsWithChildren) {
   );
 }
 
+/**
+ * `.o-issue` — one finding in a Review list.
+ *
+ * The head is a 38px row carrying a 20px round `.o-issue-mark` banded by
+ * confidence (high uses --o-role-verb, medium --o-role-noun, low
+ * --o-role-adverb), the finding's name, and a tinted chip. The evidence sits
+ * beneath it.
+ */
+export function IssueRow({index, band, name, chip, children}: PropsWithChildren<{
+  index: number;
+  band: 'high' | 'medium' | 'low';
+  name: string;
+  chip?: string;
+}>) {
+  const {tokens} = useTheme();
+  const markColor = band === 'high' ? tokens.colors.roleVerb : band === 'medium' ? tokens.colors.roleNoun : tokens.colors.roleAdverb;
+  const chipColor = band === 'high' ? tokens.colors.danger : band === 'medium' ? tokens.colors.attention : tokens.colors.positive;
+  return (
+    <View style={styles.issue}>
+      <View style={styles.issueHead}>
+        <View style={[styles.issueMark, {backgroundColor: markColor}]}>
+          <Text style={styles.issueMarkText}>{index}</Text>
+        </View>
+        <Text numberOfLines={1} style={[styles.issueName, {color: tokens.colors.text}]}>{name}</Text>
+        {chip ? (
+          <View style={[styles.issueChip, {borderColor: chipColor, borderRadius: tokens.radii.chip}]}>
+            <Text style={[styles.issueChipText, {color: chipColor}]}>{chip}</Text>
+          </View>
+        ) : null}
+      </View>
+      <View style={styles.issueBody}>{children}</View>
+    </View>
+  );
+}
+
 /** A label/value pair, as the web uses for metric readouts. */
 export function Metric({label, value}: {label: string; value: string}) {
   const {tokens} = useTheme();
@@ -183,6 +218,15 @@ const styles = StyleSheet.create({
   editorFoot: {flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 14, minHeight: 52, paddingHorizontal: 20, paddingVertical: 8, borderTopWidth: 1, flexWrap: 'wrap'},
   chip: {borderWidth: 1, paddingHorizontal: 10, paddingVertical: 5},
   chipLabel: {fontSize: orenaText.meta, fontWeight: '600'},
+  issue: {gap: 6, paddingVertical: 10},
+  // `.o-issue-head`: 38px tall, 10px gap, ui text.
+  issueHead: {flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 38},
+  issueMark: {width: 20, height: 20, borderRadius: 999, alignItems: 'center', justifyContent: 'center'},
+  issueMarkText: {color: '#FFFFFF', fontSize: 11, fontWeight: '600', lineHeight: 13},
+  issueName: {flex: 1, minWidth: 0, fontSize: orenaText.ui},
+  issueChip: {borderWidth: 1, paddingHorizontal: 8, paddingVertical: 3},
+  issueChipText: {fontSize: orenaText.meta, fontWeight: '600'},
+  issueBody: {gap: 4, paddingLeft: 30},
   metric: {gap: 2, minWidth: 96},
   metricLabel: {fontSize: orenaText.meta},
   metricValue: {fontSize: orenaText.title, fontWeight: '700'},

@@ -140,7 +140,9 @@ describe('R20 native Writing -> Evaluate -> Review -> Grammar -> Revise loop', (
   it.each(['en', 'zh'] as const)('opens R5 Grammar practice from a linked finding in %s', (locale) => {
     setReviewHandoff(evaluation, evaluationInput);
     const view = render(<ReviewScreen />, locale);
-    act(() => buttonContaining(view, locale === 'zh' ? '练习这个语法' : 'Practice this grammar').props.onPress());
+    // The web puts the action name on the panel and the lesson title on the
+    // button, so target the lesson the finding links to.
+    act(() => buttonContaining(view, 'Articles').props.onPress());
     expect(mockGrammarPractice.mutate).toHaveBeenCalledWith({grammarId: 'en-articles', evidence: 'a dog'}, expect.any(Object));
     act(() => mockGrammarPractice.mutate.mock.calls[0][1].onSuccess(grammarTask));
     expect(mockPush).toHaveBeenCalledWith('/(app)/writing');

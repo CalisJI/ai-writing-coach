@@ -36,6 +36,11 @@ const base = {
     attention: '#B4770F',
     critical: '#C43D2E',
     onAccent: '#FFFFFF',
+    // `--o-role-*`: the Writing legend bands, reused by Review's issue marks.
+    roleVerb: '#D94401',
+    roleNoun: '#6131BB',
+    roleAdjective: '#158030',
+    roleAdverb: '#15628E',
   },
   dark: {
     canvas: '#08090B',
@@ -51,6 +56,10 @@ const base = {
     attention: '#D6A64A',
     critical: '#E4776A',
     onAccent: '#FFFFFF',
+    roleVerb: '#F2764A',
+    roleNoun: '#A98BEA',
+    roleAdjective: '#5BB878',
+    roleAdverb: '#6BA5CE',
   },
 } as const;
 
@@ -131,6 +140,10 @@ export type ThemeTokens = {
     onAccent: string;
     positive: string;
     attention: string;
+    /** `--o-role-*`, used for confidence bands on Review issues. */
+    roleVerb: string;
+    roleNoun: string;
+    roleAdverb: string;
     danger: string;
     dangerSurface: string;
     informational: string;
@@ -170,6 +183,9 @@ export const tokensFor = (scheme: ColorScheme, preset: PalettePreset = 'editoria
       onAccent: surface.onAccent,
       positive: surface.positive,
       attention: surface.attention,
+      roleVerb: surface.roleVerb,
+      roleNoun: surface.roleNoun,
+      roleAdverb: surface.roleAdverb,
       danger: surface.critical,
       dangerSurface: surface.surfaceSunken,
       informational: surface.inkMuted,

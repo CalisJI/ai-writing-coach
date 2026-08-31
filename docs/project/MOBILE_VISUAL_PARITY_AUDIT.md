@@ -107,7 +107,7 @@ Colour/Type/Space/Component/Layout are scored against the web implementation.
 | Onboarding | `screens/onboarding.js` | `OnboardingForm` radio list | ~ | ✗ | ~ | ✗ | ✗ | ✓ | ✓ | ✓ | ✓ | P1 |
 | Home | `screens/home.js`, `orena/home.css` | hero + 3 panels + split | ~ | ✓ | ✓ | ~ | ✓ | ✓ | ✓ | ✓ | ✓ | P2 |
 | Writing | `screens/write.js`, `orena/writing.css` | prompt card + editor card + aside | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | P3 |
-| Review | `screens/review.js` | flat issue list | ~ | ✗ | ~ | ✗ | ✗ | ✓ | ✓ | ✓ | ✓ | P1 |
+| Review | `screens/review.js` | `PromptCard` + `IssueRow` findings + aside actions | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | P3 |
 | Grammar | `screens/grammar.js`, `orena/grammar.css` | lesson list + detail | ~ | ✗ | ~ | ✗ | ✗ | ✓ | ✓ | ✓ | ✓ | P1 |
 | Reading | `screens/reading.js`, `orena/reading.css` | passage + questions | ~ | ✗ | ~ | ✗ | ✗ | ✓ | ✓ | ✓ | ✓ | P1 |
 | Listening | `screens/listening.js`, `orena/listening.css` | import + transcript | ~ | ✗ | ~ | ✗ | ✗ | ✓ | ✓ | ✓ | ✓ | P1 |
@@ -137,8 +137,8 @@ Tokens first, as the token layer is what every screen reads.
    web's 1.7 stroke on the 24 grid. No emoji stand in for a designed icon.
 5. ~~**P1 Finding 4** — move screens onto the Orena type scale.~~ Done.
 6. **P1 per-screen** — compose each screen from its web counterpart, in the
-   roadmap order Home → ~~Writing~~ → Review → Grammar → Reading → Listening →
-   Speaking → Library → Journey → Profile. Home and Writing are done; the
-   remaining eight screens are the open work.
+   roadmap order Home → ~~Writing~~ → ~~Review~~ → Grammar → Reading →
+   Listening → Speaking → Library → Journey → Profile. Home, Writing and
+   Review are done; the remaining seven screens are the open work.
 
 No web file is changed by any of this.
