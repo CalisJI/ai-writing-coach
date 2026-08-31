@@ -5,6 +5,7 @@
   let learnerRuntime = {mode:'legacy'};
   let active = {provider:'', model:''};
   let currentFilter = 'all';
+  let selectedProviderId = '';
   let searchText = '';
   let operations = {available:false, has_data:false, recent:[], by_capability:[]};
   let accountState = null;
@@ -546,13 +547,60 @@
     $('#adminModelCount').textContent = String(modelCount);
   }
 
+  function renderProviderConfig(){
+    const host=$('#adminProviderConfig');
+    if(!host) return;
+    const provider=providerById(selectedProviderId) || providers[0];
+    if(!provider){
+      host.innerHTML='<div class="admin-empty">No provider configuration is available.</div>';
+      return;
+    }
+    selectedProviderId=provider.id;
+    const config=provider.configuration || {};
+    const credentialRequired=config.credential_env !== null && config.credential_env !== undefined;
+    const credentialState=config.credential_state === 'configured' ? 'Credential configured on server' : credentialRequired ? 'Credential not configured' : 'No credential required';
+    const models=[...(provider.models || [])];
+    if(!models.length && provider.default_model) models.push(provider.default_model);
+    const endpoint=String(config.endpoint_url || '');
+    const modelList=models.join('\n');
+    host.innerHTML=`<div class="admin-provider-config-head">
+      <div class="admin-provider-config-identity"><span class="provider-icon provider-icon--${esc(provider.id)} large">${providerIcon(provider.id)}</span><div><h4>${esc(provider.name)}</h4><p>${provider.kind==='local'?'Local provider':'Cloud provider'} · ${esc(credentialState)}</p></div></div>
+      <span class="admin-read-only">DRAFT SETUP</span>
+    </div>
+    <form id="adminProviderSetupForm" class="admin-provider-setup-form">
+      <div class="admin-provider-fields">
+        <label>Endpoint URL<input type="url" data-provider-endpoint value="${esc(endpoint)}" placeholder="https://provider.example/v1" autocomplete="url" /></label>
+        <label>Default model<input type="text" data-provider-default-model value="${esc(provider.default_model || '')}" placeholder="For example, gpt-4.1-mini" autocomplete="off" /></label>
+        <label class="admin-provider-field-wide">Allowed models<textarea data-provider-models rows="3" placeholder="One model name per line">${esc(modelList)}</textarea></label>
+        <label class="admin-provider-field-wide">API key or token<input type="password" data-provider-secret placeholder="Enter a new credential for this draft" autocomplete="new-password" ${credentialRequired?'':'disabled'} /></label>
+      </div>
+      <div class="admin-provider-config-foot"><span>Values are a local draft only. Server credentials and runtime settings are not changed here.</span><button class="o-button o-button--quiet" type="submit">Check draft</button></div>
+    </form>`;
+    host.querySelector('#adminProviderSetupForm')?.addEventListener('submit',event=>{
+      event.preventDefault();
+      const endpointValue=String(host.querySelector('[data-provider-endpoint]')?.value || '').trim();
+      const modelValue=String(host.querySelector('[data-provider-default-model]')?.value || '').trim();
+      const secretValue=String(host.querySelector('[data-provider-secret]')?.value || '').trim();
+      if(endpointValue){
+        try{ new URL(endpointValue); }catch(_error){ setMessage('Enter a valid endpoint URL for this draft.','error'); return; }
+      }
+      if(credentialRequired && config.credential_state !== 'configured' && !secretValue){
+        setMessage('Add a credential to complete this draft. It will not be sent or saved.','error'); return;
+      }
+      if(!modelValue){ setMessage('Choose a default model for this draft.','error'); return; }
+      setMessage(`${provider.name} draft is valid. Server-managed settings were not changed.`,'ok');
+    });
+    window.installOrenaSelectEnhancements?.(host);
+  }
+
   function renderProviderCards(){
     const host = $('#adminProviderCards');
     if(!host) return;
+    if(!selectedProviderId && providers.length) selectedProviderId=providers.find(provider=>provider.configured)?.id || providers[0].id;
     host.innerHTML = providers.map(p=>{
       const state = providerState(p);
       const count = (p.models||[]).length;
-      const selected = currentFilter === p.id ? 'selected' : '';
+      const selected = selectedProviderId === p.id ? 'selected' : '';
       return `<button class="admin-provider-card ${selected}" type="button" data-provider-filter="${esc(p.id)}">
         <span class="provider-icon provider-icon--${esc(p.id)}" aria-label="${esc(p.name || p.id)} provider">${providerIcon(p.id)}</span>
         <span class="provider-copy">
@@ -565,8 +613,10 @@
 
     host.querySelectorAll('[data-provider-filter]').forEach(btn=>{
       btn.addEventListener('click',()=>{
+        selectedProviderId=btn.dataset.providerFilter || selectedProviderId;
         currentFilter = currentFilter === btn.dataset.providerFilter ? 'all' : btn.dataset.providerFilter;
         renderProviderCards();
+        renderProviderConfig();
         renderModels();
         syncFilterButtons();
       });
@@ -664,6 +714,7 @@
     renderCapabilityMatrix();
     renderSummary();
     renderProviderCards();
+    renderProviderConfig();
     renderModels();
     if(!quiet) setMessage('Model catalog refreshed.','ok');
   }
@@ -683,6 +734,7 @@
     providers = d.providers || providers;
     renderSummary();
     renderProviderCards();
+    renderProviderConfig();
     renderModels();
     setMessage(`Active platform model: ${active.provider_name||p?.name||provider} · ${active.model}.`,'ok');
   }

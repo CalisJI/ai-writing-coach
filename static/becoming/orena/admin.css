@@ -94,3 +94,24 @@
 .admin-page .admin-tooltip{position:absolute;z-index:50;left:0;top:calc(100% + 8px);width:min(290px,calc(100vw - 40px));padding:9px 11px;border:1px solid var(--o-border-strong);border-radius:10px;background:var(--o-surface-raised);color:var(--o-ink);box-shadow:var(--o-shadow-card);font-size:var(--o-text-meta);font-weight:500;line-height:1.45;opacity:0;visibility:hidden;pointer-events:none;transform:translateY(-3px);transition:opacity var(--o-motion),transform var(--o-motion),visibility var(--o-motion)}
 .admin-page .admin-tooltip-target:hover .admin-tooltip,.admin-page .admin-tooltip-target:focus-visible .admin-tooltip{opacity:1;visibility:visible;transform:translateY(0)}
 .admin-page .admin-tooltip-target:focus-visible{outline:2px solid var(--o-focus-ring);outline-offset:3px;border-radius:4px}
+
+/* Provider setup follows the provider -> credentials -> model flow while keeping
+   server-managed secrets outside the runtime and persistence boundary. */
+.admin-page .admin-provider-config{margin:12px 0 16px;padding:16px;border:1px solid var(--o-border);border-radius:var(--o-radius-card);background:var(--o-surface-sunken)}
+.admin-page .admin-provider-config-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:14px}
+.admin-page .admin-provider-config-identity{display:flex;align-items:center;gap:10px;min-width:0}
+.admin-page .admin-provider-config-identity h4{margin:0;font-size:var(--o-text-ui)}
+.admin-page .admin-provider-config-identity p{margin:4px 0 0;color:var(--o-ink-muted);font-size:var(--o-text-meta)}
+.admin-page .admin-provider-setup-form{display:grid;gap:12px}
+.admin-page .admin-provider-fields{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
+.admin-page .admin-provider-fields label{display:grid;gap:6px;color:var(--o-ink-muted);font-size:var(--o-text-meta);font-weight:600}
+.admin-page .admin-provider-fields input,.admin-page .admin-provider-fields textarea,.admin-page .admin-provider-fields .orena-select-button{width:100%;min-width:0;border:1px solid var(--o-border-strong);border-radius:var(--o-radius-field);background:var(--o-surface);color:var(--o-ink);font:400 var(--o-text-ui)/1.35 var(--o-font);box-shadow:var(--o-shadow-inset)}
+.admin-page .admin-provider-fields input{min-height:40px;padding:0 12px}
+.admin-page .admin-provider-fields textarea{padding:10px 12px;resize:vertical}
+.admin-page .admin-provider-fields input:focus,.admin-page .admin-provider-fields textarea:focus{outline:none;border-color:var(--o-accent);box-shadow:var(--o-shadow-inset),0 0 0 3px var(--o-focus-ring)}
+.admin-page .admin-provider-fields input:disabled{opacity:.6;cursor:not-allowed}
+.admin-page .admin-provider-field-wide{grid-column:1/-1}
+.admin-page .admin-provider-config-foot{display:flex;align-items:center;justify-content:space-between;gap:12px;color:var(--o-ink-muted);font-size:var(--o-text-meta);line-height:1.45}
+html[data-theme="dark"] .admin-page .provider-icon--ollama,html[data-theme="dark"] .admin-page .provider-icon--openai,html[data-theme="dark"] .admin-page .provider-icon--deepseek{background:#fff;border-color:#eee}
+html[data-theme="dark"] .admin-page .provider-icon--ollama .provider-logo-image,html[data-theme="dark"] .admin-page .provider-icon--openai .provider-logo-image,html[data-theme="dark"] .admin-page .provider-icon--deepseek .provider-logo-image{filter:none}
+@media(max-width:600px){.admin-page .admin-provider-fields{grid-template-columns:1fr}.admin-page .admin-provider-field-wide{grid-column:auto}.admin-page .admin-provider-config-foot{align-items:flex-start;flex-direction:column}.admin-page .admin-provider-config-foot .o-button{width:100%}}

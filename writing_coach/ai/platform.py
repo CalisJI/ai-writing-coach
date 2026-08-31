@@ -99,6 +99,34 @@ def providers() -> dict[str, Any]:
     return build_providers()
 
 
+_PROVIDER_CONFIG_META: dict[str, dict[str, str | None]] = {
+    "ollama": {
+        "endpoint_env": "OLLAMA_URL",
+        "credential_env": None,
+        "model_env": "OLLAMA_MODEL",
+        "models_env": None,
+    },
+    "openai": {
+        "endpoint_env": "OPENAI_BASE_URL",
+        "credential_env": "OPENAI_API_KEY",
+        "model_env": None,
+        "models_env": "OPENAI_MODELS",
+    },
+    "deepseek": {
+        "endpoint_env": "DEEPSEEK_BASE_URL",
+        "credential_env": "DEEPSEEK_API_KEY",
+        "model_env": None,
+        "models_env": "DEEPSEEK_MODELS",
+    },
+    "groq": {
+        "endpoint_env": "GROQ_BASE_URL",
+        "credential_env": "GROQ_API_KEY",
+        "model_env": None,
+        "models_env": "GROQ_MODELS",
+    },
+}
+
+
 def _provider_snapshot(item: Any) -> dict[str, Any]:
     raw_models = item.list_models()
     displayed_models = [safe_model_display(model) for model in raw_models]
@@ -106,6 +134,8 @@ def _provider_snapshot(item: Any) -> dict[str, Any]:
         raw_models[0] if raw_models else ""
     )
     default_model, default_model_redacted = safe_model_display(raw_default)
+    config_meta = _PROVIDER_CONFIG_META.get(item.id, {})
+    credential_env = config_meta.get("credential_env")
     return {
         "id": item.id,
         "name": item.name,
@@ -117,6 +147,19 @@ def _provider_snapshot(item: Any) -> dict[str, Any]:
         "default_model": default_model,
         "default_model_redacted": default_model_redacted,
         "secret_mode": item.secret_mode,
+        "configuration": {
+            "endpoint_url": str(getattr(item, "base_url", "") or ""),
+            "endpoint_env": config_meta.get("endpoint_env"),
+            "credential_env": credential_env,
+            "credential_state": (
+                "not_required"
+                if credential_env is None
+                else "configured" if bool(item.configured) else "not_configured"
+            ),
+            "model_env": config_meta.get("model_env"),
+            "models_env": config_meta.get("models_env"),
+            "secrets_server_managed": item.secret_mode == "server-managed",
+        },
     }
 
 

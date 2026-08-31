@@ -58,6 +58,7 @@ export async function renderAdmin(root) {
         <div class="admin-panel-head"><div><h3>Provider catalog</h3><p>Read-only provider/model availability. Configure supported capabilities above.</p></div></div>
         <div class="admin-toolbar"><div class="admin-toolbar-left"><button class="admin-filter active" type="button" data-admin-filter="all">All</button><button class="admin-filter" type="button" data-admin-filter="ollama">Local</button><button class="admin-filter" type="button" data-admin-filter="openai">OpenAI</button><button class="admin-filter" type="button" data-admin-filter="deepseek">DeepSeek</button></div><div class="admin-toolbar-right"><input id="adminModelSearch" class="admin-search" type="search" placeholder="Search models or providers…"></div></div>
         <div id="adminProviderCards" class="admin-provider-list"></div>
+        <div id="adminProviderConfig" class="admin-provider-config" aria-live="polite"><div class="admin-empty">Select a provider to view its connection settings.</div></div>
         <div id="adminModelGrid" class="admin-model-grid"></div>
         <div id="adminAiMessage" class="admin-message" role="status"></div>
         <div class="admin-policy-box"><div class="admin-policy-item"><span>Scope</span><b>Whole platform</b></div><div class="admin-policy-item"><span>API secrets</span><b>Server only</b></div><div class="admin-policy-item"><span>Paid failover</span><b>Disabled</b></div></div>
