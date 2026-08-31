@@ -466,6 +466,12 @@ def _provider_credential_values(
     existing = _stored_provider_credentials(provider_id)
     supplied_key = payload.api_key.get_secret_value().strip() if payload.api_key is not None else ""
     api_key = supplied_key or str(existing.get("api_key") or "").strip()
+    # Operators sometimes paste the value copied from an HTTP example as
+    # ``Bearer <key>``. The provider adapters add the authentication scheme
+    # themselves, so retain only the credential material before sending or
+    # encrypting it. No credential value is logged or returned.
+    if api_key.casefold().startswith("bearer "):
+        api_key = api_key[7:].strip()
     if item.secret_mode == "server-managed" and not api_key:
         raise HTTPException(400, "A provider credential is required.")
     base_url = str(payload.base_url).strip().rstrip("/") if payload.base_url else str(

@@ -6,9 +6,9 @@ import re
 from dataclasses import dataclass
 from types import MappingProxyType
 from typing import Any
-from urllib.parse import urlsplit, urlunsplit
 
 import requests
+from urllib.parse import urlsplit, urlunsplit
 
 from writing_coach.ai.base import (
     AIProviderError,
@@ -158,6 +158,28 @@ def _model_catalog(envelope: object, *, container_key: str, model_key: str) -> l
             raise _invalid_model_catalog()
         models.append(model.strip())
     return models
+
+
+def _safe_provider_http_hint(response: requests.Response | None) -> str:
+    """Return a coarse provider error hint without forwarding response data."""
+
+    if response is None:
+        return ""
+    try:
+        envelope = response.json()
+        message = envelope.get("error", {}).get("message", "") if isinstance(envelope, dict) else ""
+    except (ValueError, AttributeError):
+        return ""
+    if not isinstance(message, str):
+        return ""
+    lowered = message.casefold()
+    if "api key" in lowered or "authentication" in lowered or "unauthenticated" in lowered:
+        return "Google rejected the API credential."
+    if "permission" in lowered or "forbidden" in lowered:
+        return "The provider denied permission for this credential."
+    if "quota" in lowered or "rate limit" in lowered:
+        return "The provider quota or rate limit was reached."
+    return ""
 
 
 def _openai_message_content(envelope: object) -> tuple[dict[str, Any], str]:
@@ -373,36 +395,45 @@ class OpenAICompatibleProvider:
         }
 
     def _model_catalog_request(self) -> tuple[requests.Response, bool]:
-        """Request a provider catalog and identify native Gemini responses.
+        """Request the catalog from the configured provider endpoint.
 
-        Gemini's chat API is OpenAI-compatible, but its canonical Models API
-        uses ``/v1beta/models`` and ``x-goog-api-key``. Keeping discovery on
-        that native endpoint avoids a false connection failure for valid AI
-        Studio keys while leaving chat requests on the configured endpoint.
+        Gemini's OpenAI-compatible endpoint exposes ``/models`` and expects
+        the same Bearer authentication as ``/chat/completions``. Keeping
+        discovery on that compatibility contract is important because it is
+        also the contract used by the configured endpoint. If that catalog
+        rejects a Gemini credential, retry discovery through Gemini's native
+        catalog as a compatibility fallback; chat requests still use the
+        configured endpoint.
         """
 
+        response = requests.get(
+            f"{self.base_url}/models",
+            headers=self._headers(),
+            timeout=10,
+        )
+        if getattr(response, "status_code", 200) < 400:
+            return response, False
+
         parsed = urlsplit(self.base_url)
-        is_native_gemini = (
+        is_gemini_compatibility = (
             self.model_filter == "gemini-text"
             and parsed.hostname == "generativelanguage.googleapis.com"
             and parsed.path.rstrip("/").endswith("/v1beta/openai")
         )
-        if is_native_gemini:
-            native_path = parsed.path.rstrip("/")[: -len("/openai")] + "/models"
-            native_url = urlunsplit((parsed.scheme, parsed.netloc, native_path, "", ""))
-            return requests.get(
-                native_url,
-                headers={
-                    "x-goog-api-key": self.api_key,
-                    "Content-Type": "application/json",
-                },
-                timeout=10,
-            ), True
-        return requests.get(
-            f"{self.base_url}/models",
-            headers=self._headers(),
+        if not is_gemini_compatibility:
+            return response, False
+
+        native_path = parsed.path.rstrip("/")[: -len("/openai")] + "/models"
+        native_url = urlunsplit((parsed.scheme, parsed.netloc, native_path, "", ""))
+        native_response = requests.get(
+            native_url,
+            headers={
+                "x-goog-api-key": self.api_key,
+                "Content-Type": "application/json",
+            },
             timeout=10,
-        ), False
+        )
+        return native_response, True
 
     def _catalog_models(self, envelope: object, *, native_gemini: bool) -> list[str]:
         if native_gemini:
@@ -476,8 +507,9 @@ class OpenAICompatibleProvider:
             raise AIProviderUnavailable(f"{self.name} timed out.") from exc
         except requests.HTTPError as exc:
             status = exc.response.status_code if exc.response is not None else "?"
+            hint = _safe_provider_http_hint(exc.response)
             raise AIProviderError(
-                f"{self.name} returned HTTP {status} during model discovery."
+                f"{self.name} returned HTTP {status} during model discovery. {hint}".strip()
             ) from exc
         except ValueError as exc:
             raise _invalid_model_catalog() from exc

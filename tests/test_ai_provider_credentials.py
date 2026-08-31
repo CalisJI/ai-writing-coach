@@ -170,3 +170,30 @@ def test_connection_test_discovers_models_without_manual_model_values(
         "models": ["gemini-2.5-flash"],
         "secret_saved": False,
     }
+
+
+def test_provider_credential_values_normalizes_a_pasted_bearer_prefix(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    secret = "token-" + secrets.token_urlsafe(12)
+    provider = SimpleNamespace(
+        id="gemini",
+        name="Gemini API",
+        secret_mode="server-managed",
+        base_url="https://generativelanguage.googleapis.com/v1beta/openai",
+    )
+    monkeypatch.setattr(platform_module, "_platform_repository", None)
+    monkeypatch.setattr(platform_module, "providers", lambda: {"gemini": provider})
+
+    values = platform_module._provider_credential_values(
+        "gemini",
+        platform_module.ProviderCredentialIn(
+            api_key=f"Bearer {secret}",
+            base_url=provider.base_url,
+            models=[],
+            default_model="",
+        ),
+        require_models=False,
+    )
+
+    assert values["api_key"] == secret
