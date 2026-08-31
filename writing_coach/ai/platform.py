@@ -454,7 +454,12 @@ def _stored_provider_credentials(provider_id: str) -> dict[str, Any]:
         raise HTTPException(503, "Stored provider credential is unavailable.") from exc
 
 
-def _provider_credential_values(provider_id: str, payload: ProviderCredentialIn) -> dict[str, Any]:
+def _provider_credential_values(
+    provider_id: str,
+    payload: ProviderCredentialIn,
+    *,
+    require_models: bool = True,
+) -> dict[str, Any]:
     item = providers().get(provider_id)
     if item is None:
         raise HTTPException(404, "Unknown AI provider.")
@@ -479,9 +484,9 @@ def _provider_credential_values(provider_id: str, payload: ProviderCredentialIn)
     default_model = payload.default_model.strip()
     if any(ord(char) < 32 for char in default_model):
         raise HTTPException(400, "The default model name is invalid.")
-    if default_model and default_model not in models:
+    if default_model and default_model not in models and require_models:
         models.append(default_model)
-    if not models:
+    if require_models and not models:
         raise HTTPException(400, "At least one model name is required.")
     return {
         "api_key": api_key,
@@ -551,7 +556,7 @@ def admin_ai_provider_credential_test(
     _require_admin(request)
     _same_origin(request)
     provider_id = provider_id.strip().casefold()
-    values = _provider_credential_values(provider_id, payload)
+    values = _provider_credential_values(provider_id, payload, require_models=False)
     response.headers["Cache-Control"] = "no-store"
     models = _credential_test(provider_id, values)
     return {
@@ -573,7 +578,12 @@ def admin_ai_provider_credential_save(
     _same_origin(request)
     provider_id = provider_id.strip().casefold()
     values = _provider_credential_values(provider_id, payload)
-    _credential_test(provider_id, values)
+    live_models = _credential_test(provider_id, values)
+    live_model_set = set(live_models)
+    if not live_model_set:
+        raise HTTPException(502, "Provider returned no usable text models.")
+    if values["default_model"] not in live_model_set or not set(values["models"]).issubset(live_model_set):
+        raise HTTPException(400, "Choose the default and allowed models from the live provider catalog.")
     try:
         encrypted = encrypt_credentials(provider_id, values)
         _installed_platform_repository().set_provider_credential(

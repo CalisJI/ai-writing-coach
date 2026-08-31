@@ -90,7 +90,7 @@
 .admin-page .provider-icon--openai{color:#0f8f72;background:color-mix(in srgb,#0f8f72 10%,var(--o-surface-raised))}
 .admin-page .provider-icon--deepseek{color:#3978dd;background:color-mix(in srgb,#3978dd 10%,var(--o-surface-raised))}
 .admin-page .provider-icon--groq{color:#d85a22;background:color-mix(in srgb,#d85a22 10%,var(--o-surface-raised))}
-.admin-page .provider-icon--gemini{background:#fff;border-color:#eee}
+.admin-page .provider-icon--gemini{background:#fff;border-color:#eee;color:#171717}
 .admin-page .admin-tooltip-target{position:relative;display:inline-block;cursor:help}
 .admin-page .admin-tooltip{position:absolute;z-index:50;left:0;top:calc(100% + 8px);width:min(290px,calc(100vw - 40px));padding:9px 11px;border:1px solid var(--o-border-strong);border-radius:10px;background:var(--o-surface-raised);color:var(--o-ink);box-shadow:var(--o-shadow-card);font-size:var(--o-text-meta);font-weight:500;line-height:1.45;opacity:0;visibility:hidden;pointer-events:none;transform:translateY(-3px);transition:opacity var(--o-motion),transform var(--o-motion),visibility var(--o-motion)}
 .admin-page .admin-tooltip-target:hover .admin-tooltip,.admin-page .admin-tooltip-target:focus-visible .admin-tooltip{opacity:1;visibility:visible;transform:translateY(0)}
@@ -106,9 +106,11 @@
 .admin-page .admin-provider-setup-form{display:grid;gap:12px}
 .admin-page .admin-provider-fields{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
 .admin-page .admin-provider-fields label{display:grid;gap:6px;color:var(--o-ink-muted);font-size:var(--o-text-meta);font-weight:600}
-.admin-page .admin-provider-fields input,.admin-page .admin-provider-fields textarea,.admin-page .admin-provider-fields .orena-select-button{width:100%;min-width:0;border:1px solid var(--o-border-strong);border-radius:var(--o-radius-field);background:var(--o-surface);color:var(--o-ink);font:400 var(--o-text-ui)/1.35 var(--o-font);box-shadow:var(--o-shadow-inset)}
+.admin-page .admin-provider-fields input,.admin-page .admin-provider-fields textarea,.admin-page .admin-provider-fields select,.admin-page .admin-provider-fields .orena-select-button{width:100%;min-width:0;border:1px solid var(--o-border-strong);border-radius:var(--o-radius-field);background:var(--o-surface);color:var(--o-ink);font:400 var(--o-text-ui)/1.35 var(--o-font);box-shadow:var(--o-shadow-inset)}
 .admin-page .admin-provider-fields input{min-height:40px;padding:0 12px}
 .admin-page .admin-provider-fields textarea{padding:10px 12px;resize:vertical}
+.admin-page .admin-provider-fields select{min-height:40px;padding:0 10px}
+.admin-page .admin-provider-fields select[multiple]{min-height:124px;padding:8px 10px}
 .admin-page .admin-provider-fields input:focus,.admin-page .admin-provider-fields textarea:focus{outline:none;border-color:var(--o-accent);box-shadow:var(--o-shadow-inset),0 0 0 3px var(--o-focus-ring)}
 .admin-page .admin-provider-fields input:disabled{opacity:.6;cursor:not-allowed}
 .admin-page .admin-provider-field-wide{grid-column:1/-1}

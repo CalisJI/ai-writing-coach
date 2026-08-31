@@ -165,8 +165,8 @@
     openai:'/becoming-assets/assets/providers/openai.svg',
     deepseek:'/becoming-assets/assets/providers/deepseek.svg',
     groq:'/becoming-assets/assets/providers/groq.svg',
-    // Official Google AI Studio mark; Gemini has no local hand-drawn fallback.
-    gemini:'https://www.gstatic.com/aistudio/ai_studio_favicon_2_32x32.svg',
+    // Simple Icons' official Google Gemini mark, vendored for offline/dark-mode reliability.
+    gemini:'/becoming-assets/assets/providers/googlegemini.svg',
   };
 
   function providerIcon(id){
@@ -561,7 +561,9 @@
     const models=[...(provider.models || [])];
     if(!models.length && provider.default_model) models.push(provider.default_model);
     const endpoint=String(config.endpoint_url || '');
-    const modelList=models.join('\n');
+    const selectedDefault=models.includes(provider.default_model) ? provider.default_model : '';
+    const modelOptions=models.map(model=>`<option value="${esc(model)}"${model===selectedDefault?' selected':''}>${esc(model)}</option>`).join('');
+    const modelOptionsForAllowed=models.map(model=>`<option value="${esc(model)}" selected>${esc(model)}</option>`).join('');
     host.innerHTML=`<div class="admin-provider-config-head">
       <div class="admin-provider-config-identity"><span class="provider-icon provider-icon--${esc(provider.id)} large">${providerIcon(provider.id)}</span><div><h4>${esc(provider.name)}</h4><p>${provider.kind==='local'?'Local provider':'Cloud provider'} · ${esc(credentialState)}</p></div></div>
       <span class="admin-read-only">SERVER MANAGED</span>
@@ -569,8 +571,8 @@
     <form id="adminProviderSetupForm" class="admin-provider-setup-form">
       <div class="admin-provider-fields">
         <label>Endpoint URL<input type="url" data-provider-endpoint value="${esc(endpoint)}" placeholder="https://provider.example/v1" autocomplete="url" /></label>
-        <label>Default model<input type="text" data-provider-default-model value="${esc(provider.default_model || '')}" placeholder="For example, gpt-4.1-mini" autocomplete="off" /></label>
-        <label class="admin-provider-field-wide">Available models<textarea data-provider-models rows="4" placeholder="One model name per line">${esc(modelList)}</textarea><small class="admin-provider-help">The provider's model list is tested live before it is saved.</small></label>
+        <label>Default model<select data-provider-default-model ${models.length?'':'disabled'}><option value="">${models.length?'Select a model from the live catalog':'Test connection to load models'}</option>${modelOptions}</select><small class="admin-provider-help">Options come only from the provider's live model catalog.</small></label>
+        <label class="admin-provider-field-wide">Allowed models<select data-provider-models multiple size="${Math.min(Math.max(models.length,3),6)}" ${models.length?'':'disabled'}>${modelOptionsForAllowed}</select><small class="admin-provider-help">Select one or more models returned by the provider. Use Ctrl/Cmd-click for a subset.</small></label>
         <label class="admin-provider-field-wide">API key or token<input type="password" data-provider-secret placeholder="${credentialState === 'Encrypted server credential' ? 'Leave empty to keep the stored credential' : 'Enter a provider credential'}" autocomplete="new-password" ${credentialRequired?'':'disabled'} /><small class="admin-provider-help">The credential is sent to this authenticated server, encrypted before storage, and never returned to the browser.</small></label>
       </div>
       <div class="admin-provider-config-foot"><span>Connection tests contact the provider. Saving replaces the server-side configuration without exposing the credential.</span><div class="admin-provider-config-actions"><button class="o-button o-button--quiet" type="button" data-provider-test>Test connection</button><button class="o-button primary" type="submit" data-provider-save>Save securely</button>${config.credential_source === 'encrypted_server_store' ? '<button class="o-button o-button--quiet admin-provider-delete" type="button" data-provider-delete>Remove stored credential</button>' : ''}</div></div>
@@ -579,21 +581,21 @@
     const readPayload=()=>{
       const endpointValue=String(host.querySelector('[data-provider-endpoint]')?.value || '').trim();
       const modelValue=String(host.querySelector('[data-provider-default-model]')?.value || '').trim();
-      const modelsValue=String(host.querySelector('[data-provider-models]')?.value || '');
+      const modelSelect=host.querySelector('[data-provider-models]');
       const secretInput=host.querySelector('[data-provider-secret]');
       const secretValue=String(secretInput?.value || '').trim();
-      const models=[...new Set(modelsValue.split(/\r?\n|,/).map(value=>value.trim()).filter(Boolean))];
+      const models=[...new Set([...modelSelect?.selectedOptions || []].map(option=>String(option.value || '').trim()).filter(Boolean))];
       const payload={base_url:endpointValue,default_model:modelValue,models};
       if(secretValue) payload.api_key=secretValue;
       // Clear the only DOM copy before the request leaves this page.
       if(secretInput) secretInput.value='';
       return payload;
     };
-    const validatePayload=payload=>{
+    const validatePayload=(payload,mode)=>{
       if(!payload.base_url){ setMessage('Enter the provider endpoint URL.','error'); return false; }
       try{ new URL(payload.base_url); }catch(_error){ setMessage('Enter a valid provider endpoint URL.','error'); return false; }
-      if(!payload.default_model){ setMessage('Choose a default model.','error'); return false; }
-      if(!payload.models.length){ setMessage('Add at least one available model.','error'); return false; }
+      if(mode==='save' && !payload.default_model){ setMessage('Test the connection and choose a default model from the live catalog.','error'); return false; }
+      if(mode==='save' && !payload.models.length){ setMessage('Select at least one model from the live catalog.','error'); return false; }
       if(credentialRequired && config.credential_source !== 'encrypted_server_store' && config.credential_state !== 'configured' && !payload.api_key){
         setMessage('Enter a provider credential before testing or saving.','error'); return false;
       }
@@ -601,7 +603,7 @@
     };
     const runCredentialAction=async(mode)=>{
       const payload=readPayload();
-      if(!validatePayload(payload)) return;
+      if(!validatePayload(payload,mode)) return;
       const testButton=host.querySelector('[data-provider-test]');
       const saveButton=host.querySelector('[data-provider-save]');
       const deleteButton=host.querySelector('[data-provider-delete]');
@@ -616,7 +618,13 @@
         const data=await response.json().catch(()=>({}));
         if(!response.ok) throw new Error(data.detail || (mode==='test'?'Provider connection test failed.':'Provider credential could not be saved.'));
         if(mode==='test'){
-          const count=Array.isArray(data.models) ? data.models.length : 0;
+          const discovered=Array.isArray(data.models) ? [...new Set(data.models.filter(model=>typeof model==='string' && model.trim()))] : [];
+          provider.models=discovered;
+          provider.default_model=discovered.includes(provider.default_model) ? provider.default_model : (discovered[0] || '');
+          renderProviderCards();
+          renderProviderConfig();
+          renderModels();
+          const count=discovered.length;
           setMessage(`${provider.name} connection verified. ${count} text model${count===1?'':'s'} returned. Nothing was saved.`,'ok');
         }else{
           setMessage(`${provider.name} credential encrypted and saved on the server. The key was not returned.`,'ok');

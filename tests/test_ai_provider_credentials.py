@@ -120,3 +120,53 @@ def test_save_route_never_returns_the_submitted_secret(monkeypatch: pytest.Monke
     assert result["secret_saved"] is True
     assert result["secret_exposed"] is False
     assert secret not in json.dumps(repository.value)
+
+
+def test_connection_test_discovers_models_without_manual_model_values(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv(MASTER_KEY_ENV, Fernet.generate_key().decode("ascii"))
+    secret = "token-" + secrets.token_urlsafe(12)
+    provider = SimpleNamespace(
+        id="gemini",
+        name="Gemini API",
+        kind="cloud",
+        secret_mode="server-managed",
+        configured=True,
+        base_url="https://generativelanguage.googleapis.com/v1beta/openai",
+    )
+    monkeypatch.setattr(platform_module, "_platform_repository", None)
+    monkeypatch.setattr(platform_module, "_admin_guard", lambda _request: {"google_sub": "qa-admin"})
+    monkeypatch.setattr(platform_module, "providers", lambda: {"gemini": provider})
+    monkeypatch.setattr(
+        platform_module,
+        "_credential_test",
+        lambda _provider_id, values: ["gemini-2.5-flash"] if not values["models"] else [],
+    )
+    request = Request(
+        {
+            "type": "http",
+            "method": "POST",
+            "path": "/api/admin/ai/credentials/gemini/test",
+            "headers": [(b"host", b"testserver"), (b"origin", b"http://testserver")],
+        }
+    )
+
+    result = platform_module.admin_ai_provider_credential_test(
+        "gemini",
+        platform_module.ProviderCredentialIn(
+            api_key=secret,
+            base_url="https://generativelanguage.googleapis.com/v1beta/openai",
+            models=[],
+            default_model="",
+        ),
+        request,
+        Response(),
+    )
+
+    assert result == {
+        "ok": True,
+        "provider": "gemini",
+        "models": ["gemini-2.5-flash"],
+        "secret_saved": False,
+    }
