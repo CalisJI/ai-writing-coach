@@ -111,7 +111,7 @@ Colour/Type/Space/Component/Layout are scored against the web implementation.
 | Grammar | `screens/grammar.js`, `orena/grammar.css` | curriculum overview + lesson detail | ✓ | ✓ | ✓ | ~ | ✓ | ✓ | ✓ | ✓ | ✓ | P2 |
 | Reading | `screens/reading.js`, `orena/reading.css` | create form + article header + passage + rail | ✓ | ✓ | ✓ | ~ | ✓ | ✓ | ✓ | ✓ | ✓ | P2 |
 | Listening | `screens/listening.js`, `orena/listening.css` | import + Follow/Active + resume, panel-restyled | ✓ | ✓ | ✓ | ~ | ~ | ✓ | ✓ | ✓ | ✓ | P2 |
-| Speaking | `screens/speaking.js`, `orena/speaking.css` | record + evidence | ~ | ✗ | ~ | ✗ | ✗ | ✓ | ✓ | ✓ | ✓ | P1 |
+| Speaking | `screens/speaking.js`, `orena/speaking.css` | record + evidence, panel-restyled | ✓ | ✓ | ✓ | ~ | ~ | ✓ | ✓ | ✓ | ✓ | P2 |
 | Library | `screens/library.js`, `orena/library.css` | word list + recall | ~ | ✗ | ~ | ✗ | ✗ | ✓ | ✓ | ✓ | ✓ | P1 |
 | Journey | `screens/journey.js`, `orena/journey.css` | metric row + cards | ~ | ✗ | ~ | ✗ | ✗ | ✓ | ✓ | ✓ | ✓ | P1 |
 | Profile | `screens/profile.js`, `orena/profile.css` | radio groups | ~ | ✗ | ~ | ✗ | ✗ | ✓ | ✓ | ✓ | ✓ | P1 |
@@ -138,9 +138,18 @@ Tokens first, as the token layer is what every screen reads.
 5. ~~**P1 Finding 4** — move screens onto the Orena type scale.~~ Done.
 6. **P1 per-screen** — compose each screen from its web counterpart, in the
    roadmap order Home → ~~Writing~~ → ~~Review~~ → ~~Grammar~~ → ~~Reading~~ →
-   ~~Listening~~ → Speaking → Library → Journey → Profile. Home, Writing,
-   Review, Grammar, Reading and Listening are done; the remaining four
-   screens are the open work.
+   ~~Listening~~ → ~~Speaking~~ → Library → Journey → Profile. Home, Writing,
+   Review, Grammar, Reading, Listening and Speaking are done; the remaining
+   three screens are the open work.
+
+   Speaking's residual matches Listening's: the web is a studio (waveform
+   recorder, pronunciation heatmap on the transcript) that native's
+   record/transcribe/evaluate flow via `expo-audio` has no visual surface
+   for. The functional flow (record, transcribe, evaluate, save an attempt,
+   the Listening handoff) was already correct and untouched; only the bare
+   bordered Views became Panels and the bold-Text headings became Labels.
+   `test/routes/speaking.test.tsx` passes unchanged. Recorded as a P2
+   residual, not claimed as done.
 
    Listening's residual gap is the largest of any screen so far: the web is a
    full studio (an embedded video/audio player with transport controls, a
