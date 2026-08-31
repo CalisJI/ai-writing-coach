@@ -130,9 +130,9 @@ export type EssaySummary = z.infer<typeof essaySummarySchema>;
 export const essaysListSchema = z.array(essaySummarySchema);
 
 // GET /api/learning-memory -- writing_coach/becoming_memory.py's get_learning_memory().
-const memoryPatternSchema = z.object({category: z.string(), status: z.string().optional(), series_count: z.number().optional(), total: z.number().optional()}).passthrough();
-const memoryStrengthSchema = z.object({category: z.string(), stage: z.string(), evidence_count: z.number().int().nonnegative(), series_count: z.number().int().nonnegative(), example: z.string().optional()}).passthrough();
-const memoryRevisionWinSchema = z.object({overall_delta: z.number(), error_delta: z.number(), revisions: z.number().int().min(2)}).passthrough();
+const memoryPatternSchema = z.object({category: z.string(), status: z.string().optional(), series_count: z.number().optional(), total: z.number().optional(), older: z.number().int().nonnegative().optional(), newer: z.number().int().nonnegative().optional(), example: z.string().optional(), suggestion: z.string().optional(), latest_essay_id: z.number().int().positive().nullable().optional()}).passthrough();
+const memoryStrengthSchema = z.object({category: z.string(), stage: z.string(), evidence_count: z.number().int().nonnegative(), series_count: z.number().int().nonnegative(), recent_count: z.number().int().nonnegative().optional(), example: z.string().optional(), explanation: z.string().optional()}).passthrough();
+const memoryRevisionWinSchema = z.object({overall_delta: z.number(), error_delta: z.number(), revisions: z.number().int().min(2), series_id: z.number().int().positive().optional(), latest_id: z.number().int().positive().optional(), latest_date: z.string().optional()}).passthrough();
 const memoryReviewCueSchema = z.object({available: z.boolean(), state: z.string().optional(), source: z.string().optional(), status: z.string().optional(), evidence: z.string().optional(), essay_id: z.number().int().positive().nullable().optional(), category: z.string().optional(), suggestion: z.string().optional()}).passthrough();
 export const learningMemorySchema = z.object({
   language: z.string(), essay_count: z.number().int().nonnegative(), revision_count: z.number().int().nonnegative(), focus: memoryPatternSchema.nullable(), patterns: z.array(memoryPatternSchema), strengths: z.array(memoryStrengthSchema), revision_wins: z.array(memoryRevisionWinSchema), review_cue: memoryReviewCueSchema.nullable(),

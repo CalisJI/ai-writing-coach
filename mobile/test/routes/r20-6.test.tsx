@@ -17,6 +17,7 @@ const mockLibraryQuery = {isPending: false, isLoading: false, isError: false, da
 const mockReview = {isPending: false, isError: false, mutate: jest.fn()};
 const mockDashboard = {isPending: false, isError: false, data: {essay_count: 2, revision_count: 3, skill_score: 82, cefr: 'B2', streak: 1, recent_average: 80, trend: [], metrics: {}, error_counts: {}, error_memory: [{category: 'grammar'}], next_level: null, version: '2.17.3'}};
 const mockOutcomes = {isPending: false, isError: false, data: {items: [{essay_id: 1, series_id: 1, revision_no: 1, created_at: '2026-01-01', overall: 82, status: 'improved', intent: 'repair', focus_family: 'grammar', focus_category: 'grammar', focus_label: 'Articles', grammar_id: '', grammar_title: '', issue_count: 0, previous_issue_count: 1, strength_count: 1, error_evidence: [], strength_evidence: [], practice: {}}], latest: null}};
+const mockMemory = {isPending: false, isError: false, data: undefined};
 const mockProfile = {isPending: false, isError: false, data: {exists: true, language: 'en', goal: 'everyday', style: 'guided', pinyin: 'auto', native_language: 'vi', theme_preset: 'editorial', updated_at: '2026-01-01'}};
 const mockSaveProfile = {isPending: false, isError: false, mutateAsync: jest.fn(() => Promise.resolve({}))};
 const mockSetLanguage = {isPending: false, isError: false, mutateAsync: jest.fn(() => Promise.resolve({ok: true, active: 'zh'}))};
@@ -29,6 +30,7 @@ jest.mock('../../src/query/useGrammar', () => ({useGrammarLibrary: () => mockGra
 jest.mock('../../src/query/useWritingEvaluation', () => ({useGrammarPractice: () => mockGrammarPractice}));
 jest.mock('../../src/query/useReadingLibrary', () => ({useLibraryVocabulary: () => mockLibraryQuery, useReviewLibraryVocabulary: () => mockReview}));
 jest.mock('../../src/query/useJourney', () => ({useJourneyDashboard: () => mockDashboard, useJourneyOutcomes: () => mockOutcomes}));
+jest.mock('../../src/query/useHome', () => ({useLearningMemory: () => mockMemory, useEssays: () => mockMemory, useReadingSessionHistory: () => mockMemory}));
 jest.mock('../../src/query/useLearnerProfile', () => ({useLearnerProfile: () => mockProfile, useSaveLearnerProfile: () => mockSaveProfile, useSetLearningLanguage: () => mockSetLanguage}));
 jest.mock('../../src/query/useProductMe', () => ({useProductMe: () => mockProduct}));
 

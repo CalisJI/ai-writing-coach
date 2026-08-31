@@ -118,7 +118,7 @@ Colour/Type/Space/Component/Layout are scored against the web implementation.
 | Listening | `screens/listening.js`, `orena/listening.css` | import + Follow/Active + resume, panel-restyled | ✓ | ✓ | ✓ | ~ | ~ | ✓ | ✓ | ✓ | ✓ | P2 |
 | Speaking | `screens/speaking.js`, `orena/speaking.css` | record + evidence, panel-restyled | ✓ | ✓ | ✓ | ~ | ~ | ✓ | ✓ | ✓ | ✓ | P2 |
 | Library | `screens/library.js`, `orena/library.css` | word list + reveal/recall | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | P3 |
-| Journey | `screens/journey.js`, `orena/journey.css` | metric row + focus + outcomes panels | ✓ | ✓ | ✓ | ~ | ~ | ✓ | ✓ | ✓ | ✓ | P2 |
+| Journey | `screens/journey.js`, `orena/journey.css` | metric row + current-focus trend + reliable strengths + recent improvement + outcomes panels | ✓ | ✓ | ✓ | ~ | ~ | ✓ | ✓ | ✓ | ✓ | P2 |
 | Profile | `screens/profile.js`, `orena/profile.css` | one settings Panel with grouped radio pills | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | P3 |
 | Entitlement | in `profile.js` | Panel + Chip per feature | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | P3 |
 | Degraded states | `components/primitives.js` | truthful, escapable | ~ | ✗ | ~ | ✗ | ✓ | ✓ | ✓ | ✓ | ✓ | P2 |
@@ -201,14 +201,21 @@ Tokens first, as the token layer is what every screen reads.
 
    Journey's residual: the web is a growth-pattern dashboard (per-pattern
    progress gauges, a grammar/practice outcome history, a timeline, a target
-   rail with its own dialog) built on data the mobile `journeyDashboardSchema`
-   does not expose in that shape. Native's dashboard hook returns
-   essay_count/revision_count/skill_score/streak/error_memory and a flat
-   outcomes list -- the same fields Home's own metric grid already uses --
-   so this screen reuses the Metric primitive for consistency and adds a
-   Practice outcomes panel from the flat list. Not reproduced: the pattern
-   gauges, outcome history, timeline and target rail. Recorded as a P2
-   residual, not claimed as done.
+   rail with its own dialog) built on `api.learningMemory()` -- "every card
+   here is one record from" it, per journey.js's own comment. That endpoint
+   was already wired into the mobile client for Home's insight computation
+   (useLearningMemory in query/useHome.ts), so this pass draws three real
+   cards from it that the first port left as a placeholder `error_memory[0]`
+   line: current focus (category, status, and a before/now occurrence trend
+   from the pattern's real `older`/`newer` counts, with a proportional bar
+   standing in for the web's SVG gauge), reliable strengths (Stable/Mastered
+   stage patterns), and recent improvement (the top revision win's score and
+   issue-count deltas across its draft count). The existing Practice
+   outcomes panel's status chip now also runs through the shared
+   `status.*` translation table rather than showing the raw enum. Not
+   reproduced: the SVG progress gauges, the multi-point journey timeline
+   (started/first-win/momentum/upcoming), and the target rail with its own
+   dialog. Recorded as a P2 residual, not claimed as done.
 
    Speaking's residual matches Listening's: the web is a studio (waveform
    recorder, pronunciation heatmap on the transcript) that native's
