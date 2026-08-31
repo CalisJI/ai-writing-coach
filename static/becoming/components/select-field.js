@@ -146,7 +146,14 @@ export function enhanceSelect(select) {
       const itemLabel = document.createElement('span');
       itemLabel.textContent = option.textContent;
       item.append(itemIcon, itemLabel);
-      item.addEventListener('click', () => commit(index));
+      // The listbox can live inside a <label>. Prevent the label's default
+      // activation from clicking the nested control a second time, which
+      // would immediately reopen the menu after a choice is committed.
+      item.addEventListener('click', event => {
+        event.preventDefault();
+        event.stopPropagation();
+        commit(index);
+      });
       item.addEventListener('pointermove', () => setActive(index, false));
       panel.appendChild(item);
     });
