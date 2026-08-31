@@ -1,6 +1,6 @@
-import {useQuery, type UseQueryResult} from '@tanstack/react-query';
+import {useMutation, useQuery, type UseMutationResult, type UseQueryResult} from '@tanstack/react-query';
 import {ApiClient} from '../api/client';
-import type {EssaySummary, LearningMemory} from '../api/contracts/learning';
+import type {EssayDetail, EssaySummary, LearningMemory} from '../api/contracts/learning';
 import type {ReadingSessions} from '../api/contracts/reading';
 import {ApiError} from '../api/errors';
 
@@ -19,4 +19,8 @@ export function useLearningMemory(client: ApiClient | null, cookie?: string | nu
 export const readingSessionHistoryKey = ['reading', 'sessions'] as const;
 export function useReadingSessionHistory(client: ApiClient | null, cookie?: string | null): UseQueryResult<ReadingSessions, ApiError> {
   return useQuery({queryKey: readingSessionHistoryKey, queryFn: ({signal}) => client ? client.listReadingSessions(8, {signal, sessionCookie: cookie ?? undefined}) : Promise.reject(new ApiError('configuration_missing', 'API client is unavailable')), enabled: enabled(client, cookie), retry: false, staleTime: 0});
+}
+
+export function useOpenEssay(client: ApiClient | null, cookie?: string | null): UseMutationResult<EssayDetail, ApiError, number> {
+  return useMutation({mutationFn: (id) => client ? client.getEssay(id, {sessionCookie: cookie ?? undefined}) : Promise.reject(new ApiError('configuration_missing', 'API client is unavailable')), retry: false});
 }

@@ -10,12 +10,13 @@ import {CONTENT_MAX} from '../../theme/layout';
 import {Button, Chip, Label, Metric, Panel, PanelCopy} from '../../components/orena';
 import {useJourneyDashboard, useJourneyOutcomes} from '../../query/useJourney';
 import {useLibraryVocabulary} from '../../query/useReadingLibrary';
-import {useEssays, useLearningMemory, useReadingSessionHistory} from '../../query/useHome';
+import {useEssays, useLearningMemory, useOpenEssay, useReadingSessionHistory} from '../../query/useHome';
 import {useLearnerProfile, useSaveLearnerProfile, useSetLearningLanguage} from '../../query/useLearnerProfile';
 import {useNextPractice, usePracticeRecommendation} from '../../query/usePracticeRecommendation';
 import {setPracticeHandoff} from './practiceHandoff';
 import {OnboardingForm} from './OnboardingForm';
-import type {EssaySummary, JourneyDashboard, LearningMemory, PracticeRecommendation} from '../../api/contracts/learning';
+import {setReviewHandoff} from '../review/reviewHandoff';
+import type {EssaySummary, EvaluationInput, JourneyDashboard, LearningMemory, PracticeRecommendation} from '../../api/contracts/learning';
 import type {ReadingSessions} from '../../api/contracts/reading';
 import {readListeningResume, type ListeningResume} from '../../features/listening/listeningResume';
 import {listeningHabitSnapshot, type ListeningHabitSnapshot} from '../../features/listening/listeningHabit';
@@ -140,7 +141,7 @@ function SignedOut() { const {t} = useI18n(); const {tokens} = useTheme(); const
 
 function Unavailable({retry}: {retry?: () => void}) { const {t} = useI18n(); const {tokens} = useTheme(); return <View style={[styles.container, {backgroundColor: tokens.colors.background}]}><Text accessibilityRole="header" style={[styles.title, {color: tokens.colors.heading}]}>{t('home.unavailable_title')}</Text><Text style={[styles.body, {color: tokens.colors.mutedText}]}>{t('home.unavailable_body')}</Text>{retry && <Pressable accessibilityRole="button" onPress={retry} style={[styles.button, {backgroundColor: tokens.colors.accent}]}><Text style={[styles.buttonText, {color: tokens.colors.onAccent}]}>{t('home.retry')}</Text></Pressable>}</View>; }
 
-function LearningHome({recommendation, insight, personalized, currentEssay, onStart, starting, failed, failedFields, dashboard, essays, memory, dueCount, dueWord, listeningResume, listeningHabit, readingHistory, onJourney, onLibrary, onOpenReview, onReadResume, onListenResume, onLibraryReview, onListeningGoal, outcomes}: {
+function LearningHome({recommendation, insight, personalized, currentEssay, onStart, starting, failed, failedFields, dashboard, essays, memory, dueCount, dueWord, listeningResume, listeningHabit, readingHistory, onJourney, onLibrary, onOpenReview, openReviewFailed, onReadResume, onListenResume, onLibraryReview, onListeningGoal, outcomes}: {
   recommendation: PracticeRecommendation;
   insight: Insight;
   personalized: boolean;
@@ -160,6 +161,7 @@ function LearningHome({recommendation, insight, personalized, currentEssay, onSt
   onJourney: () => void;
   onLibrary: () => void;
   onOpenReview: (essayId: number) => void;
+  openReviewFailed: boolean;
   onReadResume: (sessionId: number) => void;
   onListenResume: () => void;
   onLibraryReview: () => void;
@@ -190,6 +192,7 @@ function LearningHome({recommendation, insight, personalized, currentEssay, onSt
           <Button label={starting ? t('home.starting') : (personalized ? t('home.start_practice') : insight.action)} onPress={onStart} disabled={starting} />
           <Button label={t('home.open_journey' as never)} onPress={onJourney} variant="outline" />
         </View>
+        {openReviewFailed ? <Text accessibilityRole="alert" style={{color: tokens.colors.danger}}>{t('home.open_review_failed' as never)}</Text> : null}
         {currentEssay ? (
           <View style={[styles.currentPiece, {borderTopColor: tokens.colors.border}]}>
             <Label>{t('home.current_piece_title' as never)}</Label>
@@ -402,6 +405,14 @@ export function HomeScreen({client: providedClient}: {client?: ApiClient}) {
   const dashboard = useJourneyDashboard(client, sessionCookie); const library = useLibraryVocabulary(client, sessionCookie);
   const outcomesQuery = useJourneyOutcomes(client, sessionCookie);
   const essaysQuery = useEssays(client, sessionCookie); const memory = useLearningMemory(client, sessionCookie); const readingHistory = useReadingSessionHistory(client, sessionCookie);
+  const openEssay = useOpenEssay(client, sessionCookie);
+  const openReview = (essayId: number) => {
+    openEssay.mutate(essayId, {onSuccess: (essay) => {
+      const input: EvaluationInput = {prompt: essay.prompt, text: essay.text, target_cefr: essay.target_cefr, learning_language: essay.language_code, ...(essay.parent_id ? {parent_essay_id: essay.parent_id} : {})};
+      setReviewHandoff({...essay, app_cefr: essay.app_cefr ?? essay.cefr_estimate ?? ''}, input);
+      router.push('/(app)/review');
+    }});
+  };
   const [listeningResume, setListeningResume] = useState<ListeningResume | null>(null);
   const [listeningHabit, setListeningHabit] = useState<ListeningHabitSnapshot | null>(null);
   useEffect(() => { let mounted = true; void readListeningResume().then((value) => { if (mounted) setListeningResume(value); }); void listeningHabitSnapshot().then((value) => { if (mounted) setListeningHabit(value); }); return () => { mounted = false; }; }, [exists]);
@@ -436,7 +447,8 @@ export function HomeScreen({client: providedClient}: {client?: ApiClient}) {
       readingHistory={readingHistory.data}
       onJourney={() => router.push('/(app)/journey')}
       onLibrary={() => router.push('/(app)/library')}
-      onOpenReview={() => router.push('/(app)/journey')}
+      onOpenReview={openReview}
+      openReviewFailed={openEssay.isError}
       onReadResume={() => router.push('/(app)/reading')}
       onListenResume={() => router.push('/(app)/listening')}
       onLibraryReview={() => router.push('/(app)/library')}

@@ -96,6 +96,16 @@ export type EvaluationResult = z.infer<typeof evaluationResultSchema>;
 export const evaluationInputSchema = z.object({prompt: z.string().max(5000), text: z.string().min(10).max(20000), target_cefr: z.string().min(2).max(12), parent_essay_id: z.number().int().positive().optional(), practice_context: practiceContextSchema.optional(), learning_language: z.enum(['en', 'zh']).optional()}).strict();
 export type EvaluationInput = z.infer<typeof evaluationInputSchema>;
 
+// GET /api/essays/{essay_id} -- app.py's essay_detail(); mostly the same row shape
+// evaluate-writing returns (evaluationResultSchema), plus the raw text/prompt/
+// target_cefr/language_code columns needed to reopen this essay in Review the way a
+// fresh evaluation would. Unlike a fresh evaluation, essay_detail does not compute
+// `app_cefr` (app.py's app_cefr(overall) helper is only called at evaluate-writing and
+// essay-list time) -- only the stored `cefr_estimate` column, so app_cefr is optional
+// here and callers fall back to cefr_estimate before handing this to setReviewHandoff.
+export const essayDetailSchema = evaluationResultSchema.extend({text: z.string(), prompt: z.string(), target_cefr: z.string(), language_code: z.enum(['en', 'zh']), app_cefr: z.string().optional(), cefr_estimate: z.string().optional()});
+export type EssayDetail = z.infer<typeof essayDetailSchema>;
+
 export const grammarPracticeSchema = z.object({grammar_id: z.string().min(1), title: z.string().min(1), level: z.string().min(2), target_level: z.string().min(2), prompt: z.string().min(1), practice_blueprint: z.record(z.unknown()), practice_context: practiceContextSchema, source: z.string().min(1)}).strict();
 export type GrammarPractice = z.infer<typeof grammarPracticeSchema>;
 

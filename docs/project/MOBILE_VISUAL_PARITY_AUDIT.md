@@ -179,7 +179,19 @@ Tokens first, as the token layer is what every screen reads.
    back: `crossSkillCueMarkup` (a fourth cross-skill orchestration card) and
    the Speaking branch of the next-practice plan, both of which need
    endpoints/history (cross-skill cue, speaking-attempt history) this pass
-   did not build. Writing gained a mode/level/topic/length setup panel
+   did not build. A functional defect from that first pass was also found
+   and fixed in this session's follow-up work: every "Open" affordance on
+   Home (Current piece, the review-cue card, each recent-drafts row) called
+   an `onOpenReview(essayId)` prop whose top-level wiring silently discarded
+   the `essayId` argument and routed to Journey regardless of which essay
+   was tapped. It now fetches the essay via a new `getEssay()` client method
+   (GET /api/essays/{id}, the same route journey.js's own per-essay actions
+   use) and opens the real Writing Review for that exact essay --
+   device-verified on emulator-5556 tapping Current piece's Open button and
+   landing on that essay's real findings, grammar links and review-cue
+   cards, not a generic Journey redirect.
+
+   Writing gained a mode/level/topic/length setup panel
    (backed by the same `POST /api/tasks/generate` the web calls) so a
    learner can start a self-directed session, closing a real functional gap
    -- previously native could only reach the editor via a handoff -- while
