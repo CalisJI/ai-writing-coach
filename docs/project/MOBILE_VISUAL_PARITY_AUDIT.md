@@ -110,7 +110,7 @@ Colour/Type/Space/Component/Layout are scored against the web implementation.
 | Shell / nav | `orena/shell.css`, `shell.js` | rail + topbar + drawer, gated | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | P3 |
 | Auth / sign-in | `screens/onboarding.js` | plain centred stack | ~ | ✗ | ~ | ✗ | ~ | ✓ | ✓ | ✓ | ✓ | P1 |
 | Onboarding | `screens/onboarding.js` | `OnboardingForm` radio list | ~ | ✗ | ~ | ✗ | ✗ | ✓ | ✓ | ✓ | ✓ | P1 |
-| Home | `screens/home.js`, `orena/home.css` | hero (`homeInsight` statement, not the raw focus label) + listening-habit/resume + next-practice + library-review-due + writing dashboard + journey stages/rail + cross-skill cue + recent drafts + library preview | ✓ | ✓ | ✓ | ~ | ✓ | ✓ | ✓ | ✓ | ✓ | P2 |
+| Home | `screens/home.js`, `orena/home.css` | hero (`homeInsight` statement, not the raw focus label) + listening-habit/resume + next-practice + library-review-due + writing dashboard + journey stages/rail + cross-skill cue + recent drafts + library preview | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | P3 |
 | Writing | `screens/write.js`, `orena/writing.css` | prompt card + editor card + aside, plus a mode/level/topic/length setup panel for a self-directed session | ✓ | ✓ | ✓ | ~ | ✓ | ✓ | ✓ | ✓ | ✓ | P2 |
 | Review | `screens/review.js` | `PromptCard` + confidence-banded `IssueRow` findings + revision-delta + practice-outcome/review-cue signal cards + aside actions | ✓ | ✓ | ✓ | ~ | ✓ | ✓ | ✓ | ✓ | ✓ | P2 |
 | Grammar | `screens/grammar.js`, `orena/grammar.css` | curriculum overview + lesson detail | ✓ | ✓ | ✓ | ~ | ✓ | ✓ | ✓ | ✓ | ✓ | P2 |
@@ -154,19 +154,19 @@ Tokens first, as the token layer is what every screen reads.
    composition is exactly what the mobile API already supports.
 
    Screens carrying a residual (documented at each screen's commit and
-   summarized here): Home (P2, elevation-only sheen/rim gap, plus the
-   cross-skill-cue signal and the Speaking branch of the next-practice plan
-   -- see below), Writing (P2, no rich-text toolbar/word-role legend/
+   summarized here): Writing (P2, no rich-text toolbar/word-role legend/
    guidance-scaffold disclosure/error watchlist/audience field), Review (P2,
    no POS-lens/pinyin overlay/compare-to-a-stronger-version dialog/
    downloadable feedback file), Grammar (P2, rich `learning_model`
    block-composition not reproduced), Reading (P2, no OS text-selection
-   surface, no scroll-progress/font controls, no passage history endpoint),
+   surface, no scroll-progress/font controls, no focus mode, no
+   clipboard copy -- its recent-passages history is reproduced, see below),
    Listening and Speaking (P2 each, the web's full studio -- video/audio
    player, transport, waveform -- has no native surface beyond bare
    expo-audio playback), Journey (P2, pattern gauges/outcome history/
-   timeline/target rail not reproduced). Library and Profile carry no
-   residual.
+   timeline/target rail not reproduced). Home, Library and Profile carry no
+   residual beyond the universal, Finding-3-tracked elevation/sheen/rim gap
+   (see below for how Home got here).
 
    Home, Review and Writing were subsequently rebuilt a second time in this
    pass, against the live running web app rather than static source alone,
@@ -188,9 +188,25 @@ Tokens first, as the token layer is what every screen reads.
    "currently loaded lesson" cache to check against, and trusts the
    backend's own recency validation instead. Device-verified on
    emulator-5556: the card rendered real evidence and Open Review landed on
-   that exact essay. Home's residual now narrows to the elevation-only
-   sheen/rim gap plus the Speaking branch of the next-practice plan, which
-   needs speaking-attempt history this pass did not build.
+   that exact essay.
+
+   The Speaking branch of the next-practice plan, previously tracked here
+   as a residual needing "speaking-attempt history this pass did not
+   build", turned out not to be a real gap on inspection: the web's own
+   `api.speakingAttempts()` (screens/home.js) calls `GET
+   /api/speech/attempts`, and no such route exists anywhere in app.py --
+   grepping the whole backend for `/api/speech` or `/api/speaking` finds
+   nothing. `list_speaking_attempt_records()` (the repository method that
+   data would come from) is only ever called internally, by the
+   cross-skill-cue endpoint above. So `api.speakingAttempts()` always
+   throws and home.js's own `Promise.resolve().then(()=>api.speakingAttempts(1)).catch(()=>null)`
+   always resolves to `null`, meaning `nextPracticePlan()`'s Speaking
+   branch is dead code on the web itself, never reachable in production.
+   Native's absence of a Speaking next-practice card is therefore not a
+   divergence from the web -- both already show nothing here -- and is
+   removed from Home's residual list rather than carried forward as
+   unfinished work. Home's residual is now the elevation-only sheen/rim gap
+   alone.
 
    A functional defect from that first pass was also found
    and fixed in this session's follow-up work: every "Open" affordance on
