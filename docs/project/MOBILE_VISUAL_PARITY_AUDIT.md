@@ -1,8 +1,11 @@
 # Mobile Visual Parity Audit
 
 Status: **P0 CLOSED / FOUNDATION P1s CLOSED / PER-SCREEN P1 CLOSED — all ten
-roadmap screens ported; six carry a documented P2 residual (see remediation
-order §6)**
+roadmap screens ported; Home, Review and Writing were subsequently rebuilt
+against the live running web app (not just its static source) per an
+explicit correction that native must never diverge from what the web
+actually renders. Eight of ten screens now carry a documented P2 residual
+(see remediation order §6)**
 
 The responsive web application is the canonical visual source. This audit
 compares the native client against it and classifies every divergence. It is a
@@ -107,9 +110,9 @@ Colour/Type/Space/Component/Layout are scored against the web implementation.
 | Shell / nav | `orena/shell.css`, `shell.js` | rail + topbar + drawer, gated | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | P3 |
 | Auth / sign-in | `screens/onboarding.js` | plain centred stack | ~ | ✗ | ~ | ✗ | ~ | ✓ | ✓ | ✓ | ✓ | P1 |
 | Onboarding | `screens/onboarding.js` | `OnboardingForm` radio list | ~ | ✗ | ~ | ✗ | ✗ | ✓ | ✓ | ✓ | ✓ | P1 |
-| Home | `screens/home.js`, `orena/home.css` | hero + 3 panels + split | ~ | ✓ | ✓ | ~ | ✓ | ✓ | ✓ | ✓ | ✓ | P2 |
-| Writing | `screens/write.js`, `orena/writing.css` | prompt card + editor card + aside | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | P3 |
-| Review | `screens/review.js` | `PromptCard` + `IssueRow` findings + aside actions | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | P3 |
+| Home | `screens/home.js`, `orena/home.css` | hero (`homeInsight` statement, not the raw focus label) + listening-habit/resume + next-practice + library-review-due + writing dashboard + journey stages/rail + recent drafts + library preview | ✓ | ✓ | ✓ | ~ | ✓ | ✓ | ✓ | ✓ | ✓ | P2 |
+| Writing | `screens/write.js`, `orena/writing.css` | prompt card + editor card + aside, plus a mode/level/topic/length setup panel for a self-directed session | ✓ | ✓ | ✓ | ~ | ✓ | ✓ | ✓ | ✓ | ✓ | P2 |
+| Review | `screens/review.js` | `PromptCard` + confidence-banded `IssueRow` findings + revision-delta + practice-outcome/review-cue signal cards + aside actions | ✓ | ✓ | ✓ | ~ | ✓ | ✓ | ✓ | ✓ | ✓ | P2 |
 | Grammar | `screens/grammar.js`, `orena/grammar.css` | curriculum overview + lesson detail | ✓ | ✓ | ✓ | ~ | ✓ | ✓ | ✓ | ✓ | ✓ | P2 |
 | Reading | `screens/reading.js`, `orena/reading.css` | create form + article header + passage + rail | ✓ | ✓ | ✓ | ~ | ✓ | ✓ | ✓ | ✓ | ✓ | P2 |
 | Listening | `screens/listening.js`, `orena/listening.css` | import + Follow/Active + resume, panel-restyled | ✓ | ✓ | ✓ | ~ | ~ | ✓ | ✓ | ✓ | ✓ | P2 |
@@ -151,14 +154,45 @@ Tokens first, as the token layer is what every screen reads.
    composition is exactly what the mobile API already supports.
 
    Screens carrying a residual (documented at each screen's commit and
-   summarized here): Home (P2, elevation-only sheen/rim gap), Grammar (P2,
-   rich `learning_model` block-composition not reproduced), Reading (P2, no
-   OS text-selection surface, no scroll-progress/font controls, no passage
-   history endpoint), Listening and Speaking (P2 each, the web's full studio
-   -- video/audio player, transport, waveform -- has no native surface
-   beyond bare expo-audio playback), Journey (P2, pattern gauges/outcome
-   history/timeline/target rail not reproduced). Writing, Review, Library
-   and Profile carry no residual.
+   summarized here): Home (P2, elevation-only sheen/rim gap, plus the
+   cross-skill-cue signal and the Speaking branch of the next-practice plan
+   -- see below), Writing (P2, no rich-text toolbar/word-role legend/
+   guidance-scaffold disclosure/error watchlist/audience field), Review (P2,
+   no POS-lens/pinyin overlay/compare-to-a-stronger-version dialog/
+   downloadable feedback file), Grammar (P2, rich `learning_model`
+   block-composition not reproduced), Reading (P2, no OS text-selection
+   surface, no scroll-progress/font controls, no passage history endpoint),
+   Listening and Speaking (P2 each, the web's full studio -- video/audio
+   player, transport, waveform -- has no native surface beyond bare
+   expo-audio playback), Journey (P2, pattern gauges/outcome history/
+   timeline/target rail not reproduced). Library and Profile carry no
+   residual.
+
+   Home, Review and Writing were subsequently rebuilt a second time in this
+   pass, against the live running web app rather than static source alone,
+   after it was found the first port (built from a compacted conversation
+   summary rather than a fresh source read) was substantially incomplete --
+   Home in particular was rendering `recommendation.focus_label` (a raw
+   category name) as its hero headline instead of the fixed sentence the
+   web's `homeInsight()` computes. Home's residual narrowed to the
+   elevation-only sheen/rim gap plus two signals the mobile API does not yet
+   back: `crossSkillCueMarkup` (a fourth cross-skill orchestration card) and
+   the Speaking branch of the next-practice plan, both of which need
+   endpoints/history (cross-skill cue, speaking-attempt history) this pass
+   did not build. Writing gained a mode/level/topic/length setup panel
+   (backed by the same `POST /api/tasks/generate` the web calls) so a
+   learner can start a self-directed session, closing a real functional gap
+   -- previously native could only reach the editor via a handoff -- while
+   the rich-text editor toolbar, word-role legend, guidance-scaffold
+   disclosure, error watchlist and audience field remain unreproduced (RN's
+   TextInput has no inline rich-text surface without a heavy third-party
+   editor). Review gained the revision-evidence delta (before/after score
+   and issue-count deltas) and the practice-outcome/review-cue signal cards,
+   all backed by real endpoints (`/api/practice-outcome/{id}`,
+   `/api/review-cue`) the mobile client did not call before; its POS-toggle
+   linguistic-annotation lens, pinyin overlay, compare-to-a-stronger-version
+   dialog and downloadable feedback file remain unreproduced, each its own
+   subsystem rather than a styling gap.
 
    Library carries no residual: unlike Listening/Speaking/Grammar/Reading,
    the web's own composition (a word list with a per-word reveal gate and an
