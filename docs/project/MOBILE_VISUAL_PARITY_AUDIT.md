@@ -113,7 +113,7 @@ Colour/Type/Space/Component/Layout are scored against the web implementation.
 | Listening | `screens/listening.js`, `orena/listening.css` | import + Follow/Active + resume, panel-restyled | ✓ | ✓ | ✓ | ~ | ~ | ✓ | ✓ | ✓ | ✓ | P2 |
 | Speaking | `screens/speaking.js`, `orena/speaking.css` | record + evidence, panel-restyled | ✓ | ✓ | ✓ | ~ | ~ | ✓ | ✓ | ✓ | ✓ | P2 |
 | Library | `screens/library.js`, `orena/library.css` | word list + reveal/recall | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | P3 |
-| Journey | `screens/journey.js`, `orena/journey.css` | metric row + cards | ~ | ✗ | ~ | ✗ | ✗ | ✓ | ✓ | ✓ | ✓ | P1 |
+| Journey | `screens/journey.js`, `orena/journey.css` | metric row + focus + outcomes panels | ✓ | ✓ | ✓ | ~ | ~ | ✓ | ✓ | ✓ | ✓ | P2 |
 | Profile | `screens/profile.js`, `orena/profile.css` | radio groups | ~ | ✗ | ~ | ✗ | ✗ | ✓ | ✓ | ✓ | ✓ | P1 |
 | Entitlement | in `profile.js` | bordered list | ~ | ✗ | ~ | ✗ | ~ | ✓ | ✓ | ✓ | ✓ | P2 |
 | Degraded states | `components/primitives.js` | truthful, escapable | ~ | ✗ | ~ | ✗ | ✓ | ✓ | ✓ | ✓ | ✓ | P2 |
@@ -138,14 +138,25 @@ Tokens first, as the token layer is what every screen reads.
 5. ~~**P1 Finding 4** — move screens onto the Orena type scale.~~ Done.
 6. **P1 per-screen** — compose each screen from its web counterpart, in the
    roadmap order Home → ~~Writing~~ → ~~Review~~ → ~~Grammar~~ → ~~Reading~~ →
-   ~~Listening~~ → ~~Speaking~~ → ~~Library~~ → Journey → Profile. Home,
-   Writing, Review, Grammar, Reading, Listening, Speaking and Library are
-   done; Journey and Profile are the remaining open work.
+   ~~Listening~~ → ~~Speaking~~ → ~~Library~~ → ~~Journey~~ → Profile. Home,
+   Writing, Review, Grammar, Reading, Listening, Speaking, Library and
+   Journey are done; Profile is the last remaining screen.
 
    Library carries no residual: unlike Listening/Speaking/Grammar/Reading,
    the web's own composition (a word list with a per-word reveal gate and an
    Again/Got it recall action) is exactly what the mobile API already
    supports, so this port is full parity rather than a restyle-with-gaps.
+
+   Journey's residual: the web is a growth-pattern dashboard (per-pattern
+   progress gauges, a grammar/practice outcome history, a timeline, a target
+   rail with its own dialog) built on data the mobile `journeyDashboardSchema`
+   does not expose in that shape. Native's dashboard hook returns
+   essay_count/revision_count/skill_score/streak/error_memory and a flat
+   outcomes list -- the same fields Home's own metric grid already uses --
+   so this screen reuses the Metric primitive for consistency and adds a
+   Practice outcomes panel from the flat list. Not reproduced: the pattern
+   gauges, outcome history, timeline and target rail. Recorded as a P2
+   residual, not claimed as done.
 
    Speaking's residual matches Listening's: the web is a studio (waveform
    recorder, pronunciation heatmap on the transcript) that native's
