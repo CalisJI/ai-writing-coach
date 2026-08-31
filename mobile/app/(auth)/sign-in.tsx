@@ -15,8 +15,8 @@ export default function SignInScreen() {
   return (
     <SafeAreaView style={{flex: 1, backgroundColor: tokens.colors.background}}>
       <View style={{flex: 1, justifyContent: 'center', padding: tokens.spacing.large, gap: tokens.spacing.medium, width: '100%', maxWidth: MAX_CONTENT_WIDTH, alignSelf: 'center'}}>
-        <Text accessibilityRole="header" style={{fontSize: 30, fontWeight: '700', color: tokens.colors.text}}>{t('auth.signed_out_title')}</Text>
-        <Text style={{fontSize: 17, color: tokens.colors.mutedText}}>{t('auth.signed_out_body')}</Text>
+        <Text accessibilityRole="header" style={{fontSize: 28, fontWeight: '700', color: tokens.colors.heading}}>{t('auth.signed_out_title')}</Text>
+        <Text style={{fontSize: 16, color: tokens.colors.mutedText}}>{t('auth.signed_out_body')}</Text>
         <AccessibleButton label={t('auth.sign_in_browser')} onPress={() => {void signInWithBrowser().then(() => router.replace('/'));}} />
         <AccessibleButton label={t('auth.sign_in')} onPress={() => {signInForDevelopment(); router.replace('/(app)');}} />
       </View>

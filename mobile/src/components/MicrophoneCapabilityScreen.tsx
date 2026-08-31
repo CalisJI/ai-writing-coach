@@ -24,7 +24,7 @@ export function MicrophoneCapabilityScreen({service: suppliedService}: {service?
   const recording = snapshot.state === 'recording';
   const canPlay = snapshot.state === 'recorded';
   return <SafeAreaView style={[styles.container, {backgroundColor: tokens.colors.background}]}>
-    <Text accessibilityRole="header" style={[styles.title, {color: tokens.colors.text}]}>{t('media.title')}</Text>
+    <Text accessibilityRole="header" style={[styles.title, {color: tokens.colors.heading}]}>{t('media.title')}</Text>
     <Text style={[styles.body, {color: tokens.colors.mutedText}]}>{stateMessage[snapshot.state]}</Text>
     <View style={styles.actions}>
       {recording ? <AccessibleButton label={t('media.stop')} onPress={() => { void service.stopRecording(); }} /> :

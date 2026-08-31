@@ -11,7 +11,7 @@ export function BootstrapStatusScreen({kind, onDevelopmentMode}: {kind: 'loading
   return (
     <SafeAreaView style={{flex: 1, backgroundColor: tokens.colors.background}}>
       <View style={{flex: 1, justifyContent: 'center', padding: tokens.spacing.large, gap: tokens.spacing.medium}}>
-        <Text accessibilityRole="header" style={{fontSize: 26, fontWeight: '700', color: tokens.colors.text}}>
+        <Text accessibilityRole="header" style={{fontSize: 28, fontWeight: '700', color: tokens.colors.heading}}>
           {loading ? t('bootstrap.loading') : t('bootstrap.unavailable_title')}
         </Text>
         {!loading && <Text style={{fontSize: 16, color: tokens.colors.mutedText}}>{t('bootstrap.unavailable_body')}</Text>}

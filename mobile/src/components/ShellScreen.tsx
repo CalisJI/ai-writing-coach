@@ -8,7 +8,7 @@ export function ShellScreen({title}: {title: string}) {
   const {t} = useI18n();
   return (
     <SafeAreaView style={[styles.container, {backgroundColor: tokens.colors.background}]}>
-      <Text accessibilityRole="header" style={[styles.title, {color: tokens.colors.text}]}>{title}</Text>
+      <Text accessibilityRole="header" style={[styles.title, {color: tokens.colors.heading}]}>{title}</Text>
       <Text style={[styles.body, {color: tokens.colors.mutedText}]}>{t('shell.placeholder')}</Text>
     </SafeAreaView>
   );

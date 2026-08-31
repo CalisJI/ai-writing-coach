@@ -36,7 +36,7 @@ function ErrorFallback({onRetry}: {onRetry: () => void}) {
   const {t} = useI18n();
   return (
     <View accessible accessibilityRole="alert" style={{flex: 1, padding: tokens.spacing.large, backgroundColor: tokens.colors.background, justifyContent: 'center'}}>
-      <Text accessibilityRole="header" style={{fontSize: 24, fontWeight: '700', color: tokens.colors.text, marginBottom: tokens.spacing.small}}>{t('error.title')}</Text>
+      <Text accessibilityRole="header" style={{fontSize: 22, fontWeight: '700', color: tokens.colors.heading, marginBottom: tokens.spacing.small}}>{t('error.title')}</Text>
       <Text style={{fontSize: 16, color: tokens.colors.mutedText, marginBottom: tokens.spacing.large}}>{t('error.body')}</Text>
       <AccessibleButton label={t('error.retry')} onPress={onRetry} />
     </View>
