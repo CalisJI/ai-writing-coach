@@ -109,7 +109,7 @@ Colour/Type/Space/Component/Layout are scored against the web implementation.
 | Writing | `screens/write.js`, `orena/writing.css` | prompt card + editor card + aside | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | P3 |
 | Review | `screens/review.js` | `PromptCard` + `IssueRow` findings + aside actions | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | P3 |
 | Grammar | `screens/grammar.js`, `orena/grammar.css` | curriculum overview + lesson detail | ✓ | ✓ | ✓ | ~ | ✓ | ✓ | ✓ | ✓ | ✓ | P2 |
-| Reading | `screens/reading.js`, `orena/reading.css` | passage + questions | ~ | ✗ | ~ | ✗ | ✗ | ✓ | ✓ | ✓ | ✓ | P1 |
+| Reading | `screens/reading.js`, `orena/reading.css` | create form + article header + passage + rail | ✓ | ✓ | ✓ | ~ | ✓ | ✓ | ✓ | ✓ | ✓ | P2 |
 | Listening | `screens/listening.js`, `orena/listening.css` | import + transcript | ~ | ✗ | ~ | ✗ | ✗ | ✓ | ✓ | ✓ | ✓ | P1 |
 | Speaking | `screens/speaking.js`, `orena/speaking.css` | record + evidence | ~ | ✗ | ~ | ✗ | ✗ | ✓ | ✓ | ✓ | ✓ | P1 |
 | Library | `screens/library.js`, `orena/library.css` | word list + recall | ~ | ✗ | ~ | ✗ | ✗ | ✓ | ✓ | ✓ | ✓ | P1 |
@@ -137,9 +137,18 @@ Tokens first, as the token layer is what every screen reads.
    web's 1.7 stroke on the 24 grid. No emoji stand in for a designed icon.
 5. ~~**P1 Finding 4** — move screens onto the Orena type scale.~~ Done.
 6. **P1 per-screen** — compose each screen from its web counterpart, in the
-   roadmap order Home → ~~Writing~~ → ~~Review~~ → ~~Grammar~~ → Reading →
-   Listening → Speaking → Library → Journey → Profile. Home, Writing, Review
-   and Grammar are done; the remaining six screens are the open work.
+   roadmap order Home → ~~Writing~~ → ~~Review~~ → ~~Grammar~~ → ~~Reading~~ →
+   Listening → Speaking → Library → Journey → Profile. Home, Writing, Review,
+   Grammar and Reading are done; the remaining five screens are the open work.
+
+   Reading's residual gap: the web triggers its contextual lookup from a mouse
+   text selection (`window.getSelection()`), which has no stable cross-platform
+   equivalent for a React Native `Text` view. Native keeps the manual-entry
+   lookup (type the word or phrase) as the platform adaptation for that one
+   mechanic. Also not reproduced: the live scroll-progress rail, font-size and
+   line-spacing controls, focus mode, clipboard copy, and the recent-passages
+   history list (the web reads `api.readingSessions`, which the mobile API
+   client does not yet expose). Tracked as a P2 residual, not claimed as done.
 
    Grammar's residual gap: a rich `learning_model` lesson is rendered on the
    web by a second, large system (`components/grammar-learning.js` composing
