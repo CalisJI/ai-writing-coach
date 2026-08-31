@@ -1,5 +1,5 @@
 import {configuredApiBaseUrl, normalizeApiBaseUrl} from './config';
-import {ApiError, normalizeUnknownError} from './errors';
+import {ApiError, normalizeUnknownError, invalidFieldsOf} from './errors';
 import {logoutResponseSchema, nativeSessionExchangeSchema, type NativeSessionExchange} from './contracts/nativeAuth';
 import {sessionBootstrapSchema, type SessionBootstrap} from './contracts/session';
 import {compactMediaStatusSchema, strokeOrderSchema, type CompactMediaStatus, type StrokeOrder} from './contracts/reference';
@@ -25,7 +25,22 @@ export type RequestOptions = {
   /** The signed server session cookie value, supplied by the native session layer. */
   sessionCookie?: string;
   ifNoneMatch?: string;
+  /** Overrides the client default; see GENERATION_TIMEOUT_MS. */
+  timeoutMs?: number;
 };
+
+/**
+ * Reads answer from stored data and are expected to be quick.
+ */
+export const DEFAULT_TIMEOUT_MS = 10000;
+
+/**
+ * Endpoints that wait on a model provider. The server allows itself up to
+ * CLOUD_AI_TIMEOUT (180s by default), so a 10s client cap aborts work the
+ * server goes on to complete successfully: the learner is told the request
+ * failed while the server returns 200.
+ */
+export const GENERATION_TIMEOUT_MS = 120000;
 
 export type StrokeOrderResult =
   | {kind: 'fresh'; data: StrokeOrder; etag: string | null; cacheControl: string | null}
@@ -39,7 +54,7 @@ export class ApiClient {
   constructor(options: ApiClientOptions = {}) {
     this.baseUrl = normalizeApiBaseUrl(options.baseUrl ?? configuredApiBaseUrl());
     this.fetchImpl = options.fetchImpl ?? fetch;
-    this.timeoutMs = options.timeoutMs ?? 10000;
+    this.timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
   }
 
   async getSessionBootstrap(options: RequestOptions = {}): Promise<SessionBootstrap> {
@@ -102,13 +117,13 @@ export class ApiClient {
 
   async getNextPractice(targetLevel: string, options: RequestOptions = {}): Promise<PracticeTask> {
     if (typeof targetLevel !== 'string' || targetLevel.trim() === '') throw new ApiError('request_rejected', 'Practice target level is required');
-    return this.request('/api/practice/next', options, practiceTaskSchema.parse, 'POST', {target_level: targetLevel});
+    return this.request('/api/practice/next', {timeoutMs: GENERATION_TIMEOUT_MS, ...options}, practiceTaskSchema.parse, 'POST', {target_level: targetLevel});
   }
 
   async evaluateWriting(input: EvaluationInput, options: RequestOptions = {}): Promise<EvaluationResult> {
     let payload: EvaluationInput;
     try { payload = evaluationInputSchema.parse(input); } catch { throw new ApiError('request_rejected', 'Writing submission was invalid'); }
-    return this.request('/api/evaluate', options, evaluationResultSchema.parse, 'POST', payload);
+    return this.request('/api/evaluate', {timeoutMs: GENERATION_TIMEOUT_MS, ...options}, evaluationResultSchema.parse, 'POST', payload);
   }
 
   async getGrammarPractice(grammarId: string, evidence = '', options: RequestOptions = {}): Promise<GrammarPractice> {
@@ -122,10 +137,10 @@ export class ApiClient {
   async listDashboard(options: RequestOptions = {}): Promise<JourneyDashboard> { return this.request('/api/dashboard', options, journeyDashboardSchema.parse); }
   async listPracticeOutcomes(limit = 20, options: RequestOptions = {}): Promise<JourneyOutcomes> { if (!Number.isInteger(limit) || limit < 1 || limit > 100) throw new ApiError('request_rejected', 'Practice outcome limit is invalid'); return this.request(`/api/practice-outcomes?limit=${encodeURIComponent(limit)}`, options, journeyOutcomesSchema.parse); }
 
-  async createReadingSession(input: ReadingGenerateInput, options: RequestOptions = {}): Promise<ReadingSession> { let payload: ReadingGenerateInput; try { payload = readingGenerateInputSchema.parse(input); } catch { throw new ApiError('request_rejected', 'Reading request was invalid'); } return this.request('/api/reading/session', options, readingSessionSchema.parse, 'POST', payload); }
+  async createReadingSession(input: ReadingGenerateInput, options: RequestOptions = {}): Promise<ReadingSession> { let payload: ReadingGenerateInput; try { payload = readingGenerateInputSchema.parse(input); } catch { throw new ApiError('request_rejected', 'Reading request was invalid'); } return this.request('/api/reading/session', {timeoutMs: GENERATION_TIMEOUT_MS, ...options}, readingSessionSchema.parse, 'POST', payload); }
   async getReadingSession(id: number, options: RequestOptions = {}): Promise<ReadingSession> { if (!Number.isInteger(id) || id < 1) throw new ApiError('request_rejected', 'Reading session is invalid'); const result = await this.request(`/api/reading/session/${id}`, options, readingSessionResponseSchema.parse); if (!result.found || !result.session) throw new ApiError('request_rejected', 'Reading session was not found', 404); return result.session; }
   async submitReadingAnswers(id: number, answers: number[], options: RequestOptions = {}): Promise<ReadingAnswerResult> { if (!Number.isInteger(id) || id < 1 || !Array.isArray(answers)) throw new ApiError('request_rejected', 'Reading answers were invalid'); return this.request(`/api/reading/session/${id}/answer`, options, readingAnswerResultSchema.parse, 'POST', {answers}); }
-  async contextualDictionary(input: DictionaryInput, options: RequestOptions = {}): Promise<DictionaryResult> { let payload: DictionaryInput; try { payload = dictionaryInputSchema.parse(input); } catch { throw new ApiError('request_rejected', 'Dictionary request was invalid'); } return this.request('/api/dictionary/contextual', options, dictionaryResultSchema.parse, 'POST', payload); }
+  async contextualDictionary(input: DictionaryInput, options: RequestOptions = {}): Promise<DictionaryResult> { let payload: DictionaryInput; try { payload = dictionaryInputSchema.parse(input); } catch { throw new ApiError('request_rejected', 'Dictionary request was invalid'); } return this.request('/api/dictionary/contextual', {timeoutMs: GENERATION_TIMEOUT_MS, ...options}, dictionaryResultSchema.parse, 'POST', payload); }
   async listLibraryVocabulary(options: RequestOptions = {}): Promise<Awaited<ReturnType<typeof librarySchema.parse>>> { return this.request('/api/library/vocabulary', options, librarySchema.parse); }
   async saveLibraryVocabulary(input: Parameters<typeof saveLibraryInputSchema.parse>[0], options: RequestOptions = {}): Promise<Awaited<ReturnType<typeof saveLibraryResultSchema.parse>>> { let payload; try { payload = saveLibraryInputSchema.parse(input); } catch { throw new ApiError('request_rejected', 'Library word was invalid'); } return this.request('/api/library/vocabulary', options, saveLibraryResultSchema.parse, 'POST', payload); }
   async reviewLibraryVocabulary(word: string, result: 'again' | 'got_it', options: RequestOptions = {}): Promise<Record<string, unknown>> { if (typeof word !== 'string' || word.trim() === '' || (result !== 'again' && result !== 'got_it')) throw new ApiError('request_rejected', 'Vocabulary review was invalid'); return this.request(`/api/library/vocabulary/${encodeURIComponent(word.trim())}/review`, options, (value) => { if (!value || typeof value !== 'object') throw new Error('invalid vocabulary review response'); return value as Record<string, unknown>; }, 'POST', {result}); }
@@ -142,16 +157,16 @@ export class ApiClient {
     return this.request('/api/listening/progress', options, listeningProgressResponseSchema.parse, 'POST', input);
   }
   async transcribeSpeaking(uri: string, language: 'en' | 'zh', options: RequestOptions = {}): Promise<SpeechTranscription> {
-    return this.speechUpload('/api/speech/transcribe', uri, language, undefined, options, speechTranscriptionSchema.parse);
+    return this.speechUpload('/api/speech/transcribe', uri, language, undefined, {timeoutMs: GENERATION_TIMEOUT_MS, ...options}, speechTranscriptionSchema.parse);
   }
   async assessSpeakingPronunciation(uri: string, language: 'en' | 'zh', referenceText: string, options: RequestOptions = {}): Promise<Record<string, unknown>> {
-    return this.speechUpload('/api/speech/pronunciation', uri, language, referenceText, options, (value) => {
+    return this.speechUpload('/api/speech/pronunciation', uri, language, referenceText, {timeoutMs: GENERATION_TIMEOUT_MS, ...options}, (value) => {
       if (!value || typeof value !== 'object') throw new Error('invalid pronunciation response');
       return value as Record<string, unknown>;
     });
   }
   async evaluateSpeaking(input: Record<string, unknown>, options: RequestOptions = {}): Promise<SpeechEvaluation> {
-    return this.request('/api/speech/evaluation', options, speechEvaluationSchema.parse, 'POST', input);
+    return this.request('/api/speech/evaluation', {timeoutMs: GENERATION_TIMEOUT_MS, ...options}, speechEvaluationSchema.parse, 'POST', input);
   }
   async saveSpeakingAttempt(input: Record<string, unknown>, options: RequestOptions = {}): Promise<SpeechAttemptResponse> {
     return this.request('/api/speech/attempts', options, speechAttemptResponseSchema.parse, 'POST', input);
@@ -178,8 +193,8 @@ export class ApiClient {
     }
     try {
       return parse(body);
-    } catch {
-      throw new ApiError('invalid_response', 'Invalid server response', response.status);
+    } catch (error) {
+      throw new ApiError('invalid_response', 'Invalid server response', response.status, invalidFieldsOf(error));
     }
   }
 
@@ -193,7 +208,7 @@ export class ApiClient {
     this.throwForResponse(response);
     let body: unknown;
     try { body = await response.json(); } catch { throw new ApiError('invalid_response', 'Invalid server response', response.status); }
-    try { return parse(body); } catch { throw new ApiError('invalid_response', 'Invalid server response', response.status); }
+    try { return parse(body); } catch (error) { throw new ApiError('invalid_response', 'Invalid server response', response.status, invalidFieldsOf(error)); }
   }
 
   private async rawRequest(
@@ -208,7 +223,7 @@ export class ApiClient {
     const timeout = setTimeout(() => {
       timedOut = true;
       controller.abort();
-    }, this.timeoutMs);
+    }, options.timeoutMs ?? this.timeoutMs);
     if (options.signal) {
       if (options.signal.aborted) controller.abort();
       else {

@@ -158,6 +158,28 @@ describe('typed mobile API client', () => {
     await expect(invalid.getProductMe()).rejects.toMatchObject({category: 'invalid_response'});
   });
 
+  it('gives provider-backed calls the generation budget instead of the fast-read default', async () => {
+    // The server allows itself CLOUD_AI_TIMEOUT (180s). A 10s client cap aborted
+    // work the server went on to finish, so the learner was told the request
+    // failed while the server logged 200 OK.
+    const evaluation = {
+      id: 1, series_id: 1, revision_no: 1, overall: 70, app_cefr: 'B1', evaluator: 'demo',
+      summary_vi: 's', strengths_vi: [], strength_evidence: [], priorities_vi: [], errors: [], grammar_links: [],
+    };
+    // Answers only after the fast-read budget would have expired.
+    const slowFetch = (_input: RequestInfo | URL, init?: RequestInit) => new Promise<Response>((resolve, reject) => {
+      const timer = setTimeout(() => resolve(response(200, evaluation)), 60);
+      init?.signal?.addEventListener('abort', () => { clearTimeout(timer); reject(new Error('aborted')); }, {once: true});
+    });
+    const client = new ApiClient({baseUrl: 'https://learn.example.test', fetchImpl: slowFetch, timeoutMs: 10});
+
+    // Evaluation must survive: it waits on a model provider.
+    await expect(client.evaluateWriting({prompt: 'p', text: 'a text long enough', target_cefr: 'B1'})).resolves.toMatchObject({id: 1});
+
+    // A plain read keeps the fast default, so a stalled server still fails fast.
+    await expect(client.listDashboard()).rejects.toMatchObject({category: 'timeout'});
+  });
+
   it('accepts the degraded product account state the server emits when the subscription store is unavailable', async () => {
     const degraded = {available: false, plan: null, subscription: {state: 'unknown', status: 'unknown'}, features: {}, billing_ready: false};
     const client = new ApiClient({baseUrl: 'https://learn.example.test', fetchImpl: async () => response(200, degraded)});
