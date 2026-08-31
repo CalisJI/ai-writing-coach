@@ -10,14 +10,14 @@ import {CONTENT_MAX} from '../../theme/layout';
 import {Button, Chip, Label, Metric, Panel, PanelCopy} from '../../components/orena';
 import {useJourneyDashboard, useJourneyOutcomes} from '../../query/useJourney';
 import {useLibraryVocabulary} from '../../query/useReadingLibrary';
-import {useEssays, useLearningMemory, useOpenEssay, useReadingSessionHistory} from '../../query/useHome';
+import {useCrossSkillCue, useEssays, useLearningMemory, useOpenEssay, useReadingSessionHistory} from '../../query/useHome';
 import {useLearnerProfile, useSaveLearnerProfile, useSetLearningLanguage} from '../../query/useLearnerProfile';
 import {useNextPractice, usePracticeRecommendation} from '../../query/usePracticeRecommendation';
 import {setPracticeHandoff} from './practiceHandoff';
 import {OnboardingForm} from './OnboardingForm';
 import {setReviewHandoff} from '../review/reviewHandoff';
 import {setReadingResumeHandoff} from '../reading/readingResumeHandoff';
-import type {EssaySummary, EvaluationInput, JourneyDashboard, LearningMemory, PracticeRecommendation} from '../../api/contracts/learning';
+import type {CrossSkillCue, EssaySummary, EvaluationInput, JourneyDashboard, LearningMemory, PracticeRecommendation} from '../../api/contracts/learning';
 import type {ReadingSessions} from '../../api/contracts/reading';
 import {readListeningResume, type ListeningResume} from '../../features/listening/listeningResume';
 import {listeningHabitSnapshot, type ListeningHabitSnapshot} from '../../features/listening/listeningHabit';
@@ -29,11 +29,14 @@ import {listeningHabitSnapshot, type ListeningHabitSnapshot} from '../../feature
  * around a hero. Everything actually invoked by its `renderHome()` is
  * reproduced here (hero, listening-habit, listening-resume, next-practice
  * plan, library-review-due, writing dashboard, journey stages + rail,
- * recent drafts, library preview); `crossSkillCueMarkup` (a fourth
- * cross-skill orchestration signal) and the Speaking branch of the
- * next-practice plan are not, since they need endpoints/history this pass
- * did not build (crossSkillCue, speakingAttempts) -- tracked as a residual
- * in MOBILE_VISUAL_PARITY_AUDIT.md, not claimed as done.
+ * recent drafts, library preview, cross-skill cue via GET
+ * /api/cross-skill-cue); only the Speaking branch of the next-practice plan
+ * is not, since it needs speaking-attempt history this pass did not build
+ * -- tracked as a residual in MOBILE_VISUAL_PARITY_AUDIT.md, not claimed as
+ * done. The cross-skill cue skips the web's shared-media-session freshness
+ * check for listening/speaking sources (native has no equivalent in-memory
+ * "currently loaded lesson" cache to check against) and trusts the
+ * backend's own recency validation instead.
  */
 
 // ---- pure helpers, mirrored from domain/feedback.js and screens/home.js ----
@@ -142,7 +145,7 @@ function SignedOut() { const {t} = useI18n(); const {tokens} = useTheme(); const
 
 function Unavailable({retry}: {retry?: () => void}) { const {t} = useI18n(); const {tokens} = useTheme(); return <View style={[styles.container, {backgroundColor: tokens.colors.background}]}><Text accessibilityRole="header" style={[styles.title, {color: tokens.colors.heading}]}>{t('home.unavailable_title')}</Text><Text style={[styles.body, {color: tokens.colors.mutedText}]}>{t('home.unavailable_body')}</Text>{retry && <Pressable accessibilityRole="button" onPress={retry} style={[styles.button, {backgroundColor: tokens.colors.accent}]}><Text style={[styles.buttonText, {color: tokens.colors.onAccent}]}>{t('home.retry')}</Text></Pressable>}</View>; }
 
-function LearningHome({recommendation, insight, personalized, currentEssay, onStart, starting, failed, failedFields, dashboard, essays, memory, dueCount, dueWord, listeningResume, listeningHabit, readingHistory, onJourney, onLibrary, onOpenReview, openReviewFailed, onReadResume, onListenResume, onLibraryReview, onListeningGoal, outcomes}: {
+function LearningHome({recommendation, insight, personalized, currentEssay, onStart, starting, failed, failedFields, dashboard, essays, memory, dueCount, dueWord, listeningResume, listeningHabit, readingHistory, crossSkillCue, onCrossSkillAction, onJourney, onLibrary, onOpenReview, openReviewFailed, onReadResume, onListenResume, onLibraryReview, onListeningGoal, outcomes}: {
   recommendation: PracticeRecommendation;
   insight: Insight;
   personalized: boolean;
@@ -159,6 +162,8 @@ function LearningHome({recommendation, insight, personalized, currentEssay, onSt
   listeningResume: ListeningResume | null;
   listeningHabit: ListeningHabitSnapshot | null;
   readingHistory?: ReadingSessions;
+  crossSkillCue?: CrossSkillCue;
+  onCrossSkillAction: (action: NonNullable<CrossSkillCue['action']>) => void;
   onJourney: () => void;
   onLibrary: () => void;
   onOpenReview: (essayId: number) => void;
@@ -345,6 +350,16 @@ function LearningHome({recommendation, insight, personalized, currentEssay, onSt
         </Panel>
       ) : null}
 
+      {crossSkillCue?.available && crossSkillCue.state === 'transfer' && crossSkillCue.action ? (
+        <Panel>
+          <Label>{t('cross_skill.kicker' as never)}</Label>
+          <Text style={{color: tokens.colors.heading, fontWeight: '600'}}>{t('cross_skill.title' as never)}</Text>
+          <PanelCopy>{t('cross_skill.body' as never).replace('{source}', t(`cross_skill.source_${crossSkillCue.source}` as never))}</PanelCopy>
+          {crossSkillCue.evidence ? <Text style={{color: tokens.colors.text, fontStyle: 'italic'}}>{`“${crossSkillCue.evidence}”`}</Text> : null}
+          <Button label={t(`cross_skill.action_${crossSkillCue.source}` as never)} variant="outline" compact onPress={() => onCrossSkillAction(crossSkillCue.action!)} />
+        </Panel>
+      ) : null}
+
       {dashboard && dashboard.streak > 0 ? (
         <Panel>
           <Label>{t('home.streak_title' as never)}</Label>
@@ -406,6 +421,7 @@ export function HomeScreen({client: providedClient}: {client?: ApiClient}) {
   const dashboard = useJourneyDashboard(client, sessionCookie); const library = useLibraryVocabulary(client, sessionCookie);
   const outcomesQuery = useJourneyOutcomes(client, sessionCookie);
   const essaysQuery = useEssays(client, sessionCookie); const memory = useLearningMemory(client, sessionCookie); const readingHistory = useReadingSessionHistory(client, sessionCookie);
+  const crossSkillCue = useCrossSkillCue(client, sessionCookie);
   const openEssay = useOpenEssay(client, sessionCookie);
   const openReview = (essayId: number) => {
     openEssay.mutate(essayId, {onSuccess: (essay) => {
@@ -413,6 +429,12 @@ export function HomeScreen({client: providedClient}: {client?: ApiClient}) {
       setReviewHandoff({...essay, app_cefr: essay.app_cefr ?? essay.cefr_estimate ?? ''}, input);
       router.push('/(app)/review');
     }});
+  };
+  const onCrossSkillAction = (action: NonNullable<CrossSkillCue['action']>) => {
+    if (action.kind === 'review') openReview(action.essay_id);
+    else if (action.kind === 'reading') { setReadingResumeHandoff(action.session_id); router.push('/(app)/reading'); }
+    else if (action.kind === 'listening') router.push('/(app)/listening');
+    else router.push('/(app)/speaking');
   };
   const [listeningResume, setListeningResume] = useState<ListeningResume | null>(null);
   const [listeningHabit, setListeningHabit] = useState<ListeningHabitSnapshot | null>(null);
@@ -446,6 +468,8 @@ export function HomeScreen({client: providedClient}: {client?: ApiClient}) {
       listeningResume={listeningResume}
       listeningHabit={listeningHabit}
       readingHistory={readingHistory.data}
+      crossSkillCue={crossSkillCue.data}
+      onCrossSkillAction={onCrossSkillAction}
       onJourney={() => router.push('/(app)/journey')}
       onLibrary={() => router.push('/(app)/library')}
       onOpenReview={openReview}

@@ -165,3 +165,15 @@ export const freeTaskSchema = z.object({title: z.string().min(1), instruction: z
 export type FreeTask = z.infer<typeof freeTaskSchema>;
 export const generateTaskInputSchema = z.object({task_type: taskTypeSchema, topic: z.string().min(1).max(120), target_cefr: z.string().min(2).max(12), word_target: z.number().int().min(20).max(500)}).strict();
 export type GenerateTaskInput = z.infer<typeof generateTaskInputSchema>;
+
+// GET /api/cross-skill-cue -- writing_coach/cross_skill_transfer.py's select_cross_skill_cue().
+// One evidence-backed cue naming the strongest place to continue across skills, or an
+// unavailable placeholder. `action` shape depends on `source`.
+const crossSkillActionSchema = z.discriminatedUnion('kind', [
+  z.object({kind: z.literal('review'), essay_id: z.number().int().positive()}).passthrough(),
+  z.object({kind: z.literal('reading'), session_id: z.number().int().positive()}).passthrough(),
+  z.object({kind: z.literal('listening'), asset_id: z.string().min(1), segment_id: z.string().min(1), title: z.string().optional(), source_url: z.string().optional()}).passthrough(),
+  z.object({kind: z.literal('speaking'), asset_id: z.string().min(1), segment_id: z.string().min(1)}).passthrough(),
+]);
+export const crossSkillCueSchema = z.object({available: z.boolean(), state: z.string(), source: z.string(), evidence: z.string(), action: crossSkillActionSchema.nullable()}).passthrough();
+export type CrossSkillCue = z.infer<typeof crossSkillCueSchema>;

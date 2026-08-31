@@ -1,6 +1,6 @@
 import {useMutation, useQuery, type UseMutationResult, type UseQueryResult} from '@tanstack/react-query';
 import {ApiClient} from '../api/client';
-import type {EssayDetail, EssaySummary, LearningMemory} from '../api/contracts/learning';
+import type {CrossSkillCue, EssayDetail, EssaySummary, LearningMemory} from '../api/contracts/learning';
 import type {ReadingSessions} from '../api/contracts/reading';
 import {ApiError} from '../api/errors';
 
@@ -23,4 +23,9 @@ export function useReadingSessionHistory(client: ApiClient | null, cookie?: stri
 
 export function useOpenEssay(client: ApiClient | null, cookie?: string | null): UseMutationResult<EssayDetail, ApiError, number> {
   return useMutation({mutationFn: (id) => client ? client.getEssay(id, {sessionCookie: cookie ?? undefined}) : Promise.reject(new ApiError('configuration_missing', 'API client is unavailable')), retry: false});
+}
+
+export const crossSkillCueKey = ['cross-skill-cue'] as const;
+export function useCrossSkillCue(client: ApiClient | null, cookie?: string | null): UseQueryResult<CrossSkillCue, ApiError> {
+  return useQuery({queryKey: crossSkillCueKey, queryFn: ({signal}) => client ? client.getCrossSkillCue({signal, sessionCookie: cookie ?? undefined}) : Promise.reject(new ApiError('configuration_missing', 'API client is unavailable')), enabled: enabled(client, cookie), retry: false, staleTime: 0});
 }

@@ -110,7 +110,7 @@ Colour/Type/Space/Component/Layout are scored against the web implementation.
 | Shell / nav | `orena/shell.css`, `shell.js` | rail + topbar + drawer, gated | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | P3 |
 | Auth / sign-in | `screens/onboarding.js` | plain centred stack | ~ | ✗ | ~ | ✗ | ~ | ✓ | ✓ | ✓ | ✓ | P1 |
 | Onboarding | `screens/onboarding.js` | `OnboardingForm` radio list | ~ | ✗ | ~ | ✗ | ✗ | ✓ | ✓ | ✓ | ✓ | P1 |
-| Home | `screens/home.js`, `orena/home.css` | hero (`homeInsight` statement, not the raw focus label) + listening-habit/resume + next-practice + library-review-due + writing dashboard + journey stages/rail + recent drafts + library preview | ✓ | ✓ | ✓ | ~ | ✓ | ✓ | ✓ | ✓ | ✓ | P2 |
+| Home | `screens/home.js`, `orena/home.css` | hero (`homeInsight` statement, not the raw focus label) + listening-habit/resume + next-practice + library-review-due + writing dashboard + journey stages/rail + cross-skill cue + recent drafts + library preview | ✓ | ✓ | ✓ | ~ | ✓ | ✓ | ✓ | ✓ | ✓ | P2 |
 | Writing | `screens/write.js`, `orena/writing.css` | prompt card + editor card + aside, plus a mode/level/topic/length setup panel for a self-directed session | ✓ | ✓ | ✓ | ~ | ✓ | ✓ | ✓ | ✓ | ✓ | P2 |
 | Review | `screens/review.js` | `PromptCard` + confidence-banded `IssueRow` findings + revision-delta + practice-outcome/review-cue signal cards + aside actions | ✓ | ✓ | ✓ | ~ | ✓ | ✓ | ✓ | ✓ | ✓ | P2 |
 | Grammar | `screens/grammar.js`, `orena/grammar.css` | curriculum overview + lesson detail | ✓ | ✓ | ✓ | ~ | ✓ | ✓ | ✓ | ✓ | ✓ | P2 |
@@ -174,12 +174,25 @@ Tokens first, as the token layer is what every screen reads.
    summary rather than a fresh source read) was substantially incomplete --
    Home in particular was rendering `recommendation.focus_label` (a raw
    category name) as its hero headline instead of the fixed sentence the
-   web's `homeInsight()` computes. Home's residual narrowed to the
-   elevation-only sheen/rim gap plus two signals the mobile API does not yet
-   back: `crossSkillCueMarkup` (a fourth cross-skill orchestration card) and
-   the Speaking branch of the next-practice plan, both of which need
-   endpoints/history (cross-skill cue, speaking-attempt history) this pass
-   did not build. A functional defect from that first pass was also found
+   web's `homeInsight()` computes. Home's residual narrowed further in this
+   session's follow-up work: the `crossSkillCueMarkup` signal (GET
+   /api/cross-skill-cue, writing_coach/cross_skill_transfer.py's
+   select_cross_skill_cue()) is now wired in as a Cross-skill cue card,
+   handling all four of the backend's action kinds -- review opens the
+   linked essay through the same getEssay() path as Home's other Open
+   buttons, reading resumes the linked session through
+   readingResumeHandoff.ts, and listening/speaking route to their screens
+   generically (no deep segment-jump handoff exists yet for either). It
+   intentionally skips the web's shared-media-session freshness check for
+   listening/speaking sources, since native has no equivalent in-memory
+   "currently loaded lesson" cache to check against, and trusts the
+   backend's own recency validation instead. Device-verified on
+   emulator-5556: the card rendered real evidence and Open Review landed on
+   that exact essay. Home's residual now narrows to the elevation-only
+   sheen/rim gap plus the Speaking branch of the next-practice plan, which
+   needs speaking-attempt history this pass did not build.
+
+   A functional defect from that first pass was also found
    and fixed in this session's follow-up work: every "Open" affordance on
    Home (Current piece, the review-cue card, each recent-drafts row) called
    an `onOpenReview(essayId)` prop whose top-level wiring silently discarded
