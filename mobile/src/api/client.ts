@@ -9,6 +9,7 @@ import {dictionaryInputSchema, dictionaryResultSchema, librarySchema, saveLibrar
 import {listeningProgressListSchema, listeningProgressResponseSchema, mediaImportInputSchema, mediaLessonSchema, type ListeningProgressInput, type MediaImportInput, type MediaLesson} from './contracts/listening';
 import {speechAttemptResponseSchema, speechEvaluationSchema, speechTranscriptionSchema, type SpeechEvaluation, type SpeechAttemptResponse, type SpeechTranscription} from './contracts/speech';
 import {productAccountStateSchema, type ProductAccountState} from './contracts/product';
+import {skillReleaseSchema, type SkillRelease} from './contracts/skills';
 
 type FetchLike = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
 
@@ -94,6 +95,11 @@ export class ApiClient {
 
   async getLearnerProfile(options: RequestOptions = {}): Promise<LearnerProfile> {
     return this.request('/api/learner-profile', options, learnerProfileSchema.parse);
+  }
+
+  /** The skill release contract the shell needs to gate its destinations. */
+  async listSkills(options: RequestOptions = {}): Promise<SkillRelease> {
+    return this.request('/api/platform/skills', options, skillReleaseSchema.parse);
   }
 
   async getProductMe(options: RequestOptions = {}): Promise<ProductAccountState> {

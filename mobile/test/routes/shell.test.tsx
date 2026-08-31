@@ -8,8 +8,15 @@ import {ORENA_ICON_NAMES} from '../../src/components/OrenaIcon';
 const mockPush = jest.fn();
 let mockPathname = '/';
 let mockWidth = 411;
+let mockIsAdmin = false;
+const skill = (key: string, publicAvailable: boolean, internalAvailable = true) => ({key, release_state: publicAvailable ? 'public' : 'beta', source_available: true, internal_available: internalAvailable, public_available: publicAvailable});
+let mockSkills = [skill('writing', true), skill('reading', true), skill('listening', true), skill('speaking', true)];
 
 jest.mock('expo-router', () => ({useRouter: () => ({push: mockPush}), usePathname: () => mockPathname}));
+jest.mock('../../src/auth/SessionHarness', () => ({useSession: () => ({sessionCookie: 'cookie'})}));
+jest.mock('../../src/api/client', () => ({createConfiguredApiClient: () => ({}), ApiClient: class {}}));
+jest.mock('../../src/query/useSkills', () => ({useSkills: () => ({data: {api_version: 1, policy: 'language-wide', language_scope: ['en'], skills: mockSkills}, isPending: false, isError: false})}));
+jest.mock('../../src/query/useSessionBootstrap', () => ({useSessionBootstrap: () => ({data: {user: {is_admin: mockIsAdmin}}, isPending: false, isError: false})}));
 jest.mock('react-native-safe-area-context', () => ({useSafeAreaInsets: () => ({top: 24, bottom: 0, left: 0, right: 0})}));
 jest.mock('react-native/Libraries/Utilities/useWindowDimensions', () => ({
   __esModule: true,
@@ -25,7 +32,10 @@ const buttonNamed = (view: renderer.ReactTestRenderer, label: string) =>
   view.root.findAll((node) => node.props.accessibilityRole === 'button' && node.props.accessibilityLabel === label && typeof node.props.onPress === 'function')[0];
 
 describe('Orena shell', () => {
-  beforeEach(() => { mockPush.mockReset(); mockPathname = '/'; mockWidth = 411; });
+  beforeEach(() => {
+    mockPush.mockReset(); mockPathname = '/'; mockWidth = 411; mockIsAdmin = false;
+    mockSkills = [skill('writing', true), skill('reading', true), skill('listening', true), skill('speaking', true)];
+  });
 
   // The native client previously rendered no chrome at all, so eight of the nine
   // destinations were unreachable unless a screen happened to link to them.
@@ -67,6 +77,26 @@ describe('Orena shell', () => {
     const view = render(locale);
     const headers = view.root.findAll((node) => node.props.accessibilityRole === 'header');
     expect(headers.map((node) => String(node.props.children))).toContain(locale === 'zh' ? '已保存的单词' : 'Saved words');
+  });
+
+  // The web hides Write, Read, Listen and Speak until the release contract says
+  // the skill is available; the shell must not advertise an unreleased skill.
+  it('hides a skill the release contract has not made public', () => {
+    mockWidth = 1280;
+    mockSkills = [skill('writing', true), skill('reading', false), skill('listening', false), skill('speaking', false)];
+    const labels = links(render()).map((node) => String(node.props.accessibilityLabel));
+    expect(labels).toContain('Writing');
+    for (const hidden of ['Reading', 'Listening', 'Speaking']) expect(labels).not.toContain(hidden);
+    // Ungated destinations stay.
+    for (const kept of ['Home', 'Grammar', 'Library', 'Journey', 'Profile']) expect(labels).toContain(kept);
+  });
+
+  it('shows internally available skills to an admin, as the web does', () => {
+    mockWidth = 1280;
+    mockSkills = [skill('writing', false), skill('reading', false), skill('listening', false), skill('speaking', false)];
+    expect(links(render()).map((node) => String(node.props.accessibilityLabel))).not.toContain('Reading');
+    mockIsAdmin = true;
+    expect(links(render()).map((node) => String(node.props.accessibilityLabel))).toContain('Reading');
   });
 
   it('ships the designed icon set rather than substituting emoji', () => {

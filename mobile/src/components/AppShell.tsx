@@ -1,8 +1,13 @@
-import {useState, type PropsWithChildren} from 'react';
+import {useMemo, useState, type PropsWithChildren} from 'react';
 import {Modal, Pressable, ScrollView, StyleSheet, Text, View} from 'react-native';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {usePathname, useRouter} from 'expo-router';
 import {useI18n} from '../i18n/I18nProvider';
+import {useSession} from '../auth/SessionHarness';
+import {createConfiguredApiClient} from '../api/client';
+import {routeAvailable} from '../api/contracts/skills';
+import {useSkills} from '../query/useSkills';
+import {useSessionBootstrap} from '../query/useSessionBootstrap';
 import {useTheme} from '../theme/ThemeProvider';
 import {fontSizes, metrics, radii} from '../theme/tokens';
 import {useScreenLayout} from '../theme/layout';
@@ -53,12 +58,12 @@ function normalize(pathname: string): string {
   return segment ? `/(app)/${segment}` : '/(app)';
 }
 
-function NavList({active, onNavigate}: {active: string; onNavigate: (route: string) => void}) {
+function NavList({active, destinations, onNavigate}: {active: string; destinations: typeof DESTINATIONS; onNavigate: (route: string) => void}) {
   const {t} = useI18n();
   const {tokens} = useTheme();
   return (
     <View style={styles.nav}>
-      {DESTINATIONS.map(({route, icon, label}) => {
+      {destinations.map(({route, icon, label}) => {
         const current = route === active;
         return (
           <Pressable
@@ -86,6 +91,19 @@ export function AppShell({children}: PropsWithChildren) {
   const router = useRouter();
   const pathname = usePathname();
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const {sessionCookie} = useSession();
+  const client = useMemo(() => { try { return createConfiguredApiClient(); } catch { return null; } }, []);
+  const skills = useSkills(client, sessionCookie);
+  const bootstrap = useSessionBootstrap(client ?? undefined, sessionCookie);
+  const internal = bootstrap.data?.user.is_admin === true;
+  // The web hides Write, Read, Listen and Speak until the release contract says
+  // the skill is available; advertising them before that promises what the
+  // product has not released. Until the contract answers, only ungated
+  // destinations are shown.
+  const destinations = useMemo(
+    () => DESTINATIONS.filter(({route}) => routeAvailable(route, skills.data?.skills, {internal})),
+    [skills.data, internal],
+  );
   const active = normalize(pathname ?? '/');
   const titleKey = TITLE_BY_ROUTE[active] ?? 'nav.home';
 
@@ -98,7 +116,7 @@ export function AppShell({children}: PropsWithChildren) {
     <View style={[styles.sidebar, {backgroundColor: tokens.colors.surface, borderRightColor: tokens.colors.border}]}>
       <Text style={[styles.brand, {color: tokens.colors.text}]}>{t('app.name')}</Text>
       <ScrollView>
-        <NavList active={active} onNavigate={go} />
+        <NavList active={active} destinations={destinations} onNavigate={go} />
       </ScrollView>
     </View>
   );
@@ -148,7 +166,7 @@ export function AppShell({children}: PropsWithChildren) {
               </Pressable>
             </View>
             <ScrollView>
-              <NavList active={active} onNavigate={go} />
+              <NavList active={active} destinations={destinations} onNavigate={go} />
             </ScrollView>
           </Pressable>
         </Pressable>

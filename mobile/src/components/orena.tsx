@@ -107,6 +107,44 @@ export function Split({children, aside}: PropsWithChildren<{aside?: ReactNode}>)
   );
 }
 
+/** `.o-card.o-prompt` — the brief above the editor: label, title, body, actions. */
+export function PromptCard({label, title, body, actions}: {label: string; title: string; body?: string; actions?: ReactNode}) {
+  const {tokens} = useTheme();
+  return (
+    <View style={[styles.prompt, tokens.elevation.card, {backgroundColor: tokens.colors.surface, borderColor: tokens.colors.border, borderRadius: tokens.radius.card}]}>
+      <Text style={[styles.promptLabel, {color: tokens.colors.mutedText}]}>{label}</Text>
+      <Text accessibilityRole="header" style={[styles.promptTitle, {color: tokens.colors.heading}]}>{title}</Text>
+      {body ? <Text style={[styles.copy, {color: tokens.colors.mutedText}]}>{body}</Text> : null}
+      {actions ? <View style={styles.promptFoot}>{actions}</View> : null}
+    </View>
+  );
+}
+
+/**
+ * `.o-card.o-editor` — the writing surface. The web keeps the field flush to the
+ * card and puts status and the submit action in a bordered foot, rather than
+ * floating a button below the card.
+ */
+export function EditorCard({children, foot}: PropsWithChildren<{foot?: ReactNode}>) {
+  const {tokens} = useTheme();
+  return (
+    <View style={[styles.editor, tokens.elevation.card, {backgroundColor: tokens.colors.surface, borderColor: tokens.colors.border, borderRadius: tokens.radius.card}]}>
+      {children}
+      {foot ? <View style={[styles.editorFoot, {borderTopColor: tokens.colors.border}]}>{foot}</View> : null}
+    </View>
+  );
+}
+
+/** `.o-chip` — a compact status or metadata pill. */
+export function Chip({children}: PropsWithChildren) {
+  const {tokens} = useTheme();
+  return (
+    <View style={[styles.chip, {backgroundColor: tokens.colors.surfaceSunken, borderColor: tokens.colors.border, borderRadius: tokens.radii.chip}]}>
+      <Text style={[styles.chipLabel, {color: tokens.colors.mutedText}]}>{children}</Text>
+    </View>
+  );
+}
+
 /** A label/value pair, as the web uses for metric readouts. */
 export function Metric({label, value}: {label: string; value: string}) {
   const {tokens} = useTheme();
@@ -136,6 +174,15 @@ const styles = StyleSheet.create({
   heroStatementNarrow: {fontSize: 20, fontWeight: '600', lineHeight: 31, letterSpacing: -0.5, marginBottom: 14},
   heroLede: {fontSize: orenaText.body, lineHeight: 24, marginBottom: 26},
   heroActions: {flexDirection: 'row', flexWrap: 'wrap', gap: 12},
+  prompt: {borderWidth: 1, padding: 22, paddingHorizontal: 24, gap: 7},
+  promptLabel: {fontSize: orenaText.label, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.6},
+  promptTitle: {fontSize: orenaText.heading, fontWeight: '600', lineHeight: 23},
+  promptFoot: {flexDirection: 'row', alignItems: 'center', gap: 11, flexWrap: 'wrap', marginTop: 8},
+  editor: {borderWidth: 1, overflow: 'hidden'},
+  // `.o-editor-foot`: 52px, top border, ui text in muted ink.
+  editorFoot: {flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 14, minHeight: 52, paddingHorizontal: 20, paddingVertical: 8, borderTopWidth: 1, flexWrap: 'wrap'},
+  chip: {borderWidth: 1, paddingHorizontal: 10, paddingVertical: 5},
+  chipLabel: {fontSize: orenaText.meta, fontWeight: '600'},
   metric: {gap: 2, minWidth: 96},
   metricLabel: {fontSize: orenaText.meta},
   metricValue: {fontSize: orenaText.title, fontWeight: '700'},

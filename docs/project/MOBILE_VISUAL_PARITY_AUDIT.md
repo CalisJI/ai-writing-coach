@@ -102,11 +102,11 @@ Colour/Type/Space/Component/Layout are scored against the web implementation.
 
 | Screen | Web reference | Native state | Colour | Type | Space | Component | Layout | Light | Dark | EN | ZH | Severity |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Shell / nav | `orena/shell.css`, `shell.js` | absent | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | **P0** |
+| Shell / nav | `orena/shell.css`, `shell.js` | rail + topbar + drawer, gated | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | P3 |
 | Auth / sign-in | `screens/onboarding.js` | plain centred stack | ~ | ✗ | ~ | ✗ | ~ | ✓ | ✓ | ✓ | ✓ | P1 |
 | Onboarding | `screens/onboarding.js` | `OnboardingForm` radio list | ~ | ✗ | ~ | ✗ | ✗ | ✓ | ✓ | ✓ | ✓ | P1 |
 | Home | `screens/home.js`, `orena/home.css` | hero + 3 panels + split | ~ | ✓ | ✓ | ~ | ✓ | ✓ | ✓ | ✓ | ✓ | P2 |
-| Writing | `screens/write.js`, `orena/writing.css` | prompt + textarea + button | ~ | ✗ | ~ | ✗ | ✗ | ✓ | ✓ | ✓ | ✓ | P1 |
+| Writing | `screens/write.js`, `orena/writing.css` | prompt card + editor card + aside | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | P3 |
 | Review | `screens/review.js` | flat issue list | ~ | ✗ | ~ | ✗ | ✗ | ✓ | ✓ | ✓ | ✓ | P1 |
 | Grammar | `screens/grammar.js`, `orena/grammar.css` | lesson list + detail | ~ | ✗ | ~ | ✗ | ✗ | ✓ | ✓ | ✓ | ✓ | P1 |
 | Reading | `screens/reading.js`, `orena/reading.css` | passage + questions | ~ | ✗ | ~ | ✗ | ✗ | ✓ | ✓ | ✓ | ✓ | P1 |
