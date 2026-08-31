@@ -1,5 +1,16 @@
 # Verified Project State
 
+## Provider credential configuration
+
+The Admin application has a server-managed provider credential flow for local
+QA: same-origin authenticated test/save/remove actions, encryption before
+platform-store persistence, and masked status responses. Provider/model
+capability configuration remains secret-free. The separate
+`AI_PROVIDER_SECRETS_KEY` bootstrap secret is required at runtime and must be
+delivered through an approved secret store. Production credential bootstrap,
+live validation, runtime activation, backup/restore, and public release remain
+human-gated.
+
 This document records verified current truth only. It is not a wish list or a
 historical narrative.
 

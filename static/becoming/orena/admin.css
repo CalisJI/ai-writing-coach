@@ -90,6 +90,7 @@
 .admin-page .provider-icon--openai{color:#0f8f72;background:color-mix(in srgb,#0f8f72 10%,var(--o-surface-raised))}
 .admin-page .provider-icon--deepseek{color:#3978dd;background:color-mix(in srgb,#3978dd 10%,var(--o-surface-raised))}
 .admin-page .provider-icon--groq{color:#d85a22;background:color-mix(in srgb,#d85a22 10%,var(--o-surface-raised))}
+.admin-page .provider-icon--gemini{background:#fff;border-color:#eee}
 .admin-page .admin-tooltip-target{position:relative;display:inline-block;cursor:help}
 .admin-page .admin-tooltip{position:absolute;z-index:50;left:0;top:calc(100% + 8px);width:min(290px,calc(100vw - 40px));padding:9px 11px;border:1px solid var(--o-border-strong);border-radius:10px;background:var(--o-surface-raised);color:var(--o-ink);box-shadow:var(--o-shadow-card);font-size:var(--o-text-meta);font-weight:500;line-height:1.45;opacity:0;visibility:hidden;pointer-events:none;transform:translateY(-3px);transition:opacity var(--o-motion),transform var(--o-motion),visibility var(--o-motion)}
 .admin-page .admin-tooltip-target:hover .admin-tooltip,.admin-page .admin-tooltip-target:focus-visible .admin-tooltip{opacity:1;visibility:visible;transform:translateY(0)}
@@ -112,6 +113,10 @@
 .admin-page .admin-provider-fields input:disabled{opacity:.6;cursor:not-allowed}
 .admin-page .admin-provider-field-wide{grid-column:1/-1}
 .admin-page .admin-provider-config-foot{display:flex;align-items:center;justify-content:space-between;gap:12px;color:var(--o-ink-muted);font-size:var(--o-text-meta);line-height:1.45}
+.admin-page .admin-provider-config-actions{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap;flex:0 0 auto}
+.admin-page .admin-provider-config-actions .o-button{min-height:38px}
+.admin-page .admin-provider-delete{color:var(--o-critical)!important}
+.admin-page .admin-provider-help{color:var(--o-ink-muted);font-size:var(--o-text-meta);font-weight:400;line-height:1.45}
 html[data-theme="dark"] .admin-page .provider-icon--ollama,html[data-theme="dark"] .admin-page .provider-icon--openai,html[data-theme="dark"] .admin-page .provider-icon--deepseek{background:#fff;border-color:#eee}
 html[data-theme="dark"] .admin-page .provider-icon--ollama .provider-logo-image,html[data-theme="dark"] .admin-page .provider-icon--openai .provider-logo-image,html[data-theme="dark"] .admin-page .provider-icon--deepseek .provider-logo-image{filter:none}
-@media(max-width:600px){.admin-page .admin-provider-fields{grid-template-columns:1fr}.admin-page .admin-provider-field-wide{grid-column:auto}.admin-page .admin-provider-config-foot{align-items:flex-start;flex-direction:column}.admin-page .admin-provider-config-foot .o-button{width:100%}}
+@media(max-width:600px){.admin-page .admin-provider-fields{grid-template-columns:1fr}.admin-page .admin-provider-field-wide{grid-column:auto}.admin-page .admin-provider-config-foot{align-items:flex-start;flex-direction:column}.admin-page .admin-provider-config-actions{width:100%;display:grid;grid-template-columns:1fr}.admin-page .admin-provider-config-actions .o-button{width:100%}}

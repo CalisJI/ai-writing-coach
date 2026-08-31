@@ -783,3 +783,33 @@ public store submission remain explicit human gates.
 
 **Supersedes / Superseded by:** Extends R18 mobile/API readiness and the shared
 web/server product architecture. Supersedes no earlier decision.
+
+## D-037 - Provider credentials are configured through an authenticated server UI
+
+**Status:** Accepted
+
+**Decision:** Admin may submit a provider credential through the same-origin
+authenticated Admin application. The server validates the provider connection,
+encrypts the credential before persisting it in the authoritative platform
+settings store, and returns only masked status and model metadata. Credential
+values are never returned to the browser, included in capability configuration,
+telemetry, or operator-facing errors. A separate `AI_PROVIDER_SECRETS_KEY`
+bootstrap secret must be supplied by the deployment secret store; the UI never
+creates, displays, or replaces that encryption key.
+
+**Reason:** Editing provider keys in source or `.env` files is operationally
+unsafe and makes routine provider setup depend on filesystem access. The
+server-managed flow follows the Dify-style boundary of encrypted-at-rest
+credentials, explicit connection validation, and provider/model configuration
+that is separate from secrets, while keeping this repository's no-production-
+activation rule intact.
+
+**Consequences:** The Admin UI can test, save, and remove cloud-provider
+credentials without plaintext persistence. Production still requires TLS,
+secure bootstrap-secret delivery, backup/restore handling for the encryption
+key, audit/alert review, and explicit human approval before a credentialed
+provider is activated for learner traffic. Loss or rotation of the bootstrap
+key makes stored credentials unreadable until an approved key-recovery plan is
+executed.
+
+**Supersedes / Superseded by:** Supersedes no earlier decision.

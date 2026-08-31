@@ -155,13 +155,6 @@
     return providers.find(x => x.id === id);
   }
 
-  function legacyProviderIcon(id){
-    if(id === 'ollama') return '◉';
-    if(id === 'openai') return '✦';
-    if(id === 'deepseek') return '◇';
-    return '◆';
-  }
-
   function modelKindLabel(provider){
     return provider?.kind === 'local' ? 'LOCAL' : 'CLOUD';
   }
@@ -172,6 +165,8 @@
     openai:'/becoming-assets/assets/providers/openai.svg',
     deepseek:'/becoming-assets/assets/providers/deepseek.svg',
     groq:'/becoming-assets/assets/providers/groq.svg',
+    // Official Google AI Studio mark; Gemini has no local hand-drawn fallback.
+    gemini:'https://www.gstatic.com/aistudio/ai_studio_favicon_2_32x32.svg',
   };
 
   function providerIcon(id){
@@ -558,37 +553,97 @@
     selectedProviderId=provider.id;
     const config=provider.configuration || {};
     const credentialRequired=config.credential_env !== null && config.credential_env !== undefined;
-    const credentialState=config.credential_state === 'configured' ? 'Credential configured on server' : credentialRequired ? 'Credential not configured' : 'No credential required';
+    const credentialState=config.credential_source === 'encrypted_server_store'
+      ? 'Encrypted server credential'
+      : config.credential_state === 'configured'
+        ? 'Environment credential'
+        : credentialRequired ? 'Credential not configured' : 'No credential required';
     const models=[...(provider.models || [])];
     if(!models.length && provider.default_model) models.push(provider.default_model);
     const endpoint=String(config.endpoint_url || '');
     const modelList=models.join('\n');
     host.innerHTML=`<div class="admin-provider-config-head">
       <div class="admin-provider-config-identity"><span class="provider-icon provider-icon--${esc(provider.id)} large">${providerIcon(provider.id)}</span><div><h4>${esc(provider.name)}</h4><p>${provider.kind==='local'?'Local provider':'Cloud provider'} · ${esc(credentialState)}</p></div></div>
-      <span class="admin-read-only">DRAFT SETUP</span>
+      <span class="admin-read-only">SERVER MANAGED</span>
     </div>
     <form id="adminProviderSetupForm" class="admin-provider-setup-form">
       <div class="admin-provider-fields">
         <label>Endpoint URL<input type="url" data-provider-endpoint value="${esc(endpoint)}" placeholder="https://provider.example/v1" autocomplete="url" /></label>
         <label>Default model<input type="text" data-provider-default-model value="${esc(provider.default_model || '')}" placeholder="For example, gpt-4.1-mini" autocomplete="off" /></label>
-        <label class="admin-provider-field-wide">Allowed models<textarea data-provider-models rows="3" placeholder="One model name per line">${esc(modelList)}</textarea></label>
-        <label class="admin-provider-field-wide">API key or token<input type="password" data-provider-secret placeholder="Enter a new credential for this draft" autocomplete="new-password" ${credentialRequired?'':'disabled'} /></label>
+        <label class="admin-provider-field-wide">Available models<textarea data-provider-models rows="4" placeholder="One model name per line">${esc(modelList)}</textarea><small class="admin-provider-help">The provider's model list is tested live before it is saved.</small></label>
+        <label class="admin-provider-field-wide">API key or token<input type="password" data-provider-secret placeholder="${credentialState === 'Encrypted server credential' ? 'Leave empty to keep the stored credential' : 'Enter a provider credential'}" autocomplete="new-password" ${credentialRequired?'':'disabled'} /><small class="admin-provider-help">The credential is sent to this authenticated server, encrypted before storage, and never returned to the browser.</small></label>
       </div>
-      <div class="admin-provider-config-foot"><span>Values are a local draft only. Server credentials and runtime settings are not changed here.</span><button class="o-button o-button--quiet" type="submit">Check draft</button></div>
+      <div class="admin-provider-config-foot"><span>Connection tests contact the provider. Saving replaces the server-side configuration without exposing the credential.</span><div class="admin-provider-config-actions"><button class="o-button o-button--quiet" type="button" data-provider-test>Test connection</button><button class="o-button primary" type="submit" data-provider-save>Save securely</button>${config.credential_source === 'encrypted_server_store' ? '<button class="o-button o-button--quiet admin-provider-delete" type="button" data-provider-delete>Remove stored credential</button>' : ''}</div></div>
     </form>`;
-    host.querySelector('#adminProviderSetupForm')?.addEventListener('submit',event=>{
-      event.preventDefault();
+    const form=host.querySelector('#adminProviderSetupForm');
+    const readPayload=()=>{
       const endpointValue=String(host.querySelector('[data-provider-endpoint]')?.value || '').trim();
       const modelValue=String(host.querySelector('[data-provider-default-model]')?.value || '').trim();
-      const secretValue=String(host.querySelector('[data-provider-secret]')?.value || '').trim();
-      if(endpointValue){
-        try{ new URL(endpointValue); }catch(_error){ setMessage('Enter a valid endpoint URL for this draft.','error'); return; }
+      const modelsValue=String(host.querySelector('[data-provider-models]')?.value || '');
+      const secretInput=host.querySelector('[data-provider-secret]');
+      const secretValue=String(secretInput?.value || '').trim();
+      const models=[...new Set(modelsValue.split(/\r?\n|,/).map(value=>value.trim()).filter(Boolean))];
+      const payload={base_url:endpointValue,default_model:modelValue,models};
+      if(secretValue) payload.api_key=secretValue;
+      // Clear the only DOM copy before the request leaves this page.
+      if(secretInput) secretInput.value='';
+      return payload;
+    };
+    const validatePayload=payload=>{
+      if(!payload.base_url){ setMessage('Enter the provider endpoint URL.','error'); return false; }
+      try{ new URL(payload.base_url); }catch(_error){ setMessage('Enter a valid provider endpoint URL.','error'); return false; }
+      if(!payload.default_model){ setMessage('Choose a default model.','error'); return false; }
+      if(!payload.models.length){ setMessage('Add at least one available model.','error'); return false; }
+      if(credentialRequired && config.credential_source !== 'encrypted_server_store' && config.credential_state !== 'configured' && !payload.api_key){
+        setMessage('Enter a provider credential before testing or saving.','error'); return false;
       }
-      if(credentialRequired && config.credential_state !== 'configured' && !secretValue){
-        setMessage('Add a credential to complete this draft. It will not be sent or saved.','error'); return;
+      return true;
+    };
+    const runCredentialAction=async(mode)=>{
+      const payload=readPayload();
+      if(!validatePayload(payload)) return;
+      const testButton=host.querySelector('[data-provider-test]');
+      const saveButton=host.querySelector('[data-provider-save]');
+      const deleteButton=host.querySelector('[data-provider-delete]');
+      [testButton,saveButton,deleteButton].forEach(button=>{if(button) button.disabled=true;});
+      try{
+        const response=await fetch(mode==='test' ? `/api/admin/ai/credentials/${encodeURIComponent(provider.id)}/test` : `/api/admin/ai/credentials/${encodeURIComponent(provider.id)}`,{
+          method:mode==='test'?'POST':'PUT',
+          headers:{'Content-Type':'application/json'},
+          cache:'no-store',
+          body:JSON.stringify(payload)
+        });
+        const data=await response.json().catch(()=>({}));
+        if(!response.ok) throw new Error(data.detail || (mode==='test'?'Provider connection test failed.':'Provider credential could not be saved.'));
+        if(mode==='test'){
+          const count=Array.isArray(data.models) ? data.models.length : 0;
+          setMessage(`${provider.name} connection verified. ${count} text model${count===1?'':'s'} returned. Nothing was saved.`,'ok');
+        }else{
+          setMessage(`${provider.name} credential encrypted and saved on the server. The key was not returned.`,'ok');
+          await fetchConfig({quiet:true});
+        }
+      }catch(error){
+        setMessage(error?.message || 'Provider configuration request failed.','error');
+      }finally{
+        [testButton,saveButton,deleteButton].forEach(button=>{if(button) button.disabled=false;});
       }
-      if(!modelValue){ setMessage('Choose a default model for this draft.','error'); return; }
-      setMessage(`${provider.name} draft is valid. Server-managed settings were not changed.`,'ok');
+    };
+    form?.addEventListener('submit',event=>{ event.preventDefault(); runCredentialAction('save'); });
+    host.querySelector('[data-provider-test]')?.addEventListener('click',()=>runCredentialAction('test'));
+    host.querySelector('[data-provider-delete]')?.addEventListener('click',async()=>{
+      if(!confirm(`Remove the encrypted ${provider.name} credential from this server?`)) return;
+      const button=host.querySelector('[data-provider-delete]');
+      if(button) button.disabled=true;
+      try{
+        const response=await fetch(`/api/admin/ai/credentials/${encodeURIComponent(provider.id)}`,{method:'DELETE',cache:'no-store'});
+        const data=await response.json().catch(()=>({}));
+        if(!response.ok) throw new Error(data.detail || 'Stored provider credential could not be removed.');
+        setMessage(`${provider.name} stored credential removed. No key was exposed.`,'ok');
+        await fetchConfig({quiet:true});
+      }catch(error){
+        setMessage(error?.message || 'Provider credential removal failed.','error');
+        if(button) button.disabled=false;
+      }
     });
     window.installOrenaSelectEnhancements?.(host);
   }

@@ -2,8 +2,8 @@ import { state } from '../store.js';
 
 /* The Platform Admin view keeps the existing capability-centric contract. It
    is deliberately mounted inside the Orena shell only for administrators;
-   the controller loaded by the shell handles read-only evidence and leaves
-   explicit provider/configuration actions behind their existing buttons. */
+   credential values are submitted to the server over the authenticated Admin
+   boundary and are never rendered back to the browser. */
 export async function renderAdmin(root) {
   if (!state.me?.is_admin) {
     root.innerHTML = '<section class="o-page admin-page" role="alert"><h2>Admin access required</h2><p>This surface is available only to platform administrators.</p></section>';
@@ -55,13 +55,13 @@ export async function renderAdmin(root) {
       </article>
 
       <article class="admin-card admin-panel">
-        <div class="admin-panel-head"><div><h3>Provider catalog</h3><p>Read-only provider/model availability. Configure supported capabilities above.</p></div></div>
-        <div class="admin-toolbar"><div class="admin-toolbar-left"><button class="admin-filter active" type="button" data-admin-filter="all">All</button><button class="admin-filter" type="button" data-admin-filter="ollama">Local</button><button class="admin-filter" type="button" data-admin-filter="openai">OpenAI</button><button class="admin-filter" type="button" data-admin-filter="deepseek">DeepSeek</button></div><div class="admin-toolbar-right"><input id="adminModelSearch" class="admin-search" type="search" placeholder="Search models or providers…"></div></div>
+        <div class="admin-panel-head"><div><h3>Provider catalog</h3><p>Connect a provider securely, validate its model catalog, and choose models per capability.</p></div></div>
+        <div class="admin-toolbar"><div class="admin-toolbar-left"><button class="admin-filter active" type="button" data-admin-filter="all">All</button><button class="admin-filter" type="button" data-admin-filter="ollama">Local</button><button class="admin-filter" type="button" data-admin-filter="openai">OpenAI</button><button class="admin-filter" type="button" data-admin-filter="deepseek">DeepSeek</button><button class="admin-filter" type="button" data-admin-filter="groq">Groq</button><button class="admin-filter" type="button" data-admin-filter="gemini">Gemini</button></div><div class="admin-toolbar-right"><input id="adminModelSearch" class="admin-search" type="search" placeholder="Search models or providers…"></div></div>
         <div id="adminProviderCards" class="admin-provider-list"></div>
         <div id="adminProviderConfig" class="admin-provider-config" aria-live="polite"><div class="admin-empty">Select a provider to view its connection settings.</div></div>
         <div id="adminModelGrid" class="admin-model-grid"></div>
         <div id="adminAiMessage" class="admin-message" role="status"></div>
-        <div class="admin-policy-box"><div class="admin-policy-item"><span>Scope</span><b>Whole platform</b></div><div class="admin-policy-item"><span>API secrets</span><b>Server only</b></div><div class="admin-policy-item"><span>Paid failover</span><b>Disabled</b></div></div>
+        <div class="admin-policy-box"><div class="admin-policy-item"><span>Scope</span><b>Whole platform</b></div><div class="admin-policy-item"><span>API secrets</span><b>Encrypted server store</b></div><div class="admin-policy-item"><span>Paid failover</span><b>Disabled</b></div></div>
       </article>
     </section>`;
 
