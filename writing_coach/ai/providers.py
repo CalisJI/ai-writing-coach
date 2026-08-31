@@ -6,6 +6,7 @@ import re
 from dataclasses import dataclass
 from types import MappingProxyType
 from typing import Any
+from urllib.parse import urlsplit, urlunsplit
 
 import requests
 
@@ -371,6 +372,46 @@ class OpenAICompatibleProvider:
             "Content-Type": "application/json",
         }
 
+    def _model_catalog_request(self) -> tuple[requests.Response, bool]:
+        """Request a provider catalog and identify native Gemini responses.
+
+        Gemini's chat API is OpenAI-compatible, but its canonical Models API
+        uses ``/v1beta/models`` and ``x-goog-api-key``. Keeping discovery on
+        that native endpoint avoids a false connection failure for valid AI
+        Studio keys while leaving chat requests on the configured endpoint.
+        """
+
+        parsed = urlsplit(self.base_url)
+        is_native_gemini = (
+            self.model_filter == "gemini-text"
+            and parsed.hostname == "generativelanguage.googleapis.com"
+            and parsed.path.rstrip("/").endswith("/v1beta/openai")
+        )
+        if is_native_gemini:
+            native_path = parsed.path.rstrip("/")[: -len("/openai")] + "/models"
+            native_url = urlunsplit((parsed.scheme, parsed.netloc, native_path, "", ""))
+            return requests.get(
+                native_url,
+                headers={
+                    "x-goog-api-key": self.api_key,
+                    "Content-Type": "application/json",
+                },
+                timeout=10,
+            ), True
+        return requests.get(
+            f"{self.base_url}/models",
+            headers=self._headers(),
+            timeout=10,
+        ), False
+
+    def _catalog_models(self, envelope: object, *, native_gemini: bool) -> list[str]:
+        if native_gemini:
+            return [
+                model.rsplit("/", 1)[-1]
+                for model in _model_catalog(envelope, container_key="models", model_key="name")
+            ]
+        return _model_catalog(envelope, container_key="data", model_key="id")
+
     def _accept_model(self, model: str) -> bool:
         if not model:
             return False
@@ -407,19 +448,13 @@ class OpenAICompatibleProvider:
             return list(self.default_models)
 
         try:
-            response = requests.get(
-                f"{self.base_url}/models",
-                headers=self._headers(),
-                timeout=10,
-            )
+            response, native_gemini = self._model_catalog_request()
             response.raise_for_status()
-            return sorted(
-                {
-                    str(item.get("id") or "").strip()
-                    for item in response.json().get("data", [])
-                    if self._accept_model(str(item.get("id") or "").strip())
-                }
-            )
+            return sorted({
+                model
+                for model in self._catalog_models(response.json(), native_gemini=native_gemini)
+                if self._accept_model(model)
+            })
         except Exception:
             return []
 
@@ -432,11 +467,7 @@ class OpenAICompatibleProvider:
             return sorted(dict.fromkeys(self.allowed_models))
 
         try:
-            response = requests.get(
-                f"{self.base_url}/models",
-                headers=self._headers(),
-                timeout=10,
-            )
+            response, native_gemini = self._model_catalog_request()
             response.raise_for_status()
             envelope = response.json()
         except requests.ConnectionError as exc:
@@ -452,7 +483,7 @@ class OpenAICompatibleProvider:
             raise _invalid_model_catalog() from exc
         return sorted(
             model
-            for model in set(_model_catalog(envelope, container_key="data", model_key="id"))
+            for model in set(self._catalog_models(envelope, native_gemini=native_gemini))
             if self._accept_model(model)
         )
 

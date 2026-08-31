@@ -736,6 +736,42 @@ def test_live_discovery_distinguishes_credentials_transport_and_configured_catal
     assert configured.discover_models_live() == ["model-a", "model-b"]
 
 
+def test_gemini_live_discovery_uses_native_models_api(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("TEST_GEMINI_KEY", "credential-present")
+    provider = OpenAICompatibleProvider(
+        provider_id="gemini",
+        name="Gemini API",
+        api_key_env="TEST_GEMINI_KEY",
+        base_url_env="TEST_GEMINI_URL",
+        default_base_url="https://generativelanguage.googleapis.com/v1beta/openai",
+        models_env="TEST_GEMINI_MODELS",
+        model_filter="gemini-text",
+    )
+    calls: list[tuple[str, dict[str, Any]]] = []
+
+    def get(url: str, **kwargs: Any) -> ProviderResponse:
+        calls.append((url, kwargs))
+        return ProviderResponse(
+            {
+                "models": [
+                    {"name": "models/gemini-2.5-flash"},
+                    {"name": "models/text-embedding-004"},
+                ]
+            }
+        )
+
+    monkeypatch.setattr(requests, "get", get)
+
+    assert provider.discover_models_live() == ["gemini-2.5-flash"]
+    assert calls[0][0] == "https://generativelanguage.googleapis.com/v1beta/models"
+    assert calls[0][1]["headers"] == {
+        "x-goog-api-key": "credential-present",
+        "Content-Type": "application/json",
+    }
+
+
 def test_hardcoded_default_models_are_not_live_discovery_evidence(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
