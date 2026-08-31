@@ -1,6 +1,7 @@
 import type {PropsWithChildren, ReactNode} from 'react';
 import {Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle} from 'react-native';
 import {useTheme} from '../theme/ThemeProvider';
+import {ASIDE_WIDTH, useScreenLayout} from '../theme/layout';
 
 /**
  * The Orena shell primitives, mirrored from `static/becoming/orena/*.css`.
@@ -71,14 +72,35 @@ export function Button({label, onPress, variant = 'primary', compact = false, di
 }
 
 /** `.o-hero` — greeting, statement, lede, then the actions row. */
-export function Hero({greeting, statement, lede, actions}: {greeting: string; statement: string; lede?: string; actions?: ReactNode}) {
+export function Hero({greeting, statement, lede, actions, aside}: {greeting: string; statement: string; lede?: string; actions?: ReactNode; aside?: ReactNode}) {
   const {tokens} = useTheme();
+  const {wide} = useScreenLayout();
+  // `.o-hero` is two columns above 1023px and one below, and the statement
+  // steps down from its clamp to 26px on the narrow layout.
   return (
-    <View style={[styles.hero, {backgroundColor: tokens.colors.surface, borderColor: tokens.colors.border, borderRadius: tokens.radius.card}]}>
-      <Text style={[styles.heroGreet, {color: tokens.colors.mutedText}]}>{greeting}</Text>
-      <Text accessibilityRole="header" style={[styles.heroStatement, {color: tokens.colors.heading}]}>{statement}</Text>
-      {lede ? <Text style={[styles.heroLede, {color: tokens.colors.mutedText}]}>{lede}</Text> : null}
-      {actions ? <View style={styles.heroActions}>{actions}</View> : null}
+    <View style={[styles.hero, wide ? styles.heroWide : styles.heroNarrow, {backgroundColor: tokens.colors.surface, borderColor: tokens.colors.border, borderRadius: tokens.radius.card}]}>
+      <View style={styles.heroCopy}>
+        <Text style={[styles.heroGreet, {color: tokens.colors.mutedText}]}>{greeting}</Text>
+        <Text accessibilityRole="header" style={[wide ? styles.heroStatement : styles.heroStatementNarrow, {color: tokens.colors.heading}]}>{statement}</Text>
+        {lede ? <Text style={[styles.heroLede, {color: tokens.colors.mutedText}]}>{lede}</Text> : null}
+        {actions ? <View style={styles.heroActions}>{actions}</View> : null}
+      </View>
+      {aside ? <View style={styles.heroAside}>{aside}</View> : null}
+    </View>
+  );
+}
+
+/**
+ * `.o-home-split` — a main column beside a 288px rail above the breakpoint,
+ * stacked below it.
+ */
+export function Split({children, aside}: PropsWithChildren<{aside?: ReactNode}>) {
+  const {wide, gap} = useScreenLayout();
+  if (!wide || !aside) return <View style={{gap}}>{children}{aside}</View>;
+  return (
+    <View style={{flexDirection: 'row', gap, alignItems: 'flex-start'}}>
+      <View style={{flex: 1, minWidth: 0, gap}}>{children}</View>
+      <View style={{width: ASIDE_WIDTH, gap}}>{aside}</View>
     </View>
   );
 }
@@ -101,10 +123,15 @@ const styles = StyleSheet.create({
   button: {minHeight: 44, paddingHorizontal: 17, borderWidth: 1, alignItems: 'center', justifyContent: 'center'},
   buttonCompact: {minHeight: 38, paddingHorizontal: 14, alignSelf: 'flex-start'},
   buttonLabel: {fontSize: orenaText.ui, fontWeight: '700'},
-  hero: {borderWidth: 1, padding: 24, gap: 0},
+  hero: {borderWidth: 1},
+  heroWide: {flexDirection: 'row', gap: 32, padding: 34, paddingHorizontal: 32, alignItems: 'center'},
+  heroNarrow: {gap: 20, padding: 20, paddingHorizontal: 18},
+  heroCopy: {flex: 1, minWidth: 0},
+  heroAside: {flex: 0.85, minWidth: 0},
   heroGreet: {fontSize: orenaText.ui, marginBottom: 14},
   // `.o-hero-statement`: 600 weight on tight leading and negative tracking.
-  heroStatement: {fontSize: 32, fontWeight: '600', lineHeight: 36, letterSpacing: -0.8, marginBottom: 14},
+  heroStatement: {fontSize: 38, fontWeight: '600', lineHeight: 42, letterSpacing: -0.9, marginBottom: 14},
+  heroStatementNarrow: {fontSize: 26, fontWeight: '600', lineHeight: 31, letterSpacing: -0.5, marginBottom: 14},
   heroLede: {fontSize: orenaText.body, lineHeight: 24, marginBottom: 26},
   heroActions: {flexDirection: 'row', flexWrap: 'wrap', gap: 12},
   metric: {gap: 2, minWidth: 96},

@@ -5,8 +5,8 @@ import {createConfiguredApiClient, type ApiClient} from '../../api/client';
 import {useSession} from '../../auth/SessionHarness';
 import {useI18n} from '../../i18n/I18nProvider';
 import {useTheme} from '../../theme/ThemeProvider';
-import {MAX_CONTENT_WIDTH} from '../../theme/tokens';
-import {Button, Hero, Label, Metric, Panel, PanelCopy} from '../../components/orena';
+import {CONTENT_MAX} from '../../theme/layout';
+import {Button, Hero, Label, Metric, Panel, PanelCopy, Split} from '../../components/orena';
 import {useJourneyDashboard} from '../../query/useJourney';
 import {useLibraryVocabulary} from '../../query/useReadingLibrary';
 import {useLearnerProfile, useSaveLearnerProfile, useSetLearningLanguage} from '../../query/useLearnerProfile';
@@ -46,12 +46,17 @@ function LearningHome({recommendation, onStart, starting, failed, failedFields, 
       {failed && <Text accessibilityRole="alert" style={{color: tokens.colors.danger}}>{t('home.start_failed')}</Text>}
       {failed && __DEV__ && failedFields && failedFields.length > 0 && <Text style={{color: tokens.colors.mutedText}}>{`contract: ${failedFields.join(', ')}`}</Text>}
 
+      <Split aside={<Panel>
+        <Label>{t('home.library_title' as never)}</Label>
+        <PanelCopy>{typeof dueCount === 'number' && dueCount > 0 ? `${dueCount} ${t('home.library_due' as never)}` : t('home.library_none' as never)}</PanelCopy>
+        <Button label={t('home.open_library' as never)} onPress={onLibrary} variant="outline" compact />
+      </Panel>}>
       <Panel>
         <Label>{t('home.recommendation_title')}</Label>
         <PanelCopy>{`${t('home.evidence')}: ${recommendation.evidence}`}</PanelCopy>
         <View style={styles.metrics}>
           <Metric label={t('home.target')} value={recommendation.target_level} />
-          <Metric label={t('home.metric_level' as never)} value={recommendation.focus_status || recommendation.intent} />
+          <Metric label={t('home.metric_status' as never)} value={recommendation.focus_status || recommendation.intent} />
         </View>
       </Panel>
 
@@ -73,12 +78,8 @@ function LearningHome({recommendation, onStart, starting, failed, failedFields, 
           <PanelCopy>{t('home.writing_empty' as never)}</PanelCopy>
         )}
       </Panel>
+      </Split>
 
-      <Panel>
-        <Label>{t('home.library_title' as never)}</Label>
-        <PanelCopy>{typeof dueCount === 'number' && dueCount > 0 ? `${dueCount} ${t('home.library_due' as never)}` : t('home.library_none' as never)}</PanelCopy>
-        <Button label={t('home.open_library' as never)} onPress={onLibrary} variant="outline" compact />
-      </Panel>
     </ScrollView>
   );
 }
@@ -99,4 +100,4 @@ export function HomeScreen({client: providedClient}: {client?: ApiClient}) {
   return <LearningHome dashboard={dashboard.data} dueCount={library.data?.summary.due} onJourney={() => router.push('/(app)/journey')} onLibrary={() => router.push('/(app)/library')} recommendation={recommendation.data} starting={next.isPending} failed={next.isError} failedFields={next.error?.invalidFields} onStart={() => next.mutate(recommendation.data.target_level, {onSuccess: (task) => { setPracticeHandoff(task); router.push('/(app)/writing'); }})} />;
 }
 
-const styles = StyleSheet.create({metrics: {flexDirection: 'row', flexWrap: 'wrap', gap: 16}, container: {flex: 1, padding: 24, gap: 12, width: '100%', maxWidth: MAX_CONTENT_WIDTH, alignSelf: 'center'}, title: {fontSize: 28, fontWeight: '700'}, body: {fontSize: 16, lineHeight: 24}, card: {padding: 16, borderRadius: 18, gap: 8, borderWidth: 1}, cardTitle: {fontSize: 18, fontWeight: '700'}, button: {padding: 16, borderRadius: 10, alignItems: 'center', minHeight: 44, justifyContent: 'center', marginTop: 12}, buttonText: {fontSize: 14, fontWeight: '700'}});
+const styles = StyleSheet.create({metrics: {flexDirection: 'row', flexWrap: 'wrap', gap: 16}, container: {flex: 1, padding: 24, gap: 12, width: '100%', maxWidth: CONTENT_MAX, alignSelf: 'center'}, title: {fontSize: 28, fontWeight: '700'}, body: {fontSize: 16, lineHeight: 24}, card: {padding: 16, borderRadius: 18, gap: 8, borderWidth: 1}, cardTitle: {fontSize: 18, fontWeight: '700'}, button: {padding: 16, borderRadius: 10, alignItems: 'center', minHeight: 44, justifyContent: 'center', marginTop: 12}, buttonText: {fontSize: 14, fontWeight: '700'}});

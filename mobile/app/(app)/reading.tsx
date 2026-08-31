@@ -5,7 +5,7 @@ import {createConfiguredApiClient} from '../../src/api/client';
 import {useSession} from '../../src/auth/SessionHarness';
 import {useI18n} from '../../src/i18n/I18nProvider';
 import {useTheme} from '../../src/theme/ThemeProvider';
-import {MAX_CONTENT_WIDTH} from '../../src/theme/tokens';
+import {CONTENT_MAX} from '../../src/theme/layout';
 import {useContextualDictionary, useCreateReadingSession, useSaveLibraryVocabulary, useSubmitReadingAnswers} from '../../src/query/useReadingLibrary';
 import {dictionaryWordToLibraryInput} from '../../src/features/reading/readingLibraryHandoff';
 import type {ReadingSession} from '../../src/api/contracts/reading';
@@ -87,7 +87,7 @@ export default function ReadingScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {flexGrow: 1, padding: 24, gap: 12, width: '100%', maxWidth: MAX_CONTENT_WIDTH, alignSelf: 'center'},
+  container: {flexGrow: 1, padding: 24, gap: 12, width: '100%', maxWidth: CONTENT_MAX, alignSelf: 'center'},
   title: {fontSize: 28, fontWeight: '700'},
   passage: {fontSize: 18, lineHeight: 30},
   card: {padding: 16, borderRadius: 18, gap: 8, borderWidth: 1},

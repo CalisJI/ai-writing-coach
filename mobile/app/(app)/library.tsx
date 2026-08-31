@@ -5,7 +5,7 @@ import {createConfiguredApiClient} from '../../src/api/client';
 import {useSession} from '../../src/auth/SessionHarness';
 import {useI18n} from '../../src/i18n/I18nProvider';
 import {useTheme} from '../../src/theme/ThemeProvider';
-import {MAX_CONTENT_WIDTH} from '../../src/theme/tokens';
+import {CONTENT_MAX} from '../../src/theme/layout';
 import {useLibraryVocabulary, useReviewLibraryVocabulary} from '../../src/query/useReadingLibrary';
 
 export default function LibraryScreen() {
@@ -49,7 +49,7 @@ export default function LibraryScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {flexGrow: 1, padding: 24, gap: 12, width: '100%', maxWidth: MAX_CONTENT_WIDTH, alignSelf: 'center'},
+  container: {flexGrow: 1, padding: 24, gap: 12, width: '100%', maxWidth: CONTENT_MAX, alignSelf: 'center'},
   title: {fontSize: 28, fontWeight: '700'},
   card: {padding: 16, borderRadius: 18, gap: 6, borderWidth: 1},
   word: {fontSize: 22, fontWeight: '700'},
