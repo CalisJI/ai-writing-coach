@@ -177,3 +177,19 @@ const crossSkillActionSchema = z.discriminatedUnion('kind', [
 ]);
 export const crossSkillCueSchema = z.object({available: z.boolean(), state: z.string(), source: z.string(), evidence: z.string(), action: crossSkillActionSchema.nullable()}).passthrough();
 export type CrossSkillCue = z.infer<typeof crossSkillCueSchema>;
+
+// POST /api/improve -- app.py's improve_with_ai(). Review's "compare a polished
+// version" dialog reads only the two texts; the upgrade lists stay passthrough.
+export const improveInputSchema = z.object({text: z.string().min(10).max(20000), target_cefr: z.string().min(2).max(12), mode: z.enum(['correct', 'grammar', 'vocabulary', 'polish'])}).strict();
+export type ImproveInput = z.infer<typeof improveInputSchema>;
+export const improveResultSchema = z.object({corrected_text: z.string(), upgraded_text: z.string(), summary_vi: z.string().optional()}).passthrough();
+export type ImproveResult = z.infer<typeof improveResultSchema>;
+
+// POST /api/essays/{id}/linguistic-annotations -- writing_coach/becoming_linguistics.py.
+// Offsets index back into the essay text, which is what makes the lens safe to draw.
+export const linguisticAnnotationsSchema = z.object({
+  found: z.boolean(), essay_id: z.number().int().positive().optional(), language_code: z.string().optional(),
+  annotations: z.array(z.object({fragment: z.string(), start: z.number().int().nonnegative(), end: z.number().int().nonnegative(), pos: z.string()}).passthrough()),
+  cached: z.boolean().optional(), truncated: z.boolean().optional(),
+}).passthrough();
+export type LinguisticAnnotations = z.infer<typeof linguisticAnnotationsSchema>;

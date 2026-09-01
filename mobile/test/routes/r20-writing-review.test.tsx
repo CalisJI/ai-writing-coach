@@ -4,6 +4,8 @@ import {I18nProvider} from '../../src/i18n/I18nProvider';
 import {ThemeProvider} from '../../src/theme/ThemeProvider';
 import {clearWritingHandoff, setGrammarWritingHandoff, setPracticeWritingHandoff, setRevisionWritingHandoff} from '../../src/features/writing/writingHandoff';
 import {clearReviewHandoff, consumeReviewHandoff, setReviewHandoff} from '../../src/features/review/reviewHandoff';
+import {categoryReason, categoryRule, changedSegments} from '../../src/features/review/reviewDomain';
+import {translate, type MessageId} from '../../src/i18n/messages';
 import WritingScreen from '../../app/(app)/writing';
 import ReviewScreen from '../../app/(app)/review';
 
@@ -18,8 +20,8 @@ jest.mock('../../src/auth/SessionHarness', () => ({useSession: () => ({sessionCo
 jest.mock('../../src/api/client', () => ({createConfiguredApiClient: () => ({}), ApiClient: class {}}));
 jest.mock('../../src/query/useWritingEvaluation', () => ({useEvaluateWriting: () => mockEvaluate, useGrammarPractice: () => mockGrammarPractice, useGenerateTask: () => ({isPending: false, isError: false, mutate: jest.fn()})}));
 jest.mock('../../src/query/useLearnerProfile', () => ({useLearnerProfile: () => ({data: undefined, isPending: false, isError: false})}));
-jest.mock('../../src/query/useReview', () => ({usePracticeOutcome: () => ({data: undefined, isPending: false, isError: false}), useReviewCue: () => ({data: undefined, isPending: false, isError: false})}));
-jest.mock('../../src/query/useReadingLibrary', () => ({useContextualDictionary: () => ({data: undefined, isPending: false, isError: false, mutate: jest.fn()})}));
+jest.mock('../../src/query/useReview', () => ({usePracticeOutcome: () => ({data: undefined, isPending: false, isError: false}), useReviewCue: () => ({data: undefined, isPending: false, isError: false}), useImproveWriting: () => ({data: undefined, isPending: false, isError: false, mutate: jest.fn()}), useLinguisticAnnotations: () => ({data: undefined, isPending: false, isError: false, mutate: jest.fn()})}));
+jest.mock('../../src/query/useReadingLibrary', () => ({useContextualDictionary: () => ({data: undefined, isPending: false, isError: false, mutate: jest.fn()}), useSaveLibraryVocabulary: () => ({data: undefined, isPending: false, isError: false, mutate: jest.fn()})}));
 jest.mock('../../src/query/useJourney', () => ({useJourneyDashboard: () => ({data: undefined, isPending: false, isError: false}), useJourneyOutcomes: () => ({data: undefined, isPending: false, isError: false})}));
 // The draft store is device storage; these tests assert screen behaviour, not persistence.
 jest.mock('../../src/features/writing/writingDraft', () => {
@@ -34,6 +36,13 @@ const buttonLabelled = (view: renderer.ReactTestRenderer, label: string) => {
   // Throw rather than return undefined: a missing control is a failure to report,
   // not a silently skipped assertion.
   if (!first) throw new Error(`no button labelled "${label}"`);
+  return first;
+};
+// Rows carry their name as an accessibilityLabel; their visible content is a
+// composed head (mark, name, chip, chevron) rather than a single text child.
+const rowLabelled = (view: renderer.ReactTestRenderer, label: string) => {
+  const [first] = view.root.findAll((node) => node.props.accessibilityRole === 'button' && node.props.accessibilityLabel === label && typeof node.props.onPress === 'function');
+  if (!first) throw new Error(`no row labelled "${label}"`);
   return first;
 };
 const buttonContaining = (view: renderer.ReactTestRenderer, fragment: string) => {
@@ -145,13 +154,23 @@ describe('R20 native Writing -> Evaluate -> Review -> Grammar -> Revise loop', (
   it.each(['en', 'zh'] as const)('renders literal server evidence in the interface language in %s', (locale) => {
     setReviewHandoff(evaluation, evaluationInput);
     const view = render(<ReviewScreen />, locale);
-    expect(texts(view, 'Bài viết đủ ý nhưng còn lỗi chia động từ.')).not.toHaveLength(0);
-    // The fragment now renders as a quoted blockquote, matching review.js's
-    // own `“${fragment}”` treatment, rather than as the row's bare title.
+    // review.js never shows the evaluator's Vietnamese summary outside a vi
+    // interface: reviewSummaryText() composes its own line instead.
+    expect(texts(view, 'Bài viết đủ ý nhưng còn lỗi chia động từ.')).toHaveLength(0);
+    expect(texts(view, translate(locale, 'review.summary_plain' as MessageId))).not.toHaveLength(0);
+    // review.js's issue rows are disclosures, closed at rest; the evidence
+    // appears when the learner opens the finding.
+    act(() => rowLabelled(view, 'agreement').props.onPress());
+    // The learner's own words carry the evidence, quoted literally, and the
+    // correction is shown against them.
     expect(texts(view, '“I has”')).not.toHaveLength(0);
-    expect(texts(view, 'I have')).not.toHaveLength(0);
-    expect(texts(view, locale === 'zh' ? '主语和动词不一致。' : 'The subject and verb do not agree.')).not.toHaveLength(0);
-    expect(texts(view, locale === 'zh' ? 'I 要用 have。' : 'Use have with I.')).not.toHaveLength(0);
+    // The correction is marked as a diff, so only what actually changed is
+    // shown against the learner's wording -- feedback.js's changedSegments().
+    expect(texts(view, changedSegments('I has', 'I have', 'en').afterChange)).not.toHaveLength(0);
+    // feedbackExplanation()/feedbackRule() answer in the interface language from
+    // the shared category tables, not with the evaluator's per-item prose.
+    expect(texts(view, categoryReason('agreement', locale))).not.toHaveLength(0);
+    expect(texts(view, categoryRule('agreement', locale))).not.toHaveLength(0);
   });
 
   it.each(['en', 'zh'] as const)('opens R5 Grammar practice from a linked finding in %s', (locale) => {
@@ -170,7 +189,7 @@ describe('R20 native Writing -> Evaluate -> Review -> Grammar -> Revise loop', (
   it('keeps a revision linked to its source evaluation so the series is not broken', () => {
     setReviewHandoff(evaluation, evaluationInput);
     const view = render(<ReviewScreen />);
-    act(() => buttonLabelled(view, 'Revise this writing').props.onPress());
+    act(() => buttonLabelled(view, 'Revise this piece').props.onPress());
     expect(mockPush).toHaveBeenCalledWith('/(app)/writing');
     const writing = render(<WritingScreen />);
     // The revision reopens the learner's own text rather than a blank draft.
@@ -189,7 +208,10 @@ describe('R20 native Writing -> Evaluate -> Review -> Grammar -> Revise loop', (
 
   it.each(['en', 'zh'] as const)('states plainly that no review is open in %s', (locale) => {
     const view = render(<ReviewScreen />, locale);
-    expect(texts(view, locale === 'zh' ? '当前没有打开的复习结果。' : 'No review is open.')).not.toHaveLength(0);
+    // review.js's empty state names the missing input and routes to Writing.
+    expect(texts(view, translate(locale, 'review.empty_body' as MessageId))).not.toHaveLength(0);
+    act(() => buttonLabelled(view, translate(locale, 'review.go_write' as MessageId)).props.onPress());
+    expect(mockReplace).toHaveBeenCalledWith('/(app)/writing');
   });
 
   it('consumes each handoff once so a stale brief cannot be resubmitted', () => {

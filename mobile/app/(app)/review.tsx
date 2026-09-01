@@ -1,5 +1,5 @@
 import {useMemo, useState} from 'react';
-import {Pressable, ScrollView, StyleSheet, Text, View} from 'react-native';
+import {LayoutAnimation, Modal, Platform, Pressable, ScrollView, Share, StyleSheet, Text, UIManager, View, useWindowDimensions} from 'react-native';
 import {useRouter} from 'expo-router';
 import {createConfiguredApiClient} from '../../src/api/client';
 import {useSession} from '../../src/auth/SessionHarness';
@@ -8,27 +8,29 @@ import type {MessageId} from '../../src/i18n/messages';
 import {useTheme} from '../../src/theme/ThemeProvider';
 import {CONTENT_MAX} from '../../src/theme/layout';
 import {useGrammarPractice} from '../../src/query/useWritingEvaluation';
-import {usePracticeOutcome, useReviewCue} from '../../src/query/useReview';
+import {useImproveWriting, useLinguisticAnnotations, usePracticeOutcome, useReviewCue} from '../../src/query/useReview';
+import {useContextualDictionary, useSaveLibraryVocabulary} from '../../src/query/useReadingLibrary';
+import {useLearnerProfile} from '../../src/query/useLearnerProfile';
 import {consumeReviewHandoff} from '../../src/features/review/reviewHandoff';
 import {setGrammarWritingHandoff, setRevisionWritingHandoff} from '../../src/features/writing/writingHandoff';
-import {Button, Chip, IssueRow, Label, Panel, PanelCopy, PromptCard, Split} from '../../src/components/orena';
+import {
+  benchmarkLabel, categoryReason, categoryRule, changedSegments, confidenceBand,
+  findEvidenceRanges, learnerTextSpans, metricsFrom, normalizedEvidenceItems,
+  normalizedPosAnnotations, scoreBandKey, sentenceContext, weakestMetric,
+  type EvidenceItem, type PosAnnotation, type PosGroup,
+} from '../../src/features/review/reviewDomain';
+import {countUnits, guidanceMode, RUBRIC_CATEGORIES} from '../../src/features/writing/writingDomain';
+import {feedbackBudget} from '../../src/features/review/reviewDomain';
+import {Button, Chip, Label, Panel, PanelCopy} from '../../src/components/orena';
 
 /**
- * Ported from static/becoming/screens/review.js.
+ * Ported from static/becoming/screens/review.js, on the web's own phone
+ * breakpoint: one column, the document card first, then the evidence panels
+ * that were the desktop aside.
  *
- * review.js (1140 lines) also has an inline linguistic-annotation lens over
- * the learner's own text (a POS toggle backed by a dedicated
- * /api/essays/{id}/linguistic-annotations call), a pinyin overlay, a
- * "compare to a stronger version" dialog (/api/improve), and a
- * downloadable feedback file. None of those are reproduced -- each is its
- * own subsystem, not a styling gap -- and are tracked as a residual in
- * MOBILE_VISUAL_PARITY_AUDIT.md. What is ported: the score summary with its
- * band label, the confidence-banded findings list (now showing the pattern
- * name and confidence chip the web shows, with the learner's fragment as a
- * quoted blockquote rather than as the row's title), strengths, the
- * revision-evidence delta (before/after score and issue counts), the
- * practice-outcome and review-cue signal cards, and the grammar-transfer /
- * revise actions.
+ * The screen's claim is that every judgement quotes the learner's own text, so
+ * the learner's draft is on the page (Draft / Review tabs), the evidence is
+ * marked inside it, and the panels quote the same characters.
  */
 
 const record = (value: unknown): Record<string, unknown> => (value && typeof value === 'object' ? (value as Record<string, unknown>) : {});
@@ -48,36 +50,107 @@ function statusLabel(t: (id: MessageId) => string, status: string): string {
   return translated === key ? status : translated;
 }
 
-function scoreBand(t: (id: MessageId) => string, overall: number): string {
-  if (overall >= 90) return t('review.score_excellent' as MessageId);
-  if (overall >= 78) return t('review.score_strong' as MessageId);
-  if (overall >= 65) return t('review.score_good' as MessageId);
-  if (overall >= 50) return t('review.score_fair' as MessageId);
-  return t('review.score_weak' as MessageId);
-}
-
-function confidenceBand(confidence: unknown): 'high' | 'medium' | 'low' {
-  const value = typeof confidence === 'number' ? confidence : NaN;
-  if (!Number.isFinite(value)) return 'medium';
-  if (value >= 0.8) return 'high';
-  if (value >= 0.6) return 'medium';
-  return 'low';
-}
-
 function fill(template: string, values: Record<string, string | number>): string {
   return Object.entries(values).reduce((text, [key, value]) => text.replace(`{${key}}`, String(value)), template);
 }
 
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
+
+/** review.js's o-issue / o-strength rows: compact at rest, evidence when opened. */
+function EvidenceRow({index, band, name, chip, children}: {
+  index?: number; band?: 'high' | 'medium' | 'low'; name: string; chip?: string; children: React.ReactNode;
+}) {
+  const {tokens} = useTheme();
+  const [open, setOpen] = useState(false);
+  const bandColor = band === 'high' ? tokens.colors.danger : band === 'low' ? tokens.colors.mutedText : tokens.colors.attention;
+  return (
+    <View style={[styles.evidenceRow, {borderColor: tokens.colors.border}]}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityState={{expanded: open}}
+        accessibilityLabel={name}
+        onPress={() => { LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut); setOpen((value) => !value); }}
+        style={styles.evidenceHead}
+      >
+        {index === undefined
+          ? <Text style={[styles.tick, {color: tokens.colors.positive}]}>✓</Text>
+          : <Text style={[styles.mark, {color: tokens.colors.onAccent, backgroundColor: bandColor}]}>{index}</Text>}
+        <Text style={[styles.evidenceName, {color: tokens.colors.heading}]}>{name}</Text>
+        {chip ? <Chip>{chip}</Chip> : null}
+        <Text style={{color: tokens.colors.mutedText}}>{open ? '⌃' : '⌄'}</Text>
+      </Pressable>
+      {open ? <View style={styles.evidenceBody}>{children}</View> : null}
+    </View>
+  );
+}
+
+const POS_GROUPS: readonly PosGroup[] = ['noun', 'verb', 'modifier', 'connector', 'reference', 'number'];
+
 export default function ReviewScreen() {
-  const {t, locale} = useI18n(); const {tokens} = useTheme(); const {sessionCookie} = useSession(); const router = useRouter(); const [handoff] = useState(consumeReviewHandoff);
-  const client = useMemo(() => { try { return createConfiguredApiClient(); } catch { return null; } }, []); const grammar = useGrammarPractice(client, sessionCookie);
+  const {t, locale} = useI18n(); const {tokens} = useTheme(); const {sessionCookie} = useSession(); const router = useRouter();
+  const {width} = useWindowDimensions();
+  const compact = width < 1024;
+  const [handoff] = useState(consumeReviewHandoff);
+  const client = useMemo(() => { try { return createConfiguredApiClient(); } catch { return null; } }, []);
+  const grammar = useGrammarPractice(client, sessionCookie);
   const essayId = handoff?.result.id ?? 0;
   const outcome = usePracticeOutcome(client, sessionCookie, essayId);
   const reviewCue = useReviewCue(client, sessionCookie, essayId);
-  if (!handoff) return <View style={[styles.container, {backgroundColor: tokens.colors.background}]}><Text style={{color: tokens.colors.text}}>{t('review.no_result')}</Text><Pressable accessibilityRole="button" onPress={() => router.replace('/(app)')} style={[styles.button, {backgroundColor: tokens.colors.accent}]}><Text style={[styles.buttonText, {color: tokens.colors.onAccent}]}>{t('nav.back_home' as never)}</Text></Pressable></View>;
+  const profile = useLearnerProfile(client, sessionCookie, Boolean(sessionCookie));
+  const dictionary = useContextualDictionary(client, sessionCookie);
+  const saveWord = useSaveLibraryVocabulary(client, sessionCookie);
+  const improve = useImproveWriting(client, sessionCookie);
+  const annotations = useLinguisticAnnotations(client, sessionCookie);
+
+  const [tab, setTab] = useState<'review' | 'draft'>('review');
+  const [lensOn, setLensOn] = useState(false);
+  const [rubricOpen, setRubricOpen] = useState(false);
+  const [compareOpen, setCompareOpen] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [savedWords, setSavedWords] = useState<string[]>([]);
+
+  if (!handoff) {
+    return (
+      <View style={[styles.container, {backgroundColor: tokens.colors.background}]}>
+        <PanelCopy>{t('review.empty_body' as MessageId)}</PanelCopy>
+        <Button label={t('review.go_write' as MessageId)} onPress={() => router.replace('/(app)/writing')} />
+      </View>
+    );
+  }
+
   const {result, input} = handoff;
+  const learningLanguage: 'en' | 'zh' = input.learning_language ?? 'en';
+  const learnerText = input.text || '';
   const fields = record(result);
   const overall = num(result.overall);
+  const level = input.target_cefr || '';
+
+  /* adaptive.js decides how much evidence this learner sees at once; review.js
+     reads the same budget before it renders any of it. */
+  const budget = feedbackBudget(guidanceMode(profile.data?.style, learningLanguage, level));
+  const errors = normalizedEvidenceItems(result.errors);
+  const strengthEvidence = normalizedEvidenceItems(result.strength_evidence);
+  const visibleErrors = errors.slice(0, budget.visibleEvidence);
+  const visibleStrengths = strengthEvidence.slice(0, 3);
+  const units = countUnits(learnerText, learningLanguage);
+
+  const posItems: PosAnnotation[] = lensOn && annotations.data?.found
+    ? normalizedPosAnnotations(learnerText, annotations.data.annotations)
+    : [];
+  const spans = learnerTextSpans(learnerText, findEvidenceRanges(learnerText, visibleErrors, visibleStrengths), posItems);
+
+  const focusMetric = weakestMetric(metricsFrom(fields));
+  const benchmark = benchmarkLabel(fields);
+  const scoreKey = scoreBandKey(result.overall);
+  const summaryText = focusMetric && strengthEvidence[0]
+    ? fill(t('review.summary_focus' as MessageId), {
+        strong: categoryLabel(t, strengthEvidence[0].category ?? 'strength'),
+        focus: categoryLabel(t, focusMetric.key),
+      })
+    : t('review.summary_plain' as MessageId);
+
   const delta = record(fields.delta);
   const deltaOverall = num(delta.overall);
   const deltaIssues = record(delta.issues);
@@ -92,120 +165,382 @@ export default function ReviewScreen() {
   const cue = reviewCue.data?.available ? reviewCue.data : null;
   const outcomeItem = outcome.data?.found ? outcome.data.outcome : null;
   const outcomeStatus = outcomeItem ? str(outcomeItem.status) : '';
+  const isFallback = str(fields.evaluator).trim().toLowerCase() === 'fallback-demo';
+
+  const beginRevision = () => {
+    setRevisionWritingHandoff(result.id, learnerText, input.prompt, input.target_cefr, learningLanguage);
+    router.push('/(app)/writing');
+  };
+
+  const lookUp = (term: string) => {
+    const value = term.trim();
+    if (!value) return;
+    setNotice(null);
+    dictionary.mutate({text: value.slice(0, 180), source_language: learningLanguage, target_language: locale, context: learnerText.slice(0, 2400) || value});
+  };
+
+  const saveToLibrary = (word: string, item: EvidenceItem, kind: 'feedback' | 'strength') => {
+    const value = word.trim().slice(0, 180);
+    if (!value) return;
+    const explanation = locale === 'zh' ? (item.explanation_zh ?? item.explanation_vi ?? '') : (item.explanation_en ?? item.explanation_vi ?? '');
+    saveWord.mutate(
+      {word: value, definition: explanation || categoryReason(item.category, locale === 'zh' ? 'zh' : 'en'), source_essay_id: result.id, source_fragment: item.fragment ?? '', source_kind: kind, focus_note: explanation},
+      {onSuccess: () => setSavedWords((current) => [...current, value]), onError: () => setNotice(t('review.save_failed' as MessageId))},
+    );
+  };
+
+  const toggleLens = () => {
+    if (lensOn) { setLensOn(false); return; }
+    setLensOn(true);
+    if (!annotations.data && essayId) annotations.mutate(essayId, {onError: () => { setLensOn(false); setNotice(t('review.pos_unavailable' as MessageId)); }});
+  };
+
+  /* The feedback the learner can keep. Built from the same evidence shown on
+     screen, so the shared text and the page never disagree. The web writes a
+     .txt download; native hands the same content to the share sheet. */
+  const shareFeedback = () => {
+    const lines = [
+      `${t('review.summary_title' as MessageId)}: ${result.overall} ${scoreKey ? t(scoreKey as MessageId) : ''}`.trim(),
+      '',
+      input.prompt ? `${t('write.prompt' as MessageId)}: ${input.prompt}` : '',
+      '',
+      learnerText,
+      '',
+      `${t('review.priority_issues' as MessageId)}:`,
+      ...visibleErrors.map((item, index) => {
+        const band = confidenceBand(item);
+        return `  ${index + 1}. ${categoryLabel(t, item.category ?? 'expression')} [${t(`review.confidence_${band}` as MessageId)}]\n     “${item.fragment ?? ''}”\n     ${item.suggestion ? `→ ${item.suggestion}` : ''}\n     ${categoryReason(item.category, locale === 'zh' ? 'zh' : 'en')}`;
+      }),
+      '',
+      `${t('review.strengths_title' as MessageId)}:`,
+      ...visibleStrengths.map((item) => `  · ${categoryLabel(t, item.category ?? 'strength')} — “${item.fragment ?? ''}”`),
+    ];
+    void Share.share({message: lines.join('\n'), title: `${t('review.download_name' as MessageId)}-${result.id}`})
+      .catch(() => setNotice(t('review.share_failed' as MessageId)));
+  };
+
+  const comparePolished = () => {
+    setNotice(null);
+    setCompareOpen(true);
+    improve.mutate({text: learnerText, target_cefr: input.target_cefr, mode: 'polish'}, {onError: () => { setCompareOpen(false); setNotice(t('review.compare_failed' as MessageId)); }});
+  };
+
+  const posColor: Record<PosGroup, string> = {
+    noun: tokens.colors.roleNoun, verb: tokens.colors.roleVerb, modifier: tokens.colors.roleAdjective,
+    connector: tokens.colors.roleAdverb, reference: tokens.colors.informational, number: tokens.colors.attention,
+    other: tokens.colors.text,
+  };
+
+  const diffFor = (item: EvidenceItem) => {
+    const before = item.fragment || sentenceContext(learnerText, item.fragment ?? '');
+    if (!before || !item.suggestion) return null;
+    return changedSegments(before, item.suggestion, learningLanguage);
+  };
 
   return (
     <ScrollView style={{flex: 1, backgroundColor: tokens.colors.background}} contentContainerStyle={[styles.container, {backgroundColor: tokens.colors.background}]}>
-      <Split aside={
-        <>
-          {result.grammar_links.length > 0 ? (
-            <Panel>
-              <Label>{t('review.grammar')}</Label>
-              {result.grammar_links.map((link) => (
-                <Button
-                  key={link.grammar_id}
-                  label={link.title ?? link.grammar_id}
-                  variant="outline"
-                  compact
-                  disabled={grammar.isPending}
-                  onPress={() => grammar.mutate({grammarId: link.grammar_id, evidence: link.evidence}, {onSuccess: (task) => { setGrammarWritingHandoff(task, input.learning_language ?? 'en'); router.push('/(app)/writing'); }})}
-                />
-              ))}
-              {grammar.isError ? <Text accessibilityRole="alert" style={{color: tokens.colors.danger}}>{t('review.practice_failed')}</Text> : null}
-            </Panel>
-          ) : null}
+      {/* Prompt block */}
+      <Panel>
+        <Label>{t('write.prompt' as MessageId)}</Label>
+        <Text style={[styles.promptText, {color: tokens.colors.heading}]}>{input.prompt || t('write.no_prompt' as MessageId)}</Text>
+        <View style={styles.row}>
+          {level ? <Chip>{level}</Chip> : null}
+          <Button label={t('write.view_rubric' as MessageId)} variant="outline" compact onPress={() => setRubricOpen(true)} />
+        </View>
+      </Panel>
 
-          {outcomeItem ? (
-            <Panel>
-              <Label>{t(`outcome.${outcomeStatus}.kicker` as never)}</Label>
-              <Text style={{color: tokens.colors.heading, fontWeight: '600'}}>{t(`outcome.${outcomeStatus}.title` as never)}</Text>
-              <PanelCopy>{fill(t(`outcome.${outcomeStatus}.body` as never), {previous: num(outcomeItem.previous_issue_count) ?? '—', count: num(outcomeItem.issue_count) ?? 0, focus: str(outcomeItem.focus_label) || t('common.current_focus' as never)})}</PanelCopy>
-            </Panel>
-          ) : null}
-
-          {cue ? (
-            <Panel>
-              <Label>{t('review.review_cue_kicker' as never)}</Label>
-              <Text style={{color: tokens.colors.heading, fontWeight: '600'}}>{t(cue.state === 'recurring' ? 'review.review_cue_title_recurring' as never : 'review.review_cue_title_unresolved' as never)}</Text>
-              <PanelCopy>{fill(t('review.review_cue_body' as never), {category: categoryLabel(t, cue.category ?? 'expression'), status: statusLabel(t, cue.status ?? ''), source: t(cue.source === 'error_memory' ? 'review.review_cue_source_error_memory' as never : 'review.review_cue_source_practice_outcome' as never)})}</PanelCopy>
-              {cue.evidence ? <Text style={{color: tokens.colors.text, fontStyle: 'italic'}}>{`“${cue.evidence}”`}</Text> : null}
-            </Panel>
-          ) : null}
-
-          <Panel>
-            <Label>{t('review.revise')}</Label>
-            <Button
-              label={t('review.revise')}
-              onPress={() => { setRevisionWritingHandoff(result.id, input.text, input.prompt, input.target_cefr, input.learning_language ?? 'en'); router.push('/(app)/writing'); }}
-            />
-          </Panel>
-        </>
-      }>
-        <PromptCard
-          label={t('review.summary')}
-          title={result.summary_vi}
-          body={overall !== null ? scoreBand(t, overall) : undefined}
-          actions={<>
-            <Chip>{result.app_cefr}</Chip>
-            <Chip>{String(result.overall)}</Chip>
-          </>}
-        />
-
+      {isFallback ? (
         <Panel>
-          <Label>{`${t('review.issues' as never)} (${result.errors.length})`}</Label>
-          {result.errors.length === 0 ? (
-            <PanelCopy>{t('review.no_issues' as never)}</PanelCopy>
-          ) : result.errors.map((error, index) => {
-            const explanation = locale === 'zh' ? (error.explanation_zh ?? error.explanation_vi ?? error.explanation) : (error.explanation_en ?? error.explanation_vi ?? error.explanation);
-            const rule = locale === 'zh' ? (error.mini_rule_zh ?? error.mini_rule_vi ?? '') : (error.mini_rule_en ?? error.mini_rule_vi ?? '');
-            const category = typeof error.category === 'string' ? error.category : 'expression';
-            const bandKey = confidenceBand(error.confidence);
+          <Text accessibilityRole="alert" style={{color: tokens.colors.attention}}>{t('review.fallback_notice' as MessageId)}</Text>
+        </Panel>
+      ) : null}
+
+      {/* Document card: the learner's own text, with the evidence marked in it. */}
+      <Panel>
+        <View accessibilityRole="tablist" style={styles.tabRow}>
+          <Pressable accessibilityRole="tab" accessibilityLabel={t('review.tab_draft' as MessageId)} accessibilityState={{selected: tab === 'draft'}} onPress={() => setTab('draft')} style={[styles.tab, tab === 'draft' && {borderColor: tokens.colors.accent, backgroundColor: tokens.colors.surfaceSunken}]}>
+            <Text style={{color: tokens.colors.text, fontWeight: tab === 'draft' ? '700' : '400'}}>{t('review.tab_draft' as MessageId)}</Text>
+          </Pressable>
+          <Pressable accessibilityRole="tab" accessibilityLabel={t('review.tab_review' as MessageId)} accessibilityState={{selected: tab === 'review'}} onPress={() => setTab('review')} style={[styles.tab, tab === 'review' && {borderColor: tokens.colors.accent, backgroundColor: tokens.colors.surfaceSunken}]}>
+            <Text style={{color: tokens.colors.text, fontWeight: tab === 'review' ? '700' : '400'}}>{t('review.tab_review' as MessageId)}</Text>
+          </Pressable>
+          <Text style={{color: tokens.colors.mutedText}}>{`${units} ${t('writing.words' as MessageId)}`}</Text>
+          <Button label={t('review.edit_draft' as MessageId)} variant="outline" compact onPress={beginRevision} />
+        </View>
+
+        <Text style={[styles.docBody, {color: tokens.colors.text}]}>
+          {tab === 'draft'
+            ? learnerText
+            : spans.map((span, index) => (
+                <Text
+                  key={index}
+                  style={[
+                    span.evidence === 'error' ? {backgroundColor: tokens.colors.dangerSurface, color: tokens.colors.danger} : null,
+                    span.evidence === 'strength' ? {color: tokens.colors.positive} : null,
+                    span.group ? {color: posColor[span.group]} : null,
+                  ]}
+                >
+                  {span.text}
+                </Text>
+              ))}
+        </Text>
+
+        {/* Word-role lens */}
+        <View style={[styles.lens, {borderColor: tokens.colors.border}]}>
+          <View style={{flex: 1, minWidth: 0}}>
+            <Label>{t('review.pos_kicker' as MessageId)}</Label>
+            <Text style={{color: tokens.colors.heading, fontWeight: '600'}}>{t('review.pos_title' as MessageId)}</Text>
+            <Text accessibilityLiveRegion="polite" style={{color: tokens.colors.mutedText}}>
+              {annotations.isPending ? t('review.pos_loading' as MessageId) : lensOn ? t('review.pos_on' as MessageId) : t('review.pos_off' as MessageId)}
+            </Text>
+            {lensOn && posItems.length > 0 ? (
+              <View style={styles.legendRow}>
+                {POS_GROUPS.map((group) => (
+                  <View key={group} style={styles.legendItem}>
+                    <View style={[styles.legendDot, {backgroundColor: posColor[group]}]} />
+                    <Text style={{color: tokens.colors.mutedText}}>{t(`review.pos_group_${group}` as MessageId)}</Text>
+                  </View>
+                ))}
+              </View>
+            ) : null}
+          </View>
+          <Button
+            label={lensOn ? t('review.pos_hide' as MessageId) : t('review.pos_show' as MessageId)}
+            variant="outline"
+            compact
+            disabled={annotations.isPending}
+            onPress={toggleLens}
+          />
+        </View>
+
+        {learningLanguage === 'zh' && profile.data?.pinyin !== 'off' ? (
+          <View style={styles.group}>
+            <Label>{t('review.pinyin_title' as MessageId)}</Label>
+            <PanelCopy>{t('review.pinyin_desc' as MessageId)}</PanelCopy>
+          </View>
+        ) : null}
+
+        <View style={compact ? styles.docFootCompact : styles.docFoot}>
+          <Button label={t('review.download_feedback' as MessageId)} variant="outline" onPress={shareFeedback} />
+          <Button label={t('review.revise_title' as MessageId)} onPress={beginRevision} />
+        </View>
+      </Panel>
+
+      {notice ? <Text accessibilityRole="alert" style={{color: tokens.colors.danger}}>{notice}</Text> : null}
+
+      {/* Summary */}
+      <Panel>
+        <Label>{t('review.summary_title' as MessageId)}</Label>
+        <Text style={[styles.score, {color: tokens.colors.heading}]}>{overall !== null ? String(result.overall) : '—'}</Text>
+        <Text style={{color: tokens.colors.mutedText}}>{[scoreKey ? t(scoreKey as MessageId) : '', benchmark].filter(Boolean).join(' · ')}</Text>
+        <PanelCopy>{summaryText}</PanelCopy>
+        <Button label={t('review.view_full_rubric' as MessageId)} variant="outline" compact onPress={() => setRubricOpen(true)} />
+      </Panel>
+
+      {/* Priority issues */}
+      <Panel>
+        <Label>{t('review.priority_issues' as MessageId)}</Label>
+        <PanelCopy>{t('review.priority_help' as MessageId)}</PanelCopy>
+        {visibleErrors.length === 0 ? <PanelCopy>{t('review.no_issues' as MessageId)}</PanelCopy> : visibleErrors.map((item, index) => {
+          const band = confidenceBand(item);
+          const diff = diffFor(item);
+          const canSave = Boolean(item.suggestion && item.suggestion.trim().length <= 180);
+          const saved = savedWords.includes((item.suggestion ?? '').trim().slice(0, 180));
+          return (
+            <EvidenceRow key={`error-${index}`} index={index + 1} band={band} name={categoryLabel(t, item.category ?? 'expression')} chip={t(`review.confidence_${band}` as MessageId)}>
+              <Text style={[styles.quote, {color: tokens.colors.text}]}>{`“${item.fragment || sentenceContext(learnerText, item.fragment ?? '') || t('review.evidence_unavailable' as MessageId)}”`}</Text>
+              {diff ? (
+                <View style={styles.diff}>
+                  <View style={{flex: 1, minWidth: 0}}>
+                    <Label>{t('common.before' as MessageId)}</Label>
+                    <Text style={{color: tokens.colors.mutedText}}>
+                      {diff.beforePrefix}<Text style={{color: tokens.colors.danger, textDecorationLine: 'line-through'}}>{diff.beforeChange}</Text>{diff.beforeSuffix}
+                    </Text>
+                  </View>
+                  <View style={{flex: 1, minWidth: 0}}>
+                    <Label>{t('common.better' as MessageId)}</Label>
+                    <Text style={{color: tokens.colors.mutedText}}>
+                      {diff.afterPrefix}<Text style={{color: tokens.colors.positive, fontWeight: '700'}}>{diff.afterChange}</Text>{diff.afterSuffix}
+                    </Text>
+                  </View>
+                </View>
+              ) : null}
+              <Text style={[styles.evidenceCopy, {color: tokens.colors.mutedText}]}>{categoryReason(item.category, locale === 'zh' ? 'zh' : 'en')}</Text>
+              {budget.showRule ? <Text style={[styles.evidenceCopy, {color: tokens.colors.mutedText}]}>{categoryRule(item.category, locale === 'zh' ? 'zh' : 'en')}</Text> : null}
+              <View style={styles.row}>
+                <Button label={t('review.lookup' as MessageId)} variant="outline" compact disabled={dictionary.isPending} onPress={() => lookUp(item.suggestion || item.fragment || '')} />
+                {canSave ? <Button label={saved ? t('review.saved' as MessageId) : t('review.save_better' as MessageId)} variant="outline" compact disabled={saved || saveWord.isPending} onPress={() => saveToLibrary(item.suggestion!, item, 'feedback')} /> : null}
+              </View>
+            </EvidenceRow>
+          );
+        })}
+        {dictionary.data?.available && dictionary.data.summary ? (
+          <View style={styles.group}>
+            <Label>{t('reading.meaning' as MessageId)}</Label>
+            <PanelCopy>{dictionary.data.summary}</PanelCopy>
+          </View>
+        ) : null}
+        {dictionary.isError ? <Text accessibilityRole="alert" style={{color: tokens.colors.danger}}>{t('reading.dictionary_failed' as MessageId)}</Text> : null}
+      </Panel>
+
+      {/* Strengths */}
+      {visibleStrengths.length > 0 ? (
+        <Panel>
+          <Label>{t('review.strengths_title' as MessageId)}</Label>
+          {visibleStrengths.map((item, index) => {
+            const canSave = Boolean(item.fragment && item.fragment.trim().length <= 180);
+            const saved = savedWords.includes((item.fragment ?? '').trim().slice(0, 180));
             return (
-              <IssueRow
-                key={error.id ?? `issue-${index}`}
-                index={index + 1}
-                band={bandKey}
-                name={categoryLabel(t, category)}
-                chip={t(`review.confidence_${bandKey}` as never)}
-              >
-                {typeof error.fragment === 'string' && error.fragment ? <Text style={[styles.quote, {color: tokens.colors.text}]}>{`“${error.fragment}”`}</Text> : null}
-                {explanation ? <Text style={[styles.evidence, {color: tokens.colors.mutedText}]}>{explanation}</Text> : null}
-                {rule ? <Text style={[styles.evidence, {color: tokens.colors.mutedText}]}>{rule}</Text> : null}
-                {typeof error.suggestion === 'string' && error.suggestion ? (
-                  <Text style={[styles.suggestion, {color: tokens.colors.positive}]}>{error.suggestion}</Text>
-                ) : null}
-              </IssueRow>
+              <EvidenceRow key={`strength-${index}`} name={categoryLabel(t, item.category ?? 'strength')}>
+                <Text style={[styles.quote, {color: tokens.colors.text}]}>{`“${item.fragment ?? ''}”`}</Text>
+                <Text style={[styles.evidenceCopy, {color: tokens.colors.mutedText}]}>{categoryReason(item.category, locale === 'zh' ? 'zh' : 'en')}</Text>
+                <View style={styles.row}>
+                  <Button label={t('review.lookup' as MessageId)} variant="outline" compact disabled={dictionary.isPending} onPress={() => lookUp(item.fragment ?? '')} />
+                  {canSave ? <Button label={saved ? t('review.saved' as MessageId) : t('review.save_useful' as MessageId)} variant="outline" compact disabled={saved || saveWord.isPending} onPress={() => saveToLibrary(item.fragment!, item, 'strength')} /> : null}
+                </View>
+              </EvidenceRow>
             );
           })}
         </Panel>
-        {result.strengths_vi.length > 0 ? (
-          <Panel>
-            <Label>{t('review.strengths' as never)}</Label>
-            {result.strengths_vi.map((item) => <PanelCopy key={item}>{item}</PanelCopy>)}
-          </Panel>
-        ) : null}
+      ) : null}
 
-        {hasDelta ? (
-          <Panel>
-            <Label>{t('review.revision_delta_title' as never)}</Label>
-            <PanelCopy>{fill(t('review.revision_score_delta' as never), {before: (beforeScore as number).toFixed(1), after: (overall as number).toFixed(1), gain: `${(deltaOverall as number) > 0 ? '+' : ''}${deltaOverall}`})}</PanelCopy>
-            <PanelCopy>{fill(t('review.revision_issue_delta' as never), {before: beforeCount, after: afterCount})}</PanelCopy>
-            {removed.length > 0 ? (
-              <View style={styles.deltaGroup}>
-                <Label>{t('review.revision_resolved' as never)}</Label>
-                {removed.slice(0, 3).map((item, index) => <Text key={index} style={[styles.quote, {color: tokens.colors.mutedText}]}>{`“${str(item.fragment) || str(item.quote)}”`}</Text>)}
-              </View>
-            ) : null}
-            {added.length > 0 ? (
-              <View style={styles.deltaGroup}>
-                <Label>{t('review.revision_new' as never)}</Label>
-                {added.slice(0, 3).map((item, index) => <Text key={index} style={[styles.quote, {color: tokens.colors.mutedText}]}>{`“${str(item.fragment) || str(item.quote)}”`}</Text>)}
-              </View>
-            ) : null}
-          </Panel>
-        ) : null}
-      </Split>
+      {hasDelta ? (
+        <Panel>
+          <Label>{t('review.revision_delta_title' as MessageId)}</Label>
+          <PanelCopy>{fill(t('review.revision_score_delta' as MessageId), {before: (beforeScore as number).toFixed(1), after: (overall as number).toFixed(1), gain: `${(deltaOverall as number) > 0 ? '+' : ''}${deltaOverall}`})}</PanelCopy>
+          <PanelCopy>{fill(t('review.revision_issue_delta' as MessageId), {before: beforeCount, after: afterCount})}</PanelCopy>
+          {removed.length > 0 ? (
+            <View style={styles.group}>
+              <Label>{t('review.revision_resolved' as MessageId)}</Label>
+              {removed.slice(0, 3).map((item, index) => <Text key={index} style={[styles.quote, {color: tokens.colors.mutedText}]}>{`“${str(item.fragment) || str(item.quote)}”`}</Text>)}
+            </View>
+          ) : null}
+          {added.length > 0 ? (
+            <View style={styles.group}>
+              <Label>{t('review.revision_new' as MessageId)}</Label>
+              {added.slice(0, 3).map((item, index) => <Text key={index} style={[styles.quote, {color: tokens.colors.mutedText}]}>{`“${str(item.fragment) || str(item.quote)}”`}</Text>)}
+            </View>
+          ) : null}
+        </Panel>
+      ) : null}
+
+      {outcomeItem ? (
+        <Panel>
+          <Label>{t(`outcome.${outcomeStatus}.kicker` as MessageId)}</Label>
+          <Text style={{color: tokens.colors.heading, fontWeight: '600'}}>{t(`outcome.${outcomeStatus}.title` as MessageId)}</Text>
+          <PanelCopy>{fill(t(`outcome.${outcomeStatus}.body` as MessageId), {previous: num(outcomeItem.previous_issue_count) ?? '—', count: num(outcomeItem.issue_count) ?? 0, focus: str(outcomeItem.focus_label) || t('common.current_focus' as MessageId)})}</PanelCopy>
+        </Panel>
+      ) : null}
+
+      {cue ? (
+        <Panel>
+          <Label>{t('review.review_cue_kicker' as MessageId)}</Label>
+          <Text style={{color: tokens.colors.heading, fontWeight: '600'}}>{t(cue.state === 'recurring' ? 'review.review_cue_title_recurring' as MessageId : 'review.review_cue_title_unresolved' as MessageId)}</Text>
+          <PanelCopy>{fill(t('review.review_cue_body' as MessageId), {category: categoryLabel(t, cue.category ?? 'expression'), status: statusLabel(t, cue.status ?? ''), source: t(cue.source === 'error_memory' ? 'review.review_cue_source_error_memory' as MessageId : 'review.review_cue_source_practice_outcome' as MessageId)})}</PanelCopy>
+          {cue.evidence ? <Text style={[styles.quote, {color: tokens.colors.text}]}>{`“${cue.evidence}”`}</Text> : null}
+        </Panel>
+      ) : null}
+
+      {result.grammar_links.length > 0 ? (
+        <Panel>
+          <Label>{t('review.grammar')}</Label>
+          {result.grammar_links.map((link) => (
+            <Button
+              key={link.grammar_id}
+              label={link.title ?? link.grammar_id}
+              variant="outline"
+              compact
+              disabled={grammar.isPending}
+              onPress={() => grammar.mutate({grammarId: link.grammar_id, evidence: link.evidence}, {onSuccess: (task) => { setGrammarWritingHandoff(task, learningLanguage); router.push('/(app)/writing'); }})}
+            />
+          ))}
+          {grammar.isError ? <Text accessibilityRole="alert" style={{color: tokens.colors.danger}}>{t('review.practice_failed')}</Text> : null}
+        </Panel>
+      ) : null}
+
+      {/* What is next */}
+      <Panel>
+        <Label>{t('review.whats_next' as MessageId)}</Label>
+        <PanelCopy>{t('review.whats_next_body' as MessageId)}</PanelCopy>
+        <Button label={t('review.start_revision' as MessageId)} variant="outline" onPress={beginRevision} />
+        <Button label={improve.isPending ? t('writing.creating' as MessageId) : t('review.strong_compare' as MessageId)} variant="outline" compact disabled={improve.isPending} onPress={comparePolished} />
+      </Panel>
+
+      <Modal visible={rubricOpen} animationType="slide" transparent onRequestClose={() => setRubricOpen(false)}>
+        <View style={styles.modalScrim}>
+          <View style={[styles.modalCard, {backgroundColor: tokens.colors.surface}]}>
+            <Text accessibilityRole="header" style={[styles.modalTitle, {color: tokens.colors.heading}]}>{t('write.rubric_title' as MessageId)}</Text>
+            <ScrollView contentContainerStyle={styles.modalBody}>
+              <PanelCopy>{t('write.rubric_intro' as MessageId)}</PanelCopy>
+              {RUBRIC_CATEGORIES.map((key) => (
+                <View key={key} style={styles.group}>
+                  <Text style={{color: tokens.colors.heading, fontWeight: '600'}}>{categoryLabel(t, key)}</Text>
+                  <Text style={{color: tokens.colors.mutedText}}>{t(`rubric.${key}` as MessageId)}</Text>
+                </View>
+              ))}
+            </ScrollView>
+            <Button label={t('write.rubric_close' as MessageId)} onPress={() => setRubricOpen(false)} />
+          </View>
+        </View>
+      </Modal>
+
+      <Modal visible={compareOpen} animationType="slide" transparent onRequestClose={() => setCompareOpen(false)}>
+        <View style={styles.modalScrim}>
+          <View style={[styles.modalCard, {backgroundColor: tokens.colors.surface}]}>
+            <Text accessibilityRole="header" style={[styles.modalTitle, {color: tokens.colors.heading}]}>{t('review.strong_dialog' as MessageId)}</Text>
+            <ScrollView contentContainerStyle={styles.modalBody}>
+              <Label>{t('review.strong_kicker' as MessageId)}</Label>
+              <PanelCopy>{t('review.strong_body' as MessageId)}</PanelCopy>
+              {improve.isPending ? <PanelCopy>{t('writing.creating' as MessageId)}</PanelCopy> : null}
+              {improve.data ? (
+                <>
+                  <View style={styles.group}>
+                    <Label>{t('review.corrected' as MessageId)}</Label>
+                    <Text style={{color: tokens.colors.heading, fontWeight: '600'}}>{t('review.corrected_title' as MessageId)}</Text>
+                    <Text style={[styles.docBody, {color: tokens.colors.text}]}>{improve.data.corrected_text}</Text>
+                  </View>
+                  <View style={styles.group}>
+                    <Label>{t('review.strong' as MessageId)}</Label>
+                    <Text style={{color: tokens.colors.heading, fontWeight: '600'}}>{t('review.strong_title' as MessageId)}</Text>
+                    <Text style={[styles.docBody, {color: tokens.colors.text}]}>{improve.data.upgraded_text}</Text>
+                  </View>
+                </>
+              ) : null}
+            </ScrollView>
+            <Button label={t('write.rubric_close' as MessageId)} onPress={() => setCompareOpen(false)} />
+          </View>
+        </View>
+      </Modal>
     </ScrollView>
   );
 }
 
-const styles = StyleSheet.create({evidence: {fontSize: 14, lineHeight: 21}, quote: {fontSize: 14, lineHeight: 21, fontStyle: 'italic'}, suggestion: {fontSize: 14, lineHeight: 21, fontWeight: '600'}, deltaGroup: {gap: 4}, container: {flexGrow: 1, padding: 24, gap: 12, width: '100%', maxWidth: CONTENT_MAX, alignSelf: 'center'}, title: {fontSize: 20, fontWeight: '700'}, heading: {fontSize: 15, fontWeight: '700'}, card: {padding: 16, borderRadius: 20, gap: 6, borderWidth: 1}, button: {padding: 16, borderRadius: 15, alignItems: 'center', minHeight: 44, justifyContent: 'center'}, buttonText: {fontSize: 14, fontWeight: '700'}});
+const styles = StyleSheet.create({
+  container: {flexGrow: 1, padding: 24, gap: 16, width: '100%', maxWidth: CONTENT_MAX, alignSelf: 'center'},
+  promptText: {fontSize: 17, lineHeight: 26, fontWeight: '600'},
+  row: {flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 10},
+  group: {gap: 6},
+  tabRow: {flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8},
+  tab: {paddingHorizontal: 14, paddingVertical: 10, borderRadius: 15, borderWidth: 1, borderColor: 'transparent', minHeight: 44, justifyContent: 'center'},
+  docBody: {fontSize: 15, lineHeight: 27},
+  docFoot: {flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12},
+  docFootCompact: {gap: 10},
+  lens: {borderWidth: 1, borderRadius: 15, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12, flexWrap: 'wrap'},
+  legendRow: {flexDirection: 'row', flexWrap: 'wrap', gap: 10, paddingTop: 6},
+  legendItem: {flexDirection: 'row', alignItems: 'center', gap: 6},
+  legendDot: {width: 9, height: 9, borderRadius: 999},
+  score: {fontSize: 38, fontWeight: '700'},
+  evidenceRow: {borderWidth: 1, borderRadius: 15, paddingHorizontal: 12, paddingVertical: 4},
+  evidenceHead: {flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 44},
+  evidenceName: {flex: 1, minWidth: 0, fontSize: 15, fontWeight: '600'},
+  evidenceBody: {gap: 8, paddingBottom: 12},
+  evidenceCopy: {fontSize: 14, lineHeight: 21},
+  mark: {width: 22, height: 22, borderRadius: 999, textAlign: 'center', lineHeight: 22, fontSize: 13, fontWeight: '700', overflow: 'hidden'},
+  tick: {fontSize: 16, fontWeight: '700', width: 22, textAlign: 'center'},
+  quote: {fontSize: 15, lineHeight: 23, fontStyle: 'italic'},
+  diff: {gap: 10},
+  modalScrim: {flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.45)'},
+  modalCard: {padding: 24, gap: 14, borderTopLeftRadius: 20, borderTopRightRadius: 20, maxHeight: '85%'},
+  modalTitle: {fontSize: 20, fontWeight: '700'},
+  modalBody: {gap: 12, paddingBottom: 8},
+});

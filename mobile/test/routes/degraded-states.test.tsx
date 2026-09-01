@@ -23,7 +23,7 @@ jest.mock('../../src/auth/SessionHarness', () => ({
 jest.mock('../../src/api/client', () => ({createConfiguredApiClient: () => ({}), ApiClient: class {}}));
 jest.mock('../../src/query/useGrammar', () => ({useGrammarLibrary: () => mockIdleQuery, useGrammarLesson: () => mockIdleQuery, useCompleteGrammarLesson: () => ({isPending: false, isError: false, mutate: jest.fn()})}));
 jest.mock('../../src/query/useWritingEvaluation', () => ({useGrammarPractice: () => ({isPending: false, isError: false, mutate: jest.fn()}), useEvaluateWriting: () => ({isPending: false, isError: false, mutate: jest.fn()})}));
-jest.mock('../../src/query/useReadingLibrary', () => ({useLibraryVocabulary: () => mockIdleQuery, useReviewLibraryVocabulary: () => ({isPending: false, isError: false, mutate: jest.fn()})}));
+jest.mock('../../src/query/useReadingLibrary', () => ({useLibraryVocabulary: () => mockIdleQuery, useReviewLibraryVocabulary: () => ({isPending: false, isError: false, mutate: jest.fn()}), useContextualDictionary: () => ({data: undefined, isPending: false, isError: false, mutate: jest.fn()}), useSaveLibraryVocabulary: () => ({data: undefined, isPending: false, isError: false, mutate: jest.fn()})}));
 jest.mock('../../src/query/useJourney', () => ({useJourneyDashboard: () => mockIdleQuery, useJourneyOutcomes: () => mockIdleQuery}));
 jest.mock('../../src/query/useLearnerProfile', () => ({useLearnerProfile: () => mockIdleQuery, useSaveLearnerProfile: () => ({isPending: false, isError: false, mutateAsync: jest.fn()}), useSetLearningLanguage: () => ({isPending: false, isError: false, mutateAsync: jest.fn()})}));
 jest.mock('../../src/query/useProductMe', () => ({useProductMe: () => mockIdleQuery}));
@@ -31,7 +31,7 @@ jest.mock('../../src/query/usePracticeRecommendation', () => ({usePracticeRecomm
 jest.mock('../../src/query/useHome', () => ({useEssays: () => mockIdleQuery, useLearningMemory: () => mockIdleQuery, useReadingSessionHistory: () => mockIdleQuery, useOpenEssay: () => ({isPending: false, isError: false, mutate: jest.fn()}), useCrossSkillCue: () => mockIdleQuery}));
 jest.mock('../../src/features/listening/listeningResume', () => ({readListeningResume: () => Promise.resolve(null)}));
 jest.mock('../../src/features/listening/listeningHabit', () => ({listeningHabitSnapshot: () => Promise.resolve({status: 'unavailable', todaySeconds: 0, weekSeconds: 0, dailyGoalMinutes: 40})}));
-jest.mock('../../src/query/useReview', () => ({usePracticeOutcome: () => mockIdleQuery, useReviewCue: () => mockIdleQuery}));
+jest.mock('../../src/query/useReview', () => ({usePracticeOutcome: () => mockIdleQuery, useReviewCue: () => mockIdleQuery, useImproveWriting: () => ({data: undefined, isPending: false, isError: false, mutate: jest.fn()}), useLinguisticAnnotations: () => ({data: undefined, isPending: false, isError: false, mutate: jest.fn()})}));
 
 const render = (screen: React.ReactNode, locale: 'en' | 'zh' = 'en') =>
   renderer.create(<I18nProvider initialLocale={locale}><ThemeProvider>{screen}</ThemeProvider></I18nProvider>);
@@ -63,7 +63,6 @@ describe('degraded learner states stay truthful and escapable', () => {
   it.each([
     ['Journey', () => <JourneyScreen />],
     ['Grammar', () => <GrammarScreen />],
-    ['Review', () => <ReviewScreen />],
     ['Profile', () => <ProfileScreen />],
   ] as const)('%s offers a route out rather than stranding the learner', (_name, make) => {
     const view = render(make());
@@ -71,6 +70,16 @@ describe('degraded learner states stay truthful and escapable', () => {
     expect(found.length).toBeGreaterThan(0);
     act(() => found[found.length - 1]?.props.onPress());
     expect(mockReplace).toHaveBeenCalledWith('/(app)');
+  });
+
+  // Review's own empty state routes to the screen that produces its input,
+  // which is what review.js does: "Go to writing", not a generic way home.
+  it('Review sends the learner to Writing rather than stranding them', () => {
+    const view = render(<ReviewScreen />);
+    const found = buttons(view);
+    expect(found.length).toBeGreaterThan(0);
+    act(() => found[found.length - 1]?.props.onPress());
+    expect(mockReplace).toHaveBeenCalledWith('/(app)/writing');
   });
 
   it('Home offers sign-out instead of a dead end when no session cookie is held', () => {
