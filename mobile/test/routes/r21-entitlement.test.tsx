@@ -16,6 +16,8 @@ jest.mock('../../src/auth/SessionHarness', () => ({useSession: () => ({sessionCo
 jest.mock('../../src/api/client', () => ({createConfiguredApiClient: () => ({}), ApiClient: class {}}));
 jest.mock('../../src/query/useLearnerProfile', () => ({useLearnerProfile: () => mockProfile, useSaveLearnerProfile: () => mockSave, useSetLearningLanguage: () => mockLanguage}));
 jest.mock('../../src/query/useProductMe', () => ({useProductMe: () => mockProduct}));
+// Profile now shows the growth rank, which reads the learning memory.
+jest.mock('../../src/query/useHome', () => ({useLearningMemory: () => ({isPending: false, isError: false, data: {}})}));
 
 const account = (featureState: 'enabled' | 'exhausted' | 'unavailable') => ({
   available: true, plan: {id: 'free', name: 'Free', description: 'Core writing practice.', price_label: 'Free'}, subscription: {state: 'active', status: 'active'}, plan_state: 'active', billing_ready: false,
@@ -29,12 +31,12 @@ describe('R21 native entitlement presentation', () => {
   beforeEach(() => { mockCookie = 'cookie'; mockSessionStatus = 'authenticated'; mockProfile.isPending = false; mockProfile.isError = false; mockProduct = {isPending: false, isError: false, data: account('enabled')}; });
 
   it.each(['en', 'zh'] as const)('renders enabled and exhausted server states without raw enums in %s', (locale) => {
-    let view = render(locale); expect(text(view)).toContain(locale === 'en' ? 'Available' : '可用'); expect(text(view)).not.toContain('enabled');
+    let view = render(locale); expect(text(view)).toContain(locale === 'en' ? '30 of 30 left this month' : '本月还剩 30 / 30'); expect(text(view)).not.toContain('enabled');
     mockProduct = {isPending: false, isError: false, data: account('exhausted')}; view = render(locale); expect(text(view)).toContain(locale === 'en' ? 'Monthly limit reached' : '已达到月度上限'); expect(text(view)).not.toContain('exhausted');
   });
 
   it.each(['en', 'zh'] as const)('renders unavailable, loading, and signed-out entitlement states in %s', (locale) => {
-    mockProduct = {isPending: false, isError: false, data: account('unavailable')}; let view = render(locale); expect(text(view)).toContain(locale === 'en' ? 'Unavailable' : '不可用');
+    mockProduct = {isPending: false, isError: false, data: account('unavailable')}; let view = render(locale); expect(text(view)).toContain(locale === 'en' ? 'Usage unavailable' : '用量不可用');
     mockProduct = {isPending: false, isError: false, data: {available: false, plan: null, subscription: {state: 'unknown', status: 'unknown'}, features: {}, billing_ready: false}}; view = render(locale); expect(text(view)).toContain(locale === 'en' ? 'Plan availability unavailable' : '计划可用性不可用');
     mockProduct = {isPending: true, isError: false, data: undefined}; view = render(locale); expect(text(view)).toContain(locale === 'en' ? 'Loading your profile' : '正在加载个人资料');
     mockCookie = null; mockSessionStatus = 'signed-out'; view = render(locale); expect(text(view)).toContain(locale === 'en' ? 'Sign in to view your plan' : '登录后即可查看计划');
