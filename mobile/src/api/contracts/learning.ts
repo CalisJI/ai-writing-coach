@@ -109,7 +109,10 @@ export type EssayDetail = z.infer<typeof essayDetailSchema>;
 export const grammarPracticeSchema = z.object({grammar_id: z.string().min(1), title: z.string().min(1), level: z.string().min(2), target_level: z.string().min(2), prompt: z.string().min(1), practice_blueprint: z.record(z.unknown()), practice_context: practiceContextSchema, source: z.string().min(1)}).strict();
 export type GrammarPractice = z.infer<typeof grammarPracticeSchema>;
 
-const grammarLessonSummarySchema = z.object({id: z.string().min(1), title: z.string().min(1), level: z.string().min(2), kind: z.string().optional(), completed: z.boolean().optional()}).passthrough();
+// `module`/`category` already arrived through `.passthrough()`; naming them
+// lets the curriculum map group by module the way groupByModule() does on the
+// web. The R5 concept identifiers themselves are untouched.
+const grammarLessonSummarySchema = z.object({id: z.string().min(1), title: z.string().min(1), level: z.string().min(2), kind: z.string().optional(), completed: z.boolean().optional(), module: z.string().optional(), category: z.string().optional()}).passthrough();
 export const grammarLibrarySchema = z.object({lessons: z.array(grammarLessonSummarySchema), total: z.number().int().nonnegative(), completed: z.number().int().nonnegative(), levels: z.array(z.string()), level_names: z.record(z.string()), language: z.enum(['en', 'zh'])}).passthrough();
 export type GrammarLessonSummary = z.infer<typeof grammarLessonSummarySchema>;
 export type GrammarLibrary = z.infer<typeof grammarLibrarySchema>;

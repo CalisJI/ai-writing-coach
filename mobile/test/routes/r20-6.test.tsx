@@ -39,6 +39,46 @@ const grammarTask = {grammar_id: 'en-articles', title: 'Articles', level: 'B1', 
 
 describe('R20-6 native learner loop', () => {
   beforeEach(() => { mockCookie = 'cookie'; mockPush.mockReset(); mockGrammarPractice.mutate.mockReset(); mockGrammarComplete.mutate.mockReset(); mockReview.mutate.mockReset(); mockSaveProfile.mutateAsync.mockReset(); mockSaveProfile.mutateAsync.mockResolvedValue({}); mockSetLanguage.mutateAsync.mockReset(); mockSetLanguage.mutateAsync.mockResolvedValue({ok: true, active: 'zh'}); mockGrammarLibrary.isPending = false; mockGrammarLibrary.isError = false; mockGrammarLesson.isPending = false; mockGrammarLesson.isError = false; mockLibraryQuery.isLoading = false; mockLibraryQuery.isError = false; mockLibraryQuery.data = {items: [{word: 'clarity', phonetic: '', part_of_speech: 'noun', definition: 'clear expression', translation_vi: '', added_at: '2026-01-01', source_fragment: '', source_kind: 'manual', focus_note: '', review_stage: 1, stage_label: 'Learning', successful_recalls: 0, lapse_count: 0, last_reviewed_at: '', next_review_at: '', due: true}], summary: {total: 1, due: 1, available: 0}}; mockDashboard.isPending = false; mockDashboard.isError = false; mockOutcomes.isPending = false; mockOutcomes.isError = false; mockProfile.isPending = false; mockProfile.isError = false; });
+  /* The curriculum map groups a level's lessons by module and collapses every
+     level but the first, the way grammar.js's <details> stack does. Native was
+     rendering one flat list per level, fully expanded. */
+  it('groups the curriculum by module and collapses levels past the first', () => {
+    const previous = mockGrammarLibrary.data;
+    mockGrammarLibrary.data = {
+      lessons: [
+        {id: 'b1-a', title: 'Articles', level: 'B1', module: 'Determiners', completed: true},
+        {id: 'b1-b', title: 'Quantifiers', level: 'B1', module: 'Determiners', completed: false},
+        {id: 'b1-c', title: 'Past simple', level: 'B1', module: 'Tenses', completed: false},
+        {id: 'b2-a', title: 'Conditionals', level: 'B2', module: 'Clauses', completed: false},
+      ],
+      total: 4, completed: 1, levels: ['B1', 'B2'], level_names: {B1: 'B1', B2: 'B2'}, language: 'en',
+    } as unknown as typeof mockGrammarLibrary.data;
+    try {
+      const view = render(<GrammarScreen />, 'en');
+      // RN splits interpolated text into separate children, so compare on the
+      // flattened string rather than the serialized tree.
+      const flat = () => JSON.stringify(view.toJSON()).replace(/","/g, '');
+
+      // B1 is open: its module headings, counts and lessons are on screen.
+      expect(flat()).toContain('Determiners');
+      expect(flat()).toContain('Tenses');
+      expect(flat()).toContain('2 modules');
+      expect(view.root.findAllByProps({accessibilityLabel: 'Articles'})).not.toHaveLength(0);
+      expect(view.root.findAllByProps({accessibilityLabel: 'Past simple'})).not.toHaveLength(0);
+
+      // B2 is collapsed, so its lesson is not rendered at all.
+      expect(flat()).toContain('1 modules');
+      expect(view.root.findAllByProps({accessibilityLabel: 'Conditionals'})).toHaveLength(0);
+      expect(view.root.findAllByProps({accessibilityLabel: 'B2'})[0]!.props.accessibilityState.expanded).toBe(false);
+
+      // Opening B2 reveals it.
+      act(() => { view.root.findAllByProps({accessibilityLabel: 'B2'})[0]!.props.onPress(); });
+      expect(view.root.findAllByProps({accessibilityLabel: 'Conditionals'})).not.toHaveLength(0);
+    } finally {
+      mockGrammarLibrary.data = previous;
+    }
+  });
+
   // The overview's first action opens the next lesson (matching grammar.js's
   // "Continue curriculum" CTA, which only opens the lesson); the write-transfer
   // handoff itself lives on the opened lesson's rail, as it does on the web.

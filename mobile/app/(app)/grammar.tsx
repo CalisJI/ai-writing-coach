@@ -1,5 +1,5 @@
-import {useMemo, useState, type ReactNode} from 'react';
-import {Pressable, ScrollView, StyleSheet, Text, TextInput, View} from 'react-native';
+import {useMemo, useRef, useState, type ReactNode} from 'react';
+import {LayoutAnimation, Pressable, ScrollView, StyleSheet, Text, TextInput, View} from 'react-native';
 import {useRouter} from 'expo-router';
 import {createConfiguredApiClient, type ApiClient} from '../../src/api/client';
 import {useSession} from '../../src/auth/SessionHarness';
@@ -53,6 +53,22 @@ function progressOf(items: readonly {completed?: boolean}[]) {
 
 function groupByLevel(lessons: readonly GrammarLessonSummary[], levels: readonly string[]) {
   return levels.map((level) => ({level, items: lessons.filter((item) => item.level === level)})).filter((group) => group.items.length > 0);
+}
+
+/**
+ * `groupByModule()`: inside a level, lessons belong to a module. The web groups
+ * them so the curriculum map reads as a syllabus rather than one long list, and
+ * falls back to the category, then to "Grammar", when a lesson names neither.
+ * Insertion order is kept -- it is the order the syllabus defines.
+ */
+function groupByModule(items: readonly GrammarLessonSummary[]) {
+  const map = new Map<string, GrammarLessonSummary[]>();
+  for (const item of items) {
+    const key = item.module || item.category || 'Grammar';
+    const bucket = map.get(key);
+    if (bucket) bucket.push(item); else map.set(key, [item]);
+  }
+  return [...map.entries()].map(([module, moduleItems]) => ({module, items: moduleItems}));
 }
 
 function kindLabel(kind: string | undefined, t: (id: never) => string): string {
@@ -123,12 +139,27 @@ function Overview({library, onOpen, onWriting}: {
   const groups = groupByLevel(lessons, levels);
   const progress = progressOf(lessons);
   const next = lessons.find((item) => item.completed !== true) ?? null;
+  // Which level groups are open, and where each one sits, so a level pill can
+  // open its group and bring it into view the way the web's anchor does.
+  const [openLevels, setOpenLevels] = useState<Record<string, boolean>>({});
+  const levelOffsets = useRef<Record<string, number>>({});
+  const scrollRef = useRef<ScrollView | null>(null);
+  const onMeasureLevel = (level: string, y: number) => { levelOffsets.current[level] = y; };
+  const onToggleLevel = (level: string, open: boolean) => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setOpenLevels((current) => ({...current, [level]: open}));
+  };
+  const onJumpToLevel = (level: string) => {
+    onToggleLevel(level, true);
+    const offset = levelOffsets.current[level];
+    if (offset !== undefined) scrollRef.current?.scrollTo({y: Math.max(0, offset - 12), animated: true});
+  };
   // The web's legacyObjective() gates this passthrough field to the vi
   // interface only (grammar.js); native never runs that locale, so it is
   // never shown here either, rather than leaking raw Vietnamese into en/zh.
 
   return (
-    <ScrollView style={{flex: 1, backgroundColor: tokens.colors.background}} contentContainerStyle={[styles.container, {backgroundColor: tokens.colors.background}]}>
+    <ScrollView ref={scrollRef} style={{flex: 1, backgroundColor: tokens.colors.background}} contentContainerStyle={[styles.container, {backgroundColor: tokens.colors.background}]}>
       <Text accessibilityRole="header" style={[styles.title, {color: tokens.colors.heading}]}>{t('grammar.title')}</Text>
 
       <View style={[styles.hero, wide && styles.heroWide]}>
@@ -164,43 +195,96 @@ function Overview({library, onOpen, onWriting}: {
         </Panel>
       </View>
 
+      {/* `.grammar-level-rail`: the pills are controls on the web -- tapping one
+          jumps to that level. They were inert here, so the rail was decoration. */}
       <Panel>
         <Label>{t('grammar.roadmap' as never)}</Label>
-        <View style={styles.levelRail}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.levelRail}>
           {groups.map((group) => {
             const p = progressOf(group.items);
             return (
-              <View key={group.level} style={[styles.levelPill, {borderColor: tokens.colors.border, backgroundColor: tokens.colors.surface}]}>
+              <Pressable
+                key={group.level}
+                accessibilityRole="button"
+                accessibilityLabel={`${group.level} ${p.completed}/${p.total}`}
+                onPress={() => onJumpToLevel(group.level)}
+                style={({pressed}) => [styles.levelPill, {borderColor: tokens.colors.border, backgroundColor: pressed ? tokens.colors.accentTint : tokens.colors.surface}]}
+              >
                 <Text style={[styles.levelPillLevel, {color: tokens.colors.heading}]}>{group.level}</Text>
                 <Text style={[styles.levelPillCount, {color: tokens.colors.mutedText}]}>{p.completed}/{p.total}</Text>
                 <View style={[styles.levelPillTrack, {backgroundColor: tokens.colors.surfaceSunken}]}>
                   <View style={[styles.levelPillFill, {width: `${p.percent}%`, backgroundColor: tokens.colors.roleNoun}]} />
                 </View>
-              </View>
+              </Pressable>
             );
           })}
-        </View>
+        </ScrollView>
       </Panel>
 
-      {groups.map((group) => (
-        <Panel key={group.level}>
-          <Label>{group.level} · {progressOf(group.items).completed}/{progressOf(group.items).total}</Label>
-          <View style={styles.itemList}>
-            {group.items.map((item) => (
+      {/* `.grammar-curriculum-map`: a `<details>` per level with the first open,
+          and modules inside it. Every level expanded at once is a very long
+          phone scroll, which is why the reference collapses them. */}
+      {groups.map((group, groupIndex) => {
+        const p = progressOf(group.items);
+        const modules = groupByModule(group.items);
+        const open = openLevels[group.level] ?? groupIndex === 0;
+        return (
+          <View key={group.level} onLayout={(event) => onMeasureLevel(group.level, event.nativeEvent.layout.y)}>
+            <Panel>
               <Pressable
-                key={item.id}
                 accessibilityRole="button"
-                onPress={() => onOpen(item.id)}
-                style={[styles.itemRow, {borderColor: tokens.colors.border, backgroundColor: item.completed ? tokens.colors.surfaceSunken : tokens.colors.surface}]}
+                accessibilityLabel={group.level}
+                accessibilityState={{expanded: open}}
+                onPress={() => onToggleLevel(group.level, !open)}
+                style={styles.levelSummary}
               >
-                <Text style={[styles.itemKind, {color: tokens.colors.mutedText}]}>{kindLabel(item.kind, t)}</Text>
-                <Text numberOfLines={1} style={[styles.itemTitle, {color: tokens.colors.text}]}>{item.title}</Text>
-                <Text style={[styles.itemState, {color: item.completed ? tokens.colors.positive : tokens.colors.mutedText}]}>{item.completed ? '✓' : '→'}</Text>
+                <View style={styles.levelSummaryCopy}>
+                  <Text style={[styles.levelSummaryLevel, {color: tokens.colors.heading}]}>{group.level}</Text>
+                  <Text style={[styles.levelSummaryCount, {color: tokens.colors.mutedText}]}>{p.completed}/{p.total}</Text>
+                </View>
+                <Text style={[styles.levelSummaryCount, {color: tokens.colors.mutedText}]}>
+                  {modules.length} {t('grammar.modules' as never)}
+                </Text>
+                <OrenaIcon name={open ? 'chevronUp' : 'chevronDown'} size={18} color={tokens.colors.mutedText} />
               </Pressable>
-            ))}
+
+              {open ? (
+                <View style={styles.moduleStack}>
+                  {modules.map((module) => {
+                    const mp = progressOf(module.items);
+                    return (
+                      <View key={module.module} style={styles.module}>
+                        <View style={styles.moduleHead}>
+                          <View style={styles.moduleHeadCopy}>
+                            <Label>{group.level}</Label>
+                            <Text style={[styles.moduleTitle, {color: tokens.colors.heading}]}>{module.module}</Text>
+                          </View>
+                          <Text style={[styles.levelSummaryCount, {color: tokens.colors.mutedText}]}>{mp.completed}/{mp.total}</Text>
+                        </View>
+                        <View style={styles.itemList}>
+                          {module.items.map((item) => (
+                            <Pressable
+                              key={item.id}
+                              accessibilityRole="button"
+                              accessibilityLabel={item.title}
+                              onPress={() => onOpen(item.id)}
+                              style={[styles.itemRow, {borderColor: tokens.colors.border, backgroundColor: item.completed ? tokens.colors.surfaceSunken : tokens.colors.surface}]}
+                            >
+                              <Text style={[styles.itemKind, {color: tokens.colors.mutedText}]}>{kindLabel(item.kind, t)}</Text>
+                              <Text numberOfLines={1} style={[styles.itemTitle, {color: tokens.colors.text}]}>{item.title}</Text>
+                              <Text style={[styles.itemState, {color: item.completed ? tokens.colors.positive : tokens.colors.mutedText}]}>{item.completed ? '✓' : '→'}</Text>
+                            </Pressable>
+                          ))}
+                        </View>
+                      </View>
+                    );
+                  })}
+                </View>
+              ) : null}
+            </Panel>
           </View>
-        </Panel>
-      ))}
+        );
+      })}
     </ScrollView>
   );
 }
@@ -443,12 +527,21 @@ const styles = StyleSheet.create({
   track: {height: 6, borderRadius: 999, overflow: 'hidden'},
   trackFill: {height: '100%', borderRadius: 999},
   nextTitle: {fontSize: 15, fontWeight: '600', lineHeight: 21},
-  levelRail: {flexDirection: 'row', flexWrap: 'wrap', gap: 10},
   levelPill: {minWidth: 96, padding: 12, borderRadius: 15, borderWidth: 1, gap: 5},
   levelPillLevel: {fontSize: 14, fontWeight: '600'},
   levelPillCount: {fontSize: 12},
   levelPillTrack: {height: 4, borderRadius: 999, overflow: 'hidden'},
   levelPillFill: {height: '100%', borderRadius: 999},
+  levelRail: {gap: 8, paddingVertical: 2},
+  levelSummary: {flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, minHeight: 40},
+  levelSummaryCopy: {flexDirection: 'row', alignItems: 'baseline', gap: 8},
+  levelSummaryLevel: {fontSize: 15, fontWeight: '700'},
+  levelSummaryCount: {fontSize: 12},
+  moduleStack: {gap: 14},
+  module: {gap: 8},
+  moduleHead: {flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10},
+  moduleHeadCopy: {flex: 1, gap: 2},
+  moduleTitle: {fontSize: 15, fontWeight: '600'},
   itemList: {gap: 6},
   itemRow: {flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 44, paddingHorizontal: 12, borderRadius: 15, borderWidth: 1},
   itemKind: {fontSize: 12, minWidth: 60},
