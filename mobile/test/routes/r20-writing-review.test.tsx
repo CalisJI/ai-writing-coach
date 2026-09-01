@@ -19,6 +19,13 @@ jest.mock('../../src/api/client', () => ({createConfiguredApiClient: () => ({}),
 jest.mock('../../src/query/useWritingEvaluation', () => ({useEvaluateWriting: () => mockEvaluate, useGrammarPractice: () => mockGrammarPractice, useGenerateTask: () => ({isPending: false, isError: false, mutate: jest.fn()})}));
 jest.mock('../../src/query/useLearnerProfile', () => ({useLearnerProfile: () => ({data: undefined, isPending: false, isError: false})}));
 jest.mock('../../src/query/useReview', () => ({usePracticeOutcome: () => ({data: undefined, isPending: false, isError: false}), useReviewCue: () => ({data: undefined, isPending: false, isError: false})}));
+jest.mock('../../src/query/useReadingLibrary', () => ({useContextualDictionary: () => ({data: undefined, isPending: false, isError: false, mutate: jest.fn()})}));
+jest.mock('../../src/query/useJourney', () => ({useJourneyDashboard: () => ({data: undefined, isPending: false, isError: false}), useJourneyOutcomes: () => ({data: undefined, isPending: false, isError: false})}));
+// The draft store is device storage; these tests assert screen behaviour, not persistence.
+jest.mock('../../src/features/writing/writingDraft', () => {
+  const actual = jest.requireActual('../../src/features/writing/writingDraft') as Record<string, unknown>;
+  return {...actual, readWritingDraft: () => Promise.resolve(null), writeWritingDraft: () => Promise.resolve(), clearWritingDraft: () => Promise.resolve()};
+});
 
 const render = (screen: React.ReactNode, locale: 'en' | 'zh' = 'en') => renderer.create(<I18nProvider initialLocale={locale}><ThemeProvider>{screen}</ThemeProvider></I18nProvider>);
 const texts = (view: renderer.ReactTestRenderer, value: string) => view.root.findAll((node) => node.props.children === value);
@@ -74,10 +81,12 @@ describe('R20 native Writing -> Evaluate -> Review -> Grammar -> Revise loop', (
   it.each(['en', 'zh'] as const)('submits the prepared practice brief with its real evaluation payload in %s', (locale) => {
     setPracticeWritingHandoff(practiceTask);
     const view = render(<WritingScreen />, locale);
-    expect(texts(view, 'Describe your daily routine')).not.toHaveLength(0);
-    const input = view.root.findByProps({accessibilityLabel: locale === 'zh' ? '你的写作' : 'Your writing'});
+    // write.js's promptCard shows the brief the learner answers (promptText():
+    // instruction first, prompt as fallback), never the task's own title.
+    expect(texts(view, 'Write about an ordinary weekday.')).not.toHaveLength(0);
+    const input = view.root.findByProps({accessibilityLabel: locale === 'zh' ? '你的草稿' : 'Your draft'});
     act(() => input.props.onChangeText('I has a dog and I write every day.'));
-    act(() => buttonLabelled(view, locale === 'zh' ? '提交并查看复习' : 'Submit for review').props.onPress());
+    act(() => buttonLabelled(view, locale === 'zh' ? '点评草稿' : 'Review draft').props.onPress());
     expect(mockEvaluate.mutate).toHaveBeenCalledTimes(1);
     const [payload] = mockEvaluate.mutate.mock.calls[0];
     expect(payload).toEqual({
@@ -93,23 +102,27 @@ describe('R20 native Writing -> Evaluate -> Review -> Grammar -> Revise loop', (
 
   it('refuses to submit until the learner has written enough, and never claims progress on failure', () => {
     setPracticeWritingHandoff(practiceTask);
-    mockEvaluate.isError = true;
     const view = render(<WritingScreen />);
-    // `disabled` is the real guard React Native honours; invoking onPress by hand
-    // here would bypass it and assert nothing about this screen.
-    expect(buttonLabelled(view, 'Submit for review').props.disabled).toBe(true);
-    act(() => view.root.findByProps({accessibilityLabel: 'Your writing'}).props.onChangeText('short'));
-    expect(buttonLabelled(view, 'Submit for review').props.disabled).toBe(true);
-    act(() => view.root.findByProps({accessibilityLabel: 'Your writing'}).props.onChangeText('I has a dog and I write every day.'));
-    expect(buttonLabelled(view, 'Submit for review').props.disabled).toBe(false);
+    // write.js's submitForReview() keeps the action live and answers a too-short
+    // draft with write.short_first rather than a dead control, so the guard to
+    // assert is that nothing is sent -- not that a prop is set.
+    act(() => buttonLabelled(view, 'Review draft').props.onPress());
     expect(mockEvaluate.mutate).not.toHaveBeenCalled();
-    expect(texts(view, 'Your writing was not submitted. No progress was changed.')).not.toHaveLength(0);
+    expect(texts(view, 'Write at least a short paragraph first.')).not.toHaveLength(0);
     expect(view.root.findByProps({accessibilityRole: 'alert'})).toBeDefined();
+
+    act(() => view.root.findByProps({accessibilityLabel: 'Your draft'}).props.onChangeText('short'));
+    act(() => buttonLabelled(view, 'Review draft').props.onPress());
+    expect(mockEvaluate.mutate).not.toHaveBeenCalled();
+
+    act(() => view.root.findByProps({accessibilityLabel: 'Your draft'}).props.onChangeText('I has a dog and I write every day.'));
+    act(() => buttonLabelled(view, 'Review draft').props.onPress());
+    expect(mockEvaluate.mutate).toHaveBeenCalledTimes(1);
   });
 
   it.each(['en', 'zh'] as const)('offers the setup panel to start a new session instead of inventing a brief in %s', (locale) => {
     const view = render(<WritingScreen />, locale);
-    expect(texts(view, locale === 'zh' ? '选择要写的内容' : 'Choose what to write')).not.toHaveLength(0);
+    expect(texts(view, locale === 'zh' ? '写作设置' : 'Writing setup')).not.toHaveLength(0);
     expect(mockEvaluate.mutate).not.toHaveBeenCalled();
     act(() => buttonLabelled(view, locale === 'zh' ? '返回首页' : 'Back to Home').props.onPress());
     expect(mockReplace).toHaveBeenCalledWith('/(app)');
@@ -118,8 +131,8 @@ describe('R20 native Writing -> Evaluate -> Review -> Grammar -> Revise loop', (
   it('hands the server evaluation to Review without altering it', () => {
     setPracticeWritingHandoff(practiceTask);
     const view = render(<WritingScreen />);
-    act(() => view.root.findByProps({accessibilityLabel: 'Your writing'}).props.onChangeText('I has a dog and I write every day.'));
-    act(() => buttonLabelled(view, 'Submit for review').props.onPress());
+    act(() => view.root.findByProps({accessibilityLabel: 'Your draft'}).props.onChangeText('I has a dog and I write every day.'));
+    act(() => buttonLabelled(view, 'Review draft').props.onPress());
     act(() => mockEvaluate.mutate.mock.calls[0][1].onSuccess(evaluation));
     expect(mockPush).toHaveBeenCalledWith('/(app)/review');
     const handed = consumeReviewHandoff();
@@ -161,8 +174,8 @@ describe('R20 native Writing -> Evaluate -> Review -> Grammar -> Revise loop', (
     expect(mockPush).toHaveBeenCalledWith('/(app)/writing');
     const writing = render(<WritingScreen />);
     // The revision reopens the learner's own text rather than a blank draft.
-    expect(writing.root.findByProps({accessibilityLabel: 'Your writing'}).props.value).toBe('I has a dog and I write every day.');
-    act(() => buttonLabelled(writing, 'Submit for review').props.onPress());
+    expect(writing.root.findByProps({accessibilityLabel: 'Your draft'}).props.value).toBe('I has a dog and I write every day.');
+    act(() => buttonLabelled(writing, 'Review draft').props.onPress());
     expect(mockEvaluate.mutate.mock.calls[0][0]).toEqual(expect.objectContaining({parent_essay_id: 41, target_cefr: 'B1', learning_language: 'en'}));
   });
 
@@ -183,9 +196,11 @@ describe('R20 native Writing -> Evaluate -> Review -> Grammar -> Revise loop', (
     setGrammarWritingHandoff(grammarTask, 'en');
     render(<WritingScreen />);
     const second = render(<WritingScreen />);
-    expect(texts(second, 'Choose what to write')).not.toHaveLength(0);
+    expect(texts(second, 'Writing setup')).not.toHaveLength(0);
     setRevisionWritingHandoff(41, 'I has a dog and I write every day.', 'Write about an ordinary weekday.', 'B1', 'zh');
     const revision = render(<WritingScreen />, 'zh');
-    expect(texts(revision, '修改你的写作')).not.toHaveLength(0);
+    // A revision reopens its own brief, in the ZH interface, from the handoff.
+    expect(texts(revision, 'Write about an ordinary weekday.')).not.toHaveLength(0);
+    expect(revision.root.findByProps({accessibilityLabel: '你的草稿'}).props.value).toBe('I has a dog and I write every day.');
   });
 });

@@ -1,32 +1,43 @@
-import {useMemo, useState} from 'react';
-import {KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View} from 'react-native';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {Alert, KeyboardAvoidingView, LayoutAnimation, Modal, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, UIManager, View, useWindowDimensions} from 'react-native';
 import {useRouter} from 'expo-router';
 import {createConfiguredApiClient} from '../../src/api/client';
+import {isApiError} from '../../src/api/errors';
 import {useSession} from '../../src/auth/SessionHarness';
 import {useI18n} from '../../src/i18n/I18nProvider';
+import type {MessageId} from '../../src/i18n/messages';
 import {useTheme} from '../../src/theme/ThemeProvider';
 import {CONTENT_MAX} from '../../src/theme/layout';
 import {useEvaluateWriting, useGenerateTask} from '../../src/query/useWritingEvaluation';
+import {useContextualDictionary} from '../../src/query/useReadingLibrary';
 import {useLearnerProfile} from '../../src/query/useLearnerProfile';
+import {useJourneyDashboard} from '../../src/query/useJourney';
 import {consumeWritingHandoff, type WritingHandoff} from '../../src/features/writing/writingHandoff';
 import {setReviewHandoff} from '../../src/features/review/reviewHandoff';
+import {clearWritingDraft, emptyWritingDraft, readWritingDraft, writeWritingDraft, type WritingDraft} from '../../src/features/writing/writingDraft';
+import {
+  RUBRIC_CATEGORIES, SUPPORT_KEYS, WORD_ROLES, bandTier, countUnits, difficultyAdjustment,
+  evaluationErrorKey, guidanceLabel, guidanceMode, normalizedWatchlist, savedLabel,
+  watchlistTrend, writingScaffold, type SupportKey, type WordRole,
+} from '../../src/features/writing/writingDomain';
 import type {EvaluationInput, PracticeContext} from '../../src/api/contracts/learning';
-import {Button, Chip, EditorCard, Label, Metric, Panel, PromptCard, Split} from '../../src/components/orena';
+import {Button, Chip, Label, Panel, PanelCopy} from '../../src/components/orena';
 
 /**
- * Ported from static/becoming/screens/write.js and language.js's per-language
- * config. The web editor is contenteditable with a bold/italic/underline/list
- * toolbar; RN's TextInput has no inline rich-text surface without a heavy
- * third-party editor, so that toolbar, the word-role legend, the guidance
- * scaffold disclosure, the error watchlist, and the audience field are not
- * reproduced here -- residual, not claimed as done. What was a real
- * functional gap rather than a styling one: native could only reach this
- * screen via a handoff (Home's recommendation, a Grammar practice link, or
- * Revise), with no way to start a self-directed session the way the web's
- * mode/level/topic/length setup panel lets a learner do directly. That is
- * added below via the same POST /api/tasks/generate the web calls.
+ * Ported from static/becoming/screens/write.js and orena/writing.css, using the
+ * web's own phone breakpoint (max-width:1023px) as the layout blueprint: one
+ * column, the draft and the setup panel as collapsible disclosures, and the
+ * primary action leaving the flow for a sticky bar under the thumb.
+ *
+ * Everything write.js renders is here except its contenteditable toolbar
+ * (bold/italic/lists/links/block format). React Native has no contenteditable
+ * and no rich-text surface without a third-party editor, so the draft is plain
+ * text -- which is also exactly what the evaluator receives on the web, where
+ * `submitForReview` sends `editor.innerText`. The formatting is a local
+ * convenience the request never carried.
  */
 
+// static/becoming/language.js's per-language config, the same values web reads.
 const LEVELS_BY_LANGUAGE: Record<'en' | 'zh', readonly string[]> = {
   en: ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'],
   zh: ['HSK1', 'HSK2', 'HSK3', 'HSK4', 'HSK5', 'HSK6', 'HSK7-9'],
@@ -40,6 +51,10 @@ const MODE_KEYS_BY_LANGUAGE: Record<'en' | 'zh', readonly string[]> = {
   en: ['free', 'opinion', 'email', 'review', 'story', 'toeic', 'custom'],
   zh: ['free', 'opinion', 'email', 'review', 'story', 'hsk', 'custom'],
 };
+const TOPIC_KEYS = ['random', 'daily_life', 'work', 'science', 'culture', 'community'] as const;
+
+/** write.js's `canGenerate`: free and custom briefs are the learner's own. */
+const GENERATABLE = (mode: string) => !['free', 'custom'].includes(mode);
 
 type LocalTask = {title: string; prompt: string; checklist: string[]; targetLevel: string};
 
@@ -49,174 +64,465 @@ function contextFromTask(handoff: WritingHandoff): PracticeContext | undefined {
   return undefined;
 }
 
+function fill(template: string, values: Record<string, string | number>): string {
+  return Object.entries(values).reduce((text, [key, value]) => text.replace(`{${key}}`, String(value)), template);
+}
+
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
+
+/** The web collapses both panels on a phone; the motion is ported, not the CSS. */
+function Disclosure({title, children, initiallyOpen = true}: {title: string; children: React.ReactNode; initiallyOpen?: boolean}) {
+  const {tokens} = useTheme();
+  const [open, setOpen] = useState(initiallyOpen);
+  return (
+    <View style={styles.disclosure}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityState={{expanded: open}}
+        onPress={() => { LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut); setOpen((value) => !value); }}
+        style={styles.disclosureToggle}
+      >
+        <Text style={[styles.disclosureTitle, {color: tokens.colors.heading}]}>{title}</Text>
+        <Text style={{color: tokens.colors.mutedText}}>{open ? '⌃' : '⌄'}</Text>
+      </Pressable>
+      {open ? <View style={styles.disclosureBody}>{children}</View> : null}
+    </View>
+  );
+}
+
+/** write.js's `selectControl`, as the pill row native already uses elsewhere. */
+function PillRow<T extends string | number>({values, current, onSelect, labelOf, accessibilityLabel}: {
+  values: readonly T[]; current: T; onSelect: (value: T) => void; labelOf: (value: T) => string; accessibilityLabel: string;
+}) {
+  const {tokens} = useTheme();
+  return (
+    <View accessibilityRole="radiogroup" accessibilityLabel={accessibilityLabel} style={styles.pillRow}>
+      {values.map((value) => {
+        const selected = String(value) === String(current);
+        return (
+          <Pressable
+            key={String(value)}
+            accessibilityRole="radio"
+            accessibilityState={{selected}}
+            accessibilityLabel={labelOf(value)}
+            onPress={() => onSelect(value)}
+            style={[styles.pill, {borderColor: selected ? tokens.colors.accent : tokens.colors.border, backgroundColor: selected ? tokens.colors.surfaceSunken : 'transparent'}]}
+          >
+            <Text style={{color: tokens.colors.text, fontWeight: selected ? '700' : '400'}}>{labelOf(value)}</Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
 export default function WritingScreen() {
-  const {t} = useI18n(); const {tokens} = useTheme(); const {sessionCookie} = useSession(); const router = useRouter();
-  const [handoff] = useState(consumeWritingHandoff); const [text, setText] = useState(handoff?.kind === 'revise' ? handoff.text : '');
-  const client = useMemo(() => { try { return createConfiguredApiClient(); } catch { return null; } }, []); const evaluate = useEvaluateWriting(client, sessionCookie);
-  const profile = useLearnerProfile(client, sessionCookie, !handoff);
-  const learningLanguageFallback: 'en' | 'zh' = profile.data?.language ?? 'en';
+  const {t, locale} = useI18n(); const {tokens} = useTheme(); const {sessionCookie} = useSession(); const router = useRouter();
+  const {width} = useWindowDimensions();
+  const compact = width < 1024; // orena/writing.css's @media (max-width:1023px)
+  const [handoff] = useState(consumeWritingHandoff);
+  const client = useMemo(() => { try { return createConfiguredApiClient(); } catch { return null; } }, []);
+  const evaluate = useEvaluateWriting(client, sessionCookie);
   const generate = useGenerateTask(client, sessionCookie);
+  const dictionary = useContextualDictionary(client, sessionCookie);
+  const profile = useLearnerProfile(client, sessionCookie, Boolean(sessionCookie));
+  const dashboard = useJourneyDashboard(client, sessionCookie);
+
+  const learningLanguage: 'en' | 'zh' = handoff?.kind === 'practice'
+    ? handoff.task.personalization.language
+    : handoff?.kind === 'grammar' || handoff?.kind === 'revise'
+      ? handoff.learningLanguage
+      : profile.data?.language ?? 'en';
+
+  const [draft, setDraft] = useState<WritingDraft>(() => ({
+    ...emptyWritingDraft,
+    text: handoff?.kind === 'revise' ? handoff.text : '',
+    parentEssayId: handoff?.kind === 'revise' ? handoff.essayId : null,
+  }));
   const [localTask, setLocalTask] = useState<LocalTask | null>(null);
-  const [mode, setMode] = useState('opinion');
-  const [level, setLevel] = useState('');
-  const [topic, setTopic] = useState('');
-  const [length, setLength] = useState<number | null>(null);
-  const [customPrompt, setCustomPrompt] = useState('');
+  const [notice, setNotice] = useState<string | null>(null);
+  const [rubricOpen, setRubricOpen] = useState(false);
+  const [selection, setSelection] = useState('');
+  const [, refreshSavedStamp] = useState(0);
+  const hydrated = useRef(false);
 
-  if (!handoff && !localTask) {
-    const activeLevel = level || DEFAULT_LEVEL[learningLanguageFallback];
-    const lengths = LENGTHS_BY_LANGUAGE[learningLanguageFallback];
-    const activeLength = length ?? lengths[0]!;
-    const modeKeys = MODE_KEYS_BY_LANGUAGE[learningLanguageFallback];
-    const startFree = () => setLocalTask({title: t('writing.mode_free' as never), prompt: t('writing.free_context' as never), checklist: [], targetLevel: activeLevel});
-    const startCustom = () => { const value = customPrompt.trim(); if (!value) return; setLocalTask({title: t('writing.mode_custom' as never), prompt: value, checklist: [], targetLevel: activeLevel}); };
-    const startGenerated = () => {
-      generate.mutate(
-        {task_type: mode as 'opinion' | 'email' | 'review' | 'story' | 'toeic' | 'hsk', topic: topic.trim() || 'random', target_cefr: activeLevel, word_target: activeLength},
-        {onSuccess: (task) => setLocalTask({title: task.title, prompt: task.prompt, checklist: task.checklist, targetLevel: task.target_level})},
-      );
-    };
-    return (
-      <ScrollView style={{flex: 1, backgroundColor: tokens.colors.background}} contentContainerStyle={[styles.container, {backgroundColor: tokens.colors.background}]}>
-        <Panel>
-          <Label>{t('writing.setup_panel' as never)}</Label>
+  // A handoff carries its own text and must not be overwritten by an older draft.
+  useEffect(() => {
+    let mounted = true;
+    void readWritingDraft().then((stored) => {
+      if (!mounted || !stored) { hydrated.current = true; return; }
+      setDraft((current) => handoff ? {...stored, text: current.text, parentEssayId: current.parentEssayId} : stored);
+      hydrated.current = true;
+    });
+    return () => { mounted = false; };
+  }, [handoff]);
 
-          <Label>{t('writing.mode' as never)}</Label>
-          <View style={styles.pillRow}>
-            {modeKeys.map((key) => (
-              <Pressable key={key} accessibilityRole="radio" accessibilityState={{selected: mode === key}} onPress={() => setMode(key)} style={[styles.pill, {borderColor: mode === key ? tokens.colors.accent : tokens.colors.border, backgroundColor: mode === key ? tokens.colors.surfaceSunken : 'transparent'}]}>
-                <Text style={{color: tokens.colors.text, fontWeight: mode === key ? '700' : '400'}}>{t(`writing.mode_${key}` as never)}</Text>
-              </Pressable>
-            ))}
-          </View>
+  const save = useCallback((patch: Partial<WritingDraft>) => {
+    setDraft((current) => {
+      const next = {...current, ...patch};
+      if (hydrated.current) void writeWritingDraft(next);
+      return next;
+    });
+  }, []);
 
-          {mode === 'custom' ? (
-            <>
-              <Label>{t('writing.custom_prompt' as never)}</Label>
-              <TextInput
-                accessibilityLabel={t('writing.custom_prompt' as never)}
-                value={customPrompt}
-                onChangeText={setCustomPrompt}
-                placeholder={t('writing.custom_placeholder' as never)}
-                placeholderTextColor={tokens.colors.mutedText}
-                multiline
-                style={[styles.customInput, {color: tokens.colors.text, borderColor: tokens.colors.borderStrong, backgroundColor: tokens.colors.surfaceSunken}]}
-              />
-            </>
-          ) : mode !== 'free' ? (
-            <>
-              <Label>{t('writing.level' as never)}</Label>
-              <View style={styles.pillRow}>
-                {LEVELS_BY_LANGUAGE[learningLanguageFallback].map((value) => (
-                  <Pressable key={value} accessibilityRole="radio" accessibilityState={{selected: activeLevel === value}} onPress={() => setLevel(value)} style={[styles.pill, {borderColor: activeLevel === value ? tokens.colors.accent : tokens.colors.border, backgroundColor: activeLevel === value ? tokens.colors.surfaceSunken : 'transparent'}]}>
-                    <Text style={{color: tokens.colors.text, fontWeight: activeLevel === value ? '700' : '400'}}>{value}</Text>
-                  </Pressable>
-                ))}
-              </View>
+  /* The saved stamp is a relative time, so it goes stale on its own -- write.js
+     refreshes it on a 30s interval and this does the same. */
+  useEffect(() => {
+    const ticker = setInterval(() => refreshSavedStamp((value) => value + 1), 30000);
+    return () => clearInterval(ticker);
+  }, []);
 
-              <Label>{t('writing.topic' as never)}</Label>
-              <TextInput
-                accessibilityLabel={t('writing.topic' as never)}
-                value={topic}
-                onChangeText={setTopic}
-                placeholder={t('writing.topic_placeholder' as never)}
-                placeholderTextColor={tokens.colors.mutedText}
-                style={[styles.customInput, styles.topicInput, {color: tokens.colors.text, borderColor: tokens.colors.borderStrong, backgroundColor: tokens.colors.surfaceSunken}]}
-              />
+  const level = draft.level || DEFAULT_LEVEL[learningLanguage];
+  const lengths = LENGTHS_BY_LANGUAGE[learningLanguage];
+  const length = draft.length ?? lengths[0]!;
+  const adaptiveMode = guidanceMode(profile.data?.style, learningLanguage, level);
+  const scaffold = writingScaffold(adaptiveMode, learningLanguage);
+  const watchlist = normalizedWatchlist(dashboard.data?.error_memory);
+  const units = countUnits(draft.text, learningLanguage);
+  const stamp = savedLabel(draft.savedAt);
 
-              <Label>{t('writing.length_target' as never)}</Label>
-              <View style={styles.pillRow}>
-                {lengths.map((value) => (
-                  <Pressable key={value} accessibilityRole="radio" accessibilityState={{selected: activeLength === value}} onPress={() => setLength(value)} style={[styles.pill, {borderColor: activeLength === value ? tokens.colors.accent : tokens.colors.border, backgroundColor: activeLength === value ? tokens.colors.surfaceSunken : 'transparent'}]}>
-                    <Text style={{color: tokens.colors.text, fontWeight: activeLength === value ? '700' : '400'}}>{`~${value}`}</Text>
-                  </Pressable>
-                ))}
-              </View>
-            </>
-          ) : null}
-
-          {generate.isError ? <Text accessibilityRole="alert" style={{color: tokens.colors.danger}}>{t('writing.create_failed' as never)}</Text> : null}
-          <Button
-            label={generate.isPending ? t('writing.creating' as never) : t('writing.create' as never)}
-            disabled={generate.isPending || (mode === 'custom' && !customPrompt.trim())}
-            onPress={() => { if (mode === 'free') startFree(); else if (mode === 'custom') startCustom(); else startGenerated(); }}
-          />
-        </Panel>
-        <Button label={t('writing.back_home')} onPress={() => router.replace('/(app)')} variant="outline" />
-      </ScrollView>
-    );
-  }
-
-  const active: {title: string; prompt: string; targetLevel: string; learningLanguage: 'en' | 'zh'; checklist: string[]; label: string} = handoff
+  /* write.js's promptText(): the instruction is the brief a learner answers, and
+     the raw prompt is only its fallback. */
+  const active = handoff
     ? {
         title: handoff.kind === 'practice' ? handoff.task.title : handoff.kind === 'grammar' ? handoff.task.title : t('writing.revise_title'),
-        prompt: handoff.kind === 'practice' ? handoff.task.prompt : handoff.kind === 'grammar' ? handoff.task.prompt : handoff.prompt,
+        prompt: handoff.kind === 'practice' ? (handoff.task.instruction.trim() || handoff.task.prompt) : handoff.kind === 'grammar' ? handoff.task.prompt : handoff.prompt,
         targetLevel: handoff.kind === 'practice' ? handoff.task.target_level : handoff.kind === 'grammar' ? handoff.task.target_level : handoff.targetLevel,
-        learningLanguage: handoff.kind === 'practice' ? handoff.task.personalization.language : handoff.kind === 'grammar' ? handoff.learningLanguage : handoff.learningLanguage,
         checklist: handoff.kind === 'practice' ? handoff.task.checklist : [],
-        label: handoff.kind === 'revise' ? t('writing.revise_title') : t('writing.practice_source'),
+        focusLabel: handoff.kind === 'practice' ? handoff.task.personalization.focus_label : '',
+        difficulty: handoff.kind === 'practice' ? difficultyAdjustment(handoff.task.personalization) : null,
       }
-    : {title: localTask!.title, prompt: localTask!.prompt, targetLevel: localTask!.targetLevel, learningLanguage: learningLanguageFallback, checklist: localTask!.checklist, label: t('writing.setup_panel' as never)};
+    : localTask
+      ? {title: localTask.title, prompt: localTask.prompt, targetLevel: localTask.targetLevel, checklist: localTask.checklist, focusLabel: '', difficulty: null}
+      : {title: '', prompt: draft.mode === 'custom' ? draft.prompt : '', targetLevel: level, checklist: [], focusLabel: '', difficulty: null};
+
+  const createBrief = () => {
+    setNotice(null);
+    generate.mutate(
+      {task_type: draft.mode as 'opinion' | 'email' | 'review' | 'story' | 'toeic' | 'hsk', topic: draft.topic || 'random', target_cefr: level, word_target: length},
+      {
+        onSuccess: (task) => {
+          setLocalTask({title: task.title, prompt: task.prompt, checklist: task.checklist, targetLevel: task.target_level});
+          save({prompt: task.prompt});
+          setNotice(t((task.source === 'built-in' ? 'write.builtin_ready' : 'write.brief_ready') as MessageId));
+        },
+        onError: () => setNotice(t('write.brief_failed' as MessageId)),
+      },
+    );
+  };
+
+  const clearDraft = () => {
+    if (!draft.text.trim()) return;
+    Alert.alert(t('write.clear_draft' as MessageId), t('write.clear_confirm' as MessageId), [
+      {text: t('write.clear_cancel' as MessageId), style: 'cancel'},
+      {text: t('write.clear_draft' as MessageId), style: 'destructive', onPress: () => {
+        save({text: '', savedAt: null, parentEssayId: null});
+        void clearWritingDraft().then(() => writeWritingDraft({...draft, text: '', savedAt: null, parentEssayId: null}));
+      }},
+    ]);
+  };
+
+  const lookUpSelection = () => {
+    const term = selection.trim().slice(0, 180);
+    if (!term) return;
+    setNotice(null);
+    dictionary.mutate({text: term, source_language: learningLanguage, target_language: locale, context: draft.text.slice(0, 2400) || term});
+  };
 
   const submit = () => {
+    const text = draft.text.trim();
+    if (text.length < 10) { setNotice(t('write.short_first' as MessageId)); return; }
+    setNotice(null);
     const context = handoff ? contextFromTask(handoff) : undefined;
-    const input: EvaluationInput = {prompt: active.prompt, text, target_cefr: active.targetLevel, ...(handoff?.kind === 'revise' ? {parent_essay_id: handoff.essayId} : {}), ...(context ? {practice_context: context} : {}), learning_language: active.learningLanguage};
-    evaluate.mutate(input, {onSuccess: (result) => { setReviewHandoff(result, input); router.push('/(app)/review'); }});
+    const base: EvaluationInput = {
+      prompt: active.prompt, text, target_cefr: active.targetLevel,
+      ...(context ? {practice_context: context} : {}),
+      learning_language: learningLanguage,
+    };
+    const finish = (result: Parameters<typeof setReviewHandoff>[0], input: EvaluationInput) => {
+      save({text, parentEssayId: result.id, savedAt: Date.now()});
+      setReviewHandoff(result, input);
+      router.push('/(app)/review');
+    };
+    const withParent: EvaluationInput = draft.parentEssayId ? {...base, parent_essay_id: draft.parentEssayId} : base;
+    evaluate.mutate(withParent, {
+      onSuccess: (result) => finish(result, withParent),
+      onError: (error) => {
+        /* A locally remembered parent essay can go stale (deleted, or from a
+           different learning-language scope). Recover by saving the learner's
+           text as a fresh entry instead of losing it -- write.js does the same. */
+        if (draft.parentEssayId && isApiError(error) && error.status === 404 && error.serverCategory === 'parent_essay_not_found') {
+          save({parentEssayId: null});
+          setNotice(t('write.parent_missing_retry' as MessageId));
+          evaluate.mutate(base, {onSuccess: (result) => finish(result, base), onError: (retryError) => setNotice(t(evaluationErrorKey(isApiError(retryError) ? retryError.serverCategory : undefined) as MessageId))});
+          return;
+        }
+        setNotice(t(evaluationErrorKey(isApiError(error) ? error.serverCategory : undefined) as MessageId));
+      },
+    });
   };
-  const words = text.trim() ? text.trim().split(/\s+/).length : 0;
-  const ready = text.trim().length >= 10;
+
+  const band = bandTier(active.targetLevel);
+  const roleColor: Record<WordRole, string> = {
+    verb: tokens.colors.roleVerb, noun: tokens.colors.roleNoun,
+    adjective: tokens.colors.roleAdjective, adverb: tokens.colors.roleAdverb,
+  };
+
+  const promptCard = (
+    <Panel>
+      <Label>{t('write.prompt' as MessageId)}</Label>
+      <Text style={[styles.promptText, {color: tokens.colors.heading}]}>{active.prompt || t('write.no_prompt' as MessageId)}</Text>
+      {active.focusLabel ? <Text style={[styles.kicker, {color: tokens.colors.mutedText}]}>{`${t('write.memory_guided' as MessageId)} · ${active.focusLabel}`}</Text> : null}
+      {active.difficulty ? <Text style={[styles.kicker, {color: tokens.colors.mutedText}]}>{fill(t(active.difficulty.key as MessageId), {delta: active.difficulty.delta})}</Text> : null}
+      <View style={styles.promptFoot}>
+        <Chip>{active.targetLevel}</Chip>
+        {band ? <Text style={{color: tokens.colors.mutedText}}>{t(`band.${band}` as MessageId)}</Text> : null}
+        {!handoff && GENERATABLE(draft.mode) ? (
+          <Button label={generate.isPending ? t('writing.creating' as MessageId) : t('write.create_brief' as MessageId)} variant="outline" compact disabled={generate.isPending} onPress={createBrief} />
+        ) : null}
+        <Button label={t('write.view_rubric' as MessageId)} variant="outline" compact onPress={() => setRubricOpen(true)} />
+      </View>
+    </Panel>
+  );
+
+  const editorCard = (
+    <Panel>
+      <Disclosure title={t('write.your_draft' as MessageId)}>
+        <TextInput
+          accessibilityLabel={t('write.your_draft' as MessageId)}
+          multiline
+          value={draft.text}
+          onChangeText={(value) => save({text: value, savedAt: Date.now()})}
+          onSelectionChange={(event) => {
+            const {start, end} = event.nativeEvent.selection;
+            setSelection(end > start ? draft.text.slice(start, end) : '');
+          }}
+          placeholder={t('write.editor_placeholder' as MessageId)}
+          placeholderTextColor={tokens.colors.faintText}
+          style={[styles.input, {color: tokens.colors.text}]}
+          textAlignVertical="top"
+          spellCheck={learningLanguage === 'en'}
+        />
+        <View style={[styles.editorFoot, {borderTopColor: tokens.colors.border}]}>
+          <Text style={{color: tokens.colors.mutedText}}>{`${units} ${t('writing.words' as MessageId)}`}</Text>
+          <View style={styles.editorFootRight}>
+            {selection.trim() ? (
+              <Button label={dictionary.isPending ? t('reading.explaining' as MessageId) : t('write.lookup_selection' as MessageId)} variant="outline" compact disabled={dictionary.isPending} onPress={lookUpSelection} />
+            ) : null}
+            <Text style={{color: tokens.colors.mutedText}}>{stamp.n === undefined ? t(stamp.key as MessageId) : fill(t(stamp.key as MessageId), {n: stamp.n})}</Text>
+          </View>
+        </View>
+        {dictionary.isError ? <Text accessibilityRole="alert" style={{color: tokens.colors.danger}}>{t('reading.dictionary_failed' as MessageId)}</Text> : null}
+        {dictionary.data ? (
+          dictionary.data.available && dictionary.data.summary
+            ? <View style={styles.lookupResult}><Label>{t('reading.meaning' as MessageId)}</Label><PanelCopy>{dictionary.data.summary}</PanelCopy></View>
+            : <PanelCopy>{t('write.lookup_empty' as MessageId)}</PanelCopy>
+        ) : null}
+      </Disclosure>
+    </Panel>
+  );
+
+  const setupPanel = (
+    <Panel>
+      <Disclosure title={t('write.setup_panel' as MessageId)} initiallyOpen={!compact}>
+        <Label>{t('write.mode_short' as MessageId)}</Label>
+        <PillRow
+          accessibilityLabel={t('write.mode_short' as MessageId)}
+          values={MODE_KEYS_BY_LANGUAGE[learningLanguage]}
+          current={draft.mode}
+          labelOf={(value) => t(`writing.mode_${value}` as MessageId)}
+          onSelect={(value) => { setLocalTask(null); save({mode: value, prompt: '', savedAt: draft.savedAt}); }}
+        />
+
+        <Label>{t('write.level' as MessageId)}</Label>
+        <PillRow
+          accessibilityLabel={t('write.level' as MessageId)}
+          values={LEVELS_BY_LANGUAGE[learningLanguage]}
+          current={level}
+          labelOf={(value) => `${value} · ${bandTier(value) ? t(`band.${bandTier(value)}` as MessageId) : ''}`.trim()}
+          onSelect={(value) => save({level: value})}
+        />
+
+        <Label>{t('write.length_target' as MessageId)}</Label>
+        <PillRow
+          accessibilityLabel={t('write.length_target' as MessageId)}
+          values={lengths}
+          current={length}
+          labelOf={(value) => `~${value}`}
+          onSelect={(value) => { setLocalTask(null); save({length: value}); }}
+        />
+
+        <Label>{t('write.topic' as MessageId)}</Label>
+        <PillRow
+          accessibilityLabel={t('write.topic' as MessageId)}
+          values={TOPIC_KEYS}
+          current={(TOPIC_KEYS as readonly string[]).includes(draft.topic) ? draft.topic : 'random'}
+          labelOf={(value) => t(`reading.topic_${value}` as MessageId)}
+          onSelect={(value) => { setLocalTask(null); save({topic: value}); }}
+        />
+
+        <Label>{t('write.audience' as MessageId)}</Label>
+        <TextInput
+          accessibilityLabel={t('write.audience' as MessageId)}
+          value={draft.audience}
+          onChangeText={(value) => save({audience: value.slice(0, 80)})}
+          placeholder={t('write.audience_placeholder' as MessageId)}
+          placeholderTextColor={tokens.colors.mutedText}
+          style={[styles.control, {color: tokens.colors.text, borderColor: tokens.colors.borderStrong, backgroundColor: tokens.colors.surfaceSunken}]}
+        />
+
+        {draft.mode === 'custom' ? (
+          <>
+            <Label>{t('write.custom_prompt' as MessageId)}</Label>
+            <TextInput
+              accessibilityLabel={t('write.custom_prompt' as MessageId)}
+              value={draft.prompt}
+              onChangeText={(value) => save({prompt: value})}
+              placeholder={t('write.custom_placeholder' as MessageId)}
+              placeholderTextColor={tokens.colors.mutedText}
+              multiline
+              style={[styles.control, styles.controlArea, {color: tokens.colors.text, borderColor: tokens.colors.borderStrong, backgroundColor: tokens.colors.surfaceSunken}]}
+            />
+          </>
+        ) : null}
+
+        <View style={[styles.divider, {backgroundColor: tokens.colors.border}]} />
+
+        <Disclosure title={t('write.support' as MessageId)}>
+          {SUPPORT_KEYS.map((key: SupportKey) => (
+            <View key={key} style={styles.checkRow}>
+              <Switch
+                accessibilityLabel={t(`write.support_${key}` as MessageId)}
+                value={draft.support[key]}
+                onValueChange={(value) => save({support: {...draft.support, [key]: value}})}
+                trackColor={{true: tokens.colors.accent, false: tokens.colors.surfaceSunken}}
+              />
+              <Text style={{color: tokens.colors.text, flex: 1, minWidth: 0}}>{t(`write.support_${key}` as MessageId)}</Text>
+            </View>
+          ))}
+          <Text style={[styles.note, {color: tokens.colors.faintText}]}>{t('write.info_support' as MessageId)}</Text>
+        </Disclosure>
+
+        <View style={styles.asideGroup}>
+          <Label>{t('write.word_roles' as MessageId)}</Label>
+          {WORD_ROLES.map((role) => (
+            <View key={role} style={styles.legendRow}>
+              <View style={[styles.legendDot, {backgroundColor: roleColor[role]}]} />
+              <Text style={{color: tokens.colors.text}}>{t(`write.role_${role}` as MessageId)}</Text>
+            </View>
+          ))}
+        </View>
+
+        <Disclosure title={t('write.guidance_short' as MessageId)} initiallyOpen={false}>
+          <Text style={[styles.note, {color: tokens.colors.mutedText}]}>{`${guidanceLabel(adaptiveMode)} · ${scaffold.title}`}</Text>
+          {scaffold.items.map((item, index) => (
+            <Text key={item} style={{color: tokens.colors.mutedText}}>{`${index + 1}. ${item}`}</Text>
+          ))}
+        </Disclosure>
+
+        {watchlist.length > 0 ? (
+          <Disclosure title={t('write.watchlist' as MessageId)} initiallyOpen={false}>
+            {watchlist.map((item) => (
+              <Text key={item.category} style={{color: tokens.colors.mutedText}}>
+                {`${t(`category.${item.category}` as MessageId)} · ${item.total} · ${t(`write.trend_${watchlistTrend(item)}` as MessageId)}`}
+              </Text>
+            ))}
+            <Text style={[styles.note, {color: tokens.colors.faintText}]}>{t('write.watchlist_note' as MessageId)}</Text>
+          </Disclosure>
+        ) : null}
+
+        {learningLanguage === 'zh' && profile.data?.pinyin !== 'off' ? (
+          <View style={styles.asideGroup}>
+            <Label>{t('write.pinyin' as MessageId)}</Label>
+            <PanelCopy>{t('write.pinyin_body' as MessageId)}</PanelCopy>
+          </View>
+        ) : null}
+      </Disclosure>
+    </Panel>
+  );
+
+  const reviewButton = (
+    <Button label={evaluate.isPending ? t('writing.submitting' as MessageId) : t('write.review_draft' as MessageId)} onPress={submit} disabled={evaluate.isPending} />
+  );
+
   return (
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{flex: 1}}>
       <ScrollView style={{flex: 1, backgroundColor: tokens.colors.background}} contentContainerStyle={[styles.container, {backgroundColor: tokens.colors.background}]}>
-        <Split aside={
-          <Panel>
-            <Label>{t('writing.brief_detail' as never)}</Label>
-            <View style={styles.asideRows}>
-              <Metric label={t('home.target')} value={active.targetLevel} />
-              {handoff?.kind === 'practice' ? <Metric label={t('home.focus')} value={handoff.task.personalization.focus_label} /> : null}
-            </View>
-            {active.checklist.length > 0 ? (
-              <View style={styles.checklist}>
-                {active.checklist.map((item) => (
-                  <Text key={item} style={[styles.checkItem, {color: tokens.colors.mutedText}]}>{`• ${item}`}</Text>
-                ))}
-              </View>
-            ) : null}
-            <Button label={t('writing.back_home')} onPress={() => router.replace('/(app)')} variant="outline" compact />
-          </Panel>
-        }>
-          <PromptCard
-            label={active.label}
-            title={active.title}
-            body={active.prompt}
-            actions={<Chip>{`${active.targetLevel}`}</Chip>}
-          />
-          <EditorCard
-            foot={<>
-              <Text style={[styles.footText, {color: tokens.colors.mutedText}]}>{`${words} ${t('writing.words' as never)}`}</Text>
-              <Button
-                label={evaluate.isPending ? t('writing.submitting') : t('writing.submit')}
-                onPress={submit}
-                disabled={evaluate.isPending || !ready}
-              />
-            </>}
-          >
-            <TextInput
-              accessibilityLabel={t('writing.response_label')}
-              multiline
-              value={text}
-              onChangeText={setText}
-              placeholder={t('writing.response_placeholder')}
-              placeholderTextColor={tokens.colors.faintText}
-              style={[styles.input, {color: tokens.colors.text}]}
-              textAlignVertical="top"
-            />
-          </EditorCard>
-          {evaluate.isError ? <Text accessibilityRole="alert" style={{color: tokens.colors.danger}}>{t('writing.submit_failed')}</Text> : null}
-        </Split>
+        {promptCard}
+        {editorCard}
+        {notice ? <Text accessibilityRole="alert" style={{color: tokens.colors.danger}}>{notice}</Text> : null}
+        {/* orena/writing.css hides .o-write-actions on a phone and moves the
+            primary action into the sticky bar below. */}
+        {!compact ? (
+          <View style={styles.actions}>
+            <Button label={t('write.clear_draft' as MessageId)} variant="outline" onPress={clearDraft} />
+            {reviewButton}
+          </View>
+        ) : null}
+        {setupPanel}
+        <Button label={t('writing.back_home' as MessageId)} variant="outline" onPress={() => router.replace('/(app)')} />
       </ScrollView>
+
+      {compact ? (
+        <View style={[styles.sticky, {borderTopColor: tokens.colors.border, backgroundColor: tokens.colors.background}]}>
+          {reviewButton}
+        </View>
+      ) : null}
+
+      <Modal visible={rubricOpen} animationType="slide" transparent onRequestClose={() => setRubricOpen(false)}>
+        <View style={styles.modalScrim}>
+          <View style={[styles.modalCard, {backgroundColor: tokens.colors.surface}]}>
+            <Text accessibilityRole="header" style={[styles.modalTitle, {color: tokens.colors.heading}]}>{t('write.rubric_title' as MessageId)}</Text>
+            <ScrollView contentContainerStyle={styles.modalBody}>
+              <PanelCopy>{t('write.rubric_intro' as MessageId)}</PanelCopy>
+              {RUBRIC_CATEGORIES.map((key) => (
+                <View key={key} style={styles.rubricRow}>
+                  <View style={[styles.legendDot, {backgroundColor: tokens.colors.accent, marginTop: 7}]} />
+                  <View style={{flex: 1, minWidth: 0}}>
+                    <Text style={{color: tokens.colors.heading, fontWeight: '600'}}>{t(`category.${key}` as MessageId)}</Text>
+                    <Text style={{color: tokens.colors.mutedText}}>{t(`rubric.${key}` as MessageId)}</Text>
+                  </View>
+                </View>
+              ))}
+            </ScrollView>
+            <Button label={t('write.rubric_close' as MessageId)} onPress={() => setRubricOpen(false)} />
+          </View>
+        </View>
+      </Modal>
     </KeyboardAvoidingView>
   );
 }
 
-const styles = StyleSheet.create({asideRows: {flexDirection: 'row', flexWrap: 'wrap', gap: 16}, checklist: {gap: 6}, checkItem: {fontSize: 14, lineHeight: 21}, footText: {fontSize: 14}, container: {flexGrow: 1, padding: 24, gap: 16, width: '100%', maxWidth: CONTENT_MAX, alignSelf: 'center'}, title: {fontSize: 20, fontWeight: '700'}, prompt: {fontSize: 15, lineHeight: 24}, input: {minHeight: 260, padding: 20, fontSize: 15, lineHeight: 24}, button: {padding: 16, borderRadius: 15, alignItems: 'center', minHeight: 44, justifyContent: 'center', marginTop: 8}, buttonText: {fontSize: 14, fontWeight: '700'}, pillRow: {flexDirection: 'row', flexWrap: 'wrap', gap: 8}, pill: {paddingHorizontal: 14, paddingVertical: 10, borderRadius: 15, borderWidth: 1}, customInput: {borderWidth: 1, borderRadius: 15, padding: 12, minHeight: 96}, topicInput: {minHeight: 48}});
+const styles = StyleSheet.create({
+  container: {flexGrow: 1, padding: 24, gap: 16, width: '100%', maxWidth: CONTENT_MAX, alignSelf: 'center'},
+  promptText: {fontSize: 17, lineHeight: 26, fontWeight: '600'},
+  kicker: {fontSize: 13, lineHeight: 19},
+  promptFoot: {flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 10},
+  input: {minHeight: 220, paddingVertical: 12, fontSize: 15, lineHeight: 24},
+  editorFoot: {flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, borderTopWidth: 1, paddingTop: 10, flexWrap: 'wrap'},
+  editorFootRight: {flexDirection: 'row', alignItems: 'center', gap: 10, flexWrap: 'wrap'},
+  lookupResult: {gap: 6, paddingTop: 8},
+  actions: {flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 14},
+  sticky: {borderTopWidth: 1, paddingHorizontal: 16, paddingTop: 12, paddingBottom: 24},
+  disclosure: {gap: 10},
+  disclosureToggle: {flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, minHeight: 44},
+  disclosureTitle: {fontSize: 17, fontWeight: '600'},
+  disclosureBody: {gap: 10},
+  pillRow: {flexDirection: 'row', flexWrap: 'wrap', gap: 8},
+  pill: {paddingHorizontal: 14, paddingVertical: 10, borderRadius: 15, borderWidth: 1, minHeight: 44, justifyContent: 'center'},
+  control: {borderWidth: 1, borderRadius: 15, padding: 12, minHeight: 44},
+  controlArea: {minHeight: 96},
+  divider: {height: 1, marginVertical: 6},
+  checkRow: {flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 44},
+  note: {fontSize: 13, lineHeight: 19},
+  asideGroup: {gap: 10},
+  legendRow: {flexDirection: 'row', alignItems: 'center', gap: 11},
+  legendDot: {width: 9, height: 9, borderRadius: 999},
+  modalScrim: {flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.45)'},
+  modalCard: {padding: 24, gap: 14, borderTopLeftRadius: 20, borderTopRightRadius: 20, maxHeight: '85%'},
+  modalTitle: {fontSize: 20, fontWeight: '700'},
+  modalBody: {gap: 12, paddingBottom: 8},
+  rubricRow: {flexDirection: 'row', gap: 11, alignItems: 'flex-start'},
+});

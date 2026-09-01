@@ -143,6 +143,7 @@ export type ThemeTokens = {
     /** `--o-role-*`, used for confidence bands on Review issues. */
     roleVerb: string;
     roleNoun: string;
+    roleAdjective: string;
     roleAdverb: string;
     danger: string;
     dangerSurface: string;
@@ -185,6 +186,7 @@ export const tokensFor = (scheme: ColorScheme, preset: PalettePreset = 'editoria
       attention: surface.attention,
       roleVerb: surface.roleVerb,
       roleNoun: surface.roleNoun,
+      roleAdjective: surface.roleAdjective,
       roleAdverb: surface.roleAdverb,
       danger: surface.critical,
       dangerSurface: surface.surfaceSunken,

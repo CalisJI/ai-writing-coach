@@ -1,5 +1,5 @@
 import {configuredApiBaseUrl, normalizeApiBaseUrl} from './config';
-import {ApiError, normalizeUnknownError, invalidFieldsOf} from './errors';
+import {ApiError, normalizeUnknownError, invalidFieldsOf, serverErrorEnvelope} from './errors';
 import {logoutResponseSchema, nativeSessionExchangeSchema, type NativeSessionExchange} from './contracts/nativeAuth';
 import {sessionBootstrapSchema, type SessionBootstrap} from './contracts/session';
 import {compactMediaStatusSchema, strokeOrderSchema, type CompactMediaStatus, type StrokeOrder} from './contracts/reference';
@@ -80,7 +80,7 @@ export class ApiClient {
       if (!etag) throw new ApiError('invalid_response', 'Invalid server response', response.status);
       return {kind: 'not_modified', etag, cacheControl};
     }
-    this.throwForResponse(response);
+    await this.throwForResponse(response);
     let body: unknown;
     try { body = await response.json(); } catch { throw new ApiError('invalid_response', 'Invalid server response', response.status); }
     try {
@@ -198,7 +198,7 @@ export class ApiClient {
     payload?: unknown,
   ): Promise<T> {
     const response = await this.rawRequest(path, options, method, payload);
-    this.throwForResponse(response);
+    await this.throwForResponse(response);
     let body: unknown;
     try {
       body = await response.json();
@@ -219,7 +219,7 @@ export class ApiClient {
     form.append('language', language);
     if (referenceText !== undefined) form.append('reference_text', referenceText);
     const response = await this.rawRequest(path, options, 'POST', form);
-    this.throwForResponse(response);
+    await this.throwForResponse(response);
     let body: unknown;
     try { body = await response.json(); } catch { throw new ApiError('invalid_response', 'Invalid server response', response.status); }
     try { return parse(body); } catch (error) { throw new ApiError('invalid_response', 'Invalid server response', response.status, invalidFieldsOf(error)); }
@@ -272,11 +272,21 @@ export class ApiClient {
     }
   }
 
-  private throwForResponse(response: Response): void {
-    if (response.status === 401) throw new ApiError('authentication_required', 'Authentication required', 401);
-    if (response.status === 403) throw new ApiError('permission_denied', 'Permission denied', 403);
-    if (response.status >= 500) throw new ApiError('server_unavailable', 'Server unavailable', response.status);
-    if (!response.ok) throw new ApiError('request_rejected', 'Request rejected', response.status);
+  /**
+   * Reads the canonical error envelope before throwing, so callers can branch on
+   * the server's own category (see ApiError.serverCategory) rather than only on
+   * the HTTP status. The body is read at most once and any parse failure is
+   * ignored -- a missing envelope must never change which error is raised.
+   */
+  private async throwForResponse(response: Response): Promise<void> {
+    if (response.ok) return;
+    let envelope: {category?: string; message?: string} = {};
+    try { envelope = serverErrorEnvelope(await response.json()); } catch { envelope = {}; }
+    const serverCategory = envelope.category;
+    if (response.status === 401) throw new ApiError('authentication_required', 'Authentication required', 401, undefined, serverCategory);
+    if (response.status === 403) throw new ApiError('permission_denied', 'Permission denied', 403, undefined, serverCategory);
+    if (response.status >= 500) throw new ApiError('server_unavailable', 'Server unavailable', response.status, undefined, serverCategory);
+    throw new ApiError('request_rejected', 'Request rejected', response.status, undefined, serverCategory);
   }
 }
 
