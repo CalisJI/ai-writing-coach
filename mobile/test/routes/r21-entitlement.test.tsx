@@ -41,6 +41,6 @@ describe('R21 native entitlement presentation', () => {
   });
 
   it.each(['en', 'zh'] as const)('keeps purchase handoff explicitly deferred in %s', async (locale) => {
-    const view = render(locale); const button = view.root.findAll((node) => node.props.accessibilityRole === 'button' && node.props.children?.props?.children === (locale === 'en' ? 'Explore plan options' : '查看计划选项'))[0]; await act(async () => { button?.props.onPress(); }); expect(text(view)).toContain(locale === 'en' ? 'Store purchase is not available yet' : '商店购买尚未开放');
+    const view = render(locale); const button = view.root.findAll((node) => node.props.accessibilityRole === 'button' && node.props.accessibilityLabel === (locale === 'en' ? 'Explore plan options' : '查看计划选项'))[0]; await act(async () => { button?.props.onPress(); }); expect(text(view)).toContain(locale === 'en' ? 'Store purchase is not available yet' : '商店购买尚未开放');
   });
 });

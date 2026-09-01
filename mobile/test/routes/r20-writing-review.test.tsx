@@ -32,7 +32,7 @@ jest.mock('../../src/features/writing/writingDraft', () => {
 const render = (screen: React.ReactNode, locale: 'en' | 'zh' = 'en') => renderer.create(<I18nProvider initialLocale={locale}><ThemeProvider>{screen}</ThemeProvider></I18nProvider>);
 const texts = (view: renderer.ReactTestRenderer, value: string) => view.root.findAll((node) => node.props.children === value);
 const buttonLabelled = (view: renderer.ReactTestRenderer, label: string) => {
-  const [first] = view.root.findAll((node) => node.props.accessibilityRole === 'button' && node.props.children?.props?.children === label);
+  const [first] = view.root.findAll((node) => node.props.accessibilityRole === 'button' && node.props.accessibilityLabel === label);
   // Throw rather than return undefined: a missing control is a failure to report,
   // not a silently skipped assertion.
   if (!first) throw new Error(`no button labelled "${label}"`);
@@ -46,7 +46,7 @@ const rowLabelled = (view: renderer.ReactTestRenderer, label: string) => {
   return first;
 };
 const buttonContaining = (view: renderer.ReactTestRenderer, fragment: string) => {
-  const [first] = view.root.findAll((node) => node.props.accessibilityRole === 'button' && String(node.props.children?.props?.children).includes(fragment));
+  const [first] = view.root.findAll((node) => node.props.accessibilityRole === 'button' && String(node.props.accessibilityLabel).includes(fragment));
   if (!first) throw new Error(`no button containing "${fragment}"`);
   return first;
 };
