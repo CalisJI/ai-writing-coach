@@ -8,12 +8,13 @@ import {useSession} from '../../src/auth/SessionHarness';
 import {useI18n} from '../../src/i18n/I18nProvider';
 import {useTheme} from '../../src/theme/ThemeProvider';
 import {CONTENT_MAX} from '../../src/theme/layout';
-import {useImportMedia, useListeningProgress, useSaveListeningProgress} from '../../src/query/useListening';
+import {useImportMedia, useListeningProgress, useSaveListeningProgress, useTranslateMedia} from '../../src/query/useListening';
+import {useLearnerProfile} from '../../src/query/useLearnerProfile';
 import {useMediaImportStatus, createMediaResumeStore} from '../../src/query/useMediaImportStatus';
 import {clearListeningPending, clearListeningResume, readListeningPending, readListeningResume, secureListeningResumeStorage, secureMediaResumeStorage, writeListeningPending, writeListeningResume, type ListeningPending, type ListeningResume} from '../../src/features/listening/listeningResume';
 import {addListenedSeconds, listeningHabitSnapshot, saveListeningGoal, type ListeningHabitSnapshot} from '../../src/features/listening/listeningHabit';
 import {listMediaLessons, rememberMediaLesson, type MediaLessonEntry} from '../../src/features/listening/mediaLessonHistory';
-import {MAX_LISTENING_EVALUATION_UNITS, MAX_LISTENING_RECONSTRUCTION_CHARS, listeningUnits, playbackAvailable, practiceSummary, stamp, textMatch, type ListeningMode, type SegmentPractice} from '../../src/features/listening/listeningDomain';
+import {MAX_LISTENING_EVALUATION_UNITS, MAX_LISTENING_RECONSTRUCTION_CHARS, listeningUnits, playbackAvailable, practiceSummary, segmentAt, stamp, textMatch, type ListeningMode, type SegmentPractice} from '../../src/features/listening/listeningDomain';
 import type {ResumeState} from '../../src/api/mediaClient';
 import type {KeyValueStorage} from '../../src/storage/boundedCache';
 import {Button as OrenaButton, Card, Chip, Label as OrenaLabel, Panel, PanelCopy} from '../../src/components/orena';
@@ -190,21 +191,39 @@ function ListeningHeader({mode, playbackReady, focus, onFocus, onMode}: {mode: L
  * -- the video is the thing being followed -- so it is rendered outside the
  * scroll container rather than inside it.
  */
-function PlayerCard({lesson, videoId, playing, muted, rate, elapsedMs, onChangeState, onTogglePlay, onSeek, onToggleMute, onCycleRate, playerRef}: {
-  lesson: MediaLesson; videoId: string | null; playing: boolean; muted: boolean; rate: number; elapsedMs: number;
-  onChangeState: (playing: boolean) => void; onTogglePlay: () => void; onSeek: (delta: number) => void;
+function PlayerCard({lesson, videoId, playing, muted, rate, elapsedMs, durationMs, onChangeState, onReady, onTogglePlay, onSeek, onToggleMute, onCycleRate, playerRef}: {
+  lesson: MediaLesson; videoId: string | null; playing: boolean; muted: boolean; rate: number; elapsedMs: number; durationMs: number;
+  onChangeState: (playing: boolean) => void; onReady: () => void; onTogglePlay: () => void; onSeek: (delta: number) => void;
   onToggleMute: () => void; onCycleRate: () => void; playerRef: MutableRefObject<YoutubeIframeRef | null>;
 }) {
   const {t} = useI18n();
   const {tokens} = useTheme();
-  const duration = Number(lesson.asset.duration_ms);
+  // The asset's duration_ms is often absent for a provider embed, so the
+  // player's own clock is the authority once it is ready.
+  const assetDuration = Number(lesson.asset.duration_ms);
+  const duration = durationMs > 0 ? durationMs : assetDuration;
   const hasDuration = Number.isFinite(duration) && duration > 0;
   const fill = hasDuration ? Math.min(100, Math.round((elapsedMs / duration) * 100)) : 0;
   return (
     <Card style={styles.player}>
       {videoId ? (
         <View style={styles.videoFrame}>
-          <YoutubePlayer ref={playerRef} height={190} videoId={videoId} play={playing} mute={muted} playbackRate={rate} onChangeState={(state: string) => onChangeState(state === 'playing')} />
+          <YoutubePlayer
+            ref={playerRef}
+            height={190}
+            videoId={videoId}
+            play={playing}
+            mute={muted}
+            playbackRate={rate}
+            onReady={onReady}
+            onChangeState={(state: string) => { if (state === 'playing') onChangeState(true); else if (state === 'paused' || state === 'ended') onChangeState(false); }}
+            // Android's WebView refuses programmatic playback unless inline media
+            // is allowed and a user gesture is not demanded per play() call. The
+            // transport is that gesture; without these, every transport control
+            // was inert while the YouTube overlay still looked tappable.
+            webViewProps={{allowsInlineMediaPlayback: true, mediaPlaybackRequiresUserAction: false, androidLayerType: 'hardware'}}
+            initialPlayerParams={{controls: true, modestbranding: true, rel: false}}
+          />
         </View>
       ) : (
         <PanelCopy>{t('listening.playback_unavailable')}</PanelCopy>
@@ -284,8 +303,9 @@ type Segment = NonNullable<MediaLesson['transcript']>['segments'][number];
  * meaning, the per-segment actions on the selected row, and the foot carrying
  * the legend and the word count.
  */
-function FollowWorkspace({lesson, segments, selectedId, original, meaning, maxHeight, onToggleOriginal, onToggleMeaning, onSelect, onShadow, onOpenSpeaking, onFollowPlaying, index, onPrevious, onReplay, onNext}: {
-  lesson: MediaLesson; segments: Segment[]; selectedId: string; original: boolean; meaning: boolean; maxHeight: number;
+function FollowWorkspace({lesson, segments, selectedId, playingId, following, original, meaning, maxHeight, onToggleOriginal, onToggleMeaning, onSelect, onShadow, onOpenSpeaking, onFollowPlaying, index, onPrevious, onReplay, onNext}: {
+  lesson: MediaLesson; segments: Segment[]; selectedId: string; playingId: string | null; following: boolean;
+  original: boolean; meaning: boolean; maxHeight: number;
   onToggleOriginal: () => void; onToggleMeaning: () => void; onSelect: (id: string) => void;
   onShadow: () => void; onOpenSpeaking: () => void; onFollowPlaying: () => void;
   index: number; onPrevious: () => void; onReplay: () => void; onNext: () => void;
@@ -293,13 +313,30 @@ function FollowWorkspace({lesson, segments, selectedId, original, meaning, maxHe
   const {t, locale} = useI18n();
   const {tokens} = useTheme();
   const translations = useMemo(() => new Map((lesson.translations || []).map((item) => [item.segment_id, item.translated_meaning])), [lesson.translations]);
-  const status = (lesson as {translation?: {status?: string}}).translation?.status;
+  const status = lesson.translation?.status;
   const notRequired = status === 'not_required';
   const preparing = !status;
   const degraded = status === 'unavailable' || status === 'too_large';
   const statusMessage = preparing ? t('listen.preparing') : status === 'unavailable' ? t('listen.translation_unavailable') : null;
   const meaningBlocked = preparing || notRequired || degraded;
   const words = segments.reduce((total, segment) => total + listeningUnits(segment.original_text, lesson.asset.source_language).length, 0);
+
+  /**
+   * Smart-follow. installSmartFollow() in listening.js scrolls the transcript
+   * container -- not the page -- to keep the playing line in view, and stops
+   * doing it the moment the learner takes over. Here the row offsets are
+   * measured as they lay out, because a segment row's height depends on how its
+   * text wraps, so a fixed row height would drift further out with every line.
+   */
+  const listRef = useRef<ScrollView | null>(null);
+  const rowOffsets = useRef<Record<string, number>>({});
+  useEffect(() => {
+    if (!following || !playingId) return;
+    const offset = rowOffsets.current[playingId];
+    if (offset === undefined) return;
+    listRef.current?.scrollTo({y: Math.max(0, offset - maxHeight / 3), animated: true});
+  }, [following, playingId, maxHeight]);
+
   return (
     <Card style={styles.transcriptCard}>
       <View style={styles.tcardHead}>
@@ -325,12 +362,23 @@ function FollowWorkspace({lesson, segments, selectedId, original, meaning, maxHe
       {notRequired ? <Text accessibilityRole="alert" style={[styles.statusLine, {color: tokens.colors.mutedText}]}>{t('listen.not_required')}</Text> : null}
       {statusMessage ? <Text accessibilityRole="alert" style={[styles.statusLine, {color: tokens.colors.mutedText}]}>{statusMessage}</Text> : null}
 
-      <ScrollView style={{maxHeight}} nestedScrollEnabled contentContainerStyle={styles.segmentList}>
+      <ScrollView ref={listRef} style={{maxHeight}} nestedScrollEnabled contentContainerStyle={styles.segmentList}>
         {segments.map((segment) => {
           const isSelected = segment.segment_id === selectedId;
+          const isPlaying = segment.segment_id === playingId;
           const inline = meaning && !notRequired && !degraded ? translations.get(segment.segment_id) : '';
           return (
-            <View key={segment.segment_id} style={[styles.segmentRow, isSelected && {backgroundColor: tokens.colors.accentTint, borderColor: tokens.colors.accent}]}>
+            <View
+              key={segment.segment_id}
+              onLayout={(event) => { rowOffsets.current[segment.segment_id] = event.nativeEvent.layout.y; }}
+              style={[
+                styles.segmentRow,
+                // The line being spoken is marked even when the learner has
+                // scrolled away to read somewhere else.
+                isPlaying && !isSelected && {borderColor: tokens.colors.borderStrong},
+                isSelected && {backgroundColor: tokens.colors.accentTint, borderColor: tokens.colors.accent},
+              ]}
+            >
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel={segment.original_text}
@@ -719,10 +767,24 @@ export default function ListeningScreen({client: providedClient, resumeStorage =
   const [focus, setFocus] = useState(false);
   const [session, setSession] = useState<Record<string, SegmentPractice>>({});
   const [validation, setValidation] = useState('');
+  /**
+   * `playingSegmentId` and `manualSelection` from listening.js's controller.
+   * While the learner has not taken over, the selection follows the playhead;
+   * the moment they tap a line it stops, and "jump to what is playing" hands
+   * control back.
+   */
+  const [playingSegmentId, setPlayingSegmentId] = useState<string | null>(null);
+  const [manualSelection, setManualSelection] = useState(false);
+  const [durationMs, setDurationMs] = useState(0);
   const operation = useRef(0);
   const rehydrating = useRef(false);
   const attemptedReadyHandle = useRef<string | null>(null);
   const importMedia = useImportMedia(client, sessionCookie);
+  const translateMedia = useTranslateMedia(client, sessionCookie);
+  // The support language is what a meaning is rendered into -- the learner's own
+  // language, not the one they are studying. `supportLanguage()` in the web.
+  const profileQuery = useLearnerProfile(client, sessionCookie);
+  const supportLanguage = profileQuery.data?.native_language ?? 'vi';
   const progressQuery = useListeningProgress(client, sessionCookie, lesson?.asset.asset_id ?? '');
   const saveProgress = useSaveListeningProgress(client, sessionCookie);
   const videoId = useMemo(() => extractYouTubeVideoId(lesson?.playback), [lesson]);
@@ -738,6 +800,42 @@ export default function ListeningScreen({client: providedClient, resumeStorage =
   const selectedIndex = segments.findIndex((segment) => segment.segment_id === selectedId);
   const selected = segments[selectedIndex] ?? segments[0];
   const translationFor = (segmentId: string) => (lesson?.translations || []).find((item) => item.segment_id === segmentId)?.translated_meaning ?? '';
+
+  /**
+   * `translateReadyPayload()`. The import acquires the media; this translates
+   * the transcript it produced, and merges the outcome in. It is deliberately a
+   * second call: a slow or failing translation must not cost the learner a
+   * transcript that already works, so failure records `unavailable` on the
+   * lesson rather than discarding it.
+   */
+  const requestTranslation = useCallback((ready: MediaLesson, target: string) => {
+    if (!ready.transcript?.segments.length) return;
+    const asset = ready.asset;
+    translateMedia.mutate({
+      target_language: target,
+      asset: {
+        asset_id: asset.asset_id, source_url: asset.source_url, source_provider: asset.source_provider,
+        source_type: asset.source_type, title: asset.title, source_language: asset.source_language,
+        processing_state: asset.processing_state, duration_ms: asset.duration_ms ?? null,
+        transcript_available: asset.transcript_available,
+      },
+      transcript: {
+        asset_id: ready.transcript.asset_id,
+        source_language: ready.transcript.source_language,
+        segments: ready.transcript.segments.map((segment) => ({
+          segment_id: segment.segment_id, order: segment.order,
+          start_ms: segment.start_ms, end_ms: segment.end_ms, original_text: segment.original_text,
+        })),
+      },
+    }, {
+      onSuccess: (translated) => setLesson((current) => current && current.asset.asset_id === asset.asset_id
+        ? {...current, asset: {...current.asset, ...translated.asset}, translations: translated.translations, translation: translated.translation}
+        : current),
+      onError: () => setLesson((current) => current && current.asset.asset_id === asset.asset_id
+        ? {...current, translation: {status: 'unavailable' as const, target_language: target}}
+        : current),
+    });
+  }, [translateMedia]);
 
   const refreshHistory = useCallback(() => { void listMediaLessons(locale).then(setHistory); }, [locale]);
   useEffect(() => { refreshHistory(); }, [refreshHistory]);
@@ -756,6 +854,18 @@ export default function ListeningScreen({client: providedClient, resumeStorage =
   // Device-local habit counter, ported from the web's orena:media-time tick:
   // wall-clock delta between ticks while the position is actually advancing,
   // dropping gaps over 2.5s so a backgrounded or paused player never counts.
+  /**
+   * `setPlayingSegment()`: the playhead names the line being spoken, and while
+   * the learner has not taken the selection over, the selection follows it.
+   */
+  useEffect(() => {
+    if (!segments.length) return;
+    const hit = segmentAt(segments, currentTime * 1000);
+    if (!hit || hit === playingSegmentId) return;
+    setPlayingSegmentId(hit);
+    if (!manualSelection && mode !== 'active') setSelectedId(hit);
+  }, [currentTime, segments, playingSegmentId, manualSelection, mode]);
+
   const habitTick = useRef<{time: number; position: number} | null>(null);
   useEffect(() => {
     if (!playing) { habitTick.current = null; return; }
@@ -772,7 +882,10 @@ export default function ListeningScreen({client: providedClient, resumeStorage =
     if (!normalized || !sessionCookie || !client) return;
     const current = ++operation.current;
     setSourceUrl(normalized); setNotice(null); setLesson(null); setProgress([]); setSession({}); setValidation('');
-    importMedia.mutate({source_url: normalized, target_language: locale, include_word_timing: false, include_translation: true}, {onSuccess: async (next) => {
+    setPlayingSegmentId(null); setManualSelection(false); setDurationMs(0);
+    // Import acquires the media and its timing; the meaning is a separate call,
+    // exactly as importUrl() then translateReadyPayload() does on the web.
+    importMedia.mutate({source_url: normalized, target_language: supportLanguage, include_word_timing: true, include_translation: false}, {onSuccess: async (next) => {
       if (current !== operation.current) return;
       if (next.asset.processing_state !== 'ready' || !next.transcript?.segments.length) {
         if (next.asset.processing_state === 'processing' && next.import_job?.job_id && mediaStore) {
@@ -795,8 +908,9 @@ export default function ListeningScreen({client: providedClient, resumeStorage =
       // same material does not mean finding the URL again.
       await rememberMediaLesson({learning_language: locale, source_url: normalized, title: next.asset.title || '', provider: next.asset.source_provider || '', selected_segment_id: segment, mode: nextMode});
       refreshHistory();
+      requestTranslation(next, supportLanguage);
     }, onError: () => { if (current === operation.current) { rehydrating.current = false; setNotice(t('listening.unavailable')); } }});
-  }, [client, importMedia, locale, mediaStore, mode, refreshHistory, resume, resumeStorage, sessionCookie, t]);
+  }, [client, importMedia, locale, mediaStore, mode, refreshHistory, requestTranslation, resume, resumeStorage, sessionCookie, supportLanguage, t]);
 
   useEffect(() => {
     const state = mediaStatus.data?.state;
@@ -814,7 +928,9 @@ export default function ListeningScreen({client: providedClient, resumeStorage =
   const cancel = () => { operation.current += 1; rehydrating.current = false; importMedia.reset(); setNotice(null); };
   const restart = () => { operation.current += 1; rehydrating.current = false; importMedia.reset(); setLesson(null); setProgress([]); setSession({}); setSourceUrl(''); setNotice(null); setResume(null); setPending(null); setMediaResume(null); setMediaResumeHandle(''); void clearListeningResume(resumeStorage); void clearListeningPending(resumeStorage); void mediaStore?.clear(); };
   const select = (segmentId: string) => {
-    setSelectedId(segmentId); setValidation('');
+    // Taking a line is taking over: smart-follow stops until the learner asks
+    // for it back.
+    setSelectedId(segmentId); setValidation(''); setManualSelection(true);
     const segment = segments.find((item) => item.segment_id === segmentId);
     if (segment) void playerRef.current?.seekTo(segment.start_ms / 1000, true);
     if (lesson) void writeListeningResume({assetId: lesson.asset.asset_id, segmentId, mode: mode === 'shadowing' ? 'follow' : mode, sourceUrl: lesson.asset.source_url}, resumeStorage);
@@ -826,10 +942,10 @@ export default function ListeningScreen({client: providedClient, resumeStorage =
   const seek = (delta: number) => { void playerRef.current?.getCurrentTime().then((seconds) => playerRef.current?.seekTo(Math.max(0, seconds + delta), true)); };
   const replayCurrent = () => { if (selected) void playerRef.current?.seekTo(selected.start_ms / 1000, true); };
   const step = (delta: number) => { const next = segments[selectedIndex + delta]; if (next) select(next.segment_id); };
+  // `followPlaying()`: hand the selection back to the playhead.
   const followPlaying = () => {
-    const position = currentTime * 1000;
-    const hit = segments.find((segment) => position >= segment.start_ms && position < segment.end_ms);
-    if (hit) { setSelectedId(hit.segment_id); setValidation(''); }
+    setManualSelection(false); setValidation('');
+    if (playingSegmentId) setSelectedId(playingSegmentId);
   };
   const cycleRate = () => { const next = RATES[(RATES.indexOf(rate as typeof RATES[number]) + 1) % RATES.length]!; setRate(next); };
   const openSpeaking = () => {
@@ -940,8 +1056,11 @@ export default function ListeningScreen({client: providedClient, resumeStorage =
       {focus ? null : (
         <View style={styles.stickyPlayer}>
           <PlayerCard
-            lesson={lesson} videoId={videoId} playing={playing} muted={muted} rate={rate} elapsedMs={currentTime * 1000}
-            onChangeState={setPlaying} onTogglePlay={() => setPlaying((value) => !value)} onSeek={seek}
+            lesson={lesson} videoId={videoId} playing={playing} muted={muted} rate={rate}
+            elapsedMs={currentTime * 1000} durationMs={durationMs}
+            onChangeState={setPlaying}
+            onReady={() => { void playerRef.current?.getDuration().then((seconds) => setDurationMs(Math.round(seconds * 1000))); }}
+            onTogglePlay={() => setPlaying((value) => !value)} onSeek={seek}
             onToggleMute={() => setMuted((value) => !value)} onCycleRate={cycleRate} playerRef={playerRef}
           />
         </View>
@@ -955,8 +1074,9 @@ export default function ListeningScreen({client: providedClient, resumeStorage =
         {notices.length ? <View style={styles.notices}>{notices}</View> : null}
         {mode === 'follow' ? (
           <FollowWorkspace
-            lesson={lesson} segments={segments} selectedId={selected?.segment_id ?? ''} original={original} meaning={meaning}
-            maxHeight={transcriptHeight}
+            lesson={lesson} segments={segments} selectedId={selected?.segment_id ?? ''}
+            playingId={playingSegmentId} following={!manualSelection}
+            original={original} meaning={meaning} maxHeight={transcriptHeight}
             onToggleOriginal={() => setOriginal((value) => !value)} onToggleMeaning={() => setMeaning((value) => !value)}
             onSelect={select} onShadow={() => changeMode('shadowing')} onOpenSpeaking={openSpeaking} onFollowPlaying={followPlaying}
             index={selectedIndex} onPrevious={() => step(-1)} onReplay={replayCurrent} onNext={() => step(1)}

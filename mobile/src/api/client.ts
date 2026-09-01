@@ -6,7 +6,7 @@ import {compactMediaStatusSchema, strokeOrderSchema, type CompactMediaStatus, ty
 import {crossSkillCueSchema, essayDetailSchema, improveInputSchema, improveResultSchema, linguisticAnnotationsSchema, type ImproveInput, type ImproveResult, type LinguisticAnnotations, evaluationInputSchema, evaluationResultSchema, essaysListSchema, freeTaskSchema, generateTaskInputSchema, grammarLibrarySchema, grammarLessonDetailSchema, grammarPracticeSchema, journeyDashboardSchema, journeyOutcomesSchema, learnerProfileSchema, learnerProfileInputSchema, learningLanguageSchema, learningMemorySchema, practiceOutcomeResponseSchema, practiceRecommendationSchema, practiceTaskSchema, reviewCueSchema, type CrossSkillCue, type EssayDetail, type EssaySummary, type EvaluationInput, type EvaluationResult, type FreeTask, type GenerateTaskInput, type GrammarLibrary, type GrammarLessonDetail, type GrammarPractice, type JourneyDashboard, type JourneyOutcomes, type LearnerProfile, type LearnerProfileInput, type LearningLanguage, type LearningMemory, type PracticeOutcomeResponse, type PracticeRecommendation, type PracticeTask, type ReviewCue} from './contracts/learning';
 import {readingAnswerResultSchema, readingGenerateInputSchema, readingSessionResponseSchema, readingSessionSchema, readingSessionsSchema, type ReadingAnswerResult, type ReadingGenerateInput, type ReadingSession, type ReadingSessions} from './contracts/reading';
 import {dictionaryInputSchema, dictionaryResultSchema, librarySchema, saveLibraryInputSchema, saveLibraryResultSchema, type DictionaryInput, type DictionaryResult} from './contracts/library';
-import {listeningProgressListSchema, listeningProgressResponseSchema, mediaImportInputSchema, mediaLessonSchema, type ListeningProgressInput, type MediaImportInput, type MediaLesson} from './contracts/listening';
+import {listeningProgressListSchema, listeningProgressResponseSchema, mediaImportInputSchema, mediaLessonSchema, mediaTranslationInputSchema, mediaTranslationResultSchema, type ListeningProgressInput, type MediaImportInput, type MediaLesson, type MediaTranslationInput, type MediaTranslationResult} from './contracts/listening';
 import {speechAttemptResponseSchema, speechEvaluationSchema, speechTranscriptionSchema, type SpeechEvaluation, type SpeechAttemptResponse, type SpeechTranscription} from './contracts/speech';
 import {productAccountStateSchema, type ProductAccountState} from './contracts/product';
 import {skillReleaseSchema, type SkillRelease} from './contracts/skills';
@@ -166,6 +166,17 @@ export class ApiClient {
     let payload: MediaImportInput;
     try { payload = mediaImportInputSchema.parse(input); } catch { throw new ApiError('request_rejected', 'Media lesson request was invalid'); }
     return this.request('/api/media-learning/import', options, mediaLessonSchema.parse, 'POST', payload);
+  }
+  /**
+   * POST /api/media-learning/translate. Import acquires the media; this
+   * translates the transcript it already produced. listening.js keeps them
+   * apart deliberately -- a translation that fails or is slow must not cost the
+   * learner the transcript, which is already usable on its own.
+   */
+  async translateMedia(input: MediaTranslationInput, options: RequestOptions = {}): Promise<MediaTranslationResult> {
+    let payload: MediaTranslationInput;
+    try { payload = mediaTranslationInputSchema.parse(input); } catch { throw new ApiError('request_rejected', 'Media translation request was invalid'); }
+    return this.request('/api/media-learning/translate', {timeoutMs: GENERATION_TIMEOUT_MS, ...options}, mediaTranslationResultSchema.parse, 'POST', payload);
   }
   async listListeningProgress(assetId: string, options: RequestOptions = {}): Promise<Awaited<ReturnType<typeof listeningProgressListSchema.parse>>> {
     if (typeof assetId !== 'string' || assetId.trim() === '') throw new ApiError('request_rejected', 'Listening asset is required');

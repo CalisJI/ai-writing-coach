@@ -1,6 +1,6 @@
 import {useMutation, useQuery, useQueryClient, type UseMutationResult, type UseQueryResult} from '@tanstack/react-query';
 import {ApiClient} from '../api/client';
-import type {ListeningProgressInput, MediaImportInput, MediaLesson} from '../api/contracts/listening';
+import type {ListeningProgressInput, MediaImportInput, MediaLesson, MediaTranslationInput, MediaTranslationResult} from '../api/contracts/listening';
 import {ApiError} from '../api/errors';
 
 const available = (client: ApiClient | null, cookie?: string | null) => Boolean(client && typeof cookie === 'string' && cookie.length > 0);
@@ -9,6 +9,18 @@ export const listeningProgressKey = (assetId: string) => ['listening', 'progress
 export function useImportMedia(client: ApiClient | null, cookie?: string | null): UseMutationResult<MediaLesson, ApiError, MediaImportInput> {
   return useMutation({
     mutationFn: (input) => client ? client.importMedia(input, {sessionCookie: cookie ?? undefined}) : Promise.reject(new ApiError('configuration_missing', 'API client is unavailable')),
+    retry: false,
+  });
+}
+
+/**
+ * The translation runs after the import has already produced a usable
+ * transcript, so a slow or failing translation never costs the learner the
+ * lesson -- the transcript card just reports the outcome.
+ */
+export function useTranslateMedia(client: ApiClient | null, cookie?: string | null): UseMutationResult<MediaTranslationResult, ApiError, MediaTranslationInput> {
+  return useMutation({
+    mutationFn: (input) => client ? client.translateMedia(input, {sessionCookie: cookie ?? undefined}) : Promise.reject(new ApiError('configuration_missing', 'API client is unavailable')),
     retry: false,
   });
 }

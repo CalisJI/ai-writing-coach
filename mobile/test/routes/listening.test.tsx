@@ -12,6 +12,10 @@ let mockAppStateHandler: ((state: AppStateStatus) => void) | null = null;
 const mockRouter = {replace: jest.fn(), push: jest.fn()};
 const mockImport = {isPending: false, mutate: jest.fn(), reset: jest.fn()};
 const mockSave = {isPending: false, mutate: jest.fn()};
+const mockTranslate = {isPending: false, mutate: jest.fn(), reset: jest.fn()};
+/** The player's clock, so a test can move the playhead the way playback does. */
+let mockPlayerSeconds = 0;
+const mockLearnerProfile = {isPending: false, isError: false, data: {exists: true, language: 'en', goal: 'everyday', style: 'guided', pinyin: 'auto', native_language: 'vi', theme_preset: 'editorial', updated_at: '2026-01-01'}};
 const mockProgress = {isPending: false, isError: false, data: {items: []}};
 const mockMediaStatus = {data: undefined as {state?: {status: string; resumable: boolean; resumeHandle?: string}} | undefined, force: () => {}};
 const mockMediaStore = {read: jest.fn(), persist: jest.fn(), clear: jest.fn()};
@@ -25,7 +29,8 @@ const lesson = {
 jest.mock('expo-router', () => ({useRouter: () => mockRouter, useLocalSearchParams: () => ({})}));
 jest.mock('../../src/auth/SessionHarness', () => ({useSession: () => ({session: {status: mockCookie ? 'authenticated' : 'signed-out', source: 'server'}, sessionCookie: mockCookie})}));
 jest.mock('../../src/api/client', () => ({createConfiguredApiClient: () => ({}), ApiClient: class {}}));
-jest.mock('../../src/query/useListening', () => ({useImportMedia: () => mockImport, useListeningProgress: () => mockProgress, useSaveListeningProgress: () => mockSave}));
+jest.mock('../../src/query/useListening', () => ({useImportMedia: () => mockImport, useListeningProgress: () => mockProgress, useSaveListeningProgress: () => mockSave, useTranslateMedia: () => mockTranslate}));
+jest.mock('../../src/query/useLearnerProfile', () => ({useLearnerProfile: () => mockLearnerProfile}));
 jest.mock('../../src/query/useMediaImportStatus', () => {
   const ReactRuntime = jest.requireActual('react') as typeof React;
   return {useMediaImportStatus: () => { const [, setVersion] = ReactRuntime.useState(0); mockMediaStatus.force = () => setVersion((value) => value + 1); return mockMediaStatus; }, createMediaResumeStore: () => mockMediaStore};
@@ -34,7 +39,7 @@ jest.mock('react-native-youtube-iframe', () => {
   const ReactRuntime = jest.requireActual('react') as typeof React;
   const {forwardRef} = ReactRuntime;
   return {__esModule: true, default: forwardRef((_props: unknown, ref: React.Ref<unknown>) => {
-    ReactRuntime.useImperativeHandle(ref, () => ({getCurrentTime: () => Promise.resolve(0), getDuration: () => Promise.resolve(0), seekTo: () => undefined, isMuted: () => Promise.resolve(false), getVolume: () => Promise.resolve(100), getPlaybackRate: () => Promise.resolve(1), getAvailablePlaybackRates: () => Promise.resolve([1]), getVideoUrl: () => Promise.resolve('')}));
+    ReactRuntime.useImperativeHandle(ref, () => ({getCurrentTime: () => Promise.resolve(mockPlayerSeconds), getDuration: () => Promise.resolve(0), seekTo: () => undefined, isMuted: () => Promise.resolve(false), getVolume: () => Promise.resolve(100), getPlaybackRate: () => Promise.resolve(1), getAvailablePlaybackRates: () => Promise.resolve([1]), getVideoUrl: () => Promise.resolve('')}));
     return null;
   })};
 });
@@ -55,6 +60,7 @@ describe('native Listening R20-4 Follow/Active and resume contract', () => {
     mockImport.reset.mockReset();
     mockSave.isPending = false;
     mockSave.mutate.mockReset();
+    mockTranslate.mutate.mockReset();
     mockProgress.isPending = false;
     mockProgress.isError = false;
     mockProgress.data = {items: []};
@@ -64,6 +70,7 @@ describe('native Listening R20-4 Follow/Active and resume contract', () => {
     mockMediaStore.persist.mockReset();
     mockMediaStore.clear.mockReset();
     mockAppStateHandler = null;
+    mockPlayerSeconds = 0;
   });
 
   afterEach(() => { jest.restoreAllMocks(); });
@@ -140,6 +147,76 @@ describe('native Listening R20-4 Follow/Active and resume contract', () => {
     expect(view.root.findByProps({accessibilityLabel: 'Shadowing'}).props.accessibilityState.disabled).toBe(true);
     expect(view.root.findByProps({accessibilityLabel: 'Follow'}).props.accessibilityState.disabled).toBe(false);
     expect(view.root.findAllByProps({children: 'Active Listening and Shadowing need usable provider playback.'})).not.toHaveLength(0);
+  });
+
+  /* setPlayingSegment(): the playhead names the line being spoken, and the
+     selection follows it until the learner takes over by tapping a line.
+     "Jump to what is playing" hands control back. Native had no follow at all --
+     the list only ever moved when tapped. */
+  it('follows the playhead until the learner takes over, then hands control back', async () => {
+    mockCookie = 'cookie';
+    mockImport.mutate.mockImplementation((_input: unknown, options: {onSuccess: (value: unknown) => void}) => options.onSuccess(lesson));
+    const {view} = renderListening('en');
+    act(() => { view.root.findByProps({accessibilityLabel: 'Media URL'}).props.onChangeText('https://youtu.be/example'); });
+    await act(async () => { view.root.findByProps({accessibilityLabel: 'Prepare listening lesson'}).props.onPress(); await Promise.resolve(); });
+    const selected = () => view.root.findAllByProps({accessibilityRole: 'button'}).filter((node) => node.props.accessibilityState?.selected)
+      .map((node) => node.props.accessibilityLabel);
+
+    expect(selected()).toContain('Good morning.');
+
+    // The clock enters the second segment; the selection follows on its own.
+    const play = view.root.findAllByProps({accessibilityLabel: 'Play'})[0]!;
+    await act(async () => { play.props.onPress(); await Promise.resolve(); });
+    mockPlayerSeconds = 5;
+    await act(async () => { await new Promise((resolve) => setTimeout(resolve, 700)); });
+    expect(selected()).toContain('How are you?');
+
+    // Tapping the first line takes over: the playhead moving on no longer moves
+    // the selection.
+    await act(async () => { view.root.findByProps({accessibilityLabel: 'Good morning.'}).props.onPress(); await Promise.resolve(); });
+    mockPlayerSeconds = 7;
+    await act(async () => { await new Promise((resolve) => setTimeout(resolve, 700)); });
+    expect(selected()).toContain('Good morning.');
+
+    // Jump to what is playing gives it back.
+    await act(async () => { view.root.findByProps({accessibilityLabel: 'Jump to what is playing'}).props.onPress(); await Promise.resolve(); });
+    expect(selected()).toContain('How are you?');
+  });
+
+  /* The import acquires the media; the meaning is a second call against the
+     transcript it produced, rendered into the learner's own language rather
+     than the one they are studying. Native was asking import to carry the
+     translation and never calling translate, so no line ever had a meaning. */
+  it('requests the meaning separately, in the support language, and shows it inline', async () => {
+    mockCookie = 'cookie';
+    mockImport.mutate.mockImplementation((_input: unknown, options: {onSuccess: (value: unknown) => void}) => options.onSuccess(lesson));
+    mockTranslate.mutate.mockImplementation((_input: unknown, options: {onSuccess: (value: unknown) => void}) => options.onSuccess({
+      asset: lesson.asset,
+      transcript: lesson.transcript,
+      translations: [{segment_id: 'segment-1', target_language: 'vi', translated_meaning: 'Chào buổi sáng.'}],
+      translation: {status: 'ready', target_language: 'vi'},
+    }));
+    const {view} = renderListening('en');
+    act(() => { view.root.findByProps({accessibilityLabel: 'Media URL'}).props.onChangeText('https://youtu.be/example'); });
+    await act(async () => { view.root.findByProps({accessibilityLabel: 'Prepare listening lesson'}).props.onPress(); await Promise.resolve(); });
+
+    expect(mockImport.mutate).toHaveBeenCalledWith(expect.objectContaining({target_language: 'vi', include_word_timing: true, include_translation: false}), expect.any(Object));
+    expect(mockTranslate.mutate).toHaveBeenCalledWith(expect.objectContaining({
+      target_language: 'vi',
+      transcript: expect.objectContaining({segments: expect.arrayContaining([expect.objectContaining({segment_id: 'segment-1', original_text: 'Good morning.'})])}),
+    }), expect.any(Object));
+    expect(view.root.findAllByProps({children: 'Chào buổi sáng.'})).not.toHaveLength(0);
+  });
+
+  it('keeps the transcript when the meaning cannot be produced', async () => {
+    mockCookie = 'cookie';
+    mockImport.mutate.mockImplementation((_input: unknown, options: {onSuccess: (value: unknown) => void}) => options.onSuccess(lesson));
+    mockTranslate.mutate.mockImplementation((_input: unknown, options: {onError: () => void}) => options.onError());
+    const {view} = renderListening('en');
+    act(() => { view.root.findByProps({accessibilityLabel: 'Media URL'}).props.onChangeText('https://youtu.be/example'); });
+    await act(async () => { view.root.findByProps({accessibilityLabel: 'Prepare listening lesson'}).props.onPress(); await Promise.resolve(); });
+    expect(view.root.findAllByProps({children: 'Good morning.'})).not.toHaveLength(0);
+    expect(view.root.findAllByProps({children: 'Meaning could not be generated right now. Continue with the original transcript.'})).not.toHaveLength(0);
   });
 
   it('hands the selected canonical segment to Shadowing', async () => {

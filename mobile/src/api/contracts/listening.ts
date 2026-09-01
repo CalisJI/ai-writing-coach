@@ -56,14 +56,80 @@ const mediaImportJobSchema = z.object({
   resumable: z.boolean().optional(),
 }).passthrough();
 
+/**
+ * `serialize_media_translation()`'s outcome block. `status` is what the
+ * transcript card reports: a preparing translation is not the same as one that
+ * will never arrive, and the screen says so differently.
+ */
+export const mediaTranslationOutcomeSchema = z.object({
+  // MediaTranslationStatus in writing_coach/media_translation.py. All five, not
+  // the four the screen has copy for: dropping `transcript_unavailable` here
+  // made a valid 200 unparseable, which the screen then reported as a failed
+  // translation.
+  status: z.enum(['ready', 'not_required', 'transcript_unavailable', 'too_large', 'unavailable']),
+  target_language: z.string().min(2).max(32),
+  /** `safe_translation_source()`: provenance, already stripped of anything unsafe. */
+  source: z.object({
+    capability_key: z.string().nullable().optional(),
+    provider: z.string().nullable().optional(),
+    model: z.string().nullable().optional(),
+    request_count: z.number().nullable().optional(),
+  }).passthrough().nullable().optional(),
+  failure_kind: z.string().max(128).nullable().optional(),
+}).passthrough();
+
 export const mediaLessonSchema = z.object({
   asset: mediaAssetSchema,
   playback: mediaPlaybackSchema,
   transcript: mediaTranscriptSchema.nullable(),
   translations: z.array(mediaTranslationSchema),
+  translation: mediaTranslationOutcomeSchema.optional(),
   import_job: mediaImportJobSchema.optional(),
 }).passthrough();
 export type MediaLesson = z.infer<typeof mediaLessonSchema>;
+
+/**
+ * POST /api/media-learning/translate. The transcript is sent back rather than
+ * re-imported: `MediaTranslationIn` forbids extra fields and the endpoint
+ * translates the canonical transcript it is handed, so this mirrors
+ * translationRequest() in screens/listening.js field for field.
+ */
+export const mediaTranslationInputSchema = z.object({
+  target_language: z.string().min(2).max(32),
+  asset: z.object({
+    asset_id: z.string(),
+    source_url: z.string(),
+    source_provider: z.string(),
+    source_type: z.string(),
+    title: z.string(),
+    source_language: z.string(),
+    processing_state: z.string(),
+    duration_ms: z.number().nullable().optional(),
+    transcript_available: z.boolean(),
+  }),
+  transcript: z.object({
+    asset_id: z.string(),
+    source_language: z.string(),
+    segments: z.array(z.object({
+      segment_id: z.string(),
+      order: z.number().int(),
+      start_ms: z.number().int(),
+      end_ms: z.number().int(),
+      original_text: z.string(),
+    })),
+  }),
+}).strict();
+export type MediaTranslationInput = z.infer<typeof mediaTranslationInputSchema>;
+
+export const mediaTranslationResultSchema = z.object({
+  asset: mediaAssetSchema,
+  // `_serialize_transcript()` returns null when the object carries no
+  // transcript, so a translation outcome can arrive without one.
+  transcript: mediaTranscriptSchema.nullable(),
+  translations: z.array(mediaTranslationSchema),
+  translation: mediaTranslationOutcomeSchema,
+}).passthrough();
+export type MediaTranslationResult = z.infer<typeof mediaTranslationResultSchema>;
 
 export const listeningProgressSchema = z.object({
   asset_id: z.string().min(1).max(255),
