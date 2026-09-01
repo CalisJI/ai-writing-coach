@@ -1,9 +1,10 @@
 import {useCallback, useEffect, useMemo, useRef, useState, type MutableRefObject, type ReactNode} from 'react';
 import {AppState, Linking, Pressable, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View} from 'react-native';
 import YoutubePlayer, {type YoutubeIframeRef} from 'react-native-youtube-iframe';
+import {useAudioPlayer, useAudioPlayerStatus} from 'expo-audio';
 import {useLocalSearchParams, useRouter} from 'expo-router';
 import {createConfiguredApiClient, type ApiClient} from '../../src/api/client';
-import type {ListeningProgress, MediaLesson} from '../../src/api/contracts/listening';
+import type {ListeningLibrary, ListeningLibraryLessonMetadata, ListeningProgress, MediaLesson} from '../../src/api/contracts/listening';
 import {useSession} from '../../src/auth/SessionHarness';
 import {useI18n} from '../../src/i18n/I18nProvider';
 import {useTheme} from '../../src/theme/ThemeProvider';
@@ -16,7 +17,7 @@ import {addListenedSeconds, listeningHabitSnapshot, saveListeningGoal, type List
 import {listMediaLessons, rememberMediaLesson, type MediaLessonEntry} from '../../src/features/listening/mediaLessonHistory';
 import {selectSharedMediaSegment, setSharedMediaMode, setSharedMediaSession} from '../../src/features/listening/sharedMediaSession';
 import {keepTake, releaseTakes, roundCount, shadowingSummary, takeKey, type ShadowTake, type ShadowingSummary} from '../../src/features/listening/shadowTakes';
-import {MAX_LISTENING_EVALUATION_UNITS, MAX_LISTENING_RECONSTRUCTION_CHARS, listeningUnits, playbackAvailable, practiceSummary, segmentAt, stamp, textMatch, type ListeningMode, type SegmentPractice} from '../../src/features/listening/listeningDomain';
+import {MAX_LISTENING_EVALUATION_UNITS, MAX_LISTENING_RECONSTRUCTION_CHARS, listeningUnits, playbackAvailable, practiceSummary, reconstructionDiff, segmentAt, stamp, textMatch, type ListeningMode, type SegmentPractice} from '../../src/features/listening/listeningDomain';
 import type {ResumeState} from '../../src/api/mediaClient';
 import type {KeyValueStorage} from '../../src/storage/boundedCache';
 import {Button as OrenaButton, Card, Chip, Label as OrenaLabel, Panel, PanelCopy} from '../../src/components/orena';
@@ -26,13 +27,10 @@ import {TransientAudioService} from '../../src/media/transientAudioService';
 /**
  * Ported from static/becoming/screens/listening.js and orena/listening.css.
  *
- * The web's "video" is a YouTube IFrame Player API embed
- * (components/media-player.js's playbackAdapter(), youtube-nocookie.com) --
- * not a self-hosted file. The backend confirms this: every playback record the
- * server ever produces has `kind: "embed"` (writing_coach/media_providers/youtube.py,
- * the only provider registered), so there is no other playback shape to
- * support, and react-native-youtube-iframe wraps that same official IFrame
- * Player API.
+ * Curated rights-cleared audio and learner-imported YouTube embeds both use the
+ * canonical Media Learning payload. Native playback mirrors the web adapter:
+ * expo-audio handles direct audio assets and react-native-youtube-iframe wraps
+ * YouTube's official IFrame Player API for supported imports.
  *
  * The composition here is the web's phone breakpoint (`@media (max-width:1023px)`
  * in orena/listening.css), not a redrawn mobile screen: one column, the player
@@ -54,8 +52,48 @@ export type ListeningScreenProps = {
   audioService?: TransientAudioService;
 };
 
-// The only playback shape the backend ever produces is {kind:"embed", provider:"youtube",
-// url:"https://www.youtube-nocookie.com/embed/{id}"} -- matches web's playbackAdapter().
+const NATIVE_LIBRARY_COPY = {
+  en: {purpose: 'Choose something interesting and start listening now.', discover: 'Discover', myMedia: 'My media', recommended: 'Recommended for you', start: 'Start lesson', loading: 'Preparing your Listening library…', failed: 'The Listening library could not be loaded.', add: 'Add your own media', dictation: 'Dictation', dictationSub: 'Type what you hear'},
+  vi: {purpose: 'Chọn một nội dung thú vị và bắt đầu luyện nghe ngay.', discover: 'Khám phá', myMedia: 'Media của tôi', recommended: 'Đề xuất cho bạn', start: 'Bắt đầu bài', loading: 'Đang chuẩn bị thư viện Listening…', failed: 'Không thể tải thư viện Listening.', add: 'Thêm media của bạn', dictation: 'Chính tả', dictationSub: 'Gõ lại điều bạn nghe'},
+  zh: {purpose: '选择有趣的内容，马上开始听力练习。', discover: '发现', myMedia: '我的媒体', recommended: '为你推荐', start: '开始课程', loading: '正在准备听力内容库…', failed: '无法加载听力内容库。', add: '添加自己的媒体', dictation: '听写', dictationSub: '输入你听到的内容'},
+} as const;
+
+const DICTATION_HINT_COPY = {
+  en: {hint: 'Use a hint', count: 'Word count', first: 'First word', vocabulary: 'Vocabulary help', used: 'Hint used', full: 'full answer'},
+  vi: {hint: 'Dùng gợi ý', count: 'Số từ', first: 'Từ đầu tiên', vocabulary: 'Từ vựng khó', used: 'Đã dùng gợi ý', full: 'đáp án đầy đủ'},
+  zh: {hint: '使用提示', count: '字数', first: '第一个字', vocabulary: '重点词汇', used: '已使用提示', full: '完整答案'},
+} as const;
+
+const DISCOVERY_FILTER_COPY = {
+  en: {topics: 'Topics', allTopics: 'All topics', level: 'Level', allLevels: 'All levels'},
+  vi: {topics: 'Chủ đề', allTopics: 'Tất cả chủ đề', level: 'Trình độ', allLevels: 'Mọi trình độ'},
+  zh: {topics: '主题', allTopics: '全部主题', level: '等级', allLevels: '全部等级'},
+} as const;
+
+const TAG_FILTER_COPY = {
+  en: {tags: 'Tags', allTags: 'All tags', source: 'Source'},
+  vi: {tags: 'Thẻ nội dung', allTags: 'Tất cả thẻ', source: 'Nguồn'},
+  zh: {tags: '标签', allTags: '全部标签', source: '来源'},
+} as const;
+
+const DICTATION_ACTION_COPY = {
+  en: {next: 'Next segment', shadow: 'Shadow this segment', slow: 'Replay slowly', save: 'Save', saved: 'Saved to Active Recall', saveFailed: 'Could not save this word'},
+  vi: {next: 'Đoạn tiếp theo', shadow: 'Shadow đoạn này', slow: 'Nghe chậm', save: 'Lưu', saved: 'Đã lưu vào Active Recall', saveFailed: 'Không thể lưu từ này'},
+  zh: {next: '下一句', shadow: '跟读这一句', slow: '慢速重听', save: '保存', saved: '已保存到主动复习', saveFailed: '无法保存这个词'},
+} as const;
+
+const NATIVE_LIBRARY_TERMS = {
+  en: {'daily-life': 'Daily life', travel: 'Travel', conversations: 'Conversations', culture: 'Culture', follow: 'Listen', active: 'Active listening', dictation: 'Dictation', shadowing: 'Shadowing'},
+  vi: {'daily-life': 'Đời sống hằng ngày', travel: 'Du lịch', conversations: 'Hội thoại', culture: 'Văn hóa', follow: 'Nghe', active: 'Nghe chủ động', dictation: 'Chính tả', shadowing: 'Shadowing'},
+  zh: {'daily-life': '日常生活', travel: '旅行', conversations: '对话', culture: '文化', follow: '听力', active: '主动听力', dictation: '听写', shadowing: '跟读'},
+} as const;
+
+function nativeLibraryTerm(value: string, locale: keyof typeof NATIVE_LIBRARY_TERMS): string {
+  if (value === 'listen') return (NATIVE_LIBRARY_TERMS[locale] as Record<string, string>).follow ?? 'Listen';
+  return (NATIVE_LIBRARY_TERMS[locale] as Record<string, string>)[value] ?? value.replaceAll('-', ' ');
+}
+
+// YouTube embeds remain one supported playback adapter alongside curated audio.
 function extractYouTubeVideoId(playback: {kind: string; provider: string; url: string} | undefined): string | null {
   if (!playback || playback.kind !== 'embed' || playback.provider !== 'youtube') return null;
   const match = /\/embed\/([A-Za-z0-9_-]{11})(?:[/?]|$)/.exec(playback.url);
@@ -142,8 +180,9 @@ function Masthead({name, purpose, stat}: {name: string; purpose?: string; stat?:
  * are disabled rather than hidden when the provider gives us nothing to play.
  */
 function ModeSwitch({mode, playbackReady, onMode}: {mode: ListeningMode; playbackReady: boolean; onMode: (mode: ListeningMode) => void}) {
-  const {t} = useI18n();
+  const {t, locale} = useI18n();
   const {tokens} = useTheme();
+  const libraryCopy = NATIVE_LIBRARY_COPY[locale] ?? NATIVE_LIBRARY_COPY.en;
   const card = (key: ListeningMode, name: string, sub: string, icon: OrenaIconName, disabled: boolean) => {
     const active = mode === key;
     return (
@@ -174,6 +213,7 @@ function ModeSwitch({mode, playbackReady, onMode}: {mode: ListeningMode; playbac
     <View accessibilityRole="tablist" style={styles.modeSwitch}>
       {card('follow', t('listen.mode_follow'), t('listen.follow_sub'), 'rubric', false)}
       {card('active', t('listen.mode_active'), t('listen.active_sub'), 'listen', !playbackReady)}
+      {card('dictation', libraryCopy.dictation, libraryCopy.dictationSub, 'write', !playbackReady)}
       {card('shadowing', t('listen.mode_shadowing'), t('listen.shadow_sub'), 'speak', !playbackReady)}
     </View>
   );
@@ -200,8 +240,8 @@ function ListeningHeader({mode, playbackReady, focus, onFocus, onMode}: {mode: L
  * -- the video is the thing being followed -- so it is rendered outside the
  * scroll container rather than inside it.
  */
-function PlayerCard({lesson, videoId, playing, muted, rate, elapsedMs, durationMs, onChangeState, onReady, onTogglePlay, onSeek, onToggleMute, onCycleRate, playerRef}: {
-  lesson: MediaLesson; videoId: string | null; playing: boolean; muted: boolean; rate: number; elapsedMs: number; durationMs: number;
+function PlayerCard({lesson, videoId, playbackReady, playing, muted, rate, elapsedMs, durationMs, onChangeState, onReady, onTogglePlay, onSeek, onToggleMute, onCycleRate, playerRef}: {
+  lesson: MediaLesson; videoId: string | null; playbackReady: boolean; playing: boolean; muted: boolean; rate: number; elapsedMs: number; durationMs: number;
   onChangeState: (playing: boolean) => void; onReady: () => void; onTogglePlay: () => void; onSeek: (delta: number) => void;
   onToggleMute: () => void; onCycleRate: () => void; playerRef: MutableRefObject<YoutubeIframeRef | null>;
 }) {
@@ -210,9 +250,13 @@ function PlayerCard({lesson, videoId, playing, muted, rate, elapsedMs, durationM
   // The asset's duration_ms is often absent for a provider embed, so the
   // player's own clock is the authority once it is ready.
   const assetDuration = Number(lesson.asset.duration_ms);
-  const duration = durationMs > 0 ? durationMs : assetDuration;
+  const excerptStart = Number(lesson.catalog?.excerpt_start_ms ?? 0);
+  const excerptEnd = Number(lesson.catalog?.excerpt_end_ms ?? 0);
+  const excerptDuration = excerptEnd > excerptStart ? excerptEnd - excerptStart : 0;
+  const duration = excerptDuration || (durationMs > 0 ? durationMs : assetDuration);
+  const elapsed = excerptDuration ? Math.max(0, Math.min(duration, elapsedMs - excerptStart)) : elapsedMs;
   const hasDuration = Number.isFinite(duration) && duration > 0;
-  const fill = hasDuration ? Math.min(100, Math.round((elapsedMs / duration) * 100)) : 0;
+  const fill = hasDuration ? Math.min(100, Math.round((elapsed / duration) * 100)) : 0;
   return (
     <Card style={styles.player}>
       {videoId ? (
@@ -231,8 +275,13 @@ function PlayerCard({lesson, videoId, playing, muted, rate, elapsedMs, durationM
             // transport is that gesture; without these, every transport control
             // was inert while the YouTube overlay still looked tappable.
             webViewProps={{allowsInlineMediaPlayback: true, mediaPlaybackRequiresUserAction: false, androidLayerType: 'hardware'}}
-            initialPlayerParams={{controls: true, modestbranding: true, rel: false}}
+            initialPlayerParams={{controls: true, modestbranding: true, rel: false, start: Math.floor(excerptStart / 1000), ...(excerptEnd > excerptStart ? {end: Math.ceil(excerptEnd / 1000)} : {})}}
           />
+        </View>
+      ) : lesson.playback.kind === 'audio' ? (
+        <View style={[styles.audioFrame, {backgroundColor: tokens.colors.accentTint}]}>
+          <OrenaIcon name="listen" size={42} color={tokens.colors.accent} />
+          <Text style={[styles.audioLabel, {color: tokens.colors.mutedText}]}>{lesson.catalog?.topic ?? lesson.asset.source_provider}</Text>
         </View>
       ) : (
         <PanelCopy>{t('listening.playback_unavailable')}</PanelCopy>
@@ -241,7 +290,7 @@ function PlayerCard({lesson, videoId, playing, muted, rate, elapsedMs, durationM
         <View accessibilityRole="progressbar" accessibilityLabel={lesson.asset.title || ''} style={[styles.playerBar, {backgroundColor: tokens.colors.surfaceSunken}]}>
           <View style={[styles.playerFill, {width: `${fill}%`, backgroundColor: tokens.colors.accent}]} />
         </View>
-        <Text style={[styles.playerTime, {color: tokens.colors.faintText}]}>{stamp(elapsedMs)}</Text>
+        <Text style={[styles.playerTime, {color: tokens.colors.faintText}]}>{stamp(elapsed)}</Text>
         <Text style={[styles.playerTime, {color: tokens.colors.faintText}]}>{hasDuration ? stamp(duration) : '—'}</Text>
       </View>
       <View style={styles.playerMeta}>
@@ -254,17 +303,17 @@ function PlayerCard({lesson, videoId, playing, muted, rate, elapsedMs, durationM
           <Text style={[styles.rateValue, {color: tokens.colors.text}]}>{rateLabel(rate)}</Text>
         </Pressable>
         <View style={styles.playerTransport}>
-          <IconButton icon="skipBack" label={t('listening.skip_back')} onPress={() => onSeek(-SEEK_SECONDS)} disabled={!videoId} />
+          <IconButton icon="skipBack" label={t('listening.skip_back')} onPress={() => onSeek(-SEEK_SECONDS)} disabled={!playbackReady} />
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={playing ? t('listening.pause') : t('listening.play')}
-            disabled={!videoId}
+            disabled={!playbackReady}
             onPress={onTogglePlay}
-            style={[styles.playButton, {backgroundColor: tokens.colors.accent, opacity: videoId ? 1 : 0.45}]}
+            style={[styles.playButton, {backgroundColor: tokens.colors.accent, opacity: playbackReady ? 1 : 0.45}]}
           >
             <OrenaIcon name={playing ? 'pause' : 'play'} size={22} color={tokens.colors.onAccent} />
           </Pressable>
-          <IconButton icon="skipForward" label={t('listening.skip_forward')} onPress={() => onSeek(SEEK_SECONDS)} disabled={!videoId} />
+          <IconButton icon="skipForward" label={t('listening.skip_forward')} onPress={() => onSeek(SEEK_SECONDS)} disabled={!playbackReady} />
         </View>
         <IconButton icon={muted ? 'volumeOff' : 'volume'} label={t('listen.subtitles')} onPress={onToggleMute} pressed={muted} />
       </View>
@@ -429,18 +478,25 @@ function FollowWorkspace({lesson, segments, selectedId, playingId, following, or
  * carry only their position, and the line appears in the result once checked or
  * revealed.
  */
-function ActiveWorkspace({lesson, segments, selectedId, session, validation, persistence, maxHeight, onSelect, onDraft, onCheck, onReveal, onRetry, index, onPrevious, onReplay, onNext}: {
+function ActiveWorkspace({lesson, segments, selectedId, session, validation, persistence, maxHeight, dictation, onSelect, onDraft, onCheck, onReveal, onRetry, onHint, onSlowReplay, onShadow, onSaveWord, index, onPrevious, onReplay, onNext}: {
   lesson: MediaLesson; segments: Segment[]; selectedId: string; session: Record<string, SegmentPractice>;
-  validation: string; persistence: string; maxHeight: number;
-  onSelect: (id: string) => void; onDraft: (value: string) => void; onCheck: () => void; onReveal: () => void; onRetry: () => void;
+  validation: string; persistence: string; maxHeight: number; dictation: boolean;
+  onSelect: (id: string) => void; onDraft: (value: string) => void; onCheck: () => void; onReveal: () => void; onRetry: () => void; onHint: () => void;
+  onSlowReplay: () => void; onShadow: () => void; onSaveWord: (word: string) => void;
   index: number; onPrevious: () => void; onReplay: () => void; onNext: () => void;
 }) {
-  const {t} = useI18n();
+  const {t, locale} = useI18n();
   const {tokens} = useTheme();
+  const hintCopy = DICTATION_HINT_COPY[locale] ?? DICTATION_HINT_COPY.en;
+  const actionCopy = DICTATION_ACTION_COPY[locale] ?? DICTATION_ACTION_COPY.en;
   const segment = segments.find((item) => item.segment_id === selectedId);
   const practice = session[selectedId];
   const visible = practice?.presentation === 'checked' || practice?.presentation === 'revealed';
   const lastAttempt = practice?.presentation === 'checked' ? practice.attempts[practice.attempts.length - 1] ?? null : null;
+  const hintLevel = Number(practice?.hint_level ?? 0);
+  const expectedUnits = segment ? listeningUnits(segment.original_text, lesson.asset.source_language) : [];
+  const diff = lastAttempt && segment ? reconstructionDiff(lastAttempt.answer, segment.original_text, lesson.asset.source_language) : [];
+  const difficultWords = [...new Set(diff.filter((item) => item.status === 'missing' || item.status === 'wrong').map((item) => item.expected).filter(Boolean))];
   const summary = practiceSummary(session, segments.length);
   const evaluable = Boolean(segment) && listeningUnits(segment!.original_text, lesson.asset.source_language).length <= MAX_LISTENING_EVALUATION_UNITS;
   const translations = new Map((lesson.translations || []).map((item) => [item.segment_id, item.translated_meaning]));
@@ -485,8 +541,18 @@ function ActiveWorkspace({lesson, segments, selectedId, session, validation, per
           <View style={styles.activeActions}>
             <OrenaButton label={t('listen.check')} onPress={onCheck} />
             <OrenaButton label={t('listen.reveal')} variant="outline" onPress={onReveal} />
+            {dictation ? <OrenaButton label={actionCopy.slow} variant="outline" onPress={onSlowReplay} /> : null}
+            {dictation && hintLevel < 3 && !visible ? <OrenaButton label={hintCopy.hint} variant="outline" onPress={onHint} /> : null}
             {visible ? <OrenaButton label={t('listen.retry')} variant="outline" onPress={onRetry} /> : null}
           </View>
+          {dictation && hintLevel > 0 && !visible ? (
+            <View style={[styles.hintPanel, {backgroundColor: tokens.colors.surfaceSunken, borderColor: tokens.colors.border}]}>
+              <Text style={[styles.strong, {color: tokens.colors.text}]}>{hintCopy.used}</Text>
+              <Text style={{color: tokens.colors.mutedText}}>{hintCopy.count}: {expectedUnits.length}</Text>
+              {hintLevel >= 2 ? <Text style={{color: tokens.colors.mutedText}}>{hintCopy.first}: {expectedUnits[0] ?? '—'}</Text> : null}
+              {hintLevel >= 3 && lesson.catalog?.vocabulary?.length ? <Text style={{color: tokens.colors.mutedText}}>{hintCopy.vocabulary}: {lesson.catalog.vocabulary.join(', ')}</Text> : null}
+            </View>
+          ) : null}
         </View>
       ) : (
         <Text accessibilityRole="alert" style={[styles.statusLine, {color: tokens.colors.attention}]}>{t('listen.segment_too_large')}</Text>
@@ -499,8 +565,12 @@ function ActiveWorkspace({lesson, segments, selectedId, session, validation, per
               <Text style={{color: tokens.colors.text}}><Text style={styles.strong}>{t('listen.text_match')}</Text> {lastAttempt.result.accuracy_percent}% · {quality}</Text>
             </>
           ) : null}
+          {dictation && lastAttempt ? <View style={styles.diffRow}>{diff.map((item, position) => <Text key={`${item.status}-${position}`} style={[styles.diffChip, {color: item.status === 'correct' ? tokens.colors.accent : item.status === 'extra' ? tokens.colors.faintText : tokens.colors.danger, borderColor: tokens.colors.border}]}>{item.actual || item.expected}</Text>)}</View> : null}
+          {dictation && difficultWords.length ? <View style={styles.diffRow}>{difficultWords.map((word) => <OrenaButton key={word} label={`${actionCopy.save}: ${word}`} compact variant="outline" onPress={() => onSaveWord(word)} />)}</View> : null}
+          {dictation && hintLevel > 0 ? <Text style={{color: tokens.colors.mutedText}}>{hintCopy.used}: {hintLevel >= 4 ? hintCopy.full : `${hintLevel}/3`}</Text> : null}
           <Text style={{color: tokens.colors.text}}><Text style={styles.strong}>{t('listen.original')}</Text> {segment.original_text}</Text>
           {translations.get(segment.segment_id) ? <Text style={{color: tokens.colors.mutedText}}>{translations.get(segment.segment_id)}</Text> : null}
+          {dictation && lastAttempt?.result.exact ? <View style={styles.activeActions}>{index < segments.length - 1 ? <OrenaButton label={actionCopy.next} compact onPress={onNext} /> : null}<OrenaButton label={actionCopy.shadow} compact variant="outline" onPress={onShadow} /></View> : null}
           <PanelCopy>{t('listen.disclaimer')}</PanelCopy>
         </View>
       ) : null}
@@ -937,6 +1007,12 @@ export default function ListeningScreen({client: providedClient, resumeStorage =
   const [mediaResume, setMediaResume] = useState<ResumeState | null>(null);
   const [mediaResumeHandle, setMediaResumeHandle] = useState('');
   const [lesson, setLesson] = useState<MediaLesson | null>(null);
+  const [library, setLibrary] = useState<ListeningLibrary | null>(null);
+  const [libraryState, setLibraryState] = useState<'loading' | 'ready' | 'error'>('loading');
+  const [libraryView, setLibraryView] = useState<'discover' | 'my-media'>('discover');
+  const [libraryTopic, setLibraryTopic] = useState('');
+  const [libraryLevel, setLibraryLevel] = useState('');
+  const [libraryTag, setLibraryTag] = useState('');
   const [mode, setMode] = useState<ListeningMode>('follow');
   const [selectedId, setSelectedId] = useState('');
   const [progress, setProgress] = useState<ListeningProgress[]>([]);
@@ -984,11 +1060,15 @@ export default function ListeningScreen({client: providedClient, resumeStorage =
   const saveShadowing = useSaveShadowingProgress(client, sessionCookie);
   const saveProgress = useSaveListeningProgress(client, sessionCookie);
   const videoId = useMemo(() => extractYouTubeVideoId(lesson?.playback), [lesson]);
+  const audioUrl = lesson?.playback.kind === 'audio' ? lesson.playback.url : null;
+  const lessonAudioPlayer = useAudioPlayer(audioUrl ? {uri: audioUrl} : null, {updateInterval: 250});
+  const lessonAudioStatus = useAudioPlayerStatus(lessonAudioPlayer);
   const [playing, setPlaying] = useState(false);
   const [muted, setMuted] = useState(false);
   const [rate, setRate] = useState<number>(1);
   const [currentTime, setCurrentTime] = useState(0);
   const playerRef = useRef<YoutubeIframeRef | null>(null);
+  const cuedAudioLesson = useRef('');
   const mediaStatus = useMediaImportStatus(mediaResumeHandle, mediaStore, sessionCookie);
 
   const segments = useMemo(() => lesson?.transcript?.segments ?? [], [lesson]);
@@ -996,6 +1076,41 @@ export default function ListeningScreen({client: providedClient, resumeStorage =
   const selectedIndex = segments.findIndex((segment) => segment.segment_id === selectedId);
   const selected = segments[selectedIndex] ?? segments[0];
   const translationFor = (segmentId: string) => (lesson?.translations || []).find((item) => item.segment_id === segmentId)?.translated_meaning ?? '';
+
+  useEffect(() => {
+    if (!client || !sessionCookie) return;
+    const learningLanguage: 'en' | 'zh' = locale === 'zh' ? 'zh' : 'en';
+    let mounted = true;
+    setLibraryState('loading');
+    void client.listeningLibrary(learningLanguage, {sessionCookie}).then((value) => {
+      if (!mounted) return;
+      setLibrary(value);
+      setLibraryState('ready');
+    }).catch(() => { if (mounted) setLibraryState('error'); });
+    return () => { mounted = false; };
+  }, [client, locale, sessionCookie]);
+
+  useEffect(() => {
+    if (!audioUrl) return;
+    setPlaying(lessonAudioStatus.playing);
+    setCurrentTime(lessonAudioStatus.currentTime || 0);
+    setDurationMs(Math.round((lessonAudioStatus.duration || 0) * 1000));
+  }, [audioUrl, lessonAudioStatus.currentTime, lessonAudioStatus.duration, lessonAudioStatus.playing]);
+
+  useEffect(() => {
+    if (!audioUrl || !lesson?.catalog || lessonAudioStatus.duration <= 0) return;
+    const key = `${lesson.catalog.lesson_id}:${lesson.catalog.excerpt_start_ms}`;
+    if (cuedAudioLesson.current === key) return;
+    cuedAudioLesson.current = key;
+    void lessonAudioPlayer.seekTo(lesson.catalog.excerpt_start_ms / 1000);
+  }, [audioUrl, lesson, lessonAudioPlayer, lessonAudioStatus.duration]);
+
+  useEffect(() => {
+    if (!audioUrl || !lesson?.catalog || !lessonAudioStatus.playing) return;
+    if (lessonAudioStatus.currentTime * 1000 < lesson.catalog.excerpt_end_ms) return;
+    lessonAudioPlayer.pause();
+    void lessonAudioPlayer.seekTo(lesson.catalog.excerpt_start_ms / 1000);
+  }, [audioUrl, lesson, lessonAudioPlayer, lessonAudioStatus.currentTime, lessonAudioStatus.playing]);
 
   /**
    * `translateReadyPayload()`. The import acquires the media; this translates
@@ -1059,7 +1174,7 @@ export default function ListeningScreen({client: providedClient, resumeStorage =
     const hit = segmentAt(segments, currentTime * 1000);
     if (!hit || hit === playingSegmentId) return;
     setPlayingSegmentId(hit);
-    if (!manualSelection && mode !== 'active') setSelectedId(hit);
+    if (!manualSelection && mode !== 'active' && mode !== 'dictation') setSelectedId(hit);
   }, [currentTime, segments, playingSegmentId, manualSelection, mode]);
 
   const habitTick = useRef<{time: number; position: number} | null>(null);
@@ -1085,7 +1200,7 @@ export default function ListeningScreen({client: providedClient, resumeStorage =
       if (current !== operation.current) return;
       if (next.asset.processing_state !== 'ready' || !next.transcript?.segments.length) {
         if (next.asset.processing_state === 'processing' && next.import_job?.job_id && mediaStore) {
-          const waiting: ListeningPending = {assetId: next.asset.asset_id, mode: mode === 'shadowing' ? 'follow' : mode, sourceUrl: normalized};
+          const waiting: ListeningPending = {assetId: next.asset.asset_id, mode, sourceUrl: normalized};
           await mediaStore.persist({assetId: next.asset.asset_id, resumeHandle: next.import_job.job_id, status: 'processing', resumable: true});
           await writeListeningPending(waiting, resumeStorage);
           setPending(waiting); setMediaResume({assetId: next.asset.asset_id, resumeHandle: next.import_job.job_id, status: 'processing', resumable: true}); setMediaResumeHandle(next.import_job.job_id);
@@ -1094,8 +1209,6 @@ export default function ListeningScreen({client: providedClient, resumeStorage =
       }
       const restored = resume?.assetId === next.asset.asset_id && resume.sourceUrl === normalized ? resume : null;
       const segment = next.transcript.segments.some((item) => item.segment_id === restored?.segmentId) ? restored!.segmentId : next.transcript.segments[0]!.segment_id;
-      // The resume record only ever holds Follow or Active: the studio is a room
-      // the learner steps into, not a state a lesson reopens in.
       const nextMode = restored?.mode ?? 'follow';
       rehydrating.current = false;
       setLesson(next); setSelectedId(segment); setMode(nextMode); setResume(null); setPending(null); setMediaResume(null); setMediaResumeHandle(''); await mediaStore?.clear(); await clearListeningPending(resumeStorage);
@@ -1110,6 +1223,27 @@ export default function ListeningScreen({client: providedClient, resumeStorage =
       requestTranslation(next, supportLanguage);
     }, onError: () => { if (current === operation.current) { rehydrating.current = false; setNotice(t('listening.unavailable')); } }});
   }, [client, importMedia, locale, mediaStore, mode, refreshHistory, requestTranslation, resume, resumeStorage, sessionCookie, supportLanguage, t]);
+
+  const openCuratedLesson = useCallback(async (item: ListeningLibraryLessonMetadata | string, restored: ListeningResume | null = null) => {
+    if (!client || !sessionCookie) return;
+    setNotice(null);
+    try {
+      const lessonId = typeof item === 'string' ? item : item.lesson_id;
+      const next = await client.listeningLibraryLesson(lessonId, supportLanguage, {sessionCookie});
+      if (!next.transcript?.segments.length) throw new Error('Curated lesson has no transcript');
+      const pinyin = next.catalog?.pinyin_by_segment ?? {};
+      const prepared = {...next, transcript: {...next.transcript, segments: next.transcript.segments.map((segment) => ({...segment, pinyin: pinyin[segment.segment_id] ?? ''}))}};
+      const segment = prepared.transcript.segments.some((entry) => entry.segment_id === restored?.segmentId) ? restored!.segmentId : prepared.transcript.segments[0]!.segment_id;
+      const nextMode = restored?.mode ?? 'follow';
+      setLesson(prepared); setSelectedId(segment); setMode(nextMode); setProgress([]); setSession({}); setValidation(''); setManualSelection(false); setResume(null);
+      setSharedMediaSession({learning_language: locale, payload: prepared, selected_segment_id: segment, mode: nextMode});
+      await writeListeningResume({assetId: prepared.asset.asset_id, segmentId: segment, mode: nextMode, sourceUrl: prepared.asset.source_url, lessonId}, resumeStorage);
+      await rememberMediaLesson({learning_language: locale, source_url: prepared.asset.source_url, lesson_id: lessonId, title: prepared.asset.title || '', provider: prepared.asset.source_provider || '', selected_segment_id: segment, mode: nextMode});
+      refreshHistory();
+    } catch {
+      setNotice(NATIVE_LIBRARY_COPY[locale]?.failed ?? NATIVE_LIBRARY_COPY.en.failed);
+    }
+  }, [client, locale, refreshHistory, resumeStorage, sessionCookie, supportLanguage]);
 
   useEffect(() => {
     const state = mediaStatus.data?.state;
@@ -1131,24 +1265,32 @@ export default function ListeningScreen({client: providedClient, resumeStorage =
     // for it back.
     setSelectedId(segmentId); setValidation(''); setManualSelection(true);
     const segment = segments.find((item) => item.segment_id === segmentId);
-    if (segment) void playerRef.current?.seekTo(segment.start_ms / 1000, true);
+    if (segment) {
+      if (audioUrl) void lessonAudioPlayer.seekTo(segment.start_ms / 1000);
+      else void playerRef.current?.seekTo(segment.start_ms / 1000, true);
+    }
     selectSharedMediaSegment(locale, segmentId);
-    if (lesson) void writeListeningResume({assetId: lesson.asset.asset_id, segmentId, mode: mode === 'shadowing' ? 'follow' : mode, sourceUrl: lesson.asset.source_url}, resumeStorage);
+    if (lesson) void writeListeningResume({assetId: lesson.asset.asset_id, segmentId, mode, sourceUrl: lesson.asset.source_url, lessonId: lesson.catalog?.lesson_id}, resumeStorage);
   };
   const changeMode = (nextMode: ListeningMode) => {
     setMode(nextMode); setValidation('');
     setSharedMediaMode(locale, nextMode);
-    if (lesson) void writeListeningResume({assetId: lesson.asset.asset_id, segmentId: selectedId, mode: nextMode === 'shadowing' ? 'follow' : nextMode, sourceUrl: lesson.asset.source_url}, resumeStorage);
+    if (lesson) void writeListeningResume({assetId: lesson.asset.asset_id, segmentId: selectedId, mode: nextMode, sourceUrl: lesson.asset.source_url, lessonId: lesson.catalog?.lesson_id}, resumeStorage);
   };
-  const seek = (delta: number) => { void playerRef.current?.getCurrentTime().then((seconds) => playerRef.current?.seekTo(Math.max(0, seconds + delta), true)); };
-  const replayCurrent = () => { if (selected) void playerRef.current?.seekTo(selected.start_ms / 1000, true); };
+  const seek = (delta: number) => {
+    if (audioUrl) void lessonAudioPlayer.seekTo(Math.max(0, lessonAudioStatus.currentTime + delta));
+    else void playerRef.current?.getCurrentTime().then((seconds) => playerRef.current?.seekTo(Math.max(0, seconds + delta), true));
+  };
+  const replayCurrent = () => { if (selected) { if (audioUrl) void lessonAudioPlayer.seekTo(selected.start_ms / 1000); else void playerRef.current?.seekTo(selected.start_ms / 1000, true); } };
   const step = (delta: number) => { const next = segments[selectedIndex + delta]; if (next) select(next.segment_id); };
   // `followPlaying()`: hand the selection back to the playhead.
   const followPlaying = () => {
     setManualSelection(false); setValidation('');
     if (playingSegmentId) setSelectedId(playingSegmentId);
   };
-  const cycleRate = () => { const next = RATES[(RATES.indexOf(rate as typeof RATES[number]) + 1) % RATES.length]!; setRate(next); };
+  const cycleRate = () => { const next = RATES[(RATES.indexOf(rate as typeof RATES[number]) + 1) % RATES.length]!; setRate(next); if (audioUrl) lessonAudioPlayer.playbackRate = next; };
+  const toggleLessonPlayback = () => { if (audioUrl) { if (lessonAudioStatus.playing) lessonAudioPlayer.pause(); else lessonAudioPlayer.play(); } else setPlaying((value) => !value); };
+  const toggleLessonMute = () => { const next = !muted; setMuted(next); if (audioUrl) lessonAudioPlayer.muted = next; };
   const currentTakeKey = takeKey(lesson?.asset.asset_id, selected?.segment_id);
   const takes = takesByKey[currentTakeKey] ?? [];
 
@@ -1212,6 +1354,17 @@ export default function ListeningScreen({client: providedClient, resumeStorage =
     router.push({pathname: '/(app)/speaking', params: {mode: 'shadowing', assetId: lesson.asset.asset_id, segmentId: selected.segment_id, sourceUrl: lesson.asset.source_url, referenceText: selected.original_text}} as never);
   };
 
+  const saveDictationWord = async (word: string) => {
+    if (!lesson || !selected || !client || !sessionCookie) return;
+    const actionCopy = DICTATION_ACTION_COPY[locale] ?? DICTATION_ACTION_COPY.en;
+    try {
+      await client.saveLibraryVocabulary({word, phonetic: '', part_of_speech: '', definition: 'Dictation word to review', translation_vi: '', source_fragment: selected.original_text, source_kind: 'feedback', focus_note: `Listening Dictation · ${lesson.asset.title}`}, {sessionCookie});
+      setNotice(actionCopy.saved);
+    } catch {
+      setNotice(actionCopy.saveFailed);
+    }
+  };
+
   /**
    * Saving a checked or revealed segment. The server keeps the counters; the
    * text match itself is computed here, exactly as listening.js computes it in
@@ -1230,6 +1383,7 @@ export default function ListeningScreen({client: providedClient, resumeStorage =
         presentation,
         draft: existing.draft,
         attempts: result ? [...existing.attempts, {answer, result}] : existing.attempts,
+        hint_level: presentation === 'revealed' ? 4 : existing.hint_level ?? 0,
       }};
     });
     const current = progress.find((item) => item.segment_id === selected.segment_id);
@@ -1263,13 +1417,61 @@ export default function ListeningScreen({client: providedClient, resumeStorage =
      the requirements show what this does and why a video without captions
      cannot work, so the first thing a new learner meets is not an error. */
   if (!lesson) {
+    const libraryCopy = NATIVE_LIBRARY_COPY[locale] ?? NATIVE_LIBRARY_COPY.en;
+    const filterCopy = DISCOVERY_FILTER_COPY[locale] ?? DISCOVERY_FILTER_COPY.en;
+    const tagCopy = TAG_FILTER_COPY[locale] ?? TAG_FILTER_COPY.en;
+    const libraryItems = (library?.items ?? []).filter((item) => (!libraryTopic || item.topic === libraryTopic || (item.subtopics ?? []).includes(libraryTopic)) && (!libraryLevel || item.level === libraryLevel) && (!libraryTag || item.content_tags.includes(libraryTag)));
     return (
       <ScrollView style={{flex: 1, backgroundColor: tokens.colors.background}} contentContainerStyle={[styles.page, {backgroundColor: tokens.colors.background}]}>
-        <Masthead name={t('listening.title')} purpose={t('listen.lead')} stat={history.length ? {value: history.length, label: t('listen.skill_stat')} : null} />
+        <Masthead name={t('listening.title')} purpose={libraryCopy.purpose} />
+        <View accessibilityRole="tablist" style={[styles.primaryTabs, {backgroundColor: tokens.colors.surfaceSunken, borderColor: tokens.colors.border}]}>
+          <Tab label={libraryCopy.discover} active={libraryView === 'discover'} onPress={() => setLibraryView('discover')} />
+          <Tab label={libraryCopy.myMedia} active={libraryView === 'my-media'} onPress={() => setLibraryView('my-media')} />
+        </View>
+        {libraryView === 'discover' ? (
+          <View style={styles.libraryStack}>
+            <Text accessibilityRole="header" style={[styles.libraryHeading, {color: tokens.colors.heading}]}>{libraryCopy.recommended}</Text>
+            <View style={styles.filterGroup}>
+              <ContextLabel>{filterCopy.topics}</ContextLabel>
+              <View style={styles.filterRow}>
+                {['', ...(library?.topics ?? [])].map((topic) => <Pressable key={topic || 'all-topics'} accessibilityRole="button" accessibilityState={{selected: libraryTopic === topic}} onPress={() => setLibraryTopic(topic)} style={[styles.filterChip, {borderColor: libraryTopic === topic ? tokens.colors.accent : tokens.colors.border, backgroundColor: libraryTopic === topic ? tokens.colors.accentTint : tokens.colors.surface}]}><Text style={{color: libraryTopic === topic ? tokens.colors.accent : tokens.colors.mutedText}}>{topic ? nativeLibraryTerm(topic, locale) : filterCopy.allTopics}</Text></Pressable>)}
+              </View>
+            </View>
+            <View style={styles.filterGroup}>
+              <ContextLabel>{tagCopy.tags}</ContextLabel>
+              <View style={styles.filterRow}>
+                {['', ...(library?.tags ?? library?.filters.tags ?? [])].map((tag) => <Pressable key={tag || 'all-tags'} accessibilityRole="button" accessibilityState={{selected: libraryTag === tag}} onPress={() => setLibraryTag(tag)} style={[styles.filterChip, {borderColor: libraryTag === tag ? tokens.colors.accent : tokens.colors.border, backgroundColor: libraryTag === tag ? tokens.colors.accentTint : tokens.colors.surface}]}><Text style={{color: libraryTag === tag ? tokens.colors.accent : tokens.colors.mutedText}}>{tag ? `#${nativeLibraryTerm(tag, locale)}` : tagCopy.allTags}</Text></Pressable>)}
+              </View>
+            </View>
+            <View style={styles.filterGroup}>
+              <ContextLabel>{filterCopy.level}</ContextLabel>
+              <View style={styles.filterRow}>
+                {['', ...(library?.filters.levels ?? [])].map((level) => <Pressable key={level || 'all-levels'} accessibilityRole="button" accessibilityState={{selected: libraryLevel === level}} onPress={() => setLibraryLevel(level)} style={[styles.filterChip, {borderColor: libraryLevel === level ? tokens.colors.accent : tokens.colors.border, backgroundColor: libraryLevel === level ? tokens.colors.accentTint : tokens.colors.surface}]}><Text style={{color: libraryLevel === level ? tokens.colors.accent : tokens.colors.mutedText}}>{level || filterCopy.allLevels}</Text></Pressable>)}
+              </View>
+            </View>
+            {libraryState === 'loading' ? <PanelCopy>{libraryCopy.loading}</PanelCopy> : null}
+            {libraryState === 'error' ? <PanelCopy>{libraryCopy.failed}</PanelCopy> : null}
+            {libraryItems.map((item) => (
+              <Card key={item.lesson_id} style={styles.libraryCard}>
+                <View style={[styles.libraryArtwork, {backgroundColor: tokens.colors.accentTint}]}><OrenaIcon name={item.topic === 'conversations' ? 'speak' : 'listen'} size={30} color={tokens.colors.accent} /></View>
+                <View style={styles.libraryBody}>
+                  <View style={styles.libraryMeta}><Chip>{nativeLibraryTerm(item.topic, locale)}</Chip><Chip>{item.level}</Chip><Chip>{stamp(item.duration_ms)}</Chip></View>
+                  <Text style={[styles.libraryTitle, {color: tokens.colors.heading}]}>{item.title}</Text>
+                  <Text style={[styles.libraryDescription, {color: tokens.colors.mutedText}]}>{item.description}</Text>
+                  <Text style={[styles.libraryModes, {color: tokens.colors.accent}]}>{item.content_tags.slice(0, 3).map((tag) => `#${nativeLibraryTerm(tag, locale)}`).join('  ')}</Text>
+                  <Text style={[styles.libraryModes, {color: tokens.colors.faintText}]}>{tagCopy.source}: {item.source.creator || item.source.provider}</Text>
+                  <Text style={[styles.libraryModes, {color: tokens.colors.faintText}]}>{item.available_modes.map((availableMode) => nativeLibraryTerm(availableMode, locale)).join(' · ')}</Text>
+                  <OrenaButton label={libraryCopy.start} compact onPress={() => { void openCuratedLesson(item); }} />
+                </View>
+              </Card>
+            ))}
+            {notice ? <Text accessibilityRole="alert" style={{color: tokens.colors.danger}}>{notice}</Text> : null}
+          </View>
+        ) : <>
         {(resume || (pending && mediaResume)) ? (
           <Panel>
             <PanelCopy>{t('listening.resume_found')}</PanelCopy>
-            <OrenaButton label={t('listening.resume')} onPress={() => { if (pending && mediaResume) { setSourceUrl(pending.sourceUrl); attemptedReadyHandle.current = null; rehydrating.current = false; if (mediaResume.resumable) setMediaResumeHandle(mediaResume.resumeHandle); else { rehydrating.current = true; prepare(pending.sourceUrl); } } else if (resume) { setSourceUrl(resume.sourceUrl); prepare(resume.sourceUrl); } }} />
+            <OrenaButton label={t('listening.resume')} onPress={() => { if (pending && mediaResume) { setSourceUrl(pending.sourceUrl); attemptedReadyHandle.current = null; rehydrating.current = false; if (mediaResume.resumable) setMediaResumeHandle(mediaResume.resumeHandle); else { rehydrating.current = true; prepare(pending.sourceUrl); } } else if (resume?.lessonId) { void openCuratedLesson(resume.lessonId, resume); } else if (resume) { setSourceUrl(resume.sourceUrl); prepare(resume.sourceUrl); } }} />
             <OrenaButton label={t('listening.resume_cancel')} variant="outline" onPress={() => { void clearListeningResume(resumeStorage); void clearListeningPending(resumeStorage); void mediaStore?.clear(); setResume(null); setPending(null); setMediaResume(null); setMediaResumeHandle(''); }} />
           </Panel>
         ) : null}
@@ -1281,10 +1483,10 @@ export default function ListeningScreen({client: providedClient, resumeStorage =
             ? <View style={styles.activeActions}><OrenaButton label={t('listening.preparing')} onPress={() => undefined} disabled /><OrenaButton label={t('listening.cancel')} variant="outline" onPress={cancel} /></View>
             : <OrenaButton label={t('listening.prepare')} onPress={() => prepare(sourceUrl)} disabled={!sourceUrl.trim()} />}
         </Card>
-        {history.length ? (
+        {history.some((item) => !item.lesson_id) ? (
           <View style={styles.introBlock}>
             <ContextLabel>{t('listen.recent_title')}</ContextLabel>
-            {history.map((item) => <RowButton key={item.source_url} label={item.title || item.source_url} sub={item.provider || undefined} icon="arrowRight" onPress={() => { setSourceUrl(item.source_url); prepare(item.source_url); }} />)}
+            {history.filter((item) => !item.lesson_id).map((item) => <RowButton key={item.source_url} label={item.title || item.source_url} sub={item.provider || undefined} icon="arrowRight" onPress={() => { setSourceUrl(item.source_url); prepare(item.source_url); }} />)}
           </View>
         ) : null}
         <View style={styles.introBlock}>
@@ -1294,6 +1496,7 @@ export default function ListeningScreen({client: providedClient, resumeStorage =
           <PanelCopy>{t('listen.need3')}</PanelCopy>
         </View>
         <GoalPanel />
+        </>}
       </ScrollView>
     );
   }
@@ -1315,12 +1518,12 @@ export default function ListeningScreen({client: providedClient, resumeStorage =
       {focus ? null : (
         <View style={styles.stickyPlayer}>
           <PlayerCard
-            lesson={lesson} videoId={videoId} playing={playing} muted={muted} rate={rate}
+            lesson={lesson} videoId={videoId} playbackReady={playbackReady} playing={playing} muted={muted} rate={rate}
             elapsedMs={currentTime * 1000} durationMs={durationMs}
             onChangeState={setPlaying}
-            onReady={() => { void playerRef.current?.getDuration().then((seconds) => setDurationMs(Math.round(seconds * 1000))); }}
-            onTogglePlay={() => setPlaying((value) => !value)} onSeek={seek}
-            onToggleMute={() => setMuted((value) => !value)} onCycleRate={cycleRate} playerRef={playerRef}
+            onReady={() => { void playerRef.current?.getDuration().then((seconds) => setDurationMs(Math.round(seconds * 1000))); if ((lesson.catalog?.excerpt_start_ms ?? 0) > 0) void playerRef.current?.seekTo((lesson.catalog?.excerpt_start_ms ?? 0) / 1000, true); }}
+            onTogglePlay={toggleLessonPlayback} onSeek={seek}
+            onToggleMute={toggleLessonMute} onCycleRate={cycleRate} playerRef={playerRef}
           />
         </View>
       )}
@@ -1341,15 +1544,19 @@ export default function ListeningScreen({client: providedClient, resumeStorage =
             index={selectedIndex} onPrevious={() => step(-1)} onReplay={replayCurrent} onNext={() => step(1)}
           />
         ) : null}
-        {mode === 'active' ? (
+        {mode === 'active' || mode === 'dictation' ? (
           <ActiveWorkspace
             lesson={lesson} segments={segments} selectedId={selected?.segment_id ?? ''} session={session}
             validation={validation} persistence={progressQuery.isError ? t('listening.progress_unavailable') : saveProgress.isPending ? t('listening.checking') : ''}
-            maxHeight={transcriptHeight}
+            maxHeight={transcriptHeight} dictation={mode === 'dictation'}
             onSelect={select}
-            onDraft={(value) => setSession((current) => ({...current, [selected!.segment_id]: {presentation: current[selected!.segment_id]?.presentation ?? 'checked', draft: value, attempts: current[selected!.segment_id]?.attempts ?? []}}))}
+            onDraft={(value) => setSession((current) => ({...current, [selected!.segment_id]: {presentation: current[selected!.segment_id]?.presentation ?? 'checked', draft: value, attempts: current[selected!.segment_id]?.attempts ?? [], hint_level: current[selected!.segment_id]?.hint_level ?? 0}}))}
             onCheck={() => commit('checked')} onReveal={() => commit('revealed')}
-            onRetry={() => setSession((current) => ({...current, [selected!.segment_id]: {presentation: 'checked', draft: '', attempts: current[selected!.segment_id]?.attempts ?? []}}))}
+            onHint={() => setSession((current) => ({...current, [selected!.segment_id]: {presentation: current[selected!.segment_id]?.presentation ?? 'checked', draft: current[selected!.segment_id]?.draft ?? '', attempts: current[selected!.segment_id]?.attempts ?? [], hint_level: Math.min(3, (current[selected!.segment_id]?.hint_level ?? 0) + 1)}}))}
+            onRetry={() => setSession((current) => ({...current, [selected!.segment_id]: {presentation: 'checked', draft: '', attempts: current[selected!.segment_id]?.attempts ?? [], hint_level: 0}}))}
+            onSlowReplay={() => { setRate(0.75); if (audioUrl) lessonAudioPlayer.playbackRate = 0.75; replayCurrent(); }}
+            onShadow={() => changeMode('shadowing')}
+            onSaveWord={(word) => { void saveDictationWord(word); }}
             index={selectedIndex} onPrevious={() => step(-1)} onReplay={replayCurrent} onNext={() => step(1)}
           />
         ) : null}
@@ -1371,12 +1578,12 @@ export default function ListeningScreen({client: providedClient, resumeStorage =
         {mode === 'follow' && original ? <VocabularyFocusPanel hits={vocabularyHits} /> : null}
         <GoalPanel />
         <SourcePanel lesson={lesson} />
-        <SavedLessonsPanel lessons={history} onOpen={(url) => { setSourceUrl(url); prepare(url); }} onNew={restart} />
+        <SavedLessonsPanel lessons={history.filter((item) => !item.lesson_id)} onOpen={(url) => { setSourceUrl(url); prepare(url); }} onNew={restart} />
       </ScrollView>
       <TransportBar
         playing={playing} muted={muted} rate={rate} subtitles={original}
         onSeek={seek} onPrevious={() => step(-1)} onNext={() => step(1)}
-        onTogglePlay={() => setPlaying((value) => !value)} onToggleMute={() => setMuted((value) => !value)}
+        onTogglePlay={toggleLessonPlayback} onToggleMute={toggleLessonMute}
         onCycleRate={cycleRate} onToggleSubtitles={() => setOriginal((value) => !value)}
       />
     </View>
@@ -1391,6 +1598,8 @@ const styles = StyleSheet.create({
   stickyPlayer: {paddingHorizontal: 16, paddingTop: 16, zIndex: 5, width: '100%', maxWidth: CONTENT_MAX, alignSelf: 'center'},
   player: {padding: 10, gap: 10},
   videoFrame: {borderRadius: 15, overflow: 'hidden'},
+  audioFrame: {height: 150, borderRadius: 15, alignItems: 'center', justifyContent: 'center', gap: 10},
+  audioLabel: {fontSize: 12, textTransform: 'uppercase', letterSpacing: 0.8, fontWeight: '600'},
   playerTrack: {flexDirection: 'row', alignItems: 'center', gap: 8},
   playerBar: {flex: 1, height: 4, borderRadius: 999, overflow: 'hidden'},
   playerFill: {height: '100%', borderRadius: 999},
@@ -1414,6 +1623,19 @@ const styles = StyleSheet.create({
   mastheadStat: {borderRadius: 15, paddingHorizontal: 14, paddingVertical: 10, alignItems: 'center'},
   mastheadValue: {fontSize: 22, fontWeight: '700'},
   mastheadStatLabel: {fontSize: 11},
+  primaryTabs: {flexDirection: 'row', gap: 4, padding: 4, borderWidth: 1, borderRadius: 999},
+  libraryStack: {gap: 14},
+  libraryHeading: {fontSize: 22, lineHeight: 28, fontWeight: '700'},
+  filterGroup: {gap: 7},
+  filterRow: {flexDirection: 'row', flexWrap: 'wrap', gap: 7},
+  filterChip: {borderWidth: 1, borderRadius: 999, paddingHorizontal: 11, paddingVertical: 7},
+  libraryCard: {padding: 0, overflow: 'hidden'},
+  libraryArtwork: {height: 112, alignItems: 'center', justifyContent: 'center'},
+  libraryBody: {padding: 16, gap: 10},
+  libraryMeta: {flexDirection: 'row', flexWrap: 'wrap', gap: 6},
+  libraryTitle: {fontSize: 19, lineHeight: 24, fontWeight: '700'},
+  libraryDescription: {fontSize: 14, lineHeight: 21},
+  libraryModes: {fontSize: 12, lineHeight: 18},
 
   listenHead: {gap: 10},
   kicker: {fontSize: 11, letterSpacing: 1.2, textTransform: 'uppercase', fontWeight: '600'},
@@ -1469,7 +1691,10 @@ const styles = StyleSheet.create({
   toolbarSub: {fontSize: 12, lineHeight: 18},
   activeForm: {paddingHorizontal: 12, gap: 10},
   activeActions: {gap: 8},
+  hintPanel: {padding: 12, borderWidth: 1, borderRadius: 12, gap: 5},
   activeResult: {paddingHorizontal: 12, gap: 6},
+  diffRow: {flexDirection: 'row', flexWrap: 'wrap', gap: 6},
+  diffChip: {borderWidth: 1, borderRadius: 8, paddingHorizontal: 7, paddingVertical: 4, fontWeight: '600'},
   activeSummary: {paddingHorizontal: 12, gap: 4},
   strong: {fontWeight: '600'},
 

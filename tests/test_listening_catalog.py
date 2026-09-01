@@ -1,0 +1,96 @@
+from __future__ import annotations
+
+from writing_coach.listening_api import listening_library, open_listening_library_lesson
+from writing_coach.listening_catalog import CATALOG, CATALOG_SOURCES, catalog_lessons
+
+
+def test_library_lists_lightweight_en_and_zh_curated_lessons() -> None:
+    assert {lesson.media_object.asset.source_language for lesson in CATALOG} == {"en", "zh"}
+    en = listening_library(language="en", level=None, topic=None, tag=None)
+    zh = listening_library(language="zh", level=None, topic=None, tag=None)
+
+    assert en["items"] and zh["items"]
+    assert "transcript" not in en["items"][0]
+    assert {section["id"] for section in en["sections"]} >= {
+        "recommended", "quick-practice", "dictation", "beginner", "new", "popular"
+    }
+    assert "conversation" in en["tags"]
+    assert en["filters"]["tags"] == en["tags"]
+    assert en["personalization"] == "deterministic-curation"
+
+
+def test_topic_and_canonical_level_filters_are_composable() -> None:
+    assert [lesson.lesson_id for lesson in catalog_lessons(language="en", level="A1", topic="daily-life")] == [
+        "en-daily-pen-in-my-bag"
+    ]
+    assert [lesson.lesson_id for lesson in catalog_lessons(language="zh", level="HSK1", topic="conversations")] == [
+        "zh-daily-what-is-this"
+    ]
+    assert catalog_lessons(language="en", level="HSK1") == ()
+
+
+def test_extensible_tag_filter_composes_with_language_and_level() -> None:
+    lessons = catalog_lessons(language="zh", level="HSK2", tag="social-life")
+    assert [lesson.lesson_id for lesson in lessons] == [
+        "zh-culture-nationalities",
+        "zh-culture-where-are-you-from",
+    ]
+    response = listening_library(language="zh", level="HSK2", topic=None, tag="quick-practice")
+    assert [item["lesson_id"] for item in response["items"]] == ["zh-culture-where-are-you-from"]
+
+
+def test_curated_lessons_resolve_to_the_same_media_lesson_contract_with_variable_duration() -> None:
+    en = open_listening_library_lesson("en-daily-pen-in-my-bag", "vi")
+    zh = open_listening_library_lesson("zh-daily-what-is-this", "en")
+
+    for lesson in (en, zh):
+        assert lesson["asset"]["asset_id"] == lesson["transcript"]["asset_id"]
+        assert lesson["playback"]["kind"] == "audio"
+        assert lesson["catalog"]["media_object_id"] == lesson["asset"]["asset_id"]
+        assert lesson["catalog"]["excerpt_end_ms"] <= lesson["asset"]["duration_ms"]
+        assert {"listen", "active", "dictation", "shadowing"} <= set(lesson["catalog"]["available_modes"])
+        assert lesson["translation"]["source"]["provider"] == "curated-editorial"
+
+    assert en["catalog"]["duration_ms"] != zh["catalog"]["duration_ms"]
+    assert zh["catalog"]["pinyin_by_segment"]
+
+
+def test_one_source_can_publish_multiple_natural_excerpts_without_copying_transcript() -> None:
+    first = open_listening_library_lesson("zh-culture-nationalities", "en")
+    second = open_listening_library_lesson("zh-culture-where-are-you-from", "en")
+
+    assert first["asset"]["asset_id"] == second["asset"]["asset_id"] == "commons-zh-lesson-1-dialogue-2"
+    assert first["catalog"]["lesson_id"] != second["catalog"]["lesson_id"]
+    assert first["catalog"]["excerpt_end_ms"] <= second["catalog"]["excerpt_start_ms"]
+    assert [segment["segment_id"] for segment in first["transcript"]["segments"]] == [
+        "commons-zh-lesson-1-dialogue-2:000",
+        "commons-zh-lesson-1-dialogue-2:001",
+    ]
+    assert [segment["segment_id"] for segment in second["transcript"]["segments"]] == [
+        "commons-zh-lesson-1-dialogue-2:002",
+        "commons-zh-lesson-1-dialogue-2:003",
+        "commons-zh-lesson-1-dialogue-2:004",
+    ]
+
+
+def test_catalog_exposes_reviewed_level_evidence_and_verified_rights() -> None:
+    assert len(CATALOG_SOURCES) == 4
+    assert len(CATALOG) == 5
+    metadata = listening_library(language="en", level="A1", topic=None, tag=None)["items"][0]
+
+    assert metadata["level"] == metadata["reviewed_level"] == "A1"
+    assert metadata["estimated_level"] == "A1"
+    assert metadata["level_source"] == "editorial-review"
+    assert metadata["level_evidence"]["vocabulary_band"] == "foundation"
+    assert metadata["source"]["rights_review_status"] == "verified"
+    assert metadata["source"]["allowed_usage_type"] == "public-domain"
+    assert metadata["source"]["provenance_url"].startswith("https://commons.wikimedia.org/")
+
+
+def test_unknown_curated_lesson_is_not_fabricated() -> None:
+    try:
+        open_listening_library_lesson("missing", "vi")
+    except Exception as exc:
+        assert getattr(exc, "status_code", None) == 404
+    else:
+        raise AssertionError("missing lesson must be rejected")

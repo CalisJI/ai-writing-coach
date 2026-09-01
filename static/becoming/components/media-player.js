@@ -7,6 +7,14 @@ const controllers=new WeakMap();
 let youtubeApiPromise=null;
 
 function playbackAdapter(playback){
+  if(playback?.kind==='audio'){
+    try{
+      const url=new URL(playback.url);
+      if(url.protocol!=='https:'||url.username||url.password||playback.provider!=='wikimedia-commons')return null;
+      if(!['commons.wikimedia.org','upload.wikimedia.org'].includes(url.hostname))return null;
+      return {kind:'audio',url:url.href,origin:url.origin,controllable:true};
+    }catch{return null;}
+  }
   if(playback?.kind!=='embed')return null;
   try{
     const url=new URL(playback.url);
@@ -19,7 +27,7 @@ function playbackAdapter(playback){
     if(typeof pageOrigin==='string'&&/^https?:\/\//.test(pageOrigin)){
       url.searchParams.set('origin',pageOrigin);
     }
-    return {url:url.href,origin:url.origin,controllable:true};
+    return {kind:'youtube',url:url.href,origin:url.origin,controllable:true};
   }catch{return null;}
 }
 
@@ -102,9 +110,15 @@ function emitClock(root,controller){
     return;
   }
   try{
-    const currentTime=Number(controller.player.getCurrentTime?.());
+    let currentTime=Number(controller.player.getCurrentTime?.());
     if(!Number.isFinite(currentTime))return;
-    const state=Number(controller.player.getPlayerState?.());
+    let state=Number(controller.player.getPlayerState?.());
+    if(Number.isFinite(controller.endMs)&&currentTime*1000>=controller.endMs&&state===1){
+      controller.player.pauseVideo?.();
+      controller.player.seekTo?.(controller.startMs/1000,true);
+      currentTime=controller.startMs/1000;
+      state=2;
+    }
     root.dataset.mediaClock='ready';
     root.dispatchEvent(new CustomEvent('orena:media-time',{
       bubbles:true,
@@ -133,7 +147,8 @@ export function connectMediaPlayer(root,playback){
   if(!(root instanceof Element))return false;
   const adapter=playbackAdapter(playback);
   const frame=root.querySelector('#listeningPlayer');
-  if(!adapter||!(frame instanceof HTMLIFrameElement)){
+  const validFrame=adapter?.kind==='audio'?frame instanceof HTMLAudioElement:frame instanceof HTMLIFrameElement;
+  if(!adapter||!validFrame){
     destroyController(root);
     return false;
   }
@@ -142,9 +157,42 @@ export function connectMediaPlayer(root,playback){
   if(existing?.frame===frame&&existing?.player)return true;
   destroyController(root);
 
-  const controller={frame,player:null,pollTimer:null};
+  const parsedStart=Number(frame.dataset.excerptStartMs);
+  const parsedEnd=Number(frame.dataset.excerptEndMs);
+  const controller={
+    frame,
+    player:null,
+    pollTimer:null,
+    startMs:Number.isFinite(parsedStart)&&parsedStart>=0?parsedStart:0,
+    endMs:Number.isFinite(parsedEnd)&&parsedEnd>parsedStart?parsedEnd:null,
+  };
   controllers.set(root,controller);
   root.dataset.mediaClock='connecting';
+
+  if(adapter.kind==='audio'){
+    controller.player={
+      getCurrentTime:()=>frame.currentTime,
+      getDuration:()=>frame.duration,
+      getPlayerState:()=>frame.paused?2:1,
+      seekTo:value=>{frame.currentTime=Math.max(0,Number(value)||0);},
+      playVideo:()=>frame.play().catch(()=>{}),
+      pauseVideo:()=>frame.pause(),
+      isMuted:()=>frame.muted,
+      mute:()=>{frame.muted=true;},
+      unMute:()=>{frame.muted=false;},
+      setPlaybackRate:value=>{frame.playbackRate=Number(value)||1;},
+      destroy:()=>{},
+    };
+    const ready=()=>{
+      if(controller.startMs>0&&Math.abs(frame.currentTime-controller.startMs/1000)>.1)frame.currentTime=controller.startMs/1000;
+      root.dataset.mediaClock='ready';startClock(root,controller);
+    };
+    frame.addEventListener('loadedmetadata',ready,{once:true});
+    frame.addEventListener('play',()=>emitClock(root,controller));
+    frame.addEventListener('pause',()=>emitClock(root,controller));
+    if(frame.readyState>=1)ready();
+    return true;
+  }
 
   ensureYouTubeIframeApi().then(YT=>{
     if(controllers.get(root)!==controller||!frame.isConnected)return;
@@ -152,6 +200,7 @@ export function connectMediaPlayer(root,playback){
       events:{
         onReady:()=>{
           if(controllers.get(root)!==controller)return;
+          if(controller.startMs>0)controller.player.seekTo(controller.startMs/1000,true);
           root.dataset.mediaClock='ready';
           startClock(root,controller);
         },
@@ -194,6 +243,7 @@ function sendCommand(root,playback,func,args=[]){
     }catch{}
   }
 
+  if(adapter.kind==='audio')return false;
   const frame=root.querySelector('#listeningPlayer');
   if(!frame?.contentWindow?.postMessage)return false;
   try{
@@ -207,10 +257,14 @@ export function playbackAvailable(playback){
   return playbackAdapter(playback)!==null;
 }
 
-export function mediaPlayer(playback,title){
+export function mediaPlayer(playback,title,{startMs=0,endMs=null}={}){
   const adapter=playbackAdapter(playback);
   if(!adapter)return '<div class="listening-player-unavailable" role="status">Playback is unavailable for this source.</div>';
-  return `<iframe id="listeningPlayer" src="${esc(adapter.url)}" title="${esc(title||'Lesson video')}" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>`;
+  const safeStart=Math.max(0,Number(startMs)||0);
+  const safeEnd=Number(endMs);
+  const bounds=`data-excerpt-start-ms="${safeStart}" ${Number.isFinite(safeEnd)&&safeEnd>safeStart?`data-excerpt-end-ms="${safeEnd}"`:''}`;
+  if(adapter.kind==='audio')return `<audio id="listeningPlayer" src="${esc(adapter.url)}" aria-label="${esc(title||'Lesson audio')}" preload="metadata" ${bounds}></audio>`;
+  return `<iframe id="listeningPlayer" src="${esc(adapter.url)}" title="${esc(title||'Lesson video')}" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen referrerpolicy="strict-origin-when-cross-origin" ${bounds}></iframe>`;
 }
 
 export function segmentPlaybackDelayMs(startMs,endMs,rate=1){
@@ -274,7 +328,13 @@ export function togglePlayback(root,playback){
   try{
     const state=Number(controller.player.getPlayerState?.());
     if(state===1)controller.player.pauseVideo();
-    else controller.player.playVideo();
+    else{
+      const current=Number(controller.player.getCurrentTime?.());
+      if(Number.isFinite(controller.endMs)&&Number.isFinite(current)&&current*1000>=controller.endMs-100){
+        controller.player.seekTo(controller.startMs/1000,true);
+      }
+      controller.player.playVideo();
+    }
     emitClock(root,controller);
     return true;
   }catch{return false;}

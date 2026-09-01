@@ -5,7 +5,7 @@
  * summary.
  */
 
-export type ListeningMode = 'follow' | 'active' | 'shadowing';
+export type ListeningMode = 'follow' | 'active' | 'dictation' | 'shadowing';
 
 /** `stamp()`: media positions read as M:SS, never as raw milliseconds. */
 export function stamp(ms: number): string {
@@ -20,7 +20,8 @@ export function stamp(ms: number): string {
  */
 export function playbackAvailable(playback: {kind?: string; provider?: string; url?: string} | undefined): boolean {
   if (!playback) return false;
-  return playback.kind === 'embed' && playback.provider === 'youtube' && /\/embed\/[A-Za-z0-9_-]{11}/.test(playback.url || '');
+  return (playback.kind === 'embed' && playback.provider === 'youtube' && /\/embed\/[A-Za-z0-9_-]{11}/.test(playback.url || ''))
+    || (playback.kind === 'audio' && playback.provider === 'wikimedia-commons' && /^https:\/\/(?:commons|upload)\.wikimedia\.org\//.test(playback.url || ''));
 }
 
 export function listeningMode(requested: ListeningMode, playbackReady: boolean): ListeningMode {
@@ -29,13 +30,13 @@ export function listeningMode(requested: ListeningMode, playbackReady: boolean):
 
 /** listening.js's unit split: characters for zh, words elsewhere. */
 export function listeningUnits(text: string, language: string): string[] {
-  const value = String(text || '').trim();
+  const value = String(text || '').normalize('NFKC').replace(/[\u2018\u2019\u02bc]/g, "'").replace(/[\u2010-\u2015\u2212]/g, '-').replace(/\s+/gu, ' ').trim();
   if (!value) return [];
-  if (language === 'zh') return [...value.replace(/\s+/g, '')];
-  return value.toLocaleLowerCase().split(/\s+/).filter(Boolean);
+  if (language === 'zh') return (value.match(/\p{Script=Han}|[\p{L}\p{N}]+(?:['-][\p{L}\p{N}]+)*/gu) || []).map((unit) => /^\p{Script=Han}$/u.test(unit) ? unit : unit.toLocaleLowerCase('en'));
+  return value.toLocaleLowerCase('en').match(/[\p{L}\p{N}]+(?:['-][\p{L}\p{N}]+)*/gu) || [];
 }
 
-export const MAX_LISTENING_EVALUATION_UNITS = 120;
+export const MAX_LISTENING_EVALUATION_UNITS = 500;
 export const MAX_LISTENING_RECONSTRUCTION_CHARS = 2000;
 
 export type TextMatch = {accuracy_percent: number; exact: boolean};
@@ -50,21 +51,52 @@ export function textMatch(answer: string, expected: string, language: string): T
   const left = listeningUnits(answer, language);
   const right = listeningUnits(expected, language);
   if (!right.length) return {accuracy_percent: 0, exact: false};
-  const remaining = [...right];
-  let hits = 0;
-  for (const unit of left) {
-    const index = remaining.indexOf(unit);
-    if (index >= 0) { remaining.splice(index, 1); hits += 1; }
+  let previous = Array.from({length: left.length + 1}, (_, index) => index);
+  for (let row = 1; row <= right.length; row += 1) {
+    const current = [row];
+    for (let column = 1; column <= left.length; column += 1) {
+      current[column] = Math.min(previous[column]! + 1, current[column - 1]! + 1, previous[column - 1]! + (right[row - 1] === left[column - 1] ? 0 : 1));
+    }
+    previous = current;
   }
-  const accuracy = Math.round((hits / right.length) * 100);
-  const exact = left.length === right.length && left.every((unit, index) => unit === right[index]);
-  return {accuracy_percent: exact ? 100 : Math.min(accuracy, 99), exact};
+  const distance = previous[left.length]!;
+  const denominator = Math.max(right.length, left.length);
+  return {accuracy_percent: Math.round(Math.max(0, Math.min(1, 1 - distance / denominator)) * 100), exact: distance === 0};
+}
+
+export type ReconstructionDiff = {status: 'correct' | 'missing' | 'wrong' | 'extra'; expected: string; actual: string};
+
+export function reconstructionDiff(answer: string, expected: string, language: string): ReconstructionDiff[] {
+  const actual = listeningUnits(answer, language);
+  const canonical = listeningUnits(expected, language);
+  const common = Array.from({length: canonical.length + 1}, () => Array(actual.length + 1).fill(0));
+  for (let row = canonical.length - 1; row >= 0; row -= 1) for (let column = actual.length - 1; column >= 0; column -= 1) {
+    common[row]![column] = canonical[row] === actual[column] ? common[row + 1]![column + 1]! + 1 : Math.max(common[row + 1]![column]!, common[row]![column + 1]!);
+  }
+  const raw: ReconstructionDiff[] = [];
+  let row = 0, column = 0;
+  while (row < canonical.length || column < actual.length) {
+    if (row < canonical.length && column < actual.length && canonical[row] === actual[column]) { raw.push({status: 'correct', expected: canonical[row]!, actual: actual[column]!}); row += 1; column += 1; continue; }
+    if (row < canonical.length && (column >= actual.length || common[row + 1]![column]! >= common[row]![column + 1]!)) { raw.push({status: 'missing', expected: canonical[row]!, actual: ''}); row += 1; continue; }
+    raw.push({status: 'extra', expected: '', actual: actual[column]!}); column += 1;
+  }
+  const aligned: ReconstructionDiff[] = [];
+  for (let index = 0; index < raw.length; index += 1) {
+    const current = raw[index]!, next = raw[index + 1];
+    if (next && current.status !== next.status && (current.status === 'missing' || current.status === 'extra') && (next.status === 'missing' || next.status === 'extra')) {
+      const missing = current.status === 'missing' ? current : next;
+      const extra = current.status === 'extra' ? current : next;
+      aligned.push({status: 'wrong', expected: missing.expected, actual: extra.actual}); index += 1;
+    } else aligned.push(current);
+  }
+  return aligned;
 }
 
 export type SegmentPractice = {
   presentation: 'checked' | 'revealed';
   draft: string;
   attempts: {answer: string; result: TextMatch}[];
+  hint_level?: number;
 };
 
 export type PracticeSummary = {

@@ -1,5 +1,50 @@
 # Current Handoff
 
+## Listening Library first vertical slice (2026-09-02)
+
+Listening is now content-first on `claude/integration-v2`: Discover/Library is
+the primary web and native entry, while learner URL import remains under My
+Media. A versioned, validated catalog manifest separates four canonical source
+media objects from five published EN/ZH excerpt lessons; one Chinese source
+proves the one-source-to-many-lessons relationship. Every lesson carries
+verified rights/provenance, natural excerpt bounds, estimated and optional
+reviewed level evidence, extensible topic/tags, and practice-mode metadata.
+Only rights-reviewed `PUBLISHED` lessons enter the learner catalog. Opening
+either curated or imported media resolves to the same canonical Media Learning
+payload and Listening workspace.
+
+Listen, Active Listening, language-aware Dictation feedback and progressive
+hints, direct next-segment progression, difficult-word saving to the existing
+Library / Active Recall contract, Shadowing/Speaking handoff, durable progress,
+and device-local lesson/mode/segment resume all reuse the shared asset and
+segment identity. Curated starter media is sourced from Wikimedia Commons: VOA
+public-domain English, CC BY-SA English, public-domain Chinese, and CC BY-SA
+Chinese audio. Their source page, creator, license, allowed-use statement, and
+rights-review status remain visible in catalog metadata.
+
+Local evidence currently passes: the full 692-test backend suite (including 50
+focused Media Learning/Listening tests), the Listening/Active/Shadowing web
+contract batch, the 53-module browser ESM graph, native strict typecheck, and
+the full 346-test native suite. Native lint has zero errors and one pre-existing
+Reading hook warning outside this change. The correct integration QA runtime is
+the local-auth Orena shell at `http://127.0.0.1:8011/#/listen`; scoped Listening
+files were synchronized without touching `/app/data`, and the existing
+container was restarted. Health/readiness, the catalog endpoint, exact frontend
+asset parity, Discover-first rendering, level/topic/tag filtering, EN and ZH
+curated lessons, light/dark presentation, and EN/ZH Dictation normalization,
+feedback, Next, and Shadow actions were verified in the browser. Full mobile
+responsive and real-device visual acceptance remains a human gate. This
+standalone 8011 container currently reports durable Listening progress as
+unavailable and keeps the active practice on-device; the PostgreSQL-backed
+progress contract remains covered by automated tests but is not runtime-
+validated on 8011. No production/provider operation was performed.
+
+This slice does not change schema, PostgreSQL authority, frontend version,
+provider routing, production activation, deployment, content publication, or
+R11 public-promotion status. Authenticated EN/ZH desktop/mobile light/dark
+visual acceptance, broad catalog/licensing approval, and real-device native QA
+remain pending human gates.
+
 ## Server-managed provider credential flow
 
 Admin now supports same-origin connection testing, encrypted server-side save,

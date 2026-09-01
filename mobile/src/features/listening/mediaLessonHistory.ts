@@ -18,11 +18,12 @@ const MAX_PER_LANGUAGE = 6;
 const MAX_AGE_MS = 90 * 24 * 60 * 60 * 1000;
 
 export const mediaLessonSchema = z.object({
-  source_url: z.string().min(1).max(400),
+  source_url: z.string().max(400).default(''),
+  lesson_id: z.string().max(128).default(''),
   title: z.string().max(160).default(''),
   provider: z.string().max(40).default(''),
   selected_segment_id: z.string().max(255).default(''),
-  mode: z.enum(['follow', 'active', 'shadowing']).default('follow'),
+  mode: z.enum(['follow', 'active', 'dictation', 'shadowing']).default('follow'),
   saved_at: z.number(),
 }).strip();
 
@@ -37,7 +38,7 @@ export const secureMediaLessonStorage: KeyValueStorage = {
 };
 
 const languageKey = (value: string) => value.trim().toLowerCase();
-const usable = (entry: MediaLessonEntry, now: number) => Number.isFinite(entry.saved_at) && now - entry.saved_at <= MAX_AGE_MS;
+const usable = (entry: MediaLessonEntry, now: number) => Boolean(entry.source_url || entry.lesson_id) && Number.isFinite(entry.saved_at) && now - entry.saved_at <= MAX_AGE_MS;
 
 async function readAll(storage: KeyValueStorage): Promise<Record<string, unknown[]>> {
   try {
@@ -66,26 +67,28 @@ export async function listMediaLessons(learningLanguage: string, storage: KeyVal
  * bare URL, so the previous entry's values survive an emptier one.
  */
 export async function rememberMediaLesson(
-  entry: {learning_language: string; source_url: string; title?: string; provider?: string; selected_segment_id?: string; mode?: MediaLessonEntry['mode']},
+  entry: {learning_language: string; source_url?: string; lesson_id?: string; title?: string; provider?: string; selected_segment_id?: string; mode?: MediaLessonEntry['mode']},
   storage: KeyValueStorage = secureMediaLessonStorage,
   now: number = Date.now(),
 ): Promise<boolean> {
   const key = languageKey(entry.learning_language);
   const url = (entry.source_url || '').trim().slice(0, 400);
-  if (!key || !url) return false;
+  const lessonId = (entry.lesson_id || '').trim().slice(0, 128);
+  if (!key || (!url && !lessonId)) return false;
   try {
     const all = await readAll(storage);
     const existing = parseEntries(all[key], now);
-    const previous = existing.find((item) => item.source_url === url);
+    const previous = existing.find((item) => lessonId ? item.lesson_id === lessonId : !item.lesson_id && item.source_url === url);
     const next: MediaLessonEntry = mediaLessonSchema.parse({
       source_url: url,
+      lesson_id: lessonId,
       title: (entry.title || '').trim().slice(0, 160) || previous?.title || '',
       provider: (entry.provider || '').trim().slice(0, 40) || previous?.provider || '',
       selected_segment_id: (entry.selected_segment_id || '').trim().slice(0, 255) || previous?.selected_segment_id || '',
       mode: entry.mode || previous?.mode || 'follow',
       saved_at: now,
     });
-    all[key] = [next, ...existing.filter((item) => item.source_url !== url)].slice(0, MAX_PER_LANGUAGE);
+    all[key] = [next, ...existing.filter((item) => lessonId ? item.lesson_id !== lessonId : item.lesson_id || item.source_url !== url)].slice(0, MAX_PER_LANGUAGE);
     await storage.setItem(STORAGE_KEY, JSON.stringify(all));
     return true;
   } catch {

@@ -130,6 +130,14 @@ export const api={
     headers:JSON_HEADERS,
     body:JSON.stringify({...payload,compact:true}),
   }),
+  listeningLibrary:(language,filters={})=>{
+    const params=new URLSearchParams({language:String(language||'')});
+    if(filters.level)params.set('level',String(filters.level));
+    if(filters.topic)params.set('topic',String(filters.topic));
+    if(filters.tag)params.set('tag',String(filters.tag));
+    return request(`/api/listening/library?${params.toString()}`);
+  },
+  listeningLibraryLesson:(lessonId,targetLanguage)=>request(`/api/listening/library/${encodeURIComponent(lessonId)}?target_language=${encodeURIComponent(targetLanguage||'vi')}`),
   annotateMediaText:(payload)=>request('/api/media-learning/annotate',{
     method:'POST',
     headers:JSON_HEADERS,

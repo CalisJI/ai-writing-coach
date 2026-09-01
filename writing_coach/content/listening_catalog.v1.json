@@ -1,0 +1,279 @@
+{
+  "schema_version": 1,
+  "sources": [
+    {
+      "source_media_id": "commons-voa-anna-pen",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Anna,_do_you_have_a_pen.ogg",
+      "source_provider": "wikimedia-commons",
+      "source_type": "licensed-audio",
+      "source_title": "Anna, do you have a pen?",
+      "source_creator": "VOA Learning English",
+      "language": "en",
+      "duration_ms": 8547,
+      "playback": {
+        "provider": "wikimedia-commons",
+        "kind": "audio",
+        "url": "https://commons.wikimedia.org/wiki/Special:Redirect/file/Anna,_do_you_have_a_pen.ogg"
+      },
+      "rights": {
+        "license_name": "Public Domain Mark 1.0",
+        "license_url": "https://creativecommons.org/publicdomain/mark/1.0/",
+        "provenance_url": "https://commons.wikimedia.org/wiki/File:Anna,_do_you_have_a_pen.ogg",
+        "allowed_usage_type": "public-domain",
+        "review_status": "verified"
+      },
+      "segments": [
+        {
+          "segment_id": "commons-voa-anna-pen:000",
+          "start_ms": 517,
+          "end_ms": 2336,
+          "original_text": "Anna, do you have a pen?",
+          "translations": {
+            "vi": "Anna, b\u1ea1n c\u00f3 b\u00fat kh\u00f4ng?",
+            "zh": "\u5b89\u5a1c\uff0c\u4f60\u6709\u7b14\u5417\uff1f"
+          }
+        },
+        {
+          "segment_id": "commons-voa-anna-pen:001",
+          "start_ms": 3581,
+          "end_ms": 7885,
+          "original_text": "Yes. I have a pen in my bag.",
+          "translations": {
+            "vi": "C\u00f3. M\u00ecnh c\u00f3 m\u1ed9t c\u00e2y b\u00fat trong t\u00fai.",
+            "zh": "\u6709\u3002\u6211\u7684\u5305\u91cc\u6709\u4e00\u652f\u7b14\u3002"
+          }
+        }
+      ]
+    },
+    {
+      "source_media_id": "commons-taxi-dialogue-1",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Dialogue1.ogg",
+      "source_provider": "wikimedia-commons",
+      "source_type": "licensed-audio",
+      "source_title": "Taxi Language dialogue 1",
+      "source_creator": "Ferenc6 / Taxi Language Wikibook",
+      "language": "en",
+      "duration_ms": 71138,
+      "playback": {
+        "provider": "wikimedia-commons",
+        "kind": "audio",
+        "url": "https://commons.wikimedia.org/wiki/Special:Redirect/file/Dialogue1.ogg"
+      },
+      "rights": {
+        "license_name": "CC BY-SA 4.0",
+        "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+        "provenance_url": "https://commons.wikimedia.org/wiki/File:Dialogue1.ogg",
+        "allowed_usage_type": "creative-commons-attribution-sharealike",
+        "review_status": "verified"
+      },
+      "segments": [
+        {
+          "segment_id": "commons-taxi-dialogue-1:000",
+          "start_ms": 0,
+          "end_ms": 71138,
+          "original_text": "Oh no! It's raining! Taxi! Taxi! I need a taxi. Taxi! Taxi! Oh no, I'm in a hurry! I'm going to be late! Taxi! Taxi! It's eight o'clock already. Taxi! Taxi! I see you're in a hurry. Do you need a taxi? Yes, I'm really late. I need a taxi. Taxi! Phew! Thanks a lot. You're welcome.",
+          "translations": {
+            "vi": "\u00d4i kh\u00f4ng, tr\u1eddi \u0111ang m\u01b0a! Taxi! T\u00f4i c\u1ea7n m\u1ed9t chi\u1ebfc taxi. T\u00f4i \u0111ang v\u1ed9i v\u00e0 s\u1eafp mu\u1ed9n. \u0110\u00e3 t\u00e1m gi\u1edd r\u1ed3i. B\u1ea1n c\u00f3 c\u1ea7n taxi kh\u00f4ng? C\u00f3, t\u00f4i mu\u1ed9n th\u1eadt r\u1ed3i. C\u1ea3m \u01a1n r\u1ea5t nhi\u1ec1u. Kh\u00f4ng c\u00f3 g\u00ec.",
+            "zh": "\u7cdf\u4e86\uff0c\u4e0b\u96e8\u4e86\uff01\u51fa\u79df\u8f66\uff01\u6211\u9700\u8981\u4e00\u8f86\u51fa\u79df\u8f66\u3002\u6211\u5f88\u7740\u6025\uff0c\u8981\u8fdf\u5230\u4e86\u3002\u5df2\u7ecf\u516b\u70b9\u4e86\u3002\u4f60\u9700\u8981\u51fa\u79df\u8f66\u5417\uff1f\u662f\u7684\uff0c\u6211\u771f\u7684\u8fdf\u5230\u4e86\u3002\u975e\u5e38\u611f\u8c22\u3002\u4e0d\u5ba2\u6c14\u3002"
+          }
+        }
+      ]
+    },
+    {
+      "source_media_id": "commons-zh-lesson-7-dialogue-1",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Chinese-lesson-7-dialogue-1.ogg",
+      "source_provider": "wikimedia-commons",
+      "source_type": "licensed-audio",
+      "source_title": "Chinese lesson 7 dialogue 1",
+      "source_creator": "Supernaturalist / English Wikibooks",
+      "language": "zh",
+      "duration_ms": 12098,
+      "playback": {
+        "provider": "wikimedia-commons",
+        "kind": "audio",
+        "url": "https://commons.wikimedia.org/wiki/Special:Redirect/file/Chinese-lesson-7-dialogue-1.ogg"
+      },
+      "rights": {
+        "license_name": "Public domain dedication",
+        "license_url": "https://creativecommons.org/publicdomain/mark/1.0/",
+        "provenance_url": "https://commons.wikimedia.org/wiki/File:Chinese-lesson-7-dialogue-1.ogg",
+        "allowed_usage_type": "public-domain",
+        "review_status": "verified"
+      },
+      "segments": [
+        {
+          "segment_id": "commons-zh-lesson-7-dialogue-1:000",
+          "start_ms": 0,
+          "end_ms": 12098,
+          "original_text": "\u738b\u660e\uff1a\u8fd9\u662f\u4ec0\u4e48\uff1f\u674e\u7ea2\uff1a\u8fd9\u662f\u4e66\u3002\u738b\u660e\uff1a\u90a3\u662f\u4ec0\u4e48\uff1f\u674e\u7ea2\uff1a\u90a3\u662f\u94a2\u7b14\u3002\u738b\u660e\uff1a\u90a3\u662f\u6742\u5fd7\u5417\uff1f\u674e\u7ea2\uff1a\u4e0d\uff0c\u90a3\u4e0d\u662f\u6742\u5fd7\u3002\u90a3\u662f\u5b57\u5178\u3002",
+          "pinyin": "W\u00e1ng M\u00edng: Zh\u00e8 sh\u00ec sh\u00e9nme? L\u01d0 H\u00f3ng: Zh\u00e8 sh\u00ec sh\u016b. W\u00e1ng M\u00edng: N\u00e0 sh\u00ec sh\u00e9nme? L\u01d0 H\u00f3ng: N\u00e0 sh\u00ec g\u0101ngb\u01d0. W\u00e1ng M\u00edng: N\u00e0 sh\u00ec z\u00e1zh\u00ec ma? L\u01d0 H\u00f3ng: B\u00f9, n\u00e0 b\u00fa sh\u00ec z\u00e1zh\u00ec. N\u00e0 sh\u00ec z\u00ecdi\u01cen.",
+          "translations": {
+            "vi": "V\u01b0\u01a1ng Minh: \u0110\u00e2y l\u00e0 g\u00ec? L\u00fd H\u1ed3ng: \u0110\u00e2y l\u00e0 s\u00e1ch. Kia l\u00e0 g\u00ec? Kia l\u00e0 b\u00fat m\u00e1y. Kia l\u00e0 t\u1ea1p ch\u00ed \u00e0? Kh\u00f4ng, \u0111\u00f3 kh\u00f4ng ph\u1ea3i t\u1ea1p ch\u00ed. \u0110\u00f3 l\u00e0 t\u1eeb \u0111i\u1ec3n.",
+            "en": "Wang Ming: What's this? Li Hong: This is a book. What's that? That's a pen. Is that a magazine? No, that's not a magazine. That's a dictionary."
+          }
+        }
+      ]
+    },
+    {
+      "source_media_id": "commons-zh-lesson-1-dialogue-2",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Chinese-Lesson1-Dialogue2.ogg",
+      "source_provider": "wikimedia-commons",
+      "source_type": "licensed-audio",
+      "source_title": "Chinese lesson 1 dialogue 2",
+      "source_creator": "Deranged physicist / English Wikibooks",
+      "language": "zh",
+      "duration_ms": 21119,
+      "playback": {
+        "provider": "wikimedia-commons",
+        "kind": "audio",
+        "url": "https://commons.wikimedia.org/wiki/Special:Redirect/file/Chinese-Lesson1-Dialogue2.ogg"
+      },
+      "rights": {
+        "license_name": "CC BY-SA 3.0",
+        "license_url": "https://creativecommons.org/licenses/by-sa/3.0/",
+        "provenance_url": "https://commons.wikimedia.org/wiki/File:Chinese-Lesson1-Dialogue2.ogg",
+        "allowed_usage_type": "creative-commons-attribution-sharealike",
+        "review_status": "verified"
+      },
+      "segments": [
+        {
+          "segment_id": "commons-zh-lesson-1-dialogue-2:000",
+          "start_ms": 415,
+          "end_ms": 1364,
+          "original_text": "\u91d1\u59ae\uff1a\u4ed6\u4eec\u662f\u8c01\uff1f",
+          "pinyin": "J\u012bnn\u00ed: T\u0101men sh\u00ec sh\u00e9i?",
+          "translations": {"vi": "Ginny: H\u1ecd l\u00e0 ai?", "en": "Ginny: Who are they?"}
+        },
+        {
+          "segment_id": "commons-zh-lesson-1-dialogue-2:001",
+          "start_ms": 2864,
+          "end_ms": 7924,
+          "original_text": "\u6b27\u6587\uff1a\u5979\u662f\u827e\u7f8e\uff0c\u5979\u662f\u4e2d\u56fd\u4eba\u3002\u4ed6\u662f\u4e1c\u5c3c\uff0c\u4ed6\u662f\u7f8e\u56fd\u4eba\u3002",
+          "pinyin": "\u014cuw\u00e9n: T\u0101 sh\u00ec \u00c0im\u011bi, t\u0101 sh\u00ec Zh\u014dnggu\u00f3r\u00e9n. T\u0101 sh\u00ec D\u014dngn\u00ed, t\u0101 sh\u00ec M\u011bigu\u00f3r\u00e9n.",
+          "translations": {"vi": "Owen: C\u00f4 \u1ea5y l\u00e0 Amy, ng\u01b0\u1eddi Trung Qu\u1ed1c. Anh \u1ea5y l\u00e0 Tony, ng\u01b0\u1eddi M\u1ef9.", "en": "Owen: She is Amy, and she is Chinese. He is Tony, and he is American."}
+        },
+        {
+          "segment_id": "commons-zh-lesson-1-dialogue-2:002",
+          "start_ms": 10018,
+          "end_ms": 11627,
+          "original_text": "\u91d1\u59ae\uff1a\u4f60\u4e5f\u662f\u7f8e\u56fd\u4eba\u5417\uff1f",
+          "pinyin": "J\u012bnn\u00ed: N\u01d0 y\u011b sh\u00ec M\u011bigu\u00f3r\u00e9n ma?",
+          "translations": {"vi": "Ginny: B\u1ea1n c\u0169ng l\u00e0 ng\u01b0\u1eddi M\u1ef9 \u00e0?", "en": "Ginny: Are you also American?"}
+        },
+        {
+          "segment_id": "commons-zh-lesson-1-dialogue-2:003",
+          "start_ms": 12994,
+          "end_ms": 18115,
+          "original_text": "\u6b27\u6587\uff1a\u4e0d\u662f\uff0c\u6211\u662f\u82f1\u56fd\u4eba\u3002\u4f60\u5462\uff1f\u4f60\u662f\u54ea\u56fd\u4eba\uff1f",
+          "pinyin": "\u014cuw\u00e9n: B\u00fa sh\u00ec, w\u01d2 sh\u00ec Y\u012bnggu\u00f3r\u00e9n. N\u01d0 ne? N\u01d0 sh\u00ec n\u01ce gu\u00f3 r\u00e9n?",
+          "translations": {"vi": "Owen: Kh\u00f4ng, t\u00f4i l\u00e0 ng\u01b0\u1eddi Anh. C\u00f2n b\u1ea1n? B\u1ea1n l\u00e0 ng\u01b0\u1eddi n\u01b0\u1edbc n\u00e0o?", "en": "Owen: No, I'm British. How about you? What nationality are you?"}
+        },
+        {
+          "segment_id": "commons-zh-lesson-1-dialogue-2:004",
+          "start_ms": 19661,
+          "end_ms": 20637,
+          "original_text": "\u91d1\u59ae\uff1a\u6211\u662f\u6cd5\u56fd\u4eba\u3002",
+          "pinyin": "J\u012bnn\u00ed: W\u01d2 sh\u00ec F\u01cegu\u00f3r\u00e9n.",
+          "translations": {"vi": "Ginny: T\u00f4i l\u00e0 ng\u01b0\u1eddi Ph\u00e1p.", "en": "Ginny: I'm French."}
+        }
+      ]
+    }
+  ],
+  "lessons": [
+    {
+      "lesson_id": "en-daily-pen-in-my-bag",
+      "source_media_id": "commons-voa-anna-pen",
+      "excerpt_start_ms": 0,
+      "excerpt_end_ms": 8547,
+      "title": "A pen in my bag",
+      "description": "A quick everyday exchange about finding a pen.",
+      "topic": "daily-life",
+      "subtopics": ["conversations", "objects"],
+      "tags": ["conversation", "daily-life", "quick-practice", "education"],
+      "estimated_level": "A1",
+      "reviewed_level": "A1",
+      "level_evidence": {"vocabulary_band": "foundation", "sentence_complexity": "simple-questions-and-statements", "speech_speed": "slow", "review_note": "Common concrete nouns and present-simple question/answer pattern."},
+      "available_modes": ["listen", "active", "dictation", "shadowing"],
+      "status": "PUBLISHED",
+      "artwork": "daily-life",
+      "vocabulary": ["pen", "bag"],
+      "sections": ["recommended", "quick-practice", "dictation", "beginner", "new"]
+    },
+    {
+      "lesson_id": "en-travel-rainy-day-taxi",
+      "source_media_id": "commons-taxi-dialogue-1",
+      "excerpt_start_ms": 0,
+      "excerpt_end_ms": 71138,
+      "title": "A rainy day taxi",
+      "description": "A lively exchange about finding a taxi before work.",
+      "topic": "travel",
+      "subtopics": ["conversations", "work"],
+      "tags": ["conversation", "travel", "work", "story"],
+      "estimated_level": "A2",
+      "reviewed_level": "A2",
+      "level_evidence": {"vocabulary_band": "high-frequency", "sentence_complexity": "short-connected-utterances", "speech_speed": "natural", "review_note": "Repeated high-frequency phrases with time pressure and connected dialogue."},
+      "available_modes": ["listen", "active", "shadowing"],
+      "status": "PUBLISHED",
+      "artwork": "travel",
+      "vocabulary": ["in a hurry", "late", "taxi"],
+      "sections": ["recommended", "beginner", "popular", "new"]
+    },
+    {
+      "lesson_id": "zh-daily-what-is-this",
+      "source_media_id": "commons-zh-lesson-7-dialogue-1",
+      "excerpt_start_ms": 0,
+      "excerpt_end_ms": 12098,
+      "title": "\u8fd9\u662f\u4ec0\u4e48\uff1f",
+      "description": "\u901a\u8fc7\u4e00\u6bb5\u77ed\u5bf9\u8bdd\u7ec3\u4e60\u201c\u8fd9\u662f\u4ec0\u4e48\u201d\u548c\u201c\u90a3\u662f\u4ec0\u4e48\u201d\u3002",
+      "topic": "conversations",
+      "subtopics": ["daily-life", "objects"],
+      "tags": ["conversation", "daily-life", "quick-practice", "education"],
+      "estimated_level": "HSK1",
+      "reviewed_level": "HSK1",
+      "level_evidence": {"vocabulary_band": "hsk-foundation", "sentence_complexity": "demonstrative-identification", "speech_speed": "slow", "review_note": "Concrete classroom objects and repeated \u8fd9/\u90a3 + \u662f pattern."},
+      "available_modes": ["listen", "active", "dictation", "shadowing"],
+      "status": "PUBLISHED",
+      "artwork": "conversations",
+      "vocabulary": ["\u94a2\u7b14", "\u6742\u5fd7", "\u5b57\u5178"],
+      "sections": ["recommended", "quick-practice", "dictation", "beginner", "new"]
+    },
+    {
+      "lesson_id": "zh-culture-nationalities",
+      "source_media_id": "commons-zh-lesson-1-dialogue-2",
+      "excerpt_start_ms": 0,
+      "excerpt_end_ms": 8385,
+      "title": "\u4ed6\u4eec\u662f\u8c01\uff1f",
+      "description": "\u542c\u4e00\u6bb5\u4ecb\u7ecd\u670b\u53cb\u548c\u56fd\u7c4d\u7684\u81ea\u7136\u5bf9\u8bdd\u3002",
+      "topic": "culture",
+      "subtopics": ["conversations", "social-life"],
+      "tags": ["conversation", "culture", "social-life"],
+      "estimated_level": "HSK2",
+      "reviewed_level": "HSK2",
+      "level_evidence": {"vocabulary_band": "hsk-basic", "sentence_complexity": "linked-identification", "speech_speed": "natural", "review_note": "Introductions combine pronouns, names, and nationality nouns in connected speech."},
+      "available_modes": ["listen", "active", "dictation", "shadowing"],
+      "status": "PUBLISHED",
+      "artwork": "culture",
+      "vocabulary": ["\u4ed6\u4eec", "\u4e2d\u56fd\u4eba", "\u7f8e\u56fd\u4eba"],
+      "sections": ["recommended", "dictation", "beginner", "new"]
+    },
+    {
+      "lesson_id": "zh-culture-where-are-you-from",
+      "source_media_id": "commons-zh-lesson-1-dialogue-2",
+      "excerpt_start_ms": 10018,
+      "excerpt_end_ms": 21119,
+      "title": "\u4f60\u662f\u54ea\u56fd\u4eba\uff1f",
+      "description": "\u7ec3\u4e60\u8be2\u95ee\u548c\u56de\u7b54\u56fd\u7c4d\uff0c\u7136\u540e\u63a5\u7740\u8ddf\u8bfb\u3002",
+      "topic": "culture",
+      "subtopics": ["conversations", "social-life"],
+      "tags": ["conversation", "culture", "social-life", "quick-practice"],
+      "estimated_level": "HSK2",
+      "reviewed_level": "HSK2",
+      "level_evidence": {"vocabulary_band": "hsk-basic", "sentence_complexity": "question-answer-sequence", "speech_speed": "natural", "review_note": "Short nationality question-and-answer sequence with \u4e5f, \u5417, and \u5462."},
+      "available_modes": ["listen", "active", "dictation", "shadowing"],
+      "status": "PUBLISHED",
+      "artwork": "culture",
+      "vocabulary": ["\u82f1\u56fd\u4eba", "\u6cd5\u56fd\u4eba", "\u54ea\u56fd\u4eba"],
+      "sections": ["recommended", "quick-practice", "dictation", "beginner", "new"]
+    }
+  ]
+}

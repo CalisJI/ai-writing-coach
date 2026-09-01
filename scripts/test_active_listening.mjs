@@ -3,7 +3,9 @@ import {
   MAX_LISTENING_EVALUATION_UNITS,
   MAX_LISTENING_RECONSTRUCTION_CHARS,
   createListeningPracticeSession,
+  advanceListeningPracticeHint,
   evaluateListeningReconstruction,
+  listeningReconstructionDiff,
   listeningPracticeSummary,
   listeningUnits,
   recordListeningPracticeAttempt,
@@ -32,6 +34,8 @@ assert.ok(evaluate('zh','\u6211\u4eec\u4e00\u8d77\u7ec3\u4e60','\u6211\u4eec\u4e
 assert.ok(evaluate('zh','\u6211\u4eec\u7ec3\u4e60\u542c\u529b','\u4f60\u4eec\u7ec3\u4e60\u542c\u529b').accuracy_percent<100);
 assert.deepEqual(listeningUnits('\u6211\u7528 GPT-4 \u5b66\u4e60 123','zh'),['\u6211','\u7528','gpt-4','\u5b66','\u4e60','123']);
 assert.deepEqual(evaluate('zh','\u6211\u7528 GPT-4 \u5b66\u4e60 123','\u6211\u7528 GPT-4 \u5b66\u4e60 123'),evaluate('zh','\u6211\u7528 GPT-4 \u5b66\u4e60 123','\u6211\u7528 GPT-4 \u5b66\u4e60 123'));
+assert.deepEqual(listeningReconstructionDiff({source_language:'en',expected:'Take the train home.',answer:'Take train safely home'}).map(item=>item.status),['correct','missing','correct','extra','correct']);
+assert.deepEqual(listeningReconstructionDiff({source_language:'zh',expected:'\u6211\u4eca\u5929\u5f88\u597d\u3002',answer:'\u6211 \u4eca\u5929 \u597d'}).map(item=>item.status),['correct','correct','correct','missing','correct']);
 
 assert.throws(()=>evaluate('en','Expected text','   '),error=>error.code==='answer_empty');
 assert.throws(()=>evaluate('en','Expected text','x'.repeat(MAX_LISTENING_RECONSTRUCTION_CHARS+1)),error=>error.code==='answer_too_large');
@@ -46,6 +50,9 @@ assert.equal(session.asset_id,'asset-a');
 assert.equal(session.current_segment_id,'segment-1');
 assert.doesNotMatch(JSON.stringify(session),/Canonical transcript answer/);
 assert.deepEqual(Object.keys(session.segments),['segment-1','segment-2']);
+assert.equal(advanceListeningPracticeHint(session),1);
+assert.equal(advanceListeningPracticeHint(session),2);
+assert.equal(session.segments['segment-1'].hint_level,2);
 
 assert.equal(setListeningPracticeDraft(session,'Canonical transcript answer'),true);
 const first=evaluate('en','Canonical transcript answer','Canonical transcript answer');

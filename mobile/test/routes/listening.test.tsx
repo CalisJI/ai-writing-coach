@@ -48,6 +48,9 @@ const mockLearnerProfile = {isPending: false, isError: false, data: {exists: tru
 const mockProgress = {isPending: false, isError: false, data: {items: []}};
 const mockMediaStatus = {data: undefined as {state?: {status: string; resumable: boolean; resumeHandle?: string}} | undefined, force: () => {}};
 const mockMediaStore = {read: jest.fn(), persist: jest.fn(), clear: jest.fn()};
+const mockListeningLibrary = jest.fn().mockResolvedValue({api_version: 1, language: 'en', items: [], topics: [], sections: [], filters: {languages: ['en', 'zh'], levels: [], topics: []}});
+const mockListeningLibraryLesson = jest.fn();
+const mockClient = {listeningLibrary: mockListeningLibrary, listeningLibraryLesson: mockListeningLibraryLesson};
 const lesson = {
   asset: {asset_id: 'asset-en-1', source_url: 'https://youtu.be/example', source_provider: 'youtube', source_type: 'video', title: 'A short lesson', source_language: 'en', processing_state: 'ready', duration_ms: 12000, transcript_available: true, translation_available: true},
   playback: {provider: 'youtube', kind: 'embed', url: 'https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ'},
@@ -55,8 +58,14 @@ const lesson = {
   translations: [],
 };
 
-// The studio's recorder is injected; this only keeps expo-audio loadable under jest.
-jest.mock('expo-audio', () => ({AudioModule: {}, RecordingPresets: {LOW_QUALITY: {}}, createAudioPlayer: jest.fn(), getRecordingPermissionsAsync: jest.fn(), requestRecordingPermissionsAsync: jest.fn(), setAudioModeAsync: jest.fn()}));
+// The studio's recorder is injected; these player hooks keep the curated-audio
+// adapter deterministic without touching a device audio session.
+jest.mock('expo-audio', () => ({
+  AudioModule: {}, RecordingPresets: {LOW_QUALITY: {}}, createAudioPlayer: jest.fn(),
+  getRecordingPermissionsAsync: jest.fn(), requestRecordingPermissionsAsync: jest.fn(), setAudioModeAsync: jest.fn(),
+  useAudioPlayer: () => ({seekTo: jest.fn(), play: jest.fn(), pause: jest.fn(), muted: false, playbackRate: 1}),
+  useAudioPlayerStatus: () => ({playing: false, currentTime: 0, duration: 0}),
+}));
 jest.mock('expo-router', () => ({useRouter: () => mockRouter, useLocalSearchParams: () => ({})}));
 jest.mock('../../src/auth/SessionHarness', () => ({useSession: () => ({session: {status: mockCookie ? 'authenticated' : 'signed-out', source: 'server'}, sessionCookie: mockCookie})}));
 jest.mock('../../src/api/client', () => ({createConfiguredApiClient: () => ({}), ApiClient: class {}}));
@@ -86,9 +95,13 @@ jest.mock('react-native-youtube-iframe', () => {
   })};
 });
 
-const renderListening = (locale: 'en' | 'zh', storage = new MemoryKeyValueStorage(), audioService?: unknown) => {
+const renderListening = (locale: 'en' | 'zh', storage = new MemoryKeyValueStorage(), audioService?: unknown, initialView: 'discover' | 'my-media' = 'my-media') => {
   let view!: renderer.ReactTestRenderer;
-  act(() => { view = renderer.create(<I18nProvider initialLocale={locale}><ThemeProvider><ListeningScreen client={{} as never} resumeStorage={storage} mediaResumeStorage={storage} audioService={audioService as never} /></ThemeProvider></I18nProvider>); });
+  act(() => { view = renderer.create(<I18nProvider initialLocale={locale}><ThemeProvider><ListeningScreen client={mockClient as never} resumeStorage={storage} mediaResumeStorage={storage} audioService={audioService as never} /></ThemeProvider></I18nProvider>); });
+  if (mockCookie && initialView === 'my-media') act(() => {
+    const myMedia = view.root.findAll((node) => node.props.accessibilityRole === 'tab' && typeof node.props.onPress === 'function' && node.props.accessibilityState?.selected === false)[0];
+    myMedia!.props.onPress();
+  });
   return {view, storage};
 };
 
@@ -114,6 +127,8 @@ describe('native Listening R20-4 Follow/Active and resume contract', () => {
     mockMediaStore.read.mockReset().mockResolvedValue(null);
     mockMediaStore.persist.mockReset();
     mockMediaStore.clear.mockReset();
+    mockListeningLibrary.mockReset().mockResolvedValue({api_version: 1, language: 'en', items: [], topics: [], sections: [], filters: {languages: ['en', 'zh'], levels: [], topics: []}});
+    mockListeningLibraryLesson.mockReset();
     mockAppStateHandler = null;
     mockPlayerSeconds = 0;
   });
@@ -124,6 +139,30 @@ describe('native Listening R20-4 Follow/Active and resume contract', () => {
     const {view} = renderListening(locale);
     expect(view.root.findByProps({accessibilityRole: 'header'})).toBeDefined();
     expect(view.root.findAllByProps({accessibilityLabel: locale === 'en' ? 'Prepare listening lesson' : '准备听力课程'})).toHaveLength(0);
+  });
+
+  it('opens signed-in Listening on Discover instead of the URL import tool', () => {
+    mockCookie = 'cookie';
+    const {view} = renderListening('en', new MemoryKeyValueStorage(), undefined, 'discover');
+    expect(view.root.findAllByProps({children: 'Recommended for you'})).not.toHaveLength(0);
+    expect(view.root.findAllByProps({accessibilityLabel: 'Media URL'})).toHaveLength(0);
+  });
+
+  it('filters the curated library by canonical learner level and extensible tags', async () => {
+    mockCookie = 'cookie';
+    const item = (lesson_id: string, title: string, level: string, content_tags: string[]) => ({lesson_id, media_object_id: `asset-${lesson_id}`, excerpt_start_ms: 0, excerpt_end_ms: 30000, language: 'en', title, description: title, topic: 'daily-life', subtopics: [], level, duration_ms: 30000, thumbnail: '', source: {creator: 'Rights-cleared creator', provider: 'fixture'}, available_modes: ['listen', 'dictation'], published_state: 'published', content_tags});
+    mockListeningLibrary.mockResolvedValue({api_version: 1, language: 'en', items: [item('a1', 'Beginner walk', 'A1', ['conversation']), item('b2', 'Intermediate story', 'B2', ['story'])], topics: ['daily-life'], tags: ['conversation', 'story'], sections: [], filters: {languages: ['en', 'zh'], levels: ['A1', 'B2'], topics: ['daily-life'], tags: ['conversation', 'story']}});
+    const {view} = renderListening('en', new MemoryKeyValueStorage(), undefined, 'discover');
+    await act(async () => { await Promise.resolve(); await Promise.resolve(); });
+    expect(view.root.findAllByProps({children: 'Beginner walk'})).not.toHaveLength(0);
+    const b2Filter = view.root.findAll((node) => typeof node.props.onPress === 'function' && node.props.accessibilityState?.selected === false && node.findAllByProps({children: 'B2'}).length > 0)[0];
+    act(() => { b2Filter!.props.onPress(); });
+    expect(view.root.findAllByProps({children: 'Beginner walk'})).toHaveLength(0);
+    expect(view.root.findAllByProps({children: 'Intermediate story'})).not.toHaveLength(0);
+    const storyFilter = view.root.findAll((node) => typeof node.props.onPress === 'function' && node.findAllByProps({children: '#story'}).length > 0)[0];
+    act(() => { storyFilter!.props.onPress(); });
+    expect(view.root.findAllByProps({children: 'Intermediate story'})).not.toHaveLength(0);
+    expect(view.root.findAll((node) => Array.isArray(node.props.children) && node.props.children.join('') === 'Source: Rights-cleared creator')).not.toHaveLength(0);
   });
 
   it('renders server-confirmed EN segments, switches to Active, and forwards a persisted check', async () => {

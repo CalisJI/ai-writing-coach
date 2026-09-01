@@ -1,14 +1,13 @@
 import {api} from '../api.js';
 import {go} from '../router.js';
 import {state,supportLanguage} from '../store.js';
-import {esc} from '../components/primitives.js';
+import {esc,showDialog,toast} from '../components/primitives.js';
 import {connectMediaPlayer,disconnectMediaPlayer,mediaPlayer,playbackAvailable,replaySegment,seekBy,toggleMute,togglePlayback,setPlaybackRate as setMediaPlaybackRate} from '../components/media-player.js';
 import {t,uiLocale} from '../domain/i18n.js';
 import {countUnits} from '../language.js';
 import {oIcon} from '../orena/icons.js';
 import {installSelectEnhancements} from '../components/select-field.js';
 import {createLocalAudioRecorder,localAudioRecordingSupported} from '../components/audio-recorder.js';
-import {showDialog} from '../components/primitives.js';
 import {transcriptTokens} from '../domain/transcript-tokens.js';
 import {buildTranscriptDisplayUnits,displayUnitContains,displayUnitMeaning} from '../domain/transcript-display-units.js';
 import {openDictionary} from '../components/dictionary.js';
@@ -17,8 +16,10 @@ import {applyPlayingSegment} from '../components/interactive-transcript.js';
 import {
   MAX_LISTENING_EVALUATION_UNITS,
   MAX_LISTENING_RECONSTRUCTION_CHARS,
+  advanceListeningPracticeHint,
   createListeningPracticeSession,
   evaluateListeningReconstruction,
+  listeningReconstructionDiff,
   listeningPracticeSummary,
   listeningUnits,
   restoreListeningPracticeProgress,
@@ -40,6 +41,26 @@ import {clearPendingMediaImport,getPendingMediaImport,setPendingMediaImport} fro
 import {listMediaLessons,rememberMediaLesson,takeLessonAutostartContext,resumableLesson} from '../domain/media-lesson-history.js';
 import {addListenedSeconds,listenedSeconds,listeningGoals,saveListeningGoal} from '../domain/listening-habit.js';
 import {skillMasthead} from '../components/skill-masthead.js';
+
+const LIBRARY_COPY={
+  en:{purpose:'Choose something interesting and start listening now.',discover:'Discover',myMedia:'My media',recommended:'Recommended for you',quick:'Quick listening',dictation:'Dictation practice',beginner:'Beginner',newContent:'New content',topics:'Topics',allTopics:'All topics',allLevels:'All levels',open:'Start lesson',loading:'Preparing your Listening library…',empty:'No curated lessons match these filters yet.',failed:'The Listening library could not be loaded.',retry:'Try again',duration:'Duration',modes:'practice modes',addOwn:'Add your own media',addOwnLead:'Bring a supported external video into the same Listening workspace and practice modes.',backLibrary:'Back to Library',continue:'Continue learning',level:'Level',sourceRights:'Source & rights',hintCount:'Word / character count',hintFirst:'First letter / character',hintVocab:'Difficult vocabulary',hintUsed:'Hint used',correct:'Correct',missing:'Missing',wrong:'Wrong',extra:'Extra'},
+  vi:{purpose:'Chọn một nội dung thú vị và bắt đầu luyện nghe ngay.',discover:'Khám phá',myMedia:'Media của tôi',recommended:'Đề xuất cho bạn',quick:'Luyện nghe nhanh',dictation:'Luyện chính tả',beginner:'Cơ bản',newContent:'Nội dung mới',topics:'Chủ đề',allTopics:'Tất cả chủ đề',allLevels:'Mọi trình độ',open:'Bắt đầu bài',loading:'Đang chuẩn bị thư viện Listening…',empty:'Chưa có bài curated phù hợp với bộ lọc này.',failed:'Không thể tải thư viện Listening.',retry:'Thử lại',duration:'Thời lượng',modes:'chế độ luyện tập',addOwn:'Thêm media của bạn',addOwnLead:'Đưa video ngoài được hỗ trợ vào cùng workspace và các chế độ luyện nghe.',backLibrary:'Về Thư viện',continue:'Học tiếp',level:'Trình độ',sourceRights:'Nguồn & bản quyền',hintCount:'Số từ / chữ',hintFirst:'Chữ cái / chữ đầu',hintVocab:'Từ khó',hintUsed:'Đã dùng gợi ý',correct:'Đúng',missing:'Thiếu',wrong:'Sai',extra:'Thừa'},
+  zh:{purpose:'选择有趣的内容，马上开始听力练习。',discover:'发现',myMedia:'我的媒体',recommended:'为你推荐',quick:'快速听力',dictation:'听写练习',beginner:'初级',newContent:'新内容',topics:'主题',allTopics:'全部主题',allLevels:'全部等级',open:'开始课程',loading:'正在准备听力内容库…',empty:'暂时没有符合筛选条件的精选课程。',failed:'无法加载听力内容库。',retry:'重试',duration:'时长',modes:'种练习模式',addOwn:'添加自己的媒体',addOwnLead:'把受支持的外部视频导入同一个听力工作区和练习模式。',backLibrary:'返回内容库',continue:'继续学习',level:'等级',sourceRights:'来源与授权',hintCount:'词数 / 字数',hintFirst:'首字母 / 首字',hintVocab:'难词',hintUsed:'已使用提示',correct:'正确',missing:'遗漏',wrong:'错误',extra:'多余'},
+};
+Object.assign(LIBRARY_COPY.en,{tags:'Tags',allTags:'All tags',popular:'Popular',source:'Source',reviewedLevel:'Editor reviewed',correctTranscript:'Correct transcript',nextSegment:'Next segment',shadowThis:'Shadow this segment',saveWord:'Save difficult word',wordSaved:'Saved to Active Recall',saveFailed:'Could not save this word',replaySlow:'Replay slowly'});
+Object.assign(LIBRARY_COPY.vi,{tags:'Thẻ nội dung',allTags:'Tất cả thẻ',popular:'Phổ biến',source:'Nguồn',reviewedLevel:'Đã biên tập duyệt',correctTranscript:'Transcript đúng',nextSegment:'Đoạn tiếp theo',shadowThis:'Shadow đoạn này',saveWord:'Lưu từ khó',wordSaved:'Đã lưu vào Active Recall',saveFailed:'Không thể lưu từ này',replaySlow:'Nghe chậm'});
+Object.assign(LIBRARY_COPY.zh,{tags:'标签',allTags:'全部标签',popular:'热门',source:'来源',reviewedLevel:'编辑已审核',correctTranscript:'正确原文',nextSegment:'下一句',shadowThis:'跟读这一句',saveWord:'保存难词',wordSaved:'已保存到主动复习',saveFailed:'无法保存这个词',replaySlow:'慢速重听'});
+const libraryText=()=>LIBRARY_COPY[uiLocale()]||LIBRARY_COPY.en;
+const LIBRARY_TERM_LABELS={
+  en:{'daily-life':'Daily life',travel:'Travel',conversations:'Conversations',culture:'Culture',follow:'Listen',active:'Active listening',dictation:'Dictation',shadowing:'Shadowing'},
+  vi:{'daily-life':'Đời sống hằng ngày',travel:'Du lịch',conversations:'Hội thoại',culture:'Văn hóa',follow:'Nghe',active:'Nghe chủ động',dictation:'Chính tả',shadowing:'Shadowing'},
+  zh:{'daily-life':'日常生活',travel:'旅行',conversations:'对话',culture:'文化',follow:'听力',active:'主动听力',dictation:'听写',shadowing:'跟读'},
+};
+Object.assign(LIBRARY_TERM_LABELS.en,{listen:'Listen'});
+Object.assign(LIBRARY_TERM_LABELS.vi,{listen:'Nghe'});
+Object.assign(LIBRARY_TERM_LABELS.zh,{listen:'听力'});
+const libraryTerm=value=>(LIBRARY_TERM_LABELS[uiLocale()]||LIBRARY_TERM_LABELS.en)[value]||String(value||'').replaceAll('-',' ');
+const isPracticeMode=mode=>mode==='active'||mode==='dictation';
 
 const COPY={
   en:{
@@ -307,6 +328,7 @@ function activeMeaning(payload,translations,segmentId){
 
 function activeWorkspace(payload,selected,model){
   const c=activeText();
+  const l=libraryText();
   const segments=payload.transcript?.segments||[];
   const segment=segments.find(item=>item.segment_id===selected);
   const state=model.practiceSession?.segments?.[selected];
@@ -314,6 +336,9 @@ function activeWorkspace(payload,selected,model){
   const visible=state?.presentation==='checked'||state?.presentation==='revealed';
   const lastAttempt=state?.presentation==='checked'?(state.last_attempt||state.attempts.at(-1)||null):null;
   const result=lastAttempt?.result;
+  const diff=lastAttempt?listeningReconstructionDiff({source_language:payload.asset?.source_language,expected:segment?.original_text||'',answer:lastAttempt.answer}):[];
+  const hintLevel=Number(state?.hint_level||0);
+  const expectedUnits=segment?listeningUnits(segment.original_text,payload.asset?.source_language):[];
   const summary=listeningPracticeSummary(model.practiceSession);
   const evaluable=segment&&listeningUnits(segment.original_text,payload.asset?.source_language).length<=MAX_LISTENING_EVALUATION_UNITS;
   const validation=model.practiceValidation==='answer_empty'?c.answerEmpty:model.practiceValidation==='answer_too_large'?c.answerTooLarge:model.practiceValidation==='evaluation_too_large'?c.segmentTooLarge:'';
@@ -321,8 +346,11 @@ function activeWorkspace(payload,selected,model){
   const persistenceKey=payload.asset?.asset_id&&selected?`${payload.asset.asset_id}:${selected}`:'';
   const persistence=model.practicePersistence?.key===persistenceKey?model.practicePersistence:{status:'empty',key:persistenceKey};
   const persistenceCopy=persistence.status==='saving'?c.progressSaving:persistence.status==='saved'?c.progressSaved:persistence.status==='unavailable'?c.progressUnavailable:persistence.status==='error'?c.progressFailed:persistence.status==='restored'?c.progressRestored:c.progressEmpty;
-  return `<section class="listening-transcript listening-active visual-section-surface" aria-label="${esc(c.practice)}">
-    <div class="listening-toolbar"><div><strong>${esc(c.practice)}</strong><small>${esc(c.disclaimer)}</small></div></div>
+  const practiceTitle=model.mode==='dictation'?l.dictation:c.practice;
+  const segmentIndex=segments.findIndex(item=>item.segment_id===selected);
+  const difficultWords=lastAttempt?[...new Set(diff.filter(item=>item.status==='missing'||item.status==='wrong').map(item=>item.expected).filter(Boolean))]:[];
+  return `<section class="listening-transcript listening-active visual-section-surface" aria-label="${esc(practiceTitle)}">
+    <div class="listening-toolbar"><div><strong>${esc(practiceTitle)}</strong><small>${esc(c.disclaimer)}</small></div></div>
     ${segmentNavigation(segments,selected,model.playbackRate)}
     <div class="listening-segments listening-active-segments">
       ${segments.map((item,index)=>`<article class="listening-segment ${item.segment_id===selected?'selected':''}" data-segment-id="${esc(item.segment_id)}" ${item.segment_id===selected?'aria-current="true"':''}>
@@ -338,11 +366,27 @@ function activeWorkspace(payload,selected,model){
         <button class="button button-secondary" type="button" data-reveal-answer>${esc(c.reveal)}</button>
         ${visible?`<button class="button button-secondary" type="button" data-retry-active>${esc(c.retry)}</button>`:''}
       </div>
+      ${model.mode==='dictation'?`<div class="listening-hints" aria-label="${esc(l.hintUsed)}">
+        <button class="o-btn o-btn--outline o-btn--compact" type="button" data-replay-current>${oIcon('undo')}<span>${esc(text().replay)}</span></button>
+        <button class="o-btn o-btn--outline o-btn--compact" type="button" data-dictation-slow>${oIcon('listen')}<span>${esc(l.replaySlow)}</span></button>
+        <button class="o-btn o-btn--outline o-btn--compact" type="button" data-dictation-hint ${hintLevel>=3?'disabled':''}>${esc(hintLevel===0?l.hintCount:hintLevel===1?l.hintFirst:l.hintVocab)}</button>
+        ${hintLevel>=1?`<span class="listening-hint-evidence">${esc(l.hintUsed)}: ${hintLevel}/3</span>`:''}
+        ${hintLevel>=1?`<span>${expectedUnits.length} ${esc(payload.asset?.source_language==='zh'?'字':'words')}</span>`:''}
+        ${hintLevel>=2&&expectedUnits.length?`<span>${esc(l.hintFirst)}: <strong>${esc(expectedUnits[0])}</strong></span>`:''}
+        ${hintLevel>=3?`<span>${esc(l.hintVocab)}: ${esc((payload.catalog?.vocabulary||[]).join(', ')||'—')}</span>`:''}
+      </div>`:''}
     </form>`:`<p class="active-listening-unavailable" role="status">${esc(c.segmentTooLarge)}</p>`}
     ${visible?`<div class="active-listening-result" role="status">
       ${lastAttempt?`<p><strong>${esc(c.yourAnswer)}</strong> ${esc(lastAttempt.answer)}</p><p class="active-listening-text-match"><strong>${esc(c.textMatch)}</strong> ${result.accuracy_percent}% · ${esc(quality)}</p>`:''}
-      <p class="active-listening-source" aria-label="${esc(segment.original_text)}"><strong>${esc(text().original)}</strong> <span>${transcriptTokenMarkup(segment.original_text)}</span></p>
+      ${lastAttempt?`<div class="listening-diff" aria-label="${esc(l.dictation)}">${diff.map(item=>`<span data-diff-status="${item.status}" title="${esc(l[item.status])}">${esc(item.status==='extra'?item.actual:item.expected)}</span>`).join('')}</div>`:''}
+      <p class="active-listening-source" aria-label="${esc(segment.original_text)}"><strong>${esc(l.correctTranscript)}</strong> <span>${transcriptTokenMarkup(segment.original_text)}</span></p>
+      ${segment?.pinyin?`<p class="o-segment-pinyin">${esc(segment.pinyin)}</p>`:''}
       ${activeMeaning(payload,translations,selected)}
+      ${difficultWords.length?`<div class="listening-difficult-words" aria-label="${esc(l.saveWord)}">${difficultWords.map(word=>`<button class="o-chip" type="button" data-save-dictation-word="${esc(word)}" title="${esc(l.saveWord)}">${oIcon('bookmark')}<span>${esc(word)}</span></button>`).join('')}</div>`:''}
+      ${model.mode==='dictation'&&result?.exact?`<div class="listening-pass-actions">
+        ${segmentIndex<segments.length-1?`<button class="o-btn o-btn--primary" type="button" data-dictation-next><span>${esc(l.nextSegment)}</span>${oIcon('arrowRight')}</button>`:''}
+        <button class="o-btn o-btn--outline" type="button" data-dictation-shadow>${oIcon('speak')}<span>${esc(l.shadowThis)}</span></button>
+      </div>`:''}
       <p class="active-listening-disclaimer">${esc(c.disclaimer)}</p>
     </div>`:''}
     <div class="active-listening-summary" role="status"><strong>${esc(c.progress)}</strong>
@@ -568,7 +612,7 @@ function shadowingWorkspace(payload,selected,model){
 function listeningMode(payload,model={}){
   const segments=payload.transcript?.segments||[];
   const playbackReady=segments.length>0&&playbackAvailable(payload.playback);
-  const requested=['active','shadowing'].includes(model.mode)?model.mode:'follow';
+  const requested=['active','dictation','shadowing'].includes(model.mode)?model.mode:'follow';
   return requested!=='follow'&&playbackReady?requested:'follow';
 }
 
@@ -616,7 +660,7 @@ function learningWorkspace(payload,selected,model,mode){
 
   return `${modeBar}
     <div class="o-listen-notices">${notices}</div>
-    ${mode==='active'?activeWorkspace(payload,selected,model):followWorkspace(payload,selected,model)}
+    ${isPracticeMode(mode)?activeWorkspace(payload,selected,model):followWorkspace(payload,selected,model)}
     <div class="o-listen-mid o-stick">
       ${currentSegmentPanel(payload,selected,model,mode)}
       ${vocabularyFocusPanel(payload,selected,mode,model)}
@@ -648,7 +692,7 @@ function workspace(payload,selectedId=null,model={}){
      change, losing the position the learner was at. In the studio it shrinks
      to the thumbnail the reference shows in the media header. */
   const playerCard=`<section class="listening-video o-card o-player">
-    <div class="listening-video-frame">${mediaPlayer(payload.playback,payload.asset?.title).replace('Playback is unavailable for this source.',c.playback)}</div>
+    <div class="listening-video-frame">${mediaPlayer(payload.playback,payload.asset?.title,{startMs:payload.catalog?.excerpt_start_ms||0,endMs:payload.catalog?.excerpt_end_ms||null}).replace('Playback is unavailable for this source.',c.playback)}</div>
     <div class="o-player-track">
       <div class="o-player-bar" role="progressbar" aria-label="${esc(payload.asset?.title||'')}"><span data-progress-fill><i></i></span></div>
       <span class="o-player-time" data-elapsed>0:00</span>
@@ -715,6 +759,7 @@ function modeSwitcher(mode,playbackReady){
   const a=activeText();
   const s=shadowText();
   const v=v2Text();
+  const l=libraryText();
   const card=(key,name,sub,icon,disabled)=>`<button type="button" class="o-mode-card ${mode===key?'is-active':''}" data-listening-mode="${key}" aria-pressed="${mode===key}" ${disabled?'disabled':''}>
     <span class="o-mode-icon">${oIcon(icon)}</span>
     <span class="o-mode-copy"><strong>${esc(name)}</strong><small>${esc(sub)}</small></span>
@@ -722,6 +767,7 @@ function modeSwitcher(mode,playbackReady){
   return `<div class="o-mode-switch" role="group" aria-label="${esc(a.mode)}">
     ${card('follow',a.follow,v.followSub,'rubric',false)}
     ${card('active',a.active,v.activeSub,'listen',!playbackReady)}
+    ${card('dictation',l.dictation,l.hintCount,'write',!playbackReady)}
     ${card('shadowing',s.mode,v.shadowSub,'speak',!playbackReady)}
   </div>`;
 }
@@ -760,7 +806,7 @@ function currentSegmentPanel(payload,selected,model,mode){
   /* Active Listening is a reconstruction exercise: the learner types what they
      heard. Printing the line here would hand them the answer, so this panel
      shows only where they are and how to hear it again. */
-  if(mode==='active'){
+  if(isPracticeMode(mode)){
     return `<section class="o-card o-segment-now o-segment-now--hidden">
       <span class="o-segment-rule" aria-hidden="true"></span>
       <div class="o-segment-head">
@@ -797,7 +843,7 @@ function vocabularyFocusPanel(payload,selected,mode,model={}){
   /* The saved words are words of the line, so listing them would leak what
      Active mode is asking the learner to reconstruct - and what a learner who
      switched the original off has asked not to see. */
-  if(mode==='active'||model.original===false)return '';
+  if(isPracticeMode(mode)||model.original===false)return '';
   const segments=payload.transcript?.segments||[];
   const segment=segments.find(item=>item.segment_id===selected)||segments[0];
   const saved=(state.libraryVocabulary?.items)||[];
@@ -866,7 +912,7 @@ function sourcePanel(payload){
 
 function savedLessonsPanel(){
   const v=v2Text();
-  const lessons=listMediaLessons(state.language);
+  const lessons=listMediaLessons(state.language).filter(item=>!item.lesson_id);
   return `<section class="o-card o-panel o-saved-panel">
     <div class="o-panel-head">
       <h3 class="o-label">${esc(v.savedLessons)}</h3>
@@ -925,61 +971,87 @@ function transportBar(model){
   </div>`;
 }
 
+function libraryLessonCard(item){
+  const l=libraryText();
+  const minutes=stamp(Number(item.duration_ms)||0);
+  return `<article class="o-card listening-library-card" data-artwork="${esc(item.artwork||'listen')}">
+    <div class="listening-library-art" aria-hidden="true">${oIcon(item.topic==='conversations'?'speak':'listen')}</div>
+    <div class="listening-library-card-body">
+      <div class="listening-library-meta"><span>${esc(libraryTerm(item.topic))}</span><span title="${esc(item.level_source==='editorial-review'?l.reviewedLevel:l.level)}">${esc(item.level)}</span><span>${esc(minutes)}</span></div>
+      <h3>${esc(item.title)}</h3>
+      <p>${esc(item.description)}</p>
+      <div class="listening-library-tags">${(item.content_tags||[]).slice(0,3).map(tag=>`<span>#${esc(libraryTerm(tag))}</span>`).join('')}</div>
+      <p class="listening-library-source"><strong>${esc(l.source)}:</strong> ${esc(item.source?.creator||item.source?.provider||'—')}</p>
+      <div class="listening-library-modes" aria-label="${esc(l.modes)}">${(item.available_modes||[]).map(mode=>`<span>${esc(libraryTerm(mode))}</span>`).join('')}</div>
+      <button type="button" class="o-btn o-btn--primary o-btn--compact" data-library-lesson="${esc(item.lesson_id)}">${oIcon('play')}<span>${esc(l.open)}</span></button>
+    </div>
+  </article>`;
+}
+
+function libraryLanding(model){
+  const l=libraryText();
+  const response=model.library?.data||{};
+  const allItems=Array.isArray(response.items)?response.items:[];
+  const topic=model.libraryTopic||'';
+  const level=model.libraryLevel||'';
+  const tag=model.libraryTag||'';
+  const items=allItems.filter(item=>(!topic||item.topic===topic||(item.subtopics||[]).includes(topic))&&(!level||item.level===level)&&(!tag||(item.content_tags||[]).includes(tag)));
+  const byId=new Map(items.map(item=>[item.lesson_id,item]));
+  const titles={recommended:l.recommended,'quick-practice':l.quick,'quick-listening':l.quick,dictation:l.dictation,popular:l.popular,beginner:l.beginner,new:l.newContent,'new-content':l.newContent};
+  if(model.library?.status==='loading')return `<div class="o-card listening-library-state" role="status">${esc(l.loading)}</div>`;
+  if(model.library?.status==='error')return `<div class="o-card listening-library-state" role="alert"><p>${esc(l.failed)}</p><button type="button" class="o-btn o-btn--outline" data-retry-library>${esc(l.retry)}</button></div>`;
+  return `<div class="listening-library">
+    <div class="listening-library-filters">
+      <section class="listening-topic-filter" aria-label="${esc(l.topics)}">
+      <span class="o-label">${esc(l.topics)}</span>
+      <div class="listening-topic-chips">
+        <button type="button" class="o-chip ${topic?'':'is-active'}" data-library-topic="">${esc(l.allTopics)}</button>
+        ${(response.topics||[]).map(value=>`<button type="button" class="o-chip ${topic===value?'is-active':''}" data-library-topic="${esc(value)}">${esc(libraryTerm(value))}</button>`).join('')}
+      </div>
+      </section>
+      <section class="listening-topic-filter" aria-label="${esc(l.level)}">
+      <span class="o-label">${esc(l.level)}</span>
+      <div class="listening-topic-chips">
+        <button type="button" class="o-chip ${level?'':'is-active'}" data-library-level="">${esc(l.allLevels)}</button>
+        ${(response.filters?.levels||[]).map(value=>`<button type="button" class="o-chip ${level===value?'is-active':''}" data-library-level="${esc(value)}">${esc(value)}</button>`).join('')}
+      </div>
+      </section>
+      <section class="listening-topic-filter" aria-label="${esc(l.tags)}">
+      <span class="o-label">${esc(l.tags)}</span>
+      <div class="listening-topic-chips">
+        <button type="button" class="o-chip ${tag?'':'is-active'}" data-library-tag="">${esc(l.allTags)}</button>
+        ${(response.tags||response.filters?.tags||[]).map(value=>`<button type="button" class="o-chip ${tag===value?'is-active':''}" data-library-tag="${esc(value)}">#${esc(libraryTerm(value))}</button>`).join('')}
+      </div>
+      </section>
+    </div>
+    ${items.length?(response.sections||[]).map(section=>{
+      const sectionItems=(section.item_ids||[]).map(id=>byId.get(id)).filter(Boolean);
+      if(!sectionItems.length)return '';
+      return `<section class="listening-library-section" data-library-section="${esc(section.id)}"><div class="listening-library-section-head"><div><span class="o-kicker">${esc(l.discover)}</span><h2>${esc(titles[section.id]||section.id)}</h2></div><span>${sectionItems.length}</span></div><div class="listening-library-grid">${sectionItems.map(libraryLessonCard).join('')}</div></section>`;
+    }).join(''):`<div class="o-card listening-library-state">${esc(l.empty)}</div>`}
+  </div>`;
+}
+
 function listeningPage(model,viewId){
   const c=text();
+  const l=libraryText();
   const busy=['validating','processing'].includes(model.status);
-  // Before a lesson exists this screen was a bare URL field: no statement of
-  // what it does and no hint that a video without captions cannot work, so the
-  // first thing a new learner met was an error. The orientation and the
-  // requirements only show until a lesson is ready, then the video takes over
-  // as the hero (SCREEN_CONTRACT listen: "the video is the hero").
   const ready=model.status==='ready';
-  // The masthead stays on every state, ready included: it is the screen's
-  // identity, not an empty-state message. The live count is prepared lessons,
-  // which is real per-device evidence of work done.
-  const prepared=listMediaLessons(state.language).length;
-  const intro=skillMasthead({
-    name:c.skillName,
-    purpose:ready?'':c.lead,
-    stat:prepared?{value:prepared,label:c.skillStat,tone:'reward'}:null,
-  });
-  const recent=ready?[]:listMediaLessons(state.language);
-  const history=recent.length?`<div class="listening-history">
-      <span class="context-label">${esc(c.recentTitle)}</span>
-      <ul>
-        ${recent.map(item=>`<li>
-          <button type="button" class="listening-history-item" data-lesson-url="${esc(item.source_url)}">
-            <span class="listening-history-title">${esc(item.title||item.source_url)}</span>
-            ${item.provider?`<span class="listening-history-meta">${esc(item.provider)}</span>`:''}
-          </button>
-        </li>`).join('')}
-      </ul>
-    </div>`:'';
-  const requirements=ready?'':`<div class="listening-requirements">
-      <span class="context-label">${esc(c.needTitle)}</span>
-      <ul>
-        <li>${esc(c.need1)}</li>
-        <li>${esc(c.need2)}</li>
-        <li>${esc(c.need3)}</li>
-      </ul>
-    </div>`;
-  /* Once a lesson is open the screen is a frame, not a document: the player,
-     the panels and the transport hold their places and the transcript scrolls
-     inside its own card. Before that it is an ordinary page. */
-  return `<div class="o-page listening-page ${ready?'o-fit':''}" data-listening-view="${viewId}">
-    ${ready?'':intro}
-    <form id="mediaImportForm" class="o-card o-import" novalidate ${ready?'data-collapsed':''}>
-      ${ready?`<button type="button" class="o-import-toggle" data-expand-import>${esc(c.url)}</button>`:''}
+  const recent=ready?[]:listMediaLessons(state.language).filter(item=>!item.lesson_id);
+  const intro=skillMasthead({name:c.skillName,purpose:ready?'':l.purpose,stat:null});
+  const history=recent.length?`<div class="listening-history"><span class="context-label">${esc(c.recentTitle)}</span><ul>${recent.map(item=>`<li><button type="button" class="listening-history-item" data-lesson-url="${esc(item.source_url)}"><span class="listening-history-title">${esc(item.title||item.source_url)}</span>${item.provider?`<span class="listening-history-meta">${esc(item.provider)}</span>`:''}</button></li>`).join('')}</ul></div>`:'';
+  const importPanel=`<section class="listening-my-media-intro"><span class="o-kicker">${esc(l.myMedia)}</span><h2>${esc(l.addOwn)}</h2><p>${esc(l.addOwnLead)}</p></section>
+    <form id="mediaImportForm" class="o-card o-import" novalidate>
       <label class="o-label" for="mediaSourceUrl">${esc(c.url)}</label>
-      <div class="o-import-row">
-        <input id="mediaSourceUrl" class="o-control" type="url" inputmode="url" placeholder="${esc(c.placeholder)}" value="${ready?'':esc(model.sourceUrl||'')}" required>
-        <button class="o-btn o-btn--primary" type="submit" ${busy?'disabled':''}>${esc(c.prepare)}</button>
-      </div>
-      <div id="listeningStatus" aria-live="polite">${stateMessage(model.status,model.error)}${model.payload?.translation?.status==='unavailable'?`<button class="o-btn o-btn--outline o-btn--compact" type="button" data-retry-translation>${esc(c.retryTranslation)}</button>`:''}</div>
-    </form>
-    ${history}
-    ${requirements}
-    ${ready?'':goalPanel()}
+      <div class="o-import-row"><input id="mediaSourceUrl" class="o-control" type="url" inputmode="url" placeholder="${esc(c.placeholder)}" value="${esc(model.sourceUrl||'')}" required><button class="o-btn o-btn--primary" type="submit" ${busy?'disabled':''}>${esc(c.prepare)}</button></div>
+      <div id="listeningStatus" aria-live="polite">${stateMessage(model.status,model.error)}</div>
+    </form>${history}<div class="listening-requirements"><span class="context-label">${esc(c.needTitle)}</span><ul><li>${esc(c.need1)}</li><li>${esc(c.need2)}</li><li>${esc(c.need3)}</li></ul></div>${goalPanel()}`;
+
+  return `<div class="o-page listening-page ${ready?'o-fit':''}" data-listening-view="${viewId}">
+    ${ready?`<button type="button" class="o-btn o-btn--outline o-btn--compact listening-back-library" data-back-library>${oIcon('arrowLeft')}<span>${esc(l.backLibrary)}</span></button>`:intro}
+    ${ready&&model.payload?.translation?.status==='unavailable'?`<div class="listening-lesson-status" aria-live="polite"><button class="o-btn o-btn--outline o-btn--compact" type="button" data-retry-translation>${esc(c.retryTranslation)}</button></div>`:''}
+    ${ready?'':`<div class="listening-primary-tabs" role="tablist"><button type="button" class="o-tab ${model.libraryView!=='my-media'?'is-active':''}" data-library-view="discover" aria-selected="${model.libraryView!=='my-media'}">${oIcon('listen')}<span>${esc(l.discover)}</span></button><button type="button" class="o-tab ${model.libraryView==='my-media'?'is-active':''}" data-library-view="my-media" aria-selected="${model.libraryView==='my-media'}">${oIcon('cloud')}<span>${esc(l.myMedia)}</span></button></div>`}
+    ${ready?'':model.libraryView==='my-media'?importPanel:libraryLanding(model)}
     <div id="listeningReady">${ready?workspace(model.payload,model.selected,model):''}</div>
   </div>`;
 }
@@ -1015,7 +1087,7 @@ function translationRequest(payload,targetLanguage){
 }
 
 export function createListeningController({importMedia,importStatus,targetLanguage,translateMedia=()=>Promise.resolve(null),onChange=()=>{},onMediaReady=()=>{},onTranslationReady=()=>{},onSelection=()=>{},onModeChange=()=>{},onProcessing=()=>{},onImportTerminal=()=>{},onPracticeProgressSave=()=>{},onShadowingProgressSave=()=>{}}){
-  const model={status:'empty',payload:null,error:null,selected:null,manualSelection:false,playingSegmentId:null,jobId:null,sourceUrl:'',original:true,meaning:true,playbackRate:1,mode:'follow',practiceSession:null,shadowingSession:null,practiceValidation:null,practicePersistence:{status:'empty'},shadowingPersistence:{status:'empty'},speakingFeedback:{status:'empty',item:null}};
+  const model={status:'empty',payload:null,error:null,selected:null,manualSelection:false,playingSegmentId:null,jobId:null,sourceUrl:'',original:true,meaning:true,playbackRate:1,mode:'follow',libraryView:'discover',libraryTopic:'',libraryLevel:'',libraryTag:'',library:{status:'loading',data:null},practiceSession:null,shadowingSession:null,practiceValidation:null,practicePersistence:{status:'empty'},shadowingPersistence:{status:'empty'},speakingFeedback:{status:'empty',item:null}};
   const viewId=`listening-${++listeningViewSequence}`;
   let importGeneration=0;
   let backgroundTranslationGeneration=0;
@@ -1143,7 +1215,7 @@ export function createListeningController({importMedia,importStatus,targetLangua
     model.practicePersistence={status:'empty',key:model.practiceSession?practiceKey(model.practiceSession.asset_id,model.practiceSession.current_segment_id):''};
     model.shadowingPersistence={status:'empty',key:model.shadowingSession?shadowingKey(model.shadowingSession.asset_id,model.shadowingSession.current_segment_id):''};
     model.speakingFeedback={status:'empty',item:null};
-    if(['active','shadowing'].includes(model.mode)&&!playbackAvailable(payload?.playback))model.mode='follow';
+    if(['active','dictation','shadowing'].includes(model.mode)&&!playbackAvailable(payload?.playback))model.mode='follow';
     if(model.status==='processing'&&model.jobId)onProcessing({job_id:model.jobId,source_url:model.sourceUrl});
     else onImportTerminal();
     if(model.status==='ready')onMediaReady(payload,model.selected);
@@ -1172,8 +1244,15 @@ export function createListeningController({importMedia,importStatus,targetLangua
     model,
     viewId,
     html:()=>listeningPage(model,viewId),
+    setLibrary(status,data=null){model.library={status,data};changed();return true;},
+    setLibraryView(value){if(!['discover','my-media'].includes(value))return false;model.libraryView=value;changed();return true;},
+    setLibraryTopic(value=''){model.libraryTopic=String(value||'');changed();return true;},
+    setLibraryLevel(value=''){model.libraryLevel=String(value||'');changed();return true;},
+    setLibraryTag(value=''){model.libraryTag=String(value||'');changed();return true;},
+    closeLesson(){model.status='empty';model.payload=null;model.selected=null;model.mode='follow';model.libraryView='discover';changed();return true;},
     async importUrl(sourceUrl){
       const generation=++importGeneration;
+      model.libraryView='my-media';
       model.sourceUrl=sourceUrl;
       model.status='validating';model.error=null;model.jobId=null;changed();
       if(!validMediaUrl(sourceUrl)){model.status='unsupported';changed();return;}
@@ -1258,18 +1337,18 @@ export function createListeningController({importMedia,importStatus,targetLangua
       model.practicePersistence={status:'empty',key:model.practiceSession?practiceKey(model.practiceSession.asset_id,model.practiceSession.current_segment_id):''};
       model.shadowingPersistence={status:'empty',key:model.shadowingSession?shadowingKey(model.shadowingSession.asset_id,model.shadowingSession.current_segment_id):''};
       model.speakingFeedback={status:'empty',item:null};
-      model.mode=['follow','active','shadowing'].includes(mode)?mode:'follow';
-      if(['active','shadowing'].includes(model.mode)&&!playbackAvailable(payload.playback))model.mode='follow';
+      model.mode=['follow','active','dictation','shadowing'].includes(mode)?mode:'follow';
+      if(['active','dictation','shadowing'].includes(model.mode)&&!playbackAvailable(payload.playback))model.mode='follow';
       onMediaReady(payload,model.selected);
       changed();
       return true;
     },
     setMode(value){
-      if(!['follow','active','shadowing'].includes(value))return false;
-      if(value==='active'&&(!model.practiceSession||!playbackAvailable(model.payload?.playback)))return false;
+      if(!['follow','active','dictation','shadowing'].includes(value))return false;
+      if(isPracticeMode(value)&&(!model.practiceSession||!playbackAvailable(model.payload?.playback)))return false;
       if(value==='shadowing'&&(!model.shadowingSession||!playbackAvailable(model.payload?.playback)))return false;
       model.mode=value;
-      if(value==='active')selectListeningPracticeSegment(model.practiceSession,model.selected);
+      if(isPracticeMode(value))selectListeningPracticeSegment(model.practiceSession,model.selected);
       if(value==='shadowing')selectShadowingPracticeSegment(model.shadowingSession,model.selected);
       model.practiceValidation=null;onModeChange(value,model.selected);changed();return true;
     },
@@ -1297,6 +1376,10 @@ export function createListeningController({importMedia,importStatus,targetLangua
       if(!model.practiceSession)return false;
       revealListeningPracticeAnswer(model.practiceSession);
       model.practiceValidation=null;changed();persistPracticeProgress();return true;
+    },
+    hintPractice(){
+      if(!model.practiceSession||model.mode!=='dictation')return false;
+      advanceListeningPracticeHint(model.practiceSession);changed();return true;
     },
     retryPractice(){
       if(!model.practiceSession)return false;
@@ -1382,7 +1465,7 @@ export function createListeningController({importMedia,importStatus,targetLangua
     followPlaying(){
       if(model.playingSegmentId){
         model.selected=model.playingSegmentId;
-        if(model.mode==='active')selectListeningPracticeSegment(model.practiceSession,model.selected);
+        if(isPracticeMode(model.mode))selectListeningPracticeSegment(model.practiceSession,model.selected);
         if(model.mode==='shadowing'){
           selectShadowingPracticeSegment(model.shadowingSession,model.selected);
           model.shadowingPersistence=shadowingPersistenceByKey.get(shadowingKey(model.shadowingSession?.asset_id,model.selected))||{status:'empty',key:shadowingKey(model.shadowingSession?.asset_id,model.selected)};
@@ -1516,7 +1599,7 @@ function installSmartFollow(root){
   return binding;
 }
 
-export async function renderListening(root,{importMedia=api.importMedia,importStatus=api.mediaImportStatus,translateMedia=api.translateMedia,targetLanguage=supportLanguage,speakingAttempts=api.speakingAttempts,loadListeningProgress=api.listeningProgress,saveListeningProgress=api.saveListeningProgress,loadShadowingProgress=api.shadowingProgress,saveShadowingProgress=api.saveShadowingProgress}={}){
+export async function renderListening(root,{importMedia=api.importMedia,importStatus=api.mediaImportStatus,translateMedia=api.translateMedia,loadLibrary=api.listeningLibrary,openLibraryLesson=api.listeningLibraryLesson,targetLanguage=supportLanguage,speakingAttempts=api.speakingAttempts,loadListeningProgress=api.listeningProgress,saveListeningProgress=api.saveListeningProgress,loadShadowingProgress=api.shadowingProgress,saveShadowingProgress=api.saveShadowingProgress,saveVocabulary=api.saveLibraryVocabulary}={}){
   let controller;
   let mounted=false;
   let visibleSelection=null;
@@ -1602,7 +1685,7 @@ export async function renderListening(root,{importMedia=api.importMedia,importSt
   };
 
   const render=(_model,{playbackOnly=false,selectedChanged=false}={})=>{
-    if(playbackOnly&&(controller.model.mode==='active'||(controller.model.mode==='shadowing'&&!selectedChanged)))return;
+    if(playbackOnly&&(isPracticeMode(controller.model.mode)||(controller.model.mode==='shadowing'&&!selectedChanged)))return;
     if(playbackOnly&&mounted&&advancePlayingSegment())return;
     if(mounted&&!root.querySelector(`[data-listening-view="${controller.viewId}"]`))return;
     const payload=controller.model.payload;
@@ -1614,7 +1697,7 @@ export async function renderListening(root,{importMedia=api.importMedia,importSt
       ?learningColumn.querySelector('.listening-segments'):null;
     const preserveFollowScroll=previousMode==='follow'&&smartFollow.isSuspended()&&previousSegments
       ?previousSegments.scrollTop:null;
-    if(['active','shadowing'].includes(previousMode)&&previousSegments)transcriptScrollTops.set(previousMode,previousSegments.scrollTop);
+    if(['active','dictation','shadowing'].includes(previousMode)&&previousSegments)transcriptScrollTops.set(previousMode,previousSegments.scrollTop);
     const preservePlayer=Boolean(
       mounted
       && controller.model.status==='ready'
@@ -1654,7 +1737,7 @@ export async function renderListening(root,{importMedia=api.importMedia,importSt
       learningColumn.innerHTML=learningWorkspace(payload,controller.model.selected,controller.model,mode);
       const segments=typeof learningColumn.querySelector==='function'
         ?learningColumn.querySelector('.listening-segments'):null;
-      if(segments&&['active','shadowing'].includes(mode))segments.scrollTop=transcriptScrollTops.get(mode)||0;
+      if(segments&&['active','dictation','shadowing'].includes(mode))segments.scrollTop=transcriptScrollTops.get(mode)||0;
       if(segments&&mode==='follow'&&preserveFollowScroll!==null)segments.scrollTop=preserveFollowScroll;
     }else{
       root.innerHTML=controller.html();
@@ -1669,6 +1752,28 @@ export async function renderListening(root,{importMedia=api.importMedia,importSt
        calling it every time is both correct and cheap. */
     installSelectEnhancements(root);
     bindImportForm();
+    root.querySelectorAll('[data-library-view]').forEach(button=>button.addEventListener('click',()=>controller.setLibraryView(button.dataset.libraryView)));
+    root.querySelectorAll('[data-library-topic]').forEach(button=>button.addEventListener('click',()=>controller.setLibraryTopic(button.dataset.libraryTopic||'')));
+    root.querySelectorAll('[data-library-level]').forEach(button=>button.addEventListener('click',()=>controller.setLibraryLevel(button.dataset.libraryLevel||'')));
+    root.querySelectorAll('[data-library-tag]').forEach(button=>button.addEventListener('click',()=>controller.setLibraryTag(button.dataset.libraryTag||'')));
+    root.querySelector('[data-back-library]')?.addEventListener('click',()=>controller.closeLesson());
+    root.querySelector('[data-retry-library]')?.addEventListener('click',()=>refreshLibrary());
+    root.querySelectorAll('[data-library-lesson]').forEach(button=>button.addEventListener('click',async()=>{
+      const lessonId=button.dataset.libraryLesson||'';
+      if(!lessonId)return;
+      button.disabled=true;
+      try{
+        const payload=await openLibraryLesson(lessonId,targetLanguage());
+        const pinyin=payload?.catalog?.pinyin_by_segment||{};
+        if(payload?.transcript?.segments){
+          payload.transcript={...payload.transcript,segments:payload.transcript.segments.map(segment=>({...segment,pinyin:pinyin[segment.segment_id]||''}))};
+        }
+        controller.restore(payload,null,'follow');
+      }catch{
+        button.disabled=false;
+        controller.setLibrary('error',controller.model.library?.data||null);
+      }
+    }));
     root.querySelector('[data-retry-translation]')?.addEventListener('click',()=>controller.retryTranslation());
     root.querySelector('#toggleOriginal')?.addEventListener('change',event=>controller.toggleOriginal(event.target.checked));
     root.querySelector('#toggleMeaning')?.addEventListener('change',event=>controller.toggleMeaning(event.target.checked));
@@ -1785,7 +1890,28 @@ export async function renderListening(root,{importMedia=api.importMedia,importSt
       controller.checkPractice();
     });
     root.querySelector('[data-reveal-answer]')?.addEventListener('click',()=>controller.revealPractice());
+    root.querySelector('[data-dictation-hint]')?.addEventListener('click',()=>controller.hintPractice());
     root.querySelector('[data-retry-active]')?.addEventListener('click',()=>controller.retryPractice());
+    root.querySelector('[data-dictation-next]')?.addEventListener('click',()=>controller.moveSelection(1));
+    root.querySelector('[data-dictation-shadow]')?.addEventListener('click',()=>controller.setMode('shadowing'));
+    root.querySelector('[data-dictation-slow]')?.addEventListener('click',()=>{
+      if(setMediaPlaybackRate(root,controller.model.payload?.playback,.75))controller.setPlaybackRate(.75);
+      const segment=(controller.model.payload?.transcript?.segments||[]).find(item=>item.segment_id===controller.model.selected);
+      if(segment)replaySegment(root,controller.model.payload?.playback,segment.start_ms,segment.end_ms,.75);
+    });
+    root.querySelectorAll('[data-save-dictation-word]').forEach(button=>button.addEventListener('click',async()=>{
+      const word=String(button.dataset.saveDictationWord||'').trim();
+      const segment=(controller.model.payload?.transcript?.segments||[]).find(item=>item.segment_id===controller.model.selected);
+      if(!word||!segment)return;
+      button.disabled=true;
+      try{
+        await saveVocabulary({word,phonetic:'',part_of_speech:'',definition:'Dictation word to review',translation_vi:'',source_fragment:segment.original_text,source_kind:'feedback',focus_note:`Listening Dictation · ${controller.model.payload?.asset?.title||''}`});
+        toast(libraryText().wordSaved);
+      }catch{
+        button.disabled=false;
+        toast(libraryText().saveFailed);
+      }
+    }));
     /* The reference gives the player card and the pinned bar the same
        controls, so both copies have to be bound - a single query left the
        bar's play button dead. */
@@ -2056,6 +2182,7 @@ export async function renderListening(root,{importMedia=api.importMedia,importSt
       rememberMediaLesson({
         learning_language:state.language,
         source_url:payload?.asset?.source_url||'',
+        lesson_id:payload?.catalog?.lesson_id||'',
         title:payload?.asset?.title||'',
         provider:payload?.asset?.source_provider||'',
         selected_segment_id,
@@ -2077,15 +2204,22 @@ export async function renderListening(root,{importMedia=api.importMedia,importSt
     onSelection:segmentId=>{
       selectSharedMediaSegment(state.language,segmentId);
       const payload=controller?.model?.payload;
-      rememberMediaLesson({learning_language:state.language,source_url:payload?.asset?.source_url||'',title:payload?.asset?.title||'',provider:payload?.asset?.source_provider||'',selected_segment_id:segmentId,mode:controller?.model?.mode||'follow'});
+      rememberMediaLesson({learning_language:state.language,source_url:payload?.asset?.source_url||'',lesson_id:payload?.catalog?.lesson_id||'',title:payload?.asset?.title||'',provider:payload?.asset?.source_provider||'',selected_segment_id:segmentId,mode:controller?.model?.mode||'follow'});
     },
     onModeChange:(mode,segmentId)=>{
       const payload=controller?.model?.payload;
-      rememberMediaLesson({learning_language:state.language,source_url:payload?.asset?.source_url||'',title:payload?.asset?.title||'',provider:payload?.asset?.source_provider||'',selected_segment_id:segmentId,mode});
+      rememberMediaLesson({learning_language:state.language,source_url:payload?.asset?.source_url||'',lesson_id:payload?.catalog?.lesson_id||'',title:payload?.asset?.title||'',provider:payload?.asset?.source_provider||'',selected_segment_id:segmentId,mode});
     },
     onProcessing:({job_id,source_url})=>setPendingMediaImport({learning_language:state.language,job_id,source_url}),
     onImportTerminal:()=>clearPendingMediaImport(state.language),
   });
+  const refreshLibrary=()=>{
+    controller.setLibrary('loading');
+    let pendingLibrary;
+    try{pendingLibrary=loadLibrary(state.language);}
+    catch{pendingLibrary=Promise.reject(new Error('library unavailable'));}
+    return Promise.resolve(pendingLibrary).then(response=>controller.setLibrary('ready',response)).catch(()=>controller.setLibrary('error'));
+  };
   /* The shortcuts the studio advertises. Bound once for the view and inert
      outside shadowing, so they cannot fight the transcript's own arrow-key
      handling in follow mode. */
@@ -2158,9 +2292,20 @@ export async function renderListening(root,{importMedia=api.importMedia,importSt
   // where a resume is only a guess about what the learner was doing.
   const handoff=pending?null:takeLessonAutostartContext(state.language);
   const resume=(pending||handoff||shared)?null:resumableLesson(state.language);
-  const autostart=handoff?.source_url||resume?.source_url||'';
+  const context=handoff||resume;
+  const autostart=context?.source_url||'';
   if(pending)controller.resumePending(pending);
   else if(shared)controller.restore(shared.payload,shared.selected_segment_id,shared.mode);
+  else if(context?.lesson_id){
+    render();
+    Promise.resolve(openLibraryLesson(context.lesson_id,targetLanguage())).then(payload=>{
+      const pinyin=payload?.catalog?.pinyin_by_segment||{};
+      if(payload?.transcript?.segments){
+        payload.transcript={...payload.transcript,segments:payload.transcript.segments.map(segment=>({...segment,pinyin:pinyin[segment.segment_id]||''}))};
+      }
+      controller.restore(payload,context.selected_segment_id,context.mode||'follow');
+    }).catch(()=>controller.setLibrary('error',controller.model.library?.data||null));
+  }
   else if(autostart){
     // The field renders model.sourceUrl while an import is in flight or has
     // failed, so the learner can see and edit the link that went wrong. It
@@ -2169,7 +2314,6 @@ export async function renderListening(root,{importMedia=api.importMedia,importSt
     // re-renders straight away.
     render();
     controller.importUrl(autostart).then(()=>{
-      const context=handoff||resume;
       if(controller.model.status!=='ready'||!context)return;
       // A saved mode is meaningful only alongside the saved canonical segment.
       // If that segment disappeared from a refreshed transcript, keep the
@@ -2182,5 +2326,6 @@ export async function renderListening(root,{importMedia=api.importMedia,importSt
     });
   }
   else render();
+  refreshLibrary();
   return controller;
 }

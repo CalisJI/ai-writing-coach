@@ -631,8 +631,8 @@ function emptyPage(){
         <span class="o-label">${esc(c.recentTitle)}</span>
         <ul>
           ${recent.map(item=>`<li>
-            <button type="button" class="o-lesson-row" data-speaking-lesson="${esc(item.source_url)}">
-              <span>${esc(item.title||item.source_url)}</span>
+            <button type="button" class="o-lesson-row" data-speaking-lesson="${esc(item.source_url||'')}" data-speaking-catalog-lesson="${esc(item.lesson_id||'')}">
+              <span>${esc(item.title||item.source_url||item.lesson_id)}</span>
               ${item.provider?`<small>${esc(item.provider)}</small>`:''}
             </button>
           </li>`).join('')}
@@ -1099,7 +1099,7 @@ export async function renderSpeaking(root,{recorderFactory=createLocalAudioRecor
       button.addEventListener('click',()=>{
         // Ask Listening to prepare this exact lesson, then go there. Listening
         // builds the session Speaking needs; the learner does not have to.
-        requestLessonAutostart(state.language,button.dataset.speakingLesson||'');
+        requestLessonAutostart(state.language,button.dataset.speakingLesson||'',{lesson_id:button.dataset.speakingCatalogLesson||''});
         go('listen');
       });
     });

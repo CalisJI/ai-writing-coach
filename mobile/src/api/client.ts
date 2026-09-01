@@ -6,7 +6,7 @@ import {compactMediaStatusSchema, strokeOrderSchema, type CompactMediaStatus, ty
 import {crossSkillCueSchema, essayDetailSchema, improveInputSchema, improveResultSchema, linguisticAnnotationsSchema, type ImproveInput, type ImproveResult, type LinguisticAnnotations, evaluationInputSchema, evaluationResultSchema, essaysListSchema, freeTaskSchema, generateTaskInputSchema, grammarLibrarySchema, grammarLessonDetailSchema, grammarPracticeSchema, journeyDashboardSchema, journeyOutcomesSchema, learnerProfileSchema, learnerProfileInputSchema, learningLanguageSchema, learningMemorySchema, practiceOutcomeResponseSchema, practiceRecommendationSchema, practiceTaskSchema, reviewCueSchema, type CrossSkillCue, type EssayDetail, type EssaySummary, type EvaluationInput, type EvaluationResult, type FreeTask, type GenerateTaskInput, type GrammarLibrary, type GrammarLessonDetail, type GrammarPractice, type JourneyDashboard, type JourneyOutcomes, type LearnerProfile, type LearnerProfileInput, type LearningLanguage, type LearningMemory, type PracticeOutcomeResponse, type PracticeRecommendation, type PracticeTask, type ReviewCue} from './contracts/learning';
 import {readingAnswerResultSchema, readingGenerateInputSchema, readingSessionResponseSchema, readingSessionSchema, readingSessionsSchema, type ReadingAnswerResult, type ReadingGenerateInput, type ReadingSession, type ReadingSessions} from './contracts/reading';
 import {dictionaryInputSchema, dictionaryResultSchema, librarySchema, saveLibraryInputSchema, saveLibraryResultSchema, type DictionaryInput, type DictionaryResult} from './contracts/library';
-import {listeningProgressListSchema, listeningProgressResponseSchema, mediaImportInputSchema, mediaLessonSchema, mediaTranslationInputSchema, mediaTranslationResultSchema, shadowingProgressInputSchema, shadowingProgressListSchema, shadowingProgressResponseSchema, type ListeningProgressInput, type MediaImportInput, type MediaLesson, type MediaTranslationInput, type MediaTranslationResult, type ShadowingProgressInput} from './contracts/listening';
+import {listeningLibrarySchema, listeningProgressListSchema, listeningProgressResponseSchema, mediaImportInputSchema, mediaLessonSchema, mediaTranslationInputSchema, mediaTranslationResultSchema, shadowingProgressInputSchema, shadowingProgressListSchema, shadowingProgressResponseSchema, type ListeningLibrary, type ListeningProgressInput, type MediaImportInput, type MediaLesson, type MediaTranslationInput, type MediaTranslationResult, type ShadowingProgressInput} from './contracts/listening';
 import {speechAttemptResponseSchema, speechEvaluationSchema, speechTranscriptionSchema, type SpeechEvaluation, type SpeechAttemptResponse, type SpeechTranscription} from './contracts/speech';
 import {productAccountStateSchema, type ProductAccountState} from './contracts/product';
 import {skillReleaseSchema, type SkillRelease} from './contracts/skills';
@@ -166,6 +166,12 @@ export class ApiClient {
     let payload: MediaImportInput;
     try { payload = mediaImportInputSchema.parse(input); } catch { throw new ApiError('request_rejected', 'Media lesson request was invalid'); }
     return this.request('/api/media-learning/import', options, mediaLessonSchema.parse, 'POST', payload);
+  }
+  async listeningLibrary(language: 'en' | 'zh', options: RequestOptions = {}): Promise<ListeningLibrary> {
+    return this.request(`/api/listening/library?language=${encodeURIComponent(language)}`, options, listeningLibrarySchema.parse);
+  }
+  async listeningLibraryLesson(lessonId: string, targetLanguage: string, options: RequestOptions = {}): Promise<MediaLesson> {
+    return this.request(`/api/listening/library/${encodeURIComponent(lessonId)}?target_language=${encodeURIComponent(targetLanguage)}`, options, mediaLessonSchema.parse);
   }
   /**
    * POST /api/media-learning/translate. Import acquires the media; this

@@ -1,4 +1,4 @@
-import {listeningUnits, playbackAvailable, practiceSummary, segmentAt, stamp, textMatch, type SegmentPractice} from './listeningDomain';
+import {listeningUnits, playbackAvailable, practiceSummary, reconstructionDiff, segmentAt, stamp, textMatch, type SegmentPractice} from './listeningDomain';
 
 describe('stamp', () => {
   it('reads media positions as M:SS', () => {
@@ -43,11 +43,10 @@ describe('textMatch', () => {
     expect(textMatch('the quick brown fox', 'The quick brown fox', 'en')).toEqual({accuracy_percent: 100, exact: true});
   });
 
-  it('caps a non-exact reconstruction below 100 so the two never read alike', () => {
-    // Same units, wrong order: every unit is found, but it is not the line.
+  it('uses ordered edit distance so wrong order does not receive full credit', () => {
     const result = textMatch('fox brown quick the', 'The quick brown fox', 'en');
     expect(result.exact).toBe(false);
-    expect(result.accuracy_percent).toBe(99);
+    expect(result.accuracy_percent).toBeLessThan(100);
   });
 
   it('scores a partial reconstruction by ordered overlap', () => {
@@ -60,6 +59,17 @@ describe('textMatch', () => {
 
   it('works the same way for Chinese', () => {
     expect(textMatch('我今天很好', '我今天很好', 'zh').exact).toBe(true);
+  });
+});
+
+describe('language-aware dictation feedback', () => {
+  it('ignores harmless punctuation and capitalization', () => {
+    expect(textMatch('LISTEN to this idea', 'Listen, to this idea!', 'en').exact).toBe(true);
+  });
+
+  it('marks missing and extra units without scoring punctuation', () => {
+    expect(reconstructionDiff('Take train safely home', 'Take the train home.', 'en').map((item) => item.status)).toEqual(['correct', 'missing', 'correct', 'extra', 'correct']);
+    expect(reconstructionDiff('\u6211 \u4eca\u5929 \u597d', '\u6211\u4eca\u5929\u5f88\u597d\u3002', 'zh').map((item) => item.status)).toEqual(['correct', 'correct', 'correct', 'missing', 'correct']);
   });
 });
 

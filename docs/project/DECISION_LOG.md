@@ -813,3 +813,66 @@ key makes stored credentials unreadable until an approved key-recovery plan is
 executed.
 
 **Supersedes / Superseded by:** Supersedes no earlier decision.
+
+## D-038 - Listening is content-first over one canonical Media Learning engine
+
+**Status:** Accepted
+
+**Decision:** The primary Listening entry is a curated, topic- and level-aware
+content library. Learner-imported media remains available under My Media as a
+secondary source. Curated excerpts and imported assets both resolve to the
+existing canonical Media Learning Object, timestamped transcript segments, and
+the same Listening workspace; Listen, Active Listening, Dictation, Shadowing,
+progress, and Speaking handoff are modes over that shared identity rather than
+separate players or transcript stores. A source may own multiple curated
+excerpt identities, each with explicit start/end bounds and provenance, while
+the canonical media object continues to own transcript content.
+
+**Reason:** Requiring a learner to find and paste a URL before Listening has
+value makes acquisition tooling the product. A curated library gives the
+learner something useful immediately, while one shared engine prevents curated
+and imported media from drifting into unequal learning experiences.
+
+**Consequences:** Curated catalog listings stay metadata-light and load the
+full media/transcript only when a lesson opens. Excerpt duration follows a
+complete learning idea instead of a fixed timer. Built-in content requires
+explicit rights/provenance metadata and verified timing; absent internal timing
+must not be fabricated. EN and ZH, web and native, and resume/handoff contracts
+must remain aligned. Catalog publication, broad content licensing approval,
+and R11 public promotion remain human gates; this decision does not publish a
+lesson or activate a provider.
+
+**Supersedes / Superseded by:** Extends D-005, D-017, D-029, D-032, D-033,
+and D-036. Supersedes the former Listening landing hierarchy in which media
+URL import was the primary action, but does not supersede the canonical Media
+Learning architecture.
+
+## D-039 - Listening catalog publication is manifest-driven and rights-gated
+
+**Status:** Accepted
+
+**Decision:** Built-in Listening content is registered in a versioned catalog
+manifest that keeps canonical source media and transcript segments separate
+from curated excerpt lessons. A source may back multiple lesson identities;
+lessons reference the source's canonical segments and add only excerpt,
+discovery, level, lifecycle, and pedagogical metadata. Only `PUBLISHED` lessons
+whose source rights have been explicitly reviewed may be returned to learners.
+Both `estimated_level` and its evidence are retained, while an editorial
+`reviewed_level`, when present, is the displayed canonical level.
+
+**Reason:** Product content must be curatable without changing a React screen,
+must preserve the one-source-to-many-excerpts model, and must not turn unsafe or
+unreviewed external media into built-in catalog content. Separating source and
+lesson records also prevents transcript duplication and keeps level decisions
+explainable and overridable.
+
+**Consequences:** Topic and tag taxonomies can expand through catalog data;
+catalog listing remains metadata-light; full transcript/media payloads load
+only when a lesson opens. Editors can move content through draft, processing,
+review, ready, published, and archived states, but publication, licensing
+approval, and public Listening promotion remain human gates. This decision does
+not create a production CMS, publish third-party copyrighted content, or alter
+learner-import policy.
+
+**Supersedes / Superseded by:** Extends D-038 and the canonical Media Learning
+decisions it references. Supersedes no earlier decision.

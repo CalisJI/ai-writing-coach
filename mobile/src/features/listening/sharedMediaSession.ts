@@ -16,7 +16,7 @@ import type {MediaLesson} from '../../api/contracts/listening';
  * to repeat.
  */
 
-export type SharedMediaMode = 'follow' | 'active' | 'shadowing';
+export type SharedMediaMode = 'follow' | 'active' | 'dictation' | 'shadowing';
 
 export type SharedMediaSession = {
   learning_language: string;
@@ -29,7 +29,7 @@ const sessions = new Map<string, SharedMediaSession>();
 
 const languageKey = (value: string | undefined): string => typeof value === 'string' ? value.trim().toLowerCase() : '';
 const sessionMode = (value: unknown): SharedMediaMode =>
-  value === 'follow' || value === 'active' || value === 'shadowing' ? value : 'follow';
+  value === 'follow' || value === 'active' || value === 'dictation' || value === 'shadowing' ? value : 'follow';
 
 const segmentIds = (payload: MediaLesson | null | undefined): string[] =>
   (payload?.transcript?.segments ?? []).map((segment) => segment.segment_id).filter((value): value is string => typeof value === 'string' && value !== '');
@@ -78,7 +78,7 @@ export function selectSharedMediaSegment(learningLanguage: string | undefined, s
 
 export function setSharedMediaMode(learningLanguage: string | undefined, mode: SharedMediaMode): boolean {
   const current = sessions.get(languageKey(learningLanguage));
-  if (!current || !['follow', 'active', 'shadowing'].includes(mode)) return false;
+  if (!current || !['follow', 'active', 'dictation', 'shadowing'].includes(mode)) return false;
   current.mode = mode;
   return true;
 }
