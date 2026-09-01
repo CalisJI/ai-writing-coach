@@ -1,6 +1,6 @@
 ---
 name: validate-gate
-description: Run the BECOMING validation gate — architecture validator, Node contract tests, and pytest in the app container — and report exact passed/failed/skipped counts.
+description: Run the Orena validation gate — project-memory and architecture validators, Node contract tests, and pytest — and report exact results.
 disable-model-invocation: true
 ---
 
@@ -16,9 +16,10 @@ Never use `docker compose down -v`. An existing-volume warning is not a failure.
 
 ## Sequence
 
-**1. Architecture validator** (host, stdlib only):
+**1. Project-memory and architecture validators** (host, stdlib only):
 
 ```powershell
+python scripts/validate_project_memory.py
 python scripts/validate_architecture.py
 ```
 
@@ -43,7 +44,8 @@ the container:
 MSYS_NO_PATHCONV=1 docker compose run --rm --no-deps \n  -e PERSISTENCE_BACKEND=sqlite -e POSTGRES_RUNTIME_URL= \n  -v "<abs-windows-path>:/workspace:ro" -w /workspace writing-coach \n  sh -lc "pip install -q pytest; python -m pytest -q -p no:cacheprovider test_app.py tests"
 ```
 
-Expected baseline: **503 passed**. `POSTGRES_RUNTIME_URL` must be cleared or
+Use `CURRENT_HANDOFF.md` for the current verified baseline rather than a
+hardcoded historical count. `POSTGRES_RUNTIME_URL` must be cleared or
 `test_invalid_and_postgres_fail_without_bundle` fails on the environment, not
 on the code. pytest is not in the image, so install it in the run.
 
@@ -69,7 +71,8 @@ one-shot release gate hard-pinned the version it shipped with. Those are now in
 The 10 that remain fall into three tiers — only tier 1 is a build signal:
 
 **Tier 1 — code contracts. Must pass on the host. A failure is a real defect.**
-`validate_architecture` (the only one in CI), `validate_ui02_compact_headers`,
+`validate_project_memory`, `validate_architecture`,
+`validate_ui02_compact_headers`,
 `validate_learning_repository_boundary`,
 `validate_specialized_persistence_boundary`,
 `validate_postgres_cutover_readiness`, `validate_powershell_*`.

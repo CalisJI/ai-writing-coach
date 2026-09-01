@@ -1,0 +1,216 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://orena.local/schemas/current-product-state-v1.json",
+  "title": "Orena current product state",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "memory_schema_version",
+    "memory_governance",
+    "product",
+    "deprecated_routes",
+    "legacy_namespaces",
+    "active_branch_or_lane",
+    "last_verified_application_commit",
+    "last_verified_batch",
+    "current_program_stage",
+    "current_primary_workstream",
+    "design",
+    "languages",
+    "skills",
+    "listening",
+    "persistence",
+    "release_state",
+    "human_gates",
+    "current_p0",
+    "current_p1",
+    "last_verified_at"
+  ],
+  "properties": {
+    "memory_schema_version": {"const": "1.0"},
+    "memory_governance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["purpose", "authority", "change_when", "do_not_store"],
+      "properties": {
+        "purpose": {"const": "machine_readable_current_truth"},
+        "authority": {"const": "agent_updates_after_verified_evidence"},
+        "change_when": {"const": "verified_current_truth_changes"},
+        "do_not_store": {"const": "history_secrets_or_unverified_claims"}
+      }
+    },
+    "product": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "canonical_web_route", "commercial_production_product"],
+      "properties": {
+        "name": {"const": "Orena"},
+        "canonical_web_route": {"const": "/"},
+        "commercial_production_product": {"const": true}
+      }
+    },
+    "deprecated_routes": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["route", "status", "replacement", "new_development_allowed"],
+        "properties": {
+          "route": {"type": "string"},
+          "status": {"enum": ["compatibility_only", "retired"]},
+          "replacement": {"type": "string"},
+          "new_development_allowed": {"type": "boolean"}
+        }
+      }
+    },
+    "legacy_namespaces": {
+      "type": "array",
+      "minItems": 3,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path", "status", "active_product_route"],
+        "properties": {
+          "path": {"type": "string"},
+          "status": {"const": "legacy_technical_namespace"},
+          "active_product_route": {"const": false}
+        }
+      }
+    },
+    "active_branch_or_lane": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["expected_development_branch", "lane"],
+      "properties": {
+        "expected_development_branch": {"type": "string", "minLength": 1},
+        "lane": {"type": "string", "minLength": 1}
+      }
+    },
+    "last_verified_application_commit": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "last_verified_batch": {"type": "string", "minLength": 1},
+    "current_program_stage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name", "status"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^(R|M)[0-9]+$"},
+        "name": {"type": "string", "minLength": 1},
+        "status": {"enum": ["closed", "complete_local_acceptance", "in_progress", "human_gate", "planned", "blocked"]}
+      }
+    },
+    "current_primary_workstream": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "status", "next_task"],
+      "properties": {
+        "id": {"type": "string", "minLength": 1},
+        "status": {"enum": ["in_progress", "complete", "pending", "blocked"]},
+        "next_task": {"type": "string", "minLength": 1}
+      }
+    },
+    "design": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["web_is_visual_source_of_truth", "native_strategy", "native_may_redesign_product"],
+      "properties": {
+        "web_is_visual_source_of_truth": {"const": true},
+        "native_strategy": {"const": "full_native_port"},
+        "native_may_redesign_product": {"const": false}
+      }
+    },
+    "languages": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["first_class", "shared_features_require_same_batch_parity"],
+      "properties": {
+        "first_class": {
+          "type": "array",
+          "minItems": 2,
+          "items": {"enum": ["en", "zh"]}
+        },
+        "shared_features_require_same_batch_parity": {"const": true}
+      }
+    },
+    "skills": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["architecture", "core", "shared_infrastructure"],
+      "properties": {
+        "architecture": {"const": "connected_learning_system"},
+        "core": {
+          "type": "array",
+          "minItems": 4,
+          "items": {"enum": ["listening", "speaking", "reading", "writing"]}
+        },
+        "shared_infrastructure": {
+          "type": "array",
+          "minItems": 5,
+          "items": {"enum": ["library_active_recall", "grammar", "dictionary", "progress", "media_learning"]}
+        }
+      }
+    },
+    "listening": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["primary_entry", "user_import_role", "shared_learning_engine", "curated_and_imported_share_media_contract", "first_class_languages"],
+      "properties": {
+        "primary_entry": {"const": "curated_content_library"},
+        "user_import_role": {"const": "secondary"},
+        "shared_learning_engine": {"const": true},
+        "curated_and_imported_share_media_contract": {"const": true},
+        "first_class_languages": {
+          "type": "array",
+          "minItems": 2,
+          "items": {"enum": ["en", "zh"]}
+        }
+      }
+    },
+    "persistence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["authoritative_runtime", "sqlite_role", "dual_write_allowed", "silent_fallback_allowed", "production_mutation_requires_human"],
+      "properties": {
+        "authoritative_runtime": {"const": "postgresql"},
+        "sqlite_role": {"const": "test_archive_rollback_only"},
+        "dual_write_allowed": {"const": false},
+        "silent_fallback_allowed": {"const": false},
+        "production_mutation_requires_human": {"const": true}
+      }
+    },
+    "release_state": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["overall", "production_ready", "public_release_approved", "public_skills", "writing", "speaking", "reading", "listening"],
+      "properties": {
+        "overall": {"enum": ["development", "pre_public", "public"]},
+        "production_ready": {"type": "boolean"},
+        "public_release_approved": {"type": "boolean"},
+        "public_skills": {
+          "type": "array",
+          "items": {"enum": ["writing", "speaking", "reading", "listening"]}
+        },
+        "writing": {"enum": ["development", "pre_public_matrix_complete", "public"]},
+        "speaking": {"enum": ["development", "pre_public_matrix_complete", "public"]},
+        "reading": {"enum": ["development", "pre_public_matrix_complete", "public"]},
+        "listening": {"enum": ["development", "pre_public_matrix_complete", "public"]}
+      }
+    },
+    "human_gates": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "status"],
+        "properties": {
+          "id": {"type": "string", "minLength": 1},
+          "status": {"enum": ["approval_required", "approved", "blocked", "not_applicable"]}
+        }
+      }
+    },
+    "current_p0": {"type": "array", "items": {"type": "string"}},
+    "current_p1": {"type": "array", "items": {"type": "string"}},
+    "last_verified_at": {"type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"}
+  }
+}

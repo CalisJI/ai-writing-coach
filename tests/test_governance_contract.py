@@ -4,10 +4,16 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 GOVERNANCE_FILES = (
     "AGENTS.md",
+    "docs/project/PROJECT_MEMORY.md",
+    "docs/project/PRODUCT_CONSTITUTION.md",
+    "docs/project/CURRENT_PRODUCT_STATE.yaml",
+    "docs/project/LEGACY_TOMBSTONES.md",
+    "docs/project/CURRENT_HANDOFF.md",
+    "docs/project/PRODUCT_MAP.md",
+    "docs/project/DESIGN_CONTRACT.md",
     "docs/project/README.md",
     "docs/project/PROJECT_STATE.md",
     "docs/project/ARCHITECTURE_INVARIANTS.md",
-    "docs/project/CURRENT_HANDOFF.md",
     "docs/project/DOMAIN_BOUNDARIES.md",
     "docs/project/ROADMAP.md",
     "docs/project/DECISION_LOG.md",
@@ -15,11 +21,17 @@ GOVERNANCE_FILES = (
 )
 
 
+def _historical_handoff() -> str:
+    """Archived closeout evidence; never the current-session handoff."""
+
+    return (ROOT / "docs/project/archive/HANDOFF_BEFORE_PROJECT_MEMORY.md").read_text(encoding="utf-8")
+
+
 def test_canonical_governance_context_is_present_and_discoverable() -> None:
     assert all((ROOT / path).is_file() for path in GOVERNANCE_FILES)
 
     agents = (ROOT / "AGENTS.md").read_text(encoding="utf-8")
-    for path in GOVERNANCE_FILES[1:7]:
+    for path in GOVERNANCE_FILES[1:8]:
         assert path in agents
 
     project_state = (ROOT / "docs/project/PROJECT_STATE.md").read_text(encoding="utf-8")
@@ -28,7 +40,7 @@ def test_canonical_governance_context_is_present_and_discoverable() -> None:
 
 def test_m16_shared_media_shadowing_governance_closeout_is_truthful() -> None:
     project_state = (ROOT / "docs/project/PROJECT_STATE.md").read_text(encoding="utf-8")
-    handoff = (ROOT / "docs/project/CURRENT_HANDOFF.md").read_text(encoding="utf-8")
+    handoff = _historical_handoff()
     roadmap = (ROOT / "docs/project/ROADMAP.md").read_text(encoding="utf-8")
     combined = "\n".join((project_state, handoff, roadmap)).casefold()
 
@@ -96,7 +108,7 @@ def test_r13_local_admin_matrix_is_reproducible_and_runtime_safe() -> None:
     report = (ROOT / "docs/project/R13_LOCAL_ACCEPTANCE_MATRIX.json").read_text(encoding="utf-8")
     runner = (ROOT / "scripts/r13_release_matrix.mjs").read_text(encoding="utf-8")
     project_state = (ROOT / "docs/project/PROJECT_STATE.md").read_text(encoding="utf-8")
-    handoff = (ROOT / "docs/project/CURRENT_HANDOFF.md").read_text(encoding="utf-8")
+    handoff = _historical_handoff()
     roadmap = (ROOT / "docs/project/ROADMAP.md").read_text(encoding="utf-8")
     normalized_roadmap = " ".join(roadmap.split())
     r13_section = roadmap.split("## R13 — Platform Admin Completion", 1)[1].split("## R14", 1)[0]
@@ -125,7 +137,7 @@ def test_r13_local_admin_matrix_is_reproducible_and_runtime_safe() -> None:
 
 def test_r17_local_foundation_closeout_records_verified_route_boundary() -> None:
     project_state = (ROOT / "docs/project/PROJECT_STATE.md").read_text(encoding="utf-8")
-    handoff = (ROOT / "docs/project/CURRENT_HANDOFF.md").read_text(encoding="utf-8")
+    handoff = _historical_handoff()
     roadmap = (ROOT / "docs/project/ROADMAP.md").read_text(encoding="utf-8")
     route_test = (ROOT / "tests/test_r17_admin_routes.py").read_text(encoding="utf-8")
     activity_contract = (ROOT / "scripts/test_product_activity_contract.mjs").read_text(encoding="utf-8")
@@ -157,7 +169,7 @@ def test_r17_local_foundation_closeout_records_verified_route_boundary() -> None
 
 def test_r18_reference_data_cache_contract_is_recorded() -> None:
     project_state = (ROOT / "docs/project/PROJECT_STATE.md").read_text(encoding="utf-8")
-    handoff = (ROOT / "docs/project/CURRENT_HANDOFF.md").read_text(encoding="utf-8")
+    handoff = _historical_handoff()
     route_test = (ROOT / "tests/test_reference_data_cache.py").read_text(encoding="utf-8")
     assert "R18 — Mobile/API Readiness: **COMPLETE / LOCAL ACCEPTANCE PASS**" in project_state
     assert "Current Orena program: **R21 Mobile Release Readiness — HUMAN STORE-RELEASE" in project_state
@@ -183,7 +195,7 @@ def test_r18_reference_data_cache_contract_is_recorded() -> None:
 
 def test_r18_session_bootstrap_contract_is_recorded() -> None:
     project_state = (ROOT / "docs/project/PROJECT_STATE.md").read_text(encoding="utf-8")
-    handoff = (ROOT / "docs/project/CURRENT_HANDOFF.md").read_text(encoding="utf-8")
+    handoff = _historical_handoff()
     auth_source = (ROOT / "auth_support.py").read_text(encoding="utf-8")
     route_test = (ROOT / "tests/test_session_bootstrap.py").read_text(encoding="utf-8")
     assert "authenticated session-bootstrap" in handoff
@@ -198,7 +210,7 @@ def test_r18_session_bootstrap_contract_is_recorded() -> None:
 
 def test_r18_compact_media_status_contract_is_recorded() -> None:
     project_state = (ROOT / "docs/project/PROJECT_STATE.md").read_text(encoding="utf-8")
-    handoff = (ROOT / "docs/project/CURRENT_HANDOFF.md").read_text(encoding="utf-8")
+    handoff = _historical_handoff()
     media_source = (ROOT / "writing_coach/media_api.py").read_text(encoding="utf-8")
     api_source = (ROOT / "static/becoming/api.js").read_text(encoding="utf-8")
     route_test = (ROOT / "tests/test_media_status_compact.py").read_text(encoding="utf-8")
@@ -218,7 +230,7 @@ def test_r18_compact_media_status_contract_is_recorded() -> None:
 
 def test_r12_local_retention_foundation_closeout_is_recorded() -> None:
     project_state = (ROOT / "docs/project/PROJECT_STATE.md").read_text(encoding="utf-8")
-    handoff = (ROOT / "docs/project/CURRENT_HANDOFF.md").read_text(encoding="utf-8")
+    handoff = _historical_handoff()
     roadmap = (ROOT / "docs/project/ROADMAP.md").read_text(encoding="utf-8")
     return_test = (ROOT / "scripts/test_r12_listening_return.mjs").read_text(encoding="utf-8")
     habit_test = (ROOT / "scripts/test_r12_listening_habit_home.mjs").read_text(encoding="utf-8")
@@ -244,7 +256,7 @@ def test_r12_local_retention_foundation_closeout_is_recorded() -> None:
 
 def test_r10_reading_matrix_records_en_zh_evidence_and_deferred_gates() -> None:
     project_state = (ROOT / "docs/project/PROJECT_STATE.md").read_text(encoding="utf-8")
-    handoff = (ROOT / "docs/project/CURRENT_HANDOFF.md").read_text(encoding="utf-8")
+    handoff = _historical_handoff()
     roadmap = (ROOT / "docs/project/ROADMAP.md").read_text(encoding="utf-8")
     report = (ROOT / "docs/project/R10_PRE_PUBLIC_MATRIX.json").read_text(encoding="utf-8")
     runner = (ROOT / "scripts/r10_release_matrix.mjs").read_text(encoding="utf-8")
@@ -278,7 +290,7 @@ def test_r10_reading_matrix_records_en_zh_evidence_and_deferred_gates() -> None:
 
 def test_r14_local_operations_foundation_closeout_is_recorded() -> None:
     project_state = (ROOT / "docs/project/PROJECT_STATE.md").read_text(encoding="utf-8")
-    handoff = (ROOT / "docs/project/CURRENT_HANDOFF.md").read_text(encoding="utf-8")
+    handoff = _historical_handoff()
     roadmap = (ROOT / "docs/project/ROADMAP.md").read_text(encoding="utf-8")
     report = (ROOT / "docs/project/R14_LOCAL_ACCEPTANCE_MATRIX.json").read_text(encoding="utf-8")
     runner = (ROOT / "scripts/r14_release_matrix.mjs").read_text(encoding="utf-8")
@@ -328,7 +340,7 @@ def test_r14_local_operations_foundation_closeout_is_recorded() -> None:
 
 def test_post_r12_governance_pointer_reconciles_completed_ledger() -> None:
     project_state = (ROOT / "docs/project/PROJECT_STATE.md").read_text(encoding="utf-8")
-    handoff = (ROOT / "docs/project/CURRENT_HANDOFF.md").read_text(encoding="utf-8")
+    handoff = _historical_handoff()
     roadmap = (ROOT / "docs/project/ROADMAP.md").read_text(encoding="utf-8")
 
     assert "Current Orena program: **R21 Mobile Release Readiness — HUMAN STORE-RELEASE" in project_state
@@ -376,7 +388,7 @@ def test_post_r12_governance_pointer_reconciles_completed_ledger() -> None:
 
 def test_r15_local_account_state_closeout_is_recorded() -> None:
     project_state = (ROOT / "docs/project/PROJECT_STATE.md").read_text(encoding="utf-8")
-    handoff = (ROOT / "docs/project/CURRENT_HANDOFF.md").read_text(encoding="utf-8")
+    handoff = _historical_handoff()
     roadmap = (ROOT / "docs/project/ROADMAP.md").read_text(encoding="utf-8")
     contract = (ROOT / "scripts/test_r15_account_state.mjs").read_text(encoding="utf-8")
     normalized_roadmap = " ".join(roadmap.split())
@@ -404,7 +416,7 @@ def test_r15_local_account_state_closeout_is_recorded() -> None:
 
 def test_r3_roadmap_status_matches_verified_local_closeout() -> None:
     project_state = (ROOT / "docs/project/PROJECT_STATE.md").read_text(encoding="utf-8")
-    handoff = (ROOT / "docs/project/CURRENT_HANDOFF.md").read_text(encoding="utf-8")
+    handoff = _historical_handoff()
     roadmap = (ROOT / "docs/project/ROADMAP.md").read_text(encoding="utf-8")
     normalized_roadmap = " ".join(roadmap.split())
 
@@ -433,7 +445,7 @@ def test_r3_roadmap_status_matches_verified_local_closeout() -> None:
 
 def test_r4_roadmap_status_matches_verified_learning_loop_closeout() -> None:
     project_state = (ROOT / "docs/project/PROJECT_STATE.md").read_text(encoding="utf-8")
-    handoff = (ROOT / "docs/project/CURRENT_HANDOFF.md").read_text(encoding="utf-8")
+    handoff = _historical_handoff()
     roadmap = (ROOT / "docs/project/ROADMAP.md").read_text(encoding="utf-8")
     normalized_roadmap = " ".join(roadmap.split())
     r4_section = roadmap.split("## R4 — Writing Learning Loop + Grammar Transfer", 1)[1].split("## R5", 1)[0]
@@ -451,7 +463,7 @@ def test_r4_roadmap_status_matches_verified_learning_loop_closeout() -> None:
 
 def test_r6_roadmap_status_matches_verified_speaking_core_closeout() -> None:
     project_state = (ROOT / "docs/project/PROJECT_STATE.md").read_text(encoding="utf-8")
-    handoff = (ROOT / "docs/project/CURRENT_HANDOFF.md").read_text(encoding="utf-8")
+    handoff = _historical_handoff()
     roadmap = (ROOT / "docs/project/ROADMAP.md").read_text(encoding="utf-8")
     normalized_roadmap = " ".join(roadmap.split())
     r6_section = roadmap.split("## R6 — Speaking Core", 1)[1].split("## R7", 1)[0]
@@ -470,7 +482,7 @@ def test_r6_roadmap_status_matches_verified_speaking_core_closeout() -> None:
 
 def test_r7_roadmap_status_matches_verified_speaking_evaluation_closeout() -> None:
     project_state = (ROOT / "docs/project/PROJECT_STATE.md").read_text(encoding="utf-8")
-    handoff = (ROOT / "docs/project/CURRENT_HANDOFF.md").read_text(encoding="utf-8")
+    handoff = _historical_handoff()
     roadmap = (ROOT / "docs/project/ROADMAP.md").read_text(encoding="utf-8")
     normalized_roadmap = " ".join(roadmap.split())
     r7_section = roadmap.split("## R7 — Speaking Evaluation + Pronunciation Completion", 1)[1].split("## R8", 1)[0]
@@ -487,7 +499,7 @@ def test_r7_roadmap_status_matches_verified_speaking_evaluation_closeout() -> No
 
 def test_r9_roadmap_status_matches_verified_shadowing_closeout() -> None:
     project_state = (ROOT / "docs/project/PROJECT_STATE.md").read_text(encoding="utf-8")
-    handoff = (ROOT / "docs/project/CURRENT_HANDOFF.md").read_text(encoding="utf-8")
+    handoff = _historical_handoff()
     roadmap = (ROOT / "docs/project/ROADMAP.md").read_text(encoding="utf-8")
     normalized_roadmap = " ".join(roadmap.split())
     r9_section = roadmap.split("## R9 — Speaking Advanced / Shadowing Studio", 1)[1].split("## R10", 1)[0]
@@ -505,7 +517,7 @@ def test_r9_roadmap_status_matches_verified_shadowing_closeout() -> None:
 
 def test_r16_local_foundation_closeout_records_complete_evidence_chain() -> None:
     project_state = (ROOT / "docs/project/PROJECT_STATE.md").read_text(encoding="utf-8")
-    handoff = (ROOT / "docs/project/CURRENT_HANDOFF.md").read_text(encoding="utf-8")
+    handoff = _historical_handoff()
     normalized_state = " ".join(project_state.split())
     normalized_handoff = " ".join(handoff.split())
 
@@ -534,7 +546,7 @@ def test_r20_local_mobile_matrix_is_reproducible_and_release_safe() -> None:
     report = (ROOT / "docs/project/R20_LOCAL_ACCEPTANCE_MATRIX.json").read_text(encoding="utf-8")
     runner = (ROOT / "scripts/r20_release_matrix.mjs").read_text(encoding="utf-8")
     project_state = (ROOT / "docs/project/PROJECT_STATE.md").read_text(encoding="utf-8")
-    handoff = (ROOT / "docs/project/CURRENT_HANDOFF.md").read_text(encoding="utf-8")
+    handoff = _historical_handoff()
     roadmap = (ROOT / "docs/project/ROADMAP.md").read_text(encoding="utf-8")
     r20_section = roadmap.split("## R20 — Mobile Learning Experience Parity", 1)[1].split("## R21", 1)[0]
     normalized_r20 = " ".join(r20_section.split())

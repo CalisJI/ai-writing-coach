@@ -41,6 +41,23 @@ agents.
   distinguished rather than hidden with product-code changes.
 - Unexpected cross-domain changes require ownership and regression evidence.
 
+## Project-memory drift check
+
+Every implementation and review diff must ask:
+
+- Does it contradict `PRODUCT_CONSTITUTION.md`?
+- Does it revive a direction in `LEGACY_TOMBSTONES.md`?
+- Does it contradict `CURRENT_PRODUCT_STATE.yaml` or change durable direction
+  without explicit human authorization?
+- Does it break EN/ZH parity or disconnect Listening, Speaking, Reading, and
+  Writing from shared learning infrastructure?
+- Does native diverge from the approved responsive Orena web product?
+- Does it create a parallel media, progress, dictionary, vocabulary, scoring,
+  or evidence system?
+
+Any such finding is a product-memory regression. Reviewers must not convert a
+stale implementation into accepted product intent by editing governance.
+
 ## Required completion evidence
 
 Every implementation or correction checkpoint reports:

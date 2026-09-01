@@ -16,10 +16,11 @@ historical narrative.
 
 ## Identity and versions
 
-- Product: Orena / BECOMING codebase
+- Product: Orena. BECOMING-named paths and symbols are legacy technical
+  compatibility, not the active product identity.
 - Repository: `CalisJI/ai-writing-coach`
 - Last verified application/runtime baseline:
-  `7cdd4ad`
+  `7b1740e66a3f8ef82b2fc728dedaf7dd2c1d1b6f`
 
 This SHA identifies the verified application/runtime baseline inherited by this
 governance checkpoint. Documentation-only or governance-only descendant commits
@@ -28,7 +29,7 @@ a reviewed change materially changes verified application, runtime, product, or
 operational state.
 
 - Application version: `1.4.0`
-- BECOMING frontend version: `2.17.5`
+- Legacy-named `BECOMING_FRONTEND_VERSION` compatibility pin: `2.17.5`
 - Current Orena program: **R21 Mobile Release Readiness — HUMAN STORE-RELEASE
   GATE.** R0–R20 local foundations are preserved; R20 delivered the real native
   learner flows on top of those contracts and R21 prepares controlled release. R8/R11 promotion, R2 activation,

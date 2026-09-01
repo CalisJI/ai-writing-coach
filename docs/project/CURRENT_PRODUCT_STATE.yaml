@@ -1,0 +1,113 @@
+{
+  "memory_schema_version": "1.0",
+  "memory_governance": {
+    "purpose": "machine_readable_current_truth",
+    "authority": "agent_updates_after_verified_evidence",
+    "change_when": "verified_current_truth_changes",
+    "do_not_store": "history_secrets_or_unverified_claims"
+  },
+  "product": {
+    "name": "Orena",
+    "canonical_web_route": "/",
+    "commercial_production_product": true
+  },
+  "deprecated_routes": [
+    {
+      "route": "/becoming",
+      "status": "compatibility_only",
+      "replacement": "/",
+      "new_development_allowed": false
+    }
+  ],
+  "legacy_namespaces": [
+    {
+      "path": "static/becoming/**",
+      "status": "legacy_technical_namespace",
+      "active_product_route": false
+    },
+    {
+      "path": "templates/becoming/**",
+      "status": "legacy_technical_namespace",
+      "active_product_route": false
+    },
+    {
+      "path": "writing_coach/becoming_*",
+      "status": "legacy_technical_namespace",
+      "active_product_route": false
+    }
+  ],
+  "active_branch_or_lane": {
+    "expected_development_branch": "claude/integration-v2",
+    "lane": "orena_integration"
+  },
+  "last_verified_application_commit": "7b1740e66a3f8ef82b2fc728dedaf7dd2c1d1b6f",
+  "last_verified_batch": "rights_aware_listening_content_catalog",
+  "current_program_stage": {
+    "id": "R21",
+    "name": "Mobile Release Readiness",
+    "status": "human_gate"
+  },
+  "current_primary_workstream": {
+    "id": "repository_backed_project_memory",
+    "status": "complete",
+    "next_task": "Human review of the project-memory commits."
+  },
+  "design": {
+    "web_is_visual_source_of_truth": true,
+    "native_strategy": "full_native_port",
+    "native_may_redesign_product": false
+  },
+  "languages": {
+    "first_class": ["en", "zh"],
+    "shared_features_require_same_batch_parity": true
+  },
+  "skills": {
+    "architecture": "connected_learning_system",
+    "core": ["listening", "speaking", "reading", "writing"],
+    "shared_infrastructure": [
+      "library_active_recall",
+      "grammar",
+      "dictionary",
+      "progress",
+      "media_learning"
+    ]
+  },
+  "listening": {
+    "primary_entry": "curated_content_library",
+    "user_import_role": "secondary",
+    "shared_learning_engine": true,
+    "curated_and_imported_share_media_contract": true,
+    "first_class_languages": ["en", "zh"]
+  },
+  "persistence": {
+    "authoritative_runtime": "postgresql",
+    "sqlite_role": "test_archive_rollback_only",
+    "dual_write_allowed": false,
+    "silent_fallback_allowed": false,
+    "production_mutation_requires_human": true
+  },
+  "release_state": {
+    "overall": "pre_public",
+    "production_ready": false,
+    "public_release_approved": false,
+    "public_skills": [],
+    "writing": "development",
+    "speaking": "development",
+    "reading": "development",
+    "listening": "pre_public_matrix_complete"
+  },
+  "human_gates": [
+    {"id": "production_authentication", "status": "approval_required"},
+    {"id": "live_ai_provider_validation", "status": "approval_required"},
+    {"id": "production_ai_activation", "status": "approval_required"},
+    {"id": "production_postgresql_migration_or_mutation", "status": "approval_required"},
+    {"id": "backup_restore_and_rollback", "status": "approval_required"},
+    {"id": "secrets_credentials_cloudflare_dns", "status": "approval_required"},
+    {"id": "billing_subscription_enforcement", "status": "approval_required"},
+    {"id": "mobile_signing_store_release", "status": "approval_required"},
+    {"id": "learner_skill_or_catalog_publication", "status": "approval_required"}
+  ],
+  "current_p0": [],
+  "current_p1": ["listening_player_lifecycle_contract_fails_at_media_player_frame_dataset"],
+  "last_verified_at": "2026-09-02"
+}

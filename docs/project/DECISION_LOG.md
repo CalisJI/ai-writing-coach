@@ -876,3 +876,42 @@ learner-import policy.
 
 **Supersedes / Superseded by:** Extends D-038 and the canonical Media Learning
 decisions it references. Supersedes no earlier decision.
+
+## D-040 - Orena direction is restored from repository-backed project memory
+
+**Status:** Accepted
+
+**Decision:** Orena is the canonical active product identity and `/` is its
+canonical web route. `/becoming` is compatibility-only. Historical
+BECOMING-named files, directories, symbols, database identifiers, and archived
+evidence may remain where technically required but do not define current
+product direction. The approved responsive Orena web product is the visual,
+functional, and interaction source of truth; native mobile is a full native
+port, not an independent redesign or simplified edition.
+
+Current project direction and execution state are restored from the bounded
+repository-backed memory rooted at `docs/project/PROJECT_MEMORY.md`. Agent chat
+history is never authoritative project state. Durable product intent is
+human-governed; machine-readable current truth is schema-validated; retired
+directions are tombstoned; and every verified batch runs the project-memory
+validator before commit.
+
+**Reason:** Multi-agent sessions lose chat context and were repeatedly reviving
+obsolete routes, names, design assumptions, and stale roadmap paths. A compact,
+versioned, machine-enforced repository memory lets a zero-context session
+recover the active product, current state, retired directions, human gates, and
+exact next task without loading all historical documents.
+
+**Consequences:** `PRODUCT_CONSTITUTION.md`, fundamental
+`DESIGN_CONTRACT.md` principles, and `LEGACY_TOMBSTONES.md` are human-governed.
+`CURRENT_PRODUCT_STATE.yaml` accepts only its validated schema. The compact
+`CURRENT_HANDOFF.md` no longer carries historical closeouts. CI fails on active
+navigation to `/becoming`, learner-facing BECOMING branding, route/state
+contradictions, EN/ZH parity loss, independent-native-redesign state, or missing
+memory contracts. Valid legacy technical namespaces and compatibility redirect
+tests remain allowed.
+
+**Supersedes / Superseded by:** Extends D-013 and supersedes any interpretation
+that chat history, human recollection, legacy filenames, or the old route is the
+primary source of current project direction. It does not supersede valid
+historical implementation contracts recorded by D-014 through D-039.
