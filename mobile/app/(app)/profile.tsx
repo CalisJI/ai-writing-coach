@@ -8,14 +8,14 @@ import type {LearnerProfileInput} from '../../src/api/contracts/learning';
 import {useSession} from '../../src/auth/SessionHarness';
 import {useI18n} from '../../src/i18n/I18nProvider';
 import {requestPurchaseHandoff} from '../../src/features/profile/purchaseHandoff';
-import {deriveGrowthRank, featureUsage, nextStage, type RankMemory} from '../../src/features/profile/growthRank';
+import {deriveGrowthRank, featureUsage, type RankMemory} from '../../src/features/profile/growthRank';
 import {useLearnerProfile, useSaveLearnerProfile, useSetLearningLanguage} from '../../src/query/useLearnerProfile';
 import {useLearningMemory} from '../../src/query/useHome';
 import {useProductMe} from '../../src/query/useProductMe';
 import {useTheme, type ThemePreference} from '../../src/theme/ThemeProvider';
 import {PALETTE_PRESETS, tokensFor, type PalettePreset} from '../../src/theme/tokens';
 import {CONTENT_MAX} from '../../src/theme/layout';
-import {Button, Card, Label, PanelCopy} from '../../src/components/orena';
+import {Button, Card, PanelCopy} from '../../src/components/orena';
 import {OrenaIcon} from '../../src/components/OrenaIcon';
 import {ErrorState, LoadingState, SignedOutState} from '../../src/components/states';
 
@@ -44,13 +44,19 @@ const featureLabels: Record<string, string> = {
   'export.report': 'profile.feature_export_report',
 };
 
-/** `.o-set-group`: a titled block of rows. */
+/**
+ * `.o-set-group` at the phone breakpoint: "the mobile reference stacks labelled
+ * groups rather than one long card: the title steps outside and the rows become
+ * their own rounded block" -- orena/profile.css's own comment. So there is no
+ * outer settings card here, and the title is a small uppercase label rather than
+ * a heading.
+ */
 function SettingGroup({title, children}: {title: string; children: ReactNode}) {
   const {tokens} = useTheme();
   return (
     <View style={styles.group}>
-      <Text style={[styles.groupTitle, {color: tokens.colors.heading}]}>{title}</Text>
-      <View style={[styles.groupBody, {borderColor: tokens.colors.border}]}>{children}</View>
+      <Text style={[styles.groupTitle, {color: tokens.colors.mutedText}]}>{title}</Text>
+      <Card style={styles.groupBody}>{children}</Card>
     </View>
   );
 }
@@ -60,13 +66,13 @@ function SettingGroup({title, children}: {title: string; children: ReactNode}) {
  * control to the right; on a phone it sits under its own label instead of being
  * squeezed beside it, which is what the breakpoint does to the same row.
  */
-function SettingRow<T extends string>({label, desc, options, value, onChange, render}: {
+function SettingRow<T extends string>({label, desc, options, value, onChange, render, first}: {
   label: string; desc?: string; options: readonly T[]; value: T;
-  onChange: (next: T) => void; render: (option: T) => string;
+  onChange: (next: T) => void; render: (option: T) => string; first?: boolean;
 }) {
   const {tokens} = useTheme();
   return (
-    <View style={[styles.row, {borderTopColor: tokens.colors.border}]}>
+    <View style={[styles.row, !first && {borderTopWidth: 1, borderTopColor: tokens.colors.border}]}>
       <View style={styles.rowCopy}>
         <Text style={[styles.rowLabel, {color: tokens.colors.text}]}>{label}</Text>
         {desc ? <Text style={[styles.rowDesc, {color: tokens.colors.mutedText}]}>{desc}</Text> : null}
@@ -96,26 +102,28 @@ function SettingRow<T extends string>({label, desc, options, value, onChange, re
 }
 
 /** `factRow()`: a row whose right side is a fact rather than a choice. */
-function FactRow({label, value, note}: {label: string; value: string; note?: string}) {
+function FactRow({label, value, note, first}: {label: string; value: string; note?: string; first?: boolean}) {
   const {tokens} = useTheme();
   return (
-    <View style={[styles.row, styles.factRow, {borderTopColor: tokens.colors.border}]}>
+    <View style={[styles.row, !first && {borderTopWidth: 1, borderTopColor: tokens.colors.border}]}>
       <Text style={[styles.rowLabel, {color: tokens.colors.text}]}>{label}</Text>
+      {/* `.o-set-value{justify-items:start;text-align:left}` on a phone -- the
+          value sits under its label rather than being pushed to the far edge. */}
       <View style={styles.factValue}>
         <Text style={[styles.factStrong, {color: tokens.colors.heading}]}>{value}</Text>
-        {note ? <Text style={[styles.rowDesc, {color: tokens.colors.faintText, textAlign: 'right'}]}>{note}</Text> : null}
+        {note ? <Text style={[styles.rowDesc, {color: tokens.colors.faintText}]}>{note}</Text> : null}
       </View>
     </View>
   );
 }
 
 /** `actionRow()`: a row that goes somewhere, ending in a chevron. */
-function ActionRow({label, desc, onPress}: {label: string; desc?: string; onPress: () => void}) {
+function ActionRow({label, desc, onPress, first}: {label: string; desc?: string; onPress: () => void; first?: boolean}) {
   const {tokens} = useTheme();
   return (
     <Pressable
       accessibilityRole="button" accessibilityLabel={label} onPress={onPress}
-      style={({pressed}) => [styles.row, styles.actionRow, {borderTopColor: tokens.colors.border, backgroundColor: pressed ? tokens.colors.surfaceSunken : 'transparent'}]}
+      style={({pressed}) => [styles.row, styles.actionRow, !first && {borderTopWidth: 1, borderTopColor: tokens.colors.border}, {backgroundColor: pressed ? tokens.colors.surfaceSunken : 'transparent'}]}
     >
       <View style={styles.rowCopy}>
         <Text style={[styles.rowLabel, {color: tokens.colors.text}]}>{label}</Text>
@@ -139,24 +147,36 @@ function PaletteChoice({preset, selected, onPress}: {preset: PalettePreset; sele
     <Pressable
       accessibilityRole="radio" accessibilityLabel={t(`theme.${preset}` as never)} accessibilityState={{selected}}
       onPress={onPress}
-      style={[styles.palette, {borderColor: selected ? swatch.colors.accent : tokens.colors.border, backgroundColor: tokens.colors.surface}]}
+      style={[styles.palette, {
+        borderColor: selected ? swatch.colors.accent : tokens.colors.border,
+        backgroundColor: selected ? swatch.colors.accentTint : tokens.colors.surface,
+      }]}
     >
-      <View style={styles.swatch}>
+      {/* The reference's swatch is three chips of the palette itself, so the
+          choice is made from the colours rather than from four words. */}
+      <View style={[styles.swatch, {borderColor: tokens.colors.border, backgroundColor: swatch.colors.surfaceSunken}]}>
         <View style={[styles.swatchChip, {backgroundColor: swatch.colors.accent}]} />
-        <View style={[styles.swatchChip, {backgroundColor: swatch.colors.surfaceSunken, borderWidth: 1, borderColor: tokens.colors.border}]} />
         <View style={[styles.swatchChip, {backgroundColor: swatch.colors.roleNoun}]} />
+        <View style={[styles.swatchChip, {backgroundColor: swatch.colors.borderStrong}]} />
       </View>
-      <Text style={[styles.paletteName, {color: selected ? swatch.colors.accent : tokens.colors.text}]}>{t(`theme.${preset}` as never)}</Text>
+      <View style={styles.paletteCopy}>
+        <Text style={[styles.paletteName, {color: selected ? swatch.colors.accent : tokens.colors.text}]}>{t(`theme.${preset}` as never)}</Text>
+        <Text style={[styles.rowDesc, {color: tokens.colors.mutedText}]}>{t(`theme.${preset}_desc` as never)}</Text>
+      </View>
     </Pressable>
   );
 }
 
-/** `growthRankFrame()`: the stage, the evidence behind it, and what is next. */
+/**
+ * `growthRankFrame()`: the medallion, the stage, and -- in the reference's own
+ * words -- that this is "a motivational frame built from repeated Writing
+ * evidence. It is not a CEFR, HSK, TOEIC or IELTS rank." The evidence line and
+ * the next-proof line are what make that claim checkable.
+ */
 function RankFrame({memory}: {memory: RankMemory}) {
   const {t} = useI18n();
   const {tokens} = useTheme();
   const rank = deriveGrowthRank(memory);
-  const after = nextStage(rank.stage);
   return (
     <Card style={styles.rank}>
       <View style={styles.rankHead}>
@@ -164,24 +184,21 @@ function RankFrame({memory}: {memory: RankMemory}) {
           <Text style={[styles.medallionText, {color: tokens.colors.accent}]}>{String(rank.stageIndex + 1).padStart(2, '0')}</Text>
         </View>
         <View style={styles.rankCopy}>
-          <Label>{t('prof.rank_kicker' as never)}</Label>
+          <Text style={[styles.rankKicker, {color: tokens.colors.mutedText}]}>{t('prof.rank_kicker' as never)}</Text>
           <Text style={[styles.rankStage, {color: tokens.colors.heading}]}>{t(`prof.rank_${rank.stage.toLowerCase()}` as never)}</Text>
         </View>
       </View>
-      {/* Said plainly: a stage word beside a progress bar otherwise reads as a
-          proficiency claim, which this is not. */}
       <PanelCopy>{t('prof.rank_note' as never)}</PanelCopy>
-      <Text style={{color: tokens.colors.mutedText}}>
+      <View style={[styles.rankRule, {backgroundColor: tokens.colors.border}]} />
+      <Text style={{color: tokens.colors.text}}>
         {t('prof.rank_evidence' as never)
-          .replace('{series}', String(rank.evidence.series))
+          .replace('{strengths}', String(rank.evidence.reliableStrengths))
           .replace('{wins}', String(rank.evidence.wins))
-          .replace('{strengths}', String(rank.evidence.reliableStrengths))}
+          .replace('{series}', String(rank.evidence.series))}
       </Text>
-      <View style={[styles.track, {backgroundColor: tokens.colors.surfaceSunken}]}>
-        <View style={[styles.trackFill, {width: `${Math.round(rank.progress * 100)}%`, backgroundColor: tokens.colors.accent}]} />
-      </View>
+      <View style={[styles.rankRule, {backgroundColor: tokens.colors.border}]} />
       <Text style={[styles.rowDesc, {color: tokens.colors.faintText}]}>
-        {after ? t('prof.rank_next' as never).replace('{next}', t(`prof.rank_${after.toLowerCase()}` as never)) : t('prof.rank_top' as never)}
+        {t('prof.rank_next' as never).replace('{next}', t(`prof.rank_next_${rank.stage.toLowerCase()}` as never))}
       </Text>
     </Card>
   );
@@ -259,156 +276,190 @@ export default function ProfileScreen() {
 
   return (
     <ScrollView style={{flex: 1, backgroundColor: tokens.colors.background}} contentContainerStyle={[styles.container, {backgroundColor: tokens.colors.background}]}>
-      <Text accessibilityRole="header" style={[styles.title, {color: tokens.colors.heading}]}>{t('profile.title')}</Text>
+      {/* `.o-page-heading{display:none}` below 720px: the top bar already names
+          the route, so a heading here would be the same word twice. */}
 
-      {/* `statusMarkup()`: a live region at the top of the form, not a note
-          buried under the last control. */}
+      {/* `statusMarkup()`: a live region above the form. */}
       <View accessibilityLiveRegion="polite" style={styles.status}>
         {notice ? <Text accessibilityRole={failed ? 'alert' : undefined} style={{color: failed ? tokens.colors.danger : tokens.colors.positive}}>{notice}</Text> : null}
       </View>
 
       <RankFrame memory={(memory.data ?? {}) as RankMemory} />
 
-      <Card style={styles.set}>
-        <SettingGroup title={t('prof.group_learning' as never)}>
-          <SettingRow
-            label={t('profile.learning_language')} desc={t('prof.learning_language_desc' as never)}
-            options={['en', 'zh'] as const} value={learningLanguage}
-            onChange={changeLanguage} render={(item) => t(`language.${item}` as never)}
-          />
-          <SettingRow
-            label={t('profile.native_language')} desc={t('prof.interface_language_desc' as never)}
-            options={['vi', 'en', 'zh'] as const} value={value.native_language}
-            onChange={(item) => update('native_language', item)} render={(item) => t(`language.${item}` as never)}
-          />
-          <SettingRow
-            label={t('profile.goal')} desc={t('prof.goal_desc' as never)}
-            options={['everyday', 'work', 'exam', 'voice'] as const} value={value.goal}
-            onChange={(item) => update('goal', item)} render={(item) => t(`goal.${item}` as never)}
-          />
-        </SettingGroup>
+      <SettingGroup title={t('prof.group_learning' as never)}>
+        <SettingRow
+          first
+          label={t('prof.learning_language' as never)} desc={t('prof.learning_language_desc' as never)}
+          options={['en', 'zh'] as const} value={learningLanguage}
+          onChange={changeLanguage} render={(item) => t(`language.${item}` as never)}
+        />
+        <SettingRow
+          label={t('prof.interface_language' as never)} desc={t('prof.interface_language_desc' as never)}
+          options={['vi', 'en', 'zh'] as const} value={value.native_language}
+          onChange={(item) => update('native_language', item)} render={(item) => t(`language.${item}` as never)}
+        />
+        <SettingRow
+          label={t('prof.current_goal' as never)} desc={t('prof.current_goal_desc' as never)}
+          options={['everyday', 'work', 'exam', 'voice'] as const} value={value.goal}
+          onChange={(item) => update('goal', item)} render={(item) => t(`goal.${item}` as never)}
+        />
+      </SettingGroup>
 
-        <SettingGroup title={t('prof.group_experience' as never)}>
+      <SettingGroup title={t('prof.group_experience' as never)}>
+        <SettingRow
+          first
+          label={t('prof.guidance_style' as never)} desc={t('prof.guidance_style_desc' as never)}
+          options={['guided', 'examples', 'concise', 'deep'] as const} value={value.style}
+          onChange={(item) => update('style', item)} render={(item) => t(`style.${item}` as never)}
+        />
+        {/* Pinyin is a Chinese-only setting; the reference omits the row for an
+            English learner rather than showing a control that does nothing. */}
+        {learningLanguage === 'zh' ? (
           <SettingRow
-            label={t('profile.style')} desc={t('prof.style_desc' as never)}
-            options={['guided', 'examples', 'concise', 'deep'] as const} value={value.style}
-            onChange={(item) => update('style', item)} render={(item) => t(`style.${item}` as never)}
+            label={t('profile.pinyin')} options={['auto', 'on', 'off'] as const} value={value.pinyin}
+            onChange={(item) => update('pinyin', item)} render={(item) => item}
           />
-          {/* Pinyin is a Chinese-only setting. The reference hides the row for an
-              English learner rather than showing a control that does nothing. */}
-          {learningLanguage === 'zh' ? (
-            <SettingRow
-              label={t('profile.pinyin')} desc={t('prof.pinyin_desc' as never)}
-              options={['auto', 'on', 'off'] as const} value={value.pinyin}
-              onChange={(item) => update('pinyin', item)} render={(item) => item}
-            />
-          ) : null}
-        </SettingGroup>
+        ) : null}
+      </SettingGroup>
 
-        <SettingGroup title={t('prof.group_appearance' as never)}>
-          <SettingRow
-            label={t('prof.mode' as never)} desc={t('prof.mode_desc' as never)}
-            options={['light', 'dark', 'system'] as const satisfies readonly ThemePreference[]}
-            value={preference} onChange={setPreference} render={(item) => t(`theme.${item}` as never)}
-          />
-          <View style={[styles.row, styles.block, {borderTopColor: tokens.colors.border}]}>
-            <View style={styles.rowCopy}>
-              <Text style={[styles.rowLabel, {color: tokens.colors.text}]}>{t('prof.palette' as never)}</Text>
-              <Text style={[styles.rowDesc, {color: tokens.colors.mutedText}]}>{t('prof.palette_desc' as never)}</Text>
-            </View>
-            <View style={styles.paletteGrid}>
-              {PALETTE_PRESETS.map((preset) => (
-                <PaletteChoice key={preset} preset={preset} selected={value.theme_preset === preset} onPress={() => update('theme_preset', preset)} />
-              ))}
-            </View>
-            <Text style={[styles.rowDesc, {color: tokens.colors.faintText}]}>{t('prof.theme_status' as never)}</Text>
+      <SettingGroup title={t('prof.group_appearance' as never)}>
+        <SettingRow
+          first
+          label={t('prof.mode' as never)} desc={t('prof.mode_desc' as never)}
+          options={['light', 'dark', 'system'] as const satisfies readonly ThemePreference[]}
+          value={preference} onChange={setPreference} render={(item) => t(`theme.${item}` as never)}
+        />
+        <View style={[styles.row, styles.block, {borderTopWidth: 1, borderTopColor: tokens.colors.border}]}>
+          <View style={styles.rowCopy}>
+            <Text style={[styles.rowLabel, {color: tokens.colors.text}]}>{t('prof.palette' as never)}</Text>
+            <Text style={[styles.rowDesc, {color: tokens.colors.mutedText}]}>{t('prof.palette_desc' as never)}</Text>
           </View>
-        </SettingGroup>
+          {/* `.theme-choice-grid{grid-template-columns:minmax(0,1fr)}` on a phone. */}
+          <View style={styles.paletteGrid}>
+            {PALETTE_PRESETS.map((preset) => (
+              <PaletteChoice key={preset} preset={preset} selected={value.theme_preset === preset} onPress={() => update('theme_preset', preset)} />
+            ))}
+          </View>
+          <Text style={[styles.rowDesc, {color: tokens.colors.faintText}]}>{t('prof.theme_status' as never)}</Text>
+        </View>
+      </SettingGroup>
 
-        <SettingGroup title={t('prof.group_account' as never)}>
-          <FactRow label={t('prof.name' as never)} value={signedInLabel} note={viaGoogle ? t('prof.from_google' as never) : undefined} />
-          <FactRow label={t('prof.sign_in' as never)} value={viaGoogle ? t('prof.sign_in_google' as never) : t('prof.sign_in_local' as never)} />
-          <FactRow label={t('prof.plan' as never)} value={planName} note={planNote || undefined} />
-          <View style={[styles.row, styles.block, {borderTopColor: tokens.colors.border}]}>
-            <Label>{t('profile.entitlements' as never)}</Label>
-            {Object.entries(account.features).map(([key, item]) => (
+      <SettingGroup title={t('prof.group_account' as never)}>
+        <FactRow first label={t('prof.name' as never)} value={signedInLabel} note={viaGoogle ? t('prof.from_google' as never) : undefined} />
+        <FactRow label={t('prof.sign_in' as never)} value={viaGoogle ? t('prof.sign_in_google' as never) : t('prof.sign_in_local' as never)} />
+        <FactRow label={t('prof.plan' as never)} value={planName} note={planNote || undefined} />
+        <View style={[styles.row, styles.block, {borderTopWidth: 1, borderTopColor: tokens.colors.border}]}>
+          {account.available === false ? (
+            <Text style={{color: tokens.colors.mutedText}}>{t('prof.plan_unavailable' as never)}</Text>
+          ) : (
+            Object.entries(account.features).map(([key, item]) => (
+              // `accountPlanMarkup()`: one line per feature, carrying the usage
+              // the server actually reported.
               <View key={key} style={styles.feature}>
                 <Text style={[styles.featureName, {color: tokens.colors.text}]}>{t((featureLabels[key] ?? 'profile.feature_unknown') as never)}</Text>
                 <Text style={[styles.rowDesc, {color: item.entitlement_state === 'exhausted' ? tokens.colors.attention : tokens.colors.mutedText}]}>{usageText(item)}</Text>
               </View>
-            ))}
-            <Button label={t('profile.purchase' as never)} variant="outline" compact onPress={purchase} />
-          </View>
-        </SettingGroup>
+            ))
+          )}
+          <Button label={t('profile.purchase' as never)} variant="outline" compact onPress={purchase} />
+        </View>
+      </SettingGroup>
 
+      {/* The reference shows Session only to a signed-in learner. */}
+      {viaGoogle ? (
         <SettingGroup title={t('prof.group_session' as never)}>
-          <ActionRow label={t('prof.switch_account' as never)} onPress={signOut} />
+          <ActionRow first label={t('prof.switch_account' as never)} onPress={signOut} />
           <ActionRow label={t('prof.sign_out' as never)} onPress={signOut} />
         </SettingGroup>
-      </Card>
+      ) : null}
 
       <Button label={save.isPending ? t('profile.saving') : t('profile.save')} disabled={save.isPending || language.isPending} onPress={submit} />
 
-      <Card style={styles.set}>
-        <View style={styles.about}>
-          <Text style={[styles.groupTitle, {color: tokens.colors.heading}]}>{t('prof.about_title' as never)}</Text>
-          <PanelCopy>{t('prof.about_body' as never)}</PanelCopy>
-          <PanelCopy>{t('prof.about_1' as never)}</PanelCopy>
-          <PanelCopy>{t('prof.about_2' as never)}</PanelCopy>
-          <PanelCopy>{t('prof.about_3' as never)}</PanelCopy>
+      {/* `.o-about`: an icon tile, what these settings do and do not touch, then
+          the links that have a destination in this product. */}
+      <Card style={styles.about}>
+        <View style={styles.aboutHead}>
+          <View style={[styles.aboutTile, {borderColor: tokens.depth.badgeEdge, backgroundColor: tokens.colors.surfaceSunken}]}>
+            <OrenaIcon name="profile" size={18} color={tokens.colors.accent} />
+          </View>
+          <Text style={[styles.aboutTitle, {color: tokens.colors.heading}]}>{t('prof.about_title' as never)}</Text>
         </View>
-        <SettingGroup title={t('prof.quick_links' as never)}>
-          <ActionRow label={t('prof.link_journey' as never)} desc={t('prof.link_journey_note' as never)} onPress={() => router.push('/(app)/journey')} />
-          <ActionRow label={t('prof.link_library' as never)} desc={t('prof.link_library_note' as never)} onPress={() => router.push('/(app)/library')} />
-        </SettingGroup>
+        <PanelCopy>{t('prof.about_body' as never)}</PanelCopy>
+        {(['prof.about_1', 'prof.about_2', 'prof.about_3'] as const).map((key) => (
+          <View key={key} style={styles.aboutPoint}>
+            <OrenaIcon name="check" size={16} color={tokens.colors.positive} />
+            <Text style={[styles.aboutPointText, {color: tokens.colors.mutedText}]}>{t(key as never)}</Text>
+          </View>
+        ))}
       </Card>
+
+      <SettingGroup title={t('prof.quick_links' as never)}>
+        <ActionRow first label={t('prof.link_journey' as never)} desc={t('prof.link_journey_note' as never)} onPress={() => router.push('/(app)/journey')} />
+        <ActionRow label={t('prof.link_library' as never)} desc={t('prof.link_library_note' as never)} onPress={() => router.push('/(app)/library')} />
+        <ActionRow label={t('prof.setup_again' as never)} desc={t('prof.setup_again_desc' as never)} onPress={() => router.push('/(app)')} />
+      </SettingGroup>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {flexGrow: 1, padding: 16, gap: 14, width: '100%', maxWidth: CONTENT_MAX, alignSelf: 'center'},
+  // `.o-set{display:grid;gap:20px;border:0;background:none;box-shadow:none}` --
+  // on a phone there is no outer settings card, only stacked groups.
+  container: {flexGrow: 1, padding: 16, gap: 20, width: '100%', maxWidth: CONTENT_MAX, alignSelf: 'center'},
+  // The degraded shells still name themselves; only the full form defers to
+  // the top bar, as the reference does.
   title: {fontSize: 20, fontWeight: '700'},
   status: {minHeight: 22},
 
-  // `.o-card.o-set`: one card holding every group.
-  set: {padding: 16, gap: 18},
-  group: {gap: 8},
-  groupTitle: {fontSize: 17, fontWeight: '700'},
-  groupBody: {borderRadius: 12, borderWidth: 1, overflow: 'hidden'},
+  // `.o-set-group{padding:0;gap:7px}` with its title outside the block.
+  group: {gap: 7},
+  // `.o-set-title`: label size, 600, .08em tracking, uppercase, muted.
+  groupTitle: {fontSize: 13, fontWeight: '600', letterSpacing: 1.04, textTransform: 'uppercase', paddingHorizontal: 2},
+  // `.o-set-body{padding:6px 16px 8px}` and it is the card.
+  groupBody: {paddingTop: 6, paddingHorizontal: 16, paddingBottom: 8},
 
-  // `.o-set-row`: copy then control, divided from the row above.
-  row: {paddingVertical: 12, paddingHorizontal: 12, gap: 8, borderTopWidth: 1},
+  // `.o-set-row{grid-template-columns:minmax(0,1fr);gap:11px;padding:15px 0}` at
+  // the phone width: label, explanation, then the control beneath them.
+  row: {paddingVertical: 15, gap: 11},
   block: {gap: 12},
-  rowCopy: {gap: 2},
+  rowCopy: {gap: 5},
   rowLabel: {fontSize: 15, fontWeight: '600'},
   rowDesc: {fontSize: 13, lineHeight: 18},
+  // `.o-set-control{justify-content:stretch;--o-set-control-w:100%}`
   rowControl: {flexDirection: 'row', flexWrap: 'wrap', gap: 8},
   choice: {borderWidth: 1, borderRadius: 999, paddingHorizontal: 14, minHeight: 38, justifyContent: 'center'},
 
-  factRow: {flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between'},
-  factValue: {alignItems: 'flex-end', gap: 2, flexShrink: 1},
-  factStrong: {fontSize: 15, fontWeight: '600', textAlign: 'right'},
+  // `.o-set-value{justify-items:start;text-align:left}` on a phone.
+  factValue: {gap: 2},
+  factStrong: {fontSize: 15, fontWeight: '600'},
 
-  actionRow: {flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 52},
+  // `.o-set-action{grid-template-columns:minmax(0,1fr) auto}`
+  actionRow: {flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12},
 
-  paletteGrid: {flexDirection: 'row', flexWrap: 'wrap', gap: 8},
-  palette: {flexGrow: 1, minWidth: 140, borderWidth: 1, borderRadius: 12, padding: 10, gap: 8},
-  swatch: {flexDirection: 'row', gap: 5},
-  swatchChip: {width: 22, height: 22, borderRadius: 999},
-  paletteName: {fontSize: 14, fontWeight: '600'},
+  // `.theme-choice-grid{grid-template-columns:minmax(0,1fr)}` on a phone.
+  paletteGrid: {gap: 8},
+  palette: {flexDirection: 'row', alignItems: 'center', gap: 12, borderWidth: 1, borderRadius: 15, padding: 12},
+  swatch: {flexDirection: 'row', alignItems: 'center', gap: 3, padding: 6, borderRadius: 10, borderWidth: 1},
+  swatchChip: {width: 10, height: 18, borderRadius: 3},
+  paletteCopy: {flex: 1, gap: 2},
+  paletteName: {fontSize: 15, fontWeight: '600'},
 
   feature: {flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12},
   featureName: {fontSize: 14, fontWeight: '600', flex: 1, minWidth: 0},
 
-  rank: {padding: 16, gap: 10},
+  rank: {padding: 16, gap: 12},
   rankHead: {flexDirection: 'row', alignItems: 'center', gap: 12},
   medallion: {width: 48, height: 48, borderRadius: 999, borderWidth: 2, alignItems: 'center', justifyContent: 'center'},
   medallionText: {fontSize: 17, fontWeight: '700', fontVariant: ['tabular-nums']},
   rankCopy: {flex: 1, gap: 2},
-  rankStage: {fontSize: 20, fontWeight: '700'},
-  track: {height: 6, borderRadius: 999, overflow: 'hidden'},
-  trackFill: {height: '100%', borderRadius: 999},
+  rankKicker: {fontSize: 12, fontWeight: '600', letterSpacing: 0.96, textTransform: 'uppercase'},
+  rankStage: {fontSize: 22, fontWeight: '700'},
+  rankRule: {height: 1},
 
-  about: {gap: 8},
+  about: {padding: 16, gap: 10},
+  aboutHead: {flexDirection: 'row', alignItems: 'center', gap: 10},
+  aboutTile: {width: 34, height: 34, borderRadius: 10, borderWidth: 1, alignItems: 'center', justifyContent: 'center'},
+  aboutTitle: {fontSize: 17, fontWeight: '700', flex: 1},
+  aboutPoint: {flexDirection: 'row', alignItems: 'flex-start', gap: 8},
+  aboutPointText: {flex: 1, fontSize: 13, lineHeight: 18},
 });

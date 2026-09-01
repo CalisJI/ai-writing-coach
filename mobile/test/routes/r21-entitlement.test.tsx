@@ -31,8 +31,8 @@ describe('R21 native entitlement presentation', () => {
   beforeEach(() => { mockCookie = 'cookie'; mockSessionStatus = 'authenticated'; mockProfile.isPending = false; mockProfile.isError = false; mockProduct = {isPending: false, isError: false, data: account('enabled')}; });
 
   it.each(['en', 'zh'] as const)('renders enabled and exhausted server states without raw enums in %s', (locale) => {
-    let view = render(locale); expect(text(view)).toContain(locale === 'en' ? '30 of 30 left this month' : '本月还剩 30 / 30'); expect(text(view)).not.toContain('enabled');
-    mockProduct = {isPending: false, isError: false, data: account('exhausted')}; view = render(locale); expect(text(view)).toContain(locale === 'en' ? 'Monthly limit reached' : '已达到月度上限'); expect(text(view)).not.toContain('exhausted');
+    let view = render(locale); expect(text(view)).toContain(locale === 'en' ? '30 remaining of 30' : '剩余 30 / 30'); expect(text(view)).not.toContain('enabled');
+    mockProduct = {isPending: false, isError: false, data: account('exhausted')}; view = render(locale); expect(text(view)).toContain(locale === 'en' ? 'Limit reached' : '已达到限额'); expect(text(view)).not.toContain('exhausted');
   });
 
   it.each(['en', 'zh'] as const)('renders unavailable, loading, and signed-out entitlement states in %s', (locale) => {
