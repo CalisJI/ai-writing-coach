@@ -8,7 +8,8 @@ import type {MessageId} from '../../src/i18n/messages';
 import {useTheme} from '../../src/theme/ThemeProvider';
 import {CONTENT_MAX} from '../../src/theme/layout';
 import {useJourneyDashboard, useJourneyOutcomes} from '../../src/query/useJourney';
-import {useLearningMemory} from '../../src/query/useHome';
+import {completedCounts, groupEssays, reliableStrengthCount, scoreMovement, timelineStations} from '../../src/features/journey/journeyDomain';
+import {useEssays, useLearningMemory} from '../../src/query/useHome';
 import {Button, Chip, Label, Metric, Panel, PanelCopy} from '../../src/components/orena';
 
 /**
@@ -60,11 +61,21 @@ export default function JourneyScreen() {
   const dashboard = useJourneyDashboard(client, sessionCookie);
   const outcomes = useJourneyOutcomes(client, sessionCookie);
   const memory = useLearningMemory(client, sessionCookie);
+  const essays = useEssays(client, sessionCookie);
   const data = dashboard.data;
   const outcomeItems = outcomes.data?.items ?? [];
   const focus = memory.data?.focus ?? null;
   const reliableStrengths = (memory.data?.strengths ?? []).filter((item) => item.stage === 'Stable' || item.stage === 'Mastered');
   const topWin = memory.data?.revision_wins[0] ?? null;
+  const essayGroups = groupEssays((essays.data ?? []) as {created_at?: string; overall?: number; series_id?: number}[]);
+  const movement = scoreMovement(essayGroups);
+  const completed = completedCounts(memory.data ?? null);
+  const stations = timelineStations({
+    essays: (essays.data ?? []) as {created_at?: string}[],
+    revisionWins: memory.data?.revision_wins ?? [],
+    focusLabel: focus ? categoryLabel(t, focus.category) : '',
+    nextLabel: '',
+  });
 
   const shell = (body: ReactNode) => (
     <View style={[styles.container, {backgroundColor: tokens.colors.background}]}>
@@ -91,6 +102,62 @@ export default function JourneyScreen() {
           <Metric label={t('home.metric_streak' as never)} value={String(data.streak)} />
         </View>
       </Panel>
+      {/* `writingProgressOverview()`: where the learner is, with the two figures
+          the product is willing to state. A missing movement is reported as
+          not measured, never as zero. */}
+      <Panel>
+        <Label>{t('jn.where_you_are' as never)}</Label>
+        <View style={styles.chipRow}>
+          <Text style={[styles.focusCategory, {color: tokens.colors.heading}]}>{data.cefr || '—'}</Text>
+          <Text style={{color: tokens.colors.mutedText}}>{t('jn.estimated' as never)}</Text>
+        </View>
+        <View style={styles.statRow}>
+          <Text style={{color: tokens.colors.text}}>{t('jn.reliable_count' as never)}</Text>
+          <Text style={[styles.statValue, {color: tokens.colors.heading}]}>{reliableStrengthCount(memory.data?.strengths ?? [])}</Text>
+        </View>
+        <PanelCopy>{t('jn.reliable_note' as never)}</PanelCopy>
+        <View style={styles.statRow}>
+          <Text style={{color: tokens.colors.text}}>{t('jn.movement' as never)}</Text>
+          <Text style={[styles.statValue, {color: tokens.colors.heading}]}>
+            {movement === null ? '—' : `${movement >= 0 ? '+' : ''}${movement.toFixed(1)}`}
+          </Text>
+        </View>
+        <PanelCopy>{movement === null ? t('jn.not_measured' as never) : t('jn.movement_note' as never)}</PanelCopy>
+      </Panel>
+
+      {/* `timeline()`: five stations, each dated from a record or drawn as not
+          reached. A station is never given a plausible date. */}
+      <Panel>
+        <Label>{t('jn.timeline' as never)}</Label>
+        {stations.map((station) => (
+          <View key={station.key} style={styles.station}>
+            <View style={[styles.stationDot, {
+              backgroundColor: station.current ? tokens.colors.accent : station.done ? tokens.colors.positive : 'transparent',
+              borderColor: station.done || station.current ? 'transparent' : tokens.colors.borderStrong,
+            }]} />
+            <View style={styles.stationCopy}>
+              <Text style={[styles.stationLabel, {color: tokens.colors.text}]}>{t(`jn.${station.key === 'win' ? 'first_win' : station.key === 'focus' ? 'current_focus' : station.key === 'next' ? 'next_target' : station.key}` as never)}</Text>
+              {station.note ? <Text style={{color: tokens.colors.mutedText}}>{station.note}</Text> : null}
+            </View>
+            <Text style={[styles.stationDate, {color: tokens.colors.faintText}]}>
+              {station.date ? station.date.slice(0, 10) : station.current ? t('jn.now' as never) : station.next ? t('jn.upcoming' as never) : t('jn.not_yet' as never)}
+            </Text>
+          </View>
+        ))}
+      </Panel>
+
+      <Panel>
+        <Label>{t('jn.completed' as never)}</Label>
+        <View style={styles.statRow}>
+          <Text style={{color: tokens.colors.text}}>{t('jn.pieces' as never)}</Text>
+          <Text style={[styles.statValue, {color: tokens.colors.heading}]}>{completed.pieces}</Text>
+        </View>
+        <View style={styles.statRow}>
+          <Text style={{color: tokens.colors.text}}>{t('jn.revisions' as never)}</Text>
+          <Text style={[styles.statValue, {color: tokens.colors.heading}]}>{completed.revisions}</Text>
+        </View>
+      </Panel>
+
       <Panel>
         <Label>{t('journey.focus')}</Label>
         {focus ? (
@@ -159,6 +226,13 @@ const styles = StyleSheet.create({
   outcomeRow: {flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, paddingVertical: 6},
   outcomeLabel: {flex: 1, minWidth: 0, fontSize: 15},
   focusCategory: {fontSize: 17, fontWeight: '600'},
+  statRow: {flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10},
+  statValue: {fontSize: 17, fontWeight: '700'},
+  station: {flexDirection: 'row', alignItems: 'center', gap: 10},
+  stationDot: {width: 12, height: 12, borderRadius: 999, borderWidth: 1},
+  stationCopy: {flex: 1, gap: 2},
+  stationLabel: {fontSize: 14, fontWeight: '600'},
+  stationDate: {fontSize: 12},
   chipRow: {flexDirection: 'row', flexWrap: 'wrap', gap: 8},
   trend: {gap: 6, paddingTop: 4},
   progressTrack: {height: 8, borderRadius: 4, overflow: 'hidden'},

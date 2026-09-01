@@ -14,7 +14,7 @@ import {useLearnerProfile, useSaveLearnerProfile, useSetLearningLanguage} from '
 import {useProductMe} from '../../src/query/useProductMe';
 import {useTheme} from '../../src/theme/ThemeProvider';
 import {CONTENT_MAX} from '../../src/theme/layout';
-import {Button, Chip, Label, Panel} from '../../src/components/orena';
+import {Button, Chip, Label, Panel, PanelCopy} from '../../src/components/orena';
 
 /**
  * Ported from static/becoming/screens/profile.js and orena/profile.css.
@@ -80,19 +80,56 @@ export default function ProfileScreen() {
         <Button label={t('profile.purchase' as never)} variant="outline" onPress={purchase} />
       </Panel>
 
+      {/* `.o-set-group`: the reference titles each group of settings and says
+          what it is for, rather than stacking bare selects. */}
       <Panel>
+        <Text style={[styles.setTitle, {color: tokens.colors.heading}]}>{t('prof.group_learning' as never)}</Text>
+        <PanelCopy>{t('prof.group_learning_note' as never)}</PanelCopy>
+        {choose(t('profile.learning_language'), ['en', 'zh'], profile.data.language, changeLanguage, (item) => t(`language.${item}` as never))}
         {choose(t('profile.goal'), ['everyday', 'work', 'exam', 'voice'], value.goal, (item) => update('goal', item as LearnerProfileInput['goal']), (item) => t(`goal.${item}` as never))}
         {choose(t('profile.style'), ['guided', 'examples', 'concise', 'deep'], value.style, (item) => update('style', item as LearnerProfileInput['style']), (item) => t(`style.${item}` as never))}
-        {choose(t('profile.native_language'), ['vi', 'en', 'zh'], value.native_language, (item) => update('native_language', item as LearnerProfileInput['native_language']), (item) => t(`language.${item}` as never))}
-        {choose(t('profile.pinyin'), ['auto', 'on', 'off'], value.pinyin, (item) => update('pinyin', item as LearnerProfileInput['pinyin']), (item) => item)}
-        {choose(t('profile.theme'), ['editorial', 'sage', 'clay', 'blueprint'], value.theme_preset, (item) => update('theme_preset', item as LearnerProfileInput['theme_preset']), (item) => item)}
-        {choose(t('profile.learning_language'), ['en', 'zh'], profile.data.language, changeLanguage, (item) => t(`language.${item}` as never))}
       </Panel>
 
-      <LocaleSelector />
-      <ThemeSelector />
+      <Panel>
+        <Text style={[styles.setTitle, {color: tokens.colors.heading}]}>{t('prof.group_support' as never)}</Text>
+        <PanelCopy>{t('prof.group_support_note' as never)}</PanelCopy>
+        {choose(t('profile.native_language'), ['vi', 'en', 'zh'], value.native_language, (item) => update('native_language', item as LearnerProfileInput['native_language']), (item) => t(`language.${item}` as never))}
+        {choose(t('profile.pinyin'), ['auto', 'on', 'off'], value.pinyin, (item) => update('pinyin', item as LearnerProfileInput['pinyin']), (item) => item)}
+      </Panel>
+
+      <Panel>
+        <Text style={[styles.setTitle, {color: tokens.colors.heading}]}>{t('prof.group_appearance' as never)}</Text>
+        <PanelCopy>{t('prof.group_appearance_note' as never)}</PanelCopy>
+        {choose(t('profile.theme'), ['editorial', 'sage', 'clay', 'blueprint'], value.theme_preset, (item) => update('theme_preset', item as LearnerProfileInput['theme_preset']), (item) => item)}
+        <LocaleSelector />
+        <ThemeSelector />
+      </Panel>
+
       {notice && <Text accessibilityRole="alert" style={{color: tokens.colors.danger}}>{notice}</Text>}
       <Button label={save.isPending ? t('profile.saving') : t('profile.save')} disabled={save.isPending || language.isPending} onPress={submit} />
+
+      {/* `.o-about`: what this product does and does not claim, then the links
+          that actually have a destination here. */}
+      <Panel>
+        <Text style={[styles.setTitle, {color: tokens.colors.heading}]}>{t('prof.about_title' as never)}</Text>
+        <PanelCopy>{t('prof.about_body' as never)}</PanelCopy>
+        <PanelCopy>{t('prof.about_1' as never)}</PanelCopy>
+        <PanelCopy>{t('prof.about_2' as never)}</PanelCopy>
+        <PanelCopy>{t('prof.about_3' as never)}</PanelCopy>
+        <Label>{t('prof.quick_links' as never)}</Label>
+        <Pressable accessibilityRole="button" accessibilityLabel={t('prof.link_journey' as never)} onPress={() => router.push('/(app)/journey')} style={[styles.quickRow, {borderColor: tokens.colors.border}]}>
+          <View style={styles.quickCopy}>
+            <Text style={[styles.featureName, {color: tokens.colors.text}]}>{t('prof.link_journey' as never)}</Text>
+            <Text style={{color: tokens.colors.faintText}}>{t('prof.link_journey_note' as never)}</Text>
+          </View>
+        </Pressable>
+        <Pressable accessibilityRole="button" accessibilityLabel={t('prof.link_library' as never)} onPress={() => router.push('/(app)/library')} style={[styles.quickRow, {borderColor: tokens.colors.border}]}>
+          <View style={styles.quickCopy}>
+            <Text style={[styles.featureName, {color: tokens.colors.text}]}>{t('prof.link_library' as never)}</Text>
+            <Text style={{color: tokens.colors.faintText}}>{t('prof.link_library_note' as never)}</Text>
+          </View>
+        </Pressable>
+      </Panel>
     </ScrollView>
   );
 }
@@ -105,5 +142,8 @@ const styles = StyleSheet.create({
   choice: {borderWidth: 1, borderRadius: 15, paddingHorizontal: 14, paddingVertical: 10},
   planName: {fontSize: 17, fontWeight: '700', marginTop: 4},
   feature: {flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, paddingTop: 10},
+  setTitle: {fontSize: 17, fontWeight: '700'},
+  quickRow: {minHeight: 52, justifyContent: 'center', paddingHorizontal: 12, borderRadius: 15, borderWidth: 1},
+  quickCopy: {gap: 2},
   featureName: {fontWeight: '600', flex: 1, minWidth: 0},
 });
