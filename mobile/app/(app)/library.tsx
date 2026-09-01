@@ -15,6 +15,7 @@ import {
   type LibraryFilter, type LibraryItem, type LibrarySort,
 } from '../../src/features/library/libraryDomain';
 import {Button, Card, Chip, Label, Panel, PanelCopy} from '../../src/components/orena';
+import {ErrorState, LoadingState, SignedOutState} from '../../src/components/states';
 import {OrenaIcon} from '../../src/components/OrenaIcon';
 
 /**
@@ -142,9 +143,9 @@ export default function LibraryScreen() {
     return (
       <ScrollView style={{flex: 1, backgroundColor: tokens.colors.background}} contentContainerStyle={[styles.container, {backgroundColor: tokens.colors.background}]}>
         <Text accessibilityRole="header" style={[styles.title, {color: tokens.colors.heading}]}>{t('library.title')}</Text>
-        {library.isLoading && !signedOut && !unavailable ? <Text style={{color: tokens.colors.mutedText}}>{t('library.loading')}</Text> : null}
-        {signedOut ? <PanelCopy>{t('library.signed_out' as never)}</PanelCopy> : null}
-        {unavailable ? <Text accessibilityRole="alert" style={{color: tokens.colors.danger}}>{t('library.unavailable')}</Text> : null}
+        {library.isLoading && !signedOut && !unavailable ? <LoadingState lines={5} /> : null}
+        {signedOut ? <SignedOutState message={t('library.signed_out' as never)} /> : null}
+        {unavailable ? <ErrorState message={t('library.unavailable')} /> : null}
         <Button label={t('library.open_reading')} onPress={() => router.replace('/(app)/reading')} />
       </ScrollView>
     );

@@ -11,6 +11,7 @@ import {useJourneyDashboard, useJourneyOutcomes} from '../../src/query/useJourne
 import {completedCounts, groupEssays, reliableStrengthCount, scoreMovement, timelineStations} from '../../src/features/journey/journeyDomain';
 import {useEssays, useLearningMemory} from '../../src/query/useHome';
 import {Button, Chip, Label, Metric, Panel, PanelCopy} from '../../src/components/orena';
+import {ErrorState, LoadingState, SignedOutState} from '../../src/components/states';
 
 /**
  * Ported from static/becoming/screens/journey.js and orena/journey.css.
@@ -86,9 +87,9 @@ export default function JourneyScreen() {
   );
 
   // Not signed in is a different fact from the service being unavailable.
-  if (!sessionCookie) return shell(<PanelCopy>{t('journey.signed_out' as never)}</PanelCopy>);
-  if (!client) return shell(<Text accessibilityRole="alert" style={{color: tokens.colors.danger}}>{t('journey.unavailable')}</Text>);
-  if (dashboard.isPending || outcomes.isPending) return <View style={[styles.container, {backgroundColor: tokens.colors.background}]}><Text style={{color: tokens.colors.text}}>{t('journey.loading')}</Text></View>;
+  if (!sessionCookie) return shell(<SignedOutState message={t('journey.signed_out' as never)} />);
+  if (!client) return shell(<ErrorState message={t('journey.unavailable')} />);
+  if (dashboard.isPending || outcomes.isPending) return <View style={[styles.container, {backgroundColor: tokens.colors.background}]}><Text accessibilityRole="header" style={[styles.title, {color: tokens.colors.heading}]}>{t('journey.title')}</Text><Text style={{color: tokens.colors.text}}>{t('journey.loading')}</Text><LoadingState lines={4} /></View>;
   if (dashboard.isError || outcomes.isError || !data || !outcomes.data) return <View style={[styles.container, {backgroundColor: tokens.colors.background}]}><Text accessibilityRole="header" style={[styles.title, {color: tokens.colors.heading}]}>{t('journey.title')}</Text><Text accessibilityRole="alert" style={{color: tokens.colors.danger}}>{t('journey.unavailable')}</Text></View>;
 
   return (
