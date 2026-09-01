@@ -1,7 +1,18 @@
 # Current Handoff
 
+## Server-managed provider credential flow
+
+Admin now supports same-origin connection testing, encrypted server-side save,
+masked status, and removal for supported providers, including Gemini's
+OpenAI-compatible endpoint. Plaintext credentials are not returned by the API,
+persisted in the platform store, or included in capability/telemetry payloads.
+The deployment must provide the separate `AI_PROVIDER_SECRETS_KEY` through an
+approved secret store; this session did not use a real provider key. TLS,
+secret backup/restore, production authentication, live-provider validation,
+runtime activation, and public release remain human-gated.
+
 **Application/runtime baseline:**
-`6c93d05b3cb1c79c2986af0ab4a83cf664eae3a9`
+`7cdd4ad`
 
 This baseline is the locally verified Orena UI/UX `2.17.5` integration code
 checkpoint. It inherits the reviewed R5 Grammar Knowledge System closeout

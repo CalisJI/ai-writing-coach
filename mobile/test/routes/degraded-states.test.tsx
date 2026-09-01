@@ -28,6 +28,10 @@ jest.mock('../../src/query/useJourney', () => ({useJourneyDashboard: () => mockI
 jest.mock('../../src/query/useLearnerProfile', () => ({useLearnerProfile: () => mockIdleQuery, useSaveLearnerProfile: () => ({isPending: false, isError: false, mutateAsync: jest.fn()}), useSetLearningLanguage: () => ({isPending: false, isError: false, mutateAsync: jest.fn()})}));
 jest.mock('../../src/query/useProductMe', () => ({useProductMe: () => mockIdleQuery}));
 jest.mock('../../src/query/usePracticeRecommendation', () => ({usePracticeRecommendation: () => mockIdleQuery, useNextPractice: () => ({isPending: false, isError: false, mutate: jest.fn()})}));
+jest.mock('../../src/query/useHome', () => ({useEssays: () => mockIdleQuery, useLearningMemory: () => mockIdleQuery, useReadingSessionHistory: () => mockIdleQuery, useOpenEssay: () => ({isPending: false, isError: false, mutate: jest.fn()}), useCrossSkillCue: () => mockIdleQuery}));
+jest.mock('../../src/features/listening/listeningResume', () => ({readListeningResume: () => Promise.resolve(null)}));
+jest.mock('../../src/features/listening/listeningHabit', () => ({listeningHabitSnapshot: () => Promise.resolve({status: 'unavailable', todaySeconds: 0, weekSeconds: 0, dailyGoalMinutes: 40})}));
+jest.mock('../../src/query/useReview', () => ({usePracticeOutcome: () => mockIdleQuery, useReviewCue: () => mockIdleQuery}));
 
 const render = (screen: React.ReactNode, locale: 'en' | 'zh' = 'en') =>
   renderer.create(<I18nProvider initialLocale={locale}><ThemeProvider>{screen}</ThemeProvider></I18nProvider>);

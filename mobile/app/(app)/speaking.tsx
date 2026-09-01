@@ -1,5 +1,5 @@
 import {useEffect, useMemo, useRef, useState} from 'react';
-import {Pressable, ScrollView, StyleSheet, Text, View} from 'react-native';
+import {ScrollView, StyleSheet, Text, View} from 'react-native';
 import {useLocalSearchParams, useRouter} from 'expo-router';
 import {createConfiguredApiClient, type ApiClient} from '../../src/api/client';
 import {ApiError} from '../../src/api/errors';
@@ -11,10 +11,28 @@ import {TransientAudioService, type TransientAudioSnapshot} from '../../src/medi
 import {useTransientAudioLifecycle} from '../../src/media/useTransientAudioLifecycle';
 import {useLearnerProfile} from '../../src/query/useLearnerProfile';
 import {useAssessSpeakingPronunciation, useEvaluateSpeaking, useSaveSpeakingAttempt, useTranscribeSpeaking} from '../../src/query/useSpeaking';
+import {Button as OrenaButton, Label as OrenaLabel, Panel} from '../../src/components/orena';
+
+/**
+ * Ported from static/becoming/screens/speaking.js and orena/speaking.css.
+ *
+ * The functional surface (record, transcribe, evaluate, save an attempt,
+ * hand off from/back to Listening's Shadowing mode) was already correct;
+ * this restyles the bare bordered Views onto the Orena panel/label system,
+ * the same treatment as Listening. Also added: the elapsed-time ruler and
+ * 3-minute auto-stop speaking.js itself has (MAX_RECORDING_MS/stamp()) --
+ * previously native recordings had no visible clock and no duration cap at
+ * all. This is not a waveform, matching the web: its own comment says
+ * "Ticks, not a waveform. Nothing here measures loudness."
+ */
 
 export type SpeakingScreenProps = {client?: ApiClient; service?: TransientAudioService; learningLanguage?: 'en' | 'zh'};
-function Button({label, onPress, disabled = false, secondary = false}: {label: string; onPress: () => void; disabled?: boolean; secondary?: boolean}) { const {tokens} = useTheme(); return <Pressable accessibilityRole="button" accessibilityLabel={label} disabled={disabled} onPress={onPress} style={[styles.button, {backgroundColor: secondary ? tokens.colors.surface : tokens.colors.accent, borderColor: tokens.colors.accent, opacity: disabled ? 0.5 : 1}]}><Text style={{color: secondary ? tokens.colors.accent : '#fff', fontWeight: '700'}}>{label}</Text></Pressable>; }
+function Button({label, onPress, disabled = false, secondary = false}: {label: string; onPress: () => void; disabled?: boolean; secondary?: boolean}) { return <OrenaButton label={label} onPress={onPress} disabled={disabled} variant={secondary ? 'outline' : 'primary'} />; }
 const stepMessage: Record<string, 'speaking.step_focus_words' | 'speaking.step_missing_tokens' | 'speaking.step_fluency' | 'speaking.step_complete_line'> = {focus_words: 'speaking.step_focus_words', missing_tokens: 'speaking.step_missing_tokens', fluency: 'speaking.step_fluency', complete_line: 'speaking.step_complete_line'};
+// Ported from speaking.js's own MAX_RECORDING_MS/stamp(): a plain elapsed-time ruler, not a
+// waveform -- the web's own comment says "Ticks, not a waveform. Nothing here measures loudness."
+const MAX_RECORDING_MS = 180000;
+const stamp = (ms: number) => `${Math.floor(ms / 60000)}:${String(Math.floor(ms / 1000) % 60).padStart(2, '0')}`;
 
 export default function SpeakingScreen({client: suppliedClient, service: suppliedService, learningLanguage: suppliedLearningLanguage}: SpeakingScreenProps) {
   const {t} = useI18n(); const {tokens} = useTheme(); const {sessionCookie} = useSession(); const router = useRouter();
@@ -29,9 +47,41 @@ export default function SpeakingScreen({client: suppliedClient, service: supplie
   const referenceText = typeof params.referenceText === 'string' ? params.referenceText : ''; const language = learningLanguage;
   const evaluate = async () => { const uri = service.getRecordingUri(); if (!uri || !language) { setNotice(t('speaking.unavailable')); return; } const current = ++operation.current; abortRef.current?.abort(); const controller = new AbortController(); abortRef.current = controller; setBusy(true); setNotice(null); setTranscript(null); setEvaluation(null); try { const asr = await transcribe.mutateAsync({uri, language, signal: controller.signal}); if (current !== operation.current) return; setTranscript(asr.text); let pronunciation: Record<string, unknown> | null = null; if (referenceText.trim()) { try { pronunciation = await assessPronunciation.mutateAsync({uri, language, referenceText, signal: controller.signal}); } catch (error) { if (current !== operation.current || controller.signal.aborted) return; setNotice(error instanceof ApiError ? error.message : t('speaking.pronunciation_unavailable')); } } const result = await evaluateSpeaking.mutateAsync({input: {language, reference_text: referenceText || asr.text, transcript_text: asr.text, content_match: null, pronunciation, transcription_confidence: null}, signal: controller.signal}); if (current !== operation.current) return; setEvaluation(result as unknown as Record<string, unknown>); if (params.assetId && params.segmentId) { try { await saveAttempt.mutateAsync({input: {language, take_id: `native-${Date.now()}`, asset_id: params.assetId, segment_id: params.segmentId, reference_text: referenceText || asr.text, transcript_text: asr.text, evaluation: result}, signal: controller.signal}); } catch (error) { if (current === operation.current && !controller.signal.aborted) setNotice(error instanceof ApiError ? error.message : t('speaking.unavailable')); } } } catch (error) { if (current === operation.current && !controller.signal.aborted) setNotice(error instanceof ApiError ? error.message : t('speaking.unavailable')); } finally { if (current === operation.current) { setBusy(false); abortRef.current = null; await service.cancel(); } } };
   const start = () => { setNotice(null); setTranscript(null); setEvaluation(null); void service.startRecording(); }; const stop = async () => { const token = operation.current; await service.stopRecording(); if (token === operation.current && service.getSnapshot().state === 'recorded') void evaluate(); }; const discard = async () => { operation.current += 1; abortRef.current?.abort(); abortRef.current = null; setBusy(false); setTranscript(null); setEvaluation(null); await service.cancel(); };
+  const [elapsedMs, setElapsedMs] = useState(0);
+  useEffect(() => {
+    if (snapshot.state !== 'recording') { setElapsedMs(0); return; }
+    const startedAt = Date.now();
+    const ticker = setInterval(() => {
+      const elapsed = Date.now() - startedAt;
+      setElapsedMs(Math.min(elapsed, MAX_RECORDING_MS));
+      if (elapsed >= MAX_RECORDING_MS) void stop();
+    }, 200);
+    return () => clearInterval(ticker);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [snapshot.state]);
   const stateMessage: Record<TransientAudioSnapshot['state'], string> = {idle: t('media.ready'), requesting: t('media.permission_requesting'), recording: t('speaking.recording'), recorded: t('media.recorded'), playing: t('media.playing'), denied: t('media.permission_denied'), restricted: t('media.permission_restricted'), unavailable: t('media.unavailable'), interrupted: t('media.interrupted'), failed: t('media.failed'), suspended: t('media.suspended')}; const dimensions = evaluation?.dimensions as Record<string, unknown> | undefined; const nextSteps = Array.isArray(evaluation?.next_steps) ? evaluation.next_steps as {kind?: string; words?: string[]}[] : [];
   const backToListening = () => { void discard().finally(() => router.replace({pathname: '/(app)/listening', params: {assetId: params.assetId, segmentId: params.segmentId}} as never)); };
   if (!sessionCookie || !client) return <View style={[styles.container, {backgroundColor: tokens.colors.background}]}><Text accessibilityRole="header" style={[styles.title, {color: tokens.colors.heading}]}>{t('speaking.title')}</Text><Text style={{color: tokens.colors.mutedText}}>{t('speaking.unavailable')}</Text><Button label={t('speaking.back_listening')} onPress={backToListening} secondary /></View>;
-  return <ScrollView style={{flex: 1, backgroundColor: tokens.colors.background}} contentContainerStyle={[styles.container, {backgroundColor: tokens.colors.background}]}><Text accessibilityRole="header" style={[styles.title, {color: tokens.colors.heading}]}>{params.mode === 'shadowing' ? t('speaking.shadowing') : t('speaking.title')}</Text><Text style={{color: tokens.colors.mutedText}}>{t('speaking.body')}</Text>{referenceText ? <View style={[styles.card, {backgroundColor: tokens.colors.surface, borderColor: tokens.colors.border}]}><Text style={{color: tokens.colors.text, fontWeight: '700'}}>{t('speaking.reference')}</Text><Text style={{color: tokens.colors.text}}>{referenceText}</Text></View> : <Text style={{color: tokens.colors.mutedText}}>{t('speaking.no_reference')}</Text>}{profileError ? <Text accessibilityRole="alert" style={{color: tokens.colors.danger}}>{t('speaking.profile_failed')}</Text> : !learningLanguage ? <Text accessibilityLiveRegion="polite" style={{color: tokens.colors.mutedText}}>{t('speaking.profile_loading')}</Text> : <Text accessibilityLiveRegion="polite" style={{color: tokens.colors.text}}>{busy ? (transcript ? t('speaking.evaluating') : t('speaking.transcribing')) : stateMessage[snapshot.state]}</Text>}{snapshot.state === 'recording' ? <Button label={t('speaking.stop')} onPress={() => { void stop(); }} disabled={busy} /> : <Button label={t('speaking.start')} onPress={start} disabled={busy || !learningLanguage} />}{(snapshot.state === 'recorded' || snapshot.state === 'playing') && <Button label={t('speaking.cancel')} onPress={() => { void discard(); }} secondary />}{notice && <Text accessibilityRole="alert" style={{color: tokens.colors.danger}}>{notice}</Text>}{evaluation && <View style={[styles.card, {backgroundColor: tokens.colors.surface, borderColor: tokens.colors.border}]}><Text style={{color: tokens.colors.text, fontWeight: '700'}}>{t('speaking.evidence')}</Text>{transcript && <Text style={{color: tokens.colors.text}}>{t('speaking.transcript')}: {transcript}</Text>}{dimensions?.pronunciation != null && <Text style={{color: tokens.colors.text}}>{t('speaking.pronunciation')}: {String(dimensions.pronunciation)}</Text>}{dimensions?.fluency != null && <Text style={{color: tokens.colors.text}}>{t('speaking.fluency')}: {String(dimensions.fluency)}</Text>}{nextSteps.length > 0 && <><Text style={{color: tokens.colors.text, fontWeight: '700'}}>{t('speaking.next_steps')}</Text>{nextSteps.map((step, index) => <Text key={`${step.kind}-${index}`} style={{color: tokens.colors.text}}>{t(stepMessage[step.kind ?? ''] ?? 'speaking.next_steps')}{step.words?.length ? `: ${step.words.join(', ')}` : ''}</Text>)}</>}</View>}<Button label={t('speaking.back_listening')} onPress={backToListening} secondary /></ScrollView>;
+  return <ScrollView style={{flex: 1, backgroundColor: tokens.colors.background}} contentContainerStyle={[styles.container, {backgroundColor: tokens.colors.background}]}>
+    <Text accessibilityRole="header" style={[styles.title, {color: tokens.colors.heading}]}>{params.mode === 'shadowing' ? t('speaking.shadowing') : t('speaking.title')}</Text>
+    <Text style={{color: tokens.colors.mutedText}}>{t('speaking.body')}</Text>
+    {referenceText ? <Panel><OrenaLabel>{t('speaking.reference')}</OrenaLabel><Text style={{color: tokens.colors.text}}>{referenceText}</Text></Panel> : <Text style={{color: tokens.colors.mutedText}}>{t('speaking.no_reference')}</Text>}
+    {profileError ? <Text accessibilityRole="alert" style={{color: tokens.colors.danger}}>{t('speaking.profile_failed')}</Text> : !learningLanguage ? <Text accessibilityLiveRegion="polite" style={{color: tokens.colors.mutedText}}>{t('speaking.profile_loading')}</Text> : <Text accessibilityLiveRegion="polite" style={{color: tokens.colors.text}}>{busy ? (transcript ? t('speaking.evaluating') : t('speaking.transcribing')) : stateMessage[snapshot.state]}</Text>}
+    <View style={styles.recRow}>
+      <Text style={{color: tokens.colors.mutedText, fontVariant: ['tabular-nums']}}>{`${stamp(elapsedMs)} / ${stamp(MAX_RECORDING_MS)}`}</Text>
+      <View style={[styles.recMeter, {backgroundColor: tokens.colors.surfaceSunken}]}><View style={[styles.recMeterFill, {width: `${Math.min(100, (elapsedMs / MAX_RECORDING_MS) * 100)}%`, backgroundColor: tokens.colors.accent}]} /></View>
+    </View>
+    {snapshot.state === 'recording' ? <Button label={t('speaking.stop')} onPress={() => { void stop(); }} disabled={busy} /> : <Button label={t('speaking.start')} onPress={start} disabled={busy || !learningLanguage} />}
+    {(snapshot.state === 'recorded' || snapshot.state === 'playing') && <Button label={t('speaking.cancel')} onPress={() => { void discard(); }} secondary />}
+    {notice && <Text accessibilityRole="alert" style={{color: tokens.colors.danger}}>{notice}</Text>}
+    {evaluation && <Panel>
+      <OrenaLabel>{t('speaking.evidence')}</OrenaLabel>
+      {transcript && <Text style={{color: tokens.colors.text}}>{t('speaking.transcript')}: {transcript}</Text>}
+      {dimensions?.pronunciation != null && <Text style={{color: tokens.colors.text}}>{t('speaking.pronunciation')}: {String(dimensions.pronunciation)}</Text>}
+      {dimensions?.fluency != null && <Text style={{color: tokens.colors.text}}>{t('speaking.fluency')}: {String(dimensions.fluency)}</Text>}
+      {nextSteps.length > 0 && <><OrenaLabel>{t('speaking.next_steps')}</OrenaLabel>{nextSteps.map((step, index) => <Text key={`${step.kind}-${index}`} style={{color: tokens.colors.text}}>{t(stepMessage[step.kind ?? ''] ?? 'speaking.next_steps')}{step.words?.length ? `: ${step.words.join(', ')}` : ''}</Text>)}</>}
+    </Panel>}
+    <Button label={t('speaking.back_listening')} onPress={backToListening} secondary />
+  </ScrollView>;
 }
-const styles = StyleSheet.create({container: {flexGrow: 1, padding: 24, gap: 12, width: '100%', maxWidth: CONTENT_MAX, alignSelf: 'center'}, title: {fontSize: 20, fontWeight: '700'}, card: {padding: 16, borderRadius: 20, gap: 8, borderWidth: 1}, button: {minHeight: 48, padding: 14, borderRadius: 15, borderWidth: 1, alignItems: 'center', justifyContent: 'center'}});
+const styles = StyleSheet.create({container: {flexGrow: 1, padding: 24, gap: 16, width: '100%', maxWidth: CONTENT_MAX, alignSelf: 'center'}, title: {fontSize: 20, fontWeight: '700'}, recRow: {gap: 6}, recMeter: {height: 6, borderRadius: 999, overflow: 'hidden'}, recMeterFill: {height: '100%', borderRadius: 999}});

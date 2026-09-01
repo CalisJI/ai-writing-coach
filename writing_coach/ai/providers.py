@@ -8,6 +8,7 @@ from types import MappingProxyType
 from typing import Any
 
 import requests
+from urllib.parse import urlsplit, urlunsplit
 
 from writing_coach.ai.base import (
     AIProviderError,
@@ -105,6 +106,14 @@ _PROVIDER_DEFINITIONS = (
         supported_operations=_STRUCTURED_TEXT_OPERATIONS,
         supported_option_keys=_TEXT_OPTION_KEYS,
     ),
+    ProviderDefinition(
+        id="gemini",
+        name="Gemini API",
+        kind="cloud",
+        secret_mode="server-managed",
+        supported_operations=_STRUCTURED_TEXT_OPERATIONS,
+        supported_option_keys=_TEXT_OPTION_KEYS,
+    ),
 )
 _PROVIDER_CATALOG = MappingProxyType(
     {definition.id: definition for definition in _PROVIDER_DEFINITIONS}
@@ -151,6 +160,28 @@ def _model_catalog(envelope: object, *, container_key: str, model_key: str) -> l
     return models
 
 
+def _safe_provider_http_hint(response: requests.Response | None) -> str:
+    """Return a coarse provider error hint without forwarding response data."""
+
+    if response is None:
+        return ""
+    try:
+        envelope = response.json()
+        message = envelope.get("error", {}).get("message", "") if isinstance(envelope, dict) else ""
+    except (ValueError, AttributeError):
+        return ""
+    if not isinstance(message, str):
+        return ""
+    lowered = message.casefold()
+    if "api key" in lowered or "authentication" in lowered or "unauthenticated" in lowered:
+        return "Google rejected the API credential."
+    if "permission" in lowered or "forbidden" in lowered:
+        return "The provider denied permission for this credential."
+    if "quota" in lowered or "rate limit" in lowered:
+        return "The provider quota or rate limit was reached."
+    return ""
+
+
 def _openai_message_content(envelope: object) -> tuple[dict[str, Any], str]:
     if not isinstance(envelope, dict):
         raise AIProviderResponseInvalid("AI provider returned an invalid response.")
@@ -184,9 +215,17 @@ class OllamaProvider:
     kind = "local"
     secret_mode = "none"
 
-    def __init__(self) -> None:
-        self.base_url = os.getenv("OLLAMA_URL", "http://127.0.0.1:11434").rstrip("/")
-        self.default_model = os.getenv("OLLAMA_MODEL", "qwen3:8b").strip()
+    def __init__(self, credential_override: dict[str, Any] | None = None) -> None:
+        credential_override = credential_override or {}
+        override_url = credential_override.get("base_url")
+        self.base_url = str(
+            override_url if isinstance(override_url, str) and override_url.strip() else os.getenv("OLLAMA_URL", "http://127.0.0.1:11434")
+        ).strip().rstrip("/")
+        self.default_model = str(
+            credential_override.get("default_model") or os.getenv("OLLAMA_MODEL", "qwen3:8b")
+        ).strip()
+        override_models = credential_override.get("models")
+        self.allowed_models = [str(value).strip() for value in override_models if str(value).strip()] if isinstance(override_models, list) else []
         self.timeout = int(os.getenv("OLLAMA_TIMEOUT", "180"))
 
     @property
@@ -194,6 +233,8 @@ class OllamaProvider:
         return True
 
     def list_models(self) -> list[str]:
+        if self.allowed_models:
+            return sorted(dict.fromkeys(self.allowed_models))
         try:
             response = requests.get(f"{self.base_url}/api/tags", timeout=3)
             response.raise_for_status()
@@ -209,6 +250,9 @@ class OllamaProvider:
 
     def discover_models_live(self) -> list[str]:
         """Discover models without collapsing transport failures into an empty list."""
+
+        if self.allowed_models:
+            return sorted(dict.fromkeys(self.allowed_models))
 
         try:
             response = requests.get(f"{self.base_url}/api/tags", timeout=3)
@@ -311,17 +355,24 @@ class OpenAICompatibleProvider:
         models_env: str,
         default_models: tuple[str, ...] = (),
         model_filter: str = "",
+        credential_override: dict[str, Any] | None = None,
     ) -> None:
+        credential_override = credential_override or {}
         self.id = provider_id
         self.name = name
-        self.api_key = os.getenv(api_key_env, "").strip()
-        self.base_url = os.getenv(base_url_env, default_base_url).strip().rstrip("/")
-        self.allowed_models = [
-            value.strip()
-            for value in os.getenv(models_env, "").split(",")
-            if value.strip()
-        ]
+        override_key = credential_override.get("api_key")
+        self.api_key = str(
+            override_key if isinstance(override_key, str) else os.getenv(api_key_env, "")
+        ).strip()
+        override_url = credential_override.get("base_url")
+        self.base_url = str(
+            override_url if isinstance(override_url, str) and override_url.strip() else os.getenv(base_url_env, default_base_url)
+        ).strip().rstrip("/")
+        override_models = credential_override.get("models")
+        raw_models = override_models if isinstance(override_models, list) else os.getenv(models_env, "").split(",")
+        self.allowed_models = [str(value).strip() for value in raw_models if str(value).strip()]
         self.default_models = list(default_models)
+        self.default_model_override = str(credential_override.get("default_model") or "").strip()
         self.model_filter = model_filter
         self.timeout = int(os.getenv("CLOUD_AI_TIMEOUT", "180"))
         self._last_rate_limit = _normalized_rate_limit_headers(None)
@@ -333,6 +384,8 @@ class OpenAICompatibleProvider:
     @property
     def default_model(self) -> str:
         models = self.list_models()
+        if self.default_model_override and (not models or self.default_model_override in models):
+            return self.default_model_override
         return models[0] if models else ""
 
     def _headers(self) -> dict[str, str]:
@@ -340,6 +393,55 @@ class OpenAICompatibleProvider:
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json",
         }
+
+    def _model_catalog_request(self) -> tuple[requests.Response, bool]:
+        """Request the catalog from the configured provider endpoint.
+
+        Gemini's OpenAI-compatible endpoint exposes ``/models`` and expects
+        the same Bearer authentication as ``/chat/completions``. Keeping
+        discovery on that compatibility contract is important because it is
+        also the contract used by the configured endpoint. If that catalog
+        rejects a Gemini credential, retry discovery through Gemini's native
+        catalog as a compatibility fallback; chat requests still use the
+        configured endpoint.
+        """
+
+        response = requests.get(
+            f"{self.base_url}/models",
+            headers=self._headers(),
+            timeout=10,
+        )
+        if getattr(response, "status_code", 200) < 400:
+            return response, False
+
+        parsed = urlsplit(self.base_url)
+        is_gemini_compatibility = (
+            self.model_filter == "gemini-text"
+            and parsed.hostname == "generativelanguage.googleapis.com"
+            and parsed.path.rstrip("/").endswith("/v1beta/openai")
+        )
+        if not is_gemini_compatibility:
+            return response, False
+
+        native_path = parsed.path.rstrip("/")[: -len("/openai")] + "/models"
+        native_url = urlunsplit((parsed.scheme, parsed.netloc, native_path, "", ""))
+        native_response = requests.get(
+            native_url,
+            headers={
+                "x-goog-api-key": self.api_key,
+                "Content-Type": "application/json",
+            },
+            timeout=10,
+        )
+        return native_response, True
+
+    def _catalog_models(self, envelope: object, *, native_gemini: bool) -> list[str]:
+        if native_gemini:
+            return [
+                model.rsplit("/", 1)[-1]
+                for model in _model_catalog(envelope, container_key="models", model_key="name")
+            ]
+        return _model_catalog(envelope, container_key="data", model_key="id")
 
     def _accept_model(self, model: str) -> bool:
         if not model:
@@ -362,6 +464,10 @@ class OpenAICompatibleProvider:
             lowered = model.casefold()
             blocked = ("whisper", "orpheus", "prompt-guard", "safeguard", "tts")
             return not any(word in lowered for word in blocked)
+        if self.model_filter == "gemini-text":
+            lowered = model.casefold()
+            blocked = ("embedding", "imagen", "veo", "live", "audio", "tts")
+            return lowered.startswith("gemini-") and not any(word in lowered for word in blocked)
         return True
 
     def list_models(self) -> list[str]:
@@ -373,19 +479,13 @@ class OpenAICompatibleProvider:
             return list(self.default_models)
 
         try:
-            response = requests.get(
-                f"{self.base_url}/models",
-                headers=self._headers(),
-                timeout=10,
-            )
+            response, native_gemini = self._model_catalog_request()
             response.raise_for_status()
-            return sorted(
-                {
-                    str(item.get("id") or "").strip()
-                    for item in response.json().get("data", [])
-                    if self._accept_model(str(item.get("id") or "").strip())
-                }
-            )
+            return sorted({
+                model
+                for model in self._catalog_models(response.json(), native_gemini=native_gemini)
+                if self._accept_model(model)
+            })
         except Exception:
             return []
 
@@ -398,11 +498,7 @@ class OpenAICompatibleProvider:
             return sorted(dict.fromkeys(self.allowed_models))
 
         try:
-            response = requests.get(
-                f"{self.base_url}/models",
-                headers=self._headers(),
-                timeout=10,
-            )
+            response, native_gemini = self._model_catalog_request()
             response.raise_for_status()
             envelope = response.json()
         except requests.ConnectionError as exc:
@@ -411,14 +507,15 @@ class OpenAICompatibleProvider:
             raise AIProviderUnavailable(f"{self.name} timed out.") from exc
         except requests.HTTPError as exc:
             status = exc.response.status_code if exc.response is not None else "?"
+            hint = _safe_provider_http_hint(exc.response)
             raise AIProviderError(
-                f"{self.name} returned HTTP {status} during model discovery."
+                f"{self.name} returned HTTP {status} during model discovery. {hint}".strip()
             ) from exc
         except ValueError as exc:
             raise _invalid_model_catalog() from exc
         return sorted(
             model
-            for model in set(_model_catalog(envelope, container_key="data", model_key="id"))
+            for model in set(self._catalog_models(envelope, native_gemini=native_gemini))
             if self._accept_model(model)
         )
 
@@ -561,9 +658,10 @@ class OpenAICompatibleProvider:
         )
 
 
-def build_providers() -> dict[str, Any]:
+def build_providers(provider_credentials: dict[str, dict[str, Any]] | None = None) -> dict[str, Any]:
+    provider_credentials = provider_credentials or {}
     return {
-        "ollama": OllamaProvider(),
+        "ollama": OllamaProvider(provider_credentials.get("ollama")),
         "openai": OpenAICompatibleProvider(
             provider_id="openai",
             name="OpenAI API",
@@ -573,6 +671,7 @@ def build_providers() -> dict[str, Any]:
             models_env="OPENAI_MODELS",
             default_models=(),
             model_filter="openai-text",
+            credential_override=provider_credentials.get("openai"),
         ),
         "deepseek": OpenAICompatibleProvider(
             provider_id="deepseek",
@@ -582,6 +681,7 @@ def build_providers() -> dict[str, Any]:
             default_base_url="https://api.deepseek.com",
             models_env="DEEPSEEK_MODELS",
             default_models=("deepseek-v4-flash", "deepseek-v4-pro"),
+            credential_override=provider_credentials.get("deepseek"),
         ),
         # Groq speaks the OpenAI chat API, so it needs no adapter of its own.
         # Measured against this account: a structured translation answers in
@@ -595,5 +695,17 @@ def build_providers() -> dict[str, Any]:
             models_env="GROQ_MODELS",
             default_models=(),
             model_filter="groq-text",
+            credential_override=provider_credentials.get("groq"),
+        ),
+        "gemini": OpenAICompatibleProvider(
+            provider_id="gemini",
+            name="Gemini API",
+            api_key_env="GEMINI_API_KEY",
+            base_url_env="GEMINI_BASE_URL",
+            default_base_url="https://generativelanguage.googleapis.com/v1beta/openai",
+            models_env="GEMINI_MODELS",
+            default_models=(),
+            model_filter="gemini-text",
+            credential_override=provider_credentials.get("gemini"),
         ),
     }

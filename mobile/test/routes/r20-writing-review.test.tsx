@@ -16,7 +16,9 @@ const mockGrammarPractice = {isPending: false, isError: false, mutate: jest.fn()
 jest.mock('expo-router', () => ({useRouter: () => ({push: mockPush, replace: mockReplace})}));
 jest.mock('../../src/auth/SessionHarness', () => ({useSession: () => ({sessionCookie: mockCookie, session: {status: mockCookie ? 'authenticated' : 'signed_out'}})}));
 jest.mock('../../src/api/client', () => ({createConfiguredApiClient: () => ({}), ApiClient: class {}}));
-jest.mock('../../src/query/useWritingEvaluation', () => ({useEvaluateWriting: () => mockEvaluate, useGrammarPractice: () => mockGrammarPractice}));
+jest.mock('../../src/query/useWritingEvaluation', () => ({useEvaluateWriting: () => mockEvaluate, useGrammarPractice: () => mockGrammarPractice, useGenerateTask: () => ({isPending: false, isError: false, mutate: jest.fn()})}));
+jest.mock('../../src/query/useLearnerProfile', () => ({useLearnerProfile: () => ({data: undefined, isPending: false, isError: false})}));
+jest.mock('../../src/query/useReview', () => ({usePracticeOutcome: () => ({data: undefined, isPending: false, isError: false}), useReviewCue: () => ({data: undefined, isPending: false, isError: false})}));
 
 const render = (screen: React.ReactNode, locale: 'en' | 'zh' = 'en') => renderer.create(<I18nProvider initialLocale={locale}><ThemeProvider>{screen}</ThemeProvider></I18nProvider>);
 const texts = (view: renderer.ReactTestRenderer, value: string) => view.root.findAll((node) => node.props.children === value);
@@ -105,9 +107,9 @@ describe('R20 native Writing -> Evaluate -> Review -> Grammar -> Revise loop', (
     expect(view.root.findByProps({accessibilityRole: 'alert'})).toBeDefined();
   });
 
-  it.each(['en', 'zh'] as const)('states plainly that no brief is open instead of inventing one in %s', (locale) => {
+  it.each(['en', 'zh'] as const)('offers the setup panel to start a new session instead of inventing a brief in %s', (locale) => {
     const view = render(<WritingScreen />, locale);
-    expect(texts(view, locale === 'zh' ? '当前没有打开的练习提示。' : 'No practice brief is open.')).not.toHaveLength(0);
+    expect(texts(view, locale === 'zh' ? '选择要写的内容' : 'Choose what to write')).not.toHaveLength(0);
     expect(mockEvaluate.mutate).not.toHaveBeenCalled();
     act(() => buttonLabelled(view, locale === 'zh' ? '返回首页' : 'Back to Home').props.onPress());
     expect(mockReplace).toHaveBeenCalledWith('/(app)');
@@ -131,7 +133,9 @@ describe('R20 native Writing -> Evaluate -> Review -> Grammar -> Revise loop', (
     setReviewHandoff(evaluation, evaluationInput);
     const view = render(<ReviewScreen />, locale);
     expect(texts(view, 'Bài viết đủ ý nhưng còn lỗi chia động từ.')).not.toHaveLength(0);
-    expect(texts(view, 'I has')).not.toHaveLength(0);
+    // The fragment now renders as a quoted blockquote, matching review.js's
+    // own `“${fragment}”` treatment, rather than as the row's bare title.
+    expect(texts(view, '“I has”')).not.toHaveLength(0);
     expect(texts(view, 'I have')).not.toHaveLength(0);
     expect(texts(view, locale === 'zh' ? '主语和动词不一致。' : 'The subject and verb do not agree.')).not.toHaveLength(0);
     expect(texts(view, locale === 'zh' ? 'I 要用 have。' : 'Use have with I.')).not.toHaveLength(0);
@@ -140,7 +144,9 @@ describe('R20 native Writing -> Evaluate -> Review -> Grammar -> Revise loop', (
   it.each(['en', 'zh'] as const)('opens R5 Grammar practice from a linked finding in %s', (locale) => {
     setReviewHandoff(evaluation, evaluationInput);
     const view = render(<ReviewScreen />, locale);
-    act(() => buttonContaining(view, locale === 'zh' ? '练习这个语法' : 'Practice this grammar').props.onPress());
+    // The web puts the action name on the panel and the lesson title on the
+    // button, so target the lesson the finding links to.
+    act(() => buttonContaining(view, 'Articles').props.onPress());
     expect(mockGrammarPractice.mutate).toHaveBeenCalledWith({grammarId: 'en-articles', evidence: 'a dog'}, expect.any(Object));
     act(() => mockGrammarPractice.mutate.mock.calls[0][1].onSuccess(grammarTask));
     expect(mockPush).toHaveBeenCalledWith('/(app)/writing');
@@ -177,7 +183,7 @@ describe('R20 native Writing -> Evaluate -> Review -> Grammar -> Revise loop', (
     setGrammarWritingHandoff(grammarTask, 'en');
     render(<WritingScreen />);
     const second = render(<WritingScreen />);
-    expect(texts(second, 'No practice brief is open.')).not.toHaveLength(0);
+    expect(texts(second, 'Choose what to write')).not.toHaveLength(0);
     setRevisionWritingHandoff(41, 'I has a dog and I write every day.', 'Write about an ordinary weekday.', 'B1', 'zh');
     const revision = render(<WritingScreen />, 'zh');
     expect(texts(revision, '修改你的写作')).not.toHaveLength(0);

@@ -5,16 +5,143 @@
   let learnerRuntime = {mode:'legacy'};
   let active = {provider:'', model:''};
   let currentFilter = 'all';
+  let selectedProviderId = '';
   let searchText = '';
   let operations = {available:false, has_data:false, recent:[], by_capability:[]};
   let accountState = null;
   let productActivity = {available:false,has_data:false,skills:[]};
   let readinessSummary = {available:false,state:'unavailable',indicators:[]};
 
+  const capabilityLabels = {
+    writing_evaluator:'Writing evaluation',
+    writing_linguistic:'Writing language quality',
+    reading_generator:'Reading content generation',
+    writing_task_generator:'Writing task generation',
+    writing_improver:'Writing improvement',
+    learner_dictionary:'Learner dictionary',
+    learner_translation:'Learner translation',
+    grammar_lesson_generator:'Grammar lesson generation',
+    reading_evaluator:'Reading evaluation',
+    speech_asr:'Speech recognition',
+    pronunciation_evaluator:'Pronunciation evaluation',
+    speaking_evaluator:'Speaking evaluation',
+  };
+
+  const operationLabels = {
+    structured_text_generation:'AI text generation',
+    deterministic:'Deterministic local processing',
+    speech_recognition:'Speech recognition',
+    pronunciation_evaluation:'Pronunciation evaluation',
+    speaking_evaluation:'Speaking evaluation',
+  };
+
+  const capabilityDescriptions = {
+    writing_evaluator:'Reviews a learner\'s writing and returns structured feedback and evidence.',
+    writing_linguistic:'Checks grammar, vocabulary, naturalness, clarity, and other language quality signals.',
+    reading_generator:'Creates reading practice content when a configured provider is available.',
+    writing_task_generator:'Creates a guided writing prompt or practice brief for the learner.',
+    writing_improver:'Suggests improvements to an existing learner draft while preserving the learner\'s intent.',
+    learner_dictionary:'Looks up meaning and usage for words selected by a learner.',
+    learner_translation:'Translates supported learning content into the learner\'s support language.',
+    grammar_lesson_generator:'Creates or supports grammar lesson content for a learner.',
+    reading_evaluator:'Checks a reading attempt and its supporting evidence.',
+    speech_asr:'Converts a learner recording into text for speech practice.',
+    pronunciation_evaluator:'Assesses pronunciation evidence from a learner recording.',
+    speaking_evaluator:'Evaluates a speaking attempt against its selected practice task.',
+  };
+
+  const readinessLabels = {
+    capability_configuration:'Capability configuration',
+    capability_health:'Capability health',
+    product_observability:'Product observability',
+    learner_impact_evidence:'Learner impact evidence',
+    runtime_activation:'Runtime activation',
+  };
+
+  const entitlementLabels = {
+    'writing.evaluate':'Writing evaluation',
+    'writing.improve':'Writing improvement',
+    'library.grammar':'Grammar library',
+    'dictionary.lookup':'Dictionary lookup',
+    'vocabulary.save':'Save vocabulary',
+    'analytics.basic':'Basic analytics',
+    'analytics.advanced':'Advanced analytics',
+    'practice.personalized':'Personalized practice',
+    'export.report':'Export report',
+  };
+
+  const skillLabels = {
+    writing:'Writing', reading:'Reading', listening:'Listening', speaking:'Speaking',
+    grammar:'Grammar', library:'Library', vocabulary:'Vocabulary', review:'Review',
+  };
+
+  function capabilityLabel(key){
+    return capabilityLabels[key] || String(key||'Capability').replace(/[_-]+/g,' ').replace(/\b\w/g,letter=>letter.toUpperCase());
+  }
+
+  function operationLabel(key){
+    return operationLabels[key] || String(key||'Operation').replace(/[_-]+/g,' ').replace(/\b\w/g,letter=>letter.toUpperCase());
+  }
+
+  function capabilityDescription(key){
+    return capabilityDescriptions[key] || `Controls the ${capabilityLabel(key).toLowerCase()} capability.`;
+  }
+
+  function readinessLabel(key){
+    return readinessLabels[key] || String(key||'Readiness indicator').replace(/[_-]+/g,' ').replace(/\b\w/g,letter=>letter.toUpperCase());
+  }
+
+  function entitlementLabel(key){
+    return entitlementLabels[key] || String(key||'Feature').replace(/[_.-]+/g,' ').replace(/\b\w/g,letter=>letter.toUpperCase());
+  }
+
+  function skillLabel(key){
+    return skillLabels[key] || String(key||'Skill').replace(/[_.-]+/g,' ').replace(/\b\w/g,letter=>letter.toUpperCase());
+  }
+
+  function operationDescription(key){
+    return `The runtime path used for ${operationLabel(key).toLowerCase()}.`;
+  }
+
   function esc(s=''){
     return String(s).replace(/[&<>"']/g,c=>({
       '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'
     }[c]));
+  }
+
+  function humanLabel(key){
+    return capabilityLabels[key] || readinessLabels[key] || entitlementLabels[key] || skillLabels[key]
+      || String(key || 'Field').replace(/[_.-]+/g,' ').replace(/\b\w/g,letter=>letter.toUpperCase());
+  }
+
+  function humanizeVisibleLabels(root){
+    if(!root) return;
+    root.querySelectorAll('b,span,small,strong').forEach(node=>{
+      if(node.children.length || node.querySelector('svg')) return;
+      const raw=node.textContent.trim();
+      if(!/^[A-Za-z][A-Za-z0-9_.-]*$/.test(raw) || !/[_.]/.test(raw)) return;
+      const label=humanLabel(raw);
+      node.textContent=label;
+      node.title = node.title || `Meaning: ${label}.`;
+      node.classList.add('admin-tooltip-target');
+      node.tabIndex = 0;
+    });
+    const walker=root.ownerDocument.createTreeWalker(root,NodeFilter.SHOW_TEXT);
+    const textNodes=[];
+    let current;
+    while((current=walker.nextNode())) textNodes.push(current);
+    textNodes.forEach(node=>{
+      node.nodeValue=node.nodeValue.replace(/\b[A-Za-z][A-Za-z0-9]*_[A-Za-z0-9_]*\b/g,token=>humanLabel(token));
+    });
+  }
+
+  function observeHumanLabels(){
+    const root=$('#page-admin');
+    if(!root || root.dataset.humanLabelsObserved) return;
+    root.dataset.humanLabelsObserved='true';
+    const observer=new MutationObserver(()=>humanizeVisibleLabels(root));
+    observer.observe(root,{subtree:true,childList:true});
+    humanizeVisibleLabels(root);
   }
 
   function setMessage(text, kind=''){
@@ -28,15 +155,23 @@
     return providers.find(x => x.id === id);
   }
 
-  function providerIcon(id){
-    if(id === 'ollama') return '◉';
-    if(id === 'openai') return '✦';
-    if(id === 'deepseek') return '◇';
-    return '◆';
-  }
-
   function modelKindLabel(provider){
     return provider?.kind === 'local' ? 'LOCAL' : 'CLOUD';
+  }
+
+
+  const providerAssetPaths = {
+    ollama:'/becoming-assets/assets/providers/ollama.svg',
+    openai:'/becoming-assets/assets/providers/openai.svg',
+    deepseek:'/becoming-assets/assets/providers/deepseek.svg',
+    groq:'/becoming-assets/assets/providers/groq.svg',
+    // Simple Icons' official Google Gemini mark, vendored for offline/dark-mode reliability.
+    gemini:'/becoming-assets/assets/providers/googlegemini.svg',
+  };
+
+  function providerIcon(id){
+    const path=providerAssetPaths[id];
+    return path ? `<img class="provider-logo-image" src="${path}" alt="" aria-hidden="true">` : '';
   }
 
   function providerState(provider){
@@ -199,6 +334,24 @@
     return compatible.map(provider=>`<option value="${esc(provider.id)}" ${provider.id===selected?'selected':''}>${esc(provider.name || provider.id)}</option>`).join('');
   }
 
+  function capabilityModelOptions(providerId, selected=''){
+    const provider=providerById(providerId);
+    const models=[...(provider?.models || [])];
+    if(!models.length && provider?.default_model) models.push(provider.default_model);
+    if(selected && !models.includes(selected)) models.unshift(selected);
+    if(!models.length) return '<option value="">No models discovered</option>';
+    return `<option value="">Select a model</option>${models.map(model=>`<option value="${esc(model)}" ${model===selected?'selected':''}>${esc(model)}</option>`).join('')}`;
+  }
+
+  function syncCapabilityModelPicker(row, selector, selected=''){
+    const providerId=row?.querySelector?.('[data-capability-provider]')?.value || '';
+    const modelSelect=row?.querySelector?.(selector);
+    if(!modelSelect) return;
+    modelSelect.innerHTML=capabilityModelOptions(providerId,selected);
+    modelSelect.value=selected && [...modelSelect.options].some(option=>option.value===selected) ? selected : (modelSelect.options.length > 1 ? modelSelect.options[1].value : '');
+    modelSelect.dispatchEvent(new Event('change',{bubbles:true}));
+  }
+
   function backupProviderOptions(capability, selected){
     return `<option value="">No standby provider</option>${capabilityProviderOptions(capability, selected || '')}`;
   }
@@ -248,20 +401,20 @@
           const controls = capabilityIsConfigurable(capability) ? `
             <div class="admin-capability-controls">
               <label>Provider<select data-capability-provider>${capabilityProviderOptions(capability, config.provider || providers[0]?.id || '')}</select></label>
-              <label>Model<input data-capability-model type="text" maxlength="160" value="${esc(editableModel)}" placeholder="Model identifier"></label>
+              <label>Model<select data-capability-model>${capabilityModelOptions(config.provider || providers[0]?.id || '', editableModel)}</select></label>
               <label>Standby provider<select data-capability-backup-provider>${backupProviderOptions(capability, backupProvider)}</select></label>
-              <label>Standby model<input data-capability-backup-model type="text" maxlength="160" value="${esc(backupModel)}" placeholder="Optional standby model"></label>
-              <label class="admin-capability-enabled"><input data-capability-enabled type="checkbox" ${config.enabled === false?'':'checked'}> Enabled</label>
+              <label>Standby model<select data-capability-backup-model>${capabilityModelOptions(backupProvider, backupModel)}</select></label>
+              <label class="admin-capability-enabled"><input data-capability-enabled type="checkbox" ${config.enabled === false?'':'checked'}><span class="admin-check-box" aria-hidden="true">✓</span><span>Enabled</span></label>
               <button class="primary compact" type="button" data-save-capability="${esc(capability.key)}" data-capability-fallback="${esc(config.fallback_policy || (capability.allowed_fallback_policies || ['none'])[0])}" data-capability-timeout="${esc(config.timeout_seconds ?? '')}" data-capability-temperature="${esc(config.temperature ?? '')}">Save configuration</button>
               <small>Saved configuration only · learner runtime remains ${esc(learnerRuntime.mode || 'unknown')}</small>
               ${capability.explicit_config_exists && config.enabled !== false ? '<button class="ghost compact" type="button" data-health-capability="'+esc(capability.key)+'">Verify health</button><small data-capability-health-status></small>' : ''}
               ${capability.explicit_config_exists && config.enabled !== false && backupProvider && backupModel ? '<button class="ghost compact" type="button" data-health-standby-capability="'+esc(capability.key)+'">Verify standby</button><small data-capability-standby-health-status></small>' : ''}
             </div>` : '';
           return `<div class="admin-capability-row" role="row" data-capability-key="${esc(capability.key)}">
-            <span role="cell"><b>${esc(capability.key)}</b><small>${esc(runtime)}</small></span>
+            <span role="cell"><span class="admin-tooltip-target" tabindex="0" title="${esc(capabilityDescription(capability.key))}"><b>${esc(capabilityLabel(capability.key))}</b><span class="admin-tooltip" role="tooltip">${esc(capabilityDescription(capability.key))}</span></span><small>${esc(runtime)}</small></span>
             <span role="cell"><i class="admin-capability-dot ${state.cls}"></i>${esc(state.label)}<small>${esc(savedState)}</small></span>
             <span role="cell">${esc(provider)} / ${esc(model)}</span>
-            <span role="cell">${esc(capability.operation || '—')}${controls}</span>
+            <span role="cell"><span class="admin-tooltip-target" tabindex="0" title="${esc(operationDescription(capability.operation))}">${esc(operationLabel(capability.operation))}<span class="admin-tooltip" role="tooltip">${esc(operationDescription(capability.operation))}</span></span>${controls}</span>
           </div>`;
         }).join('')}
       </div>`;
@@ -276,6 +429,19 @@
     host.querySelectorAll('[data-health-standby-capability]').forEach(button=>{
       button.addEventListener('click',()=>runCapabilityHealth(button));
     });
+    host.querySelectorAll('[data-capability-provider]').forEach(select=>{
+      select.addEventListener('change',()=>{
+        const row=select.closest('[data-capability-key]');
+        syncCapabilityModelPicker(row,'[data-capability-model]');
+      });
+    });
+    host.querySelectorAll('[data-capability-backup-provider]').forEach(select=>{
+      select.addEventListener('change',()=>{
+        const row=select.closest('[data-capability-key]');
+        syncCapabilityModelPicker(row,'[data-capability-backup-model]');
+      });
+    });
+    window.installOrenaSelectEnhancements?.(host);
   }
 
   function resetCapabilityMatrix(){
@@ -376,15 +542,130 @@
     $('#adminModelCount').textContent = String(modelCount);
   }
 
+  function renderProviderConfig(){
+    const host=$('#adminProviderConfig');
+    if(!host) return;
+    const provider=providerById(selectedProviderId) || providers[0];
+    if(!provider){
+      host.innerHTML='<div class="admin-empty">No provider configuration is available.</div>';
+      return;
+    }
+    selectedProviderId=provider.id;
+    const config=provider.configuration || {};
+    const credentialRequired=config.credential_env !== null && config.credential_env !== undefined;
+    const credentialState=config.credential_source === 'encrypted_server_store'
+      ? 'Encrypted server credential'
+      : config.credential_state === 'configured'
+        ? 'Environment credential'
+        : credentialRequired ? 'Credential not configured' : 'No credential required';
+    const models=[...(provider.models || [])];
+    if(!models.length && provider.default_model) models.push(provider.default_model);
+    const endpoint=String(config.endpoint_url || '');
+    const selectedDefault=models.includes(provider.default_model) ? provider.default_model : '';
+    const modelOptions=models.map(model=>`<option value="${esc(model)}"${model===selectedDefault?' selected':''}>${esc(model)}</option>`).join('');
+    const modelOptionsForAllowed=models.map(model=>`<option value="${esc(model)}" selected>${esc(model)}</option>`).join('');
+    host.innerHTML=`<div class="admin-provider-config-head">
+      <div class="admin-provider-config-identity"><span class="provider-icon provider-icon--${esc(provider.id)} large">${providerIcon(provider.id)}</span><div><h4>${esc(provider.name)}</h4><p>${provider.kind==='local'?'Local provider':'Cloud provider'} · ${esc(credentialState)}</p></div></div>
+      <span class="admin-read-only">SERVER MANAGED</span>
+    </div>
+    <form id="adminProviderSetupForm" class="admin-provider-setup-form">
+      <div class="admin-provider-fields">
+        <label><span>Endpoint URL</span><input type="url" data-provider-endpoint value="${esc(endpoint)}" placeholder="https://provider.example/v1" autocomplete="url" /></label>
+        <label><span>Default model</span><select data-provider-default-model ${models.length?'':'disabled'}><option value="">${models.length?'Select a model from the live catalog':'Test connection to load models'}</option>${modelOptions}</select><small class="admin-provider-help">Options come only from the provider's live model catalog.</small></label>
+        <label class="admin-provider-field-wide"><span>Allowed models</span><select data-provider-models multiple size="${Math.min(Math.max(models.length,3),6)}" ${models.length?'':'disabled'}>${modelOptionsForAllowed}</select><small class="admin-provider-help">Select one or more models returned by the provider. Use Ctrl/Cmd-click for a subset.</small></label>
+        <label class="admin-provider-field-wide"><span>API key or token</span><input type="password" data-provider-secret placeholder="${credentialState === 'Encrypted server credential' ? 'Leave empty to keep the stored credential' : 'Enter a provider credential'}" autocomplete="new-password" ${credentialRequired?'':'disabled'} /><small class="admin-provider-help">Enter the raw key only, without a Bearer prefix. It is sent to this authenticated server, encrypted before storage, and never returned to the browser.</small></label>
+      </div>
+      <div class="admin-provider-config-foot"><span>Connection tests contact the provider. Saving replaces the server-side configuration without exposing the credential.</span><div class="admin-provider-config-actions"><button class="o-button o-button--quiet" type="button" data-provider-test>Test connection</button><button class="o-button primary" type="submit" data-provider-save>Save securely</button>${config.credential_source === 'encrypted_server_store' ? '<button class="o-button o-button--quiet admin-provider-delete" type="button" data-provider-delete>Remove stored credential</button>' : ''}</div></div>
+    </form>`;
+    const form=host.querySelector('#adminProviderSetupForm');
+    const readPayload=()=>{
+      const endpointValue=String(host.querySelector('[data-provider-endpoint]')?.value || '').trim();
+      const modelValue=String(host.querySelector('[data-provider-default-model]')?.value || '').trim();
+      const modelSelect=host.querySelector('[data-provider-models]');
+      const secretInput=host.querySelector('[data-provider-secret]');
+      const secretValue=String(secretInput?.value || '').trim();
+      const models=[...new Set([...modelSelect?.selectedOptions || []].map(option=>String(option.value || '').trim()).filter(Boolean))];
+      const payload={base_url:endpointValue,default_model:modelValue,models};
+      if(secretValue) payload.api_key=secretValue;
+      // Clear the only DOM copy before the request leaves this page.
+      if(secretInput) secretInput.value='';
+      return payload;
+    };
+    const validatePayload=(payload,mode)=>{
+      if(!payload.base_url){ setMessage('Enter the provider endpoint URL.','error'); return false; }
+      try{ new URL(payload.base_url); }catch(_error){ setMessage('Enter a valid provider endpoint URL.','error'); return false; }
+      if(mode==='save' && !payload.default_model){ setMessage('Test the connection and choose a default model from the live catalog.','error'); return false; }
+      if(mode==='save' && !payload.models.length){ setMessage('Select at least one model from the live catalog.','error'); return false; }
+      if(credentialRequired && config.credential_source !== 'encrypted_server_store' && config.credential_state !== 'configured' && !payload.api_key){
+        setMessage('Enter a provider credential before testing or saving.','error'); return false;
+      }
+      return true;
+    };
+    const runCredentialAction=async(mode)=>{
+      const payload=readPayload();
+      if(!validatePayload(payload,mode)) return;
+      const testButton=host.querySelector('[data-provider-test]');
+      const saveButton=host.querySelector('[data-provider-save]');
+      const deleteButton=host.querySelector('[data-provider-delete]');
+      [testButton,saveButton,deleteButton].forEach(button=>{if(button) button.disabled=true;});
+      try{
+        const response=await fetch(mode==='test' ? `/api/admin/ai/credentials/${encodeURIComponent(provider.id)}/test` : `/api/admin/ai/credentials/${encodeURIComponent(provider.id)}`,{
+          method:mode==='test'?'POST':'PUT',
+          headers:{'Content-Type':'application/json'},
+          cache:'no-store',
+          body:JSON.stringify(payload)
+        });
+        const data=await response.json().catch(()=>({}));
+        if(!response.ok) throw new Error(data.detail || (mode==='test'?'Provider connection test failed.':'Provider credential could not be saved.'));
+        if(mode==='test'){
+          const discovered=Array.isArray(data.models) ? [...new Set(data.models.filter(model=>typeof model==='string' && model.trim()))] : [];
+          provider.models=discovered;
+          provider.default_model=discovered.includes(provider.default_model) ? provider.default_model : (discovered[0] || '');
+          renderProviderCards();
+          renderProviderConfig();
+          renderModels();
+          const count=discovered.length;
+          setMessage(`${provider.name} connection verified. ${count} text model${count===1?'':'s'} returned. Nothing was saved.`,'ok');
+        }else{
+          setMessage(`${provider.name} credential encrypted and saved on the server. The key was not returned.`,'ok');
+          await fetchConfig({quiet:true});
+        }
+      }catch(error){
+        setMessage(error?.message || 'Provider configuration request failed.','error');
+      }finally{
+        [testButton,saveButton,deleteButton].forEach(button=>{if(button) button.disabled=false;});
+      }
+    };
+    form?.addEventListener('submit',event=>{ event.preventDefault(); runCredentialAction('save'); });
+    host.querySelector('[data-provider-test]')?.addEventListener('click',()=>runCredentialAction('test'));
+    host.querySelector('[data-provider-delete]')?.addEventListener('click',async()=>{
+      if(!confirm(`Remove the encrypted ${provider.name} credential from this server?`)) return;
+      const button=host.querySelector('[data-provider-delete]');
+      if(button) button.disabled=true;
+      try{
+        const response=await fetch(`/api/admin/ai/credentials/${encodeURIComponent(provider.id)}`,{method:'DELETE',cache:'no-store'});
+        const data=await response.json().catch(()=>({}));
+        if(!response.ok) throw new Error(data.detail || 'Stored provider credential could not be removed.');
+        setMessage(`${provider.name} stored credential removed. No key was exposed.`,'ok');
+        await fetchConfig({quiet:true});
+      }catch(error){
+        setMessage(error?.message || 'Provider credential removal failed.','error');
+        if(button) button.disabled=false;
+      }
+    });
+    window.installOrenaSelectEnhancements?.(host);
+  }
+
   function renderProviderCards(){
     const host = $('#adminProviderCards');
     if(!host) return;
+    if(!selectedProviderId && providers.length) selectedProviderId=providers.find(provider=>provider.configured)?.id || providers[0].id;
     host.innerHTML = providers.map(p=>{
       const state = providerState(p);
       const count = (p.models||[]).length;
-      const selected = currentFilter === p.id ? 'selected' : '';
+      const selected = selectedProviderId === p.id ? 'selected' : '';
       return `<button class="admin-provider-card ${selected}" type="button" data-provider-filter="${esc(p.id)}">
-        <span class="provider-icon">${providerIcon(p.id)}</span>
+        <span class="provider-icon provider-icon--${esc(p.id)}" aria-label="${esc(p.name || p.id)} provider">${providerIcon(p.id)}</span>
         <span class="provider-copy">
           <b>${esc(p.name)}</b>
           <small>${p.kind==='local'?'Runs on this machine':'Server-managed API'} · ${count} model${count===1?'':'s'}</small>
@@ -395,8 +676,10 @@
 
     host.querySelectorAll('[data-provider-filter]').forEach(btn=>{
       btn.addEventListener('click',()=>{
+        selectedProviderId=btn.dataset.providerFilter || selectedProviderId;
         currentFilter = currentFilter === btn.dataset.providerFilter ? 'all' : btn.dataset.providerFilter;
         renderProviderCards();
+        renderProviderConfig();
         renderModels();
         syncFilterButtons();
       });
@@ -446,7 +729,7 @@
           : 'Available from API';
       return `<article class="admin-model-card ${isActive?'active':''}">
         <div class="model-card-top">
-          <span class="provider-icon large">${providerIcon(provider.id)}</span>
+          <span class="provider-icon provider-icon--${esc(provider.id)} large" aria-label="${esc(provider.name || provider.id)} provider">${providerIcon(provider.id)}</span>
           <div class="model-title">
             <div class="model-badges">
               <span class="model-kind ${provider.kind}">${modelKindLabel(provider)}</span>
@@ -473,6 +756,14 @@
     });
   }
 
+  async function fetchCatalog(){
+    const response=await fetch('/api/admin/ai/catalog',{cache:'no-store'});
+    const data=await response.json();
+    if(!response.ok || data?.read_only !== true) throw new Error('Could not load provider model catalog');
+    const catalogById=new Map((data.providers || []).map(provider=>[provider.id,provider]));
+    providers=providers.map(provider=>({...provider,...(catalogById.get(provider.id) || {})}));
+  }
+
   async function fetchConfig({quiet=false}={}){
     if(!quiet) setMessage('Refreshing AI model catalog…');
     const r = await fetch('/api/admin/ai/config',{cache:'no-store'});
@@ -482,9 +773,11 @@
     learnerRuntime = d.learner_runtime || {mode:'unknown'};
     providers = d.providers || [];
     active = d.active || {provider:'',model:''};
+    await fetchCatalog().catch(()=>undefined);
     renderCapabilityMatrix();
     renderSummary();
     renderProviderCards();
+    renderProviderConfig();
     renderModels();
     if(!quiet) setMessage('Model catalog refreshed.','ok');
   }
@@ -504,6 +797,7 @@
     providers = d.providers || providers;
     renderSummary();
     renderProviderCards();
+    renderProviderConfig();
     renderModels();
     setMessage(`Active platform model: ${active.provider_name||p?.name||provider} · ${active.model}.`,'ok');
   }
@@ -521,6 +815,8 @@
   }
 
   async function initializeAdmin(){
+    if(!document.getElementById('page-admin')) return;
+    observeHumanLabels();
     try{
       const meResponse = await fetch('/api/me',{cache:'no-store'});
       if(!meResponse.ok) return;
@@ -567,6 +863,8 @@
       showConfigFailure();
     }
   }
+
+  window.initializePlatformAdmin = initializeAdmin;
 
   if(document.readyState==='loading'){
     document.addEventListener('DOMContentLoaded',initializeAdmin);

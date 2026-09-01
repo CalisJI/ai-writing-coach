@@ -14,7 +14,8 @@ import Svg, {Circle, Path, Rect} from 'react-native-svg';
 export type OrenaIconName =
   | 'home' | 'write' | 'read' | 'listen' | 'speak'
   | 'grammar' | 'library' | 'journey' | 'profile'
-  | 'menu' | 'close' | 'sun' | 'moon';
+  | 'menu' | 'close' | 'sun' | 'moon'
+  | 'arrowLeft' | 'check';
 
 type Geometry = {
   paths?: readonly string[];
@@ -59,6 +60,8 @@ const ICONS: Record<OrenaIconName, Geometry> = {
     circles: [{cx: 12, cy: 12, r: 4}],
   },
   moon: {paths: ['M20 15.5A8.5 8.5 0 0 1 8.5 4 8.7 8.7 0 1 0 20 15.5Z']},
+  arrowLeft: {paths: ['M19 12H5M10 7l-5 5 5 5']},
+  check: {paths: ['m5 12.5 4.5 4.5L19 7']},
 };
 
 /** `.o-nav-icon` is 21px; `.o-icon-button svg` is 20px. */

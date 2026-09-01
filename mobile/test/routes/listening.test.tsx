@@ -17,7 +17,7 @@ const mockMediaStatus = {data: undefined as {state?: {status: string; resumable:
 const mockMediaStore = {read: jest.fn(), persist: jest.fn(), clear: jest.fn()};
 const lesson = {
   asset: {asset_id: 'asset-en-1', source_url: 'https://youtu.be/example', source_provider: 'youtube', source_type: 'video', title: 'A short lesson', source_language: 'en', processing_state: 'ready', duration_ms: 12000, transcript_available: true, translation_available: true},
-  playback: {provider: 'youtube', kind: 'remote', url: 'https://cdn.example/audio.mp3'},
+  playback: {provider: 'youtube', kind: 'embed', url: 'https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ'},
   transcript: {asset_id: 'asset-en-1', source_language: 'en', segments: [{segment_id: 'segment-1', order: 0, start_ms: 0, end_ms: 4000, original_text: 'Good morning.'}, {segment_id: 'segment-2', order: 1, start_ms: 4000, end_ms: 8000, original_text: 'How are you?'}]},
   translations: [],
 };
@@ -30,7 +30,14 @@ jest.mock('../../src/query/useMediaImportStatus', () => {
   const ReactRuntime = jest.requireActual('react') as typeof React;
   return {useMediaImportStatus: () => { const [, setVersion] = ReactRuntime.useState(0); mockMediaStatus.force = () => setVersion((value) => value + 1); return mockMediaStatus; }, createMediaResumeStore: () => mockMediaStore};
 });
-jest.mock('expo-audio', () => ({useAudioPlayer: () => ({play: jest.fn(), pause: jest.fn()}), useAudioPlayerStatus: () => ({playing: false, isLoaded: true})}));
+jest.mock('react-native-youtube-iframe', () => {
+  const ReactRuntime = jest.requireActual('react') as typeof React;
+  const {forwardRef} = ReactRuntime;
+  return {__esModule: true, default: forwardRef((_props: unknown, ref: React.Ref<unknown>) => {
+    ReactRuntime.useImperativeHandle(ref, () => ({getCurrentTime: () => Promise.resolve(0), getDuration: () => Promise.resolve(0), seekTo: () => undefined, isMuted: () => Promise.resolve(false), getVolume: () => Promise.resolve(100), getPlaybackRate: () => Promise.resolve(1), getAvailablePlaybackRates: () => Promise.resolve([1]), getVideoUrl: () => Promise.resolve('')}));
+    return null;
+  })};
+});
 
 const renderListening = (locale: 'en' | 'zh', storage = new MemoryKeyValueStorage()) => {
   let view!: renderer.ReactTestRenderer;

@@ -6,8 +6,8 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, Callable
 
-from fastapi import APIRouter, FastAPI, HTTPException, Request
-from pydantic import BaseModel, ConfigDict, Field
+from fastapi import APIRouter, FastAPI, HTTPException, Request, Response
+from pydantic import AnyHttpUrl, BaseModel, ConfigDict, Field, SecretStr
 
 from writing_coach.ai.base import (
     AICapabilityError,
@@ -35,8 +35,13 @@ from writing_coach.ai.control_plane import (
     safe_capability_display,
     safe_model_display,
 )
+from writing_coach.ai.credentials import (
+    ProviderCredentialStoreError,
+    decrypt_credentials,
+    encrypt_credentials,
+)
 from writing_coach.ai.pricing import estimate_token_cost
-from writing_coach.ai.providers import build_providers
+from writing_coach.ai.providers import build_providers, provider_definitions
 from writing_coach.persistence.platform_repository import PlatformRepository
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -79,6 +84,15 @@ class CapabilityConfigIn(BaseModel):
     fallback_policy: str = "none"
 
 
+class ProviderCredentialIn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    api_key: SecretStr | None = Field(default=None, max_length=4096)
+    base_url: AnyHttpUrl | None = None
+    models: list[str] = Field(default_factory=list, max_length=100)
+    default_model: str = Field(default="", max_length=160)
+
+
 _platform_repository: PlatformRepository | None = None
 
 def _installed_platform_repository() -> PlatformRepository:
@@ -96,7 +110,53 @@ def init_platform_ai_db() -> None:
 
 
 def providers() -> dict[str, Any]:
-    return build_providers()
+    stored: dict[str, dict[str, Any]] = {}
+    if _platform_repository is not None:
+        for definition in provider_definitions():
+            envelope = _platform_repository.get_provider_credential(definition.id)
+            if not envelope:
+                continue
+            try:
+                stored[definition.id] = decrypt_credentials(definition.id, envelope)
+            except ProviderCredentialStoreError:
+                # A broken/missing encryption key fails closed for UI-managed
+                # credentials; environment-managed credentials remain usable.
+                continue
+    return build_providers(stored)
+
+
+_PROVIDER_CONFIG_META: dict[str, dict[str, str | None]] = {
+    "ollama": {
+        "endpoint_env": "OLLAMA_URL",
+        "credential_env": None,
+        "model_env": "OLLAMA_MODEL",
+        "models_env": None,
+    },
+    "openai": {
+        "endpoint_env": "OPENAI_BASE_URL",
+        "credential_env": "OPENAI_API_KEY",
+        "model_env": None,
+        "models_env": "OPENAI_MODELS",
+    },
+    "deepseek": {
+        "endpoint_env": "DEEPSEEK_BASE_URL",
+        "credential_env": "DEEPSEEK_API_KEY",
+        "model_env": None,
+        "models_env": "DEEPSEEK_MODELS",
+    },
+    "groq": {
+        "endpoint_env": "GROQ_BASE_URL",
+        "credential_env": "GROQ_API_KEY",
+        "model_env": None,
+        "models_env": "GROQ_MODELS",
+    },
+    "gemini": {
+        "endpoint_env": "GEMINI_BASE_URL",
+        "credential_env": "GEMINI_API_KEY",
+        "model_env": None,
+        "models_env": "GEMINI_MODELS",
+    },
+}
 
 
 def _provider_snapshot(item: Any) -> dict[str, Any]:
@@ -106,6 +166,12 @@ def _provider_snapshot(item: Any) -> dict[str, Any]:
         raw_models[0] if raw_models else ""
     )
     default_model, default_model_redacted = safe_model_display(raw_default)
+    config_meta = _PROVIDER_CONFIG_META.get(item.id, {})
+    credential_env = config_meta.get("credential_env")
+    stored_credential = False
+    if _platform_repository is not None:
+        credential_reader = getattr(_platform_repository, "get_provider_credential", None)
+        stored_credential = bool(credential_reader(item.id)) if callable(credential_reader) else False
     return {
         "id": item.id,
         "name": item.name,
@@ -117,6 +183,24 @@ def _provider_snapshot(item: Any) -> dict[str, Any]:
         "default_model": default_model,
         "default_model_redacted": default_model_redacted,
         "secret_mode": item.secret_mode,
+        "configuration": {
+            "endpoint_url": str(getattr(item, "base_url", "") or ""),
+            "endpoint_env": config_meta.get("endpoint_env"),
+            "credential_env": credential_env,
+            "credential_state": (
+                "not_required"
+                if credential_env is None
+                else "configured" if bool(item.configured) else "not_configured"
+            ),
+            "credential_source": (
+                "encrypted_server_store"
+                if stored_credential
+                else "server_environment" if bool(item.configured) else "not_configured"
+            ),
+            "model_env": config_meta.get("model_env"),
+            "models_env": config_meta.get("models_env"),
+            "secrets_server_managed": item.secret_mode == "server-managed",
+        },
     }
 
 
@@ -329,6 +413,223 @@ def admin_ai_config(request: Request) -> dict[str, Any]:
     result = AIControlPlane(_installed_platform_repository()).inspect()
     result["learner_runtime"] = {"mode": runtime_mode().value}
     return result
+
+
+@router.get("/catalog")
+def admin_ai_catalog(request: Request) -> dict[str, Any]:
+    """Return the provider model catalog for the explicit Admin picker.
+
+    Catalog discovery is read-only and intentionally separate from the
+    network-free capability inspection endpoint. It never changes the active
+    model, capability settings, learner routing, or production state.
+    """
+
+    _require_admin(request)
+    return {
+        "providers": [_provider_snapshot(value) for value in providers().values()],
+        "read_only": True,
+    }
+
+
+def _same_origin(request: Request) -> None:
+    origin = request.headers.get("origin")
+    if not origin:
+        raise HTTPException(403, "Credential changes require a same-origin browser request.")
+    from urllib.parse import urlsplit
+
+    expected_host = request.headers.get("host", "")
+    if urlsplit(origin).netloc != expected_host:
+        raise HTTPException(403, "Credential changes must originate from the Admin application.")
+
+
+def _stored_provider_credentials(provider_id: str) -> dict[str, Any]:
+    if _platform_repository is None:
+        return {}
+    envelope = _platform_repository.get_provider_credential(provider_id)
+    if not envelope:
+        return {}
+    try:
+        return decrypt_credentials(provider_id, envelope)
+    except ProviderCredentialStoreError as exc:
+        raise HTTPException(503, "Stored provider credential is unavailable.") from exc
+
+
+def _provider_credential_values(
+    provider_id: str,
+    payload: ProviderCredentialIn,
+    *,
+    require_models: bool = True,
+) -> dict[str, Any]:
+    item = providers().get(provider_id)
+    if item is None:
+        raise HTTPException(404, "Unknown AI provider.")
+    existing = _stored_provider_credentials(provider_id)
+    supplied_key = payload.api_key.get_secret_value().strip() if payload.api_key is not None else ""
+    api_key = supplied_key or str(existing.get("api_key") or "").strip()
+    # Operators sometimes paste the value copied from an HTTP example as
+    # ``Bearer <key>``. The provider adapters add the authentication scheme
+    # themselves, so retain only the credential material before sending or
+    # encrypting it. No credential value is logged or returned.
+    if api_key.casefold().startswith("bearer "):
+        api_key = api_key[7:].strip()
+    if item.secret_mode == "server-managed" and not api_key:
+        raise HTTPException(400, "A provider credential is required.")
+    base_url = str(payload.base_url).strip().rstrip("/") if payload.base_url else str(
+        existing.get("base_url") or getattr(item, "base_url", "") or ""
+    ).strip().rstrip("/")
+    from urllib.parse import urlsplit
+
+    parsed = urlsplit(base_url)
+    if parsed.username or parsed.password or parsed.scheme not in {"http", "https"} or not parsed.netloc:
+        raise HTTPException(400, "Provider endpoint must be a valid URL without embedded credentials.")
+    models = sorted({str(model).strip() for model in payload.models if str(model).strip()})
+    if any(len(model) > 160 or any(ord(char) < 32 for char in model) for model in models):
+        raise HTTPException(400, "Model names must be readable values of 160 characters or fewer.")
+    if len(models) > 100:
+        raise HTTPException(400, "A provider can have at most 100 configured models.")
+    default_model = payload.default_model.strip()
+    if any(ord(char) < 32 for char in default_model):
+        raise HTTPException(400, "The default model name is invalid.")
+    if default_model and default_model not in models and require_models:
+        models.append(default_model)
+    if require_models and not models:
+        raise HTTPException(400, "At least one model name is required.")
+    return {
+        "api_key": api_key,
+        "base_url": base_url,
+        "models": sorted(set(models)),
+        "default_model": default_model,
+    }
+
+
+def _credential_test(provider_id: str, values: dict[str, Any]) -> list[str]:
+    # Force a live catalog request. A manually supplied model allowlist is
+    # useful after saving, but it must never make the connection test pass
+    # without contacting the provider.
+    test_values = dict(values)
+    test_values["models"] = []
+    item = build_providers({provider_id: test_values}).get(provider_id)
+    if item is None:
+        raise HTTPException(404, "Unknown AI provider.")
+    try:
+        return item.discover_models_live()
+    except (AIProviderNotConfigured, AIProviderUnavailable, AIProviderError, AIProviderResponseInvalid) as exc:
+        # Provider adapters deliberately expose only sanitized failure classes
+        # and status codes. Returning that safe detail makes key restrictions,
+        # invalid credentials, and network failures distinguishable without
+        # leaking provider response bodies or credential material.
+        detail = str(exc).strip() or "Provider request failed."
+        raise HTTPException(502, f"Provider connection validation failed: {detail}") from exc
+
+
+@router.get("/credentials")
+def admin_ai_credentials(request: Request) -> dict[str, Any]:
+    """Return credential status only; secret values never cross this boundary."""
+
+    _require_admin(request)
+    safe_providers = []
+    for definition in provider_definitions():
+        metadata = _PROVIDER_CONFIG_META.get(definition.id, {})
+        stored = bool(
+            _platform_repository is not None
+            and _platform_repository.get_provider_credential(definition.id)
+        )
+        credential_env = metadata.get("credential_env")
+        env_configured = bool(os.getenv(credential_env, "").strip()) if credential_env else False
+        safe_providers.append(
+            {
+                "id": definition.id,
+                "name": definition.name,
+                "credential_source": (
+                    "encrypted_server_store" if stored
+                    else "server_environment" if env_configured
+                    else "not_configured"
+                ),
+                "credential_state": (
+                    "not_required" if credential_env is None
+                    else "configured" if stored or env_configured else "not_configured"
+                ),
+            }
+        )
+    return {
+        "providers": safe_providers,
+        "secrets_exposed": False,
+    }
+
+
+@router.post("/credentials/{provider_id}/test")
+def admin_ai_provider_credential_test(
+    provider_id: str,
+    payload: ProviderCredentialIn,
+    request: Request,
+    response: Response,
+) -> dict[str, Any]:
+    _require_admin(request)
+    _same_origin(request)
+    provider_id = provider_id.strip().casefold()
+    values = _provider_credential_values(provider_id, payload, require_models=False)
+    response.headers["Cache-Control"] = "no-store"
+    models = _credential_test(provider_id, values)
+    return {
+        "ok": True,
+        "provider": provider_id,
+        "models": [safe_model_display(model)[0] for model in models],
+        "secret_saved": False,
+    }
+
+
+@router.put("/credentials/{provider_id}")
+def admin_ai_provider_credential_save(
+    provider_id: str,
+    payload: ProviderCredentialIn,
+    request: Request,
+    response: Response,
+) -> dict[str, Any]:
+    admin = _require_admin(request)
+    _same_origin(request)
+    provider_id = provider_id.strip().casefold()
+    values = _provider_credential_values(provider_id, payload)
+    live_models = _credential_test(provider_id, values)
+    live_model_set = set(live_models)
+    if not live_model_set:
+        raise HTTPException(502, "Provider returned no usable text models.")
+    if values["default_model"] not in live_model_set or not set(values["models"]).issubset(live_model_set):
+        raise HTTPException(400, "Choose the default and allowed models from the live provider catalog.")
+    try:
+        encrypted = encrypt_credentials(provider_id, values)
+        _installed_platform_repository().set_provider_credential(
+            provider_id,
+            encrypted,
+            updated_by=str(admin.get("google_sub") or ""),
+        )
+    except ProviderCredentialStoreError as exc:
+        raise HTTPException(503, "Provider credential encryption is not configured on this server.") from exc
+    response.headers["Cache-Control"] = "no-store"
+    stored = providers().get(provider_id)
+    if stored is None:
+        raise HTTPException(404, "Unknown AI provider.")
+    return {
+        "ok": True,
+        "provider": _provider_snapshot(stored),
+        "secret_saved": True,
+        "secret_exposed": False,
+    }
+
+
+@router.delete("/credentials/{provider_id}")
+def admin_ai_provider_credential_delete(
+    provider_id: str,
+    request: Request,
+    response: Response,
+) -> dict[str, Any]:
+    admin = _require_admin(request)
+    _same_origin(request)
+    provider_id = provider_id.strip().casefold()
+    if provider_id not in providers():
+        raise HTTPException(404, "Unknown AI provider.")
+    _installed_platform_repository().delete_provider_credential(provider_id)
+    response.headers["Cache-Control"] = "no-store"
+    return {"ok": True, "provider": provider_id, "secret_deleted": True, "secret_exposed": False}
 
 
 @router.get("/operations")
