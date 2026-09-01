@@ -14,6 +14,7 @@ import {useMediaImportStatus, createMediaResumeStore} from '../../src/query/useM
 import {clearListeningPending, clearListeningResume, readListeningPending, readListeningResume, secureListeningResumeStorage, secureMediaResumeStorage, writeListeningPending, writeListeningResume, type ListeningPending, type ListeningResume} from '../../src/features/listening/listeningResume';
 import {addListenedSeconds, listeningHabitSnapshot, saveListeningGoal, type ListeningHabitSnapshot} from '../../src/features/listening/listeningHabit';
 import {listMediaLessons, rememberMediaLesson, type MediaLessonEntry} from '../../src/features/listening/mediaLessonHistory';
+import {selectSharedMediaSegment, setSharedMediaMode, setSharedMediaSession} from '../../src/features/listening/sharedMediaSession';
 import {keepTake, releaseTakes, roundCount, shadowingSummary, takeKey, type ShadowTake, type ShadowingSummary} from '../../src/features/listening/shadowTakes';
 import {MAX_LISTENING_EVALUATION_UNITS, MAX_LISTENING_RECONSTRUCTION_CHARS, listeningUnits, playbackAvailable, practiceSummary, segmentAt, stamp, textMatch, type ListeningMode, type SegmentPractice} from '../../src/features/listening/listeningDomain';
 import type {ResumeState} from '../../src/api/mediaClient';
@@ -1103,6 +1104,9 @@ export default function ListeningScreen({client: providedClient, resumeStorage =
       // same material does not mean finding the URL again.
       await rememberMediaLesson({learning_language: locale, source_url: normalized, title: next.asset.title || '', provider: next.asset.source_provider || '', selected_segment_id: segment, mode: nextMode});
       refreshHistory();
+      // Speaking's prompt is a segment of this lesson, so it needs the whole
+      // payload, not just the line. setSharedMediaSession() is that handoff.
+      setSharedMediaSession({learning_language: locale, payload: next, selected_segment_id: segment, mode: nextMode});
       requestTranslation(next, supportLanguage);
     }, onError: () => { if (current === operation.current) { rehydrating.current = false; setNotice(t('listening.unavailable')); } }});
   }, [client, importMedia, locale, mediaStore, mode, refreshHistory, requestTranslation, resume, resumeStorage, sessionCookie, supportLanguage, t]);
@@ -1128,10 +1132,12 @@ export default function ListeningScreen({client: providedClient, resumeStorage =
     setSelectedId(segmentId); setValidation(''); setManualSelection(true);
     const segment = segments.find((item) => item.segment_id === segmentId);
     if (segment) void playerRef.current?.seekTo(segment.start_ms / 1000, true);
+    selectSharedMediaSegment(locale, segmentId);
     if (lesson) void writeListeningResume({assetId: lesson.asset.asset_id, segmentId, mode: mode === 'shadowing' ? 'follow' : mode, sourceUrl: lesson.asset.source_url}, resumeStorage);
   };
   const changeMode = (nextMode: ListeningMode) => {
     setMode(nextMode); setValidation('');
+    setSharedMediaMode(locale, nextMode);
     if (lesson) void writeListeningResume({assetId: lesson.asset.asset_id, segmentId: selectedId, mode: nextMode === 'shadowing' ? 'follow' : nextMode, sourceUrl: lesson.asset.source_url}, resumeStorage);
   };
   const seek = (delta: number) => { void playerRef.current?.getCurrentTime().then((seconds) => playerRef.current?.seekTo(Math.max(0, seconds + delta), true)); };
