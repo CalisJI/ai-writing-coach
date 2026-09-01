@@ -6,7 +6,7 @@ import {compactMediaStatusSchema, strokeOrderSchema, type CompactMediaStatus, ty
 import {crossSkillCueSchema, essayDetailSchema, improveInputSchema, improveResultSchema, linguisticAnnotationsSchema, type ImproveInput, type ImproveResult, type LinguisticAnnotations, evaluationInputSchema, evaluationResultSchema, essaysListSchema, freeTaskSchema, generateTaskInputSchema, grammarLibrarySchema, grammarLessonDetailSchema, grammarPracticeSchema, journeyDashboardSchema, journeyOutcomesSchema, learnerProfileSchema, learnerProfileInputSchema, learningLanguageSchema, learningMemorySchema, practiceOutcomeResponseSchema, practiceRecommendationSchema, practiceTaskSchema, reviewCueSchema, type CrossSkillCue, type EssayDetail, type EssaySummary, type EvaluationInput, type EvaluationResult, type FreeTask, type GenerateTaskInput, type GrammarLibrary, type GrammarLessonDetail, type GrammarPractice, type JourneyDashboard, type JourneyOutcomes, type LearnerProfile, type LearnerProfileInput, type LearningLanguage, type LearningMemory, type PracticeOutcomeResponse, type PracticeRecommendation, type PracticeTask, type ReviewCue} from './contracts/learning';
 import {readingAnswerResultSchema, readingGenerateInputSchema, readingSessionResponseSchema, readingSessionSchema, readingSessionsSchema, type ReadingAnswerResult, type ReadingGenerateInput, type ReadingSession, type ReadingSessions} from './contracts/reading';
 import {dictionaryInputSchema, dictionaryResultSchema, librarySchema, saveLibraryInputSchema, saveLibraryResultSchema, type DictionaryInput, type DictionaryResult} from './contracts/library';
-import {listeningProgressListSchema, listeningProgressResponseSchema, mediaImportInputSchema, mediaLessonSchema, mediaTranslationInputSchema, mediaTranslationResultSchema, type ListeningProgressInput, type MediaImportInput, type MediaLesson, type MediaTranslationInput, type MediaTranslationResult} from './contracts/listening';
+import {listeningProgressListSchema, listeningProgressResponseSchema, mediaImportInputSchema, mediaLessonSchema, mediaTranslationInputSchema, mediaTranslationResultSchema, shadowingProgressInputSchema, shadowingProgressListSchema, shadowingProgressResponseSchema, type ListeningProgressInput, type MediaImportInput, type MediaLesson, type MediaTranslationInput, type MediaTranslationResult, type ShadowingProgressInput} from './contracts/listening';
 import {speechAttemptResponseSchema, speechEvaluationSchema, speechTranscriptionSchema, type SpeechEvaluation, type SpeechAttemptResponse, type SpeechTranscription} from './contracts/speech';
 import {productAccountStateSchema, type ProductAccountState} from './contracts/product';
 import {skillReleaseSchema, type SkillRelease} from './contracts/skills';
@@ -184,6 +184,15 @@ export class ApiClient {
   }
   async saveListeningProgress(input: ListeningProgressInput, options: RequestOptions = {}): Promise<Awaited<ReturnType<typeof listeningProgressResponseSchema.parse>>> {
     return this.request('/api/listening/progress', options, listeningProgressResponseSchema.parse, 'POST', input);
+  }
+  async listShadowingProgress(assetId: string, options: RequestOptions = {}): Promise<Awaited<ReturnType<typeof shadowingProgressListSchema.parse>>> {
+    if (typeof assetId !== 'string' || assetId.trim() === '') throw new ApiError('request_rejected', 'Shadowing asset is required');
+    return this.request(`/api/listening/shadowing-progress?asset_id=${encodeURIComponent(assetId.trim())}`, options, shadowingProgressListSchema.parse);
+  }
+  async saveShadowingProgress(input: ShadowingProgressInput, options: RequestOptions = {}): Promise<Awaited<ReturnType<typeof shadowingProgressResponseSchema.parse>>> {
+    let payload: ShadowingProgressInput;
+    try { payload = shadowingProgressInputSchema.parse(input); } catch { throw new ApiError('request_rejected', 'Shadowing progress was invalid'); }
+    return this.request('/api/listening/shadowing-progress', options, shadowingProgressResponseSchema.parse, 'POST', payload);
   }
   async transcribeSpeaking(uri: string, language: 'en' | 'zh', options: RequestOptions = {}): Promise<SpeechTranscription> {
     return this.speechUpload('/api/speech/transcribe', uri, language, undefined, {timeoutMs: GENERATION_TIMEOUT_MS, ...options}, speechTranscriptionSchema.parse);

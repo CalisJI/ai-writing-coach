@@ -8,17 +8,19 @@ import {useSession} from '../../src/auth/SessionHarness';
 import {useI18n} from '../../src/i18n/I18nProvider';
 import {useTheme} from '../../src/theme/ThemeProvider';
 import {CONTENT_MAX} from '../../src/theme/layout';
-import {useImportMedia, useListeningProgress, useSaveListeningProgress, useTranslateMedia} from '../../src/query/useListening';
+import {useImportMedia, useListeningProgress, useSaveListeningProgress, useSaveShadowingProgress, useShadowingProgress, useTranslateMedia} from '../../src/query/useListening';
 import {useLearnerProfile} from '../../src/query/useLearnerProfile';
 import {useMediaImportStatus, createMediaResumeStore} from '../../src/query/useMediaImportStatus';
 import {clearListeningPending, clearListeningResume, readListeningPending, readListeningResume, secureListeningResumeStorage, secureMediaResumeStorage, writeListeningPending, writeListeningResume, type ListeningPending, type ListeningResume} from '../../src/features/listening/listeningResume';
 import {addListenedSeconds, listeningHabitSnapshot, saveListeningGoal, type ListeningHabitSnapshot} from '../../src/features/listening/listeningHabit';
 import {listMediaLessons, rememberMediaLesson, type MediaLessonEntry} from '../../src/features/listening/mediaLessonHistory';
+import {keepTake, releaseTakes, roundCount, shadowingSummary, takeKey, type ShadowTake, type ShadowingSummary} from '../../src/features/listening/shadowTakes';
 import {MAX_LISTENING_EVALUATION_UNITS, MAX_LISTENING_RECONSTRUCTION_CHARS, listeningUnits, playbackAvailable, practiceSummary, segmentAt, stamp, textMatch, type ListeningMode, type SegmentPractice} from '../../src/features/listening/listeningDomain';
 import type {ResumeState} from '../../src/api/mediaClient';
 import type {KeyValueStorage} from '../../src/storage/boundedCache';
 import {Button as OrenaButton, Card, Chip, Label as OrenaLabel, Panel, PanelCopy} from '../../src/components/orena';
 import {OrenaIcon, type OrenaIconName} from '../../src/components/OrenaIcon';
+import {TransientAudioService} from '../../src/media/transientAudioService';
 
 /**
  * Ported from static/becoming/screens/listening.js and orena/listening.css.
@@ -43,7 +45,13 @@ import {OrenaIcon, type OrenaIconName} from '../../src/components/OrenaIcon';
  * live; the in-studio takes are a separate batch.
  */
 
-export type ListeningScreenProps = {client?: ApiClient; resumeStorage?: KeyValueStorage; mediaResumeStorage?: KeyValueStorage};
+export type ListeningScreenProps = {
+  client?: ApiClient;
+  resumeStorage?: KeyValueStorage;
+  mediaResumeStorage?: KeyValueStorage;
+  /** Injected so the studio's recorder is drivable in tests without a device. */
+  audioService?: TransientAudioService;
+};
 
 // The only playback shape the backend ever produces is {kind:"embed", provider:"youtube",
 // url:"https://www.youtube-nocookie.com/embed/{id}"} -- matches web's playbackAdapter().
@@ -706,40 +714,214 @@ function TransportBar({playing, muted, rate, onSeek, onPrevious, onNext, onToggl
  * recognition and evaluation; shadowing here is practice only, so the route
  * across is a product contract rather than a convenience link.
  */
-function StudioBar({segment, onOpenSpeaking, onLeave, onReplay}: {segment: Segment | undefined; onOpenSpeaking: () => void; onLeave: () => void; onReplay: () => void}) {
+function StudioBar({onOpenSpeaking, onLeave}: {onOpenSpeaking: () => void; onLeave: () => void}) {
   const {t} = useI18n();
   const {tokens} = useTheme();
   return (
-    <>
-      <View style={styles.studioBar}>
-        <Text accessibilityRole="header" style={[styles.studioTitle, {color: tokens.colors.heading}]}>{t('listen.studio_title')}</Text>
-        <Text style={[styles.lead, {color: tokens.colors.mutedText}]}>{t('listen.studio_lead')}</Text>
-        <View style={styles.studioActions}>
-          <OrenaButton label={t('listen.open_speaking')} variant="outline" compact onPress={onOpenSpeaking} />
-          <OrenaButton label={t('listen.leave_studio')} variant="outline" compact onPress={onLeave} />
-        </View>
+    <View style={styles.studioBar}>
+      <Text accessibilityRole="header" style={[styles.studioTitle, {color: tokens.colors.heading}]}>{t('listen.studio_title')}</Text>
+      <Text style={[styles.lead, {color: tokens.colors.mutedText}]}>{t('listen.studio_lead')}</Text>
+      <View style={styles.studioActions}>
+        <OrenaButton label={t('listen.open_speaking')} variant="outline" compact onPress={onOpenSpeaking} />
+        <OrenaButton label={t('listen.leave_studio')} variant="outline" compact onPress={onLeave} />
       </View>
-      {segment ? (
-        <Card style={styles.segmentNow}>
-          <View style={[styles.segmentRule, {backgroundColor: tokens.colors.accent}]} />
-          <View style={styles.segmentNowHead}>
-            <OrenaLabel>{t('listen.now_practicing')}</OrenaLabel>
-            <IconButton icon="volume" label={t('listen.replay')} onPress={onReplay} />
-          </View>
-          <Text style={[styles.segmentTime, {color: tokens.colors.faintText}]}>{stamp(segment.start_ms)} – {stamp(segment.end_ms)}</Text>
-          <Text style={[styles.segmentNowText, {color: tokens.colors.text}]}>{segment.original_text}</Text>
-        </Card>
-      ) : null}
-      <Panel>
+    </View>
+  );
+}
+
+/**
+ * `segmentStrip()`: the segments as cards along a track. On a phone the
+ * reference scrolls the strip instead of stepping it -- the arrows would take a
+ * third of the row from the cards -- so `.o-strip .o-icon-button{display:none}`
+ * and the track scrolls.
+ */
+function SegmentStrip({segments, selectedId, onSelect}: {segments: Segment[]; selectedId: string; onSelect: (id: string) => void}) {
+  const {tokens} = useTheme();
+  return (
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.strip}>
+      {segments.map((segment, index) => {
+        const active = segment.segment_id === selectedId;
+        return (
+          <Pressable
+            key={segment.segment_id}
+            accessibilityRole="button"
+            accessibilityLabel={segment.original_text}
+            accessibilityState={{selected: active}}
+            onPress={() => onSelect(segment.segment_id)}
+            style={[styles.stripCard, {
+              borderColor: active ? tokens.colors.accent : tokens.colors.border,
+              backgroundColor: active ? tokens.colors.accentTint : tokens.colors.surface,
+            }]}
+          >
+            <View style={styles.stripHead}>
+              <Text style={[styles.stripIndex, {color: active ? tokens.colors.accent : tokens.colors.text}]}>{index + 1}</Text>
+              <Text style={[styles.segmentTime, {color: tokens.colors.faintText}]}>{stamp(segment.start_ms)}</Text>
+            </View>
+            <Text numberOfLines={3} style={[styles.stripText, {color: tokens.colors.mutedText}]}>{segment.original_text}</Text>
+          </Pressable>
+        );
+      })}
+    </ScrollView>
+  );
+}
+
+/** `.o-round-button`: the three large circular practice actions. */
+function RoundAction({icon, label, onPress, disabled = false, emphasis = false, active = false}: {
+  icon: OrenaIconName; label: string; onPress: () => void; disabled?: boolean; emphasis?: boolean; active?: boolean;
+}) {
+  const {tokens} = useTheme();
+  const face = active ? tokens.colors.danger : emphasis ? tokens.colors.accent : tokens.colors.surface;
+  return (
+    <View style={styles.practiceAction}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={label}
+        accessibilityState={{disabled, selected: active}}
+        disabled={disabled}
+        onPress={onPress}
+        style={({pressed}) => [styles.roundButton, {
+          backgroundColor: face,
+          borderColor: emphasis || active ? 'transparent' : tokens.colors.border,
+          opacity: disabled ? 0.4 : pressed ? 0.85 : 1,
+        }, tokens.elevation.control]}
+      >
+        <OrenaIcon name={icon} size={26} color={emphasis || active ? tokens.colors.onAccent : tokens.colors.mutedText} />
+      </Pressable>
+      <Text style={[styles.practiceActionLabel, {color: tokens.colors.mutedText, fontWeight: emphasis ? '600' : '400'}]}>{label}</Text>
+    </View>
+  );
+}
+
+/**
+ * `attemptRow()`: a round nobody has recorded is one line — number, label, mic —
+ * and carries no score slot, because an unrecorded round has nothing that could
+ * be scored. A recorded take gets a player, and the verdict and score positions
+ * the reference draws, held open and saying plainly that this take is not
+ * evaluated. Filling them would mean inventing an assessment of the learner's
+ * speech, which this product does not produce.
+ */
+function AttemptRow({take, index, onRecord, onPlay, playing}: {
+  take: ShadowTake | undefined; index: number; onRecord: () => void; onPlay: () => void; playing: boolean;
+}) {
+  const {t} = useI18n();
+  const {tokens} = useTheme();
+  if (!take) {
+    return (
+      <View style={[styles.take, styles.takePending, {borderColor: tokens.colors.border}]}>
+        <Text style={[styles.takeIndex, {color: tokens.colors.faintText}]}>{index + 1}</Text>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t('shadow.start_round').replace('{n}', String(index + 1))}
+          onPress={onRecord}
+          style={styles.takeStart}
+        >
+          <Text style={[styles.takeStartLabel, {color: tokens.colors.text}]}>{t('shadow.start_round').replace('{n}', String(index + 1))}</Text>
+          <OrenaIcon name="speak" size={18} color={tokens.colors.mutedText} />
+        </Pressable>
+      </View>
+    );
+  }
+  return (
+    <View style={[styles.take, {borderColor: tokens.colors.border, backgroundColor: tokens.colors.surface}]}>
+      <Text style={[styles.takeIndex, {color: tokens.colors.faintText}]}>{index + 1}</Text>
+      <View style={styles.takeBody}>
+        <Text style={[styles.takeWhen, {color: tokens.colors.faintText}]}>{t('shadow.just_now')}</Text>
+        <View style={styles.takePlayer}>
+          <IconButton icon={playing ? 'pause' : 'play'} label={t('shadow.listen_to_me')} onPress={onPlay} />
+          <Text style={[styles.takeTime, {color: tokens.colors.mutedText}]}>{stamp(take.ms)}</Text>
+        </View>
+        <Text style={[styles.takeVerdict, {color: tokens.colors.faintText}]}>{t('shadow.key_sounds_pending')}</Text>
+      </View>
+      <View style={styles.takeScore}>
+        <Text style={[styles.scoreRing, {color: tokens.colors.faintText, borderColor: tokens.colors.border}]}>—</Text>
+        <Text style={[styles.takeScoreLabel, {color: tokens.colors.faintText}]}>{t('shadow.score_pending')}</Text>
+      </View>
+    </View>
+  );
+}
+
+/**
+ * The Shadowing Studio, ported from `shadowingWorkspace()`. The reference makes
+ * this a room of its own rather than a panel: one segment at a time, set large,
+ * with the takes underneath it.
+ */
+function ShadowingStudio({segment, segments, selectedId, meaning, takes, rounds, recording, status, playingTake, summary, persistence, onSelect, onReplay, onToggleRecord, onPlayTake}: {
+  segment: Segment | undefined; segments: Segment[]; selectedId: string; meaning: string;
+  takes: readonly ShadowTake[]; rounds: number; recording: boolean; status: string;
+  playingTake: number | null; summary: ShadowingSummary; persistence: string;
+  onSelect: (id: string) => void; onReplay: () => void; onToggleRecord: () => void; onPlayTake: (index: number) => void;
+}) {
+  const {t, locale} = useI18n();
+  const {tokens} = useTheme();
+  const index = segments.findIndex((item) => item.segment_id === selectedId);
+  return (
+    <>
+      <SegmentStrip segments={segments} selectedId={selectedId} onSelect={onSelect} />
+      <Card style={styles.practiceCard}>
+        <View style={styles.practiceHead}>
+          <OrenaLabel>{t('listen.now_practicing')}</OrenaLabel>
+          <Text style={[styles.practiceCount, {color: tokens.colors.faintText}]}>{index + 1} / {segments.length}</Text>
+        </View>
+        {segment ? (
+          <>
+            <Text style={[styles.practiceLine, {color: tokens.colors.text}, locale === 'zh' && styles.cjk]}>{segment.original_text}</Text>
+            {meaning ? <Text style={[styles.segmentNowMeaning, {color: tokens.colors.mutedText}]}>{meaning}</Text> : null}
+            <View style={styles.practiceActions}>
+              <RoundAction icon="listen" label={t('shadow.listen')} onPress={onReplay} />
+              <RoundAction icon="speak" label={t('shadow.hold_to_repeat')} onPress={onToggleRecord} emphasis active={recording} />
+              <RoundAction icon="play" label={t('shadow.listen_to_me')} onPress={() => onPlayTake(takes.length - 1)} disabled={takes.length === 0} />
+            </View>
+            {status ? <Text accessibilityLiveRegion="polite" style={[styles.statusLine, {color: tokens.colors.mutedText, textAlign: 'center'}]}>{status}</Text> : null}
+          </>
+        ) : null}
+      </Card>
+
+      <Card style={styles.panelCard}>
+        <View style={styles.panelHead}>
+          <OrenaLabel>{t('shadow.your_attempts')}</OrenaLabel>
+          <Text style={[styles.practiceCount, {color: tokens.colors.faintText}]}>
+            {t('shadow.round_of').replace('{n}', String(Math.min(takes.length + 1, rounds))).replace('{total}', String(rounds))}
+          </Text>
+        </View>
+        <View style={styles.takeList}>
+          {Array.from({length: rounds}, (_, position) => (
+            <AttemptRow
+              key={position}
+              take={takes[position]}
+              index={position}
+              onRecord={onToggleRecord}
+              onPlay={() => onPlayTake(position)}
+              playing={playingTake === position}
+            />
+          ))}
+        </View>
+        <PanelCopy>{t('shadow.score_note')}</PanelCopy>
+      </Card>
+
+      {persistence ? <Text accessibilityLiveRegion="polite" style={[styles.statusLine, {color: tokens.colors.faintText}]}>{persistence}</Text> : null}
+
+      <Card style={styles.panelCard}>
+        <OrenaLabel>{t('shadow.progress_title')}</OrenaLabel>
+        <PanelCopy>{summary.practiced_segments} / {summary.total_segments} {t('shadow.segments_label')}</PanelCopy>
+        <View style={[styles.goalTrack, {backgroundColor: tokens.colors.surfaceSunken}]}>
+          <View style={[styles.goalFill, {
+            width: `${summary.total_segments ? Math.round((summary.practiced_segments / summary.total_segments) * 100) : 0}%`,
+            backgroundColor: tokens.colors.accent,
+          }]} />
+        </View>
+      </Card>
+
+      {/* The reference's shortcuts card is dropped on a phone: there is no keyboard. */}
+      <Card style={styles.panelCard}>
         <OrenaLabel>{t('listen.tips')}</OrenaLabel>
         <PanelCopy>{t('listen.tip1')}</PanelCopy>
         <PanelCopy>{t('listen.tip2')}</PanelCopy>
-      </Panel>
+      </Card>
     </>
   );
 }
 
-export default function ListeningScreen({client: providedClient, resumeStorage = secureListeningResumeStorage, mediaResumeStorage = secureMediaResumeStorage}: ListeningScreenProps) {
+export default function ListeningScreen({client: providedClient, resumeStorage = secureListeningResumeStorage, mediaResumeStorage = secureMediaResumeStorage, audioService}: ListeningScreenProps) {
   const {t, locale} = useI18n();
   const {tokens} = useTheme();
   const {height} = useWindowDimensions();
@@ -776,6 +958,17 @@ export default function ListeningScreen({client: providedClient, resumeStorage =
   const [playingSegmentId, setPlayingSegmentId] = useState<string | null>(null);
   const [manualSelection, setManualSelection] = useState(false);
   const [durationMs, setDurationMs] = useState(0);
+  /**
+   * Shadowing takes, keyed by asset:segment. They are the web's `shadowTakes`
+   * Map: session-scoped, device-only, and dropped when the learner leaves.
+   */
+  const [takesByKey, setTakesByKey] = useState<Record<string, ShadowTake[]>>({});
+  const [roundsByKey, setRoundsByKey] = useState<Record<string, number>>({});
+  const [recording, setRecording] = useState(false);
+  const [recordStatus, setRecordStatus] = useState('');
+  const [playingTake, setPlayingTake] = useState<number | null>(null);
+  const recordStartedAt = useRef(0);
+  const audio = useMemo(() => audioService ?? new TransientAudioService(), [audioService]);
   const operation = useRef(0);
   const rehydrating = useRef(false);
   const attemptedReadyHandle = useRef<string | null>(null);
@@ -786,6 +979,8 @@ export default function ListeningScreen({client: providedClient, resumeStorage =
   const profileQuery = useLearnerProfile(client, sessionCookie);
   const supportLanguage = profileQuery.data?.native_language ?? 'vi';
   const progressQuery = useListeningProgress(client, sessionCookie, lesson?.asset.asset_id ?? '');
+  const shadowingQuery = useShadowingProgress(client, sessionCookie, lesson?.asset.asset_id ?? '');
+  const saveShadowing = useSaveShadowingProgress(client, sessionCookie);
   const saveProgress = useSaveListeningProgress(client, sessionCookie);
   const videoId = useMemo(() => extractYouTubeVideoId(lesson?.playback), [lesson]);
   const [playing, setPlaying] = useState(false);
@@ -948,6 +1143,64 @@ export default function ListeningScreen({client: providedClient, resumeStorage =
     if (playingSegmentId) setSelectedId(playingSegmentId);
   };
   const cycleRate = () => { const next = RATES[(RATES.indexOf(rate as typeof RATES[number]) + 1) % RATES.length]!; setRate(next); };
+  const currentTakeKey = takeKey(lesson?.asset.asset_id, selected?.segment_id);
+  const takes = takesByKey[currentTakeKey] ?? [];
+
+  /**
+   * One round: record, then keep the file somewhere the next round will not
+   * delete, then tell the server how many rounds this segment has had. Only the
+   * count is sent -- the recording never leaves the device.
+   */
+  const toggleRecord = async () => {
+    if (recording) {
+      const stopped = await audio.stopRecording();
+      setRecording(false);
+      if (stopped.state !== 'recorded') { setRecordStatus(t('shadow.take_failed')); return; }
+      const uri = audio.getRecordingUri();
+      const kept = uri ? keepTake(uri, Date.now() - recordStartedAt.current) : null;
+      if (!kept) { setRecordStatus(t('shadow.take_failed')); return; }
+      const next = [...(takesByKey[currentTakeKey] ?? []), kept];
+      setTakesByKey((current) => ({...current, [currentTakeKey]: next}));
+      setRoundsByKey((current) => ({...current, [currentTakeKey]: next.length}));
+      setRecordStatus(t('shadow.recorded'));
+      if (lesson && selected) {
+        setRecordStatus(t('shadow.rounds_saving'));
+        saveShadowing.mutate({asset_id: lesson.asset.asset_id, segment_id: selected.segment_id, completed_rounds: next.length}, {
+          onSuccess: () => setRecordStatus(t('shadow.rounds_saved')),
+          onError: () => setRecordStatus(t('shadow.rounds_failed')),
+        });
+      }
+      return;
+    }
+    setPlaying(false);
+    const started = await audio.startRecording();
+    if (started.state !== 'recording') {
+      setRecordStatus(started.state === 'denied' || started.state === 'restricted' ? t('shadow.mic_denied') : t('shadow.take_failed'));
+      return;
+    }
+    recordStartedAt.current = Date.now();
+    setRecording(true);
+    setRecordStatus(t('shadow.recording'));
+  };
+
+  const playTake = (index: number) => {
+    const take = takes[index];
+    if (!take) return;
+    setPlayingTake(index);
+    void audio.playUri(take.uri).finally(() => setPlayingTake(null));
+  };
+
+  // Leaving the studio drops the takes from the device, which is the guarantee
+  // the web makes by never persisting them at all.
+  const discardTakes = useCallback(() => {
+    setTakesByKey((current) => {
+      releaseTakes(Object.values(current).flat());
+      return {};
+    });
+    setRecordStatus('');
+  }, []);
+  useEffect(() => () => { void audio.release(); }, [audio]);
+
   const openSpeaking = () => {
     if (!lesson || !selected) return;
     router.push({pathname: '/(app)/speaking', params: {mode: 'shadowing', assetId: lesson.asset.asset_id, segmentId: selected.segment_id, sourceUrl: lesson.asset.source_url, referenceText: selected.original_text}} as never);
@@ -1067,7 +1320,7 @@ export default function ListeningScreen({client: providedClient, resumeStorage =
       )}
       <ScrollView style={{flex: 1}} contentContainerStyle={styles.frameScroll}>
         {mode === 'shadowing' ? (
-          <StudioBar segment={selected} onOpenSpeaking={openSpeaking} onLeave={() => changeMode('follow')} onReplay={replayCurrent} />
+          <StudioBar onOpenSpeaking={openSpeaking} onLeave={() => { discardTakes(); changeMode('follow'); }} />
         ) : (
           <ListeningHeader mode={mode} playbackReady={playbackReady} focus={focus} onFocus={() => setFocus((value) => !value)} onMode={changeMode} />
         )}
@@ -1092,6 +1345,18 @@ export default function ListeningScreen({client: providedClient, resumeStorage =
             onCheck={() => commit('checked')} onReveal={() => commit('revealed')}
             onRetry={() => setSession((current) => ({...current, [selected!.segment_id]: {presentation: 'checked', draft: '', attempts: current[selected!.segment_id]?.attempts ?? []}}))}
             index={selectedIndex} onPrevious={() => step(-1)} onReplay={replayCurrent} onNext={() => step(1)}
+          />
+        ) : null}
+        {mode === 'shadowing' ? (
+          <ShadowingStudio
+            segment={selected} segments={segments} selectedId={selected?.segment_id ?? ''}
+            meaning={selected ? translationFor(selected.segment_id) : ''}
+            takes={takes} rounds={roundCount(takes.length)} recording={recording}
+            status={recordStatus} playingTake={playingTake}
+            summary={shadowingSummary(roundsByKey, segments.length)}
+            persistence={shadowingQuery.isError ? t('shadow.rounds_failed') : ''}
+            onSelect={select} onReplay={replayCurrent}
+            onToggleRecord={() => { void toggleRecord(); }} onPlayTake={playTake}
           />
         ) : null}
         {mode !== 'shadowing' && selected ? (
@@ -1224,6 +1489,40 @@ const styles = StyleSheet.create({
   studioBar: {gap: 8},
   studioTitle: {fontSize: 21, fontWeight: '700'},
   studioActions: {flexDirection: 'row', flexWrap: 'wrap', gap: 8},
+  // `.o-strip-card{width:150px}` at the phone breakpoint, and the track scrolls.
+  strip: {gap: 8, paddingVertical: 2},
+  stripCard: {width: 150, padding: 10, borderWidth: 1, borderRadius: 15, gap: 6},
+  stripHead: {flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between'},
+  stripIndex: {fontSize: 15, fontWeight: '700'},
+  stripText: {fontSize: 12, lineHeight: 17},
+  // `.o-practice{padding:18px 14px;gap:14px}`
+  practiceCard: {paddingVertical: 18, paddingHorizontal: 14, gap: 14},
+  practiceHead: {flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between'},
+  practiceCount: {fontSize: 12},
+  // `.o-practice-line{font-size:clamp(19px,5.4vw,24px)}`
+  practiceLine: {fontSize: 22, lineHeight: 32, fontWeight: '500'},
+  // `.o-practice-actions{gap:clamp(20px,7vw,52px)}`
+  practiceActions: {flexDirection: 'row', justifyContent: 'center', alignItems: 'flex-start', gap: 28},
+  practiceAction: {alignItems: 'center', gap: 6, maxWidth: 96},
+  roundButton: {width: 62, height: 62, borderRadius: 999, borderWidth: 1, alignItems: 'center', justifyContent: 'center'},
+  practiceActionLabel: {fontSize: 12, textAlign: 'center'},
+  takeList: {gap: 8},
+  // `.o-take{padding:14px;gap:10px}`
+  take: {flexDirection: 'row', alignItems: 'center', gap: 10, padding: 14, borderWidth: 1, borderRadius: 15},
+  takePending: {borderStyle: 'dashed'},
+  takeIndex: {width: 18, fontSize: 13, fontWeight: '600'},
+  takeStart: {flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, minHeight: 32},
+  takeStartLabel: {fontSize: 14, fontWeight: '500'},
+  takeBody: {flex: 1, gap: 4},
+  takeWhen: {fontSize: 11},
+  takePlayer: {flexDirection: 'row', alignItems: 'center', gap: 8},
+  takeTime: {fontSize: 12, fontVariant: ['tabular-nums']},
+  takeVerdict: {fontSize: 11, lineHeight: 16},
+  // `.o-take-score{min-width:62px}` — the reference keeps the score column on a
+  // phone; it only narrows. It stays empty because nothing here scores speech.
+  takeScore: {minWidth: 62, alignItems: 'center', gap: 4},
+  scoreRing: {width: 42, height: 42, borderRadius: 999, borderWidth: 1, textAlign: 'center', lineHeight: 40, fontSize: 14},
+  takeScoreLabel: {fontSize: 10, textAlign: 'center'},
 
   transport: {flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 6, paddingHorizontal: 10, paddingVertical: 8, borderTopWidth: 1},
   transportMain: {flexDirection: 'row', alignItems: 'center', gap: 4},

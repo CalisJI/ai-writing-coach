@@ -15,6 +15,35 @@ const mockSave = {isPending: false, mutate: jest.fn()};
 const mockTranslate = {isPending: false, mutate: jest.fn(), reset: jest.fn()};
 /** The player's clock, so a test can move the playhead the way playback does. */
 let mockPlayerSeconds = 0;
+const mockSaveShadowing = {isPending: false, mutate: jest.fn()};
+const mockShadowingProgress = {isPending: false, isError: false, data: {items: []}};
+/** Take files the studio deleted, so a test can prove they leave the device. */
+const mockRemovedTakeUris: string[] = [];
+
+/**
+ * Stands in for TransientAudioService. It records what the studio asked for
+ * rather than touching a microphone, so the round flow is testable off-device.
+ */
+class FakeAudio {
+  permission: 'granted' | 'denied' = 'granted';
+  started = 0;
+  stopped = 0;
+  played: string[] = [];
+  private uri: string | null = null;
+  async startRecording() {
+    if (this.permission !== 'granted') return {state: 'denied' as const, permission: this.permission};
+    this.started += 1;
+    return {state: 'recording' as const, permission: this.permission};
+  }
+  async stopRecording() {
+    this.stopped += 1;
+    this.uri = `file:///tmp/take-${this.stopped}.m4a`;
+    return {state: 'recorded' as const, permission: this.permission};
+  }
+  getRecordingUri() { return this.uri; }
+  async playUri(uri: string) { this.played.push(uri); return {state: 'playing' as const, permission: this.permission}; }
+  async release() { /* nothing to free in the fake */ }
+}
 const mockLearnerProfile = {isPending: false, isError: false, data: {exists: true, language: 'en', goal: 'everyday', style: 'guided', pinyin: 'auto', native_language: 'vi', theme_preset: 'editorial', updated_at: '2026-01-01'}};
 const mockProgress = {isPending: false, isError: false, data: {items: []}};
 const mockMediaStatus = {data: undefined as {state?: {status: string; resumable: boolean; resumeHandle?: string}} | undefined, force: () => {}};
@@ -26,11 +55,24 @@ const lesson = {
   translations: [],
 };
 
+// The studio's recorder is injected; this only keeps expo-audio loadable under jest.
+jest.mock('expo-audio', () => ({AudioModule: {}, RecordingPresets: {LOW_QUALITY: {}}, createAudioPlayer: jest.fn(), getRecordingPermissionsAsync: jest.fn(), requestRecordingPermissionsAsync: jest.fn(), setAudioModeAsync: jest.fn()}));
 jest.mock('expo-router', () => ({useRouter: () => mockRouter, useLocalSearchParams: () => ({})}));
 jest.mock('../../src/auth/SessionHarness', () => ({useSession: () => ({session: {status: mockCookie ? 'authenticated' : 'signed-out', source: 'server'}, sessionCookie: mockCookie})}));
 jest.mock('../../src/api/client', () => ({createConfiguredApiClient: () => ({}), ApiClient: class {}}));
-jest.mock('../../src/query/useListening', () => ({useImportMedia: () => mockImport, useListeningProgress: () => mockProgress, useSaveListeningProgress: () => mockSave, useTranslateMedia: () => mockTranslate}));
+jest.mock('../../src/query/useListening', () => ({useImportMedia: () => mockImport, useListeningProgress: () => mockProgress, useSaveListeningProgress: () => mockSave, useTranslateMedia: () => mockTranslate, useShadowingProgress: () => mockShadowingProgress, useSaveShadowingProgress: () => mockSaveShadowing}));
 jest.mock('../../src/query/useLearnerProfile', () => ({useLearnerProfile: () => mockLearnerProfile}));
+// The studio writes takes to the app cache; the test filesystem records the
+// copies and deletes instead of touching disk.
+jest.mock('expo-file-system', () => ({
+  Paths: {cache: {uri: 'file:///cache/'}},
+  File: class {
+    mockPath: string;
+    constructor(path: string) { this.mockPath = path; }
+    copy() { /* the destination path is what the store returns */ }
+    delete() { mockRemovedTakeUris.push(this.mockPath); }
+  },
+}));
 jest.mock('../../src/query/useMediaImportStatus', () => {
   const ReactRuntime = jest.requireActual('react') as typeof React;
   return {useMediaImportStatus: () => { const [, setVersion] = ReactRuntime.useState(0); mockMediaStatus.force = () => setVersion((value) => value + 1); return mockMediaStatus; }, createMediaResumeStore: () => mockMediaStore};
@@ -44,9 +86,9 @@ jest.mock('react-native-youtube-iframe', () => {
   })};
 });
 
-const renderListening = (locale: 'en' | 'zh', storage = new MemoryKeyValueStorage()) => {
+const renderListening = (locale: 'en' | 'zh', storage = new MemoryKeyValueStorage(), audioService?: unknown) => {
   let view!: renderer.ReactTestRenderer;
-  act(() => { view = renderer.create(<I18nProvider initialLocale={locale}><ThemeProvider><ListeningScreen client={{} as never} resumeStorage={storage} mediaResumeStorage={storage} /></ThemeProvider></I18nProvider>); });
+  act(() => { view = renderer.create(<I18nProvider initialLocale={locale}><ThemeProvider><ListeningScreen client={{} as never} resumeStorage={storage} mediaResumeStorage={storage} audioService={audioService as never} /></ThemeProvider></I18nProvider>); });
   return {view, storage};
 };
 
@@ -61,6 +103,9 @@ describe('native Listening R20-4 Follow/Active and resume contract', () => {
     mockSave.isPending = false;
     mockSave.mutate.mockReset();
     mockTranslate.mutate.mockReset();
+    mockSaveShadowing.mutate.mockReset();
+    mockShadowingProgress.isError = false;
+    mockRemovedTakeUris.length = 0;
     mockProgress.isPending = false;
     mockProgress.isError = false;
     mockProgress.data = {items: []};
@@ -217,6 +262,99 @@ describe('native Listening R20-4 Follow/Active and resume contract', () => {
     await act(async () => { view.root.findByProps({accessibilityLabel: 'Prepare listening lesson'}).props.onPress(); await Promise.resolve(); });
     expect(view.root.findAllByProps({children: 'Good morning.'})).not.toHaveLength(0);
     expect(view.root.findAllByProps({children: 'Meaning could not be generated right now. Continue with the original transcript.'})).not.toHaveLength(0);
+  });
+
+  /* The Shadowing Studio: one segment at a time, the takes underneath it. The
+     web holds takes in memory for the session and never uploads them; only the
+     round count reaches the server. */
+  describe('Shadowing Studio', () => {
+    const openStudio = async () => {
+      mockCookie = 'cookie';
+      mockImport.mutate.mockImplementation((_input: unknown, options: {onSuccess: (value: unknown) => void}) => options.onSuccess(lesson));
+      const audio = new FakeAudio();
+      const {view} = renderListening('en', new MemoryKeyValueStorage(), audio);
+      act(() => { view.root.findByProps({accessibilityLabel: 'Media URL'}).props.onChangeText('https://youtu.be/example'); });
+      await act(async () => { view.root.findByProps({accessibilityLabel: 'Prepare listening lesson'}).props.onPress(); await Promise.resolve(); });
+      act(() => { view.root.findByProps({accessibilityLabel: 'Shadowing'}).props.onPress(); });
+      return {view, audio};
+    };
+    const press = async (view: renderer.ReactTestRenderer, label: string) => {
+      await act(async () => { view.root.findAllByProps({accessibilityLabel: label})[0]!.props.onPress(); await Promise.resolve(); await Promise.resolve(); });
+    };
+
+    it('offers three rounds before anything is recorded, and no score for them', async () => {
+      const {view} = await openStudio();
+      expect(view.root.findAllByProps({accessibilityLabel: 'Start round 1'})).not.toHaveLength(0);
+      expect(view.root.findAllByProps({accessibilityLabel: 'Start round 3'})).not.toHaveLength(0);
+      expect(view.root.findAllByProps({accessibilityLabel: 'Start round 4'})).toHaveLength(0);
+      // An unrecorded round carries nothing that could be scored.
+      expect(view.root.findAllByProps({children: 'Not scored'})).toHaveLength(0);
+    });
+
+    it('records a round, keeps the take on the device, and reports only the round count', async () => {
+      const {view, audio} = await openStudio();
+      await press(view, 'Repeat it');
+      expect(audio.started).toBe(1);
+      expect(view.root.findAllByProps({children: 'Recording. Tap to stop.'})).not.toHaveLength(0);
+
+      await press(view, 'Repeat it');
+      expect(audio.stopped).toBe(1);
+      // The round count is the only thing that leaves the device.
+      expect(mockSaveShadowing.mutate).toHaveBeenCalledWith(
+        {asset_id: 'asset-en-1', segment_id: 'segment-1', completed_rounds: 1},
+        expect.any(Object),
+      );
+      const sent = JSON.stringify(mockSaveShadowing.mutate.mock.calls[0]![0]);
+      expect(sent).not.toContain('file://');
+      // A recorded round now shows the reserved, empty score position.
+      expect(view.root.findAllByProps({children: 'Not scored'})).not.toHaveLength(0);
+      expect(view.root.findAllByProps({children: 'This take is not evaluated.'})).not.toHaveLength(0);
+      // Round 1 is now filled, and 2 and 3 are still waiting: the reference
+      // keeps a floor of three rounds, so a fourth row only appears once three
+      // takes exist.
+      expect(view.root.findAllByProps({accessibilityLabel: 'Start round 1'})).toHaveLength(0);
+      expect(view.root.findAllByProps({accessibilityLabel: 'Start round 2'})).not.toHaveLength(0);
+      expect(view.root.findAllByProps({accessibilityLabel: 'Start round 3'})).not.toHaveLength(0);
+      expect(view.root.findAllByProps({accessibilityLabel: 'Start round 4'})).toHaveLength(0);
+    });
+
+    it('plays a take back from the device', async () => {
+      const {view, audio} = await openStudio();
+      await press(view, 'Repeat it');
+      await press(view, 'Repeat it');
+      await press(view, 'Listen to me');
+      expect(audio.played).toHaveLength(1);
+      expect(audio.played[0]).toMatch(/^file:\/\/\/cache\//);
+    });
+
+    it('says so plainly when the microphone is refused, and records nothing', async () => {
+      const {view, audio} = await openStudio();
+      audio.permission = 'denied';
+      await press(view, 'Repeat it');
+      expect(view.root.findAllByProps({children: 'Microphone access is off. Turn it on in Settings to record.'})).not.toHaveLength(0);
+      expect(mockSaveShadowing.mutate).not.toHaveBeenCalled();
+      expect(audio.stopped).toBe(0);
+    });
+
+    it('keeps practising when the round count cannot be saved', async () => {
+      mockSaveShadowing.mutate.mockImplementation((_input: unknown, options: {onError: () => void}) => options.onError());
+      const {view} = await openStudio();
+      await press(view, 'Repeat it');
+      await press(view, 'Repeat it');
+      expect(view.root.findAllByProps({children: 'Rounds could not be saved. Practice still works.'})).not.toHaveLength(0);
+      // The take is still there to listen back to.
+      expect(view.root.findAllByProps({children: 'Not scored'})).not.toHaveLength(0);
+    });
+
+    it('leaving the studio removes the takes from the device', async () => {
+      const {view} = await openStudio();
+      await press(view, 'Repeat it');
+      await press(view, 'Repeat it');
+      expect(view.root.findAllByProps({children: 'Not scored'})).not.toHaveLength(0);
+      await press(view, 'Leave studio');
+      expect(mockRemovedTakeUris.length).toBeGreaterThan(0);
+      expect(view.root.findAllByProps({accessibilityLabel: 'Follow'})[0]!.props.accessibilityState.selected).toBe(true);
+    });
   });
 
   it('hands the selected canonical segment to Shadowing', async () => {

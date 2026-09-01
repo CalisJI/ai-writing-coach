@@ -1,6 +1,6 @@
 import {useMutation, useQuery, useQueryClient, type UseMutationResult, type UseQueryResult} from '@tanstack/react-query';
 import {ApiClient} from '../api/client';
-import type {ListeningProgressInput, MediaImportInput, MediaLesson, MediaTranslationInput, MediaTranslationResult} from '../api/contracts/listening';
+import type {ListeningProgressInput, MediaImportInput, MediaLesson, MediaTranslationInput, MediaTranslationResult, ShadowingProgressInput} from '../api/contracts/listening';
 import {ApiError} from '../api/errors';
 
 const available = (client: ApiClient | null, cookie?: string | null) => Boolean(client && typeof cookie === 'string' && cookie.length > 0);
@@ -32,6 +32,27 @@ export function useListeningProgress(client: ApiClient | null, cookie: string | 
     enabled: available(client, cookie) && assetId.trim() !== '',
     retry: false,
     staleTime: 0,
+  });
+}
+
+export const shadowingProgressKey = (assetId: string) => ['listening', 'shadowing-progress', assetId] as const;
+
+export function useShadowingProgress(client: ApiClient | null, cookie: string | null | undefined, assetId: string): UseQueryResult<Awaited<ReturnType<ApiClient['listShadowingProgress']>>, ApiError> {
+  return useQuery({
+    queryKey: shadowingProgressKey(assetId),
+    queryFn: ({signal}) => client ? client.listShadowingProgress(assetId, {signal, sessionCookie: cookie ?? undefined}) : Promise.reject(new ApiError('configuration_missing', 'API client is unavailable')),
+    enabled: available(client, cookie) && assetId.trim() !== '',
+    retry: false,
+    staleTime: 0,
+  });
+}
+
+export function useSaveShadowingProgress(client: ApiClient | null, cookie?: string | null): UseMutationResult<Awaited<ReturnType<ApiClient['saveShadowingProgress']>>, ApiError, ShadowingProgressInput> {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input) => client ? client.saveShadowingProgress(input, {sessionCookie: cookie ?? undefined}) : Promise.reject(new ApiError('configuration_missing', 'API client is unavailable')),
+    onSuccess: (result) => { void queryClient.invalidateQueries({queryKey: shadowingProgressKey(result.item.asset_id)}); },
+    retry: false,
   });
 }
 

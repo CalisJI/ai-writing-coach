@@ -144,6 +144,29 @@ export const listeningProgressSchema = z.object({
 }).passthrough();
 export type ListeningProgress = z.infer<typeof listeningProgressSchema>;
 
+/**
+ * Shadowing keeps only how many rounds a segment has been practised.
+ * `ShadowingProgressIn` in writing_coach/listening_api.py carries nothing about
+ * the recording itself, and nothing that could read as an assessment of it --
+ * the takes stay on the device.
+ */
+export const shadowingProgressSchema = z.object({
+  asset_id: z.string().min(1).max(255),
+  segment_id: z.string().min(1).max(255),
+  completed_rounds: z.number().int().nonnegative(),
+  updated_at: z.string().optional(),
+}).passthrough();
+export type ShadowingProgress = z.infer<typeof shadowingProgressSchema>;
+
+export const shadowingProgressListSchema = z.object({items: z.array(shadowingProgressSchema)}).strict();
+export const shadowingProgressResponseSchema = z.object({item: shadowingProgressSchema}).strict();
+export const shadowingProgressInputSchema = z.object({
+  asset_id: z.string().min(1).max(255),
+  segment_id: z.string().min(1).max(255),
+  completed_rounds: z.number().int().min(0).max(1000),
+}).strict();
+export type ShadowingProgressInput = z.infer<typeof shadowingProgressInputSchema>;
+
 export const listeningProgressListSchema = z.object({items: z.array(listeningProgressSchema)}).strict();
 export const listeningProgressResponseSchema = z.object({item: listeningProgressSchema}).strict();
 export type ListeningProgressInput = Omit<ListeningProgress, 'updated_at' | 'asset_id' | 'segment_id'> & {asset_id: string; segment_id: string};
