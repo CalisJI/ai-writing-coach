@@ -83,12 +83,63 @@ describe('native Listening R20-4 Follow/Active and resume contract', () => {
     act(() => { source.props.onChangeText(' https://youtu.be/example '); });
     await act(async () => { view.root.findByProps({accessibilityLabel: 'Prepare listening lesson'}).props.onPress(); await Promise.resolve(); });
     expect(view.root.findAllByProps({children: 'Good morning.'})).not.toHaveLength(0);
-    act(() => { view.root.findByProps({accessibilityLabel: 'Active practice'}).props.onPress(); });
-    const answer = view.root.findByProps({accessibilityLabel: 'What did you hear?'});
+    act(() => { view.root.findByProps({accessibilityLabel: 'Active'}).props.onPress(); });
+    const answer = view.root.findByProps({accessibilityLabel: 'Type what you heard'});
     act(() => { answer.props.onChangeText('Good morning.'); });
-    act(() => { view.root.findByProps({accessibilityLabel: 'Save checked attempt'}).props.onPress(); });
+    act(() => { view.root.findByProps({accessibilityLabel: 'Check answer'}).props.onPress(); });
     expect(mockSave.mutate).toHaveBeenCalledWith(expect.objectContaining({asset_id: 'asset-en-1', segment_id: 'segment-1', presentation: 'checked', checked_attempt_count: 1, last_answer: 'Good morning.'}), expect.any(Object));
     await expect(storage.getItem('orena.listening.resume.v1')).resolves.toContain('asset-en-1');
+  });
+
+  /* listening.js withholds the transcript line in Active mode: it is a
+     reconstruction exercise, and printing the line in the segment list would
+     hand the learner the answer. It reappears in the result once checked. */
+  it('withholds the line in Active mode until the reconstruction is checked', async () => {
+    mockCookie = 'cookie';
+    mockImport.mutate.mockImplementation((_input: unknown, options: {onSuccess: (value: unknown) => void}) => options.onSuccess(lesson));
+    mockSave.mutate.mockImplementation((input: Record<string, unknown>, options: {onSuccess: (value: unknown) => void}) => options.onSuccess({item: {...input}}));
+    const {view} = renderListening('en');
+    act(() => { view.root.findByProps({accessibilityLabel: 'Media URL'}).props.onChangeText('https://youtu.be/example'); });
+    await act(async () => { view.root.findByProps({accessibilityLabel: 'Prepare listening lesson'}).props.onPress(); await Promise.resolve(); });
+    act(() => { view.root.findByProps({accessibilityLabel: 'Active'}).props.onPress(); });
+    expect(view.root.findAllByProps({children: 'Good morning.'})).toHaveLength(0);
+    expect(view.root.findByProps({accessibilityLabel: 'Segment 1'})).toBeDefined();
+
+    act(() => { view.root.findByProps({accessibilityLabel: 'Type what you heard'}).props.onChangeText('Good morning.'); });
+    act(() => { view.root.findByProps({accessibilityLabel: 'Check answer'}).props.onPress(); });
+    // An exact reconstruction reports 100% and names itself an exact match.
+    const rendered = JSON.stringify(view.toJSON());
+    expect(rendered).toContain('Text match');
+    expect(rendered).toContain('Exact match');
+    expect(rendered).toContain('100');
+    expect(rendered).toContain('Good morning.');
+  });
+
+  it('refuses to check an empty reconstruction', async () => {
+    mockCookie = 'cookie';
+    mockImport.mutate.mockImplementation((_input: unknown, options: {onSuccess: (value: unknown) => void}) => options.onSuccess(lesson));
+    const {view} = renderListening('en');
+    act(() => { view.root.findByProps({accessibilityLabel: 'Media URL'}).props.onChangeText('https://youtu.be/example'); });
+    await act(async () => { view.root.findByProps({accessibilityLabel: 'Prepare listening lesson'}).props.onPress(); await Promise.resolve(); });
+    act(() => { view.root.findByProps({accessibilityLabel: 'Active'}).props.onPress(); });
+    act(() => { view.root.findByProps({accessibilityLabel: 'Check answer'}).props.onPress(); });
+    expect(mockSave.mutate).not.toHaveBeenCalled();
+    expect(view.root.findAllByProps({children: 'Type what you heard before checking.'})).not.toHaveLength(0);
+  });
+
+  /* Active and Shadowing are exercises against real audio, so the reference
+     disables them when the provider gives us nothing playable. Follow works
+     from the transcript alone and stays available. */
+  it('gates Active and Shadowing when there is no usable playback', async () => {
+    mockCookie = 'cookie';
+    mockImport.mutate.mockImplementation((_input: unknown, options: {onSuccess: (value: unknown) => void}) => options.onSuccess({...lesson, playback: {provider: 'youtube', kind: 'link', url: 'https://youtu.be/example'}}));
+    const {view} = renderListening('en');
+    act(() => { view.root.findByProps({accessibilityLabel: 'Media URL'}).props.onChangeText('https://youtu.be/example'); });
+    await act(async () => { view.root.findByProps({accessibilityLabel: 'Prepare listening lesson'}).props.onPress(); await Promise.resolve(); });
+    expect(view.root.findByProps({accessibilityLabel: 'Active'}).props.accessibilityState.disabled).toBe(true);
+    expect(view.root.findByProps({accessibilityLabel: 'Shadowing'}).props.accessibilityState.disabled).toBe(true);
+    expect(view.root.findByProps({accessibilityLabel: 'Follow'}).props.accessibilityState.disabled).toBe(false);
+    expect(view.root.findAllByProps({children: 'Active Listening and Shadowing need usable provider playback.'})).not.toHaveLength(0);
   });
 
   it('hands the selected canonical segment to Shadowing', async () => {
@@ -97,7 +148,7 @@ describe('native Listening R20-4 Follow/Active and resume contract', () => {
     const {view} = renderListening('en');
     act(() => { view.root.findByProps({accessibilityLabel: 'Media URL'}).props.onChangeText('https://youtu.be/example'); });
     await act(async () => { view.root.findByProps({accessibilityLabel: 'Prepare listening lesson'}).props.onPress(); await Promise.resolve(); });
-    act(() => { view.root.findByProps({accessibilityLabel: 'Return to this Listening segment'}).props.onPress(); });
+    act(() => { view.root.findByProps({accessibilityLabel: 'Open Speaking'}).props.onPress(); });
     expect(mockRouter.push).toHaveBeenCalledWith(expect.objectContaining({params: expect.objectContaining({mode: 'shadowing', assetId: 'asset-en-1', segmentId: 'segment-1', referenceText: 'Good morning.'})}));
   });
 
@@ -110,9 +161,9 @@ describe('native Listening R20-4 Follow/Active and resume contract', () => {
     await act(async () => { await new Promise((resolve) => setTimeout(resolve, 0)); });
     await act(async () => { view.root.findByProps({accessibilityLabel: '恢复上一课'}).props.onPress(); await new Promise((resolve) => setTimeout(resolve, 0)); });
     expect(view.root.findByProps({accessibilityLabel: '主动练习'}).props.accessibilityState.selected).toBe(true);
-    expect(view.root.findByProps({accessibilityLabel: 'How are you?'}).props.accessibilityState.selected).toBe(true);
+    expect(view.root.findByProps({accessibilityLabel: '句段 2'}).props.accessibilityState.selected).toBe(true);
     mockImport.mutate.mockImplementation((_input: unknown, options: {onError: () => void}) => options.onError());
-    act(() => { view.root.findByProps({accessibilityLabel: '开始另一课'}).props.onPress(); });
+    act(() => { view.root.findByProps({accessibilityLabel: '添加视频'}).props.onPress(); });
     act(() => { view.root.findByProps({accessibilityLabel: '媒体链接'}).props.onChangeText('https://youtu.be/other'); });
     act(() => { view.root.findByProps({accessibilityLabel: '准备听力课程'}).props.onPress(); });
     expect(view.root.findByProps({accessibilityRole: 'alert'})).toBeDefined();

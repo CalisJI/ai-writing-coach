@@ -15,10 +15,15 @@ export type OrenaIconName =
   | 'home' | 'write' | 'read' | 'listen' | 'speak'
   | 'grammar' | 'library' | 'journey' | 'profile'
   | 'menu' | 'close' | 'sun' | 'moon'
-  | 'arrowLeft' | 'check';
+  | 'arrowLeft' | 'check'
+  | 'rubric' | 'play' | 'pause' | 'skipBack' | 'skipForward'
+  | 'volume' | 'volumeOff' | 'arrowRight' | 'chevronUp' | 'chevronDown'
+  | 'undo' | 'flag' | 'cloud';
 
 type Geometry = {
   paths?: readonly string[];
+  /** The reference draws a few glyphs solid rather than stroked. */
+  filledPaths?: readonly string[];
   rects?: readonly {x: number; y: number; width: number; height: number; rx: number; filled?: boolean}[];
   circles?: readonly {cx: number; cy: number; r: number}[];
 };
@@ -62,6 +67,22 @@ const ICONS: Record<OrenaIconName, Geometry> = {
   moon: {paths: ['M20 15.5A8.5 8.5 0 0 1 8.5 4 8.7 8.7 0 1 0 20 15.5Z']},
   arrowLeft: {paths: ['M19 12H5M10 7l-5 5 5 5']},
   check: {paths: ['m5 12.5 4.5 4.5L19 7']},
+  rubric: {paths: ['M4.4 6.6h4M4.4 12h4M4.4 17.4h4', 'M11.4 6.6h8.2M11.4 12h8.2M11.4 17.4h8.2']},
+  play: {filledPaths: ['M8 5.2 19 12 8 18.8Z']},
+  pause: {filledPaths: ['M7.4 4.8h3.2v14.4H7.4zM13.4 4.8h3.2v14.4h-3.2z']},
+  // The reference's skip glyphs carry the jump length as a numeral; the arc and
+  // arrowhead alone do not say how far they move. react-native-svg has no text
+  // helper here, so the numeral is drawn by the control's own label instead.
+  skipBack: {paths: ['M12.4 4.6a7.4 7.4 0 1 1-7.2 9.2', 'm8.4 1.4-3.4 3.2 3.4 3.2']},
+  skipForward: {paths: ['M11.6 4.6a7.4 7.4 0 1 0 7.2 9.2', 'm15.6 1.4 3.4 3.2-3.4 3.2']},
+  volume: {paths: ['M4 9.4v5.2h3.4l4.4 3.6V5.8L7.4 9.4Z', 'M15.2 9.6a3.4 3.4 0 0 1 0 4.8M17.8 7a7 7 0 0 1 0 10']},
+  volumeOff: {paths: ['M4 9.4v5.2h3.4l4.4 3.6V5.8L7.4 9.4Z', 'm15.4 10 4.2 4.2M19.6 10l-4.2 4.2']},
+  arrowRight: {paths: ['M5 12h14M14 7l5 5-5 5']},
+  chevronUp: {paths: ['m7 14 5-5 5 5']},
+  chevronDown: {paths: ['m7 10 5 5 5-5']},
+  undo: {paths: ['M4.4 8.4h9.2a5.4 5.4 0 0 1 0 10.8H8.2', 'm8 4.4-3.6 4 3.6 4']},
+  flag: {filledPaths: ['M6 21V4.2c3.6-1.9 7.2 1.9 10.8 0v8.4c-3.6 1.9-7.2-1.9-10.8 0']},
+  cloud: {paths: ['M7.2 18.4a4.2 4.2 0 0 1-.5-8.4 5.4 5.4 0 0 1 10.4-1.1 3.9 3.9 0 0 1-.8 9.5Z']},
 };
 
 /** `.o-nav-icon` is 21px; `.o-icon-button svg` is 20px. */
@@ -73,6 +94,7 @@ export function OrenaIcon({name, size = 21, color}: {name: OrenaIconName; size?:
       {icon.rects?.map((rect, index) => <Rect key={`r${index}`} {...rect} {...stroke} />)}
       {icon.circles?.map((circle, index) => <Circle key={`c${index}`} {...circle} {...stroke} />)}
       {icon.paths?.map((d, index) => <Path key={`p${index}`} d={d} {...stroke} />)}
+      {icon.filledPaths?.map((d, index) => <Path key={`f${index}`} d={d} fill={color} />)}
     </Svg>
   );
 }
