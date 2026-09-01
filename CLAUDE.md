@@ -2,17 +2,18 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Read the engineering contract first
+## Restore Orena project memory first
 
-@AGENTS.md is the binding contract for this repo. Read it before editing, plus
-the mandatory doc order it names (`docs/project/PROJECT_STATE.md` →
-`ARCHITECTURE_INVARIANTS.md` → `CURRENT_HANDOFF.md` → `DOMAIN_BOUNDARIES.md` →
-relevant `ROADMAP.md` section). `/load-context` does this.
+@AGENTS.md is the binding engineering contract. Start with
+`docs/project/PROJECT_MEMORY.md` and its bounded startup order.
+`/resume-orena` restores the current context without loading the historical
+repository.
 
-Source-of-truth precedence: repository implementation and verified Git state >
-`PROJECT_STATE.md` > `CURRENT_HANDOFF.md` > `ARCHITECTURE_INVARIANTS.md` >
-`DECISION_LOG.md` > `ROADMAP.md` > historical docs. A material contradiction is
-a stop condition — report it, do not resolve it yourself.
+Always verify branch, HEAD, working tree, and recent commits. Chat history is
+not authoritative. Orena is the active product, `/` is canonical, and
+`/becoming` plus BECOMING-named paths/symbols are legacy compatibility—not
+current product direction. Follow `PROJECT_MEMORY.md`'s separate product-intent
+and implementation-fact precedence models.
 
 ## Test and validation runtime
 
@@ -21,31 +22,38 @@ SQLAlchemy, Alembic, psycopg). Run dependency-heavy tests and validators inside
 the app container:
 
 ```powershell
-MSYS_NO_PATHCONV=1 docker compose run --rm --no-deps \n  -e PERSISTENCE_BACKEND=sqlite -e POSTGRES_RUNTIME_URL= \n  -v "<abs-windows-path>:/workspace:ro" -w /workspace writing-coach \n  sh -lc "pip install -q pytest; python -m pytest -q -p no:cacheprovider test_app.py tests"
+MSYS_NO_PATHCONV=1 docker compose run --rm --no-deps \n  -e PERSISTENCE_BACKEND=sqlite -e POSTGRES_RUNTIME_URL= \n  -e GOOGLE_CLIENT_ID= -e GOOGLE_CLIENT_SECRET= \n  -e APP_ENV=development -e PUBLIC_BASE_URL=http://localhost:8000 \n  -e GOOGLE_REDIRECT_URI= \n  -v "<abs-windows-path>:/workspace:ro" -w /workspace writing-coach \n  sh -lc "pip install -q pytest; python -m pytest -q -p no:cacheprovider test_app.py tests"
 ```
 
-Three things that will otherwise cost you an hour:
+Four things that will otherwise cost you an hour:
 
 - The image does **not** ship pytest (`requirements.txt` omits it) — install it in
   the ephemeral container, as above.
 - Git Bash rewrites `-w /workspace` into `C:/Program Files/Git/workspace`. Prefix
   with `MSYS_NO_PATHCONV=1` and pass the volume source as a Windows path.
-- Compose always injects `POSTGRES_RUNTIME_URL`, which makes
+- Compose may inject `POSTGRES_RUNTIME_URL`, which makes
   `test_invalid_and_postgres_fail_without_bundle` fail inside the container while
-  passing in CI. Clear it with `-e POSTGRES_RUNTIME_URL=`. Full suite is
-  **503 passed** when you do.
+  passing in CI. Clear it with `-e POSTGRES_RUNTIME_URL=`. Use the current
+  handoff for the latest verified count instead of hardcoding a historical one.
+- Compose also injects the Google OAuth pair, which turns `AUTH_ENABLED` on and
+  makes unauthenticated route tests answer 401 where CI sees 200/503. Clearing
+  the pair alone then trips the `APP_ENV=production` guard, so clear
+  `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` and `GOOGLE_REDIRECT_URI` **and**
+  set `APP_ENV=development` with a local `PUBLIC_BASE_URL`, as above. Without
+  it, `tests/test_r17_admin_routes.py` and `tests/test_reference_data_cache.py`
+  fail locally for environment reasons only.
 
 Pure-stdlib validators (`scripts/validate_*.py` that only read files) and the
 Node contract tests run on the host:
 
 ```powershell
+python scripts/validate_project_memory.py
 python scripts/validate_architecture.py
 node scripts/test_listening_ui.mjs
 ```
 
-`scripts/` holds ~40 `validate_*.py` / `audit_*.py` gates and ~30 `test_*.mjs`
-Node contract tests. CI (`.github/workflows/ci.yml`) runs
-`validate_architecture.py`, nine specific `.mjs` tests, then
+CI (`.github/workflows/ci.yml`) runs the project-memory validator,
+`validate_architecture.py`, the current `.mjs` contract gate, then
 `pytest -q test_app.py tests` with `PERSISTENCE_BACKEND=sqlite`. `/validate-gate`
 reproduces that sequence.
 
