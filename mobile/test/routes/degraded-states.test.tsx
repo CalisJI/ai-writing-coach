@@ -82,13 +82,18 @@ describe('degraded learner states stay truthful and escapable', () => {
     expect(mockReplace).toHaveBeenCalledWith('/(app)/writing');
   });
 
-  it('Home offers sign-out instead of a dead end when no session cookie is held', () => {
+  /* Signed-out Home used to offer "Sign out", which is exactly the dead end
+     this test was meant to rule out: the only action on a screen headed "Sign
+     in to continue" was the thing the learner had already done. The escape is
+     the sign-in route. */
+  it('Home offers a way back in when no session cookie is held', () => {
     const view = render(<HomeScreen />);
     expect(says(view, translate('en', 'home.signed_out_body' as MessageId))).not.toHaveLength(0);
     const found = buttons(view);
     expect(found.length).toBeGreaterThan(0);
     act(() => found[0]?.props.onPress());
-    expect(mockSignOut).toHaveBeenCalled();
+    expect(mockReplace).toHaveBeenCalledWith('/(auth)/sign-in');
+    expect(mockSignOut).not.toHaveBeenCalled();
   });
 
   it('keeps every new degraded message defined in both locales', () => {

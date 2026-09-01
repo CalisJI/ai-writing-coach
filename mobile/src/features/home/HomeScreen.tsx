@@ -141,7 +141,13 @@ function nextPracticePlan({recommendation, readingHistory, listeningResume}: {re
 
 // ---- presentational components ----
 
-function SignedOut() { const {t} = useI18n(); const {tokens} = useTheme(); const {signOut} = useSession(); return <View style={[styles.container, {backgroundColor: tokens.colors.background}]}><Text accessibilityRole="header" style={[styles.title, {color: tokens.colors.heading}]}>{t('home.signed_out_title' as never)}</Text><Text style={[styles.body, {color: tokens.colors.mutedText}]}>{t('home.signed_out_body' as never)}</Text><Pressable accessibilityRole="button" onPress={signOut} style={[styles.button, {backgroundColor: tokens.colors.accent}]}><Text style={[styles.buttonText, {color: tokens.colors.onAccent}]}>{t('auth.sign_out')}</Text></Pressable></View>; }
+/**
+ * Signed out offered a button labelled "Sign out" that called signOut(), so the
+ * one action on a screen headed "Sign in to continue" was the thing the learner
+ * had already done, and there was no way back in from Home at all. It routes to
+ * the sign-in screen, which owns both the browser and development flows.
+ */
+function SignedOut() { const {t} = useI18n(); const {tokens} = useTheme(); const router = useRouter(); return <View style={[styles.container, {backgroundColor: tokens.colors.background}]}><Text accessibilityRole="header" style={[styles.title, {color: tokens.colors.heading}]}>{t('home.signed_out_title' as never)}</Text><Text style={[styles.body, {color: tokens.colors.mutedText}]}>{t('home.signed_out_body' as never)}</Text><Pressable accessibilityRole="button" accessibilityLabel={t('auth.sign_in_browser')} onPress={() => router.replace('/(auth)/sign-in')} style={[styles.button, {backgroundColor: tokens.colors.accent}]}><Text style={[styles.buttonText, {color: tokens.colors.onAccent}]}>{t('auth.sign_in_browser')}</Text></Pressable></View>; }
 
 function Unavailable({retry}: {retry?: () => void}) { const {t} = useI18n(); const {tokens} = useTheme(); return <View style={[styles.container, {backgroundColor: tokens.colors.background}]}><Text accessibilityRole="header" style={[styles.title, {color: tokens.colors.heading}]}>{t('home.unavailable_title')}</Text><Text style={[styles.body, {color: tokens.colors.mutedText}]}>{t('home.unavailable_body')}</Text>{retry && <Pressable accessibilityRole="button" onPress={retry} style={[styles.button, {backgroundColor: tokens.colors.accent}]}><Text style={[styles.buttonText, {color: tokens.colors.onAccent}]}>{t('home.retry')}</Text></Pressable>}</View>; }
 
