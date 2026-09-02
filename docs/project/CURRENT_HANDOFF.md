@@ -51,6 +51,20 @@ or secret values.
   `/resume-orena` workflow are implemented and validated locally; the batch is
   awaiting human review.
 
+## DEPLOYED FOR QA
+
+- `orena.chillpickle.org` runs `cbdedfd` (branch `claude/integration-v2`, NOT
+  merged to `main`), rebuilt via `docker compose --profile public up -d --build
+  writing-coach`. There is no CD; the domain only changes when someone rebuilds
+  on the host.
+- Human-approved production PostgreSQL migration ran on 2026-09-02:
+  `20260811_0001` -> `20260828_0004`, adding `speaking_attempts`,
+  `listening_progress` and `shadowing_progress`. 16 -> 19 tables, additive only,
+  no data dropped. The runtime had refused to start until this ran, because the
+  database was three revisions behind the code.
+- The gate itself stays `approval_required`: that approval covered this run, not
+  future migrations.
+
 ## PENDING
 
 - Human review of this project-memory checkpoint.
