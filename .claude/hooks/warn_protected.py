@@ -8,14 +8,14 @@ import sys
 # (regex over the repo-relative posix path, label)
 PROTECTED = [
     (r"^docs/visual-references/", "visual reference assets"),
-    (r"^static/becoming/(app|theme|visual-alignment)\.css$", "shared BECOMING design system CSS"),
-    (r"^static/becoming/(router|store|theme)\.js$", "shared BECOMING frontend infrastructure"),
+    (r"^static/becoming/(app|theme|visual-alignment)\.css$", "shared Orena design system CSS in a legacy namespace"),
+    (r"^static/becoming/(router|store|theme)\.js$", "shared Orena frontend infrastructure in a legacy namespace"),
     (r"^static/becoming/components/primitives\.js$", "shared layout primitives"),
-    (r"^templates/becoming/index\.html$", "BECOMING shell template"),
+    (r"^templates/becoming/index\.html$", "Orena shell template in a legacy namespace"),
     (r"^writing_coach/grammar_(catalog|knowledge|learning_model)\.py$",
      "R5 Grammar Knowledge System contracts / stable Concept IDs"),
     (r"^writing_coach/languages/[a-z]+/grammar_course\.py$", "R5 grammar course source of truth"),
-    (r"^BECOMING_FRONTEND_VERSION$", "frontend version pin (currently 2.17.3)"),
+    (r"^BECOMING_FRONTEND_VERSION$", "legacy-named frontend version pin (currently 2.17.5)"),
     (r"^(VERSION|AGENTS\.md)$", "release / governance contract"),
     (r"^docs/project/", "governance documents (see /governance-update)"),
 ]

@@ -223,7 +223,7 @@ def test_contract_has_no_network_ai_or_provider_specific_coupling() -> None:
 
 def test_governance_records_the_shared_media_learning_direction() -> None:
     project_state = (ROOT / "docs/project/PROJECT_STATE.md").read_text(encoding="utf-8")
-    handoff = (ROOT / "docs/project/CURRENT_HANDOFF.md").read_text(encoding="utf-8")
+    handoff = (ROOT / "docs/project/archive/HANDOFF_BEFORE_PROJECT_MEMORY.md").read_text(encoding="utf-8")
     roadmap = (ROOT / "docs/project/ROADMAP.md").read_text(encoding="utf-8")
     boundaries = (ROOT / "docs/project/DOMAIN_BOUNDARIES.md").read_text(encoding="utf-8")
     decisions = (ROOT / "docs/project/DECISION_LOG.md").read_text(encoding="utf-8")

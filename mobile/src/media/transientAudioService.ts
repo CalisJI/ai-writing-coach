@@ -187,6 +187,26 @@ export class TransientAudioService {
     return this.snapshot;
   }
 
+  /**
+   * Play a file this service did not record — a kept shadowing take, which was
+   * copied out of the transient slot so the next round would not delete it.
+   * Playback is otherwise identical, including releasing the transient
+   * recording when it finishes.
+   */
+  async playUri(uri: string): Promise<TransientAudioSnapshot> {
+    if (!uri) return this.snapshot;
+    try {
+      await this.releasePlayback();
+      this.sound = await this.adapter.createSound(uri, () => { void this.releasePlayback(); });
+      await this.sound.playAsync();
+      this.setState('playing', this.snapshot.permission);
+    } catch {
+      await this.releasePlayback();
+      this.setState('failed', this.snapshot.permission);
+    }
+    return this.snapshot;
+  }
+
   async play(): Promise<TransientAudioSnapshot> {
     if (!this.uri) return this.snapshot;
     try {

@@ -108,15 +108,87 @@ export const fontWeights = {regular: '400', medium: '500', semibold: '600', bold
  */
 type Shadow = {shadowColor: string; shadowOpacity: number; shadowRadius: number; shadowOffset: {width: number; height: number}; elevation: number};
 
-export const elevation: Record<ColorScheme, {card: Shadow; raised: Shadow}> = {
+export const elevation: Record<ColorScheme, {card: Shadow; raised: Shadow; control: Shadow}> = {
   light: {
     card: {shadowColor: '#1C1917', shadowOpacity: 0.07, shadowRadius: 18, shadowOffset: {width: 0, height: 7}, elevation: 2},
     raised: {shadowColor: '#1C1917', shadowOpacity: 0.11, shadowRadius: 24, shadowOffset: {width: 0, height: 10}, elevation: 4},
+    control: {shadowColor: '#1C1917', shadowOpacity: 0.10, shadowRadius: 8, shadowOffset: {width: 0, height: 3}, elevation: 2},
   },
   dark: {
     card: {shadowColor: '#000000', shadowOpacity: 0.78, shadowRadius: 24, shadowOffset: {width: 0, height: 10}, elevation: 6},
     raised: {shadowColor: '#000000', shadowOpacity: 0.85, shadowRadius: 36, shadowOffset: {width: 0, height: 16}, elevation: 10},
+    control: {shadowColor: '#000000', shadowOpacity: 0.60, shadowRadius: 10, shadowOffset: {width: 0, height: 3}, elevation: 3},
   },
+};
+
+/**
+ * `--o-rim`, `--o-sheen` and the split control edge, which are what stop a
+ * surface reading as a flat outline. tokens.css is explicit that the reference
+ * cards are lit from above: a 1px top highlight, then a short gradient that
+ * settles into the fill about 140px down. RN has no inset box-shadow and no CSS
+ * gradient, so the rim is a 1px overlay view and the sheen is a real gradient
+ * (expo-linear-gradient) drawn over the fill rather than replacing it.
+ */
+export type Depth = {
+  /** `--o-rim`: the lit top edge of a card. */
+  rim: string;
+  /** `--o-rim-control`: the stronger version buttons and controls carry. */
+  rimControl: string;
+  /** `--o-sheen`, as gradient stops over the surface fill. */
+  sheen: readonly [string, string];
+  sheenHeight: number;
+  /** `--o-sheen-control`, the 40px version on a control face. */
+  sheenControl: readonly [string, string];
+  sheenControlHeight: number;
+  /** `--o-accent-face`: the lit-to-shaded wash over a primary button. */
+  accentFace: readonly [string, string];
+  /** `--o-edge-top/side/bottom`: one border cannot say top-lit, bottom-dark. */
+  edgeTop: string;
+  edgeSide: string;
+  edgeBottom: string;
+  /** `--o-badge-face` / `--o-badge-edge`: small icon tiles are struck, not filled. */
+  badgeFace: readonly [string, string];
+  badgeEdge: string;
+};
+
+export const depth: Record<ColorScheme, Depth> = {
+  light: {
+    rim: 'rgba(255,255,255,0.5)',
+    rimControl: 'rgba(255,255,255,0.75)',
+    sheen: ['rgba(255,255,255,0.5)', 'rgba(255,255,255,0)'],
+    sheenHeight: 140,
+    sheenControl: ['rgba(255,255,255,0.55)', 'rgba(255,255,255,0)'],
+    sheenControlHeight: 40,
+    accentFace: ['rgba(255,255,255,0.10)', 'rgba(0,0,0,0.07)'],
+    edgeTop: 'rgba(28,25,23,0.09)',
+    edgeSide: 'rgba(28,25,23,0.13)',
+    edgeBottom: 'rgba(28,25,23,0.19)',
+    badgeFace: ['#FFFFFF', '#F6F2ED'],
+    badgeEdge: 'rgba(28,25,23,0.10)',
+  },
+  dark: {
+    rim: 'rgba(255,255,255,0.18)',
+    rimControl: 'rgba(255,255,255,0.20)',
+    sheen: ['rgba(255,255,255,0.025)', 'rgba(255,255,255,0)'],
+    sheenHeight: 140,
+    sheenControl: ['rgba(255,255,255,0.05)', 'rgba(255,255,255,0)'],
+    sheenControlHeight: 40,
+    accentFace: ['rgba(255,255,255,0.10)', 'rgba(0,0,0,0.07)'],
+    edgeTop: 'rgba(255,255,255,0.14)',
+    edgeSide: 'rgba(255,255,255,0.07)',
+    edgeBottom: 'rgba(0,0,0,0.45)',
+    badgeFace: ['#262C34', '#171B20'],
+    badgeEdge: 'rgba(255,255,255,0.07)',
+  },
+};
+
+/** `--o-accent-tint`: the accent mixed 7% into the surface, for chips. */
+const accentTint = (accent: string, scheme: ColorScheme): string => {
+  const hex = accent.replace('#', '');
+  const value = parseInt(hex.length === 3 ? hex.split('').map((c) => c + c).join('') : hex, 16);
+  const [r, g, b] = [(value >> 16) & 255, (value >> 8) & 255, value & 255];
+  // Dark surfaces need a touch more of the accent to read as tinted at all.
+  return `rgba(${r},${g},${b},${scheme === 'dark' ? 0.16 : 0.09})`;
 };
 
 export type ThemeTokens = {
@@ -143,10 +215,13 @@ export type ThemeTokens = {
     /** `--o-role-*`, used for confidence bands on Review issues. */
     roleVerb: string;
     roleNoun: string;
+    roleAdjective: string;
     roleAdverb: string;
     danger: string;
     dangerSurface: string;
     informational: string;
+    /** `--o-accent-tint`, the chip background. */
+    accentTint: string;
   };
   spacing: {small: number; medium: number; large: number};
   radius: {card: number; control: number};
@@ -154,7 +229,8 @@ export type ThemeTokens = {
   fontSizes: typeof fontSizes;
   fontWeights: typeof fontWeights;
   metrics: typeof metrics;
-  elevation: {card: Shadow; raised: Shadow};
+  elevation: {card: Shadow; raised: Shadow; control: Shadow};
+  depth: Depth;
 };
 
 export const tokensFor = (scheme: ColorScheme, preset: PalettePreset = 'editorial'): ThemeTokens => {
@@ -185,10 +261,12 @@ export const tokensFor = (scheme: ColorScheme, preset: PalettePreset = 'editoria
       attention: surface.attention,
       roleVerb: surface.roleVerb,
       roleNoun: surface.roleNoun,
+      roleAdjective: surface.roleAdjective,
       roleAdverb: surface.roleAdverb,
       danger: surface.critical,
       dangerSurface: surface.surfaceSunken,
       informational: surface.inkMuted,
+      accentTint: accentTint(accent, scheme),
     },
     spacing: {small: 8, medium: 16, large: 24},
     radius: {card: radii.card, control: radii.field},
@@ -197,5 +275,6 @@ export const tokensFor = (scheme: ColorScheme, preset: PalettePreset = 'editoria
     fontWeights,
     metrics,
     elevation: elevation[scheme],
+    depth: depth[scheme],
   };
 };

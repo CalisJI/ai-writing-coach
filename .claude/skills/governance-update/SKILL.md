@@ -1,6 +1,6 @@
 ---
 name: governance-update
-description: Update the docs/project governance files (PROJECT_STATE, CURRENT_HANDOFF, DECISION_LOG, ARCHITECTURE_INVARIANTS, ROADMAP) under the AGENTS.md §14 protocol. Use whenever verified project state, active handoff, a durable decision, an invariant, or roadmap status needs to change.
+description: Apply Orena's repository-memory transaction when verified state, handoff, a durable decision, an invariant, or roadmap status changes.
 disable-model-invocation: true
 ---
 
@@ -11,8 +11,11 @@ right file, do not scatter the same fact across all of them.
 
 | File | Change it when |
 | --- | --- |
+| `CURRENT_PRODUCT_STATE.yaml` | Compact verified current truth changes; keep the schema valid. |
+| `PRODUCT_CONSTITUTION.md` | Only explicit human authorization changes durable product intent. |
+| `LEGACY_TOMBSTONES.md` | Only explicit human authorization retires/supersedes a direction. |
 | `PROJECT_STATE.md` | A fact is **verified** by implementation, tests, operations evidence, or an accepted Git checkpoint. |
-| `CURRENT_HANDOFF.md` | Active stage, ownership, status, human-gate state, or next checkpoint materially changed. |
+| `CURRENT_HANDOFF.md` | Current lane, status, blockers, gates, or exact next task changed; keep compact. |
 | `DECISION_LOG.md` | A durable product or architecture decision changed — **append**, never rewrite. |
 | `ARCHITECTURE_INVARIANTS.md` | An explicit accepted decision supersedes an invariant. |
 | `ROADMAP.md` | An approved roadmap or status transition. |
@@ -43,5 +46,5 @@ right file, do not scatter the same fact across all of them.
 
 Keep cross-references between the files internally consistent. Report which
 files changed and why each one, and whether a Decision Log entry was required.
-Do not commit unless asked; stage only the governance files belonging to this
-change.
+Run `python scripts/validate_project_memory.py`. Do not commit unless asked;
+stage only the governance files belonging to this change.

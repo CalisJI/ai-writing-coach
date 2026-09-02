@@ -24,14 +24,39 @@ export class ApiError extends Error {
    * "temporarily unavailable" with nothing to debug.
    */
   readonly invalidFields?: readonly string[];
+  /**
+   * The server's own error category from the canonical envelope
+   * (`{detail: {category, message, retryable, context}}`, api.js's §2.6 note).
+   *
+   * The HTTP-status-derived `category` above cannot tell an evaluator outage
+   * from a stale parent essay -- both are just "request_rejected"/"server_
+   * unavailable" -- but Writing has to branch on exactly that difference the
+   * way the web does: a `parent_essay_not_found` 404 retries as a fresh entry
+   * instead of losing the learner's text.
+   */
+  readonly serverCategory?: string;
 
-  constructor(category: ApiErrorCategory, message: string, status?: number, invalidFields?: readonly string[]) {
+  constructor(category: ApiErrorCategory, message: string, status?: number, invalidFields?: readonly string[], serverCategory?: string) {
     super(message);
     this.name = 'ApiError';
     this.category = category;
     this.status = status;
     this.invalidFields = invalidFields;
+    this.serverCategory = serverCategory;
   }
+}
+
+/** The canonical error envelope's `category` and human message, when present. */
+export function serverErrorEnvelope(body: unknown): {category?: string; message?: string} {
+  const detail = (body as {detail?: unknown} | null | undefined)?.detail;
+  if (!detail || typeof detail !== 'object' || Array.isArray(detail)) {
+    return typeof detail === 'string' ? {message: detail} : {};
+  }
+  const record = detail as {category?: unknown; message?: unknown};
+  return {
+    category: typeof record.category === 'string' && record.category.trim() ? record.category.trim() : undefined,
+    message: typeof record.message === 'string' && record.message.trim() ? record.message.trim() : undefined,
+  };
 }
 
 /** Field paths from a zod error, with no values attached. */

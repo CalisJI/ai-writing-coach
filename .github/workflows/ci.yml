@@ -9,6 +9,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+        with:
+          # validate_project_memory.py resolves
+          # last_verified_application_commit with `git cat-file`. The default
+          # shallow fetch has no older history, so the check would fail on a
+          # commit that is present in the repository.
+          fetch-depth: 0
       - uses: actions/setup-python@v6
         with:
           python-version: '3.12'
@@ -17,6 +23,7 @@ jobs:
           node-version: '24'
       - run: pip install -r requirements.txt pytest
       - run: python -m nltk.downloader -q averaged_perceptron_tagger_eng
+      - run: python scripts/validate_project_memory.py
       - run: python scripts/validate_architecture.py
       - run: node --experimental-vm-modules scripts/validate_browser_esm_graph.mjs
       - run: |
@@ -29,6 +36,7 @@ jobs:
           node scripts/test_active_listening.mjs
           node scripts/test_shadowing_practice.mjs
           node scripts/test_media_learning_quality.mjs
+          node scripts/test_real_media_catalog_contract.mjs
       - run: python -m pytest -q test_app.py tests
         env:
           PERSISTENCE_BACKEND: sqlite

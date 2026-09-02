@@ -813,3 +813,144 @@ key makes stored credentials unreadable until an approved key-recovery plan is
 executed.
 
 **Supersedes / Superseded by:** Supersedes no earlier decision.
+
+## D-038 - Listening is content-first over one canonical Media Learning engine
+
+**Status:** Accepted
+
+**Decision:** The primary Listening entry is a curated, topic- and level-aware
+content library. Learner-imported media remains available under My Media as a
+secondary source. Curated excerpts and imported assets both resolve to the
+existing canonical Media Learning Object, timestamped transcript segments, and
+the same Listening workspace; Listen, Active Listening, Dictation, Shadowing,
+progress, and Speaking handoff are modes over that shared identity rather than
+separate players or transcript stores. A source may own multiple curated
+excerpt identities, each with explicit start/end bounds and provenance, while
+the canonical media object continues to own transcript content.
+
+**Reason:** Requiring a learner to find and paste a URL before Listening has
+value makes acquisition tooling the product. A curated library gives the
+learner something useful immediately, while one shared engine prevents curated
+and imported media from drifting into unequal learning experiences.
+
+**Consequences:** Curated catalog listings stay metadata-light and load the
+full media/transcript only when a lesson opens. Excerpt duration follows a
+complete learning idea instead of a fixed timer. Built-in content requires
+explicit rights/provenance metadata and verified timing; absent internal timing
+must not be fabricated. EN and ZH, web and native, and resume/handoff contracts
+must remain aligned. Catalog publication, broad content licensing approval,
+and R11 public promotion remain human gates; this decision does not publish a
+lesson or activate a provider.
+
+**Supersedes / Superseded by:** Extends D-005, D-017, D-029, D-032, D-033,
+and D-036. Supersedes the former Listening landing hierarchy in which media
+URL import was the primary action, but does not supersede the canonical Media
+Learning architecture.
+
+## D-039 - Listening catalog publication is manifest-driven and rights-gated
+
+**Status:** Accepted
+
+**Decision:** Built-in Listening content is registered in a versioned catalog
+manifest that keeps canonical source media and transcript segments separate
+from curated excerpt lessons. A source may back multiple lesson identities;
+lessons reference the source's canonical segments and add only excerpt,
+discovery, level, lifecycle, and pedagogical metadata. Only `PUBLISHED` lessons
+whose source rights have been explicitly reviewed may be returned to learners.
+Both `estimated_level` and its evidence are retained, while an editorial
+`reviewed_level`, when present, is the displayed canonical level.
+
+**Reason:** Product content must be curatable without changing a React screen,
+must preserve the one-source-to-many-excerpts model, and must not turn unsafe or
+unreviewed external media into built-in catalog content. Separating source and
+lesson records also prevents transcript duplication and keeps level decisions
+explainable and overridable.
+
+**Consequences:** Topic and tag taxonomies can expand through catalog data;
+catalog listing remains metadata-light; full transcript/media payloads load
+only when a lesson opens. Editors can move content through draft, processing,
+review, ready, published, and archived states, but publication, licensing
+approval, and public Listening promotion remain human gates. This decision does
+not create a production CMS, publish third-party copyrighted content, or alter
+learner-import policy.
+
+**Supersedes / Superseded by:** Extends D-038 and the canonical Media Learning
+decisions it references. Supersedes no earlier decision.
+
+## D-040 - Orena direction is restored from repository-backed project memory
+
+**Status:** Accepted
+
+**Decision:** Orena is the canonical active product identity and `/` is its
+canonical web route. `/becoming` is compatibility-only. Historical
+BECOMING-named files, directories, symbols, database identifiers, and archived
+evidence may remain where technically required but do not define current
+product direction. The approved responsive Orena web product is the visual,
+functional, and interaction source of truth; native mobile is a full native
+port, not an independent redesign or simplified edition.
+
+Current project direction and execution state are restored from the bounded
+repository-backed memory rooted at `docs/project/PROJECT_MEMORY.md`. Agent chat
+history is never authoritative project state. Durable product intent is
+human-governed; machine-readable current truth is schema-validated; retired
+directions are tombstoned; and every verified batch runs the project-memory
+validator before commit.
+
+**Reason:** Multi-agent sessions lose chat context and were repeatedly reviving
+obsolete routes, names, design assumptions, and stale roadmap paths. A compact,
+versioned, machine-enforced repository memory lets a zero-context session
+recover the active product, current state, retired directions, human gates, and
+exact next task without loading all historical documents.
+
+**Consequences:** `PRODUCT_CONSTITUTION.md`, fundamental
+`DESIGN_CONTRACT.md` principles, and `LEGACY_TOMBSTONES.md` are human-governed.
+`CURRENT_PRODUCT_STATE.yaml` accepts only its validated schema. The compact
+`CURRENT_HANDOFF.md` no longer carries historical closeouts. CI fails on active
+navigation to `/becoming`, learner-facing BECOMING branding, route/state
+contradictions, EN/ZH parity loss, independent-native-redesign state, or missing
+memory contracts. Valid legacy technical namespaces and compatibility redirect
+tests remain allowed.
+
+**Supersedes / Superseded by:** Extends D-013 and supersedes any interpretation
+that chat history, human recollection, legacy filenames, or the old route is the
+primary source of current project direction. It does not supersede valid
+historical implementation contracts recorded by D-014 through D-039.
+
+## D-041 - Skill state is seven independent truths, and a Listening engine is not a Listening catalog
+
+**Status:** Accepted
+
+**Decision:** `CURRENT_PRODUCT_STATE.yaml` records each learner skill as seven
+independent dimensions - implementation, local acceptance, pre-public matrix,
+learner visibility, content readiness, human acceptance, and public release -
+instead of one collapsed status enum. Listening additionally carries a
+`real_media_catalog` block holding its own readiness, per-language real playable
+evidence, human playback acceptance, and catalog publication state. Seed, mock,
+or synthetic content is never real-content completion evidence.
+
+**Reason:** The single per-skill enum (`development` /
+`pre_public_matrix_complete` / `public`) collapsed distinct verified truths into
+one misleading value, in both directions. Reading `development` for locally
+completed Writing, Speaking, and Reading invited a fresh agent to rebuild work
+that R3/R4, R6/R7/R9, and R10 had already closed with local acceptance passes.
+Reading `pre_public_matrix_complete` for Listening implied a finished product,
+when human QA confirmed the built-in lessons remain seed/synthetic, real source
+video playback has not been accepted, and cards can present text with no
+meaningful real video. Behavioural completeness and content completeness are
+different facts and now have different fields.
+
+**Consequences:** `release_state` keeps only genuinely global release facts;
+per-skill status lives in `skills.state`. The validator enforces that public
+visibility requires an approved public release, that release requires human
+acceptance, that seed/mock content can never carry real playable evidence,
+human acceptance, or publication, that a complete real catalog requires real
+playable EN *and* ZH evidence plus human playback acceptance, and that
+`skills.state.listening.content_readiness` cannot drift from
+`listening.real_media_catalog.status`. Completed local work paired with
+`internal` visibility is an explicitly valid state and must not be read as
+missing. The memory schema version moves to 1.1.
+
+**Supersedes / Superseded by:** Supersedes the collapsed per-skill
+`release_state` enum introduced with D-040. It does not modify D-040's memory
+topology, precedence model, or governance ownership, and supersedes no
+implementation contract.

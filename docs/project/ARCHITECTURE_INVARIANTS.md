@@ -19,6 +19,9 @@ entry, and corresponding current-state and handoff updates.
 
 ## Frontend
 
+- Orena is the active product identity and `/` is the canonical learner route.
+  `/becoming` is compatibility-only; legacy BECOMING-named filesystem
+  namespaces do not define product direction.
 - `BECOMING_FRONTEND_VERSION` remains exactly `2.17.5` until an explicitly
   scoped, reviewed change updates it.
 - Backend and architecture tasks do not casually touch frontend code or assets.
@@ -93,6 +96,9 @@ entry, and corresponding current-state and handoff updates.
 
 ## Mobile
 
+- The approved responsive Orena web product is the visual, functional, and
+  interaction source of truth. Native is a full native port of that product,
+  not an independent redesign or simplified edition.
 - docs/project/MOBILE_IMPLEMENTATION_SPEC.md is the canonical implementation
   contract for R19-R21. Mobile implementation and review must not contradict it
   without an explicit accepted architecture decision.

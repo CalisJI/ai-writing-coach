@@ -38,7 +38,7 @@ const config: ExpoConfig = {
   experiments: {
     typedRoutes: true,
   },
-  plugins: ['expo-router', 'expo-secure-store', ['expo-audio', {microphonePermission: 'Orena uses the microphone only for temporary speaking practice.'}]],
+  plugins: ['expo-router', 'expo-secure-store', ['expo-audio', {microphonePermission: 'Orena uses the microphone only for temporary speaking practice.'}], 'expo-video'],
   extra: {
     apiBaseUrl: process.env.EXPO_PUBLIC_API_BASE_URL ?? '',
     appEnv: process.env.EXPO_PUBLIC_APP_ENV ?? 'development',

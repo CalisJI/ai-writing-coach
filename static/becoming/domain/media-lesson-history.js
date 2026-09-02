@@ -44,26 +44,28 @@ function writeAll(value) {
 }
 
 function usable(entry) {
-  if (!entry || typeof entry.source_url !== 'string' || !entry.source_url) return false;
+  if (!entry || (!(typeof entry.source_url === 'string' && entry.source_url) && !(typeof entry.lesson_id === 'string' && entry.lesson_id))) return false;
   const savedAt = Number(entry.saved_at);
   return Number.isFinite(savedAt) && Date.now() - savedAt <= MAX_AGE_MS;
 }
 
-const validModes = new Set(['follow', 'active', 'shadowing']);
+const validModes = new Set(['follow', 'active', 'dictation', 'shadowing']);
 
-export function rememberMediaLesson({ learning_language = '', source_url = '', title = '', provider = '', selected_segment_id = '', mode = '' } = {}) {
+export function rememberMediaLesson({ learning_language = '', source_url = '', lesson_id = '', title = '', provider = '', selected_segment_id = '', mode = '' } = {}) {
   const key = languageKey(learning_language);
   const url = cleanText(source_url, 400);
-  if (!key || !url) return false;
+  const lessonId = cleanText(lesson_id, 128);
+  if (!key || (!url && !lessonId)) return false;
 
   const all = readAll();
   const existing = Array.isArray(all[key]) ? all[key].filter(usable) : [];
-  const previous = existing.find(entry => entry.source_url === url);
+  const previous = existing.find(entry => lessonId ? entry.lesson_id === lessonId : !entry.lesson_id && entry.source_url === url);
   const segment = cleanText(selected_segment_id, 255) || (previous ? previous.selected_segment_id : '');
   const selectedMode = validModes.has(mode) ? mode : (previous && validModes.has(previous.mode) ? previous.mode : 'follow');
 
   const entry = {
     source_url: url,
+    lesson_id: lessonId,
     // Keep the older title if this import did not carry one, so a re-import
     // never downgrades a named lesson to a bare URL.
     title: cleanText(title, 160) || (previous ? previous.title : ''),
@@ -73,7 +75,7 @@ export function rememberMediaLesson({ learning_language = '', source_url = '', t
     saved_at: Date.now(),
   };
 
-  all[key] = [entry, ...existing.filter(item => item.source_url !== url)].slice(0, MAX_PER_LANGUAGE);
+  all[key] = [entry, ...existing.filter(item => lessonId ? item.lesson_id !== lessonId : item.lesson_id || item.source_url !== url)].slice(0, MAX_PER_LANGUAGE);
   return writeAll(all);
 }
 
@@ -113,10 +115,11 @@ const AUTOSTART_KEY = 'orena.listen-autostart.v1';
 export function requestLessonAutostart(learningLanguage = '', sourceUrl = '', context = {}) {
   const key = languageKey(learningLanguage);
   const url = cleanText(sourceUrl, 400);
-  if (!key || !url) return false;
+  const lessonId = cleanText(context.lesson_id, 128);
+  if (!key || (!url && !lessonId)) return false;
   try {
     sessionStorage.setItem(AUTOSTART_KEY, JSON.stringify({
-      key, url, at: Date.now(),
+      key, url, lesson_id: lessonId, at: Date.now(),
       selected_segment_id: cleanText(context.selected_segment_id, 255),
       mode: validModes.has(context.mode) ? context.mode : '',
     }));
@@ -147,9 +150,12 @@ export function takeLessonAutostartContext(learningLanguage = '') {
     // never hijack a later visit to Listening.
     if (!parsed || parsed.key !== key) return null;
     if (!Number.isFinite(Number(parsed.at)) || Date.now() - Number(parsed.at) > 60000) return null;
-    if (typeof parsed.url !== 'string' || !parsed.url) return null;
+    const url=cleanText(parsed.url,400);
+    const lessonId=cleanText(parsed.lesson_id,128);
+    if (!url && !lessonId) return null;
     return {
-      source_url: parsed.url,
+      source_url: url,
+      lesson_id: lessonId,
       selected_segment_id: cleanText(parsed.selected_segment_id, 255),
       mode: validModes.has(parsed.mode) ? parsed.mode : 'follow',
     };
@@ -178,6 +184,7 @@ export function resumableLesson(learningLanguage = '', windowMs = RESUME_WINDOW_
   if (!Number.isFinite(savedAt) || Date.now() - savedAt > windowMs) return null;
   return {
     source_url: newest.source_url,
+    lesson_id: cleanText(newest.lesson_id, 128),
     title: newest.title || '',
     selected_segment_id: cleanText(newest.selected_segment_id, 255),
     mode: validModes.has(newest.mode) ? newest.mode : 'follow',

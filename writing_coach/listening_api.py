@@ -9,11 +9,32 @@ from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 
 from writing_coach.core.errors import orena_http_error
+from writing_coach.core.request_context import current_language_code
+from writing_coach.listening_catalog import (
+    catalog_lesson,
+    catalog_lessons,
+    lesson_metadata,
+    translated_media_object,
+)
+from writing_coach.media_api import serialize_media_acquisition
+from writing_coach.media_ingestion import MediaAcquisition
 from writing_coach.persistence.specialized_repository import SpecializedLearningRepository
 
 
 router = APIRouter(prefix="/api/listening", tags=["listening"])
 _repository: SpecializedLearningRepository | None = None
+_DISCOVERY_SECTION_ORDER = (
+    "continue-learning",
+    "recommended",
+    "quick-practice",
+    "dictation",
+    "popular",
+    "new",
+    "beginner",
+    "intermediate",
+    "advanced",
+    "needs-review",
+)
 
 
 class ListeningProgressIn(BaseModel):
@@ -53,6 +74,72 @@ def _clean_identity(value: str, field: str) -> str:
     if not cleaned:
         raise orena_http_error(422, "listening_progress_invalid", f"{field} must not be empty.")
     return cleaned
+
+
+@router.get("/library")
+def listening_library(
+    language: str | None = Query(default=None, min_length=2, max_length=32),
+    level: str | None = Query(default=None, min_length=1, max_length=32),
+    topic: str | None = Query(default=None, min_length=1, max_length=64),
+    tag: str | None = Query(default=None, min_length=1, max_length=64),
+) -> dict[str, Any]:
+    """Return lightweight discovery metadata; transcripts load per lesson."""
+    selected_language = (language or current_language_code()).strip().casefold()
+    items = catalog_lessons(language=selected_language, level=level, topic=topic, tag=tag)
+    item_metadata = [lesson_metadata(lesson) for lesson in items]
+    sections = [
+        {
+            "id": section_id,
+            "item_ids": [lesson.lesson_id for lesson in items if section_id in lesson.sections],
+        }
+        for section_id in _DISCOVERY_SECTION_ORDER
+    ]
+    return {
+        "items": item_metadata,
+        "sections": [section for section in sections if section["item_ids"]],
+        "topics": sorted({lesson.topic for lesson in items}),
+        "tags": sorted({tag for lesson in items for tag in lesson.content_tags}),
+        "filters": {
+            "language": selected_language,
+            "levels": sorted({lesson.level for lesson in items}),
+            "topics": sorted({lesson.topic for lesson in items}),
+            "tags": sorted({tag for lesson in items for tag in lesson.content_tags}),
+            "practice_modes": sorted({mode for lesson in items for mode in lesson.available_modes}),
+        },
+        "personalization": "deterministic-curation",
+    }
+
+
+@router.get("/library/{lesson_id}")
+def open_listening_library_lesson(
+    lesson_id: str,
+    target_language: str = Query(default="vi", min_length=2, max_length=32),
+) -> dict[str, Any]:
+    """Resolve a curated excerpt into the universal Media Learning payload."""
+    lesson = catalog_lesson(lesson_id)
+    if lesson is None:
+        raise orena_http_error(404, "listening_lesson_not_found", "This Listening lesson is unavailable.")
+    media_object = translated_media_object(lesson, target_language)
+    response = serialize_media_acquisition(MediaAcquisition(media_object, lesson.playback))
+    response["translation"] = {
+        "status": "ready" if media_object.translations else (
+            "not_required"
+            if target_language.strip().casefold() == media_object.asset.source_language.casefold()
+            else "unavailable"
+        ),
+        "target_language": target_language.strip().casefold(),
+        "source": {
+            "capability_key": None,
+            "provider": "curated-editorial",
+            "model": None,
+            "request_count": 0,
+        },
+        "failure_kind": None,
+    }
+    metadata = lesson_metadata(lesson)
+    metadata["pinyin_by_segment"] = dict(lesson.pinyin_by_segment)
+    response["catalog"] = metadata
+    return response
 
 
 @router.get("/progress")

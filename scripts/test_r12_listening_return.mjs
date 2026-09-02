@@ -96,6 +96,29 @@ try{
     assert.equal(listening.model.mode,item.mode,`${item.language} restores the saved practice mode`);
   }
 
+  state.language='en';state.supportLanguage='vi';state.me={id:'learner-r12-curated'};
+  storage.clear();session.clear();clearSharedMediaSession('en');
+  const curated={...MEDIA_LEARNING_FIXTURE,catalog:{lesson_id:'en-curated-resume',topic:'daily-life',pinyin_by_segment:{}}};
+  rememberMediaLesson({learning_language:'en',source_url:curated.asset.source_url,lesson_id:'en-curated-resume',title:'Curated return',provider:'wikimedia-commons',selected_segment_id:'segment-002',mode:'dictation'});
+  const curatedHome=homeRoot();
+  await renderHome(curatedHome);
+  const curatedButton=curatedHome.querySelectorAll('[data-home-resume-listening]')[0];
+  assert.ok(curatedButton,'Home offers a curated Listening return cue');
+  await curatedButton.click();
+  const curatedListening=await renderListening(listeningRoot(),{
+    importMedia:async()=>{throw new Error('curated resume must not enter URL import');},
+    openLibraryLesson:async lessonId=>{assert.equal(lessonId,'en-curated-resume');return curated;},
+    loadLibrary:async()=>({items:[],topics:[],sections:[]}),
+    targetLanguage:()=> 'vi',
+    loadListeningProgress:async()=>({items:[]}),
+    loadShadowingProgress:async()=>({items:[]}),
+  });
+  await new Promise(resolve=>setTimeout(resolve,0));
+  await new Promise(resolve=>setTimeout(resolve,0));
+  assert.equal(curatedListening.model.status,'ready');
+  assert.equal(curatedListening.model.selected,'segment-002');
+  assert.equal(curatedListening.model.mode,'dictation');
+
   for(const item of [
     {language:'en',payload:MEDIA_LEARNING_FIXTURE,old:Date.now()-91*24*60*60*1000},
     {language:'zh',payload:MEDIA_LEARNING_ZH_FIXTURE,old:Date.now()-2*60*60*1000},

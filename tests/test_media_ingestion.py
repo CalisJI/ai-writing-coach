@@ -716,7 +716,7 @@ def test_application_registers_the_agreed_authenticated_import_route() -> None:
 
 def test_canonical_state_marks_m15_and_m16_closed() -> None:
     project_state = (ROOT / "docs/project/PROJECT_STATE.md").read_text(encoding="utf-8")
-    handoff = (ROOT / "docs/project/CURRENT_HANDOFF.md").read_text(encoding="utf-8")
+    handoff = (ROOT / "docs/project/archive/HANDOFF_BEFORE_PROJECT_MEMORY.md").read_text(encoding="utf-8")
     roadmap = (ROOT / "docs/project/ROADMAP.md").read_text(encoding="utf-8")
     normalized_state = " ".join(project_state.split()).casefold()
     normalized_handoff = " ".join(handoff.split()).casefold()

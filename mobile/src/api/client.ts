@@ -1,12 +1,12 @@
 import {configuredApiBaseUrl, normalizeApiBaseUrl} from './config';
-import {ApiError, normalizeUnknownError, invalidFieldsOf} from './errors';
+import {ApiError, normalizeUnknownError, invalidFieldsOf, serverErrorEnvelope} from './errors';
 import {logoutResponseSchema, nativeSessionExchangeSchema, type NativeSessionExchange} from './contracts/nativeAuth';
 import {sessionBootstrapSchema, type SessionBootstrap} from './contracts/session';
 import {compactMediaStatusSchema, strokeOrderSchema, type CompactMediaStatus, type StrokeOrder} from './contracts/reference';
-import {crossSkillCueSchema, essayDetailSchema, evaluationInputSchema, evaluationResultSchema, essaysListSchema, freeTaskSchema, generateTaskInputSchema, grammarLibrarySchema, grammarLessonDetailSchema, grammarPracticeSchema, journeyDashboardSchema, journeyOutcomesSchema, learnerProfileSchema, learnerProfileInputSchema, learningLanguageSchema, learningMemorySchema, practiceOutcomeResponseSchema, practiceRecommendationSchema, practiceTaskSchema, reviewCueSchema, type CrossSkillCue, type EssayDetail, type EssaySummary, type EvaluationInput, type EvaluationResult, type FreeTask, type GenerateTaskInput, type GrammarLibrary, type GrammarLessonDetail, type GrammarPractice, type JourneyDashboard, type JourneyOutcomes, type LearnerProfile, type LearnerProfileInput, type LearningLanguage, type LearningMemory, type PracticeOutcomeResponse, type PracticeRecommendation, type PracticeTask, type ReviewCue} from './contracts/learning';
+import {crossSkillCueSchema, essayDetailSchema, improveInputSchema, improveResultSchema, linguisticAnnotationsSchema, type ImproveInput, type ImproveResult, type LinguisticAnnotations, evaluationInputSchema, evaluationResultSchema, essaysListSchema, freeTaskSchema, generateTaskInputSchema, grammarLibrarySchema, grammarLessonDetailSchema, grammarPracticeSchema, journeyDashboardSchema, journeyOutcomesSchema, learnerProfileSchema, learnerProfileInputSchema, learningLanguageSchema, learningMemorySchema, practiceOutcomeResponseSchema, practiceRecommendationSchema, practiceTaskSchema, reviewCueSchema, type CrossSkillCue, type EssayDetail, type EssaySummary, type EvaluationInput, type EvaluationResult, type FreeTask, type GenerateTaskInput, type GrammarLibrary, type GrammarLessonDetail, type GrammarPractice, type JourneyDashboard, type JourneyOutcomes, type LearnerProfile, type LearnerProfileInput, type LearningLanguage, type LearningMemory, type PracticeOutcomeResponse, type PracticeRecommendation, type PracticeTask, type ReviewCue} from './contracts/learning';
 import {readingAnswerResultSchema, readingGenerateInputSchema, readingSessionResponseSchema, readingSessionSchema, readingSessionsSchema, type ReadingAnswerResult, type ReadingGenerateInput, type ReadingSession, type ReadingSessions} from './contracts/reading';
 import {dictionaryInputSchema, dictionaryResultSchema, librarySchema, saveLibraryInputSchema, saveLibraryResultSchema, type DictionaryInput, type DictionaryResult} from './contracts/library';
-import {listeningProgressListSchema, listeningProgressResponseSchema, mediaImportInputSchema, mediaLessonSchema, type ListeningProgressInput, type MediaImportInput, type MediaLesson} from './contracts/listening';
+import {listeningLibrarySchema, listeningProgressListSchema, listeningProgressResponseSchema, mediaImportInputSchema, mediaLessonSchema, mediaTranslationInputSchema, mediaTranslationResultSchema, shadowingProgressInputSchema, shadowingProgressListSchema, shadowingProgressResponseSchema, type ListeningLibrary, type ListeningProgressInput, type MediaImportInput, type MediaLesson, type MediaTranslationInput, type MediaTranslationResult, type ShadowingProgressInput} from './contracts/listening';
 import {speechAttemptResponseSchema, speechEvaluationSchema, speechTranscriptionSchema, type SpeechEvaluation, type SpeechAttemptResponse, type SpeechTranscription} from './contracts/speech';
 import {productAccountStateSchema, type ProductAccountState} from './contracts/product';
 import {skillReleaseSchema, type SkillRelease} from './contracts/skills';
@@ -80,7 +80,7 @@ export class ApiClient {
       if (!etag) throw new ApiError('invalid_response', 'Invalid server response', response.status);
       return {kind: 'not_modified', etag, cacheControl};
     }
-    this.throwForResponse(response);
+    await this.throwForResponse(response);
     let body: unknown;
     try { body = await response.json(); } catch { throw new ApiError('invalid_response', 'Invalid server response', response.status); }
     try {
@@ -144,6 +144,10 @@ export class ApiClient {
   async listPracticeOutcomes(limit = 20, options: RequestOptions = {}): Promise<JourneyOutcomes> { if (!Number.isInteger(limit) || limit < 1 || limit > 100) throw new ApiError('request_rejected', 'Practice outcome limit is invalid'); return this.request(`/api/practice-outcomes?limit=${encodeURIComponent(limit)}`, options, journeyOutcomesSchema.parse); }
   async listEssays(options: RequestOptions = {}): Promise<EssaySummary[]> { return this.request('/api/essays', options, essaysListSchema.parse); }
   async getEssay(id: number, options: RequestOptions = {}): Promise<EssayDetail> { if (!Number.isInteger(id) || id < 1) throw new ApiError('request_rejected', 'Essay is invalid'); return this.request(`/api/essays/${id}`, options, essayDetailSchema.parse); }
+  /** POST /api/improve -- Review's compare-a-polished-version dialog. */
+  async improveWriting(input: ImproveInput, options: RequestOptions = {}): Promise<ImproveResult> { let payload: ImproveInput; try { payload = improveInputSchema.parse(input); } catch { throw new ApiError('request_rejected', 'Improvement request was invalid'); } return this.request('/api/improve', {timeoutMs: GENERATION_TIMEOUT_MS, ...options}, improveResultSchema.parse, 'POST', payload); }
+  /** POST /api/essays/{id}/linguistic-annotations -- Review's word-role lens. */
+  async getLinguisticAnnotations(essayId: number, options: RequestOptions = {}): Promise<LinguisticAnnotations> { if (!Number.isInteger(essayId) || essayId < 1) throw new ApiError('request_rejected', 'Essay is invalid'); return this.request(`/api/essays/${essayId}/linguistic-annotations`, {timeoutMs: GENERATION_TIMEOUT_MS, ...options}, linguisticAnnotationsSchema.parse, 'POST'); }
   async getCrossSkillCue(options: RequestOptions = {}): Promise<CrossSkillCue> { return this.request('/api/cross-skill-cue', options, crossSkillCueSchema.parse); }
   async getLearningMemory(options: RequestOptions = {}): Promise<LearningMemory> { return this.request('/api/learning-memory', options, learningMemorySchema.parse); }
   async listReadingSessions(limit = 8, options: RequestOptions = {}): Promise<ReadingSessions> { if (!Number.isInteger(limit) || limit < 1 || limit > 50) throw new ApiError('request_rejected', 'Reading session limit is invalid'); return this.request(`/api/reading/sessions?limit=${encodeURIComponent(limit)}`, options, readingSessionsSchema.parse); }
@@ -163,12 +167,38 @@ export class ApiClient {
     try { payload = mediaImportInputSchema.parse(input); } catch { throw new ApiError('request_rejected', 'Media lesson request was invalid'); }
     return this.request('/api/media-learning/import', options, mediaLessonSchema.parse, 'POST', payload);
   }
+  async listeningLibrary(language: 'en' | 'zh', options: RequestOptions = {}): Promise<ListeningLibrary> {
+    return this.request(`/api/listening/library?language=${encodeURIComponent(language)}`, options, listeningLibrarySchema.parse);
+  }
+  async listeningLibraryLesson(lessonId: string, targetLanguage: string, options: RequestOptions = {}): Promise<MediaLesson> {
+    return this.request(`/api/listening/library/${encodeURIComponent(lessonId)}?target_language=${encodeURIComponent(targetLanguage)}`, options, mediaLessonSchema.parse);
+  }
+  /**
+   * POST /api/media-learning/translate. Import acquires the media; this
+   * translates the transcript it already produced. listening.js keeps them
+   * apart deliberately -- a translation that fails or is slow must not cost the
+   * learner the transcript, which is already usable on its own.
+   */
+  async translateMedia(input: MediaTranslationInput, options: RequestOptions = {}): Promise<MediaTranslationResult> {
+    let payload: MediaTranslationInput;
+    try { payload = mediaTranslationInputSchema.parse(input); } catch { throw new ApiError('request_rejected', 'Media translation request was invalid'); }
+    return this.request('/api/media-learning/translate', {timeoutMs: GENERATION_TIMEOUT_MS, ...options}, mediaTranslationResultSchema.parse, 'POST', payload);
+  }
   async listListeningProgress(assetId: string, options: RequestOptions = {}): Promise<Awaited<ReturnType<typeof listeningProgressListSchema.parse>>> {
     if (typeof assetId !== 'string' || assetId.trim() === '') throw new ApiError('request_rejected', 'Listening asset is required');
     return this.request(`/api/listening/progress?asset_id=${encodeURIComponent(assetId.trim())}`, options, listeningProgressListSchema.parse);
   }
   async saveListeningProgress(input: ListeningProgressInput, options: RequestOptions = {}): Promise<Awaited<ReturnType<typeof listeningProgressResponseSchema.parse>>> {
     return this.request('/api/listening/progress', options, listeningProgressResponseSchema.parse, 'POST', input);
+  }
+  async listShadowingProgress(assetId: string, options: RequestOptions = {}): Promise<Awaited<ReturnType<typeof shadowingProgressListSchema.parse>>> {
+    if (typeof assetId !== 'string' || assetId.trim() === '') throw new ApiError('request_rejected', 'Shadowing asset is required');
+    return this.request(`/api/listening/shadowing-progress?asset_id=${encodeURIComponent(assetId.trim())}`, options, shadowingProgressListSchema.parse);
+  }
+  async saveShadowingProgress(input: ShadowingProgressInput, options: RequestOptions = {}): Promise<Awaited<ReturnType<typeof shadowingProgressResponseSchema.parse>>> {
+    let payload: ShadowingProgressInput;
+    try { payload = shadowingProgressInputSchema.parse(input); } catch { throw new ApiError('request_rejected', 'Shadowing progress was invalid'); }
+    return this.request('/api/listening/shadowing-progress', options, shadowingProgressResponseSchema.parse, 'POST', payload);
   }
   async transcribeSpeaking(uri: string, language: 'en' | 'zh', options: RequestOptions = {}): Promise<SpeechTranscription> {
     return this.speechUpload('/api/speech/transcribe', uri, language, undefined, {timeoutMs: GENERATION_TIMEOUT_MS, ...options}, speechTranscriptionSchema.parse);
@@ -198,7 +228,7 @@ export class ApiClient {
     payload?: unknown,
   ): Promise<T> {
     const response = await this.rawRequest(path, options, method, payload);
-    this.throwForResponse(response);
+    await this.throwForResponse(response);
     let body: unknown;
     try {
       body = await response.json();
@@ -219,7 +249,7 @@ export class ApiClient {
     form.append('language', language);
     if (referenceText !== undefined) form.append('reference_text', referenceText);
     const response = await this.rawRequest(path, options, 'POST', form);
-    this.throwForResponse(response);
+    await this.throwForResponse(response);
     let body: unknown;
     try { body = await response.json(); } catch { throw new ApiError('invalid_response', 'Invalid server response', response.status); }
     try { return parse(body); } catch (error) { throw new ApiError('invalid_response', 'Invalid server response', response.status, invalidFieldsOf(error)); }
@@ -272,11 +302,21 @@ export class ApiClient {
     }
   }
 
-  private throwForResponse(response: Response): void {
-    if (response.status === 401) throw new ApiError('authentication_required', 'Authentication required', 401);
-    if (response.status === 403) throw new ApiError('permission_denied', 'Permission denied', 403);
-    if (response.status >= 500) throw new ApiError('server_unavailable', 'Server unavailable', response.status);
-    if (!response.ok) throw new ApiError('request_rejected', 'Request rejected', response.status);
+  /**
+   * Reads the canonical error envelope before throwing, so callers can branch on
+   * the server's own category (see ApiError.serverCategory) rather than only on
+   * the HTTP status. The body is read at most once and any parse failure is
+   * ignored -- a missing envelope must never change which error is raised.
+   */
+  private async throwForResponse(response: Response): Promise<void> {
+    if (response.ok) return;
+    let envelope: {category?: string; message?: string} = {};
+    try { envelope = serverErrorEnvelope(await response.json()); } catch { envelope = {}; }
+    const serverCategory = envelope.category;
+    if (response.status === 401) throw new ApiError('authentication_required', 'Authentication required', 401, undefined, serverCategory);
+    if (response.status === 403) throw new ApiError('permission_denied', 'Permission denied', 403, undefined, serverCategory);
+    if (response.status >= 500) throw new ApiError('server_unavailable', 'Server unavailable', response.status, undefined, serverCategory);
+    throw new ApiError('request_rejected', 'Request rejected', response.status, undefined, serverCategory);
   }
 }
 

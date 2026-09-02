@@ -13,7 +13,7 @@ function segmentIds(payload){
 }
 
 function sessionMode(value){
-  return ['follow','active','shadowing'].includes(value)?value:'follow';
+  return ['follow','active','dictation','shadowing'].includes(value)?value:'follow';
 }
 
 export function setSharedMediaSession({learning_language='',payload=null,selected_segment_id=null,mode=null}={}){
@@ -56,7 +56,7 @@ export function selectSharedMediaSegment(learningLanguage='',segmentId=''){
 
 export function setSharedMediaMode(learningLanguage='',mode='follow'){
   const current=sessions.get(languageKey(learningLanguage));
-  if(!current||!['follow','active','shadowing'].includes(mode))return false;
+  if(!current||!['follow','active','dictation','shadowing'].includes(mode))return false;
   current.mode=mode;
   return true;
 }

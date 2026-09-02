@@ -843,8 +843,8 @@ export async function renderHome(root){
     root.querySelector('#dashboardJourneyLink')?.addEventListener('click',()=>go('journey'));
     root.querySelector('#writingDashboardJourneyLink')?.addEventListener('click',()=>go('journey'));
     root.querySelector('[data-home-resume-listening]')?.addEventListener('click',()=>{
-      if(!listeningResume?.source_url)return;
-      requestLessonAutostart(state.language,listeningResume.source_url,listeningResume);
+      if(!listeningResume?.source_url&&!listeningResume?.lesson_id)return;
+      requestLessonAutostart(state.language,listeningResume.source_url||'',listeningResume);
       go('listen');
     });
     root.querySelector('[data-home-listening-goal]')?.addEventListener('click',()=>go('listen'));
@@ -865,8 +865,8 @@ export async function renderHome(root){
         }catch(error){
           root.insertAdjacentHTML('afterbegin',errorBlock(error.message||t('busy.working')));
         }
-      }else if(nextPlan.kind==='listening'&&nextPlan.lesson?.source_url){
-        requestLessonAutostart(state.language,nextPlan.lesson.source_url,nextPlan.lesson);
+      }else if(nextPlan.kind==='listening'&&(nextPlan.lesson?.source_url||nextPlan.lesson?.lesson_id)){
+        requestLessonAutostart(state.language,nextPlan.lesson.source_url||'',nextPlan.lesson);
         go('listen');
       }else if(nextPlan.kind==='reading'){
         try{

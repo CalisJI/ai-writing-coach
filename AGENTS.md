@@ -1,33 +1,38 @@
-# BECOMING — ENGINEERING CONTRACT
+# ORENA — ENGINEERING CONTRACT
 
 ## Project context first
 
-Before editing, every agent must read:
+Every implementation/review agent reads
+[`docs/project/PROJECT_MEMORY.md`](docs/project/PROJECT_MEMORY.md) first and
+follows its bounded startup order:
 
-1. [`docs/project/README.md`](docs/project/README.md)
-2. [`docs/project/PROJECT_STATE.md`](docs/project/PROJECT_STATE.md)
-3. [`docs/project/ARCHITECTURE_INVARIANTS.md`](docs/project/ARCHITECTURE_INVARIANTS.md)
-4. [`docs/project/CURRENT_HANDOFF.md`](docs/project/CURRENT_HANDOFF.md)
-5. [`docs/project/DOMAIN_BOUNDARIES.md`](docs/project/DOMAIN_BOUNDARIES.md)
-6. the relevant section of [`docs/project/ROADMAP.md`](docs/project/ROADMAP.md)
-7. the relevant implementation and tests
+1. `docs/project/PROJECT_MEMORY.md`;
+2. `docs/project/PRODUCT_CONSTITUTION.md`;
+3. `docs/project/CURRENT_PRODUCT_STATE.yaml`;
+4. `docs/project/LEGACY_TOMBSTONES.md`;
+5. `docs/project/CURRENT_HANDOFF.md`;
+6. only the relevant `docs/project/PRODUCT_MAP.md` section;
+7. only the relevant `docs/project/ROADMAP.md` section;
+8. relevant implementation and tests.
 
-Read [`docs/project/DECISION_LOG.md`](docs/project/DECISION_LOG.md) when a task
-changes a durable product or architecture decision. Review work also follows
-[`docs/project/REVIEW_POLICY.md`](docs/project/REVIEW_POLICY.md).
+Read `docs/project/DECISION_LOG.md` only when a durable decision is relevant,
+`docs/project/DESIGN_CONTRACT.md` for UI/native work, and
+`docs/project/REVIEW_POLICY.md` before review or checkpoint acceptance.
+`/resume-orena` performs the bounded restore.
 
-Source-of-truth precedence is:
+Before relying on memory, inspect `git status`, current branch, HEAD, and the
+last five commits. Agent chat history is not authoritative project state.
 
-1. actual repository implementation, tests, and verified Git state;
-2. `PROJECT_STATE.md`;
-3. `CURRENT_HANDOFF.md`;
-4. `ARCHITECTURE_INVARIANTS.md`;
-5. `DECISION_LOG.md`;
-6. `ROADMAP.md`;
-7. older or historical documentation.
+Product intent and implementation fact have different precedence. Follow the
+exact model in `PROJECT_MEMORY.md`. If code contradicts durable product intent,
+implementation is the suspect; report `MEMORY CONTRADICTION` rather than
+rewriting governance to fit code.
 
-If a material contradiction appears, stop and report it. Do not silently pick
-the convenient source or invent a resolution.
+A fresh agent must never infer current direction from directory names, old
+filenames/classes/functions, archived scripts, stale screenshots, deprecated
+routes, historical branch names/docs, or old comments. Orena is the active
+product; `/` is canonical; `/becoming` and BECOMING-named filesystem symbols are
+compatibility/history only.
 
 An application/runtime baseline SHA records the verified state inherited by a
 checkpoint. A newer docs-only or governance-only descendant `main` commit does
@@ -100,7 +105,7 @@ Treat these as PROTECTED unless the current task directly requires them:
 - section gaps;
 - overflow behavior;
 - content/container width primitives;
-- BECOMING frontend v2.17.3;
+- the legacy-named `BECOMING_FRONTEND_VERSION` pin;
 - R5 Grammar Knowledge System contracts, stable Grammar Concept IDs, and shared schema-v2 renderer;
 - `docs/visual-references/**`.
 
@@ -148,7 +153,7 @@ Only stage files belonging to the current coherent change.
 
 ## 8. Docker safety
 
-Only one BECOMING worktree may actively operate the shared Docker runtime/data
+Only one Orena worktree may actively operate the shared Docker runtime/data
 volumes at a time.
 
 Before Docker work:
@@ -173,7 +178,7 @@ Maintain:
 - EN/ZH responsive behavior;
 - light/dark parity;
 - accessibility;
-- existing BECOMING visual identity;
+- existing Orena visual identity;
 - shared tokens and primitives.
 
 Avoid duplicated page-specific shared CSS, nested card stacks, excessive
@@ -197,12 +202,13 @@ features.
 
 ## 11. Core learning flow
 
-Preserve the existing learning flow:
+Preserve Orena as one connected learning system:
 
-Language / Goal → Writing → Submit → AI Analysis → Review → Evidence →
-Revision / Practice → Progress → Journey / Library → Return to Practice
+Listening ↔ Speaking ↔ Reading ↔ Writing, with Library / Active Recall,
+Grammar, Dictionary, Progress, and Media Learning as shared infrastructure.
 
-Changes must not silently disconnect an existing step.
+Changes must not silently disconnect a step or create parallel media,
+progress, dictionary, vocabulary, scoring, or evidence systems.
 
 Shared learner behavior applies to EN and ZH. Use language adapters only for
 genuine linguistic differences, not duplicated product behavior.
@@ -230,7 +236,20 @@ Before treating a direct Python script failure as an application regression,
 check whether Python import-root or `sys.path` behavior caused it. Prefer
 module execution where appropriate.
 
-## 14. Project-context update protocol
+## 14. Project-memory update protocol
+
+Every coherent batch follows IMPLEMENT → TEST → VERIFY → UPDATE PROJECT MEMORY
+IF TRUTH CHANGED → `python scripts/validate_project_memory.py` → COMMIT.
+
+- Treat `PRODUCT_CONSTITUTION.md`, fundamental `DESIGN_CONTRACT.md` principles,
+  and `LEGACY_TOMBSTONES.md` as human-governed. Do not edit them merely to make
+  current code look correct.
+- Update `CURRENT_PRODUCT_STATE.yaml` only after verified current truth changes;
+  its schema rejects arbitrary fields.
+- Keep `CURRENT_HANDOFF.md` compact: branch/lane, last verified batch, DONE, IN
+  PROGRESS, PENDING, BLOCKED, open P0/P1, human gates, exact next task.
+- Follow `PROJECT_MEMORY.md` for the complete memory transaction and
+  intent/fact precedence model.
 
 - Update `PROJECT_STATE.md` only after a fact is verified. Its
   application/runtime baseline SHA is not a moving `main`-HEAD field.
@@ -293,6 +312,8 @@ At completion report:
 - whether `PROJECT_STATE.md` changed;
 - whether `CURRENT_HANDOFF.md` changed;
 - whether a Decision Log entry was required;
+- whether verified product truth changed and the project-memory validator
+  passed;
 - exact Git status and commit SHA when applicable.
 
 Never merge to `main` automatically. Leave the result reviewable.

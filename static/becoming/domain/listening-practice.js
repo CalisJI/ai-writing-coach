@@ -63,8 +63,46 @@ export function evaluateListeningReconstruction({source_language,expected,answer
   };
 }
 
+/* A learner-facing alignment over the same normalized units used for scoring.
+   This is intentionally deterministic and language-aware: punctuation and
+   harmless spacing never appear as mistakes, while Hanzi remain character
+   units. */
+export function listeningReconstructionDiff({source_language,expected,answer}){
+  const expectedUnits=listeningUnits(expected,source_language);
+  const answerUnits=listeningUnits(answer,source_language);
+  const common=Array.from({length:expectedUnits.length+1},()=>Array(answerUnits.length+1).fill(0));
+  for(let row=expectedUnits.length-1;row>=0;row-=1){
+    for(let column=answerUnits.length-1;column>=0;column-=1){
+      common[row][column]=expectedUnits[row]===answerUnits[column]
+        ?common[row+1][column+1]+1
+        :Math.max(common[row+1][column],common[row][column+1]);
+    }
+  }
+  const raw=[];
+  let row=0,column=0;
+  while(row<expectedUnits.length||column<answerUnits.length){
+    if(row<expectedUnits.length&&column<answerUnits.length&&expectedUnits[row]===answerUnits[column]){
+      raw.push({status:'correct',expected:expectedUnits[row],actual:answerUnits[column]});row+=1;column+=1;continue;
+    }
+    if(row<expectedUnits.length&&(column>=answerUnits.length||common[row+1][column]>=common[row][column+1])){
+      raw.push({status:'missing',expected:expectedUnits[row],actual:''});row+=1;continue;
+    }
+    raw.push({status:'extra',expected:'',actual:answerUnits[column]});column+=1;
+  }
+  const aligned=[];
+  for(let index=0;index<raw.length;index+=1){
+    const current=raw[index],next=raw[index+1];
+    if(next&&current.status!==next.status&&['missing','extra'].includes(current.status)&&['missing','extra'].includes(next.status)){
+      const missing=current.status==='missing'?current:next;
+      const extra=current.status==='extra'?current:next;
+      aligned.push({status:'wrong',expected:missing.expected,actual:extra.actual});index+=1;
+    }else aligned.push(current);
+  }
+  return aligned;
+}
+
 function emptySegmentState(){
-  return {draft:'',attempts:[],checked_attempt_count:0,best_result:null,last_attempt:null,revealed:false,presentation:'prompt'};
+  return {draft:'',attempts:[],checked_attempt_count:0,best_result:null,last_attempt:null,revealed:false,presentation:'prompt',hint_level:0};
 }
 
 function requireSegment(session,segmentId){
@@ -113,14 +151,22 @@ export function recordListeningPracticeAttempt(session,result){
 export function revealListeningPracticeAnswer(session){
   const state=requireSegment(session,session.current_segment_id);
   state.revealed=true;
+  state.hint_level=4;
   state.presentation='revealed';
   return state;
+}
+
+export function advanceListeningPracticeHint(session){
+  const state=requireSegment(session,session.current_segment_id);
+  state.hint_level=Math.min(3,Number(state.hint_level||0)+1);
+  return state.hint_level;
 }
 
 export function retryListeningPracticeSegment(session){
   const state=requireSegment(session,session.current_segment_id);
   state.draft='';
   state.revealed=false;
+  state.hint_level=0;
   state.presentation='prompt';
   return state;
 }

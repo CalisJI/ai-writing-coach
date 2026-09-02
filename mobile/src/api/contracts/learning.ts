@@ -109,7 +109,10 @@ export type EssayDetail = z.infer<typeof essayDetailSchema>;
 export const grammarPracticeSchema = z.object({grammar_id: z.string().min(1), title: z.string().min(1), level: z.string().min(2), target_level: z.string().min(2), prompt: z.string().min(1), practice_blueprint: z.record(z.unknown()), practice_context: practiceContextSchema, source: z.string().min(1)}).strict();
 export type GrammarPractice = z.infer<typeof grammarPracticeSchema>;
 
-const grammarLessonSummarySchema = z.object({id: z.string().min(1), title: z.string().min(1), level: z.string().min(2), kind: z.string().optional(), completed: z.boolean().optional()}).passthrough();
+// `module`/`category` already arrived through `.passthrough()`; naming them
+// lets the curriculum map group by module the way groupByModule() does on the
+// web. The R5 concept identifiers themselves are untouched.
+const grammarLessonSummarySchema = z.object({id: z.string().min(1), title: z.string().min(1), level: z.string().min(2), kind: z.string().optional(), completed: z.boolean().optional(), module: z.string().optional(), category: z.string().optional()}).passthrough();
 export const grammarLibrarySchema = z.object({lessons: z.array(grammarLessonSummarySchema), total: z.number().int().nonnegative(), completed: z.number().int().nonnegative(), levels: z.array(z.string()), level_names: z.record(z.string()), language: z.enum(['en', 'zh'])}).passthrough();
 export type GrammarLessonSummary = z.infer<typeof grammarLessonSummarySchema>;
 export type GrammarLibrary = z.infer<typeof grammarLibrarySchema>;
@@ -177,3 +180,19 @@ const crossSkillActionSchema = z.discriminatedUnion('kind', [
 ]);
 export const crossSkillCueSchema = z.object({available: z.boolean(), state: z.string(), source: z.string(), evidence: z.string(), action: crossSkillActionSchema.nullable()}).passthrough();
 export type CrossSkillCue = z.infer<typeof crossSkillCueSchema>;
+
+// POST /api/improve -- app.py's improve_with_ai(). Review's "compare a polished
+// version" dialog reads only the two texts; the upgrade lists stay passthrough.
+export const improveInputSchema = z.object({text: z.string().min(10).max(20000), target_cefr: z.string().min(2).max(12), mode: z.enum(['correct', 'grammar', 'vocabulary', 'polish'])}).strict();
+export type ImproveInput = z.infer<typeof improveInputSchema>;
+export const improveResultSchema = z.object({corrected_text: z.string(), upgraded_text: z.string(), summary_vi: z.string().optional()}).passthrough();
+export type ImproveResult = z.infer<typeof improveResultSchema>;
+
+// POST /api/essays/{id}/linguistic-annotations -- writing_coach/becoming_linguistics.py.
+// Offsets index back into the essay text, which is what makes the lens safe to draw.
+export const linguisticAnnotationsSchema = z.object({
+  found: z.boolean(), essay_id: z.number().int().positive().optional(), language_code: z.string().optional(),
+  annotations: z.array(z.object({fragment: z.string(), start: z.number().int().nonnegative(), end: z.number().int().nonnegative(), pos: z.string()}).passthrough()),
+  cached: z.boolean().optional(), truncated: z.boolean().optional(),
+}).passthrough();
+export type LinguisticAnnotations = z.infer<typeof linguisticAnnotationsSchema>;

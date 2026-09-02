@@ -39,15 +39,55 @@ const grammarTask = {grammar_id: 'en-articles', title: 'Articles', level: 'B1', 
 
 describe('R20-6 native learner loop', () => {
   beforeEach(() => { mockCookie = 'cookie'; mockPush.mockReset(); mockGrammarPractice.mutate.mockReset(); mockGrammarComplete.mutate.mockReset(); mockReview.mutate.mockReset(); mockSaveProfile.mutateAsync.mockReset(); mockSaveProfile.mutateAsync.mockResolvedValue({}); mockSetLanguage.mutateAsync.mockReset(); mockSetLanguage.mutateAsync.mockResolvedValue({ok: true, active: 'zh'}); mockGrammarLibrary.isPending = false; mockGrammarLibrary.isError = false; mockGrammarLesson.isPending = false; mockGrammarLesson.isError = false; mockLibraryQuery.isLoading = false; mockLibraryQuery.isError = false; mockLibraryQuery.data = {items: [{word: 'clarity', phonetic: '', part_of_speech: 'noun', definition: 'clear expression', translation_vi: '', added_at: '2026-01-01', source_fragment: '', source_kind: 'manual', focus_note: '', review_stage: 1, stage_label: 'Learning', successful_recalls: 0, lapse_count: 0, last_reviewed_at: '', next_review_at: '', due: true}], summary: {total: 1, due: 1, available: 0}}; mockDashboard.isPending = false; mockDashboard.isError = false; mockOutcomes.isPending = false; mockOutcomes.isError = false; mockProfile.isPending = false; mockProfile.isError = false; });
+  /* The curriculum map groups a level's lessons by module and collapses every
+     level but the first, the way grammar.js's <details> stack does. Native was
+     rendering one flat list per level, fully expanded. */
+  it('groups the curriculum by module and collapses levels past the first', () => {
+    const previous = mockGrammarLibrary.data;
+    mockGrammarLibrary.data = {
+      lessons: [
+        {id: 'b1-a', title: 'Articles', level: 'B1', module: 'Determiners', completed: true},
+        {id: 'b1-b', title: 'Quantifiers', level: 'B1', module: 'Determiners', completed: false},
+        {id: 'b1-c', title: 'Past simple', level: 'B1', module: 'Tenses', completed: false},
+        {id: 'b2-a', title: 'Conditionals', level: 'B2', module: 'Clauses', completed: false},
+      ],
+      total: 4, completed: 1, levels: ['B1', 'B2'], level_names: {B1: 'B1', B2: 'B2'}, language: 'en',
+    } as unknown as typeof mockGrammarLibrary.data;
+    try {
+      const view = render(<GrammarScreen />, 'en');
+      // RN splits interpolated text into separate children, so compare on the
+      // flattened string rather than the serialized tree.
+      const flat = () => JSON.stringify(view.toJSON()).replace(/","/g, '');
+
+      // B1 is open: its module headings, counts and lessons are on screen.
+      expect(flat()).toContain('Determiners');
+      expect(flat()).toContain('Tenses');
+      expect(flat()).toContain('2 modules');
+      expect(view.root.findAllByProps({accessibilityLabel: 'Articles'})).not.toHaveLength(0);
+      expect(view.root.findAllByProps({accessibilityLabel: 'Past simple'})).not.toHaveLength(0);
+
+      // B2 is collapsed, so its lesson is not rendered at all.
+      expect(flat()).toContain('1 modules');
+      expect(view.root.findAllByProps({accessibilityLabel: 'Conditionals'})).toHaveLength(0);
+      expect(view.root.findAllByProps({accessibilityLabel: 'B2'})[0]!.props.accessibilityState.expanded).toBe(false);
+
+      // Opening B2 reveals it.
+      act(() => { view.root.findAllByProps({accessibilityLabel: 'B2'})[0]!.props.onPress(); });
+      expect(view.root.findAllByProps({accessibilityLabel: 'Conditionals'})).not.toHaveLength(0);
+    } finally {
+      mockGrammarLibrary.data = previous;
+    }
+  });
+
   // The overview's first action opens the next lesson (matching grammar.js's
   // "Continue curriculum" CTA, which only opens the lesson); the write-transfer
   // handoff itself lives on the opened lesson's rail, as it does on the web.
   it.each(['en', 'zh'] as const)('hands canonical Grammar practice into Writing in %s', (locale) => { const view = render(<GrammarScreen />, locale); const openLesson = view.root.findAll((node) => node.props.accessibilityRole === 'button')[0]; act(() => openLesson?.props.onPress()); const writeButton = view.root.findAll((node) => node.props.accessibilityRole === 'button' && node.props.accessibilityLabel === (locale === 'zh' ? '在 Writing 中使用' : 'Use this in Writing'))[0]; act(() => writeButton?.props.onPress()); expect(mockGrammarPractice.mutate).toHaveBeenCalledWith({grammarId: 'en-articles', evidence: ''}, expect.any(Object)); act(() => mockGrammarPractice.mutate.mock.calls[0][1].onSuccess(grammarTask)); expect(mockPush).toHaveBeenCalledWith('/(app)/writing'); });
-  it.each(['en', 'zh'] as const)('requires reveal before due-word recall actions in %s', (locale) => { const view = render(<LibraryScreen />, locale); expect(view.root.findAll((node) => node.props.children === 'clear expression')).toHaveLength(0); expect(view.root.findAll((node) => node.props.children === (locale === 'zh' ? '再来一次' : 'Again'))).toHaveLength(0); const reveal = view.root.findAll((node) => node.props.accessibilityRole === 'button' && node.props.children?.props?.children === (locale === 'zh' ? '显示释义' : 'Reveal meaning'))[0]; act(() => reveal?.props.onPress()); expect(view.root.findAll((node) => node.props.children === 'clear expression')).not.toHaveLength(0); const gotIt = view.root.findAll((node) => node.props.children?.props?.children === (locale === 'zh' ? '记住了' : 'Got it'))[0]; act(() => gotIt?.props.onPress()); expect(mockReview.mutate).toHaveBeenCalledWith({word: 'clarity', result: 'got_it'}, expect.any(Object)); });
+  it.each(['en', 'zh'] as const)('requires reveal before due-word recall actions in %s', (locale) => { const view = render(<LibraryScreen />, locale); /* The recall card opens from the head's Review now, as it does on the web. */ act(() => { view.root.findAll((node) => node.props.accessibilityLabel === (locale === 'zh' ? '开始复习' : 'Review now'))[0]?.props.onPress(); }); expect(view.root.findAll((node) => node.props.children === 'clear expression')).toHaveLength(0); expect(view.root.findAll((node) => node.props.children === (locale === 'zh' ? '再来一次' : 'Again'))).toHaveLength(0); const reveal = view.root.findAll((node) => node.props.accessibilityRole === 'button' && node.props.accessibilityLabel === (locale === 'zh' ? '显示释义' : 'Reveal meaning'))[0]; act(() => reveal?.props.onPress()); expect(view.root.findAll((node) => node.props.children === 'clear expression')).not.toHaveLength(0); const gotIt = view.root.findAll((node) => node.props.accessibilityLabel === (locale === 'zh' ? '记住了' : 'Got it'))[0]; act(() => gotIt?.props.onPress()); expect(mockReview.mutate).toHaveBeenCalledWith({word: 'clarity', result: 'got_it'}, expect.any(Object)); });
   it('keeps empty, unavailable, and signed-out states truthful', () => { mockLibraryQuery.data = {items: [], summary: {total: 0, due: 0, available: 0}}; let view = render(<LibraryScreen />, 'en'); expect(view.root.findAll((node) => String(node.props.children).includes('No saved words yet.'))).not.toHaveLength(0); mockLibraryQuery.isError = true; view = render(<LibraryScreen />, 'zh'); expect(view.root.findByProps({accessibilityRole: 'alert'})).toBeDefined(); mockCookie = null; view = render(<JourneyScreen />, 'en'); expect(view.root.findAll((node) => node.props.children === 'Sign in to view your learning journey.')).not.toHaveLength(0); expect(view.root.findAll((node) => node.props.accessibilityRole === 'alert')).toHaveLength(0); });
   it('shows Journey loading while the initial progress fetch is pending', () => { mockDashboard.isPending = true; (mockDashboard as {data: unknown}).data = undefined; mockOutcomes.isPending = true; (mockOutcomes as {data: unknown}).data = undefined; const view = render(<JourneyScreen />, 'en'); expect(view.root.findAll((node) => node.props.children === 'Loading your progress…')).not.toHaveLength(0); mockDashboard.isPending = false; mockDashboard.data = {essay_count: 2, revision_count: 3, skill_score: 82, cefr: 'B2', streak: 1, recent_average: 80, trend: [], metrics: {}, error_counts: {}, error_memory: [{category: 'grammar'}], next_level: null, version: '2.17.3'}; mockOutcomes.isPending = false; mockOutcomes.data = {items: [{essay_id: 1, series_id: 1, revision_no: 1, created_at: '2026-01-01', overall: 82, status: 'improved', intent: 'repair', focus_family: 'grammar', focus_category: 'grammar', focus_label: 'Articles', grammar_id: '', grammar_title: '', issue_count: 0, previous_issue_count: 1, strength_count: 1, error_evidence: [], strength_evidence: [], practice: {}}], latest: null}; });
   it('keeps disabled signed-out queries unavailable even when React Query reports pending', () => { mockCookie = null; mockDashboard.isPending = true; mockOutcomes.isPending = true; const view = render(<JourneyScreen />, 'en'); expect(view.root.findAll((node) => node.props.children === 'Sign in to view your learning journey.')).not.toHaveLength(0); expect(view.root.findAll((node) => node.props.accessibilityRole === 'alert')).toHaveLength(0); expect(view.root.findAll((node) => node.props.children === 'Loading your progress…')).toHaveLength(0); });
   it.each(['en', 'zh'] as const)('renders authoritative Journey progress in %s', (locale) => { const view = render(<JourneyScreen />, locale); expect(view.root.findAll((node) => String(node.props.children).includes(locale === 'zh' ? '写作篇数' : 'Writing pieces'))).not.toHaveLength(0); });
-  it('saves authorized profile settings and language changes', async () => { const view = render(<ProfileScreen />); const saveButton = view.root.findAll((node) => node.props.accessibilityRole === 'button' && node.props.children?.props?.children === 'Save profile')[0]; await act(async () => { saveButton?.props.onPress(); await Promise.resolve(); }); expect(mockSaveProfile.mutateAsync).toHaveBeenCalled(); const learningLanguage = view.root.findAll((node) => node.props.accessibilityLabel === 'Learning language: Chinese')[0]; act(() => learningLanguage?.props.onPress()); expect(mockSetLanguage.mutateAsync).toHaveBeenCalledWith('zh'); });
-  it('reports profile mutation failure without claiming a save', async () => { mockSaveProfile.mutateAsync.mockRejectedValueOnce(new Error('offline')); const view = render(<ProfileScreen />); const saveButton = view.root.findAll((node) => node.props.accessibilityRole === 'button' && node.props.children?.props?.children === 'Save profile')[0]; await act(async () => { saveButton?.props.onPress(); await Promise.resolve(); await Promise.resolve(); }); expect(view.root.findByProps({accessibilityRole: 'alert'})).toBeDefined(); });
+  it('saves authorized profile settings and language changes', async () => { const view = render(<ProfileScreen />); const saveButton = view.root.findAll((node) => node.props.accessibilityRole === 'button' && node.props.accessibilityLabel === 'Save profile')[0]; await act(async () => { saveButton?.props.onPress(); await Promise.resolve(); }); expect(mockSaveProfile.mutateAsync).toHaveBeenCalled(); const learningLanguage = view.root.findAll((node) => node.props.accessibilityLabel === 'Language you are learning: Chinese')[0]; act(() => learningLanguage?.props.onPress()); expect(mockSetLanguage.mutateAsync).toHaveBeenCalledWith('zh'); });
+  it('reports profile mutation failure without claiming a save', async () => { mockSaveProfile.mutateAsync.mockRejectedValueOnce(new Error('offline')); const view = render(<ProfileScreen />); const saveButton = view.root.findAll((node) => node.props.accessibilityRole === 'button' && node.props.accessibilityLabel === 'Save profile')[0]; await act(async () => { saveButton?.props.onPress(); await Promise.resolve(); await Promise.resolve(); }); expect(view.root.findByProps({accessibilityRole: 'alert'})).toBeDefined(); });
 });
