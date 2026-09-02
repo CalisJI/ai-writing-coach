@@ -36,6 +36,19 @@ from writing_coach.media_ingestion import (
     ProviderTranscriptMalformed,
     ProviderUrlMalformed,
 )
+from writing_coach.listening_dev_artifact import (
+    GENERATOR,
+    GENERATOR_VERSION,
+    file_digest,
+    manifest_content_hash,
+)
+from writing_coach.listening_catalog import (
+    CURATION_PROPOSED,
+    DEV_CONTENT_STATUS,
+    EN_LEVELS,
+    PRACTICE_MODES,
+    ZH_LEVELS,
+)
 from writing_coach.media_providers.youtube import (
     canonical_youtube_url,
     parse_youtube_video_id,
@@ -82,6 +95,50 @@ CATEGORY_TOPICS: Mapping[str, str] = {
 
 EN_LEVEL_FALLBACK = "B1"
 ZH_LEVEL_FALLBACK = "HSK3"
+
+MIN_EXCERPT_FLOOR_SECONDS = 5
+MAX_EXCERPT_CEILING_SECONDS = 600
+
+
+def validate_candidate(candidate: SourceCandidate) -> str:
+    """Why this row cannot be imported, or "" when it is usable.
+
+    The human-editable columns are checked here, before anything reaches the
+    manifest. A bad level or mode must cost that one candidate a report entry,
+    not produce a manifest that load_catalog_manifest() later rejects whole.
+    """
+
+    if candidate.language not in SUPPORTED_LANGUAGES:
+        return f"unsupported language {candidate.language or '(blank)'!s}"
+
+    levels = EN_LEVELS if candidate.language == "en" else ZH_LEVELS
+    if candidate.level_hint and candidate.level_hint.strip().upper() not in levels:
+        return f"level_hint {candidate.level_hint!r} is not a {candidate.language.upper()} level"
+
+    unknown_modes = [mode for mode in candidate.preferred_modes if _normalize_mode(mode) not in PRACTICE_MODES]
+    if unknown_modes:
+        return f"preferred_modes {unknown_modes!r} are not practice modes"
+
+    if not 0 < candidate.min_excerpt_seconds <= candidate.max_excerpt_seconds:
+        return (f"excerpt range {candidate.min_excerpt_seconds}-{candidate.max_excerpt_seconds}s "
+                "is not an increasing positive range")
+    if candidate.min_excerpt_seconds < MIN_EXCERPT_FLOOR_SECONDS:
+        return f"min_excerpt_seconds {candidate.min_excerpt_seconds} is below {MIN_EXCERPT_FLOOR_SECONDS}"
+    if candidate.max_excerpt_seconds > MAX_EXCERPT_CEILING_SECONDS:
+        return f"max_excerpt_seconds {candidate.max_excerpt_seconds} is above {MAX_EXCERPT_CEILING_SECONDS}"
+    if candidate.desired_excerpt_count <= 0:
+        return f"desired_excerpt_count {candidate.desired_excerpt_count} must be positive"
+
+    if not candidate.title.strip() and not candidate.category.strip():
+        return "row has neither a title nor a category to describe it"
+    return ""
+
+
+def _normalize_mode(mode: str) -> str:
+    # The CSV uses the learner-facing word "follow" for what the catalog calls
+    # "listen"; everything else must already be a real practice mode.
+    cleaned = mode.strip().casefold()
+    return "listen" if cleaned == "follow" else cleaned
 
 
 @dataclass(frozen=True)
@@ -242,20 +299,61 @@ def youtube_poster_url(video_id: str) -> str:
     return f"https://i.ytimg.com/vi/{video_id}/hqdefault.jpg"
 
 
+def _poster_for(provider_thumbnail: str, video_id: str) -> str:
+    """Prefer the provider's advertised thumbnail, fall back to the known path.
+
+    oEmbed returns a thumbnail on i.ytimg.com; if it ever returns something the
+    catalog boundary would reject, the deterministic path is used instead of
+    letting the whole source fail over a decoration.
+    """
+
+    cleaned = str(provider_thumbnail or "").strip()
+    if cleaned.startswith("https://i.ytimg.com/") or cleaned.startswith("https://img.youtube.com/"):
+        return cleaned
+    return youtube_poster_url(video_id)
+
+
+def _provider_metadata(adapter: Any, canonical_url: str) -> Any:
+    """The adapter's own metadata when it exposes it, empty otherwise.
+
+    Reuses the existing oEmbed path rather than adding a second metadata call,
+    and degrades quietly: missing creator metadata must not fail an import that
+    already has playback and a transcript.
+    """
+
+    from writing_coach.media_providers.youtube import YouTubeSourceMetadata
+
+    client = getattr(adapter, "_metadata_client", None)
+    fetch = getattr(client, "fetch_metadata", None)
+    if fetch is None:
+        return YouTubeSourceMetadata(title="")
+    try:
+        return fetch(canonical_url)
+    except Exception:
+        return YouTubeSourceMetadata(title="")
+
+
 def source_media_id(video_id: str) -> str:
     """Deterministic from the canonical video identity, nothing else."""
 
     return f"youtube-{video_id}"
 
 
-def lesson_id_for(language: str, video_id: str, first_segment_order: int) -> str:
-    """Deterministic from the source and the excerpt's own first segment.
+def lesson_id_for(language: str, video_id: str, excerpt_start_ms: int) -> str:
+    """Provisional identity for a generated excerpt, anchored on start time.
 
-    Anchoring on the segment order rather than an enumeration counter means
-    adding or dropping one excerpt does not renumber the others.
+    Start time survives re-segmentation better than a segment ordinal does: if
+    the provider reshapes auto-captions into more or fewer cues, a window that
+    still begins at the same second keeps its id, whereas every ordinal after
+    the change would shift.
+
+    It is still PROVISIONAL. If the provider re-times captions the id can
+    change, so this must not be described as permanently stable. A curator
+    promoting an excerpt should assign a durable editorial id at that point;
+    that identity is a curation concern, not a generator one.
     """
 
-    return f"dev-{language}-{video_id}-{first_segment_order:03d}"
+    return f"dev-{language}-{video_id}-t{excerpt_start_ms // 1000:05d}"
 
 
 def _level_for(candidate: SourceCandidate) -> str:
@@ -287,6 +385,12 @@ def build_dev_catalog(
     for candidate in candidates:
         if candidate.language not in SUPPORTED_LANGUAGES:
             outcome.record(candidate.candidate_id, UNSUPPORTED_LANGUAGE, candidate.language or "(blank)")
+            continue
+        # Human-editable fields are checked before generation, so a bad level or
+        # mode costs this one row rather than the whole overlay.
+        invalid = validate_candidate(candidate)
+        if invalid:
+            outcome.record(candidate.candidate_id, SKIPPED, invalid)
             continue
         if not recognizes_youtube_url(candidate.source_url):
             outcome.record(candidate.candidate_id, SKIPPED, "not a supported provider URL")
@@ -329,6 +433,7 @@ def build_dev_catalog(
 
         seen_videos.add(video_id)
         asset = acquisition.media_object.asset
+        provider_meta = _provider_metadata(adapter, asset.source_url)
         duration_ms = max(int(segment["end_ms"]) for segment in segments)
         topic = _topic_for(candidate)
         level = _level_for(candidate)
@@ -342,8 +447,9 @@ def build_dev_catalog(
             "source_url": acquisition.media_object.asset.source_url,
             "source_provider": "youtube",
             "source_type": "external-video",
+            # The provider owns source identity; the CSV only fills gaps.
             "source_title": asset.title or candidate.title or video_id,
-            "source_creator": candidate.source_family or "YouTube",
+            "source_creator": provider_meta.author_name or candidate.source_family or "YouTube",
             "language": candidate.language,
             "duration_ms": duration_ms,
             "playback": {
@@ -351,24 +457,24 @@ def build_dev_catalog(
                 "kind": acquisition.playback.kind,
                 "url": acquisition.playback.url,
             },
-            "poster_url": youtube_poster_url(video_id),
+            "poster_url": _poster_for(provider_meta.thumbnail_url, video_id),
             "rights": {
-                # Development overlay only. Publication stays a human gate, and
-                # the spec forbids calling this production-ready content.
+                # Unreviewed by definition, so it says so. Claiming "verified"
+                # to satisfy the base loader would make the catalog lie about
+                # its own review state, and the base loader now refuses this.
                 "license_name": "Provider terms (development candidate)",
                 "license_url": "https://www.youtube.com/t/terms",
                 "provenance_url": asset.source_url,
                 "allowed_usage_type": "development-embed-only",
-                "review_status": "verified",
+                "review_status": "rights_review",
             },
             "segments": segments,
         })
         outcome.generated_sources += 1
 
         for start_ms, end_ms in windows:
-            first = next(s for s in segments if int(s["start_ms"]) == start_ms)
             lessons.append({
-                "lesson_id": lesson_id_for(candidate.language, video_id, int(first["order"])),
+                "lesson_id": lesson_id_for(candidate.language, video_id, start_ms),
                 "source_media_id": source_media_id(video_id),
                 "excerpt_start_ms": start_ms,
                 "excerpt_end_ms": end_ms,
@@ -381,10 +487,13 @@ def build_dev_catalog(
                 "reviewed_level": None,
                 "level_evidence": {
                     "source": "importer-estimate",
-                    "review_note": "Development candidate; level and excerpt boundaries are not editorially reviewed.",
+                    "review_note": "Development candidate. Level, excerpt boundary, translation and Pinyin are all unreviewed.",
                 },
                 "available_modes": modes,
-                "status": "PUBLISHED",
+                "status": DEV_CONTENT_STATUS,
+                # A window that met a length rule is a proposal. Only a curator
+                # promotes it, and the loader refuses a generator that tries.
+                "curation_state": CURATION_PROPOSED,
                 "artwork": topic,
                 "vocabulary": [],
                 "sections": ["new"],
@@ -396,11 +505,32 @@ def build_dev_catalog(
     return manifest, outcome
 
 
-def write_manifest(manifest: Mapping[str, Any], path: Path) -> None:
-    """Generated artifact. Humans edit the CSV, never this file."""
+def write_manifest(
+    manifest: Mapping[str, Any],
+    path: Path,
+    source_lists: Sequence[Path] = (),
+) -> None:
+    """Write the generated artifact with provenance and an integrity stamp.
+
+    The artifact is committed rather than gitignored, so a clean checkout or a
+    container rebuild still has the development catalog without regenerating it
+    from the network at startup. Because it is committed it must also be
+    tamper-evident: humans edit the CSV, never this file, and the content hash
+    is what turns that from a comment into something the loader can check.
+
+    Input CSVs are recorded by digest so a reviewer can tell which source lists
+    a snapshot came from.
+    """
 
     payload = dict(manifest)
-    payload["generated"] = "scripts/build_listening_dev_catalog.py — do not edit by hand"
+    payload["generated_by"] = GENERATOR
+    payload["generator_version"] = GENERATOR_VERSION
+    payload["do_not_edit"] = "Generated file. Edit the source CSV and regenerate."
+    payload["source_lists"] = [
+        {"name": item.name, "sha256": file_digest(item)}
+        for item in source_lists if item.is_file()
+    ]
+    payload["content_hash"] = manifest_content_hash(manifest)
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 

@@ -10,7 +10,11 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from writing_coach.listening_catalog import dev_catalog_enabled, load_catalog
+from writing_coach.listening_catalog import (
+    dev_catalog_enabled,
+    load_catalog,
+    load_catalog_manifest,
+)
 from writing_coach.listening_source_import import (
     SourceCandidate,
     build_dev_catalog,
@@ -175,7 +179,10 @@ def test_identities_are_deterministic_and_survive_a_rerun() -> None:
 
     assert first == second, "re-running the importer must not change the manifest"
     assert source_media_id("dQw4w9WgXcQ") == "youtube-dQw4w9WgXcQ"
-    assert lesson_id_for("en", "dQw4w9WgXcQ", 7) == "dev-en-dQw4w9WgXcQ-007"
+    # Anchored on excerpt start time, not a segment ordinal: a window that still
+    # begins at the same second keeps its id when captions are re-segmented.
+    assert lesson_id_for("en", "dQw4w9WgXcQ", 42_000) == "dev-en-dQw4w9WgXcQ-t00042"
+    assert lesson_id_for("en", "dQw4w9WgXcQ", 42_400) == lesson_id_for("en", "dQw4w9WgXcQ", 42_000)
 
     # Segment identities come from the provider and stay attached.
     segment_ids = [s["segment_id"] for s in first["sources"][0]["segments"]]
@@ -189,6 +196,119 @@ def test_identities_are_deterministic_and_survive_a_rerun() -> None:
 
 
 # --- failures are reported, never fatal -------------------------------------
+
+def test_generated_content_never_claims_review_it_has_not_had() -> None:
+    """P1: unreviewed development content must not label itself verified."""
+
+    manifest, _ = build_dev_catalog([candidate()], FakeAdapter())
+
+    source = manifest["sources"][0]
+    assert source["rights"]["review_status"] == "rights_review"
+    assert source["rights"]["review_status"] != "verified"
+    assert source["rights"]["allowed_usage_type"] == "development-embed-only"
+
+    for lesson in manifest["lessons"]:
+        assert lesson["status"] == "DEV_CANDIDATE"
+        assert lesson["status"] != "PUBLISHED"
+        assert lesson["curation_state"] == "proposed"
+        assert lesson["reviewed_level"] is None
+
+
+def test_the_base_loader_refuses_the_development_lifecycle(tmp_path: Path) -> None:
+    """The strict loader stays strict; only the overlay may carry candidates."""
+
+    manifest, _ = build_dev_catalog([candidate()], FakeAdapter())
+    dev_path = tmp_path / "dev.json"
+    write_manifest(manifest, dev_path)
+
+    try:
+        load_catalog_manifest(dev_path)
+    except ValueError as exc:
+        assert "rights review" in str(exc).casefold()
+    else:
+        raise AssertionError("the base loader must refuse an unreviewed dev source")
+
+    # The same file is acceptable when the dev lifecycle is explicitly allowed.
+    sources, lessons = load_catalog_manifest(dev_path, allow_dev=True)
+    assert sources and lessons
+    assert all(item.content_status == "DEV_CANDIDATE" for item in lessons)
+    assert all(item.curation_state == "proposed" for item in lessons)
+
+
+def test_a_generator_cannot_promote_its_own_excerpt(tmp_path: Path) -> None:
+    """P1/P2: curation is a human act, not something output asserts."""
+
+    manifest, _ = build_dev_catalog([candidate()], FakeAdapter())
+    manifest["lessons"][0]["curation_state"] = "reviewed"
+    dev_path = tmp_path / "dev.json"
+    write_manifest(manifest, dev_path)
+
+    try:
+        load_catalog_manifest(dev_path, allow_dev=True)
+    except ValueError as exc:
+        assert "curation" in str(exc).casefold()
+    else:
+        raise AssertionError("a DEV_CANDIDATE must not self-declare curation review")
+
+
+def test_an_invalid_human_row_is_reported_not_generated() -> None:
+    """P1: a bad CSV field costs one candidate, never the whole overlay."""
+
+    rows = [
+        candidate(candidate_id="bad-level", level_hint="HSK5"),          # ZH level on an EN row
+        candidate(candidate_id="bad-level-2", language="zh", level_hint="B2"),
+        candidate(candidate_id="bad-mode", preferred_modes=("listen", "karaoke")),
+        candidate(candidate_id="inverted-range", min_excerpt_seconds=90, max_excerpt_seconds=20),
+        candidate(candidate_id="absurd-range", min_excerpt_seconds=1, max_excerpt_seconds=99999),
+        candidate(candidate_id="good", source_url="https://www.youtube.com/watch?v=ggggggggggg"),
+    ]
+    manifest, report = build_dev_catalog(rows, FakeAdapter())
+    summary = report.as_dict()
+
+    assert summary["ACCEPTED"] == 1, "only the valid row generates"
+    assert summary["SKIPPED"] == 5
+    assert summary["GENERATED_SOURCES"] == 1
+
+    outcomes = {entry["candidate_id"]: entry for entry in summary["entries"]}
+    assert "level_hint" in outcomes["bad-level"]["detail"]
+    assert "level_hint" in outcomes["bad-level-2"]["detail"]
+    assert "preferred_modes" in outcomes["bad-mode"]["detail"]
+    assert "range" in outcomes["inverted-range"]["detail"]
+    assert outcomes["good"]["outcome"] == "ACCEPTED"
+
+    # The surviving manifest is loadable: a bad row never poisons the overlay.
+    for lesson in manifest["lessons"]:
+        assert lesson["estimated_level"] in {"B1", "HSK3"}
+        assert set(lesson["available_modes"]) <= {"listen", "active", "dictation", "shadowing"}
+
+
+def test_provider_metadata_outranks_the_editor_hint() -> None:
+    """P2: the channel is the source's identity; the CSV is a fallback."""
+
+    class MetadataAdapter(FakeAdapter):
+        def __init__(self) -> None:
+            super().__init__()
+            self._metadata_client = self
+
+        def fetch_metadata(self, canonical_url: str):
+            from writing_coach.media_providers.youtube import YouTubeSourceMetadata
+            return YouTubeSourceMetadata(
+                title="Provider title",
+                author_name="BBC Learning English (official channel)",
+                thumbnail_url="https://i.ytimg.com/vi/custom/maxresdefault.jpg",
+            )
+
+    manifest, _ = build_dev_catalog(
+        [candidate(source_family="editor guess")], MetadataAdapter())
+    source = manifest["sources"][0]
+    assert source["source_creator"] == "BBC Learning English (official channel)"
+    assert source["poster_url"] == "https://i.ytimg.com/vi/custom/maxresdefault.jpg"
+
+    # Without provider metadata the editor hint still fills the gap.
+    fallback, _ = build_dev_catalog([candidate(source_family="editor guess")], FakeAdapter())
+    assert fallback["sources"][0]["source_creator"] == "editor guess"
+    assert fallback["sources"][0]["poster_url"].startswith("https://i.ytimg.com/vi/")
+
 
 def test_a_failing_candidate_does_not_break_the_batch() -> None:
     rows = [
@@ -249,7 +369,7 @@ def test_generated_manifest_loads_as_a_dev_overlay(tmp_path: Path) -> None:
     write_manifest(manifest, dev_path)
 
     written = json.loads(dev_path.read_text(encoding="utf-8"))
-    assert "do not edit by hand" in written["generated"]
+    assert "Edit the source CSV" in written["do_not_edit"]
 
     base_only, base_lessons = load_catalog(dev_path=dev_path, env={})
     with_dev, dev_lessons = load_catalog(
@@ -262,12 +382,64 @@ def test_generated_manifest_loads_as_a_dev_overlay(tmp_path: Path) -> None:
 
     # The generated lesson is a real, playable, poster-backed catalog entry.
     lesson = next(item for item in dev_lessons if item.lesson_id in generated)
+    assert lesson.content_status == "DEV_CANDIDATE"
+    assert lesson.curation_state == "proposed"
     assert lesson.playback.kind == "embed"
     assert lesson.source.poster_url.startswith("https://i.ytimg.com/")
     assert lesson.excerpt_end_ms > lesson.excerpt_start_ms
 
 
 # --- the overlay is off unless a developer opts in --------------------------
+
+def test_the_generated_artifact_is_reproducible_and_tamper_evident(tmp_path: Path) -> None:
+    """P1: the artifact is committed, so it must survive review and edits."""
+
+    from writing_coach.listening_dev_artifact import (
+        manifest_content_hash,
+        verify_manifest_integrity,
+    )
+
+    csv_path = REPO / "writing_coach/content/listening_sources_en_dev_100.csv"
+    manifest, _ = build_dev_catalog([candidate()], FakeAdapter())
+    dev_path = tmp_path / "dev.json"
+    write_manifest(manifest, dev_path, source_lists=[csv_path])
+
+    written = json.loads(dev_path.read_text(encoding="utf-8"))
+    assert written["generated_by"].endswith("build_listening_dev_catalog.py")
+    assert written["do_not_edit"]
+    # Provenance: a reviewer can tell which source list produced this snapshot.
+    assert written["source_lists"][0]["name"] == csv_path.name
+    assert len(written["source_lists"][0]["sha256"]) == 64
+    assert verify_manifest_integrity(written) == ""
+
+    # Regenerating the same input reproduces the same content hash.
+    again, _ = build_dev_catalog([candidate()], FakeAdapter())
+    assert manifest_content_hash(again) == written["content_hash"]
+
+    # A hand edit is detected rather than silently loaded.
+    tampered = dict(written)
+    tampered["lessons"] = [dict(tampered["lessons"][0], title="hand edited")]
+    assert "edited by hand" in verify_manifest_integrity(tampered)
+    missing = {key: value for key, value in written.items() if key != "content_hash"}
+    assert "no content_hash" in verify_manifest_integrity(missing)
+
+
+def test_a_tampered_artifact_is_refused_by_the_overlay(tmp_path: Path) -> None:
+    manifest, _ = build_dev_catalog([candidate()], FakeAdapter())
+    dev_path = tmp_path / "dev.json"
+    write_manifest(manifest, dev_path)
+
+    payload = json.loads(dev_path.read_text(encoding="utf-8"))
+    payload["lessons"][0]["title"] = "quietly changed by a human"
+    dev_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+
+    try:
+        load_catalog(dev_path=dev_path, env={"ENABLE_DEV_LISTENING_CATALOG": "1"})
+    except ValueError as exc:
+        assert "edited by hand" in str(exc)
+    else:
+        raise AssertionError("a hand-edited development catalog must be refused")
+
 
 def test_dev_overlay_defaults_off_and_is_refused_in_production(tmp_path: Path) -> None:
     assert dev_catalog_enabled({}) is False, "no flag means no overlay"

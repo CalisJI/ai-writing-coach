@@ -75,6 +75,19 @@ class YouTubeMetadataClient(Protocol):
     def fetch_title(self, canonical_source_url: str) -> str: ...
 
 
+@dataclass(frozen=True)
+class YouTubeSourceMetadata:
+    """What oEmbed already tells us about a source, beyond its title.
+
+    The channel is the authoritative creator for provenance; an editor's CSV
+    `source_family` is a hint, not the source's identity.
+    """
+
+    title: str
+    author_name: str = ""
+    thumbnail_url: str = ""
+
+
 class YouTubeCaptionClient(Protocol):
     def fetch_track(
         self,
@@ -101,6 +114,7 @@ class RequestsYouTubeMetadataClient:
     def __init__(self, session: requests.Session | None = None, timeout_seconds: float = 10) -> None:
         self._session = session or requests.Session()
         self._timeout_seconds = timeout_seconds
+        self._last_metadata = YouTubeSourceMetadata(title="")
 
     def fetch_title(self, canonical_source_url: str) -> str:
         try:
@@ -125,7 +139,22 @@ class RequestsYouTubeMetadataClient:
         title = " ".join(str(payload.get("title") or "").split())
         if not title:
             raise ProviderRequestFailed()
+        self._last_metadata = YouTubeSourceMetadata(
+            title=title,
+            author_name=" ".join(str(payload.get("author_name") or "").split()),
+            thumbnail_url=str(payload.get("thumbnail_url") or "").strip(),
+        )
         return title
+
+    def fetch_metadata(self, canonical_source_url: str) -> YouTubeSourceMetadata:
+        """Title plus the channel and thumbnail the same oEmbed call returns.
+
+        One request, not two: fetch_title already reads the payload, so this
+        reuses it rather than adding a second provider round-trip.
+        """
+
+        self.fetch_title(canonical_source_url)
+        return self._last_metadata
 
 
 class PublicYouTubeCaptionClient:

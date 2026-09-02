@@ -24,12 +24,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from writing_coach.listening_catalog import DEV_CATALOG_MANIFEST  # noqa: E402
-from writing_coach.listening_source_import import (  # noqa: E402
-    ImportReport,
-    build_dev_catalog,
-    read_source_candidates,
-    write_manifest,
-)
+from writing_coach.listening_dev_artifact import verify_manifest_integrity  # noqa: E402
 
 DEFAULT_SOURCES = (
     ROOT / "writing_coach/content/listening_sources_en_dev_100.csv",
@@ -47,9 +42,31 @@ def main() -> int:
                         help="write the full per-candidate report as JSON")
     parser.add_argument("--limit", type=int, default=0,
                         help="import at most N candidates per file (0 = all)")
+    parser.add_argument("--check", action="store_true",
+                        help="verify the committed artifact's integrity and exit; no network")
     args = parser.parse_args()
 
-    # Imported here so --help works without provider dependencies installed.
+    if args.check:
+        # Offline: proves the committed snapshot has not been hand-edited,
+        # without contacting a provider. Safe for CI.
+        if not args.out.is_file():
+            print(f"no generated catalog at {args.out} (nothing to check)")
+            return 0
+        problem = verify_manifest_integrity(json.loads(args.out.read_text(encoding="utf-8")))
+        if problem:
+            print(f"FAIL: {problem}", file=sys.stderr)
+            return 1
+        print(f"generated catalog integrity OK: {args.out}")
+        return 0
+
+    # Imported here, after --check, so verifying a committed artifact needs
+    # neither the provider adapter nor its network dependencies.
+    from writing_coach.listening_source_import import (
+        ImportReport,
+        build_dev_catalog,
+        read_source_candidates,
+        write_manifest,
+    )
     from writing_coach.media_providers.youtube import YouTubeMediaProviderAdapter
 
     candidates = []
@@ -62,7 +79,7 @@ def main() -> int:
 
     report = ImportReport()
     manifest, report = build_dev_catalog(candidates, YouTubeMediaProviderAdapter(), report)
-    write_manifest(manifest, args.out)
+    write_manifest(manifest, args.out, source_lists=list(args.sources))
 
     summary = report.as_dict()
     entries = summary.pop("entries")
