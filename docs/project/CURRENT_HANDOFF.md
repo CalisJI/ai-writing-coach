@@ -74,18 +74,19 @@ or secret values.
   Vietnamese defaults removed. One recovery policy shared by My Media and the
   importer; `transcript_origin` on every response.
 - Curated meaning resolves editorial → cached → live → truthful unavailable,
-  persisted by asset+segment+text fingerprint+language+provider. ZH Pinyin
-  derived where absent. PROVEN live: ja and es generate on the first request and
-  return `cached-generated` with 0 calls on the second; ZH returns Hanzi +
-  Pinyin + meaning.
-- Groq key is VALID; never replace it. An earlier "403 bad key" reading was
-  wrong: the 403 was Cloudflare 1010 blocking a `Python-urllib` User-Agent (the
-  app uses `requests`, gets 200). HTTP 403 does NOT mean a bad Groq key.
-- FIXED: `max_completion_tokens` (default 2048, env-configurable, validated)
-  replaces `max_tokens: 8000`, which equalled the org ceiling; a 413 now splits
-  the batch instead of retrying the same oversized request; the provider's
-  private vi/en/zh name map is gone in favour of the canonical registry.
-- Caption-less recovery proven to START only; no real generated transcript.
+  persisted by asset+segment+text fingerprint+language+provider. PROVEN live: ja
+  and es generate once then serve `cached-generated` with 0 calls; ZH gives
+  Hanzi + Pinyin + meaning.
+- Groq key is VALID; never replace it. HTTP 403 does NOT mean a bad key — the
+  403 seen earlier was Cloudflare 1010 refusing a `Python-urllib` User-Agent.
+  FIXED: `max_completion_tokens` (2048, env-configurable, validated) replaces
+  `max_tokens: 8000` which equalled the org ceiling; a 413 splits the batch; the
+  provider's private vi/en/zh map is gone in favour of the canonical registry.
+- Real no-caption recovery PROVEN on a warm provider cache: `iVk7Ft6gl5w` (60s,
+  VOA, captions absent per Orena's own client) gave 10 canonical timestamped
+  segments, `transcript_origin: supadata_generated`, Japanese meaning, all four
+  modes enabled, and the "generated automatically" disclosure. Never
+  "unsupported".
 - Production is `MEDIA_TRANSCRIPT_FALLBACK=none` with `SUPADATA_CONFIGURED=true`
   — configured but off. Enabling it there is a paid-provider gate, NOT done.
 
@@ -105,12 +106,10 @@ or secret values.
 
 ## OPEN P1
 
-- **Supadata client timeout too short.** `request_timeout_seconds` defaults to
-  20s but `mode=generate` measured **56.1s**, so recovery reports
-  `provider_timeout` before the provider replies. Raise it, or use the async job
-  path, before claiming Supadata recovery works.
-- No real smoke source yet: needs a SHORT video with speech and no native
-  captions. `ScMzIvxBSi4` has no captions but no speech (`content: []`).
+- **Cold no-caption import still fails.** Supadata answers 202 + jobId at ~93s;
+  a synchronous wait cannot win that race. The fix is to consume the jobId and
+  poll (the async contract is already tested), not to raise the timeout again.
+  Reproduce with any uncached no-caption source; `RiKtRSJiA-4` is one.
 - Real catalog breadth: one EN and one ZH real lesson; spec 3.23 waits on L3.
 - L1 is web only; native needs the L6 port.
 - Native curated video verified by tests and prebuild, not on a device. iOS
@@ -127,10 +126,10 @@ or secret values.
 
 ## NEXT EXACT TASK
 
-Finish L2.5 before L3. Both Groq P1s are fixed. Remaining: raise the Supadata
-request timeout above its measured ~56s generate latency, find a SHORT
-speech-bearing video with no native captions, and run the real recovery smoke
-test end to end. Then web/native visual QA. Then Batch L3: run the importer over the
+Finish L2.5 before L3. One thing left: make cold no-caption recovery consume
+Supadata's jobId and poll, instead of waiting synchronously — the provider
+answers 202 + jobId at ~93s and no timeout wins that race. The async contract is
+already tested. Then web/native visual QA. Then Batch L3: run the importer over the
 full EN/ZH pack
 (`build_listening_dev_catalog.py --report <path>`), read the per-candidate
 entries, **curate** the proposed excerpts, and commit the snapshot. Excerpts
