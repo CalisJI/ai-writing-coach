@@ -69,26 +69,26 @@ or secret values.
 
 ## L2.5 STATUS
 
-- Support language separated from learning language and UI locale; one rule in
+- Support language, learning language and UI locale are distinct; one rule in
   `core/support_languages.py`, persistent in the profile, twelve languages, nine
   Vietnamese defaults removed. One recovery policy shared by My Media and the
   importer; `transcript_origin` on every response.
-- Curated meaning resolves editorial → cached → live → truthful unavailable,
-  persisted by asset+segment+text fingerprint+language+provider. PROVEN live: ja
-  and es generate once then serve `cached-generated` with 0 calls; ZH gives
-  Hanzi + Pinyin + meaning.
-- Groq key is VALID; never replace it. HTTP 403 does NOT mean a bad key — the
-  403 seen earlier was Cloudflare 1010 refusing a `Python-urllib` User-Agent.
-  FIXED: `max_completion_tokens` (2048, env-configurable, validated) replaces
-  `max_tokens: 8000` which equalled the org ceiling; a 413 splits the batch; the
-  provider's private vi/en/zh map is gone in favour of the canonical registry.
-- Real no-caption recovery PROVEN on a warm provider cache: `iVk7Ft6gl5w` (60s,
-  VOA, captions absent per Orena's own client) gave 10 canonical timestamped
-  segments, `transcript_origin: supadata_generated`, Japanese meaning, all four
-  modes enabled, and the "generated automatically" disclosure. Never
-  "unsupported".
-- Production is `MEDIA_TRANSCRIPT_FALLBACK=none` with `SUPADATA_CONFIGURED=true`
-  — configured but off. Enabling it there is a paid-provider gate, NOT done.
+- Curated meaning: editorial → cached → live → truthful unavailable, persisted
+  by asset+segment+text fingerprint+language+provider. PROVEN live — ja and es
+  generate once then serve `cached-generated` with 0 calls; ZH gives Hanzi +
+  Pinyin + meaning.
+- Groq key is VALID; never replace it. HTTP 403 does NOT mean a bad key (that
+  403 was Cloudflare 1010 refusing a `Python-urllib` UA). FIXED:
+  `max_completion_tokens` 2048 replaces `max_tokens: 8000` which equalled the
+  org ceiling; 413 splits the batch; the private vi/en/zh map is gone.
+- No-caption recovery PROVEN warm on `iVk7Ft6gl5w`: 10 canonical timestamped
+  segments, `transcript_origin: supadata_generated`, Japanese meaning, four
+  modes, "generated automatically" disclosure, never "unsupported".
+- Orchestration FIXED: the Orena job is created BEFORE the provider call, so the
+  learner gets `provider_starting` + a handle immediately and the ~93s provider
+  start runs on a bounded worker. Cold initial response **1.36s**, down from a
+  90s timeout. Registry thread-safe; `poll()` never polls a provider id that
+  does not exist, and repeated polling never re-starts the provider.
 
 ## PENDING
 
@@ -106,10 +106,13 @@ or secret values.
 
 ## OPEN P1
 
-- **Cold no-caption import still fails.** Supadata answers 202 + jobId at ~93s;
-  a synchronous wait cannot win that race. The fix is to consume the jobId and
-  poll (the async contract is already tested), not to raise the timeout again.
-  Reproduce with any uncached no-caption source; `RiKtRSJiA-4` is one.
+- **Supadata plan quota is exhausted**, so the cold end-to-end transcript is
+  still unproven. A direct call now returns HTTP 429 `limit-exceeded`, "Plan
+  usage limit was exceeded". Orena handled it correctly — truthful
+  `provider_failure`, playback intact, never "unsupported" — but the final
+  cold acceptance needs quota. Re-run with `iSTlFeW-Z9M` once it resets.
+- Registry is process-local: resume handles do not survive a restart or span
+  replicas. Future architecture concern, deliberately not expanded here.
 - Real catalog breadth: one EN and one ZH real lesson; spec 3.23 waits on L3.
 - L1 is web only; native needs the L6 port.
 - Native curated video verified by tests and prebuild, not on a device. iOS
@@ -126,18 +129,13 @@ or secret values.
 
 ## NEXT EXACT TASK
 
-Finish L2.5 before L3. One thing left: make cold no-caption recovery consume
-Supadata's jobId and poll, instead of waiting synchronously — the provider
-answers 202 + jobId at ~93s and no timeout wins that race. The async contract is
-already tested. Then web/native visual QA. Then Batch L3: run the importer over the
-full EN/ZH pack
-(`build_listening_dev_catalog.py --report <path>`), read the per-candidate
-entries, **curate** the proposed excerpts, and commit the snapshot. Excerpts
-arrive `proposed`; promotion to `reviewed` is a human act. L3 also owns what the
-generator cannot do — translation/meaning, Pinyin, level review, natural excerpt
-review; playback plus captions is not content-complete. Commit the snapshot and
-flip `listening_dev_artifact.SNAPSHOT_REQUIRED` True in the SAME commit: the
-invariant forbids any other pairing.
+Finish L2.5. Orchestration is done and measured; only the real cold acceptance
+remains, blocked on Supadata plan quota (429 `limit-exceeded`). When quota
+resets, re-run a cold import of `iSTlFeW-Z9M` and confirm
+`provider_starting → queued → processing → completed` with a real transcript,
+then web/native visual QA. Then Batch L3: run the importer over the full EN/ZH
+pack, curate the proposed excerpts, commit the snapshot and flip
+`SNAPSHOT_REQUIRED` True in the same commit.
 
 ## L3 PREVIEW PATH (decided)
 
