@@ -39,6 +39,15 @@ from writing_coach.media_learning import (
 )
 
 REPO = Path(__file__).resolve().parents[1]
+CONTENT = REPO / "writing_coach/content"
+
+
+def _write(manifest, path: Path) -> None:
+    """Write a manifest the way the generator does, recording its inputs."""
+
+    from writing_coach.listening_dev_artifact import EXPECTED_SOURCE_LISTS
+
+    write_manifest(manifest, path, source_lists=[CONTENT / name for name in EXPECTED_SOURCE_LISTS])
 
 
 def _segments(asset_id: str, count: int, seconds: int = 6) -> tuple[TranscriptSegment, ...]:
@@ -219,7 +228,7 @@ def test_the_base_loader_refuses_the_development_lifecycle(tmp_path: Path) -> No
 
     manifest, _ = build_dev_catalog([candidate()], FakeAdapter())
     dev_path = tmp_path / "dev.json"
-    write_manifest(manifest, dev_path)
+    _write(manifest, dev_path)
 
     try:
         load_catalog_manifest(dev_path)
@@ -241,7 +250,7 @@ def test_a_generator_cannot_promote_its_own_excerpt(tmp_path: Path) -> None:
     manifest, _ = build_dev_catalog([candidate()], FakeAdapter())
     manifest["lessons"][0]["curation_state"] = "reviewed"
     dev_path = tmp_path / "dev.json"
-    write_manifest(manifest, dev_path)
+    _write(manifest, dev_path)
 
     try:
         load_catalog_manifest(dev_path, allow_dev=True)
@@ -310,6 +319,74 @@ def test_provider_metadata_outranks_the_editor_hint() -> None:
     assert fallback["sources"][0]["poster_url"].startswith("https://i.ytimg.com/vi/")
 
 
+def test_one_metadata_request_per_accepted_source() -> None:
+    """P1/P2: acquire() and the importer must share one oEmbed response.
+
+    Counted at the HTTP session, not at the client, because the client is where
+    the duplicate used to hide: fetch_title() and fetch_metadata() each issued
+    their own request for the same URL.
+    """
+
+    from writing_coach.media_providers.youtube import RequestsYouTubeMetadataClient
+
+    class CountingSession:
+        def __init__(self) -> None:
+            self.urls: list[str] = []
+
+        def get(self, endpoint, params=None, timeout=None):
+            self.urls.append((params or {}).get("url", ""))
+
+            class Response:
+                status_code = 200
+
+                @staticmethod
+                def raise_for_status() -> None: ...
+
+                @staticmethod
+                def json() -> dict:
+                    return {"title": "A title", "author_name": "A channel",
+                            "thumbnail_url": "https://i.ytimg.com/vi/x/hqdefault.jpg"}
+
+            return Response()
+
+    session = CountingSession()
+    client = RequestsYouTubeMetadataClient(session=session)
+
+    url = "https://www.youtube.com/watch?v=aaaaaaaaaaa"
+    assert client.fetch_title(url) == "A title"
+    meta = client.fetch_metadata(url)
+    assert (meta.author_name, meta.thumbnail_url) == (
+        "A channel", "https://i.ytimg.com/vi/x/hqdefault.jpg")
+    assert len(session.urls) == 1, f"one source must cost one oEmbed request, got {session.urls}"
+
+    # A different source is a new request, not a stale cached answer.
+    other = "https://www.youtube.com/watch?v=bbbbbbbbbbb"
+    client.fetch_metadata(other)
+    assert session.urls == [url, other]
+
+    # And through the importer: one accepted candidate, one metadata request.
+    class CountingAdapter(FakeAdapter):
+        def __init__(self, metadata_client) -> None:
+            super().__init__()
+            self._metadata_client = metadata_client
+
+        def acquire(self, source_url: str, source_language: str):
+            # Mirrors the real adapter: acquire() reads the title itself.
+            self._metadata_client.fetch_title(source_url)
+            return super().acquire(source_url, source_language)
+
+    session = CountingSession()
+    adapter = CountingAdapter(RequestsYouTubeMetadataClient(session=session))
+    _, report = build_dev_catalog([
+        candidate(candidate_id="one", source_url="https://www.youtube.com/watch?v=ccccccccccc"),
+        candidate(candidate_id="two", source_url="https://www.youtube.com/watch?v=ddddddddddd"),
+    ], adapter)
+
+    assert report.as_dict()["ACCEPTED"] == 2
+    assert len(session.urls) == 2, f"two sources must cost two requests, got {session.urls}"
+    assert len(set(session.urls)) == 2
+
+
 def test_a_failing_candidate_does_not_break_the_batch() -> None:
     rows = [
         candidate(candidate_id="ok", source_url="https://www.youtube.com/watch?v=aaaaaaaaaaa"),
@@ -366,7 +443,7 @@ def test_en_and_zh_use_the_same_pipeline() -> None:
 def test_generated_manifest_loads_as_a_dev_overlay(tmp_path: Path) -> None:
     manifest, _ = build_dev_catalog([candidate()], FakeAdapter())
     dev_path = tmp_path / "listening_catalog.dev.generated.json"
-    write_manifest(manifest, dev_path)
+    _write(manifest, dev_path)
 
     written = json.loads(dev_path.read_text(encoding="utf-8"))
     assert "Edit the source CSV" in written["do_not_edit"]
@@ -395,21 +472,21 @@ def test_the_generated_artifact_is_reproducible_and_tamper_evident(tmp_path: Pat
     """P1: the artifact is committed, so it must survive review and edits."""
 
     from writing_coach.listening_dev_artifact import (
+        EXPECTED_SOURCE_LISTS,
         manifest_content_hash,
         verify_manifest_integrity,
     )
 
-    csv_path = REPO / "writing_coach/content/listening_sources_en_dev_100.csv"
     manifest, _ = build_dev_catalog([candidate()], FakeAdapter())
     dev_path = tmp_path / "dev.json"
-    write_manifest(manifest, dev_path, source_lists=[csv_path])
+    _write(manifest, dev_path)
 
     written = json.loads(dev_path.read_text(encoding="utf-8"))
     assert written["generated_by"].endswith("build_listening_dev_catalog.py")
     assert written["do_not_edit"]
     # Provenance: a reviewer can tell which source list produced this snapshot.
-    assert written["source_lists"][0]["name"] == csv_path.name
-    assert len(written["source_lists"][0]["sha256"]) == 64
+    assert {entry["name"] for entry in written["source_lists"]} == set(EXPECTED_SOURCE_LISTS)
+    assert all(len(entry["sha256"]) == 64 for entry in written["source_lists"])
     assert verify_manifest_integrity(written) == ""
 
     # Regenerating the same input reproduces the same content hash.
@@ -427,7 +504,7 @@ def test_the_generated_artifact_is_reproducible_and_tamper_evident(tmp_path: Pat
 def test_a_tampered_artifact_is_refused_by_the_overlay(tmp_path: Path) -> None:
     manifest, _ = build_dev_catalog([candidate()], FakeAdapter())
     dev_path = tmp_path / "dev.json"
-    write_manifest(manifest, dev_path)
+    _write(manifest, dev_path)
 
     payload = json.loads(dev_path.read_text(encoding="utf-8"))
     payload["lessons"][0]["title"] = "quietly changed by a human"
@@ -439,6 +516,86 @@ def test_a_tampered_artifact_is_refused_by_the_overlay(tmp_path: Path) -> None:
         assert "edited by hand" in str(exc)
     else:
         raise AssertionError("a hand-edited development catalog must be refused")
+
+
+def test_snapshot_mode_and_the_repository_artifact_agree() -> None:
+    """The committed-snapshot contract, enforced rather than described.
+
+    While SNAPSHOT_REQUIRED is False the artifact is legitimately absent and the
+    offline check must not report integrity PASS for a missing file. The moment
+    L3 flips it True the artifact has to exist here and be valid, so the flag
+    cannot be turned on without the snapshot it promises.
+    """
+
+    from writing_coach.listening_catalog import DEV_CATALOG_MANIFEST
+    from writing_coach.listening_dev_artifact import (
+        EXPECTED_SOURCE_LISTS,
+        SNAPSHOT_REQUIRED,
+        verify_manifest_integrity,
+    )
+
+    content_dir = REPO / "writing_coach/content"
+    for name in EXPECTED_SOURCE_LISTS:
+        assert (content_dir / name).is_file(), f"declared source list {name} is missing"
+
+    if SNAPSHOT_REQUIRED:
+        assert DEV_CATALOG_MANIFEST.is_file(), (
+            "SNAPSHOT_REQUIRED is True, so the committed development catalog must exist"
+        )
+    if DEV_CATALOG_MANIFEST.is_file():
+        # Present either way, it must be valid against the CURRENT source lists.
+        problem = verify_manifest_integrity(
+            json.loads(DEV_CATALOG_MANIFEST.read_text(encoding="utf-8")),
+            content_dir=content_dir,
+        )
+        assert problem == "", problem
+
+
+def test_a_stale_snapshot_is_detected_when_a_source_list_changes(tmp_path: Path) -> None:
+    """P2: the digests must be verified, not merely recorded."""
+
+    from writing_coach.listening_dev_artifact import verify_manifest_integrity
+
+    content_dir = tmp_path / "content"
+    content_dir.mkdir()
+    for name in ("listening_sources_en_dev_100.csv", "listening_sources_zh_dev_100.csv"):
+        (content_dir / name).write_text("candidate_id,source_url\nen-001,x\n", encoding="utf-8")
+
+    manifest, _ = build_dev_catalog([candidate()], FakeAdapter())
+    dev_path = tmp_path / "dev.json"
+    write_manifest(manifest, dev_path, source_lists=sorted(content_dir.iterdir()))
+    written = json.loads(dev_path.read_text(encoding="utf-8"))
+    assert verify_manifest_integrity(written, content_dir=content_dir) == ""
+
+    # An editor changes a source list and forgets to regenerate.
+    (content_dir / "listening_sources_en_dev_100.csv").write_text(
+        "candidate_id,source_url\nen-001,x\nen-002,y\n", encoding="utf-8")
+    problem = verify_manifest_integrity(written, content_dir=content_dir)
+    assert "changed since the catalog was generated" in problem
+
+    # A deleted source list is caught too.
+    (content_dir / "listening_sources_en_dev_100.csv").unlink()
+    assert "no longer exists" in verify_manifest_integrity(written, content_dir=content_dir)
+
+
+def test_provenance_header_must_match_this_generator() -> None:
+    from writing_coach.listening_dev_artifact import verify_manifest_integrity
+
+    manifest, _ = build_dev_catalog([candidate()], FakeAdapter())
+
+    import writing_coach.listening_dev_artifact as artifact
+    good = {
+        **manifest,
+        "generated_by": artifact.GENERATOR,
+        "generator_version": artifact.GENERATOR_VERSION,
+        "source_lists": [{"name": name, "sha256": "x"} for name in artifact.EXPECTED_SOURCE_LISTS],
+        "content_hash": artifact.manifest_content_hash(manifest),
+    }
+    assert verify_manifest_integrity(good) == ""
+
+    assert "unexpected generator" in verify_manifest_integrity({**good, "generated_by": "hand"})
+    assert "generator version" in verify_manifest_integrity({**good, "generator_version": "0"})
+    assert "does not record source lists" in verify_manifest_integrity({**good, "source_lists": []})
 
 
 def test_dev_overlay_defaults_off_and_is_refused_in_production(tmp_path: Path) -> None:
@@ -457,7 +614,7 @@ def test_dev_overlay_defaults_off_and_is_refused_in_production(tmp_path: Path) -
 
     manifest, _ = build_dev_catalog([candidate()], FakeAdapter())
     dev_path = tmp_path / "dev.json"
-    write_manifest(manifest, dev_path)
+    _write(manifest, dev_path)
     _, production_lessons = load_catalog(
         dev_path=dev_path,
         env={"ENABLE_DEV_LISTENING_CATALOG": "1", "APP_ENV": "production"},
@@ -470,7 +627,7 @@ def test_dev_overlay_cannot_redefine_a_reviewed_base_lesson(tmp_path: Path) -> N
     # A hostile or careless generated file claiming a base lesson id.
     manifest["lessons"][0]["lesson_id"] = "en-science-cosmic-calendar"
     dev_path = tmp_path / "dev.json"
-    write_manifest(manifest, dev_path)
+    _write(manifest, dev_path)
 
     _, lessons = load_catalog(dev_path=dev_path, env={"ENABLE_DEV_LISTENING_CATALOG": "1"})
     clash = [item for item in lessons if item.lesson_id == "en-science-cosmic-calendar"]

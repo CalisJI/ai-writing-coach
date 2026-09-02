@@ -24,7 +24,10 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from writing_coach.listening_catalog import DEV_CATALOG_MANIFEST  # noqa: E402
-from writing_coach.listening_dev_artifact import verify_manifest_integrity  # noqa: E402
+from writing_coach.listening_dev_artifact import (  # noqa: E402
+    SNAPSHOT_REQUIRED,
+    verify_manifest_integrity,
+)
 
 DEFAULT_SOURCES = (
     ROOT / "writing_coach/content/listening_sources_en_dev_100.csv",
@@ -47,16 +50,27 @@ def main() -> int:
     args = parser.parse_args()
 
     if args.check:
-        # Offline: proves the committed snapshot has not been hand-edited,
-        # without contacting a provider. Safe for CI.
+        # Offline: proves the committed snapshot matches its inputs and was not
+        # hand-edited, without contacting a provider. Safe for CI.
         if not args.out.is_file():
-            print(f"no generated catalog at {args.out} (nothing to check)")
+            if SNAPSHOT_REQUIRED:
+                print(f"FAIL: committed development catalog is missing at {args.out}",
+                      file=sys.stderr)
+                return 1
+            # Never report integrity PASS for a file that does not exist.
+            print(f"SKIP: no committed development catalog yet at {args.out}")
+            print("      SNAPSHOT_REQUIRED is False; L3 commits the first snapshot "
+                  "and flips it True.")
             return 0
-        problem = verify_manifest_integrity(json.loads(args.out.read_text(encoding="utf-8")))
+        problem = verify_manifest_integrity(
+            json.loads(args.out.read_text(encoding="utf-8")),
+            content_dir=ROOT / "writing_coach/content",
+        )
         if problem:
             print(f"FAIL: {problem}", file=sys.stderr)
             return 1
         print(f"generated catalog integrity OK: {args.out}")
+        print("      content hash and every recorded source-list digest match.")
         return 0
 
     # Imported here, after --check, so verifying a committed artifact needs

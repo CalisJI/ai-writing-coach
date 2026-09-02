@@ -114,9 +114,28 @@ class RequestsYouTubeMetadataClient:
     def __init__(self, session: requests.Session | None = None, timeout_seconds: float = 10) -> None:
         self._session = session or requests.Session()
         self._timeout_seconds = timeout_seconds
-        self._last_metadata = YouTubeSourceMetadata(title="")
+        self._cached_url: str | None = None
+        self._cached: YouTubeSourceMetadata | None = None
 
     def fetch_title(self, canonical_source_url: str) -> str:
+        return self.fetch_metadata(canonical_source_url).title
+
+    def fetch_metadata(self, canonical_source_url: str) -> YouTubeSourceMetadata:
+        """Title, channel and thumbnail from ONE oEmbed representation.
+
+        acquire() needs the title and the importer needs the channel and the
+        thumbnail, and all three arrive in the same payload. Without the memo
+        below each candidate cost two identical oEmbed requests, which matters
+        at the scale the development source pack is heading for.
+
+        The memo is keyed by canonical URL and holds one entry: consecutive
+        lookups for the same source reuse the response, and moving on to the
+        next source releases it rather than accumulating a session-long cache.
+        """
+
+        if self._cached_url == canonical_source_url and self._cached is not None:
+            return self._cached
+
         try:
             response = self._session.get(
                 _OEMBED_ENDPOINT,
@@ -139,22 +158,13 @@ class RequestsYouTubeMetadataClient:
         title = " ".join(str(payload.get("title") or "").split())
         if not title:
             raise ProviderRequestFailed()
-        self._last_metadata = YouTubeSourceMetadata(
+        metadata = YouTubeSourceMetadata(
             title=title,
             author_name=" ".join(str(payload.get("author_name") or "").split()),
             thumbnail_url=str(payload.get("thumbnail_url") or "").strip(),
         )
-        return title
-
-    def fetch_metadata(self, canonical_source_url: str) -> YouTubeSourceMetadata:
-        """Title plus the channel and thumbnail the same oEmbed call returns.
-
-        One request, not two: fetch_title already reads the payload, so this
-        reuses it rather than adding a second provider round-trip.
-        """
-
-        self.fetch_title(canonical_source_url)
-        return self._last_metadata
+        self._cached_url, self._cached = canonical_source_url, metadata
+        return metadata
 
 
 class PublicYouTubeCaptionClient:
