@@ -9,7 +9,10 @@ from __future__ import annotations
 
 import hashlib
 import secrets
+import os
+import threading
 import time
+from concurrent.futures import Executor, ThreadPoolExecutor
 from dataclasses import dataclass, replace
 from typing import Callable
 
@@ -42,10 +45,21 @@ class MediaFallbackResult:
     include_translation: bool = True
 
 
+# Job states. `provider_starting` is the one the learner sees first: the Orena
+# job exists and playback already works, while the provider has not yet answered.
+PROVIDER_STARTING = "provider_starting"
+QUEUED = "queued"
+PROCESSING = "processing"
+COMPLETED = "completed"
+FAILED = "failed"
+
+# How many provider starts may be in flight at once.
+PROVIDER_START_WORKERS_ENV = "MEDIA_FALLBACK_START_WORKERS"
+
+
 @dataclass
 class _JobRecord:
     public_job_id: str
-    provider_job_id: str
     owner_key: str
     learning_language: str
     target_language: str
@@ -53,13 +67,26 @@ class _JobRecord:
     include_translation: bool
     created_at: float
     updated_at: float
-    state: str = "queued"
+    # Empty until the provider answers. The public handle exists from the first
+    # moment so the learner is never blocked waiting for the provider to name
+    # its own job.
+    provider_job_id: str = ""
+    state: str = PROVIDER_STARTING
     completed_acquisition: MediaAcquisition | None = None
     failure_kind: str | None = None
 
 
 class MediaFallbackJobRegistry:
-    """Small bounded in-memory registry for opaque learner resume handles."""
+    """Small bounded in-memory registry for opaque learner resume handles.
+
+    Thread-safe: provider startup now runs on a background worker, so a record
+    can be mutated by that worker while a status request reads it. The lock is
+    re-entrant because pruning happens inside other guarded operations.
+
+    Durability limitation, deliberately unchanged here: this is process-local,
+    so resume handles do not survive a restart or span replicas. Moving it to
+    shared storage is a future architecture concern, not part of this batch.
+    """
 
     def __init__(
         self,
@@ -74,6 +101,7 @@ class MediaFallbackJobRegistry:
         self._max_jobs = int(max_jobs)
         self._clock = clock
         self._jobs: dict[str, _JobRecord] = {}
+        self._lock = threading.RLock()
 
     def _prune(self) -> None:
         now = self._clock()
@@ -93,30 +121,62 @@ class MediaFallbackJobRegistry:
     def create(
         self,
         *,
-        provider_job_id: str,
         owner_key: str,
         learning_language: str,
         target_language: str,
         acquisition: MediaAcquisition,
         include_translation: bool,
+        provider_job_id: str = "",
+        state: str = PROVIDER_STARTING,
     ) -> _JobRecord:
-        self._prune()
-        now = self._clock()
-        public_job_id = secrets.token_urlsafe(24)
-        record = _JobRecord(
-            public_job_id=public_job_id,
-            provider_job_id=provider_job_id,
-            owner_key=owner_key,
-            learning_language=learning_language,
-            target_language=target_language,
-            acquisition=acquisition,
-            include_translation=include_translation,
-            created_at=now,
-            updated_at=now,
-        )
-        self._jobs[public_job_id] = record
-        self._prune()
-        return record
+        with self._lock:
+            self._prune()
+            now = self._clock()
+            public_job_id = secrets.token_urlsafe(24)
+            record = _JobRecord(
+                public_job_id=public_job_id,
+                provider_job_id=provider_job_id,
+                state=state,
+                owner_key=owner_key,
+                learning_language=learning_language,
+                target_language=target_language,
+                acquisition=acquisition,
+                include_translation=include_translation,
+                created_at=now,
+                updated_at=now,
+            )
+            self._jobs[public_job_id] = record
+            self._prune()
+            return record
+
+    def attach_provider_job(self, public_job_id: str, provider_job_id: str) -> None:
+        """Record the provider's own job id once it finally answers."""
+
+        with self._lock:
+            record = self._jobs.get(public_job_id)
+            if record is None:
+                return
+            record.provider_job_id = str(provider_job_id or "")
+            record.state = QUEUED
+            record.updated_at = self._clock()
+
+    def mark_completed(self, public_job_id: str, acquisition: MediaAcquisition) -> None:
+        with self._lock:
+            record = self._jobs.get(public_job_id)
+            if record is None:
+                return
+            record.completed_acquisition = acquisition
+            record.state = COMPLETED
+            record.updated_at = self._clock()
+
+    def mark_failed(self, public_job_id: str, failure_kind: str) -> None:
+        with self._lock:
+            record = self._jobs.get(public_job_id)
+            if record is None:
+                return
+            record.state = FAILED
+            record.failure_kind = failure_kind
+            record.updated_at = self._clock()
 
     def get(
         self,
@@ -125,14 +185,15 @@ class MediaFallbackJobRegistry:
         owner_key: str,
         learning_language: str,
     ) -> _JobRecord | None:
-        self._prune()
-        record = self._jobs.get(public_job_id)
-        if record is None:
-            return None
-        if record.owner_key != owner_key or record.learning_language != learning_language:
-            return None
-        record.updated_at = self._clock()
-        return record
+        with self._lock:
+            self._prune()
+            record = self._jobs.get(public_job_id)
+            if record is None:
+                return None
+            if record.owner_key != owner_key or record.learning_language != learning_language:
+                return None
+            record.updated_at = self._clock()
+            return record
 
 
 def _primary_language(value: str) -> str:
@@ -212,9 +273,16 @@ class SupadataMediaFallbackService:
         client: SupadataTranscriptClient,
         *,
         registry: MediaFallbackJobRegistry | None = None,
+        executor: Executor | None = None,
     ) -> None:
         self._client = client
         self._registry = registry or MediaFallbackJobRegistry()
+        # Bounded: a provider start can occupy a worker for 90+ seconds, so the
+        # pool is capped rather than growing a thread per learner request.
+        self._executor = executor or ThreadPoolExecutor(
+            max_workers=max(1, int(os.getenv(PROVIDER_START_WORKERS_ENV, "4") or 4)),
+            thread_name_prefix="media-fallback-start",
+        )
 
     def start(
         self,
@@ -225,6 +293,53 @@ class SupadataMediaFallbackService:
         target_language: str,
         include_translation: bool = True,
     ) -> MediaFallbackResult:
+        """Create the Orena job first, then start the provider in the background.
+
+        The provider was measured answering `mode=generate` with HTTP 202 and a
+        job id after roughly 93 seconds. Starting it inline meant the learner's
+        request timed out before Orena ever received that id, so the poll path
+        that already existed never got a chance to run.
+
+        The public handle is therefore minted before the provider is contacted.
+        The learner gets PROCESSING immediately, keeps playback, and resumes
+        through the same opaque handle; the long wait happens on a bounded
+        worker instead of in the request.
+        """
+
+        record = self._registry.create(
+            owner_key=owner_key,
+            learning_language=learning_language,
+            target_language=target_language,
+            acquisition=acquisition,
+            include_translation=include_translation,
+        )
+        self._executor.submit(
+            self._start_provider,
+            record.public_job_id,
+            acquisition,
+            learning_language,
+        )
+        return MediaFallbackResult(
+            status="processing",
+            acquisition=acquisition,
+            job_id=record.public_job_id,
+            provider_state=PROVIDER_STARTING,
+            source=self.provider_id,
+            target_language=target_language,
+        )
+
+    def _start_provider(
+        self,
+        public_job_id: str,
+        acquisition: MediaAcquisition,
+        learning_language: str,
+    ) -> None:
+        """The bounded provider-start, run off the request worker.
+
+        Every outcome ends on the record, so a status request always finds a
+        truthful state rather than a job stuck in `provider_starting` forever.
+        """
+
         try:
             result = self._client.start(
                 acquisition.media_object.asset.source_url,
@@ -232,85 +347,35 @@ class SupadataMediaFallbackService:
                 mode="generate",
             )
         except SupadataTranscriptTimedOut:
-            return MediaFallbackResult(
-                status="failed",
-                acquisition=acquisition,
-                source=self.provider_id,
-                failure_kind="provider_timeout",
-                target_language=target_language,
-            )
+            self._registry.mark_failed(public_job_id, "provider_timeout")
+            return
         except SupadataTranscriptMalformed:
-            return MediaFallbackResult(
-                status="failed",
-                acquisition=acquisition,
-                source=self.provider_id,
-                failure_kind="malformed_transcript",
-                target_language=target_language,
-            )
+            self._registry.mark_failed(public_job_id, "malformed_transcript")
+            return
         except SupadataTranscriptRequestFailed:
-            return MediaFallbackResult(
-                status="failed",
-                acquisition=acquisition,
-                source=self.provider_id,
-                failure_kind="provider_failure",
-                target_language=target_language,
-            )
+            self._registry.mark_failed(public_job_id, "provider_failure")
+            return
+        except Exception:
+            # A background worker must never die silently and strand the job.
+            self._registry.mark_failed(public_job_id, "provider_failure")
+            return
 
         if result is None:
-            return MediaFallbackResult(
-                status="unavailable",
-                acquisition=acquisition,
-                source=self.provider_id,
-                failure_kind="transcript_unavailable",
-                target_language=target_language,
-            )
+            self._registry.mark_failed(public_job_id, "transcript_unavailable")
+            return
         if isinstance(result, SupadataTranscript):
+            # The provider answered with the transcript directly; no job to poll.
             try:
-                ready = _with_supadata_transcript(
-                    acquisition,
-                    result,
-                    learning_language,
-                )
+                ready = _with_supadata_transcript(acquisition, result, learning_language)
             except SupadataTranscriptMalformed:
-                return MediaFallbackResult(
-                    status="failed",
-                    acquisition=acquisition,
-                    source=self.provider_id,
-                    failure_kind="malformed_transcript",
-                    target_language=target_language,
-                )
-            return MediaFallbackResult(
-                status="ready",
-                acquisition=ready,
-                source=self.provider_id,
-                provider_state="completed",
-                target_language=target_language,
-            )
+                self._registry.mark_failed(public_job_id, "malformed_transcript")
+                return
+            self._registry.mark_completed(public_job_id, ready)
+            return
         if not isinstance(result, SupadataTranscriptJob):
-            return MediaFallbackResult(
-                status="failed",
-                acquisition=acquisition,
-                source=self.provider_id,
-                failure_kind="malformed_job",
-                target_language=target_language,
-            )
-
-        record = self._registry.create(
-            provider_job_id=result.job_id,
-            owner_key=owner_key,
-            learning_language=learning_language,
-            target_language=target_language,
-            acquisition=acquisition,
-            include_translation=include_translation,
-        )
-        return MediaFallbackResult(
-            status="processing",
-            acquisition=acquisition,
-            job_id=record.public_job_id,
-            provider_state=result.status,
-            source=self.provider_id,
-            target_language=target_language,
-        )
+            self._registry.mark_failed(public_job_id, "malformed_job")
+            return
+        self._registry.attach_provider_job(public_job_id, result.job_id)
 
     def poll(
         self,
@@ -326,6 +391,32 @@ class SupadataMediaFallbackService:
         )
         if record is None:
             raise KeyError("Media import job is unavailable or expired.")
+
+        if record.state == PROVIDER_STARTING:
+            # The provider has not named its job yet. Report the truth rather
+            # than polling an id that does not exist, and never restart the
+            # provider from a status request - repeated polling must not
+            # multiply provider calls.
+            return MediaFallbackResult(
+                status="processing",
+                acquisition=record.acquisition,
+                job_id=record.public_job_id,
+                provider_state=PROVIDER_STARTING,
+                source=self.provider_id,
+                target_language=record.target_language,
+                include_translation=record.include_translation,
+            )
+        if record.state == FAILED:
+            return MediaFallbackResult(
+                status="failed",
+                acquisition=record.acquisition,
+                job_id=record.public_job_id,
+                provider_state=FAILED,
+                source=self.provider_id,
+                failure_kind=record.failure_kind or "provider_failure",
+                target_language=record.target_language,
+                include_translation=record.include_translation,
+            )
 
         if record.completed_acquisition is not None:
             return MediaFallbackResult(

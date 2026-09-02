@@ -23,6 +23,21 @@ from writing_coach.media_providers.supadata import (
 )
 
 
+class InlineExecutor:
+    """Runs the provider start synchronously, so tests stay deterministic.
+
+    The production executor is a bounded thread pool; the contract under test is
+    what happens to the record, not which thread ran it.
+    """
+
+    def submit(self, fn, *args, **kwargs):
+        fn(*args, **kwargs)
+        return None
+
+    def shutdown(self, *args, **kwargs):
+        return None
+
+
 def base_acquisition() -> MediaAcquisition:
     asset = MediaLearningAsset(
         asset_id="youtube:dQw4w9WgXcQ",
@@ -78,7 +93,7 @@ def completed_transcript(language: str = "en") -> SupadataTranscript:
 
 def test_fallback_async_job_uses_opaque_owner_scoped_resume_handle() -> None:
     client = FakeClient(SupadataTranscriptJob("provider-job-123"))
-    service = SupadataMediaFallbackService(client)  # type: ignore[arg-type]
+    service = SupadataMediaFallbackService(client, executor=InlineExecutor())  # type: ignore[arg-type]
     started = service.start(
         base_acquisition(),
         owner_key="learner-a",
@@ -104,7 +119,7 @@ def test_fallback_poll_completes_same_media_object_contract() -> None:
             transcript=completed_transcript(),
         ),
     )
-    service = SupadataMediaFallbackService(client)  # type: ignore[arg-type]
+    service = SupadataMediaFallbackService(client, executor=InlineExecutor())  # type: ignore[arg-type]
     started = service.start(
         base_acquisition(),
         owner_key="learner-a",
@@ -128,18 +143,30 @@ def test_fallback_poll_completes_same_media_object_contract() -> None:
     assert completed.include_translation is False
 
 
-def test_immediate_fallback_transcript_never_creates_resume_job() -> None:
+def test_an_immediate_provider_transcript_completes_on_the_first_poll() -> None:
+    """Start always returns a handle now; an immediate transcript still lands fast.
+
+    The provider used to be called inline, so a direct transcript came back from
+    start() itself. It is now started in the background, because a cold provider
+    takes ~93s and that blocked the learner's request. The learner therefore
+    always receives a handle first, and a provider that answers immediately
+    simply completes the job before the first status check.
+    """
+
     client = FakeClient(completed_transcript("zh"))
-    service = SupadataMediaFallbackService(client)  # type: ignore[arg-type]
-    result = service.start(
+    service = SupadataMediaFallbackService(client, executor=InlineExecutor())  # type: ignore[arg-type]
+    started = service.start(
         base_acquisition(),
         owner_key="learner-a",
         learning_language="zh",
         target_language="vi",
     )
-    assert result.status == "ready"
-    assert result.job_id is None
-    assert result.acquisition.media_object.asset.source_language == "zh"
+    assert started.status == "processing"
+    assert started.job_id, "the learner must get a resume handle immediately"
+
+    ready = service.poll(started.job_id, owner_key="learner-a", learning_language="zh")
+    assert ready.status == "ready"
+    assert ready.acquisition.media_object.asset.source_language == "zh"
 
 
 def test_registry_expiry_invalidates_old_resume_handle() -> None:
@@ -172,7 +199,7 @@ def test_polling_does_not_extend_the_resume_job_lifetime() -> None:
         SupadataTranscriptJob("provider-job-123"),
         SupadataTranscriptJobResult(status="processing"),
     )
-    service = SupadataMediaFallbackService(client, registry=registry)  # type: ignore[arg-type]
+    service = SupadataMediaFallbackService(client, registry=registry, executor=InlineExecutor())  # type: ignore[arg-type]
     started = service.start(
         base_acquisition(),
         owner_key="learner-a",
@@ -247,7 +274,7 @@ def test_async_recovery_walks_start_queued_processing_completed() -> None:
             SupadataTranscriptJobResult(status="completed", transcript=completed_transcript("en")),
         ],
     )
-    service = SupadataMediaFallbackService(client)
+    service = SupadataMediaFallbackService(client, executor=InlineExecutor())
 
     started = service.start(
         base_acquisition(), owner_key="learner-a",
@@ -287,7 +314,7 @@ def test_a_resume_handle_belongs_to_one_learner() -> None:
         SupadataTranscriptJob("provider-job-scope"),
         SupadataTranscriptJobResult(status="completed", transcript=completed_transcript()),
     )
-    service = SupadataMediaFallbackService(client)
+    service = SupadataMediaFallbackService(client, executor=InlineExecutor())
     started = service.start(
         base_acquisition(), owner_key="learner-a",
         learning_language="en", target_language="vi",
@@ -311,7 +338,7 @@ def test_a_malformed_provider_result_is_a_truthful_failure() -> None:
         SupadataTranscriptJob("provider-job-malformed"),
         SupadataTranscriptJobResult(status="completed", transcript=None),
     )
-    service = SupadataMediaFallbackService(client)
+    service = SupadataMediaFallbackService(client, executor=InlineExecutor())
     started = service.start(
         base_acquisition(), owner_key="learner-a",
         learning_language="en", target_language="vi",
@@ -321,3 +348,140 @@ def test_a_malformed_provider_result_is_a_truthful_failure() -> None:
     assert outcome.status != "ready"
     # Whatever it is called, it must not claim a transcript exists.
     assert outcome.acquisition.media_object.transcript is None
+
+
+# --- the orchestration this batch introduced --------------------------------
+
+class BlockingClient(FakeClient):
+    """A provider that does not answer until the test lets it."""
+
+    def __init__(self, started: object, polled: object | None = None) -> None:
+        super().__init__(started, polled)
+        import threading
+        self.release = threading.Event()
+        self.entered = threading.Event()
+
+    def start(self, source_url: str, preferred_language: str, *, mode: str):
+        self.start_calls.append((source_url, preferred_language, mode))
+        self.entered.set()
+        self.release.wait(timeout=10)
+        return self.started
+
+
+def test_the_learner_gets_a_handle_before_the_provider_answers() -> None:
+    """The whole point: a ~93s provider start must not block the request.
+
+    The provider here never answers until the test releases it, so if start()
+    still waited inline this would hang rather than fail.
+    """
+
+    client = BlockingClient(SupadataTranscriptJob("provider-late", status="queued"))
+    service = SupadataMediaFallbackService(client)  # real bounded pool
+
+    started = service.start(
+        base_acquisition(), owner_key="learner-a",
+        learning_language="en", target_language="ja",
+    )
+    assert started.status == "processing"
+    assert started.job_id, "the handle exists before the provider is heard from"
+    assert started.provider_state == "provider_starting"
+    # Playback is already usable while the provider is still thinking.
+    assert started.acquisition.playback.kind == "embed"
+
+    # Status is truthful while starting, and does NOT poll a provider job that
+    # does not exist yet.
+    assert client.poll_calls == []
+    status = service.poll(started.job_id, owner_key="learner-a", learning_language="en")
+    assert status.status == "processing"
+    assert status.provider_state == "provider_starting"
+    assert client.poll_calls == [], "there is no provider job id to poll yet"
+
+    # Repeated status checks must not start the provider again.
+    for _ in range(3):
+        service.poll(started.job_id, owner_key="learner-a", learning_language="en")
+    assert len(client.start_calls) == 1, "status polling must not re-start the provider"
+
+    client.release.set()
+    service._executor.shutdown(wait=True)
+
+    # Once the provider answers, its id is attached and the job is queued.
+    client.polled = SupadataTranscriptJobResult(status="processing")
+    queued = service.poll(started.job_id, owner_key="learner-a", learning_language="en")
+    assert queued.status == "processing"
+    assert client.poll_calls and client.poll_calls[0][0] == "provider-late"
+
+
+def test_a_background_provider_timeout_fails_the_job_but_keeps_playback() -> None:
+    class TimingOutClient(FakeClient):
+        def start(self, source_url, preferred_language, *, mode):
+            raise SupadataTranscriptTimedOut()
+
+    service = SupadataMediaFallbackService(
+        TimingOutClient(None), executor=InlineExecutor())  # type: ignore[arg-type]
+    started = service.start(
+        base_acquisition(), owner_key="learner-a",
+        learning_language="en", target_language="ja",
+    )
+    assert started.status == "processing"
+
+    outcome = service.poll(started.job_id, owner_key="learner-a", learning_language="en")
+    assert outcome.status == "failed"
+    assert outcome.failure_kind == "provider_timeout"
+    # The video was never the problem; it stays playable.
+    assert outcome.acquisition.playback.kind == "embed"
+    assert outcome.acquisition.media_object.transcript is None
+
+
+def test_an_unexpected_background_error_still_ends_the_job() -> None:
+    """A worker must never strand a job in provider_starting forever."""
+
+    class ExplodingClient(FakeClient):
+        def start(self, source_url, preferred_language, *, mode):
+            raise RuntimeError("something unexpected")
+
+    service = SupadataMediaFallbackService(
+        ExplodingClient(None), executor=InlineExecutor())  # type: ignore[arg-type]
+    started = service.start(
+        base_acquisition(), owner_key="learner-a",
+        learning_language="en", target_language="ja",
+    )
+    outcome = service.poll(started.job_id, owner_key="learner-a", learning_language="en")
+    assert outcome.status == "failed"
+    assert outcome.failure_kind == "provider_failure"
+
+
+def test_the_registry_is_safe_under_concurrent_mutation() -> None:
+    """Background starts and status reads now touch the same records."""
+
+    import threading
+
+    registry = MediaFallbackJobRegistry()
+    records = [
+        registry.create(
+            owner_key=f"learner-{i % 4}", learning_language="en", target_language="ja",
+            acquisition=base_acquisition(), include_translation=True,
+        )
+        for i in range(40)
+    ]
+    errors: list[Exception] = []
+
+    def hammer(record) -> None:
+        try:
+            for _ in range(50):
+                registry.attach_provider_job(record.public_job_id, "provider-x")
+                registry.get(record.public_job_id, owner_key=record.owner_key,
+                             learning_language="en")
+                registry.mark_completed(record.public_job_id, base_acquisition())
+        except Exception as exc:  # pragma: no cover - only on a real race
+            errors.append(exc)
+
+    threads = [threading.Thread(target=hammer, args=(r,)) for r in records]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join(timeout=30)
+
+    assert errors == [], f"concurrent registry access raised {errors[:2]}"
+    for record in records:
+        assert registry.get(record.public_job_id, owner_key=record.owner_key,
+                            learning_language="en") is not None
