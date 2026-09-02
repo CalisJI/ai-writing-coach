@@ -186,10 +186,12 @@ def test_local_completion_survives_not_being_public() -> None:
         assert facts["implementation"] == "complete_local"
         assert facts["local_acceptance"] == "passed"
         assert facts["pre_public_matrix"] == "complete"
-        assert facts["learner_visibility"] == "internal"
+        # Writing is beta and the others internal; the point is that none of
+        # them are public, and none of that erases the completed local work.
+        assert facts["learner_visibility"] in {"internal", "beta"}
         assert facts["public_release"] == "not_approved"
 
-    # Internal visibility alongside completed local work is a valid state.
+    # Non-public visibility alongside completed local work is a valid state.
     assert validate_state_semantics(state) == []
 
     # Release still cannot be claimed without human acceptance.
@@ -217,6 +219,26 @@ def test_skill_state_is_not_collapsed_into_a_single_enum() -> None:
     # The old collapsed per-skill enum must be gone from release_state.
     release = _schema()["properties"]["release_state"]["properties"]
     assert not {"writing", "speaking", "reading", "listening"} & release.keys()
+
+
+def test_machine_memory_learner_visibility_matches_the_skill_registry() -> None:
+    """The registry is the running truth; memory must not drift from it.
+
+    Memory once said Writing was `internal` while `skill_registry.py` and
+    PROJECT_STATE both said BETA. Implementation fact wins, and this keeps the
+    two from disagreeing again.
+    """
+
+    from writing_coach.core.skill_registry import all_skills
+
+    registry = {skill.key: skill.release_state.value for skill in all_skills()}
+    recorded = _state()["skills"]["state"]
+    for skill, facts in recorded.items():
+        assert skill in registry, f"{skill} is not a registered skill"
+        expected = "internal" if registry[skill] == "development" else registry[skill]
+        assert facts["learner_visibility"] == expected, (
+            f"{skill}: memory says {facts['learner_visibility']}, registry says {registry[skill]}"
+        )
 
 
 def test_valid_legacy_namespaces_do_not_trigger_product_regressions() -> None:

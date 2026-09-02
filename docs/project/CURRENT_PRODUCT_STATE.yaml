@@ -40,8 +40,8 @@
     "expected_development_branch": "claude/integration-v2",
     "lane": "orena_integration"
   },
-  "last_verified_application_commit": "7b1740e66a3f8ef82b2fc728dedaf7dd2c1d1b6f",
-  "last_verified_batch": "listening_real_media_playback_vertical_slice",
+  "last_verified_application_commit": "2ea79fcb713cfa84dfaef54ab69520b78ed7d0b0",
+  "last_verified_batch": "listening_real_media_web_and_native_parity",
   "current_program_stage": {
     "id": "R21",
     "name": "Mobile Release Readiness",
@@ -76,7 +76,7 @@
         "implementation": "complete_local",
         "local_acceptance": "passed",
         "pre_public_matrix": "complete",
-        "learner_visibility": "internal",
+        "learner_visibility": "beta",
         "content_readiness": "not_applicable",
         "human_acceptance": "approval_required",
         "public_release": "not_approved"
@@ -152,7 +152,8 @@
   "current_p0": [],
   "current_p1": [
     "listening_real_media_catalog_has_one_en_and_one_zh_lesson_only",
-    "listening_durable_progress_unverified_on_sqlite_needs_postgresql_runtime"
+    "listening_durable_progress_unverified_on_sqlite_needs_postgresql_runtime",
+    "native_curated_video_verified_by_tests_and_prebuild_not_on_a_real_device"
   ],
   "last_verified_at": "2026-09-02"
 }
