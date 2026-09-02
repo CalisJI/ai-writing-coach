@@ -265,7 +265,7 @@ export function playbackAvailable(playback){
 
 // A poster only ever decorates a player; it must never become a way to point
 // the page at an arbitrary host, so it is held to the same Commons origins.
-function posterUrl(poster){
+export function posterUrl(poster){
   if(typeof poster!=='string'||!poster)return '';
   try{
     const url=new URL(poster);

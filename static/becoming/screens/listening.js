@@ -2,7 +2,7 @@ import {api} from '../api.js';
 import {go} from '../router.js';
 import {state,supportLanguage} from '../store.js';
 import {esc,showDialog,toast} from '../components/primitives.js';
-import {connectMediaPlayer,disconnectMediaPlayer,mediaPlayer,playbackAvailable,replaySegment,seekBy,toggleMute,togglePlayback,setPlaybackRate as setMediaPlaybackRate} from '../components/media-player.js';
+import {connectMediaPlayer,disconnectMediaPlayer,mediaPlayer,playbackAvailable,posterUrl,replaySegment,seekBy,toggleMute,togglePlayback,setPlaybackRate as setMediaPlaybackRate} from '../components/media-player.js';
 import {t,uiLocale} from '../domain/i18n.js';
 import {countUnits} from '../language.js';
 import {oIcon} from '../orena/icons.js';
@@ -975,8 +975,8 @@ function libraryLessonCard(item){
   const l=libraryText();
   const minutes=stamp(Number(item.duration_ms)||0);
   return `<article class="o-card listening-library-card" data-artwork="${esc(item.artwork||'listen')}">
-    <div class="listening-library-art" aria-hidden="true">${item.poster_url
-      ?`<img src="${esc(item.poster_url)}" alt="" loading="lazy" decoding="async">`
+    <div class="listening-library-art" aria-hidden="true">${posterUrl(item.poster_url)
+      ?`<img src="${esc(posterUrl(item.poster_url))}" alt="" loading="lazy" decoding="async">`
       :oIcon(item.topic==='conversations'?'speak':'listen')}</div>
     <div class="listening-library-card-body">
       <div class="listening-library-meta"><span>${esc(libraryTerm(item.topic))}</span><span title="${esc(item.level_source==='editorial-review'?l.reviewedLevel:l.level)}">${esc(item.level)}</span><span>${esc(minutes)}</span></div>

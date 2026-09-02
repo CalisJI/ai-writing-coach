@@ -122,6 +122,52 @@ def test_real_video_lessons_carry_playable_media_and_a_poster() -> None:
         assert set(lesson.available_modes) == {"listen", "active", "dictation", "shadowing"}
 
 
+def test_media_and_poster_urls_are_validated_at_the_catalog_boundary() -> None:
+    """One provenance rule, enforced where the media object is built.
+
+    The players sanitize at the edge, but an editorial pipeline must not be able
+    to introduce a source they would then silently drop.
+    """
+
+    from writing_coach.listening_catalog import _load_source
+
+    def source(**overrides: object) -> dict[str, object]:
+        base = {
+            "source_media_id": "s1", "source_url": "https://commons.wikimedia.org/wiki/File:x",
+            "source_provider": "wikimedia-commons", "source_type": "licensed-video",
+            "source_title": "t", "source_creator": "c", "language": "en", "duration_ms": 10000,
+            "playback": {"provider": "wikimedia-commons", "kind": "video", "url": "https://upload.wikimedia.org/x.webm"},
+            "poster_url": "https://upload.wikimedia.org/thumb/x.jpg",
+            "rights": {"license_name": "CC BY 3.0", "license_url": "https://creativecommons.org/licenses/by/3.0/",
+                       "provenance_url": "https://commons.wikimedia.org/wiki/File:x",
+                       "allowed_usage_type": "creative-commons-attribution", "review_status": "verified"},
+            "segments": [{"segment_id": "s1:000", "start_ms": 0, "end_ms": 5000, "original_text": "hello"}],
+        }
+        base.update(overrides)
+        return base
+
+    assert _load_source(source()).poster_url.startswith("https://upload.wikimedia.org/")
+
+    for bad_poster in ("https://evil.example/x.jpg", "http://upload.wikimedia.org/x.jpg"):
+        try:
+            _load_source(source(poster_url=bad_poster))
+        except ValueError as exc:
+            assert "poster_url" in str(exc)
+        else:
+            raise AssertionError(f"poster {bad_poster} must be rejected")
+
+    for bad_url in ("https://evil.example/x.webm", "http://upload.wikimedia.org/x.webm"):
+        try:
+            _load_source(source(playback={"provider": "wikimedia-commons", "kind": "video", "url": bad_url}))
+        except ValueError as exc:
+            assert "playback url" in str(exc)
+        else:
+            raise AssertionError(f"playback {bad_url} must be rejected")
+
+    # An absent poster stays absent rather than becoming an error.
+    assert _load_source(source(poster_url="")).poster_url == ""
+
+
 def test_unknown_curated_lesson_is_not_fabricated() -> None:
     try:
         open_listening_library_lesson("missing", "vi")

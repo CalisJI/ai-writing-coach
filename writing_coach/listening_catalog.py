@@ -8,9 +8,11 @@ editing a React screen or creating a second player/transcript architecture.
 from __future__ import annotations
 
 import json
+from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Any
+from urllib.parse import urlsplit
 
 from writing_coach.media_ingestion import MediaPlayback
 from writing_coach.media_learning import (
@@ -25,6 +27,11 @@ from writing_coach.media_learning import (
 
 CATALOG_MANIFEST = Path(__file__).with_name("content") / "listening_catalog.v1.json"
 CONTENT_STATUSES = frozenset({"DRAFT", "PROCESSING", "NEEDS_REVIEW", "READY", "PUBLISHED", "ARCHIVED"})
+# Media and posters may only come from origins the rights review actually
+# covered. media-player.js and the native adapter enforce the same list at the
+# edge; validating here means an editorial pipeline cannot introduce a source
+# the players would then have to reject.
+REVIEWED_MEDIA_HOSTS = frozenset({"commons.wikimedia.org", "upload.wikimedia.org"})
 PUBLIC_CONTENT_STATUS = "PUBLISHED"
 EN_LEVELS = frozenset({"A1", "A2", "B1", "B2", "C1", "C2"})
 ZH_LEVELS = frozenset({"HSK1", "HSK2", "HSK3", "HSK4", "HSK5", "HSK6", "HSK7-9"})
@@ -91,6 +98,29 @@ class CuratedListeningLesson:
             for segment in self.source.segments
             if segment.get("pinyin") and _segment_in_excerpt(segment, self.excerpt_start_ms, self.excerpt_end_ms)
         )
+
+
+def _playback_url(playback: Mapping[str, Any], source_id: str) -> str:
+    """Direct audio/video must be rights-reviewed; embeds keep provider rules."""
+
+    url = _required_text(playback.get("url"), "playback url")
+    if str(playback.get("kind") or "").strip() in {"audio", "video"}:
+        return _reviewed_media_url(url, "playback url", source_id)
+    return url
+
+
+def _reviewed_media_url(value: Any, field: str, source_id: str) -> str:
+    """An https URL on a rights-reviewed host, or a hard failure."""
+
+    cleaned = str(value or "").strip()
+    if not cleaned:
+        return ""
+    parsed = urlsplit(cleaned)
+    if parsed.scheme != "https" or parsed.hostname not in REVIEWED_MEDIA_HOSTS:
+        raise ValueError(
+            f"Listening source {source_id} {field} must be an https URL on a rights-reviewed host."
+        )
+    return cleaned
 
 
 def _required_text(value: Any, field: str) -> str:
@@ -168,7 +198,7 @@ def _load_source(raw: Mapping[str, Any]) -> CatalogSource:
         playback=MediaPlayback(
             _required_text(playback.get("provider"), "playback provider"),
             _required_text(playback.get("kind"), "playback kind"),
-            _required_text(playback.get("url"), "playback url"),
+            _playback_url(playback, source_id),
         ),
         license_name=_required_text(rights.get("license_name"), "license_name"),
         license_url=_required_text(rights.get("license_url"), "license_url"),
@@ -176,7 +206,7 @@ def _load_source(raw: Mapping[str, Any]) -> CatalogSource:
         allowed_usage_type=_required_text(rights.get("allowed_usage_type"), "allowed_usage_type"),
         rights_review_status="verified",
         segments=tuple(normalized_segments),
-        poster_url=str(raw.get("poster_url") or "").strip(),
+        poster_url=_reviewed_media_url(raw.get("poster_url"), "poster_url", source_id),
     )
 
 
