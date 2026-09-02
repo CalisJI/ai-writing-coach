@@ -113,11 +113,12 @@ or secret values.
 
 ## OPEN P1
 
-- **Supadata plan quota is exhausted**, so the cold end-to-end transcript is
-  still unproven: a direct call returns HTTP 429 `limit-exceeded`. Orena handled
-  it correctly — truthful `provider_failure`, playback intact, never
-  "unsupported" — but final cold acceptance needs quota. Do not spend more
-  quota on code batches; save it for the one run.
+- **L2_5_REAL_COLD_ACCEPTANCE=PENDING_EXTERNAL_PROVIDER_QUOTA** on fixture
+  `iSTlFeW-Z9M`. Supadata returns HTTP 429 `limit-exceeded`. Per **D-044** this
+  is an external provider gate, NOT an L3 blocker: L2.5 implementation,
+  automated regression and real warm E2E are PASS; only the cold completion is
+  unproven. L2.5 is NOT complete, and this debt survives L3 — run the one
+  acceptance when quota resets. Do not spend quota on bulk import.
 - Registry is process-local: resume handles do not survive a restart or span
   replicas. Future architecture concern, deliberately not expanded.
 - Real catalog breadth: one EN and one ZH real lesson; spec 3.23 waits on L3.

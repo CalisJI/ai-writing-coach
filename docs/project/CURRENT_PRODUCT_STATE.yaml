@@ -50,7 +50,7 @@
   "current_primary_workstream": {
     "id": "listening_real_media_catalog",
     "status": "in_progress",
-    "next_task": "Finish L2.5 real cold Supadata acceptance first (one run, fixture iSTlFeW-Z9M); then Batch L3 full EN/ZH candidate import."
+    "next_task": "Batch L3 full EN/ZH candidate import (D-044 unblocks it). L2.5 real cold Supadata acceptance on iSTlFeW-Z9M stays PENDING_EXTERNAL_PROVIDER_QUOTA and must still be run."
   },
   "design": {
     "web_is_visual_source_of_truth": true,

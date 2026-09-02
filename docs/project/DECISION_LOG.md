@@ -1017,3 +1017,40 @@ comes from the development runtime and is labelled as such.
 
 **Supersedes / Superseded by:** Supersedes the earlier open question of how L3
 content would be visually QA'd. Supersedes no implementation contract.
+
+## D-044 - L3 content ingestion is not blocked by an external provider quota
+
+**Date:** 2026-09-03
+
+**Status:** Accepted (human decision)
+
+**Decision:** The remaining L2.5 evidence - one real cold Supadata acceptance on
+fixture `iSTlFeW-Z9M` - is an EXTERNAL PROVIDER ACCEPTANCE GATE, not a
+precondition for L3 content ingestion. L3 may execute while it is outstanding.
+L2.5 is NOT marked complete: its acceptance stands as
+`OVERALL_L2_5_ACCEPTANCE = PARTIAL / EXTERNAL_GATE_PENDING`, with
+implementation, automated regression and real warm end-to-end all PASS and
+`REAL_COLD_PROVIDER_ACCEPTANCE = PENDING_EXTERNAL_QUOTA`. That debt survives
+L3 and must still be run when quota resets.
+
+**Reason:** The earlier sequencing rule - L2.5 must fully pass before L3 - was
+written when the missing evidence could plausibly have indicated a code defect.
+It no longer can: the cold path was measured returning `provider_starting` with
+a resume handle in 1.36s, the async orchestration and the atomic provider poll
+are contract-tested, and warm generated-transcript end-to-end is proven on real
+media. The only unproven step is the provider finishing a job, and the only
+blocker is a purchased quota that has run out. Holding all content work behind
+someone else's billing cycle would stall the product for a reason unrelated to
+Orena's correctness.
+
+**Consequences:** L3 runs with Supadata generation switched off across the pack.
+A playable source without captions is classified `RECOVERY_REQUIRED` - valid
+media awaiting transcript recovery - and never `unsupported` or
+`MEDIA_UNAVAILABLE`. No paid transcript generation is spent on bulk import.
+Project memory keeps `L2_5_REAL_COLD_ACCEPTANCE=PENDING_EXTERNAL_PROVIDER_QUOTA`
+as an open item even if L3 completes and the next task advances to L4.
+
+**Supersedes / Superseded by:** Supersedes the sequencing rule that L2.5 had to
+pass completely before L3 began. Supersedes no product, rights or persistence
+contract, and does not weaken any production guard.
+
