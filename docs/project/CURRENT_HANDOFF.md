@@ -134,7 +134,9 @@ act. L3 also owns the learner-quality work the generator cannot do: translation
 or meaning where required, Chinese Pinyin, level review and natural excerpt
 review. Playback plus captions is not content-complete. Run it with
 `python scripts/build_listening_dev_catalog.py --report <path>` and read the
-per-candidate entries.
+per-candidate entries. Commit the first snapshot and flip
+`listening_dev_artifact.SNAPSHOT_REQUIRED` to True in the same commit; from then
+on a missing or stale artifact fails CI.
 
 Separately, human QA remains open on `orena.chillpickle.org`: sign in with Google, open Listening
 and exercise both real lessons — `en-science-cosmic-calendar` and
