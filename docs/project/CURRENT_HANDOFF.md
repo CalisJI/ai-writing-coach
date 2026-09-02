@@ -28,22 +28,18 @@ or secret values.
   including transcript sync, Dictation and the Shadowing handoff. Automated
   evidence, not human acceptance.
 
-## DEPLOYED FOR QA — read this before touching the runtime
+## DEPLOYED FOR QA — read before touching the runtime
 
-- `orena.chillpickle.org` runs commit `cbdedfd` (in `main` via PR #54), so its
-  application code matches `main`. L1/L2 are NOT deployed.
-- That runtime is `APP_ENV=production` with `PERSISTENCE_BACKEND=postgresql`
-  (verified on the container). The development overlay is therefore refused
-  there by design, and L3 content will stay invisible on the domain even after a
-  deploy. That guard must not be weakened.
-- There is no CD. A GitHub push deploys nothing; the domain changes only when
-  someone rebuilds on the host:
-  `docker compose --profile public up -d --build writing-coach`.
-- The three worktrees share one Docker runtime; the public stack is the
-  `-claudecode` project `ai-writing-coach`. Check no other lane is mid-batch.
+- `orena.chillpickle.org` runs `cbdedfd` (in `main` via PR #54). L1/L2/L2.5 are
+  NOT deployed. It is `APP_ENV=production` + PostgreSQL, so the dev overlay is
+  refused there by design.
+- No CD. A push deploys nothing; the domain changes only when someone runs
+  `docker compose --profile public up -d --build writing-coach` on the host.
+- Three worktrees share one Docker runtime; the public stack is the
+  `-claudecode` project. Check no other lane is mid-batch.
 - A human-approved production PostgreSQL migration ran 2026-09-02 to
-  `20260828_0004`. That approval covered that one run; the gate stays
-  `approval_required`, and the startup readiness guard must not be weakened.
+  `20260828_0004`. That covered one run; the gate stays `approval_required`,
+  and the startup readiness guard must not be weakened.
 
 ## IN PROGRESS
 
@@ -81,11 +77,14 @@ or secret values.
   and title with `transcript_origin: none` plus a Supadata job.
 - Curated meaning resolves editorial → cached → live → truthful unavailable,
   persisted in the non-critical cache DB keyed by asset+segment+text
-  fingerprint+language+provider. ZH Pinyin derived where the manifest has none.
-- **Provider credentials are the current blocker, not code.** Groq returns
-  **403 Forbidden** (key present, rejected) and the local Marian service ships
-  only `en-vi` (es/ja → 422, zh → 500). So live meaning in ja/es cannot be
-  demonstrated in this environment; the logic is proven by unit tests instead.
+  fingerprint+language+provider. ZH Pinyin derived where absent.
+- Live meaning PROVEN for ja and es: first request generates (1 call), second
+  returns `cached-generated` with 0 calls. ZH returns Hanzi + Pinyin + meaning.
+- The Groq key is FINE. An earlier "403 bad key" reading was wrong twice: the
+  403 was Cloudflare 1010 blocking a `Python-urllib` User-Agent (the app uses
+  `requests`, gets 200), and the real intermittent failure is HTTP 413
+  `rate_limit_exceeded` — `max_tokens: 8000` against an 8000-token org ceiling
+  claims the whole per-minute budget.
 - Production is `MEDIA_TRANSCRIPT_FALLBACK=none` with `SUPADATA_CONFIGURED=true`
   — configured but off. Enabling it there is a paid-provider gate, NOT done.
 
@@ -105,10 +104,12 @@ or secret values.
 
 ## OPEN P1
 
-- Live meaning for non-preauthored languages is implemented but unproven end to
-  end: no working translation provider in this environment.
-- Caption-less recovery is proven to START (playback created, Supadata job); a
-  successful generated transcript and async resume are NOT demonstrated.
+- `GroqTranslationProvider` sends `max_tokens: 8000` against an 8000-token org
+  ceiling, so translation fails with 413 whenever the bucket is not full, and
+  `_LANGUAGE_NAMES` maps only vi/en/zh so other languages reach the prompt as a
+  bare code.
+- Caption-less recovery proven to START; a generated transcript and async resume
+  are NOT demonstrated.
 - Real catalog breadth: one EN and one ZH real lesson; spec 3.23 waits on L3.
 - L1 is responsive web only; native needs the L6 port.
 - Native curated video verified by tests and prebuild, not on a device. iOS
@@ -125,11 +126,12 @@ or secret values.
 
 ## NEXT EXACT TASK
 
-Finish L2.5 before L3. The remaining work is blocked on credentials, not code:
-renew or replace the Groq key (currently 403), or add local Marian models beyond
-`en-vi`, then re-run the ja/es meaning check and the Supadata no-caption smoke
-test on the preview runtime. Also still open: real Supadata async resume and
-web/native visual QA. Then Batch L3: run the importer over the
+Finish L2.5 before L3. Do NOT replace the Groq key; it works. Reduce
+`GroqTranslationProvider`'s `max_tokens` below the org TPM ceiling (8000) so a
+single request cannot claim the whole budget, and fill `_LANGUAGE_NAMES`, which
+still maps only vi/en/zh so other languages are named by raw code in the prompt.
+Then the Supadata no-caption smoke test, real async resume, and web/native
+visual QA. Then Batch L3: run the importer over the
 full EN/ZH pack
 (`build_listening_dev_catalog.py --report <path>`), read the per-candidate
 entries, **curate** the proposed excerpts, and commit the snapshot. Excerpts
