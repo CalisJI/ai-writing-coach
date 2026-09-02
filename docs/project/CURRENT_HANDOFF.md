@@ -21,15 +21,11 @@ or secret values.
 ## Last verified batch
 
 - Real-media Listening at web/native parity, then deployed for human QA.
-- CI evidence, GitHub, both workflows green on this branch: CI run
-  `33585926995` (705 passed, validators, ESM graph, media contracts, Docker
-  build) and Mobile validation run `33585927013` (48 suites / 358 tests,
-  TypeScript, Android **and** iOS prebuild).
-- Real playback verified by browser decode through Orena's own player:
-  EN 854x481 / 47.328s / 96 frames; ZH 854x481 / 198.241s opened at its 16.12s
-  excerpt start. Transcript sync stepped on the real subtitle boundaries,
-  Dictation graded the real segment at 100%, Shadowing reused the same media
-  object. Automated evidence, not human acceptance.
+- CI green on this branch at `cbdedfd` (runs 33585926995 / 33585927013). Local
+  now: 716 backend, 11 web contracts, mobile validate clean.
+- Real EN/ZH playback verified by browser decode through Orena's own player,
+  including transcript sync, Dictation and the Shadowing handoff. Automated
+  evidence, not human acceptance.
 
 ## DEPLOYED FOR QA — read this before touching the runtime
 
@@ -53,8 +49,8 @@ or secret values.
 ## IN PROGRESS
 
 - Listening product batches from `docs/product/AGENT_IMPLEMENTATION_ORDER.md`.
-  **L1 (discovery redesign) is implemented on responsive web.** Next is L2, the
-  CSV source importer.
+  **L1 (discovery redesign, web) and L2 (source importer) are implemented.**
+  Next is L3: run the full 200-candidate pack, inspect failures, curate.
 - Human QA of the two real-media lessons on the deployed domain is still open;
   the domain has NOT been rebuilt with L1.
 
@@ -63,26 +59,31 @@ or secret values.
 - R0-R20 local foundations preserved; R20 has local acceptance evidence.
 - Listening ENGINE is library-first and locally accepted: Dictation, Shadowing,
   shared curated/import media contracts, progress/resume, vocabulary.
-- Listening REAL MEDIA CATALOG is PARTIAL. Two rights-cleared video lessons play
-  on web and native, EN (The Royal Society, CC BY 3.0) and ZH (Commons,
-  CC BY-SA 3.0), with real posters and subtitle-derived timings. The other five
-  lessons are still seed/synthetic audio. Two lessons are not a catalog.
-- One reviewed-media URL rule (https, exact allowlisted host, no credentials, no
-  port) is enforced on the server, the web player and native, and validated at
-  the canonical catalog boundary.
-- L1 media-first discovery on responsive web: the poster owns a 16:9 frame with
+- Listening REAL MEDIA CATALOG is PARTIAL: two rights-cleared video lessons
+  (EN Royal Society CC BY 3.0, ZH Commons CC BY-SA 3.0) with real posters and
+  subtitle-derived timings; the other five are seed audio. Not a catalog.
+- One reviewed-media URL rule (https, exact host, no credentials, no port) on
+  server, web and native. Poster hosts are per provider; playback stays
+  Commons-only for direct media.
+- L1 media-first discovery on responsive web: poster owns a 16:9 frame with
   level/duration/provider badges; description, rights text, level evidence and
-  the source line are off the card; rails are derived from topic/tags per spec
-  3.4; real poster-backed video leads every rail per spec 3.5. Measured at
-  1440px and 390px: poster is 99% of card width at both.
+  source line are off the card; rails derived from topic/tags (3.4); real video
+  leads every rail (3.5). Poster is 99% of card width at 1440px and 390px.
+- L2 source importer: `scripts/build_listening_dev_catalog.py` over
+  `writing_coach/listening_source_import.py`, reusing the YouTube adapter and
+  the canonical Media Learning Object. Watch + Shorts, deterministic ids, several
+  excerpts per source on real transcript boundaries only, per-outcome report,
+  failures never end the batch. Overlay is BASE + GENERATED behind
+  `ENABLE_DEV_LISTENING_CATALOG`, refused when `APP_ENV=production`. Live sample:
+  5 accepted / 1 missing transcript, 5 sources into 14 lessons, EN and ZH.
 - Writing, Speaking and Reading are complete locally with acceptance passes and
   pre-public matrices. Writing is `beta`, the others `internal`. Do not rebuild
   them because they are not public.
 
 ## PENDING
 
-- L2 source importer, L3 real content load, L4 masked Dictation, L5 handoffs,
-  L6 native parity, L7 human QA.
+- L3 real content load, L4 masked Dictation, L5 handoffs, L6 native parity,
+  L7 human QA.
 - Human playback/product acceptance of the two real lessons on the domain.
 - Real-device native verification, then broader real catalog across the
   discovery categories.
@@ -100,8 +101,8 @@ or secret values.
 
 ## OPEN P1
 
-- Real catalog breadth: one EN and one ZH real lesson only, so most L1 rails are
-  empty and the first viewport still shows icon fallbacks for seed audio. The
+- Real catalog breadth: the BASE catalog still has one EN and one ZH real lesson,
+  so most L1 rails are empty and the first viewport still shows icon fallbacks for seed audio. The
   layout is right; spec 3.23 visual acceptance cannot pass until L3 loads real
   content. Do not treat this as an L1 layout defect.
 - L1 landed on responsive web only. Native still renders the old card and needs
@@ -125,11 +126,12 @@ or secret values.
 
 ## NEXT EXACT TASK
 
-Batch L2 from `docs/product/AGENT_IMPLEMENTATION_ORDER.md`: build the CSV source
-importer (`scripts/build_listening_dev_catalog.py`) over the existing YouTube
-provider, with stable IDs, multiple excerpts per source, a full accepted/skipped/
-failed report, and the dev overlay defaulting OFF in production. The EN/ZH source
-CSVs are already in `writing_coach/content/`.
+Batch L3 from `docs/product/AGENT_IMPLEMENTATION_ORDER.md`: run the importer over
+the full EN/ZH candidate pack, record the failures rather than dropping them
+silently, curate excerpts, and populate the development library. The pipeline is
+built and verified; L3 is content, not code. Run it with
+`python scripts/build_listening_dev_catalog.py --report <path>` and read the
+per-candidate entries.
 
 Separately, human QA remains open on `orena.chillpickle.org`: sign in with Google, open Listening
 and exercise both real lessons — `en-science-cosmic-calendar` and

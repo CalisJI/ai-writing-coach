@@ -41,7 +41,7 @@
     "lane": "orena_integration"
   },
   "last_verified_application_commit": "48a9eabab6422dd9dab7a6b8285a3a3def1db30d",
-  "last_verified_batch": "listening_l1_media_first_discovery_web",
+  "last_verified_batch": "listening_l2_development_source_importer",
   "current_program_stage": {
     "id": "R21",
     "name": "Mobile Release Readiness",
@@ -50,7 +50,7 @@
   "current_primary_workstream": {
     "id": "listening_real_media_catalog",
     "status": "in_progress",
-    "next_task": "Batch L2: build the CSV listening source importer over the existing YouTube provider."
+    "next_task": "Batch L3: run the full EN/ZH candidate pack through the importer, record failures, curate excerpts."
   },
   "design": {
     "web_is_visual_source_of_truth": true,
@@ -157,7 +157,8 @@
     "ios_vp9_webm_decode_unproven_both_real_lessons_are_vp9_transcodes",
     "memory_commits_on_branch_are_not_yet_in_main_pr54_already_merged",
     "l1_discovery_shipped_on_web_only_native_still_renders_the_old_card",
-    "most_l1_discovery_rails_are_empty_until_l3_loads_real_content"
+    "most_l1_discovery_rails_are_empty_until_l3_loads_real_content",
+    "dev_generated_catalog_is_unreviewed_development_content_never_production"
   ],
   "last_verified_at": "2026-09-02"
 }
