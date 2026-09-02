@@ -41,7 +41,7 @@
     "lane": "orena_integration"
   },
   "last_verified_application_commit": "48a9eabab6422dd9dab7a6b8285a3a3def1db30d",
-  "last_verified_batch": "listening_real_media_deployed_for_human_qa",
+  "last_verified_batch": "listening_l1_media_first_discovery_web",
   "current_program_stage": {
     "id": "R21",
     "name": "Mobile Release Readiness",
@@ -50,7 +50,7 @@
   "current_primary_workstream": {
     "id": "listening_real_media_catalog",
     "status": "in_progress",
-    "next_task": "Await human QA acceptance of the two real lessons on orena.chillpickle.org, then broaden the real catalog."
+    "next_task": "Batch L2: build the CSV listening source importer over the existing YouTube provider."
   },
   "design": {
     "web_is_visual_source_of_truth": true,
@@ -155,7 +155,9 @@
     "listening_durable_progress_tables_exist_but_saving_is_unconfirmed_until_human_qa",
     "native_curated_video_verified_by_tests_and_prebuild_not_on_a_real_device",
     "ios_vp9_webm_decode_unproven_both_real_lessons_are_vp9_transcodes",
-    "memory_commits_on_branch_are_not_yet_in_main_pr54_already_merged"
+    "memory_commits_on_branch_are_not_yet_in_main_pr54_already_merged",
+    "l1_discovery_shipped_on_web_only_native_still_renders_the_old_card",
+    "most_l1_discovery_rails_are_empty_until_l3_loads_real_content"
   ],
   "last_verified_at": "2026-09-02"
 }

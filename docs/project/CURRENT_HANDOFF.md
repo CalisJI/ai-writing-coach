@@ -52,8 +52,11 @@ or secret values.
 
 ## IN PROGRESS
 
-- Human QA of the two real-media lessons on the deployed domain. Nothing to
-  implement until QA reports back.
+- Listening product batches from `docs/product/AGENT_IMPLEMENTATION_ORDER.md`.
+  **L1 (discovery redesign) is implemented on responsive web.** Next is L2, the
+  CSV source importer.
+- Human QA of the two real-media lessons on the deployed domain is still open;
+  the domain has NOT been rebuilt with L1.
 
 ## DONE
 
@@ -67,12 +70,19 @@ or secret values.
 - One reviewed-media URL rule (https, exact allowlisted host, no credentials, no
   port) is enforced on the server, the web player and native, and validated at
   the canonical catalog boundary.
+- L1 media-first discovery on responsive web: the poster owns a 16:9 frame with
+  level/duration/provider badges; description, rights text, level evidence and
+  the source line are off the card; rails are derived from topic/tags per spec
+  3.4; real poster-backed video leads every rail per spec 3.5. Measured at
+  1440px and 390px: poster is 99% of card width at both.
 - Writing, Speaking and Reading are complete locally with acceptance passes and
   pre-public matrices. Writing is `beta`, the others `internal`. Do not rebuild
   them because they are not public.
 
 ## PENDING
 
+- L2 source importer, L3 real content load, L4 masked Dictation, L5 handoffs,
+  L6 native parity, L7 human QA.
 - Human playback/product acceptance of the two real lessons on the domain.
 - Real-device native verification, then broader real catalog across the
   discovery categories.
@@ -90,8 +100,12 @@ or secret values.
 
 ## OPEN P1
 
-- Real catalog breadth: one EN and one ZH real lesson only. Animation, Movies &
-  Drama, Podcast, Stories, Kids, Interview and the rest have no real content.
+- Real catalog breadth: one EN and one ZH real lesson only, so most L1 rails are
+  empty and the first viewport still shows icon fallbacks for seed audio. The
+  layout is right; spec 3.23 visual acceptance cannot pass until L3 loads real
+  content. Do not treat this as an L1 layout defect.
+- L1 landed on responsive web only. Native still renders the old card and needs
+  the L6 full port.
 - Native curated video is verified by unit/route tests, typecheck and prebuild,
   NOT on a real device or simulator.
 - iOS VP9/WebM decode is unproven. Both real lessons are VP9 transcodes and
@@ -111,7 +125,13 @@ or secret values.
 
 ## NEXT EXACT TASK
 
-Wait for human QA on `orena.chillpickle.org`: sign in with Google, open Listening
+Batch L2 from `docs/product/AGENT_IMPLEMENTATION_ORDER.md`: build the CSV source
+importer (`scripts/build_listening_dev_catalog.py`) over the existing YouTube
+provider, with stable IDs, multiple excerpts per source, a full accepted/skipped/
+failed report, and the dev overlay defaulting OFF in production. The EN/ZH source
+CSVs are already in `writing_coach/content/`.
+
+Separately, human QA remains open on `orena.chillpickle.org`: sign in with Google, open Listening
 and exercise both real lessons — `en-science-cosmic-calendar` and
 `zh-technology-search-wikipedia` — for poster, real playback, transcript sync,
 Dictation, next segment, Shadowing handoff, and progress/resume.
