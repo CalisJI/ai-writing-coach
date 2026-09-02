@@ -48,6 +48,7 @@ class CatalogSource:
     allowed_usage_type: str
     rights_review_status: str
     segments: tuple[Mapping[str, Any], ...]
+    poster_url: str = ""
 
 
 @dataclass(frozen=True)
@@ -175,6 +176,7 @@ def _load_source(raw: Mapping[str, Any]) -> CatalogSource:
         allowed_usage_type=_required_text(rights.get("allowed_usage_type"), "allowed_usage_type"),
         rights_review_status="verified",
         segments=tuple(normalized_segments),
+        poster_url=str(raw.get("poster_url") or "").strip(),
     )
 
 
@@ -364,6 +366,8 @@ def lesson_metadata(lesson: CuratedListeningLesson) -> dict[str, object]:
         "vocabulary": list(lesson.vocabulary),
         "speech_speed": lesson.speech_speed,
         "artwork": lesson.artwork,
+        "poster_url": source.poster_url,
+        "playback_kind": source.playback.kind,
         "published_state": lesson.content_status.casefold(),
         "source": {
             "source_media_id": source.source_media_id,

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from writing_coach.listening_api import listening_library, open_listening_library_lesson
-from writing_coach.listening_catalog import CATALOG, CATALOG_SOURCES, catalog_lessons
+from writing_coach.listening_catalog import CATALOG, CATALOG_SOURCES, catalog_lesson, catalog_lessons, lesson_metadata
 
 
 def test_library_lists_lightweight_en_and_zh_curated_lessons() -> None:
@@ -74,8 +74,8 @@ def test_one_source_can_publish_multiple_natural_excerpts_without_copying_transc
 
 
 def test_catalog_exposes_reviewed_level_evidence_and_verified_rights() -> None:
-    assert len(CATALOG_SOURCES) == 4
-    assert len(CATALOG) == 5
+    assert len(CATALOG_SOURCES) == 6
+    assert len(CATALOG) == 7
     metadata = listening_library(language="en", level="A1", topic=None, tag=None)["items"][0]
 
     assert metadata["level"] == metadata["reviewed_level"] == "A1"
@@ -85,6 +85,41 @@ def test_catalog_exposes_reviewed_level_evidence_and_verified_rights() -> None:
     assert metadata["source"]["rights_review_status"] == "verified"
     assert metadata["source"]["allowed_usage_type"] == "public-domain"
     assert metadata["source"]["provenance_url"].startswith("https://commons.wikimedia.org/")
+
+
+def test_real_video_lessons_carry_playable_media_and_a_poster() -> None:
+    """Real content means a real file, not a level label over an empty player."""
+
+    for lesson_id, language in (
+        ("en-science-cosmic-calendar", "en"),
+        ("zh-technology-search-wikipedia", "zh"),
+    ):
+        lesson = catalog_lesson(lesson_id)
+        assert lesson is not None
+        metadata = lesson_metadata(lesson)
+
+        assert metadata["playback_kind"] == "video"
+        assert metadata["poster_url"].startswith("https://upload.wikimedia.org/")
+        assert lesson.playback.url.startswith("https://upload.wikimedia.org/")
+        assert lesson.playback.url.endswith(".webm")
+
+        # Rights ride with the media object, never beside it.
+        assert metadata["source"]["rights_review_status"] == "verified"
+        assert metadata["source"]["license"]
+        assert metadata["source"]["provenance_url"].startswith("https://commons.wikimedia.org/")
+
+        # A real excerpt over a real duration, with a real transcript inside it.
+        assert 0 < lesson.excerpt_start_ms < lesson.excerpt_end_ms <= lesson.source.duration_ms
+        segments = lesson.media_object.transcript.segments
+        assert len(segments) >= 6
+        assert all(lesson.excerpt_start_ms <= s.start_ms < s.end_ms <= lesson.excerpt_end_ms for s in segments)
+        assert all(s.original_text.strip() for s in segments)
+
+        # Level is an honest estimate until a human reviews it.
+        assert metadata["level_source"] == "deterministic-estimate"
+        assert metadata["reviewed_level"] is None
+        assert lesson.source.language == language
+        assert set(lesson.available_modes) == {"listen", "active", "dictation", "shadowing"}
 
 
 def test_unknown_curated_lesson_is_not_fabricated() -> None:
