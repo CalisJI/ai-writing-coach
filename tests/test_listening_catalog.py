@@ -11,9 +11,13 @@ def test_library_lists_lightweight_en_and_zh_curated_lessons() -> None:
 
     assert en["items"] and zh["items"]
     assert "transcript" not in en["items"][0]
+    # LISTENING_PRODUCT_SPEC 3.4 rails. `popular` is deliberately not asserted:
+    # it is allowed only when real popularity data exists, and none does, so the
+    # rail stays empty and is filtered out.
     assert {section["id"] for section in en["sections"]} >= {
-        "recommended", "quick-practice", "dictation", "beginner", "new", "popular"
+        "recommended", "quick-practice", "dictation", "shadowing", "new", "audio-practice"
     }
+    assert "popular" not in {section["id"] for section in en["sections"]}
     assert "conversation" in en["tags"]
     assert en["filters"]["tags"] == en["tags"]
     assert en["personalization"] == "deterministic-curation"
@@ -176,6 +180,44 @@ def test_media_and_poster_urls_are_validated_at_the_catalog_boundary() -> None:
 
     # An absent poster stays absent rather than becoming an error.
     assert _load_source(source(poster_url="")).poster_url == ""
+
+
+def test_discovery_rails_follow_the_product_spec() -> None:
+    """LISTENING_PRODUCT_SPEC 3.4/3.5: useful rails, real media leading."""
+
+    from writing_coach.listening_catalog import discovery_rank, discovery_sections, is_real_media
+
+    for language in ("en", "zh"):
+        response = listening_library(language=language, level=None, topic=None, tag=None)
+        ids = [item["lesson_id"] for item in response["items"]]
+        rails = {section["id"]: section["item_ids"] for section in response["sections"]}
+
+        # 3.5: the first lesson offered is real poster-backed video, not seed audio.
+        first = catalog_lesson(ids[0])
+        assert is_real_media(first), f"{language} discovery must lead with real media"
+
+        # Recommended leads with the same real media rather than seed audio.
+        assert rails["recommended"][0] == ids[0]
+
+        # 3.4: topical rails exist and are populated, not just level buckets.
+        assert rails.get("science-technology"), f"{language} needs a science/technology rail"
+        assert rails.get("audio-practice"), f"{language} seed audio belongs in its own rail"
+
+        # A rail never lists a lesson twice, and never one outside this language.
+        for rail, members in rails.items():
+            assert len(members) == len(set(members)), f"{rail} repeats a lesson"
+            assert set(members) <= set(ids), f"{rail} leaks a lesson from another language"
+
+        # 3.4: `popular` is allowed only with real data, and there is none.
+        assert not rails.get("popular"), "popular must stay empty without real popularity data"
+
+    # Ranking is deterministic: same input, same order.
+    lessons = [catalog_lesson(i) for i in ("en-science-cosmic-calendar", "en-daily-pen-in-my-bag")]
+    assert sorted(lessons, key=discovery_rank)[0].lesson_id == "en-science-cosmic-calendar"
+
+    # Derived membership does not lose an explicitly authored section.
+    seeded = catalog_lesson("en-daily-pen-in-my-bag")
+    assert set(seeded.sections) - {"popular"} <= set(discovery_sections(seeded))
 
 
 def test_unknown_curated_lesson_is_not_fabricated() -> None:

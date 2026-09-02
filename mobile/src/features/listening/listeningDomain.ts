@@ -15,6 +15,13 @@ export function stamp(ms: number): string {
 
 /** The rights-reviewed Commons origins, matching media-player.js. */
 const COMMONS_MEDIA_HOSTS = ['commons.wikimedia.org', 'upload.wikimedia.org'];
+/**
+ * Posters come from whichever provider publishes the media, so this list is
+ * wider than the playback one: a YouTube lesson's thumbnail is on YouTube's
+ * image CDN. listening_catalog.py checks poster host against the source's own
+ * provider; this is defence in depth against an arbitrary origin.
+ */
+const POSTER_HOSTS = [...COMMONS_MEDIA_HOSTS, 'i.ytimg.com', 'img.youtube.com'];
 
 /**
  * One reviewed-media URL policy, stated the same way on all three sides:
@@ -23,13 +30,16 @@ const COMMONS_MEDIA_HOSTS = ['commons.wikimedia.org', 'upload.wikimedia.org'];
  * saying the rule outright keeps the server, the web player and this adapter
  * from drifting into three slightly different answers.
  */
-export function reviewedMediaUrl(value: string | undefined | null): string | null {
+export function reviewedMediaUrl(
+  value: string | undefined | null,
+  hosts: readonly string[] = COMMONS_MEDIA_HOSTS,
+): string | null {
   const raw = String(value || '');
   if (!raw) return null;
   try {
     const url = new URL(raw);
     if (url.protocol !== 'https:' || url.username || url.password || url.port) return null;
-    return COMMONS_MEDIA_HOSTS.includes(url.hostname) ? url.href : null;
+    return hosts.includes(url.hostname) ? url.href : null;
   } catch {
     return null;
   }
@@ -69,7 +79,7 @@ export function directMediaKind(
  * `posterUrl()` in media-player.js applies the identical rule.
  */
 export function posterSource(poster: string | undefined | null): string | null {
-  return reviewedMediaUrl(poster);
+  return reviewedMediaUrl(poster, POSTER_HOSTS);
 }
 
 export function listeningMode(requested: ListeningMode, playbackReady: boolean): ListeningMode {

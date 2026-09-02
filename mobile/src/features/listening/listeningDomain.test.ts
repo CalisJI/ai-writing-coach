@@ -69,6 +69,10 @@ describe('playbackAvailable', () => {
 describe('posterSource', () => {
   it('accepts a reviewed Commons poster and rejects every other origin', () => {
     expect(posterSource('https://upload.wikimedia.org/wikipedia/commons/thumb/a/ab/x.jpg')).toBe('https://upload.wikimedia.org/wikipedia/commons/thumb/a/ab/x.jpg');
+    // A YouTube lesson's poster lives on YouTube's image CDN.
+    expect(posterSource('https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg')).toBe('https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg');
+    // Playback is still Commons-only; a poster host must not become a media host.
+    expect(directMediaKind({kind: 'video', provider: 'wikimedia-commons', url: 'https://i.ytimg.com/x.webm'})).toBeNull();
     for (const bad of [
       'https://evil.example/x.jpg',
       'http://upload.wikimedia.org/x.jpg',

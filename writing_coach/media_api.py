@@ -146,6 +146,16 @@ def _installed_media_ingestion() -> MediaIngestionService:
     return _media_ingestion_service
 
 
+def media_translation_service() -> MediaTranslationService | None:
+    """The one translation service, or None when it is not installed.
+
+    Curated Listening needs the same engine My Media uses; a second one would be
+    a second definition of what a meaning is.
+    """
+
+    return _media_translation_service
+
+
 def _installed_media_translation() -> MediaTranslationService:
     if _media_translation_service is None:
         raise HTTPException(503, "Media Learning translation is not installed.")
@@ -239,6 +249,10 @@ def _ready_response(
                 "status": "generated",
                 "source": job.source,
             }
+            response["transcript_origin"] = (
+                TRANSCRIPT_ORIGIN_SUPADATA if job.source == "supadata"
+                else TRANSCRIPT_ORIGIN_ASR
+            )
     return response
 
 
@@ -399,6 +413,30 @@ def translate_media(payload: MediaTranslationIn) -> dict[str, Any]:
     return serialize_media_translation(translation)
 
 
+# LISTENING_PRODUCT_SPEC B5. A generated transcript is useful and honest; a
+# generated transcript presented as official subtitles is neither.
+TRANSCRIPT_ORIGIN_PROVIDER = "provider_caption"
+TRANSCRIPT_ORIGIN_ASR = "generated_asr"
+TRANSCRIPT_ORIGIN_SUPADATA = "supadata_generated"
+TRANSCRIPT_ORIGIN_NONE = "none"
+
+
+def transcript_origin(transcript: Any, timing: Any = None) -> str:
+    """Which path produced the transcript now attached to the media object.
+
+    Derived rather than stored on the transcript itself, because the transcript
+    is the canonical domain object and provenance is a delivery concern. A
+    caller that knows better - the fallback path, which knows a job produced the
+    text - overrides this on the response it builds.
+    """
+
+    if transcript is None:
+        return TRANSCRIPT_ORIGIN_NONE
+    if timing is not None and getattr(timing, "source", "") == "groq":
+        return TRANSCRIPT_ORIGIN_ASR
+    return TRANSCRIPT_ORIGIN_PROVIDER
+
+
 def serialize_media_acquisition(
     acquisition: MediaAcquisition,
     translation: MediaTranslationResult | None = None,
@@ -418,6 +456,9 @@ def serialize_media_acquisition(
             "url": acquisition.playback.url,
         },
         "transcript": _serialize_transcript(media_object.transcript, timing),
+        # Where this transcript came from, so the learner is never shown an
+        # AI-generated transcript labelled as the source's own captions.
+        "transcript_origin": transcript_origin(media_object.transcript, timing),
         "translations": [
             {
                 "segment_id": translation.segment_id,

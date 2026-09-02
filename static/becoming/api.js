@@ -137,7 +137,9 @@ export const api={
     if(filters.tag)params.set('tag',String(filters.tag));
     return request(`/api/listening/library?${params.toString()}`);
   },
-  listeningLibraryLesson:(lessonId,targetLanguage)=>request(`/api/listening/library/${encodeURIComponent(lessonId)}?target_language=${encodeURIComponent(targetLanguage||'vi')}`),
+  // An omitted target language is resolved by the server from the learner's
+// profile; the client must not substitute a language of its own.
+  listeningLibraryLesson:(lessonId,targetLanguage)=>request(`/api/listening/library/${encodeURIComponent(lessonId)}?target_language=${encodeURIComponent(targetLanguage||'')}`),
   annotateMediaText:(payload)=>request('/api/media-learning/annotate',{
     method:'POST',
     headers:JSON_HEADERS,

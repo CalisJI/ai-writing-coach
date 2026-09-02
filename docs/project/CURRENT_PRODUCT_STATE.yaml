@@ -40,17 +40,17 @@
     "expected_development_branch": "claude/integration-v2",
     "lane": "orena_integration"
   },
-  "last_verified_application_commit": "48a9eabab6422dd9dab7a6b8285a3a3def1db30d",
-  "last_verified_batch": "listening_real_media_web_and_native_parity",
+  "last_verified_application_commit": "a97c4eab0406e5c5e0a291184d90d74973c1eb7e",
+  "last_verified_batch": "listening_l2_5_support_language_and_recovery_orchestration",
   "current_program_stage": {
     "id": "R21",
     "name": "Mobile Release Readiness",
     "status": "human_gate"
   },
   "current_primary_workstream": {
-    "id": "repository_backed_project_memory",
-    "status": "complete",
-    "next_task": "Human playback acceptance of the two real lessons, then broaden the real catalog across categories."
+    "id": "listening_real_media_catalog",
+    "status": "in_progress",
+    "next_task": "Finish L2.5 real cold Supadata acceptance first (one run, fixture iSTlFeW-Z9M); then Batch L3 full EN/ZH candidate import."
   },
   "design": {
     "web_is_visual_source_of_truth": true,
@@ -152,8 +152,15 @@
   "current_p0": [],
   "current_p1": [
     "listening_real_media_catalog_has_one_en_and_one_zh_lesson_only",
-    "listening_durable_progress_unverified_on_sqlite_needs_postgresql_runtime",
-    "native_curated_video_verified_by_tests_and_prebuild_not_on_a_real_device"
+    "listening_durable_progress_tables_exist_but_saving_is_unconfirmed_until_human_qa",
+    "native_curated_video_verified_by_tests_and_prebuild_not_on_a_real_device",
+    "ios_vp9_webm_decode_unproven_both_real_lessons_are_vp9_transcodes",
+    "memory_commits_on_branch_are_not_yet_in_main_pr54_already_merged",
+    "l1_discovery_shipped_on_web_only_native_still_renders_the_old_card",
+    "most_l1_discovery_rails_are_empty_until_l3_loads_real_content",
+    "dev_generated_catalog_is_unreviewed_development_content_never_production",
+    "generated_excerpts_are_proposed_candidates_needing_human_curation",
+    "generated_lesson_ids_are_provisional_and_can_move_if_captions_are_retimed"
   ],
   "last_verified_at": "2026-09-02"
 }

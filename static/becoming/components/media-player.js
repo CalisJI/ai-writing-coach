@@ -7,14 +7,20 @@ const controllers=new WeakMap();
 let youtubeApiPromise=null;
 
 const COMMONS_MEDIA_HOSTS=['commons.wikimedia.org','upload.wikimedia.org'];
+// Posters come from whichever provider publishes the media, so the poster
+// allowlist is wider than the playback one: a YouTube lesson's thumbnail is on
+// YouTube's image CDN. listening_catalog.py is the boundary that checks poster
+// host against the source's own provider; this is defence in depth against an
+// arbitrary origin, not a second provenance decision.
+const POSTER_HOSTS=[...COMMONS_MEDIA_HOSTS,'i.ytimg.com','img.youtube.com'];
 
 // One reviewed-media URL policy, matching listening_catalog.py and the native
 // adapter: https, an exact allowlisted host, no credentials, no port.
-function reviewedMediaUrl(value){
+function reviewedMediaUrl(value,hosts=COMMONS_MEDIA_HOSTS){
   try{
     const url=new URL(String(value||''));
     if(url.protocol!=='https:'||url.username||url.password||url.port)return null;
-    return COMMONS_MEDIA_HOSTS.includes(url.hostname)?url.href:null;
+    return hosts.includes(url.hostname)?url.href:null;
   }catch{return null;}
 }
 
@@ -274,7 +280,7 @@ export function playbackAvailable(playback){
 // A poster only ever decorates a player; it must never become a way to point
 // the page at an arbitrary host, so it is held to the same Commons origins.
 export function posterUrl(poster){
-  return typeof poster==='string'&&poster?(reviewedMediaUrl(poster)||''):'';
+  return typeof poster==='string'&&poster?(reviewedMediaUrl(poster,POSTER_HOSTS)||''):'';
 }
 
 export function mediaPlayer(playback,title,{startMs=0,endMs=null,poster=''}={}){

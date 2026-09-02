@@ -55,7 +55,7 @@ from writing_coach.media_api import (
 from writing_coach.media_fallback import SupadataMediaFallbackService
 from writing_coach.media_ingestion import MediaIngestionService
 from writing_coach.media_providers.supadata import SupadataTranscriptClient
-from writing_coach.media_providers.youtube import YouTubeMediaProviderAdapter
+from writing_coach.media_recovery_policy import build_youtube_adapter
 from writing_coach.media_providers.youtube_audio import YtDlpYouTubeAudioUrlResolver
 from writing_coach.media_timing import MediaTimingService
 from writing_coach.media_translation import (
@@ -73,6 +73,7 @@ from writing_coach.speech_api import (
 from writing_coach.media_interaction import contextual_router as contextual_dictionary_router
 from writing_coach.listening_api import (
     configure_listening_progress,
+    configure_listening_translation_cache,
     router as listening_progress_router,
 )
 from writing_coach.speech_asr import GroqSpeechAsrProvider
@@ -242,12 +243,9 @@ app.include_router(platform_router)
 app.include_router(product_router)
 configure_media_ingestion(
     MediaIngestionService(
-        adapters=(
-            YouTubeMediaProviderAdapter(
-                enable_fallback=False,
-                defer_transcript_recovery=True,
-            ),
-        ),
+        # One recovery policy, shared with the bulk importer, so a caption-less
+        # video means the same thing in My Media and in the catalog pipeline.
+        adapters=(build_youtube_adapter(),),
         source_language_supported=is_enabled,
     )
 )
@@ -305,6 +303,9 @@ configure_listening_progress(
     if _persistence_runtime.backend == "postgresql"
     else None
 )
+# Generated meanings persist in the local cache DB, so the second learner in a
+# given support language costs no provider quota.
+configure_listening_translation_cache(_learning_cache)
 app.include_router(listening_progress_router)
 install_platform_ai(app, require_admin)
 configure_becoming_memory(_specialized_learning_repository)

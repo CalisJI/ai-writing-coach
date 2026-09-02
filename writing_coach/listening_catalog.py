@@ -8,12 +8,14 @@ editing a React screen or creating a second player/transcript architecture.
 from __future__ import annotations
 
 import json
+import os
 from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlsplit
 
+from writing_coach.listening_dev_artifact import verify_manifest_integrity
 from writing_coach.media_ingestion import MediaPlayback
 from writing_coach.media_learning import (
     MediaLearningAsset,
@@ -27,15 +29,54 @@ from writing_coach.media_learning import (
 
 CATALOG_MANIFEST = Path(__file__).with_name("content") / "listening_catalog.v1.json"
 CONTENT_STATUSES = frozenset({"DRAFT", "PROCESSING", "NEEDS_REVIEW", "READY", "PUBLISHED", "ARCHIVED"})
+# Generated development candidates get their own lifecycle rather than borrowing
+# PUBLISHED/verified. They are unreviewed by definition, so claiming either would
+# make the catalog lie about its own review state; the base loader refuses them
+# and only the development overlay may carry them.
+DEV_CONTENT_STATUS = "DEV_CANDIDATE"
+DEV_CONTENT_STATUSES = frozenset({DEV_CONTENT_STATUS})
+DEV_RIGHTS_STATUSES = frozenset({"rights_review", "content_review"})
+VERIFIED_RIGHTS_STATUS = "verified"
+# A generated excerpt is a proposal until a curator looks at it. Packing captions
+# into a length window is not evidence of a natural pedagogical boundary.
+CURATION_PROPOSED = "proposed"
+CURATION_REVIEWED = "reviewed"
+CURATION_STATES = frozenset({CURATION_PROPOSED, CURATION_REVIEWED})
 # Media and posters may only come from origins the rights review actually
 # covered. media-player.js and the native adapter enforce the same list at the
 # edge; validating here means an editorial pipeline cannot introduce a source
 # the players would then have to reject.
 REVIEWED_MEDIA_HOSTS = frozenset({"commons.wikimedia.org", "upload.wikimedia.org"})
+# A poster is published by the same provider as the media it depicts, so the
+# allowlist is per provider rather than one global set: a YouTube lesson's
+# thumbnail legitimately comes from YouTube's image CDN, and a Commons lesson's
+# never does. The web player and the native adapter apply the same mapping.
+REVIEWED_POSTER_HOSTS: Mapping[str, frozenset[str]] = {
+    "wikimedia-commons": REVIEWED_MEDIA_HOSTS,
+    "youtube": frozenset({"i.ytimg.com", "img.youtube.com"}),
+}
 PUBLIC_CONTENT_STATUS = "PUBLISHED"
 EN_LEVELS = frozenset({"A1", "A2", "B1", "B2", "C1", "C2"})
 ZH_LEVELS = frozenset({"HSK1", "HSK2", "HSK3", "HSK4", "HSK5", "HSK6", "HSK7-9"})
 PRACTICE_MODES = frozenset({"listen", "active", "dictation", "shadowing"})
+
+# LISTENING_PRODUCT_SPEC 3.4. Topical rails are DERIVED from a lesson's topic and
+# tags rather than hand-listed per lesson, so the bulk source importer (L2) can
+# add content without an editor maintaining section membership by hand. A lesson
+# may still name a section explicitly; the two are merged.
+DISCOVERY_TOPIC_SECTIONS: tuple[tuple[str, frozenset[str]], ...] = (
+    ("movie-animation", frozenset({"animation", "movie", "movies", "film", "drama", "series", "trailer", "cartoon"})),
+    ("daily-conversations", frozenset({"daily-life", "conversation", "conversations", "social-life"})),
+    ("stories", frozenset({"story", "stories", "narrative", "storytelling"})),
+    ("podcast-interview", frozenset({"podcast", "interview", "interviews", "talk"})),
+    ("science-technology", frozenset({"science", "technology", "tech", "documentary", "how-to"})),
+    ("culture", frozenset({"culture", "history", "travel"})),
+    ("kids-family", frozenset({"kids", "family", "family-friendly", "children"})),
+)
+
+# A lesson short enough to finish in one sitting. The spec asks for a Quick
+# Practice rail; deriving it from real duration beats trusting a hand-typed tag.
+QUICK_PRACTICE_MAX_MS = 90_000
 
 
 @dataclass(frozen=True)
@@ -74,6 +115,7 @@ class CuratedListeningLesson:
     level_evidence: Mapping[str, str]
     available_modes: tuple[str, ...]
     content_status: str
+    curation_state: str
     content_tags: tuple[str, ...]
     sections: tuple[str, ...]
     vocabulary: tuple[str, ...] = ()
@@ -109,7 +151,12 @@ def _playback_url(playback: Mapping[str, Any], source_id: str) -> str:
     return url
 
 
-def _reviewed_media_url(value: Any, field: str, source_id: str) -> str:
+def _reviewed_media_url(
+    value: Any,
+    field: str,
+    source_id: str,
+    hosts: frozenset[str] = REVIEWED_MEDIA_HOSTS,
+) -> str:
     """An https URL on a rights-reviewed host, or a hard failure."""
 
     cleaned = str(value or "").strip()
@@ -122,7 +169,7 @@ def _reviewed_media_url(value: Any, field: str, source_id: str) -> str:
     # player and the native adapter all apply exactly these four rules.
     if (
         parsed.scheme != "https"
-        or parsed.hostname not in REVIEWED_MEDIA_HOSTS
+        or parsed.hostname not in hosts
         or parsed.username
         or parsed.password
         or parsed.port is not None
@@ -154,7 +201,7 @@ def _segment_in_excerpt(segment: Mapping[str, Any], start_ms: int, end_ms: int) 
     return int(segment["start_ms"]) >= start_ms and int(segment["end_ms"]) <= end_ms
 
 
-def _load_source(raw: Mapping[str, Any]) -> CatalogSource:
+def _load_source(raw: Mapping[str, Any], *, allow_dev: bool = False) -> CatalogSource:
     source_id = _required_text(raw.get("source_media_id"), "source_media_id")
     language = _required_text(raw.get("language"), "language").casefold()
     if language not in {"en", "zh"}:
@@ -168,7 +215,9 @@ def _load_source(raw: Mapping[str, Any]) -> CatalogSource:
     segments = raw.get("segments")
     if not isinstance(playback, Mapping) or not isinstance(rights, Mapping) or not isinstance(segments, list) or not segments:
         raise ValueError(f"Listening source {source_id} is missing playback, rights, or segments.")
-    if _required_text(rights.get("review_status"), "rights review_status") != "verified":
+    review_status = _required_text(rights.get("review_status"), "rights review_status")
+    allowed_rights = {VERIFIED_RIGHTS_STATUS} | (DEV_RIGHTS_STATUSES if allow_dev else set())
+    if review_status not in allowed_rights:
         raise ValueError(f"Listening source {source_id} has not passed rights review.")
 
     normalized_segments: list[Mapping[str, Any]] = []
@@ -215,10 +264,61 @@ def _load_source(raw: Mapping[str, Any]) -> CatalogSource:
         license_url=_required_text(rights.get("license_url"), "license_url"),
         provenance_url=_required_text(rights.get("provenance_url"), "provenance_url"),
         allowed_usage_type=_required_text(rights.get("allowed_usage_type"), "allowed_usage_type"),
-        rights_review_status="verified",
+        rights_review_status=review_status,
         segments=tuple(normalized_segments),
-        poster_url=_reviewed_media_url(raw.get("poster_url"), "poster_url", source_id),
+        poster_url=_reviewed_media_url(
+            raw.get("poster_url"),
+            "poster_url",
+            source_id,
+            REVIEWED_POSTER_HOSTS.get(str(raw.get("source_provider") or "").strip(), REVIEWED_MEDIA_HOSTS),
+        ),
     )
+
+
+def discovery_sections(lesson: CuratedListeningLesson) -> tuple[str, ...]:
+    """Every discovery rail this lesson belongs in, explicit plus derived.
+
+    LISTENING_PRODUCT_SPEC 3.4 names the rails; 3.5 wants real playable media to
+    lead. `popular` is deliberately never derived: there is no popularity signal
+    in the repository, and the spec allows that rail only when real data exists.
+    """
+
+    sections: list[str] = [s for s in lesson.sections if s != "popular"]
+    vocabulary = {lesson.topic, *lesson.subtopics, *lesson.content_tags}
+
+    for section_id, matches in DISCOVERY_TOPIC_SECTIONS:
+        if section_id not in sections and vocabulary & matches:
+            sections.append(section_id)
+
+    if "dictation" not in sections and "dictation" in lesson.available_modes:
+        sections.append("dictation")
+    if "shadowing" not in sections and "shadowing" in lesson.available_modes:
+        sections.append("shadowing")
+    if "quick-practice" not in sections and 0 < lesson.duration_ms <= QUICK_PRACTICE_MAX_MS:
+        sections.append("quick-practice")
+    # Seed audio is still practice, but it belongs in its own rail rather than
+    # competing with real video for the first viewport.
+    if lesson.playback.kind == "audio" and "audio-practice" not in sections:
+        sections.append("audio-practice")
+
+    return tuple(sections)
+
+
+def is_real_media(lesson: CuratedListeningLesson) -> bool:
+    """Real playable video with a real poster, as the spec means it in 3.5."""
+
+    return lesson.playback.kind == "video" and bool(lesson.source.poster_url)
+
+
+def discovery_rank(lesson: CuratedListeningLesson) -> tuple[int, int, str]:
+    """Ordering inside a rail: real poster-backed video first, then stable.
+
+    Spec 3.5: old audio seed lessons must not visually dominate the first
+    viewport. Ties fall back to the lesson id so the order never wobbles
+    between requests.
+    """
+
+    return (0 if is_real_media(lesson) else 1, 0 if lesson.source.poster_url else 1, lesson.lesson_id)
 
 
 def _media_object(source: CatalogSource, title: str, start_ms: int, end_ms: int) -> MediaLearningObject:
@@ -258,12 +358,19 @@ def _media_object(source: CatalogSource, title: str, start_ms: int, end_ms: int)
     )
 
 
-def load_catalog_manifest(path: Path = CATALOG_MANIFEST) -> tuple[Mapping[str, CatalogSource], tuple[CuratedListeningLesson, ...]]:
+def load_catalog_manifest(
+    path: Path = CATALOG_MANIFEST, *, allow_dev: bool = False,
+) -> tuple[Mapping[str, CatalogSource], tuple[CuratedListeningLesson, ...]]:
+    """Load a catalog manifest. `allow_dev` permits the development lifecycle.
+
+    The base catalog is always loaded with allow_dev False, so an unreviewed
+    development candidate cannot enter it however the file is edited.
+    """
     raw = json.loads(path.read_text(encoding="utf-8"))
     if raw.get("schema_version") != 1 or not isinstance(raw.get("sources"), list) or not isinstance(raw.get("lessons"), list):
         raise ValueError("Listening catalog manifest schema is unsupported.")
 
-    source_list = tuple(_load_source(item) for item in raw["sources"])
+    source_list = tuple(_load_source(item, allow_dev=allow_dev) for item in raw["sources"])
     if len({item.source_media_id for item in source_list}) != len(source_list):
         raise ValueError("Listening catalog source identities must be unique.")
     sources = {item.source_media_id: item for item in source_list}
@@ -279,8 +386,16 @@ def load_catalog_manifest(path: Path = CATALOG_MANIFEST) -> tuple[Mapping[str, C
         seen_lesson_ids.add(lesson_id)
 
         status = _required_text(raw_lesson.get("status"), "status").upper()
-        if status not in CONTENT_STATUSES:
+        allowed_status = CONTENT_STATUSES | (DEV_CONTENT_STATUSES if allow_dev else frozenset())
+        if status not in allowed_status:
             raise ValueError(f"Listening lesson {lesson_id} has invalid lifecycle status.")
+        curation_state = str(raw_lesson.get("curation_state") or CURATION_REVIEWED).strip().casefold()
+        if curation_state not in CURATION_STATES:
+            raise ValueError(f"Listening lesson {lesson_id} has invalid curation state.")
+        if status == DEV_CONTENT_STATUS and curation_state != CURATION_PROPOSED:
+            # A dev candidate becomes `reviewed` only by a curator promoting it,
+            # never by the generator asserting it about its own output.
+            raise ValueError(f"Listening lesson {lesson_id} cannot self-declare curation review.")
         start_ms = int(raw_lesson.get("excerpt_start_ms") or 0)
         end_ms = int(raw_lesson.get("excerpt_end_ms") or 0)
         if start_ms < 0 or end_ms <= start_ms or end_ms > source.duration_ms:
@@ -318,6 +433,7 @@ def load_catalog_manifest(path: Path = CATALOG_MANIFEST) -> tuple[Mapping[str, C
             level_evidence={str(key): str(value).strip() for key, value in evidence.items()},
             available_modes=modes,
             content_status=status,
+            curation_state=curation_state,
             content_tags=tags,
             sections=_string_tuple(raw_lesson.get("sections"), "sections"),
             vocabulary=_string_tuple(raw_lesson.get("vocabulary"), "vocabulary"),
@@ -327,12 +443,76 @@ def load_catalog_manifest(path: Path = CATALOG_MANIFEST) -> tuple[Mapping[str, C
     return sources, tuple(lessons)
 
 
-CATALOG_SOURCES, CATALOG = load_catalog_manifest()
+
+
+
+DEV_CATALOG_MANIFEST = Path(__file__).with_name("content") / "listening_catalog.dev.generated.json"
+DEV_CATALOG_FLAG = "ENABLE_DEV_LISTENING_CATALOG"
+
+
+def dev_catalog_enabled(env: Mapping[str, str] | None = None) -> bool:
+    """Whether the generated development overlay may load.
+
+    LISTENING_PRODUCT_SPEC 7: production defaults OFF and publication rules must
+    not be weakened. So the flag is opt-in only, and in production it is refused
+    outright rather than merely defaulted off - generated development content
+    must not be one environment variable away from a production learner.
+    """
+
+    values = os.environ if env is None else env
+    if str(values.get("APP_ENV", "")).strip().casefold() == "production":
+        return False
+    return str(values.get(DEV_CATALOG_FLAG, "")).strip().casefold() in {"1", "true", "yes", "on"}
+
+
+def load_catalog(
+    base_path: Path = CATALOG_MANIFEST,
+    dev_path: Path = DEV_CATALOG_MANIFEST,
+    env: Mapping[str, str] | None = None,
+) -> tuple[Mapping[str, CatalogSource], tuple[CuratedListeningLesson, ...]]:
+    """BASE VERIFIED CATALOG, plus the DEV GENERATED CATALOG when enabled.
+
+    The base catalog is always loaded and never modified by the overlay; the
+    overlay only adds. A dev source or lesson that collides with a base id is
+    dropped, so generated content can never redefine reviewed content.
+    """
+
+    sources, lessons = load_catalog_manifest(base_path)
+    if not dev_catalog_enabled(env) or not dev_path.is_file():
+        return sources, lessons
+
+    # The artifact is committed, so it must be tamper-evident: a hand edit is
+    # refused rather than loaded, which is what keeps "humans edit only the CSV"
+    # true in practice.
+    tampered = verify_manifest_integrity(json.loads(dev_path.read_text(encoding="utf-8")))
+    if tampered:
+        raise ValueError(f"development Listening catalog rejected: {tampered}")
+    dev_sources, dev_lessons = load_catalog_manifest(dev_path, allow_dev=True)
+    merged_sources = dict(sources)
+    for source_id, source in dev_sources.items():
+        merged_sources.setdefault(source_id, source)
+    known = {lesson.lesson_id for lesson in lessons}
+    merged_lessons = list(lessons) + [item for item in dev_lessons if item.lesson_id not in known]
+    return merged_sources, tuple(merged_lessons)
+
+
+CATALOG_SOURCES, CATALOG = load_catalog()
+
+
+def _learner_visible(lesson: CuratedListeningLesson) -> bool:
+    """Which lessons discovery may offer.
+
+    PUBLISHED is the production answer. A DEV_CANDIDATE is offered only because
+    the overlay that carried it was explicitly enabled; it is never relabelled
+    PUBLISHED to get there.
+    """
+
+    return lesson.content_status in {PUBLIC_CONTENT_STATUS, DEV_CONTENT_STATUS}
 
 
 def catalog_lesson(lesson_id: str) -> CuratedListeningLesson | None:
     return next(
-        (lesson for lesson in CATALOG if lesson.lesson_id == lesson_id and lesson.content_status == PUBLIC_CONTENT_STATUS),
+        (lesson for lesson in CATALOG if lesson.lesson_id == lesson_id and _learner_visible(lesson)),
         None,
     )
 
@@ -347,7 +527,7 @@ def catalog_lessons(
     return tuple(
         lesson
         for lesson in CATALOG
-        if lesson.content_status == PUBLIC_CONTENT_STATUS
+        if _learner_visible(lesson)
         and (not language_key or lesson.source.language.casefold() == language_key)
         and (not level_key or lesson.level.casefold() == level_key)
         and (
@@ -410,6 +590,8 @@ def lesson_metadata(lesson: CuratedListeningLesson) -> dict[str, object]:
         "poster_url": source.poster_url,
         "playback_kind": source.playback.kind,
         "published_state": lesson.content_status.casefold(),
+        "curation_state": lesson.curation_state,
+        "is_development_candidate": lesson.content_status == DEV_CONTENT_STATUS,
         "source": {
             "source_media_id": source.source_media_id,
             "provider": source.source_provider,

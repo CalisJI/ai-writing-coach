@@ -50,6 +50,9 @@ const LIBRARY_COPY={
 Object.assign(LIBRARY_COPY.en,{tags:'Tags',allTags:'All tags',popular:'Popular',source:'Source',reviewedLevel:'Editor reviewed',correctTranscript:'Correct transcript',nextSegment:'Next segment',shadowThis:'Shadow this segment',saveWord:'Save difficult word',wordSaved:'Saved to Active Recall',saveFailed:'Could not save this word',replaySlow:'Replay slowly'});
 Object.assign(LIBRARY_COPY.vi,{tags:'Thẻ nội dung',allTags:'Tất cả thẻ',popular:'Phổ biến',source:'Nguồn',reviewedLevel:'Đã biên tập duyệt',correctTranscript:'Transcript đúng',nextSegment:'Đoạn tiếp theo',shadowThis:'Shadow đoạn này',saveWord:'Lưu từ khó',wordSaved:'Đã lưu vào Active Recall',saveFailed:'Không thể lưu từ này',replaySlow:'Nghe chậm'});
 Object.assign(LIBRARY_COPY.zh,{tags:'标签',allTags:'全部标签',popular:'热门',source:'来源',reviewedLevel:'编辑已审核',correctTranscript:'正确原文',nextSegment:'下一句',shadowThis:'跟读这一句',saveWord:'保存难词',wordSaved:'已保存到主动复习',saveFailed:'无法保存这个词',replaySlow:'慢速重听'});
+Object.assign(LIBRARY_COPY.en,{secMovie:'Movies & animation',secDaily:'Daily conversations',secStories:'Stories',secPodcast:'Podcasts & interviews',secScience:'Science & technology',secCulture:'Culture',secKids:'Kids & family',secShadowing:'Shadowing practice',secAudio:'Audio practice',intermediate:'Intermediate',advanced:'Advanced',needsReview:'Needs review',videoLesson:'Video',audioLesson:'Audio'});
+Object.assign(LIBRARY_COPY.vi,{secMovie:'Phim & hoạt hình',secDaily:'Hội thoại hằng ngày',secStories:'Câu chuyện',secPodcast:'Podcast & phỏng vấn',secScience:'Khoa học & công nghệ',secCulture:'Văn hóa',secKids:'Trẻ em & gia đình',secShadowing:'Luyện Shadowing',secAudio:'Luyện nghe audio',intermediate:'Trung cấp',advanced:'Nâng cao',needsReview:'Cần rà soát',videoLesson:'Video',audioLesson:'Audio'});
+Object.assign(LIBRARY_COPY.zh,{secMovie:'电影与动画',secDaily:'日常对话',secStories:'故事',secPodcast:'播客与访谈',secScience:'科学与科技',secCulture:'文化',secKids:'儿童与家庭',secShadowing:'跟读练习',secAudio:'音频练习',intermediate:'中级',advanced:'高级',needsReview:'待复核',videoLesson:'视频',audioLesson:'音频'});
 const libraryText=()=>LIBRARY_COPY[uiLocale()]||LIBRARY_COPY.en;
 const LIBRARY_TERM_LABELS={
   en:{'daily-life':'Daily life',travel:'Travel',conversations:'Conversations',culture:'Culture',follow:'Listen',active:'Active listening',dictation:'Dictation',shadowing:'Shadowing'},
@@ -971,21 +974,39 @@ function transportBar(model){
   </div>`;
 }
 
-function libraryLessonCard(item){
+/**
+ * Media-first discovery card, LISTENING_PRODUCT_SPEC 3.1-3.3. The poster is the
+ * primary object: a 16:9 frame carrying level, duration and provider, with a
+ * compact title/tags/modes strip beneath it.
+ *
+ * The description, the creator line and the full source metadata are gone on
+ * purpose. Spec 3.3 says the card must not be dominated by them and 3.23 fails
+ * a library where text dominates; they belong in lesson detail.
+ *
+ * One control per card: the title is the button and its ::after stretches over
+ * the whole card, so the poster is clickable without a second duplicate action
+ * for a screen reader to announce.
+ */
+export function libraryLessonCard(item){
   const l=libraryText();
   const minutes=stamp(Number(item.duration_ms)||0);
-  return `<article class="o-card listening-library-card" data-artwork="${esc(item.artwork||'listen')}">
-    <div class="listening-library-art" aria-hidden="true">${posterUrl(item.poster_url)
-      ?`<img src="${esc(posterUrl(item.poster_url))}" alt="" loading="lazy" decoding="async">`
-      :oIcon(item.topic==='conversations'?'speak':'listen')}</div>
-    <div class="listening-library-card-body">
-      <div class="listening-library-meta"><span>${esc(libraryTerm(item.topic))}</span><span title="${esc(item.level_source==='editorial-review'?l.reviewedLevel:l.level)}">${esc(item.level)}</span><span>${esc(minutes)}</span></div>
-      <h3>${esc(item.title)}</h3>
-      <p>${esc(item.description)}</p>
+  const poster=posterUrl(item.poster_url);
+  const isVideo=item.playback_kind==='video'||item.playback_kind==='embed';
+  const provider=item.source?.creator||item.source?.provider||'';
+  return `<article class="o-card listening-library-card${poster?' has-poster':''}" data-artwork="${esc(item.artwork||'listen')}">
+    <div class="listening-card-media" aria-hidden="true">
+      ${poster
+        ?`<img src="${esc(poster)}" alt="" loading="lazy" decoding="async">`
+        :`<span class="listening-card-fallback">${oIcon(item.topic==='conversations'?'speak':'listen')}</span>`}
+      <span class="listening-card-play">${oIcon('play')}</span>
+      <span class="listening-card-level" title="${esc(item.level_source==='editorial-review'?l.reviewedLevel:l.level)}">${esc(item.level)}</span>
+      <span class="listening-card-duration">${esc(minutes)}</span>
+      ${provider?`<span class="listening-card-provider">${esc(isVideo?l.videoLesson:l.audioLesson)} · ${esc(provider)}</span>`:''}
+    </div>
+    <div class="listening-card-body">
+      <h3><button type="button" class="listening-card-open" data-library-lesson="${esc(item.lesson_id)}" aria-label="${esc(`${l.open}: ${item.title}`)}">${esc(item.title)}</button></h3>
       <div class="listening-library-tags">${(item.content_tags||[]).slice(0,3).map(tag=>`<span>#${esc(libraryTerm(tag))}</span>`).join('')}</div>
-      <p class="listening-library-source"><strong>${esc(l.source)}:</strong> ${esc(item.source?.creator||item.source?.provider||'—')}</p>
       <div class="listening-library-modes" aria-label="${esc(l.modes)}">${(item.available_modes||[]).map(mode=>`<span>${esc(libraryTerm(mode))}</span>`).join('')}</div>
-      <button type="button" class="o-btn o-btn--primary o-btn--compact" data-library-lesson="${esc(item.lesson_id)}">${oIcon('play')}<span>${esc(l.open)}</span></button>
     </div>
   </article>`;
 }
@@ -999,7 +1020,7 @@ function libraryLanding(model){
   const tag=model.libraryTag||'';
   const items=allItems.filter(item=>(!topic||item.topic===topic||(item.subtopics||[]).includes(topic))&&(!level||item.level===level)&&(!tag||(item.content_tags||[]).includes(tag)));
   const byId=new Map(items.map(item=>[item.lesson_id,item]));
-  const titles={recommended:l.recommended,'quick-practice':l.quick,'quick-listening':l.quick,dictation:l.dictation,popular:l.popular,beginner:l.beginner,new:l.newContent,'new-content':l.newContent};
+  const titles={'continue-learning':l.continue,recommended:l.recommended,'quick-practice':l.quick,'quick-listening':l.quick,'movie-animation':l.secMovie,'daily-conversations':l.secDaily,stories:l.secStories,'podcast-interview':l.secPodcast,'science-technology':l.secScience,culture:l.secCulture,'kids-family':l.secKids,dictation:l.dictation,shadowing:l.secShadowing,popular:l.popular,'audio-practice':l.secAudio,beginner:l.beginner,intermediate:l.intermediate,advanced:l.advanced,'needs-review':l.needsReview,new:l.newContent,'new-content':l.newContent};
   if(model.library?.status==='loading')return `<div class="o-card listening-library-state" role="status">${esc(l.loading)}</div>`;
   if(model.library?.status==='error')return `<div class="o-card listening-library-state" role="alert"><p>${esc(l.failed)}</p><button type="button" class="o-btn o-btn--outline" data-retry-library>${esc(l.retry)}</button></div>`;
   return `<div class="listening-library">

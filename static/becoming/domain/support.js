@@ -116,7 +116,7 @@ const CATEGORY_RULE={
 };
 
 export function nativeLanguage(profile={}){
-  const value=String(profile.native_language||'vi');
+  const value=String(profile.support_language||profile.native_language||'');
   return ['vi','en','zh'].includes(value)?value:'vi';
 }
 

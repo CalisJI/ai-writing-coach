@@ -1,5 +1,5 @@
 import {api} from '../api.js';
-import {state} from '../store.js';
+import {state,supportLanguage} from '../store.js';
 import {esc,attr,showDialog,showLoadingDialog,updateDialog,toast} from './primitives.js';
 import {hanziStrokeMarkup,mountHanziStroke} from './hanzi-stroke.js';
 import {t,uiHtmlLang,uiLocale} from '../domain/i18n.js';
@@ -144,7 +144,7 @@ export async function openDictionary(term,{
 
   try{
     const groundedContext=String(context||'').trim();
-    const targetLanguage=state.supportLanguage||state.profile?.native_language||'vi';
+    const targetLanguage=supportLanguage();
     const payload=groundedContext&&groundedContext.toLocaleLowerCase().includes(value.toLocaleLowerCase())
       ?await api.contextualDictionary({text:value,context:groundedContext,source_language:language,target_language:targetLanguage})
       :await api.dictionary(value);

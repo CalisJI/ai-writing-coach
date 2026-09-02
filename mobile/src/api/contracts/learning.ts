@@ -3,7 +3,10 @@ import {z} from 'zod';
 const goalSchema = z.enum(['everyday', 'work', 'exam', 'voice']);
 const styleSchema = z.enum(['guided', 'examples', 'concise', 'deep']);
 const pinyinSchema = z.enum(['auto', 'on', 'off']);
-const nativeLanguageSchema = z.enum(['vi', 'en', 'zh']);
+// The learner's SUPPORT language: a BCP-47-shaped identity, not an enum of
+// the three Orena shipped with first. Empty means the learner has not chosen
+// and the server resolves the neutral default.
+const nativeLanguageSchema = z.string().regex(/^$|^[A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8})*$/);
 const themePresetSchema = z.enum(['editorial', 'sage', 'clay', 'blueprint']);
 const taskTypeSchema = z.enum(['opinion', 'email', 'review', 'story', 'toeic', 'hsk']);
 
@@ -17,6 +20,8 @@ export const learnerProfileInputSchema = z.object({
 
 export const learnerProfileSchema = learnerProfileInputSchema.extend({
   exists: z.boolean(),
+  // Resolved server-side so every client reads one answer.
+  support_language: z.string().optional(),
   language: z.enum(['en', 'zh']),
   updated_at: z.string(),
 }).strict();
