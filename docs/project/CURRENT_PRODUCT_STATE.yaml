@@ -40,7 +40,7 @@
     "expected_development_branch": "claude/integration-v2",
     "lane": "orena_integration"
   },
-  "last_verified_application_commit": "2ea79fcb713cfa84dfaef54ab69520b78ed7d0b0",
+  "last_verified_application_commit": "48a9eabab6422dd9dab7a6b8285a3a3def1db30d",
   "last_verified_batch": "listening_real_media_web_and_native_parity",
   "current_program_stage": {
     "id": "R21",

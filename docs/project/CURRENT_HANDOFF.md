@@ -14,13 +14,14 @@ or secret values.
 - Lane: Orena integration; feature development paused for repository-backed
   project memory and its reviewed state-model correction.
 - Live HEAD must be read with `git rev-parse HEAD`; the verified application
-  baseline is `2ea79fcb713cfa84dfaef54ab69520b78ed7d0b0` (native curated video).
-  Later governance-only commits do not move it.
+  baseline is `48a9eabab6422dd9dab7a6b8285a3a3def1db30d` (native curated-video
+  parity). Later governance-only commits do not move it.
 
 ## Last verified batch
 
-- Real-media Listening on web and native: video playback kind, poster support,
-  the first two real EN/ZH lessons, and the native expo-video adapter.
+- Real-media Listening at web/native parity: video playback kind, real posters
+  on player and discovery cards, the first two real EN/ZH lessons, the native
+  expo-video adapter, and one reviewed-media URL rule on all three sides.
 - Local evidence: backend `703 passed / 0 failed` in the CI-equivalent container;
   all 10 web contract tests pass. Real playback verified by browser decode:
   EN 854x481 / 47.328s / 96 frames, ZH 854x481 / 198.241s seeked to its 16.12s
@@ -89,6 +90,6 @@ or secret values.
 
 ## NEXT EXACT TASK
 
-Push the branch and require a fully green CI run on PR #54 (the checkout fix is
-unverified until CI actually runs it). Then human playback/product acceptance of
-the two real lessons on web and a real device, before broadening the catalog.
+Require both GitHub workflows green on PR #54, then human playback/product
+acceptance of the two real lessons on web and on a real device. Only after that,
+broaden the real catalog across the discovery categories.
