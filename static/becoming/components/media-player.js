@@ -8,14 +8,22 @@ let youtubeApiPromise=null;
 
 const COMMONS_MEDIA_HOSTS=['commons.wikimedia.org','upload.wikimedia.org'];
 
+// One reviewed-media URL policy, matching listening_catalog.py and the native
+// adapter: https, an exact allowlisted host, no credentials, no port.
+function reviewedMediaUrl(value){
+  try{
+    const url=new URL(String(value||''));
+    if(url.protocol!=='https:'||url.username||url.password||url.port)return null;
+    return COMMONS_MEDIA_HOSTS.includes(url.hostname)?url.href:null;
+  }catch{return null;}
+}
+
 function playbackAdapter(playback){
   if(playback?.kind==='audio'||playback?.kind==='video'){
-    try{
-      const url=new URL(playback.url);
-      if(url.protocol!=='https:'||url.username||url.password||playback.provider!=='wikimedia-commons')return null;
-      if(!COMMONS_MEDIA_HOSTS.includes(url.hostname))return null;
-      return {kind:playback.kind,url:url.href,origin:url.origin,controllable:true};
-    }catch{return null;}
+    if(playback.provider!=='wikimedia-commons')return null;
+    const href=reviewedMediaUrl(playback.url);
+    if(!href)return null;
+    return {kind:playback.kind,url:href,origin:new URL(href).origin,controllable:true};
   }
   if(playback?.kind!=='embed')return null;
   try{
@@ -266,12 +274,7 @@ export function playbackAvailable(playback){
 // A poster only ever decorates a player; it must never become a way to point
 // the page at an arbitrary host, so it is held to the same Commons origins.
 export function posterUrl(poster){
-  if(typeof poster!=='string'||!poster)return '';
-  try{
-    const url=new URL(poster);
-    if(url.protocol!=='https:'||url.username||url.password)return '';
-    return COMMONS_MEDIA_HOSTS.includes(url.hostname)?url.href:'';
-  }catch{return '';}
+  return typeof poster==='string'&&poster?(reviewedMediaUrl(poster)||''):'';
 }
 
 export function mediaPlayer(playback,title,{startMs=0,endMs=null,poster=''}={}){

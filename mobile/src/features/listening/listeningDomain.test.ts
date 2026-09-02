@@ -54,6 +54,11 @@ describe('playbackAvailable', () => {
       {...enVideo, provider: 'evil'},
       {...enVideo, url: 'http://upload.wikimedia.org/x.webm'},
       {...enVideo, kind: 'stream'},
+      // Credentials and a port both keep the allowlisted hostname, so they have
+      // to be refused by name rather than left to the shape of a pattern.
+      {...enVideo, url: 'https://user:password@upload.wikimedia.org/x.webm'},
+      {...enVideo, url: 'https://upload.wikimedia.org:8443/x.webm'},
+      {...enVideo, url: 'https://upload.wikimedia.org.evil.example/x.webm'},
     ]) {
       expect(playbackAvailable(bad)).toBe(false);
       expect(directMediaKind(bad)).toBeNull();
@@ -64,8 +69,16 @@ describe('playbackAvailable', () => {
 describe('posterSource', () => {
   it('accepts a reviewed Commons poster and rejects every other origin', () => {
     expect(posterSource('https://upload.wikimedia.org/wikipedia/commons/thumb/a/ab/x.jpg')).toBe('https://upload.wikimedia.org/wikipedia/commons/thumb/a/ab/x.jpg');
-    expect(posterSource('https://evil.example/x.jpg')).toBeNull();
-    expect(posterSource('http://upload.wikimedia.org/x.jpg')).toBeNull();
+    for (const bad of [
+      'https://evil.example/x.jpg',
+      'http://upload.wikimedia.org/x.jpg',
+      'https://user:password@upload.wikimedia.org/x.jpg',
+      'https://upload.wikimedia.org:8443/x.jpg',
+      'https://upload.wikimedia.org.evil.example/x.jpg',
+      'javascript:alert(1)',
+    ]) {
+      expect(posterSource(bad)).toBeNull();
+    }
     expect(posterSource(undefined)).toBeNull();
     expect(posterSource('')).toBeNull();
   });

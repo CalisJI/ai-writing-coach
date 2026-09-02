@@ -148,7 +148,17 @@ def test_media_and_poster_urls_are_validated_at_the_catalog_boundary() -> None:
 
     assert _load_source(source()).poster_url.startswith("https://upload.wikimedia.org/")
 
-    for bad_poster in ("https://evil.example/x.jpg", "http://upload.wikimedia.org/x.jpg"):
+    hostile = (
+        "https://evil.example/x.jpg",
+        "http://upload.wikimedia.org/x.jpg",
+        # `urlsplit(...).hostname` reports the allowlisted host for both of
+        # these, which the web and native clients reject, so the server must
+        # name the rules rather than lean on hostname alone.
+        "https://user:password@upload.wikimedia.org/x.jpg",
+        "https://upload.wikimedia.org:8443/x.jpg",
+        "https://upload.wikimedia.org.evil.example/x.jpg",
+    )
+    for bad_poster in hostile:
         try:
             _load_source(source(poster_url=bad_poster))
         except ValueError as exc:
@@ -156,7 +166,7 @@ def test_media_and_poster_urls_are_validated_at_the_catalog_boundary() -> None:
         else:
             raise AssertionError(f"poster {bad_poster} must be rejected")
 
-    for bad_url in ("https://evil.example/x.webm", "http://upload.wikimedia.org/x.webm"):
+    for bad_url in tuple(item.replace(".jpg", ".webm") for item in hostile):
         try:
             _load_source(source(playback={"provider": "wikimedia-commons", "kind": "video", "url": bad_url}))
         except ValueError as exc:

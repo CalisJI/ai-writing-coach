@@ -14,7 +14,26 @@ export function stamp(ms: number): string {
 }
 
 /** The rights-reviewed Commons origins, matching media-player.js. */
-const COMMONS_MEDIA = /^https:\/\/(?:commons|upload)\.wikimedia\.org\//;
+const COMMONS_MEDIA_HOSTS = ['commons.wikimedia.org', 'upload.wikimedia.org'];
+
+/**
+ * One reviewed-media URL policy, stated the same way on all three sides:
+ * https, an exact allowlisted host, no credentials, no port. A regex over the
+ * whole URL happened to reject credentials, but only by accident of shape;
+ * saying the rule outright keeps the server, the web player and this adapter
+ * from drifting into three slightly different answers.
+ */
+export function reviewedMediaUrl(value: string | undefined | null): string | null {
+  const raw = String(value || '');
+  if (!raw) return null;
+  try {
+    const url = new URL(raw);
+    if (url.protocol !== 'https:' || url.username || url.password || url.port) return null;
+    return COMMONS_MEDIA_HOSTS.includes(url.hostname) ? url.href : null;
+  } catch {
+    return null;
+  }
+}
 
 /**
  * `playbackAvailable()`: Active and Shadowing are reconstruction and speaking
@@ -41,7 +60,7 @@ export function directMediaKind(
 ): 'audio' | 'video' | null {
   if (!playback || playback.provider !== 'wikimedia-commons') return null;
   if (playback.kind !== 'audio' && playback.kind !== 'video') return null;
-  return COMMONS_MEDIA.test(playback.url || '') ? playback.kind : null;
+  return reviewedMediaUrl(playback.url) ? playback.kind : null;
 }
 
 /**
@@ -50,8 +69,7 @@ export function directMediaKind(
  * `posterUrl()` in media-player.js applies the identical rule.
  */
 export function posterSource(poster: string | undefined | null): string | null {
-  const value = String(poster || '');
-  return value && COMMONS_MEDIA.test(value) ? value : null;
+  return reviewedMediaUrl(poster);
 }
 
 export function listeningMode(requested: ListeningMode, playbackReady: boolean): ListeningMode {

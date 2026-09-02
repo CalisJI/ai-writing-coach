@@ -116,9 +116,20 @@ def _reviewed_media_url(value: Any, field: str, source_id: str) -> str:
     if not cleaned:
         return ""
     parsed = urlsplit(cleaned)
-    if parsed.scheme != "https" or parsed.hostname not in REVIEWED_MEDIA_HOSTS:
+    # `hostname` alone is not the policy: userinfo and a port both survive it,
+    # so `https://user:pass@upload.wikimedia.org/x` would report an allowlisted
+    # host here while the web and native clients reject it. The server, the web
+    # player and the native adapter all apply exactly these four rules.
+    if (
+        parsed.scheme != "https"
+        or parsed.hostname not in REVIEWED_MEDIA_HOSTS
+        or parsed.username
+        or parsed.password
+        or parsed.port is not None
+    ):
         raise ValueError(
-            f"Listening source {source_id} {field} must be an https URL on a rights-reviewed host."
+            f"Listening source {source_id} {field} must be an https URL, with no credentials "
+            f"or port, on a rights-reviewed host."
         )
     return cleaned
 

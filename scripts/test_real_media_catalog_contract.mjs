@@ -65,10 +65,15 @@ assert.match(html, /playsinline/);
 assert.doesNotMatch(html, /<iframe/);
 
 // --- A poster may never escape the reviewed origins ---
+// Credentials, a port and a lookalike suffix all survive a naive host check,
+// so each is named. The server and the native adapter apply the same list.
 for (const hostile of [
   'https://evil.example/poster.jpg',
   'http://upload.wikimedia.org/poster.jpg',
   'javascript:alert(1)',
+  'https://user:password@upload.wikimedia.org/poster.jpg',
+  'https://upload.wikimedia.org:8443/poster.jpg',
+  'https://upload.wikimedia.org.evil.example/poster.jpg',
 ]) {
   assert.doesNotMatch(
     mediaPlayer(en.playback, 'T', {poster: hostile}),
@@ -82,6 +87,9 @@ for (const hostile of [
   {provider: 'wikimedia-commons', kind: 'video', url: 'https://evil.example/x.webm'},
   {provider: 'evil', kind: 'video', url: 'https://upload.wikimedia.org/x.webm'},
   {provider: 'wikimedia-commons', kind: 'video', url: 'http://upload.wikimedia.org/x.webm'},
+  {provider: 'wikimedia-commons', kind: 'video', url: 'https://user:password@upload.wikimedia.org/x.webm'},
+  {provider: 'wikimedia-commons', kind: 'video', url: 'https://upload.wikimedia.org:8443/x.webm'},
+  {provider: 'wikimedia-commons', kind: 'video', url: 'https://upload.wikimedia.org.evil.example/x.webm'},
 ]) {
   assert.equal(playbackAvailable(hostile), false, `${hostile.url} must not be playable`);
   assert.match(mediaPlayer(hostile, 'T', {}), /listening-player-unavailable/);
