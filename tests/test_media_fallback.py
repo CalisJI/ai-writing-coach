@@ -217,3 +217,107 @@ def test_poll_timeout_remains_distinct_from_a_provider_failure() -> None:
     )
     assert result.status == "failed"
     assert result.failure_kind == "provider_timeout"
+
+
+class SequencedClient(FakeClient):
+    """Answers each poll with the next state, so a real progression can be walked."""
+
+    def __init__(self, started: object, states: list[object]) -> None:
+        super().__init__(started)
+        self._states = list(states)
+
+    def poll(self, job_id: str, preferred_language: str):
+        self.poll_calls.append((job_id, preferred_language))
+        return self._states.pop(0) if self._states else self._states
+
+
+def test_async_recovery_walks_start_queued_processing_completed() -> None:
+    """The whole contract as one progression, not four separate states.
+
+    Individually each state is covered elsewhere; this is the sequence a learner
+    actually experiences, and the point is that the same resume handle carries
+    through it and ends at a canonical transcript.
+    """
+
+    client = SequencedClient(
+        SupadataTranscriptJob("provider-job-seq", status="queued"),
+        [
+            SupadataTranscriptJobResult(status="queued"),
+            SupadataTranscriptJobResult(status="processing"),
+            SupadataTranscriptJobResult(status="completed", transcript=completed_transcript("en")),
+        ],
+    )
+    service = SupadataMediaFallbackService(client)
+
+    started = service.start(
+        base_acquisition(), owner_key="learner-a",
+        learning_language="en", target_language="ja",
+    )
+    assert started.status == "processing"
+    handle = started.job_id
+    assert handle and handle != "provider-job-seq", "the provider id must not leak"
+    # Playback survives the whole wait: the video was never rejected.
+    assert started.acquisition.playback.kind == "embed"
+    assert started.acquisition.media_object.transcript is None
+
+    seen = []
+    for _ in range(3):
+        outcome = service.poll(handle, owner_key="learner-a", learning_language="en")
+        seen.append(outcome.status)
+        if outcome.status == "ready":
+            break
+
+    assert seen == ["processing", "processing", "ready"]
+    assert outcome.provider_state == "completed"
+    assert outcome.source == "supadata"
+    # A canonical, timestamped transcript - not a blob of text.
+    transcript = outcome.acquisition.media_object.transcript
+    assert transcript is not None and len(transcript.segments) == 1
+    segment = transcript.segments[0]
+    assert (segment.start_ms, segment.end_ms) == (200, 1100)
+    assert segment.original_text == "Generated transcript"
+    # The target language chosen at start is carried to the end.
+    assert outcome.target_language == "ja"
+
+
+def test_a_resume_handle_belongs_to_one_learner() -> None:
+    """Another learner's handle must not resume someone else's job."""
+
+    client = FakeClient(
+        SupadataTranscriptJob("provider-job-scope"),
+        SupadataTranscriptJobResult(status="completed", transcript=completed_transcript()),
+    )
+    service = SupadataMediaFallbackService(client)
+    started = service.start(
+        base_acquisition(), owner_key="learner-a",
+        learning_language="en", target_language="vi",
+    )
+
+    with pytest.raises(KeyError):
+        service.poll(started.job_id, owner_key="learner-b", learning_language="en")
+    # And a handle that never existed is refused the same way.
+    with pytest.raises(KeyError):
+        service.poll("never-issued", owner_key="learner-a", learning_language="en")
+    # The rightful owner still resumes it.
+    assert service.poll(
+        started.job_id, owner_key="learner-a", learning_language="en"
+    ).status == "ready"
+
+
+def test_a_malformed_provider_result_is_a_truthful_failure() -> None:
+    """A completed job with no usable transcript must not fake success."""
+
+    client = FakeClient(
+        SupadataTranscriptJob("provider-job-malformed"),
+        SupadataTranscriptJobResult(status="completed", transcript=None),
+    )
+    service = SupadataMediaFallbackService(client)
+    started = service.start(
+        base_acquisition(), owner_key="learner-a",
+        learning_language="en", target_language="vi",
+    )
+    outcome = service.poll(started.job_id, owner_key="learner-a", learning_language="en")
+
+    assert outcome.status != "ready"
+    # Whatever it is called, it must not claim a transcript exists.
+    assert outcome.acquisition.media_object.transcript is None
