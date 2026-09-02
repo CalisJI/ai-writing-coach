@@ -39,14 +39,34 @@ EXPECTED_SOURCE_LISTS = (
 SNAPSHOT_REQUIRED = False
 
 
-def manifest_content_hash(manifest: Mapping[str, Any]) -> str:
-    """Hash the catalog content only, ignoring the provenance header.
+# Everything the fingerprint covers. Only the hash field itself is excluded,
+# because it cannot cover itself.
+FINGERPRINTED_FIELDS = (
+    "schema_version",
+    "generated_by",
+    "generator_version",
+    "source_lists",
+    "sources",
+    "lessons",
+)
+CONTENT_HASH_FIELD = "content_hash"
 
-    Sorted keys and fixed separators keep this stable across Python versions and
-    across the order the generator happened to build its dictionaries in.
+
+def manifest_content_hash(manifest: Mapping[str, Any]) -> str:
+    """Fingerprint the snapshot: provenance header and catalog body together.
+
+    Hashing only sources and lessons left a gap. The provenance header was
+    verified separately, so a stale catalog body could be paired with
+    hand-updated source-list digests and the content hash would not move. Both
+    halves are bound into one value instead, which closes that pairing.
+
+    This is defence against ordinary drift - an agent or a person editing the
+    generated file - not a cryptographic boundary. Sorted keys and fixed
+    separators keep it stable across Python versions and across whatever order
+    the generator happened to build its dictionaries in.
     """
 
-    body = {"sources": manifest.get("sources", []), "lessons": manifest.get("lessons", [])}
+    body = {field: manifest.get(field) for field in FINGERPRINTED_FIELDS}
     return hashlib.sha256(
         json.dumps(body, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode()
     ).hexdigest()

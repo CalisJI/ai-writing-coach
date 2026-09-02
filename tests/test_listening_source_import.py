@@ -489,9 +489,12 @@ def test_the_generated_artifact_is_reproducible_and_tamper_evident(tmp_path: Pat
     assert all(len(entry["sha256"]) == 64 for entry in written["source_lists"])
     assert verify_manifest_integrity(written) == ""
 
-    # Regenerating the same input reproduces the same content hash.
+    # Regenerating the same input reproduces the same fingerprint.
     again, _ = build_dev_catalog([candidate()], FakeAdapter())
-    assert manifest_content_hash(again) == written["content_hash"]
+    regenerated = tmp_path / "again.json"
+    _write(again, regenerated)
+    assert json.loads(regenerated.read_text(encoding="utf-8"))["content_hash"] == written["content_hash"]
+    assert manifest_content_hash(written) == written["content_hash"]
 
     # A hand edit is detected rather than silently loaded.
     tampered = dict(written)
@@ -538,10 +541,17 @@ def test_snapshot_mode_and_the_repository_artifact_agree() -> None:
     for name in EXPECTED_SOURCE_LISTS:
         assert (content_dir / name).is_file(), f"declared source list {name} is missing"
 
-    if SNAPSHOT_REQUIRED:
-        assert DEV_CATALOG_MANIFEST.is_file(), (
-            "SNAPSHOT_REQUIRED is True, so the committed development catalog must exist"
-        )
+    # The invariant runs BOTH ways. Enforcing only "flag implies artifact" left a
+    # third state reachable: L3 commits the snapshot but forgets the flag, CI
+    # still passes, and if the artifact later disappears the check silently falls
+    # back to SKIP instead of failing. There are exactly two legal states.
+    assert DEV_CATALOG_MANIFEST.is_file() == SNAPSHOT_REQUIRED, (
+        f"SNAPSHOT_REQUIRED is {SNAPSHOT_REQUIRED} but the committed catalog "
+        f"{'exists' if DEV_CATALOG_MANIFEST.is_file() else 'is absent'} at "
+        f"{DEV_CATALOG_MANIFEST}. L2 state is absent+False; L3 state is "
+        "present+True; there is no third state."
+    )
+
     if DEV_CATALOG_MANIFEST.is_file():
         # Present either way, it must be valid against the CURRENT source lists.
         problem = verify_manifest_integrity(
@@ -549,6 +559,21 @@ def test_snapshot_mode_and_the_repository_artifact_agree() -> None:
             content_dir=content_dir,
         )
         assert problem == "", problem
+
+
+def test_the_snapshot_invariant_rejects_both_illegal_states() -> None:
+    """The pairing rule itself, tested without needing to move the real file."""
+
+    def legal(artifact_exists: bool, flag: bool) -> bool:
+        return artifact_exists == flag
+
+    assert legal(False, False), "L2: no snapshot, flag off"
+    assert legal(True, True), "L3: snapshot committed, flag on"
+    # Snapshot committed but the flag left off: CI would pass, and a later
+    # disappearance would degrade to SKIP unnoticed.
+    assert not legal(True, False)
+    # Flag on with nothing behind it: the check would fail for a missing file.
+    assert not legal(False, True)
 
 
 def test_a_stale_snapshot_is_detected_when_a_source_list_changes(tmp_path: Path) -> None:
@@ -589,13 +614,60 @@ def test_provenance_header_must_match_this_generator() -> None:
         "generated_by": artifact.GENERATOR,
         "generator_version": artifact.GENERATOR_VERSION,
         "source_lists": [{"name": name, "sha256": "x"} for name in artifact.EXPECTED_SOURCE_LISTS],
-        "content_hash": artifact.manifest_content_hash(manifest),
     }
+    good["content_hash"] = artifact.manifest_content_hash(good)
     assert verify_manifest_integrity(good) == ""
 
     assert "unexpected generator" in verify_manifest_integrity({**good, "generated_by": "hand"})
     assert "generator version" in verify_manifest_integrity({**good, "generator_version": "0"})
-    assert "does not record source lists" in verify_manifest_integrity({**good, "source_lists": []})
+    # A manifest that genuinely records no source lists: rehash it the way the
+    # generator would, so the name check is what fires rather than the hash.
+    bare = {**good, "source_lists": []}
+    bare["content_hash"] = artifact.manifest_content_hash(bare)
+    assert "does not record source lists" in verify_manifest_integrity(bare)
+
+    # Rewriting source_lists without regenerating is caught by the fingerprint.
+    assert "edited by hand" in verify_manifest_integrity({**good, "source_lists": []})
+
+
+def test_the_fingerprint_binds_provenance_to_the_catalog_body(tmp_path: Path) -> None:
+    """P2: a stale body must not be pairable with fresh source-list digests.
+
+    When the hash covered only sources and lessons, someone could regenerate the
+    digests by hand after editing a CSV, leave the catalog body untouched, and
+    the fingerprint would not move. Binding both halves into one value closes
+    that pairing.
+    """
+
+    from writing_coach.listening_dev_artifact import (
+        FINGERPRINTED_FIELDS,
+        manifest_content_hash,
+        verify_manifest_integrity,
+    )
+
+    manifest, _ = build_dev_catalog([candidate()], FakeAdapter())
+    dev_path = tmp_path / "dev.json"
+    _write(manifest, dev_path)
+    written = json.loads(dev_path.read_text(encoding="utf-8"))
+    assert verify_manifest_integrity(written) == ""
+
+    # Every field the review named is inside the fingerprint, and only the hash
+    # itself is outside it.
+    assert set(FINGERPRINTED_FIELDS) == {
+        "schema_version", "generated_by", "generator_version",
+        "source_lists", "sources", "lessons",
+    }
+    for field in FINGERPRINTED_FIELDS:
+        drifted = {**written, field: "tampered"}
+        assert manifest_content_hash(drifted) != written["content_hash"], (
+            f"{field} must be covered by the fingerprint"
+        )
+
+    # The exact pairing the old hash allowed: body untouched, digests rewritten.
+    paired = {**written, "source_lists": [
+        {"name": entry["name"], "sha256": "0" * 64} for entry in written["source_lists"]
+    ]}
+    assert "edited by hand" in verify_manifest_integrity(paired)
 
 
 def test_dev_overlay_defaults_off_and_is_refused_in_production(tmp_path: Path) -> None:

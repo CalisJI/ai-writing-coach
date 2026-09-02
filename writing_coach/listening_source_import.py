@@ -530,7 +530,9 @@ def write_manifest(
         {"name": item.name, "sha256": file_digest(item)}
         for item in source_lists if item.is_file()
     ]
-    payload["content_hash"] = manifest_content_hash(manifest)
+    # Over the payload, not the bare manifest: the fingerprint now covers the
+    # provenance header this function just added.
+    payload["content_hash"] = manifest_content_hash(payload)
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
