@@ -2,6 +2,9 @@ import {useCallback, useEffect, useMemo, useRef, useState, type MutableRefObject
 import {AppState, Linking, Pressable, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View} from 'react-native';
 import YoutubePlayer, {type YoutubeIframeRef} from 'react-native-youtube-iframe';
 import {useAudioPlayer, useAudioPlayerStatus} from 'expo-audio';
+import {VideoView, useVideoPlayer, type VideoPlayer} from 'expo-video';
+import {useEvent} from 'expo';
+import {Image} from 'react-native';
 import {useLocalSearchParams, useRouter} from 'expo-router';
 import {createConfiguredApiClient, type ApiClient} from '../../src/api/client';
 import type {ListeningLibrary, ListeningLibraryLessonMetadata, ListeningProgress, MediaLesson} from '../../src/api/contracts/listening';
@@ -17,7 +20,7 @@ import {addListenedSeconds, listeningHabitSnapshot, saveListeningGoal, type List
 import {listMediaLessons, rememberMediaLesson, type MediaLessonEntry} from '../../src/features/listening/mediaLessonHistory';
 import {selectSharedMediaSegment, setSharedMediaMode, setSharedMediaSession} from '../../src/features/listening/sharedMediaSession';
 import {keepTake, releaseTakes, roundCount, shadowingSummary, takeKey, type ShadowTake, type ShadowingSummary} from '../../src/features/listening/shadowTakes';
-import {MAX_LISTENING_EVALUATION_UNITS, MAX_LISTENING_RECONSTRUCTION_CHARS, listeningUnits, playbackAvailable, practiceSummary, reconstructionDiff, segmentAt, stamp, textMatch, type ListeningMode, type SegmentPractice} from '../../src/features/listening/listeningDomain';
+import {MAX_LISTENING_EVALUATION_UNITS, MAX_LISTENING_RECONSTRUCTION_CHARS, directMediaKind, listeningUnits, playbackAvailable, posterSource, practiceSummary, reconstructionDiff, segmentAt, stamp, textMatch, type ListeningMode, type SegmentPractice} from '../../src/features/listening/listeningDomain';
 import type {ResumeState} from '../../src/api/mediaClient';
 import type {KeyValueStorage} from '../../src/storage/boundedCache';
 import {Button as OrenaButton, Card, Chip, Label as OrenaLabel, Panel, PanelCopy} from '../../src/components/orena';
@@ -240,8 +243,9 @@ function ListeningHeader({mode, playbackReady, focus, onFocus, onMode}: {mode: L
  * -- the video is the thing being followed -- so it is rendered outside the
  * scroll container rather than inside it.
  */
-function PlayerCard({lesson, videoId, playbackReady, playing, muted, rate, elapsedMs, durationMs, onChangeState, onReady, onTogglePlay, onSeek, onToggleMute, onCycleRate, playerRef}: {
-  lesson: MediaLesson; videoId: string | null; playbackReady: boolean; playing: boolean; muted: boolean; rate: number; elapsedMs: number; durationMs: number;
+function PlayerCard({lesson, videoId, videoPlayer, posterUrl, playbackReady, playing, muted, rate, elapsedMs, durationMs, onChangeState, onReady, onTogglePlay, onSeek, onToggleMute, onCycleRate, playerRef}: {
+  lesson: MediaLesson; videoId: string | null; videoPlayer: VideoPlayer | null; posterUrl: string | null;
+  playbackReady: boolean; playing: boolean; muted: boolean; rate: number; elapsedMs: number; durationMs: number;
   onChangeState: (playing: boolean) => void; onReady: () => void; onTogglePlay: () => void; onSeek: (delta: number) => void;
   onToggleMute: () => void; onCycleRate: () => void; playerRef: MutableRefObject<YoutubeIframeRef | null>;
 }) {
@@ -277,6 +281,22 @@ function PlayerCard({lesson, videoId, playbackReady, playing, muted, rate, elaps
             webViewProps={{allowsInlineMediaPlayback: true, mediaPlaybackRequiresUserAction: false, androidLayerType: 'hardware'}}
             initialPlayerParams={{controls: true, modestbranding: true, rel: false, start: Math.floor(excerptStart / 1000), ...(excerptEnd > excerptStart ? {end: Math.ceil(excerptEnd / 1000)} : {})}}
           />
+        </View>
+      ) : videoPlayer ? (
+        <View style={styles.videoFrame}>
+          <VideoView
+            player={videoPlayer}
+            style={styles.nativeVideo}
+            contentFit="contain"
+            nativeControls={false}
+            allowsFullscreen
+            allowsPictureInPicture={false}
+          />
+          {/* The poster stands in until the first frame is decoded, so the
+              frame is never an empty black rectangle while the file loads. */}
+          {posterUrl && !playing && elapsedMs <= 0 ? (
+            <Image source={{uri: posterUrl}} style={styles.videoPoster} resizeMode="cover" accessibilityIgnoresInvertColors />
+          ) : null}
         </View>
       ) : lesson.playback.kind === 'audio' ? (
         <View style={[styles.audioFrame, {backgroundColor: tokens.colors.accentTint}]}>
@@ -1060,15 +1080,29 @@ export default function ListeningScreen({client: providedClient, resumeStorage =
   const saveShadowing = useSaveShadowingProgress(client, sessionCookie);
   const saveProgress = useSaveListeningProgress(client, sessionCookie);
   const videoId = useMemo(() => extractYouTubeVideoId(lesson?.playback), [lesson]);
-  const audioUrl = lesson?.playback.kind === 'audio' ? lesson.playback.url : null;
+  // The web reaches curated audio and curated video through one adapter, so
+  // native decides with the same shared rule rather than a second opinion.
+  const directKind = directMediaKind(lesson?.playback);
+  const audioUrl = directKind === 'audio' ? lesson!.playback.url : null;
+  const videoUrl = directKind === 'video' ? lesson!.playback.url : null;
+  const posterUrl = posterSource(lesson?.catalog?.poster_url);
   const lessonAudioPlayer = useAudioPlayer(audioUrl ? {uri: audioUrl} : null, {updateInterval: 250});
   const lessonAudioStatus = useAudioPlayerStatus(lessonAudioPlayer);
+  const lessonVideoPlayer = useVideoPlayer(videoUrl ? {uri: videoUrl} : null, (player) => {
+    // The media clock drives segment highlighting, so it has to tick at the
+    // same cadence the audio adapter reports.
+    player.timeUpdateEventInterval = 0.25;
+    player.muted = false;
+  });
+  const videoTime = useEvent(lessonVideoPlayer, 'timeUpdate', {currentTime: 0, currentLiveTimestamp: null, currentOffsetFromLive: null, bufferedPosition: 0});
+  const videoPlaying = useEvent(lessonVideoPlayer, 'playingChange', {isPlaying: false, oldIsPlaying: false});
   const [playing, setPlaying] = useState(false);
   const [muted, setMuted] = useState(false);
   const [rate, setRate] = useState<number>(1);
   const [currentTime, setCurrentTime] = useState(0);
   const playerRef = useRef<YoutubeIframeRef | null>(null);
   const cuedAudioLesson = useRef('');
+  const cuedVideoLesson = useRef('');
   const mediaStatus = useMediaImportStatus(mediaResumeHandle, mediaStore, sessionCookie);
 
   const segments = useMemo(() => lesson?.transcript?.segments ?? [], [lesson]);
@@ -1111,6 +1145,30 @@ export default function ListeningScreen({client: providedClient, resumeStorage =
     lessonAudioPlayer.pause();
     void lessonAudioPlayer.seekTo(lesson.catalog.excerpt_start_ms / 1000);
   }, [audioUrl, lesson, lessonAudioPlayer, lessonAudioStatus.currentTime, lessonAudioStatus.playing]);
+
+  useEffect(() => {
+    if (!videoUrl) return;
+    setPlaying(videoPlaying.isPlaying);
+    setCurrentTime(videoTime.currentTime || 0);
+    setDurationMs(Math.round((lessonVideoPlayer.duration || 0) * 1000));
+  }, [videoUrl, videoTime.currentTime, videoPlaying.isPlaying, lessonVideoPlayer]);
+
+  // A curated excerpt starts where the editor said it starts, which for the ZH
+  // lesson is 16s into the file, not at zero.
+  useEffect(() => {
+    if (!videoUrl || !lesson?.catalog || lessonVideoPlayer.duration <= 0) return;
+    const key = `${lesson.catalog.lesson_id}:${lesson.catalog.excerpt_start_ms}`;
+    if (cuedVideoLesson.current === key) return;
+    cuedVideoLesson.current = key;
+    lessonVideoPlayer.currentTime = lesson.catalog.excerpt_start_ms / 1000;
+  }, [videoUrl, lesson, lessonVideoPlayer, videoTime.currentTime]);
+
+  useEffect(() => {
+    if (!videoUrl || !lesson?.catalog || !videoPlaying.isPlaying) return;
+    if (videoTime.currentTime * 1000 < lesson.catalog.excerpt_end_ms) return;
+    lessonVideoPlayer.pause();
+    lessonVideoPlayer.currentTime = lesson.catalog.excerpt_start_ms / 1000;
+  }, [videoUrl, lesson, lessonVideoPlayer, videoTime.currentTime, videoPlaying.isPlaying]);
 
   /**
    * `translateReadyPayload()`. The import acquires the media; this translates
@@ -1279,18 +1337,38 @@ export default function ListeningScreen({client: providedClient, resumeStorage =
   };
   const seek = (delta: number) => {
     if (audioUrl) void lessonAudioPlayer.seekTo(Math.max(0, lessonAudioStatus.currentTime + delta));
+    else if (videoUrl) lessonVideoPlayer.currentTime = Math.max(0, videoTime.currentTime + delta);
     else void playerRef.current?.getCurrentTime().then((seconds) => playerRef.current?.seekTo(Math.max(0, seconds + delta), true));
   };
-  const replayCurrent = () => { if (selected) { if (audioUrl) void lessonAudioPlayer.seekTo(selected.start_ms / 1000); else void playerRef.current?.seekTo(selected.start_ms / 1000, true); } };
+  const replayCurrent = () => {
+    if (!selected) return;
+    if (audioUrl) void lessonAudioPlayer.seekTo(selected.start_ms / 1000);
+    else if (videoUrl) lessonVideoPlayer.currentTime = selected.start_ms / 1000;
+    else void playerRef.current?.seekTo(selected.start_ms / 1000, true);
+  };
   const step = (delta: number) => { const next = segments[selectedIndex + delta]; if (next) select(next.segment_id); };
   // `followPlaying()`: hand the selection back to the playhead.
   const followPlaying = () => {
     setManualSelection(false); setValidation('');
     if (playingSegmentId) setSelectedId(playingSegmentId);
   };
-  const cycleRate = () => { const next = RATES[(RATES.indexOf(rate as typeof RATES[number]) + 1) % RATES.length]!; setRate(next); if (audioUrl) lessonAudioPlayer.playbackRate = next; };
-  const toggleLessonPlayback = () => { if (audioUrl) { if (lessonAudioStatus.playing) lessonAudioPlayer.pause(); else lessonAudioPlayer.play(); } else setPlaying((value) => !value); };
-  const toggleLessonMute = () => { const next = !muted; setMuted(next); if (audioUrl) lessonAudioPlayer.muted = next; };
+  const cycleRate = () => {
+    const next = RATES[(RATES.indexOf(rate as typeof RATES[number]) + 1) % RATES.length]!;
+    setRate(next);
+    if (audioUrl) lessonAudioPlayer.playbackRate = next;
+    else if (videoUrl) lessonVideoPlayer.playbackRate = next;
+  };
+  const toggleLessonPlayback = () => {
+    if (audioUrl) { if (lessonAudioStatus.playing) lessonAudioPlayer.pause(); else lessonAudioPlayer.play(); }
+    else if (videoUrl) { if (videoPlaying.isPlaying) lessonVideoPlayer.pause(); else lessonVideoPlayer.play(); }
+    else setPlaying((value) => !value);
+  };
+  const toggleLessonMute = () => {
+    const next = !muted;
+    setMuted(next);
+    if (audioUrl) lessonAudioPlayer.muted = next;
+    else if (videoUrl) lessonVideoPlayer.muted = next;
+  };
   const currentTakeKey = takeKey(lesson?.asset.asset_id, selected?.segment_id);
   const takes = takesByKey[currentTakeKey] ?? [];
 
@@ -1524,6 +1602,7 @@ export default function ListeningScreen({client: providedClient, resumeStorage =
             onReady={() => { void playerRef.current?.getDuration().then((seconds) => setDurationMs(Math.round(seconds * 1000))); if ((lesson.catalog?.excerpt_start_ms ?? 0) > 0) void playerRef.current?.seekTo((lesson.catalog?.excerpt_start_ms ?? 0) / 1000, true); }}
             onTogglePlay={toggleLessonPlayback} onSeek={seek}
             onToggleMute={toggleLessonMute} onCycleRate={cycleRate} playerRef={playerRef}
+            videoPlayer={videoUrl ? lessonVideoPlayer : null} posterUrl={posterUrl}
           />
         </View>
       )}
@@ -1598,6 +1677,8 @@ const styles = StyleSheet.create({
   stickyPlayer: {paddingHorizontal: 16, paddingTop: 16, zIndex: 5, width: '100%', maxWidth: CONTENT_MAX, alignSelf: 'center'},
   player: {padding: 10, gap: 10},
   videoFrame: {borderRadius: 15, overflow: 'hidden'},
+  nativeVideo: {height: 190, width: '100%', backgroundColor: '#000'},
+  videoPoster: {position: 'absolute', top: 0, left: 0, right: 0, height: 190},
   audioFrame: {height: 150, borderRadius: 15, alignItems: 'center', justifyContent: 'center', gap: 10},
   audioLabel: {fontSize: 12, textTransform: 'uppercase', letterSpacing: 0.8, fontWeight: '600'},
   playerTrack: {flexDirection: 'row', alignItems: 'center', gap: 8},

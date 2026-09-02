@@ -13,15 +13,45 @@ export function stamp(ms: number): string {
   return `${Math.floor(value / 60000)}:${String(Math.floor(value / 1000) % 60).padStart(2, '0')}`;
 }
 
+/** The rights-reviewed Commons origins, matching media-player.js. */
+const COMMONS_MEDIA = /^https:\/\/(?:commons|upload)\.wikimedia\.org\//;
+
 /**
  * `playbackAvailable()`: Active and Shadowing are reconstruction and speaking
  * exercises against real audio, so they are only offered when the provider
  * actually gives us something playable. Follow works from the transcript alone.
+ *
+ * Curated `video` is a direct Commons file exactly as `audio` is, so it is
+ * playable on the same terms. The web gained it first; native must agree, or
+ * the same lesson is a real video on the web and "unavailable" on a phone.
  */
 export function playbackAvailable(playback: {kind?: string; provider?: string; url?: string} | undefined): boolean {
   if (!playback) return false;
   return (playback.kind === 'embed' && playback.provider === 'youtube' && /\/embed\/[A-Za-z0-9_-]{11}/.test(playback.url || ''))
-    || (playback.kind === 'audio' && playback.provider === 'wikimedia-commons' && /^https:\/\/(?:commons|upload)\.wikimedia\.org\//.test(playback.url || ''));
+    || (directMediaKind(playback) !== null);
+}
+
+/**
+ * Which HTMLMediaElement-equivalent adapter a direct Commons file needs, or
+ * null when this is not one. Both platforms decide with this single rule, so a
+ * provider added to one cannot silently be missing from the other.
+ */
+export function directMediaKind(
+  playback: {kind?: string; provider?: string; url?: string} | undefined,
+): 'audio' | 'video' | null {
+  if (!playback || playback.provider !== 'wikimedia-commons') return null;
+  if (playback.kind !== 'audio' && playback.kind !== 'video') return null;
+  return COMMONS_MEDIA.test(playback.url || '') ? playback.kind : null;
+}
+
+/**
+ * A poster decorates a player and must never become a way to load an image
+ * from an arbitrary host, so it is held to the same origins as the media.
+ * `posterUrl()` in media-player.js applies the identical rule.
+ */
+export function posterSource(poster: string | undefined | null): string | null {
+  const value = String(poster || '');
+  return value && COMMONS_MEDIA.test(value) ? value : null;
 }
 
 export function listeningMode(requested: ListeningMode, playbackReady: boolean): ListeningMode {

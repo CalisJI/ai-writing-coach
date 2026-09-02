@@ -94,6 +94,7 @@ export const mediaLessonSchema = z.object({
     available_modes: z.array(z.enum(['listen', 'active', 'dictation', 'shadowing'])),
     content_tags: z.array(z.string()), vocabulary: z.array(z.string()).optional(),
     pinyin_by_segment: z.record(z.string()).optional(),
+    poster_url: z.string().optional(), playback_kind: z.string().optional(),
     source: z.object({source_media_id: z.string(), provider: z.string(), type: z.string(), title: z.string(), creator: z.string(), source_url: z.string().url(), provenance_url: z.string().url(), license: z.string(), license_url: z.string().url(), allowed_usage_type: z.string(), rights_review_status: z.literal('verified')}).passthrough(),
   }).passthrough().optional(),
 }).passthrough();
@@ -105,6 +106,7 @@ export const listeningLibraryLessonMetadataSchema = z.object({
   estimated_level: z.string().min(1), reviewed_level: z.string().nullable(), level_source: z.enum(['editorial-review', 'deterministic-estimate']), level_evidence: z.record(z.string()),
   duration_ms: z.number().int().positive(), excerpt_start_ms: z.number().int().nonnegative(), excerpt_end_ms: z.number().int().positive(),
   available_modes: z.array(z.enum(['listen', 'active', 'dictation', 'shadowing'])), content_tags: z.array(z.string()), artwork: z.string(),
+  poster_url: z.string().optional(), playback_kind: z.string().optional(),
   source: z.object({source_media_id: z.string(), provider: z.string(), type: z.string(), title: z.string(), creator: z.string(), source_url: z.string().url(), provenance_url: z.string().url(), license: z.string(), license_url: z.string().url(), allowed_usage_type: z.string(), rights_review_status: z.literal('verified')}).passthrough(),
 }).passthrough();
 export type ListeningLibraryLessonMetadata = z.infer<typeof listeningLibraryLessonMetadataSchema>;

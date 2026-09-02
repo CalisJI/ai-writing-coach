@@ -1,4 +1,4 @@
-import {listeningUnits, playbackAvailable, practiceSummary, reconstructionDiff, segmentAt, stamp, textMatch, type SegmentPractice} from './listeningDomain';
+import {directMediaKind, listeningUnits, playbackAvailable, posterSource, practiceSummary, reconstructionDiff, segmentAt, stamp, textMatch, type SegmentPractice} from './listeningDomain';
 
 describe('stamp', () => {
   it('reads media positions as M:SS', () => {
@@ -24,6 +24,50 @@ describe('playbackAvailable', () => {
     expect(playbackAvailable(undefined)).toBe(false);
     expect(playbackAvailable({...embed, url: 'https://www.youtube-nocookie.com/watch'})).toBe(false);
     expect(playbackAvailable({...embed, provider: 'vimeo'})).toBe(false);
+  });
+
+  /**
+   * The curated real-media lessons. Native shipped video support after the web,
+   * and while it was missing these two lessons were real videos in a browser
+   * and "playback unavailable" on a phone. That is the regression these guard.
+   */
+  const enVideo = {kind: 'video', provider: 'wikimedia-commons', url: 'https://upload.wikimedia.org/wikipedia/commons/transcoded/b/bc/cosmic.webm/cosmic.webm.480p.vp9.webm'};
+  const zhVideo = {kind: 'video', provider: 'wikimedia-commons', url: 'https://upload.wikimedia.org/wikipedia/commons/transcoded/b/b1/zh.ogv/zh.ogv.480p.vp9.webm'};
+
+  it('never degrades curated EN or ZH video to unavailable', () => {
+    expect(playbackAvailable(enVideo)).toBe(true);
+    expect(playbackAvailable(zhVideo)).toBe(true);
+    expect(directMediaKind(enVideo)).toBe('video');
+    expect(directMediaKind(zhVideo)).toBe('video');
+  });
+
+  it('keeps curated audio on the audio adapter', () => {
+    const audio = {kind: 'audio', provider: 'wikimedia-commons', url: 'https://upload.wikimedia.org/wikipedia/commons/1/1e/pen.ogg'};
+    expect(playbackAvailable(audio)).toBe(true);
+    expect(directMediaKind(audio)).toBe('audio');
+    expect(directMediaKind(embed)).toBeNull();
+  });
+
+  it('refuses direct media from anywhere the rights review did not cover', () => {
+    for (const bad of [
+      {...enVideo, url: 'https://evil.example/x.webm'},
+      {...enVideo, provider: 'evil'},
+      {...enVideo, url: 'http://upload.wikimedia.org/x.webm'},
+      {...enVideo, kind: 'stream'},
+    ]) {
+      expect(playbackAvailable(bad)).toBe(false);
+      expect(directMediaKind(bad)).toBeNull();
+    }
+  });
+});
+
+describe('posterSource', () => {
+  it('accepts a reviewed Commons poster and rejects every other origin', () => {
+    expect(posterSource('https://upload.wikimedia.org/wikipedia/commons/thumb/a/ab/x.jpg')).toBe('https://upload.wikimedia.org/wikipedia/commons/thumb/a/ab/x.jpg');
+    expect(posterSource('https://evil.example/x.jpg')).toBeNull();
+    expect(posterSource('http://upload.wikimedia.org/x.jpg')).toBeNull();
+    expect(posterSource(undefined)).toBeNull();
+    expect(posterSource('')).toBeNull();
   });
 });
 

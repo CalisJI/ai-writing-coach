@@ -66,6 +66,19 @@ jest.mock('expo-audio', () => ({
   useAudioPlayer: () => ({seekTo: jest.fn(), play: jest.fn(), pause: jest.fn(), muted: false, playbackRate: 1}),
   useAudioPlayerStatus: () => ({playing: false, currentTime: 0, duration: 0}),
 }));
+jest.mock('expo-video', () => ({
+  VideoView: (props: Record<string, unknown>) => {
+    mockVideoViewProps = props;
+    return null;
+  },
+  useVideoPlayer: (source: {uri?: string} | null) => {
+    mockVideoSource = source ? source.uri ?? null : null;
+    return mockVideoPlayer;
+  },
+}));
+jest.mock('expo', () => ({
+  useEvent: (_player: unknown, event: string, initial: unknown) => (event === 'timeUpdate' ? {currentTime: mockVideoSeconds} : initial),
+}));
 jest.mock('expo-router', () => ({useRouter: () => mockRouter, useLocalSearchParams: () => ({})}));
 jest.mock('../../src/auth/SessionHarness', () => ({useSession: () => ({session: {status: mockCookie ? 'authenticated' : 'signed-out', source: 'server'}, sessionCookie: mockCookie})}));
 jest.mock('../../src/api/client', () => ({createConfiguredApiClient: () => ({}), ApiClient: class {}}));
@@ -94,6 +107,14 @@ jest.mock('react-native-youtube-iframe', () => {
     return null;
   })};
 });
+
+let mockVideoViewProps: Record<string, unknown> | null = null;
+let mockVideoSource: string | null = null;
+let mockVideoSeconds = 0;
+const mockVideoPlayer = {
+  play: jest.fn(), pause: jest.fn(), duration: 47.328, muted: false, playbackRate: 1,
+  currentTime: 0, timeUpdateEventInterval: 0,
+};
 
 const renderListening = (locale: 'en' | 'zh', storage = new MemoryKeyValueStorage(), audioService?: unknown, initialView: 'discover' | 'my-media' = 'my-media') => {
   let view!: renderer.ReactTestRenderer;
@@ -231,6 +252,74 @@ describe('native Listening R20-4 Follow/Active and resume contract', () => {
     expect(view.root.findByProps({accessibilityLabel: 'Shadowing'}).props.accessibilityState.disabled).toBe(true);
     expect(view.root.findByProps({accessibilityLabel: 'Follow'}).props.accessibilityState.disabled).toBe(false);
     expect(view.root.findAllByProps({children: 'Active Listening and Shadowing need usable provider playback.'})).not.toHaveLength(0);
+  });
+
+  /**
+   * Curated real-media parity. The web gained playback.kind === "video" first;
+   * until native followed, en-science-cosmic-calendar and
+   * zh-technology-search-wikipedia were real videos in a browser and
+   * "playback unavailable" on a phone, against the full-native-port contract.
+   */
+  describe('curated real video parity with the web', () => {
+    const videoLesson = (language: 'en' | 'zh') => ({
+      ...lesson,
+      playback: {
+        provider: 'wikimedia-commons',
+        kind: 'video',
+        url: `https://upload.wikimedia.org/wikipedia/commons/transcoded/b/bc/${language}.webm/${language}.webm.480p.vp9.webm`,
+      },
+      catalog: {
+        lesson_id: language === 'en' ? 'en-science-cosmic-calendar' : 'zh-technology-search-wikipedia',
+        media_object_id: 'asset-en-1', title: 'Real lesson', description: '', language,
+        topic: language === 'en' ? 'science' : 'technology', subtopics: [], level: 'B2',
+        estimated_level: 'B2', reviewed_level: null, level_source: 'deterministic-estimate' as const,
+        level_evidence: {}, duration_ms: 46000,
+        excerpt_start_ms: language === 'en' ? 1000 : 16120,
+        excerpt_end_ms: language === 'en' ? 47000 : 59400,
+        available_modes: ['listen', 'active', 'dictation', 'shadowing'] as const,
+        content_tags: [], artwork: 'science',
+        poster_url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/b/bc/x.webm/960px--x.webm.jpg',
+        playback_kind: 'video',
+        source: {source_media_id: 's', provider: 'wikimedia-commons', type: 'licensed-video', title: 't', creator: 'c',
+          source_url: 'https://commons.wikimedia.org/wiki/File:x', provenance_url: 'https://commons.wikimedia.org/wiki/File:x',
+          license: 'CC BY 3.0', license_url: 'https://creativecommons.org/licenses/by/3.0/',
+          allowed_usage_type: 'creative-commons-attribution', rights_review_status: 'verified' as const},
+      },
+    });
+
+    it.each(['en', 'zh'] as const)('renders a real video player for %s instead of playback-unavailable', async (language) => {
+      mockCookie = 'cookie';
+      mockVideoViewProps = null;
+      mockVideoSource = null;
+      mockImport.mutate.mockImplementation((_input: unknown, options: {onSuccess: (value: unknown) => void}) => options.onSuccess(videoLesson(language)));
+      const {view} = renderListening('en');
+      act(() => { view.root.findByProps({accessibilityLabel: 'Media URL'}).props.onChangeText('https://example.invalid/x'); });
+      await act(async () => {
+        view.root.findByProps({accessibilityLabel: 'Prepare listening lesson'}).props.onPress();
+        await Promise.resolve();
+      });
+
+      // The one thing that must never happen again: a real lesson degraded.
+      expect(view.root.findAllByProps({children: 'Playback is unavailable for this source.'})).toHaveLength(0);
+      expect(mockVideoSource).toContain('upload.wikimedia.org');
+      expect(mockVideoSource).toContain('.webm');
+      expect(mockVideoViewProps).not.toBeNull();
+      expect(mockVideoViewProps!.player).toBe(mockVideoPlayer);
+      expect(mockVideoViewProps!.nativeControls).toBe(false);
+    });
+
+    it('leaves Active and Shadowing enabled on curated video', async () => {
+      mockCookie = 'cookie';
+      mockImport.mutate.mockImplementation((_input: unknown, options: {onSuccess: (value: unknown) => void}) => options.onSuccess(videoLesson('en')));
+      const {view} = renderListening('en');
+      act(() => { view.root.findByProps({accessibilityLabel: 'Media URL'}).props.onChangeText('https://example.invalid/x'); });
+      await act(async () => {
+        view.root.findByProps({accessibilityLabel: 'Prepare listening lesson'}).props.onPress();
+        await Promise.resolve();
+      });
+      expect(view.root.findByProps({accessibilityLabel: 'Active'}).props.accessibilityState.disabled).toBe(false);
+      expect(view.root.findByProps({accessibilityLabel: 'Shadowing'}).props.accessibilityState.disabled).toBe(false);
+    });
   });
 
   /* setPlayingSegment(): the playhead names the line being spoken, and the
