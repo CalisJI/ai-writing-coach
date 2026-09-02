@@ -55,24 +55,21 @@ or secret values.
 
 ## DONE
 
-- R0-R20 local foundations preserved. Listening ENGINE library-first and locally
-  accepted: Dictation, Shadowing, shared media contracts, progress.
-- Writing (`beta`), Speaking, Reading (`internal`) complete locally with
-  acceptance passes and pre-public matrices. Do not rebuild them.
-- REAL MEDIA CATALOG is PARTIAL: two rights-cleared video lessons (EN Royal
-  Society, ZH Commons); the other five are seed audio. Not a catalog.
-- One reviewed-media URL rule (https, exact host, no credentials, no port) on
-  server, web and native. Poster hosts per provider; direct playback
-  Commons-only.
-- L1 media-first discovery, responsive web only: poster owns a 16:9 frame,
-  rails derived from topic/tags, real video leads every rail.
+- R0-R20 preserved. Listening ENGINE library-first and locally accepted.
+- Writing (`beta`), Speaking, Reading (`internal`) complete locally. Do not
+  rebuild them.
+- REAL MEDIA CATALOG PARTIAL: two rights-cleared video lessons; five seed audio.
+- One reviewed-media URL rule on server, web and native; poster hosts per
+  provider; direct playback Commons-only.
+- L1 media-first discovery, web only: 16:9 poster, rails derived from
+  topic/tags, real video leads every rail.
 - L2 importer reuses the YouTube adapter and canonical Media Learning Object:
-  watch + Shorts, deterministic ids, excerpts on real transcript boundaries only,
-  per-candidate report, failures never end the batch. Generated content is
+  watch + Shorts, deterministic ids, excerpts on real transcript boundaries
+  only, per-candidate report, failures never end a batch. Generated content is
   `DEV_CANDIDATE` / `rights_review` / `proposed`.
-- Artifact strategy implemented, NO snapshot committed:
-  `SNAPSHOT_REQUIRED=False`, `--check` reports SKIP, fingerprint binds
-  provenance and body, invariant enforced in BOTH directions.
+- Artifact strategy implemented, NO snapshot committed: `SNAPSHOT_REQUIRED=False`,
+  `--check` reports SKIP, fingerprint binds provenance and body, invariant
+  enforced in BOTH directions.
 
 ## L2.5 STATUS
 
@@ -82,9 +79,15 @@ or secret values.
   importer; `transcript_origin` on every media response. Both DONE.
 - Caption-less video is NOT rejected: a real YouTube URL returns embed playback
   and title with `transcript_origin: none` plus a Supadata job.
-- Runtime audit: production is `MEDIA_TRANSCRIPT_FALLBACK=none` with
-  `SUPADATA_CONFIGURED=true` — configured but off. Enabling it there is a
-  paid-provider gate and was NOT done; the local preview has it on.
+- Curated meaning resolves editorial → cached → live → truthful unavailable,
+  persisted in the non-critical cache DB keyed by asset+segment+text
+  fingerprint+language+provider. ZH Pinyin derived where the manifest has none.
+- **Provider credentials are the current blocker, not code.** Groq returns
+  **403 Forbidden** (key present, rejected) and the local Marian service ships
+  only `en-vi` (es/ja → 422, zh → 500). So live meaning in ja/es cannot be
+  demonstrated in this environment; the logic is proven by unit tests instead.
+- Production is `MEDIA_TRANSCRIPT_FALLBACK=none` with `SUPADATA_CONFIGURED=true`
+  — configured but off. Enabling it there is a paid-provider gate, NOT done.
 
 ## PENDING
 
@@ -102,16 +105,14 @@ or secret values.
 
 ## OPEN P1
 
-- Curated lessons carry only pre-authored en/vi/zh translations and do not yet
-  fall back to the live translation service, so a learner whose support language
-  is outside that set sees a truthful `unavailable` rather than meaning.
-- Caption-less recovery is proven to START (playback created, Supadata job) but
-  a successful generated transcript and async resume are NOT yet demonstrated.
-- Real catalog breadth: one EN and one ZH real lesson; spec 3.23 visual
-  acceptance waits on L3. Not an L1 layout defect.
+- Live meaning for non-preauthored languages is implemented but unproven end to
+  end: no working translation provider in this environment.
+- Caption-less recovery is proven to START (playback created, Supadata job); a
+  successful generated transcript and async resume are NOT demonstrated.
+- Real catalog breadth: one EN and one ZH real lesson; spec 3.23 waits on L3.
 - L1 is responsive web only; native needs the L6 port.
-- Native curated video verified by tests and prebuild, not on a device.
-  iOS VP9/WebM decode unproven; the fix would be an H.264 derivative.
+- Native curated video verified by tests and prebuild, not on a device. iOS
+  VP9/WebM decode unproven; the fix would be an H.264 derivative.
 - Generated excerpts are `proposed` candidates; ids are provisional.
 
 ## HUMAN GATES
@@ -124,9 +125,11 @@ or secret values.
 
 ## NEXT EXACT TASK
 
-Finish L2.5 before L3: wire curated lessons to the live translation service for
-languages the manifest does not pre-author, prove Supadata async resume, and QA
-support language on web and native. Then Batch L3: run the importer over the
+Finish L2.5 before L3. The remaining work is blocked on credentials, not code:
+renew or replace the Groq key (currently 403), or add local Marian models beyond
+`en-vi`, then re-run the ja/es meaning check and the Supadata no-caption smoke
+test on the preview runtime. Also still open: real Supadata async resume and
+web/native visual QA. Then Batch L3: run the importer over the
 full EN/ZH pack
 (`build_listening_dev_catalog.py --report <path>`), read the per-candidate
 entries, **curate** the proposed excerpts, and commit the snapshot. Excerpts
@@ -138,21 +141,19 @@ invariant forbids any other pairing.
 
 ## L3 PREVIEW PATH (decided)
 
-L3 content is QA'd on a **separate local development runtime**, never on the
-production domain. `orena.chillpickle.org` is `APP_ENV=production`, so the
-overlay is refused there and unreviewed `DEV_CANDIDATE` content stays invisible
-to public users. That guard is not weakened; an admin-gated preview inside the
-production runtime was rejected because it would mean production serving
-unreviewed content.
+L3 content is QA'd on a separate local development runtime, never on the
+production domain: `orena.chillpickle.org` is `APP_ENV=production`, so the
+overlay is refused and unreviewed content stays invisible to public users. An
+admin-gated preview inside production was rejected — it would mean production
+serving unreviewed content.
 
 Run the app image from this worktree with `APP_ENV=development`,
-`ENABLE_DEV_LISTENING_CATALOG=1`, SQLite, writable `WRITING_DB`/`PLATFORM_DB`/
-`PRODUCT_DB` under `/tmp`, published on `127.0.0.1` only and off the Cloudflare
-tunnel. Promotion of any lesson to the production catalog stays a human gate.
+`ENABLE_DEV_LISTENING_CATALOG=1`, SQLite, writable DB paths under `/tmp`,
+published on `127.0.0.1` only and off the tunnel. Promotion to the production
+catalog stays a human gate.
 
 ## OPEN HUMAN QA
 
-`orena.chillpickle.org`: sign in with Google, open Listening, exercise
+`orena.chillpickle.org`: sign in, open Listening, exercise
 `en-science-cosmic-calendar` and `zh-technology-search-wikipedia` for poster,
-playback, transcript sync, Dictation, next segment, Shadowing and
-progress/resume.
+playback, transcript sync, Dictation, Shadowing and progress/resume.
