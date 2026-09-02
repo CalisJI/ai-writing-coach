@@ -55,46 +55,46 @@ or secret values.
 
 ## DONE
 
-- R0-R20 local foundations preserved. Listening ENGINE is library-first and
-  locally accepted: Dictation, Shadowing, shared media contracts, progress.
-- Writing, Speaking, Reading complete locally with acceptance passes and
-  pre-public matrices. Writing is `beta`, the others `internal`. Do not rebuild
-  them for not being public.
+- R0-R20 local foundations preserved. Listening ENGINE library-first and locally
+  accepted: Dictation, Shadowing, shared media contracts, progress.
+- Writing (`beta`), Speaking, Reading (`internal`) complete locally with
+  acceptance passes and pre-public matrices. Do not rebuild them.
 - REAL MEDIA CATALOG is PARTIAL: two rights-cleared video lessons (EN Royal
-  Society, ZH Commons), real posters, subtitle-derived timings. The other five
-  are seed audio. Two lessons are not a catalog.
+  Society, ZH Commons); the other five are seed audio. Not a catalog.
 - One reviewed-media URL rule (https, exact host, no credentials, no port) on
-  server, web and native. Poster hosts are per provider; direct-media playback
-  stays Commons-only.
-- L1 media-first discovery, responsive web only: poster owns a 16:9 frame with
-  level/duration/provider badges; description, rights text and source line off
-  the card; rails derived from topic/tags; real video leads every rail.
-- L2 importer `scripts/build_listening_dev_catalog.py` reuses the YouTube
-  adapter and canonical Media Learning Object. Watch + Shorts, stable ids, several
-  excerpts per source on real transcript boundaries only, per-candidate report,
-  failures never end the batch, one oEmbed request per source. Overlay is
-  BASE + GENERATED behind `ENABLE_DEV_LISTENING_CATALOG`, refused in production.
-- Generated content is truthful: `DEV_CANDIDATE` / `rights_review` / curation
-  `proposed`, never PUBLISHED/verified; the base loader refuses all three.
-- Artifact strategy implemented, NO snapshot committed yet:
-  `SNAPSHOT_REQUIRED=False`, `--check` reports SKIP not OK, the fingerprint binds
-  provenance and body, and a test enforces
-  `artifact exists == SNAPSHOT_REQUIRED` in BOTH directions.
+  server, web and native. Poster hosts per provider; direct playback
+  Commons-only.
+- L1 media-first discovery, responsive web only: poster owns a 16:9 frame,
+  rails derived from topic/tags, real video leads every rail.
+- L2 importer reuses the YouTube adapter and canonical Media Learning Object:
+  watch + Shorts, deterministic ids, excerpts on real transcript boundaries only,
+  per-candidate report, failures never end the batch. Generated content is
+  `DEV_CANDIDATE` / `rights_review` / `proposed`.
+- Artifact strategy implemented, NO snapshot committed:
+  `SNAPSHOT_REQUIRED=False`, `--check` reports SKIP, fingerprint binds
+  provenance and body, invariant enforced in BOTH directions.
+
+## L2.5 STATUS
+
+- Support language separated from learning language and UI locale, one rule in
+  `core/support_languages.py`, persistent in the profile, twelve languages, nine
+  Vietnamese defaults removed. One recovery policy shared by My Media and the
+  importer; `transcript_origin` on every media response. Both DONE.
+- Caption-less video is NOT rejected: a real YouTube URL returns embed playback
+  and title with `transcript_origin: none` plus a Supadata job.
+- Runtime audit: production is `MEDIA_TRANSCRIPT_FALLBACK=none` with
+  `SUPADATA_CONFIGURED=true` — configured but off. Enabling it there is a
+  paid-provider gate and was NOT done; the local preview has it on.
 
 ## PENDING
 
-- L3 real content load, L4 masked Dictation, L5 handoffs, L6 native parity,
-  L7 human QA.
-- Human playback/product acceptance of the two real lessons on the domain.
-- Real-device native verification, then broader real catalog across the
-  discovery categories.
-- Getting the two docs-only memory commits on this branch into `main`; PR #54 is
-  already closed, so they need their own PR. They carry no application change
-  and no CI run fired for them because the PR was merged before they landed.
+- Finish L2.5, then L3 content, L4 Dictation, L5 handoffs, L6 native, L7 QA.
+- Human playback acceptance of the two real lessons on the domain.
 
 ## BLOCKED
 
-- No code blocker. The batch is waiting on human QA, not on implementation.
+- No code blocker. Enabling Supadata in production is a paid-provider human
+  gate and has NOT been done; it is on for the local preview only.
 
 ## OPEN P0
 
@@ -102,31 +102,32 @@ or secret values.
 
 ## OPEN P1
 
-- Real catalog breadth: the BASE catalog still has one EN and one ZH real
-  lesson, so most L1 rails are empty and spec 3.23 visual acceptance cannot
-  pass until L3 loads real content. Not an L1 layout defect.
-- L1 landed on responsive web only. Native still renders the old card and needs
-  the L6 full port.
-- Native curated video is verified by unit/route tests, typecheck and prebuild,
-  NOT on a real device or simulator.
-- iOS VP9/WebM decode is unproven. Both real lessons are VP9 transcodes and
-  Safari/AVFoundation historically lacks VP9 in WebM. iOS prebuild passing means
-  `expo-video` integrates, not that the file decodes. If iOS fails, the fix is a
-  source-level H.264/MP4 derivative in the manifest, not a player change.
-- Durable Listening progress now has its tables in production and the app is on
-  the PostgreSQL backend, but saving is unconfirmed until QA exercises it.
+- Curated lessons carry only pre-authored en/vi/zh translations and do not yet
+  fall back to the live translation service, so a learner whose support language
+  is outside that set sees a truthful `unavailable` rather than meaning.
+- Caption-less recovery is proven to START (playback created, Supadata job) but
+  a successful generated transcript and async resume are NOT yet demonstrated.
+- Real catalog breadth: one EN and one ZH real lesson; spec 3.23 visual
+  acceptance waits on L3. Not an L1 layout defect.
+- L1 is responsive web only; native needs the L6 port.
+- Native curated video verified by tests and prebuild, not on a device.
+  iOS VP9/WebM decode unproven; the fix would be an H.264 derivative.
+- Generated excerpts are `proposed` candidates; ids are provisional.
 
 ## HUMAN GATES
 
 - Production authentication/provider validation and AI activation.
-- Production PostgreSQL migration/mutation, backup/restore, and rollback.
-- Credentials/secrets, Cloudflare/DNS, billing/subscriptions, and deployment.
-- Mobile signing, real-device matrix, store credentials/publication.
-- Learner-skill/public release and built-in catalog publication approval.
+- Production PostgreSQL migration/mutation, backup/restore, rollback.
+- Credentials/secrets, Cloudflare/DNS, billing, paid providers, deployment.
+- Mobile signing, real-device matrix, store publication.
+- Learner-skill/public release and catalog publication approval.
 
 ## NEXT EXACT TASK
 
-Batch L3: run the importer over the full EN/ZH pack
+Finish L2.5 before L3: wire curated lessons to the live translation service for
+languages the manifest does not pre-author, prove Supadata async resume, and QA
+support language on web and native. Then Batch L3: run the importer over the
+full EN/ZH pack
 (`build_listening_dev_catalog.py --report <path>`), read the per-candidate
 entries, **curate** the proposed excerpts, and commit the snapshot. Excerpts
 arrive `proposed`; promotion to `reviewed` is a human act. L3 also owns what the
