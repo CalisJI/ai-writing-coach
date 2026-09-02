@@ -29,22 +29,17 @@ or secret values.
 
 ## DEPLOYED FOR QA — read this before touching the runtime
 
-- `orena.chillpickle.org` runs commit `cbdedfd`, which is now in `main` via the
-  PR #54 merge, so the domain's application code matches `main` (`8d04c44` adds
-  only the merge commit). It is still not automatic: the runtime moved because
-  someone rebuilt, not because anything was pushed or merged.
-- There is no CD. The domain changes only when someone rebuilds on the host:
-  `docker compose --profile public up -d --build writing-coach`. A GitHub push
-  deploys nothing.
-- The three worktrees (`-v030`, `-claudecode`, `-codex`) share one Docker
-  runtime. The public stack belongs to the `-claudecode` project
-  `ai-writing-coach`. Confirm no other lane is mid-batch before operating it.
+- `orena.chillpickle.org` runs commit `cbdedfd` (in `main` via PR #54), so its
+  application code matches `main`. L1/L2 are NOT deployed.
+- There is no CD. A GitHub push deploys nothing; the domain changes only when
+  someone rebuilds on the host:
+  `docker compose --profile public up -d --build writing-coach`.
+- The three worktrees share one Docker runtime; the public stack belongs to the
+  `-claudecode` project `ai-writing-coach`. Check no other lane is mid-batch.
 - A human-approved production PostgreSQL migration ran 2026-09-02:
-  `20260811_0001` -> `20260828_0004`, adding `speaking_attempts`,
-  `listening_progress`, `shadowing_progress`. 16 -> 19 tables, additive, nothing
-  dropped. Before it, the database was three revisions behind the code and the
-  runtime refused to start; that guard is correct and must not be weakened.
-- That approval covered that one run. The gate stays `approval_required`.
+  `20260811_0001` -> `20260828_0004` (16 -> 19 tables, additive). The readiness
+  guard that blocked startup beforehand is correct and must not be weakened.
+  That approval covered that one run; the gate stays `approval_required`.
 
 ## IN PROGRESS
 
@@ -56,9 +51,8 @@ or secret values.
 
 ## DONE
 
-- R0-R20 local foundations preserved; R20 has local acceptance evidence.
-- Listening ENGINE is library-first and locally accepted: Dictation, Shadowing,
-  shared curated/import media contracts, progress/resume, vocabulary.
+- R0-R20 local foundations preserved. Listening ENGINE is library-first and
+  locally accepted: Dictation, Shadowing, shared media contracts, progress.
 - Listening REAL MEDIA CATALOG is PARTIAL: two rights-cleared video lessons
   (EN Royal Society CC BY 3.0, ZH Commons CC BY-SA 3.0) with real posters and
   subtitle-derived timings; the other five are seed audio. Not a catalog.
@@ -66,16 +60,22 @@ or secret values.
   server, web and native. Poster hosts are per provider; playback stays
   Commons-only for direct media.
 - L1 media-first discovery on responsive web: poster owns a 16:9 frame with
-  level/duration/provider badges; description, rights text, level evidence and
-  source line are off the card; rails derived from topic/tags (3.4); real video
-  leads every rail (3.5). Poster is 99% of card width at 1440px and 390px.
+  level/duration/provider badges; description, rights text and source line are
+  off the card; rails derived from topic/tags (3.4); real video leads every rail
+  (3.5). Poster is 99% of card width at 1440px and 390px.
 - L2 source importer: `scripts/build_listening_dev_catalog.py` over
   `writing_coach/listening_source_import.py`, reusing the YouTube adapter and
   the canonical Media Learning Object. Watch + Shorts, deterministic ids, several
   excerpts per source on real transcript boundaries only, per-outcome report,
   failures never end the batch. Overlay is BASE + GENERATED behind
-  `ENABLE_DEV_LISTENING_CATALOG`, refused when `APP_ENV=production`. Live sample:
-  5 accepted / 1 missing transcript, 5 sources into 14 lessons, EN and ZH.
+  `ENABLE_DEV_LISTENING_CATALOG`, refused when `APP_ENV=production`.
+- L2 hardening: generated content carries its own truthful lifecycle
+  (`DEV_CANDIDATE` / `rights_review` / curation `proposed`) instead of borrowing
+  PUBLISHED/verified; the base loader refuses all three. Human CSV fields are
+  validated per row so one bad level or mode cannot poison the overlay. The
+  artifact is committed, carries input digests and a content hash, and a
+  hand-edited file is refused; `--check` verifies it offline in CI. Creator and
+  thumbnail come from oEmbed, CSV only as fallback.
 - Writing, Speaking and Reading are complete locally with acceptance passes and
   pre-public matrices. Writing is `beta`, the others `internal`. Do not rebuild
   them because they are not public.
@@ -127,9 +127,12 @@ or secret values.
 ## NEXT EXACT TASK
 
 Batch L3 from `docs/product/AGENT_IMPLEMENTATION_ORDER.md`: run the importer over
-the full EN/ZH candidate pack, record the failures rather than dropping them
-silently, curate excerpts, and populate the development library. The pipeline is
-built and verified; L3 is content, not code. Run it with
+the full EN/ZH candidate pack, record failures rather than dropping them,
+**curate** the proposed excerpts, and commit the generated artifact. Generated
+excerpts arrive as `proposed`; promoting one to `reviewed` is a human/curator
+act. L3 also owns the learner-quality work the generator cannot do: translation
+or meaning where required, Chinese Pinyin, level review and natural excerpt
+review. Playback plus captions is not content-complete. Run it with
 `python scripts/build_listening_dev_catalog.py --report <path>` and read the
 per-candidate entries.
 
