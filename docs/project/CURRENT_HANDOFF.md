@@ -10,8 +10,9 @@ or secret values.
 
 ## Current branch / lane
 
-- Branch: `claude/integration-v2`. PR #54 is OPEN and NOT merged; `main` is
-  behind this branch.
+- Branch: `claude/integration-v2`. PR #54 is **MERGED**: `origin/main` is
+  `8d04c44` and contains every application commit through `cbdedfd`. Only two
+  later docs-only memory commits on this branch are not in `main` yet.
 - Lane: Orena integration, Listening real-media catalog.
 - Read live HEAD with `git rev-parse HEAD`. The verified application baseline is
   `48a9eabab6422dd9dab7a6b8285a3a3def1db30d`; later commits on this branch are
@@ -32,8 +33,10 @@ or secret values.
 
 ## DEPLOYED FOR QA — read this before touching the runtime
 
-- `orena.chillpickle.org` runs commit `cbdedfd` from `claude/integration-v2`,
-  **not** `main`. Do not tell anyone the domain reflects `main`.
+- `orena.chillpickle.org` runs commit `cbdedfd`, which is now in `main` via the
+  PR #54 merge, so the domain's application code matches `main` (`8d04c44` adds
+  only the merge commit). It is still not automatic: the runtime moved because
+  someone rebuilt, not because anything was pushed or merged.
 - There is no CD. The domain changes only when someone rebuilds on the host:
   `docker compose --profile public up -d --build writing-coach`. A GitHub push
   deploys nothing.
@@ -73,7 +76,9 @@ or secret values.
 - Human playback/product acceptance of the two real lessons on the domain.
 - Real-device native verification, then broader real catalog across the
   discovery categories.
-- Merge of PR #54 after acceptance.
+- Getting the two docs-only memory commits on this branch into `main`; PR #54 is
+  already closed, so they need their own PR. They carry no application change
+  and no CI run fired for them because the PR was merged before they landed.
 
 ## BLOCKED
 
@@ -111,7 +116,8 @@ and exercise both real lessons — `en-science-cosmic-calendar` and
 `zh-technology-search-wikipedia` — for poster, real playback, transcript sync,
 Dictation, next segment, Shadowing handoff, and progress/resume.
 
-If QA passes, record acceptance in memory and propose merging PR #54. If QA
-fails, fix the reported defect at the smallest correct layer and redeploy with
-the command above. Do not broaden the catalog, mark it complete, merge, or
-redeploy before QA reports.
+If QA passes, record the acceptance in memory and open a small PR for the
+docs-only memory commits still missing from `main`. If QA fails, fix the
+reported defect at the smallest correct layer, redeploy with the command above,
+and re-verify. Do not broaden the catalog, mark it complete, or redeploy before
+QA reports back.
