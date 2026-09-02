@@ -71,6 +71,7 @@ jest.mock('expo-video', () => ({
     mockVideoViewProps = props;
     return null;
   },
+  __esModule: true,
   useVideoPlayer: (source: {uri?: string} | null) => {
     mockVideoSource = source ? source.uri ?? null : null;
     return mockVideoPlayer;
@@ -306,6 +307,94 @@ describe('native Listening R20-4 Follow/Active and resume contract', () => {
       expect(mockVideoViewProps).not.toBeNull();
       expect(mockVideoViewProps!.player).toBe(mockVideoPlayer);
       expect(mockVideoViewProps!.nativeControls).toBe(false);
+    });
+
+    it.each(['en', 'zh'] as const)('shows the real poster on the %s discovery card, not a generic icon', async (language) => {
+      mockCookie = 'cookie';
+      const poster = 'https://upload.wikimedia.org/wikipedia/commons/thumb/b/bc/x.webm/960px--x.webm.jpg';
+      mockListeningLibrary.mockResolvedValue({
+        api_version: 1, language, sections: [], topics: [language === 'en' ? 'science' : 'technology'], tags: [],
+        filters: {languages: ['en', 'zh'], levels: [], topics: [], tags: []},
+        items: [{
+          lesson_id: language === 'en' ? 'en-science-cosmic-calendar' : 'zh-technology-search-wikipedia',
+          media_object_id: 'asset-real', title: 'Real media lesson', description: 'Real', language,
+          topic: language === 'en' ? 'science' : 'technology', subtopics: [], level: 'B2',
+          estimated_level: 'B2', reviewed_level: null, level_source: 'deterministic-estimate', level_evidence: {},
+          duration_ms: 46000, excerpt_start_ms: language === 'en' ? 1000 : 16120, excerpt_end_ms: language === 'en' ? 47000 : 59400,
+          available_modes: ['listen', 'active', 'dictation', 'shadowing'], content_tags: [], artwork: 'science',
+          poster_url: poster, playback_kind: 'video',
+          source: {source_media_id: 's', provider: 'wikimedia-commons', type: 'licensed-video', title: 't', creator: 'The Royal Society',
+            source_url: 'https://commons.wikimedia.org/wiki/File:x', provenance_url: 'https://commons.wikimedia.org/wiki/File:x',
+            license: 'CC BY 3.0', license_url: 'https://creativecommons.org/licenses/by/3.0/',
+            allowed_usage_type: 'creative-commons-attribution', rights_review_status: 'verified'},
+        }],
+      });
+      const {view} = renderListening('en', new MemoryKeyValueStorage(), undefined, 'discover');
+      await act(async () => { await Promise.resolve(); await Promise.resolve(); });
+
+      const posters = view.root.findAll((node) => node.props.source?.uri === poster);
+      expect(posters).not.toHaveLength(0);
+    });
+
+    it('falls back to generic artwork when a lesson has no valid poster', async () => {
+      mockCookie = 'cookie';
+      const item = (poster: string) => ({
+        lesson_id: 'seed-audio', media_object_id: 'asset-seed', title: 'Seed lesson', description: 'Seed', language: 'en',
+        topic: 'daily-life', subtopics: [], level: 'A1', estimated_level: 'A1', reviewed_level: 'A1',
+        level_source: 'editorial-review', level_evidence: {}, duration_ms: 8000, excerpt_start_ms: 0, excerpt_end_ms: 8000,
+        available_modes: ['listen'], content_tags: [], artwork: 'daily-life', poster_url: poster, playback_kind: 'audio',
+        source: {source_media_id: 's', provider: 'wikimedia-commons', type: 'licensed-audio', title: 't', creator: 'c',
+          source_url: 'https://commons.wikimedia.org/wiki/File:x', provenance_url: 'https://commons.wikimedia.org/wiki/File:x',
+          license: 'PD', license_url: 'https://creativecommons.org/publicdomain/mark/1.0/',
+          allowed_usage_type: 'public-domain', rights_review_status: 'verified'},
+      });
+      // An absent poster and a poster from an unreviewed origin behave alike.
+      for (const poster of ['', 'https://evil.example/x.jpg']) {
+        mockListeningLibrary.mockResolvedValue({api_version: 1, language: 'en', sections: [], topics: ['daily-life'], tags: [],
+          filters: {languages: ['en', 'zh'], levels: [], topics: [], tags: []}, items: [item(poster)]});
+        const {view} = renderListening('en', new MemoryKeyValueStorage(), undefined, 'discover');
+        await act(async () => { await Promise.resolve(); await Promise.resolve(); });
+        expect(view.root.findAll((node) => typeof node.props.source?.uri === 'string')).toHaveLength(0);
+        expect(view.root.findAllByProps({children: 'Seed lesson'})).not.toHaveLength(0);
+      }
+    });
+
+    it('keeps the poster up until the first frame renders, even after seeking into the excerpt', async () => {
+      mockCookie = 'cookie';
+      mockVideoViewProps = null;
+      // The ZH lesson starts 16.12s in, so currentTime is non-zero long before
+      // anything has been drawn. Only the first frame may retire the poster.
+      mockVideoSeconds = 16.12;
+      mockImport.mutate.mockImplementation((_input: unknown, options: {onSuccess: (value: unknown) => void}) => options.onSuccess(videoLesson('zh')));
+      const {view} = renderListening('en');
+      act(() => { view.root.findByProps({accessibilityLabel: 'Media URL'}).props.onChangeText('https://example.invalid/x'); });
+      await act(async () => {
+        view.root.findByProps({accessibilityLabel: 'Prepare listening lesson'}).props.onPress();
+        await Promise.resolve();
+      });
+
+      const posterUri = 'https://upload.wikimedia.org/wikipedia/commons/thumb/b/bc/x.webm/960px--x.webm.jpg';
+      expect(view.root.findAll((node) => node.props.source?.uri === posterUri)).not.toHaveLength(0);
+
+      act(() => { (mockVideoViewProps!.onFirstFrameRender as () => void)(); });
+      expect(view.root.findAll((node) => node.props.source?.uri === posterUri)).toHaveLength(0);
+      mockVideoSeconds = 0;
+    });
+
+    it('applies slow replay to the video player, not only to the label', async () => {
+      mockCookie = 'cookie';
+      mockVideoPlayer.playbackRate = 1;
+      mockImport.mutate.mockImplementation((_input: unknown, options: {onSuccess: (value: unknown) => void}) => options.onSuccess(videoLesson('en')));
+      const {view} = renderListening('en');
+      act(() => { view.root.findByProps({accessibilityLabel: 'Media URL'}).props.onChangeText('https://example.invalid/x'); });
+      await act(async () => {
+        view.root.findByProps({accessibilityLabel: 'Prepare listening lesson'}).props.onPress();
+        await Promise.resolve();
+      });
+      act(() => { view.root.findByProps({accessibilityLabel: 'Dictation'}).props.onPress(); });
+      act(() => { view.root.findByProps({accessibilityLabel: 'Replay slowly'}).props.onPress(); });
+
+      expect(mockVideoPlayer.playbackRate).toBe(0.75);
     });
 
     it('leaves Active and Shadowing enabled on curated video', async () => {

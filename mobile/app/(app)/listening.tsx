@@ -85,11 +85,49 @@ const DICTATION_ACTION_COPY = {
   zh: {next: '下一句', shadow: '跟读这一句', slow: '慢速重听', save: '保存', saved: '已保存到主动复习', saveFailed: '无法保存这个词'},
 } as const;
 
+// Mirrors LIBRARY_TERM_LABELS in static/becoming/screens/listening.js. A topic
+// missing here falls back to the raw slug, which on a Chinese UI reads as an
+// English taxonomy string, so a topic added to the catalog must be added here
+// in the same batch.
 const NATIVE_LIBRARY_TERMS = {
-  en: {'daily-life': 'Daily life', travel: 'Travel', conversations: 'Conversations', culture: 'Culture', follow: 'Listen', active: 'Active listening', dictation: 'Dictation', shadowing: 'Shadowing'},
-  vi: {'daily-life': 'Đời sống hằng ngày', travel: 'Du lịch', conversations: 'Hội thoại', culture: 'Văn hóa', follow: 'Nghe', active: 'Nghe chủ động', dictation: 'Chính tả', shadowing: 'Shadowing'},
-  zh: {'daily-life': '日常生活', travel: '旅行', conversations: '对话', culture: '文化', follow: '听力', active: '主动听力', dictation: '听写', shadowing: '跟读'},
+  en: {'daily-life': 'Daily life', travel: 'Travel', conversations: 'Conversations', culture: 'Culture', science: 'Science', technology: 'Technology', follow: 'Listen', active: 'Active listening', dictation: 'Dictation', shadowing: 'Shadowing'},
+  vi: {'daily-life': 'Đời sống hằng ngày', travel: 'Du lịch', conversations: 'Hội thoại', culture: 'Văn hóa', science: 'Khoa học', technology: 'Công nghệ', follow: 'Nghe', active: 'Nghe chủ động', dictation: 'Chính tả', shadowing: 'Shadowing'},
+  zh: {'daily-life': '日常生活', travel: '旅行', conversations: '对话', culture: '文化', science: '科学', technology: '科技', follow: '听力', active: '主动听力', dictation: '听写', shadowing: '跟读'},
 } as const;
+
+/**
+ * Discovery artwork. The web shows the real poster for a real-media lesson and
+ * an icon swatch otherwise; native showed the swatch for everything, which kept
+ * the library looking synthetic on a phone while the same lesson had a real
+ * thumbnail in a browser.
+ *
+ * A poster that fails to load must not leave a hole in the card, so a failed
+ * image falls back to the same icon a lesson without a poster gets.
+ */
+function LibraryArtwork({item}: {item: ListeningLibraryLessonMetadata}) {
+  const {tokens} = useTheme();
+  const poster = posterSource(item.poster_url);
+  const [failed, setFailed] = useState(false);
+  useEffect(() => { setFailed(false); }, [poster]);
+  if (poster && !failed) {
+    return (
+      <View style={[styles.libraryArtwork, {backgroundColor: tokens.colors.accentTint}]}>
+        <Image
+          source={{uri: poster}}
+          style={styles.libraryPoster}
+          resizeMode="cover"
+          onError={() => setFailed(true)}
+          accessibilityIgnoresInvertColors
+        />
+      </View>
+    );
+  }
+  return (
+    <View style={[styles.libraryArtwork, {backgroundColor: tokens.colors.accentTint}]}>
+      <OrenaIcon name={item.topic === 'conversations' ? 'speak' : 'listen'} size={30} color={tokens.colors.accent} />
+    </View>
+  );
+}
 
 function nativeLibraryTerm(value: string, locale: keyof typeof NATIVE_LIBRARY_TERMS): string {
   if (value === 'listen') return (NATIVE_LIBRARY_TERMS[locale] as Record<string, string>).follow ?? 'Listen';
@@ -105,6 +143,7 @@ function extractYouTubeVideoId(playback: {kind: string; provider: string; url: s
 
 const SEEK_SECONDS = 5;
 const RATES = [0.75, 1, 1.25] as const;
+const SLOW_RATE = 0.75;
 const rateLabel = (rate: number) => `${rate.toFixed(2).replace(/0$/, '')}x`;
 
 /** `.o-icon-button`: a 40px square that carries one 20px glyph. */
@@ -243,14 +282,20 @@ function ListeningHeader({mode, playbackReady, focus, onFocus, onMode}: {mode: L
  * -- the video is the thing being followed -- so it is rendered outside the
  * scroll container rather than inside it.
  */
-function PlayerCard({lesson, videoId, videoPlayer, posterUrl, playbackReady, playing, muted, rate, elapsedMs, durationMs, onChangeState, onReady, onTogglePlay, onSeek, onToggleMute, onCycleRate, playerRef}: {
-  lesson: MediaLesson; videoId: string | null; videoPlayer: VideoPlayer | null; posterUrl: string | null;
+function PlayerCard({lesson, videoId, videoPlayer, videoSource, posterUrl, playbackReady, playing, muted, rate, elapsedMs, durationMs, onChangeState, onReady, onTogglePlay, onSeek, onToggleMute, onCycleRate, playerRef}: {
+  lesson: MediaLesson; videoId: string | null; videoPlayer: VideoPlayer | null; videoSource: string | null; posterUrl: string | null;
   playbackReady: boolean; playing: boolean; muted: boolean; rate: number; elapsedMs: number; durationMs: number;
   onChangeState: (playing: boolean) => void; onReady: () => void; onTogglePlay: () => void; onSeek: (delta: number) => void;
   onToggleMute: () => void; onCycleRate: () => void; playerRef: MutableRefObject<YoutubeIframeRef | null>;
 }) {
   const {t} = useI18n();
   const {tokens} = useTheme();
+  // Poster removal is a rendering fact, not a clock reading. A curated excerpt
+  // seeks before it draws -- the ZH lesson starts 16.12s in -- so any
+  // currentTime test hides the poster while the frame is still black.
+  // onFirstFrameRender is exactly the cover-image lifecycle signal.
+  const [firstFrame, setFirstFrame] = useState(false);
+  useEffect(() => { setFirstFrame(false); }, [videoSource]);
   // The asset's duration_ms is often absent for a provider embed, so the
   // player's own clock is the authority once it is ready.
   const assetDuration = Number(lesson.asset.duration_ms);
@@ -291,10 +336,9 @@ function PlayerCard({lesson, videoId, videoPlayer, posterUrl, playbackReady, pla
             nativeControls={false}
             allowsFullscreen
             allowsPictureInPicture={false}
+            onFirstFrameRender={() => setFirstFrame(true)}
           />
-          {/* The poster stands in until the first frame is decoded, so the
-              frame is never an empty black rectangle while the file loads. */}
-          {posterUrl && !playing && elapsedMs <= 0 ? (
+          {posterUrl && !firstFrame ? (
             <Image source={{uri: posterUrl}} style={styles.videoPoster} resizeMode="cover" accessibilityIgnoresInvertColors />
           ) : null}
         </View>
@@ -1352,11 +1396,19 @@ export default function ListeningScreen({client: providedClient, resumeStorage =
     setManualSelection(false); setValidation('');
     if (playingSegmentId) setSelectedId(playingSegmentId);
   };
-  const cycleRate = () => {
-    const next = RATES[(RATES.indexOf(rate as typeof RATES[number]) + 1) % RATES.length]!;
+  /**
+   * Slow replay used to call setRate(0.75) and then apply the real rate only on
+   * the audio adapter, so over curated video the UI said 0.75x while the video
+   * kept playing at full speed. Every rate change goes through here instead.
+   * YouTube takes it declaratively from `rate` via the player prop.
+   */
+  const applyPlaybackRate = (next: number) => {
     setRate(next);
     if (audioUrl) lessonAudioPlayer.playbackRate = next;
     else if (videoUrl) lessonVideoPlayer.playbackRate = next;
+  };
+  const cycleRate = () => {
+    applyPlaybackRate(RATES[(RATES.indexOf(rate as typeof RATES[number]) + 1) % RATES.length]!);
   };
   const toggleLessonPlayback = () => {
     if (audioUrl) { if (lessonAudioStatus.playing) lessonAudioPlayer.pause(); else lessonAudioPlayer.play(); }
@@ -1531,7 +1583,7 @@ export default function ListeningScreen({client: providedClient, resumeStorage =
             {libraryState === 'error' ? <PanelCopy>{libraryCopy.failed}</PanelCopy> : null}
             {libraryItems.map((item) => (
               <Card key={item.lesson_id} style={styles.libraryCard}>
-                <View style={[styles.libraryArtwork, {backgroundColor: tokens.colors.accentTint}]}><OrenaIcon name={item.topic === 'conversations' ? 'speak' : 'listen'} size={30} color={tokens.colors.accent} /></View>
+                <LibraryArtwork item={item} />
                 <View style={styles.libraryBody}>
                   <View style={styles.libraryMeta}><Chip>{nativeLibraryTerm(item.topic, locale)}</Chip><Chip>{item.level}</Chip><Chip>{stamp(item.duration_ms)}</Chip></View>
                   <Text style={[styles.libraryTitle, {color: tokens.colors.heading}]}>{item.title}</Text>
@@ -1602,7 +1654,7 @@ export default function ListeningScreen({client: providedClient, resumeStorage =
             onReady={() => { void playerRef.current?.getDuration().then((seconds) => setDurationMs(Math.round(seconds * 1000))); if ((lesson.catalog?.excerpt_start_ms ?? 0) > 0) void playerRef.current?.seekTo((lesson.catalog?.excerpt_start_ms ?? 0) / 1000, true); }}
             onTogglePlay={toggleLessonPlayback} onSeek={seek}
             onToggleMute={toggleLessonMute} onCycleRate={cycleRate} playerRef={playerRef}
-            videoPlayer={videoUrl ? lessonVideoPlayer : null} posterUrl={posterUrl}
+            videoPlayer={videoUrl ? lessonVideoPlayer : null} videoSource={videoUrl} posterUrl={posterUrl}
           />
         </View>
       )}
@@ -1633,7 +1685,7 @@ export default function ListeningScreen({client: providedClient, resumeStorage =
             onCheck={() => commit('checked')} onReveal={() => commit('revealed')}
             onHint={() => setSession((current) => ({...current, [selected!.segment_id]: {presentation: current[selected!.segment_id]?.presentation ?? 'checked', draft: current[selected!.segment_id]?.draft ?? '', attempts: current[selected!.segment_id]?.attempts ?? [], hint_level: Math.min(3, (current[selected!.segment_id]?.hint_level ?? 0) + 1)}}))}
             onRetry={() => setSession((current) => ({...current, [selected!.segment_id]: {presentation: 'checked', draft: '', attempts: current[selected!.segment_id]?.attempts ?? [], hint_level: 0}}))}
-            onSlowReplay={() => { setRate(0.75); if (audioUrl) lessonAudioPlayer.playbackRate = 0.75; replayCurrent(); }}
+            onSlowReplay={() => { applyPlaybackRate(SLOW_RATE); replayCurrent(); }}
             onShadow={() => changeMode('shadowing')}
             onSaveWord={(word) => { void saveDictationWord(word); }}
             index={selectedIndex} onPrevious={() => step(-1)} onReplay={replayCurrent} onNext={() => step(1)}
@@ -1711,7 +1763,8 @@ const styles = StyleSheet.create({
   filterRow: {flexDirection: 'row', flexWrap: 'wrap', gap: 7},
   filterChip: {borderWidth: 1, borderRadius: 999, paddingHorizontal: 11, paddingVertical: 7},
   libraryCard: {padding: 0, overflow: 'hidden'},
-  libraryArtwork: {height: 112, alignItems: 'center', justifyContent: 'center'},
+  libraryArtwork: {height: 112, alignItems: 'center', justifyContent: 'center', overflow: 'hidden'},
+  libraryPoster: {width: '100%', height: '100%'},
   libraryBody: {padding: 16, gap: 10},
   libraryMeta: {flexDirection: 'row', flexWrap: 'wrap', gap: 6},
   libraryTitle: {fontSize: 19, lineHeight: 24, fontWeight: '700'},
