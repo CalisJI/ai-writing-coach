@@ -18,10 +18,13 @@ or secret values.
 
 ## Last verified batch
 
-- `7b1740e` — rights-aware, content-library-first Listening catalog and shared
-  web/native learning engine.
-- Local evidence: backend `698 passed / 0 failed` in the CI-equivalent container
-  environment; native `48` suites / `346` tests; all 9 web contract tests pass.
+- Real-media Listening vertical slice on the existing engine: video playback
+  kind, poster support, and the first two real EN/ZH lessons.
+- Local evidence: backend `703 passed / 0 failed` in the CI-equivalent container;
+  all 10 web contract tests pass. Real playback verified by browser decode:
+  EN 854x481 / 47.328s / 96 frames, ZH 854x481 / 198.241s seeked to its 16.12s
+  excerpt start; transcript sync, Dictation 100% match and Shadowing handoff all
+  exercised over the real media. Local execution, not CI, not human acceptance.
 - This is local evidence, not CI or production acceptance.
 
 ## DONE
@@ -30,10 +33,11 @@ or secret values.
 - Listening ENGINE is library-first: Dictation, Shadowing, shared
   curated/import media contracts, progress/resume, and vocabulary all exist and
   are locally accepted.
-- Listening REAL MEDIA CATALOG is NOT complete. Built-in lessons are still
-  seed/synthetic, real source video playback is unaccepted, cards can present
-  text with no meaningful real video, and neither EN nor ZH real playback has
-  passed human acceptance. Seed content is not completion evidence.
+- Listening REAL MEDIA CATALOG is PARTIAL, not complete. Two real rights-cleared
+  video lessons now play, one EN (The Royal Society, CC BY 3.0) and one ZH
+  (Commons, CC BY-SA 3.0), with real posters and subtitle-derived timings. The
+  other five lessons remain seed/synthetic audio. Human playback acceptance is
+  still an open gate; two lessons are not a catalog.
 - Writing, Speaking and Reading are complete locally with acceptance passes and
   pre-public matrices. They are internal, not public. Do not rebuild them.
 
@@ -62,8 +66,13 @@ or secret values.
 
 ## OPEN P1
 
-- Listening real media catalog readiness: seed/synthetic only, pending real
-  EN/ZH playable evidence and human playback acceptance.
+- Real catalog breadth: one EN and one ZH real lesson only. Discovery categories
+  (Animation, Movies & Drama, Podcast, Stories, Kids, Interview, ...) have no
+  real content yet.
+- Durable Listening progress is unverified over real media. `app.py` wires
+  `configure_listening_progress` only for the PostgreSQL backend, so the SQLite
+  harness answers 503 and the UI correctly degrades to device-only practice.
+  Verifying it needs the PostgreSQL runtime, which is a human gate.
 
 ## HUMAN GATES
 
@@ -75,6 +84,6 @@ or secret values.
 
 ## NEXT EXACT TASK
 
-Human review of the memory-truth correction. Then source real, rights-cleared EN
-and ZH media and obtain human playback acceptance; that, not more engine work,
-is what the Listening catalog is missing.
+Human playback/product acceptance of the two real lessons. Then broaden the real
+catalog across the discovery categories using the same manifest shape; sourcing
+and rights review, not engine work, is the remaining constraint.

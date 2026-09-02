@@ -108,52 +108,69 @@ def test_resume_workflow_is_bounded_and_current_handoff_is_compact() -> None:
     assert "## R18 immutable" not in handoff
 
 
-def test_seed_or_mock_listening_content_is_never_real_content_completion() -> None:
-    """Human QA confirmed the built-in lessons are still seed/synthetic."""
+def test_seed_or_mock_content_can_never_become_real_content_completion() -> None:
+    """The rule, tested on a constructed state so real progress cannot retire it."""
 
-    catalog = _state()["listening"]["real_media_catalog"]
-    assert catalog["status"] == "seed_or_mock_only"
-    assert catalog["real_playable_en_evidence"] is False
-    assert catalog["real_playable_zh_evidence"] is False
-    assert catalog["human_playback_acceptance"] != "approved"
-    assert catalog["public_catalog_publication"] == "not_approved"
-    assert catalog["seed_or_mock_counts_as_real_content"] is False
-
-    # Seed content cannot be laundered into acceptance or publication.
-    claimed = copy.deepcopy(_state())
-    claimed["listening"]["real_media_catalog"]["real_playable_en_evidence"] = True
-    claimed["listening"]["real_media_catalog"]["human_playback_acceptance"] = "approved"
-    claimed["listening"]["real_media_catalog"]["public_catalog_publication"] = "approved"
-    errors = validate_state_semantics(claimed)
+    seeded = copy.deepcopy(_state())
+    seeded["listening"]["real_media_catalog"].update({
+        "status": "seed_or_mock_only",
+        "real_playable_en_evidence": True,
+        "real_playable_zh_evidence": True,
+        "human_playback_acceptance": "approved",
+        "public_catalog_publication": "approved",
+    })
+    seeded["skills"]["state"]["listening"]["content_readiness"] = "seed_or_mock_only"
+    errors = validate_state_semantics(seeded)
     assert any("cannot carry real playable EN/ZH evidence" in error for error in errors)
     assert any("cannot hold human playback acceptance" in error for error in errors)
     assert any("cannot be published" in error for error in errors)
 
-    # A catalog cannot be declared complete without both languages and a human.
-    complete = copy.deepcopy(_state())
-    complete["listening"]["real_media_catalog"]["status"] = "real_content_complete"
-    complete["skills"]["state"]["listening"]["content_readiness"] = "real_content_complete"
-    errors = validate_state_semantics(complete)
+    # Nor can a catalog be called complete without both languages and a human.
+    claimed = copy.deepcopy(_state())
+    claimed["listening"]["real_media_catalog"].update({
+        "status": "real_content_complete",
+        "real_playable_zh_evidence": False,
+        "human_playback_acceptance": "approval_required",
+    })
+    claimed["skills"]["state"]["listening"]["content_readiness"] = "real_content_complete"
+    errors = validate_state_semantics(claimed)
     assert any("requires real playable EN and ZH evidence" in error for error in errors)
     assert any("requires human playback acceptance" in error for error in errors)
 
+    # And publication always trails human acceptance.
+    published = copy.deepcopy(_state())
+    published["listening"]["real_media_catalog"]["public_catalog_publication"] = "approved"
+    assert any(
+        "publication requires human playback acceptance" in error
+        for error in validate_state_semantics(published)
+    )
 
-def test_listening_engine_completion_does_not_imply_real_catalog_completion() -> None:
+
+def test_listening_catalog_is_not_yet_complete_and_never_implied_by_the_engine() -> None:
     state = _state()
     listening = state["skills"]["state"]["listening"]
+    catalog = state["listening"]["real_media_catalog"]
 
-    # The engine is done and locally accepted; the catalog is not real yet.
+    # The engine is finished and locally accepted.
     assert listening["implementation"] == "complete_local"
     assert listening["local_acceptance"] == "passed"
     assert listening["pre_public_matrix"] == "complete"
-    assert listening["content_readiness"] == "seed_or_mock_only"
 
-    # That combination must be valid: behaviour and content are separate truths.
+    # The catalog is its own, still-unfinished truth.
+    assert catalog["status"] != "real_content_complete"
+    assert catalog["human_playback_acceptance"] != "approved"
+    assert catalog["public_catalog_publication"] == "not_approved"
+    assert catalog["seed_or_mock_counts_as_real_content"] is False
+    assert listening["learner_visibility"] == "internal"
+
+    # Behaviour and content are independent: this combination must be valid.
     assert validate_state_semantics(state) == []
 
-    # And the two Listening content fields cannot silently drift apart.
+    # The two Listening content fields cannot silently drift apart.
     drifted = copy.deepcopy(state)
-    drifted["skills"]["state"]["listening"]["content_readiness"] = "real_content_complete"
+    drifted["skills"]["state"]["listening"]["content_readiness"] = (
+        "seed_or_mock_only" if listening["content_readiness"] != "seed_or_mock_only" else "real_content_partial"
+    )
     assert any(
         "content_readiness must match" in error
         for error in validate_state_semantics(drifted)

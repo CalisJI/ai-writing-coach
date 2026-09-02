@@ -41,7 +41,7 @@
     "lane": "orena_integration"
   },
   "last_verified_application_commit": "7b1740e66a3f8ef82b2fc728dedaf7dd2c1d1b6f",
-  "last_verified_batch": "rights_aware_listening_content_catalog",
+  "last_verified_batch": "listening_real_media_playback_vertical_slice",
   "current_program_stage": {
     "id": "R21",
     "name": "Mobile Release Readiness",
@@ -50,7 +50,7 @@
   "current_primary_workstream": {
     "id": "repository_backed_project_memory",
     "status": "complete",
-    "next_task": "Human review of the memory-truth correction, then real EN/ZH media sourcing and playback acceptance."
+    "next_task": "Human playback acceptance of the two real lessons, then broaden the real catalog across categories."
   },
   "design": {
     "web_is_visual_source_of_truth": true,
@@ -104,7 +104,7 @@
         "local_acceptance": "passed",
         "pre_public_matrix": "complete",
         "learner_visibility": "internal",
-        "content_readiness": "seed_or_mock_only",
+        "content_readiness": "real_content_partial",
         "human_acceptance": "approval_required",
         "public_release": "not_approved"
       }
@@ -117,9 +117,9 @@
     "curated_and_imported_share_media_contract": true,
     "first_class_languages": ["en", "zh"],
     "real_media_catalog": {
-      "status": "seed_or_mock_only",
-      "real_playable_en_evidence": false,
-      "real_playable_zh_evidence": false,
+      "status": "real_content_partial",
+      "real_playable_en_evidence": true,
+      "real_playable_zh_evidence": true,
       "human_playback_acceptance": "approval_required",
       "public_catalog_publication": "not_approved",
       "seed_or_mock_counts_as_real_content": false
@@ -150,6 +150,9 @@
     {"id": "learner_skill_or_catalog_publication", "status": "approval_required"}
   ],
   "current_p0": [],
-  "current_p1": ["listening_real_media_catalog_is_seed_only_pending_real_en_zh_playback_acceptance"],
+  "current_p1": [
+    "listening_real_media_catalog_has_one_en_and_one_zh_lesson_only",
+    "listening_durable_progress_unverified_on_sqlite_needs_postgresql_runtime"
+  ],
   "last_verified_at": "2026-09-02"
 }
