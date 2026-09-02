@@ -40,8 +40,8 @@
     "expected_development_branch": "claude/integration-v2",
     "lane": "orena_integration"
   },
-  "last_verified_application_commit": "48a9eabab6422dd9dab7a6b8285a3a3def1db30d",
-  "last_verified_batch": "listening_l2_importer_hardened",
+  "last_verified_application_commit": "e1a05d8fd9ddbb0063a00dd823e5ba9652464b69",
+  "last_verified_batch": "listening_l2_hardened_and_enforced",
   "current_program_stage": {
     "id": "R21",
     "name": "Mobile Release Readiness",
