@@ -18,6 +18,8 @@ from writing_coach.listening_catalog import (
     lesson_metadata,
     translated_media_object,
 )
+from writing_coach.becoming_memory import get_learner_profile
+from writing_coach.core.support_languages import resolve_support_language
 from writing_coach.media_api import serialize_media_acquisition
 from writing_coach.media_ingestion import MediaAcquisition
 from writing_coach.persistence.specialized_repository import SpecializedLearningRepository
@@ -135,12 +137,17 @@ def listening_library(
 @router.get("/library/{lesson_id}")
 def open_listening_library_lesson(
     lesson_id: str,
-    target_language: str = Query(default="vi", min_length=2, max_length=32),
+    # No language default lives here. An omitted target resolves against the
+    # learner's stored support language, then the configured neutral default.
+    target_language: str = Query(default="", max_length=32),
 ) -> dict[str, Any]:
     """Resolve a curated excerpt into the universal Media Learning payload."""
     lesson = catalog_lesson(lesson_id)
     if lesson is None:
         raise orena_http_error(404, "listening_lesson_not_found", "This Listening lesson is unavailable.")
+    target_language = resolve_support_language(
+        get_learner_profile().get("native_language"), target_language
+    )
     media_object = translated_media_object(lesson, target_language)
     response = serialize_media_acquisition(MediaAcquisition(media_object, lesson.playback))
     response["translation"] = {

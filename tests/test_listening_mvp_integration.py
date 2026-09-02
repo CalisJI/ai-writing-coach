@@ -34,7 +34,11 @@ from writing_coach.media_translation import (
 SOURCE_URL = "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
 PLAYBACK_URL = "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ"
 LISTENING_MVP_RESPONSE_FIELDS = frozenset(
-    {"asset", "playback", "transcript", "translations", "translation"}
+    # `transcript_origin` joined the shared workspace contract with L2.5: the
+    # learner must be able to tell a source's own captions from an AI-generated
+    # transcript, so provenance travels with every response rather than being
+    # inferred by each client.
+    {"asset", "playback", "transcript", "translations", "translation", "transcript_origin"}
 )
 ROOT = Path(__file__).resolve().parents[1]
 

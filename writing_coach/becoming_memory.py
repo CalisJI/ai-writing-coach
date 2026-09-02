@@ -9,6 +9,7 @@ from pydantic import BaseModel, Field
 
 from writing_coach.languages.runtime import active_profile
 from writing_coach.persistence.specialized_repository import SpecializedLearningRepository
+from writing_coach.core.support_languages import resolve_support_language
 
 
 _repository: SpecializedLearningRepository | None = None
@@ -18,7 +19,11 @@ class LearnerProfileIn(BaseModel):
     goal: str = Field(default="everyday", pattern=r"^(everyday|work|exam|voice)$")
     style: str = Field(default="guided", pattern=r"^(guided|examples|concise|deep)$")
     pinyin: str = Field(default="auto", pattern=r"^(auto|on|off)$")
-    native_language: str = Field(default="vi", pattern=r"^(vi|en|zh)$")
+    # The learner's SUPPORT language: what meanings and explanations arrive in.
+    # Widened from ^(vi|en|zh)$ to a BCP-47 shape so the stored preference is a
+    # language identity rather than an enum of the three Orena happened to
+    # support first. Availability is enforced on resolution, not on storage.
+    native_language: str = Field(default="", pattern=r"^$|^[A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8})*$")
     theme_preset: str = Field(
         default="editorial",
         pattern=r"^(editorial|sage|clay|blueprint)$",
@@ -56,7 +61,11 @@ def _profile_defaults() -> dict[str, Any]:
         "goal": "everyday",
         "style": "guided",
         "pinyin": "auto",
-        "native_language": "vi",
+        "native_language": "",
+        # The resolved SUPPORT language, so every client reads one answer
+        # instead of re-implementing the rule and drifting apart. Empty storage
+        # means the learner has not chosen yet, not that they speak Vietnamese.
+        "support_language": resolve_support_language(),
         "theme_preset": "editorial",
         "updated_at": "",
     }
@@ -69,7 +78,8 @@ def get_learner_profile() -> dict[str, Any]:
     return {
         "exists": True, "language": active_profile().code, "goal": str(row["goal"]),
         "style": str(row["style"]), "pinyin": str(row["pinyin"]),
-        "native_language": str(row.get("native_language") or "vi"),
+        "native_language": str(row.get("native_language") or ""),
+        "support_language": resolve_support_language(row.get("native_language")),
         "theme_preset": str(row.get("theme_preset") or "editorial"),
         "updated_at": str(row.get("updated_at") or ""),
     }
@@ -86,7 +96,9 @@ def put_learner_profile(payload: LearnerProfileIn) -> dict[str, Any]:
     return {
         "exists": True, "language": active_profile().code, "goal": payload.goal,
         "style": payload.style, "pinyin": payload.pinyin,
-        "native_language": payload.native_language, "theme_preset": payload.theme_preset,
+        "native_language": payload.native_language,
+        "support_language": resolve_support_language(payload.native_language),
+        "theme_preset": payload.theme_preset,
         "updated_at": now,
     }
 

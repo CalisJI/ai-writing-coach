@@ -1,4 +1,4 @@
-import {state} from '../store.js';
+import {state,supportLanguage} from '../store.js';
 
 const UI_LOCALES=['vi','en','zh'];
 
@@ -2459,7 +2459,7 @@ function interpolate(value,vars={}){
 }
 
 export function uiLocale(){
-  const value=String(state.supportLanguage||state.profile?.native_language||'vi');
+  const value=String(supportLanguage()||'');
   return UI_LOCALES.includes(value)?value:'en';
 }
 

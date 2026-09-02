@@ -1118,7 +1118,11 @@ export default function ListeningScreen({client: providedClient, resumeStorage =
   // The support language is what a meaning is rendered into -- the learner's own
   // language, not the one they are studying. `supportLanguage()` in the web.
   const profileQuery = useLearnerProfile(client, sessionCookie);
-  const supportLanguage = profileQuery.data?.native_language ?? 'vi';
+  // The server resolves the support language and returns it; native reads
+  // that answer rather than assuming a language of its own.
+  const supportLanguage = profileQuery.data?.support_language
+    || profileQuery.data?.native_language
+    || '';
   const progressQuery = useListeningProgress(client, sessionCookie, lesson?.asset.asset_id ?? '');
   const shadowingQuery = useShadowingProgress(client, sessionCookie, lesson?.asset.asset_id ?? '');
   const saveShadowing = useSaveShadowingProgress(client, sessionCookie);

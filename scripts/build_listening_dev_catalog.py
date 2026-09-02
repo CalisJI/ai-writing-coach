@@ -81,7 +81,7 @@ def main() -> int:
         read_source_candidates,
         write_manifest,
     )
-    from writing_coach.media_providers.youtube import YouTubeMediaProviderAdapter
+    from writing_coach.media_recovery_policy import build_youtube_adapter
 
     candidates = []
     for path in args.sources:
@@ -92,7 +92,7 @@ def main() -> int:
         candidates.extend(rows[: args.limit] if args.limit > 0 else rows)
 
     report = ImportReport()
-    manifest, report = build_dev_catalog(candidates, YouTubeMediaProviderAdapter(), report)
+    manifest, report = build_dev_catalog(candidates, build_youtube_adapter(), report)
     write_manifest(manifest, args.out, source_lists=list(args.sources))
 
     summary = report.as_dict()

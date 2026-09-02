@@ -129,7 +129,7 @@ const INTERFACE_LANGUAGES=['vi','en','zh'];
 function renderLanguages(){
   const select=document.getElementById('languageSelect');
   if(!select)return;
-  const current=supportLanguage()||'vi';
+  const current=supportLanguage();
   select.innerHTML=INTERFACE_LANGUAGES.map(code=>
     `<option value="${code}" ${code===current?'selected':''}>${localeLabel(code)}</option>`
   ).join('');
@@ -141,7 +141,7 @@ async function loadProfileForActiveLanguage({allowLegacyMigration=true}={}){
   let remote=await api.learnerProfile();
   if(remote.exists){
     if(!state.supportLanguage){
-      setSupportLanguage(remote.native_language||'vi');
+      setSupportLanguage(remote.support_language||remote.native_language||'');
     }
 
     const localPalette=storedPalette();
@@ -179,10 +179,10 @@ async function loadProfileForActiveLanguage({allowLegacyMigration=true}={}){
       goal:legacy.goal||'everyday',
       style:legacy.style||'guided',
       pinyin:legacy.pinyin||'auto',
-      native_language:state.supportLanguage||legacy.native_language||'vi',
+      native_language:state.supportLanguage||legacy.native_language||'',
       theme_preset:legacy.theme_preset||activePalette(),
     });
-    setSupportLanguage(saved.native_language||'vi');
+    setSupportLanguage(saved.support_language||saved.native_language||'');
     saveProfile(saved);
     state.legacyProfile=null;
     return saved;

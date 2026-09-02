@@ -55,7 +55,7 @@ from writing_coach.media_api import (
 from writing_coach.media_fallback import SupadataMediaFallbackService
 from writing_coach.media_ingestion import MediaIngestionService
 from writing_coach.media_providers.supadata import SupadataTranscriptClient
-from writing_coach.media_providers.youtube import YouTubeMediaProviderAdapter
+from writing_coach.media_recovery_policy import build_youtube_adapter
 from writing_coach.media_providers.youtube_audio import YtDlpYouTubeAudioUrlResolver
 from writing_coach.media_timing import MediaTimingService
 from writing_coach.media_translation import (
@@ -242,12 +242,9 @@ app.include_router(platform_router)
 app.include_router(product_router)
 configure_media_ingestion(
     MediaIngestionService(
-        adapters=(
-            YouTubeMediaProviderAdapter(
-                enable_fallback=False,
-                defer_transcript_recovery=True,
-            ),
-        ),
+        # One recovery policy, shared with the bulk importer, so a caption-less
+        # video means the same thing in My Media and in the catalog pipeline.
+        adapters=(build_youtube_adapter(),),
         source_language_supported=is_enabled,
     )
 )
