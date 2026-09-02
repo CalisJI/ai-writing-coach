@@ -146,6 +146,16 @@ def _installed_media_ingestion() -> MediaIngestionService:
     return _media_ingestion_service
 
 
+def media_translation_service() -> MediaTranslationService | None:
+    """The one translation service, or None when it is not installed.
+
+    Curated Listening needs the same engine My Media uses; a second one would be
+    a second definition of what a meaning is.
+    """
+
+    return _media_translation_service
+
+
 def _installed_media_translation() -> MediaTranslationService:
     if _media_translation_service is None:
         raise HTTPException(503, "Media Learning translation is not installed.")

@@ -73,6 +73,7 @@ from writing_coach.speech_api import (
 from writing_coach.media_interaction import contextual_router as contextual_dictionary_router
 from writing_coach.listening_api import (
     configure_listening_progress,
+    configure_listening_translation_cache,
     router as listening_progress_router,
 )
 from writing_coach.speech_asr import GroqSpeechAsrProvider
@@ -302,6 +303,9 @@ configure_listening_progress(
     if _persistence_runtime.backend == "postgresql"
     else None
 )
+# Generated meanings persist in the local cache DB, so the second learner in a
+# given support language costs no provider quota.
+configure_listening_translation_cache(_learning_cache)
 app.include_router(listening_progress_router)
 install_platform_ai(app, require_admin)
 configure_becoming_memory(_specialized_learning_repository)

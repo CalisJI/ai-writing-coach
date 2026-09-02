@@ -338,11 +338,55 @@ class SQLiteLearningCacheRepository:
                 )"""
             )
             conn.execute(
+                # Generated segment meanings. Regenerable by definition, so this
+                # lives with the other non-critical caches rather than in the
+                # authoritative store: no Alembic migration, no cutover risk.
+                #
+                # cache_key carries the whole identity - asset, segment, a
+                # fingerprint of the source text, the support language and the
+                # provider/model - so a canonical text change or a provider
+                # change misses rather than serving something stale.
+                """CREATE TABLE IF NOT EXISTS media_translation_cache (
+                    cache_key TEXT PRIMARY KEY,
+                    translated_text TEXT NOT NULL,
+                    provenance TEXT NOT NULL,
+                    generated_at TEXT NOT NULL
+                )"""
+            )
+            conn.execute(
                 """CREATE TABLE IF NOT EXISTS grammar_lesson_cache (
                     lesson_id TEXT PRIMARY KEY,
                     content_json TEXT NOT NULL,
                     generated_at TEXT NOT NULL
                 )"""
+            )
+            conn.commit()
+
+    def get_media_translation(self, key: str) -> dict[str, Any] | None:
+        """One cached segment meaning, or None when it must be generated."""
+
+        with self._connect() as conn:
+            row = conn.execute(
+                "SELECT translated_text, provenance FROM media_translation_cache WHERE cache_key = ?",
+                (key,),
+            ).fetchone()
+        if not row:
+            return None
+        return {"translated_text": str(row["translated_text"]), "provenance": str(row["provenance"])}
+
+    def put_media_translation(
+        self, key: str, translated_text: str, provenance: str, generated_at: str,
+    ) -> None:
+        with self._connect() as conn:
+            conn.execute(
+                """INSERT INTO media_translation_cache(
+                       cache_key, translated_text, provenance, generated_at)
+                   VALUES (?, ?, ?, ?)
+                   ON CONFLICT(cache_key) DO UPDATE SET
+                     translated_text = excluded.translated_text,
+                     provenance = excluded.provenance,
+                     generated_at = excluded.generated_at""",
+                (key, translated_text, provenance, generated_at),
             )
             conn.commit()
 
