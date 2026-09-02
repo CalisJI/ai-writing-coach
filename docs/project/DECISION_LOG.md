@@ -978,7 +978,7 @@ media the product can genuinely teach from, and My Media and the bulk importer
 had drifted into two different definitions of "no captions" because they built
 the provider adapter with opposite recovery flags.
 
-**Consequences:** `writing_coach/support_language.py` holds the one resolution
+**Consequences:** `writing_coach/core/support_languages.py` holds the one resolution
 rule; the profile exposes a resolved `support_language`; the client keeps no
 language default of its own. `writing_coach/media_recovery_policy.py` holds the
 one recovery policy, and both the runtime and the importer build their adapter
@@ -989,3 +989,31 @@ fully supported support language - it is simply no longer the built-in answer.
 **Supersedes / Superseded by:** Supersedes any earlier reading in which
 Vietnamese was the canonical translation target or in which absent captions made
 a source unsupported. Supersedes no implementation contract.
+
+## D-043 - Unreviewed development catalog content is QA'd off production
+
+**Date:** 2026-09-02
+
+**Status:** Accepted
+
+**Decision:** Generated development catalog content (`DEV_CANDIDATE` /
+`rights_review` / `proposed`) is reviewed on a separate local development
+runtime, never on the production domain. The runtime is the same app image run
+from the worktree with `APP_ENV=development`, `ENABLE_DEV_LISTENING_CATALOG=1`,
+SQLite, writable paths under `/tmp`, published on `127.0.0.1` only and kept off
+the tunnel. Promotion into the production catalog remains a human gate.
+
+**Reason:** L3 produces content at scale whose rights and pedagogy are not yet
+reviewed. An admin-gated preview inside production was considered and rejected:
+it would mean the production runtime serving unreviewed content, and it would
+put the dev overlay one authorisation bug away from public learners.
+`orena.chillpickle.org` runs `APP_ENV=production`, where the overlay is refused
+by design, and that guard must not be weakened to enable QA.
+
+**Consequences:** L3 can proceed without touching production or the deployment
+gate. The production guard in `listening_catalog.dev_catalog_enabled()` stays a
+hard refusal rather than a configurable one. QA evidence for generated content
+comes from the development runtime and is labelled as such.
+
+**Supersedes / Superseded by:** Supersedes the earlier open question of how L3
+content would be visually QA'd. Supersedes no implementation contract.
