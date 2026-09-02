@@ -37,6 +37,7 @@ jobs:
           node scripts/test_shadowing_practice.mjs
           node scripts/test_media_learning_quality.mjs
           node scripts/test_real_media_catalog_contract.mjs
+          node scripts/test_listening_discovery_contract.mjs
       - run: python -m pytest -q test_app.py tests
         env:
           PERSISTENCE_BACKEND: sqlite
