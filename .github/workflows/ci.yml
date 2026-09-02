@@ -9,6 +9,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+        with:
+          # validate_project_memory.py resolves
+          # last_verified_application_commit with `git cat-file`. The default
+          # shallow fetch has no older history, so the check would fail on a
+          # commit that is present in the repository.
+          fetch-depth: 0
       - uses: actions/setup-python@v6
         with:
           python-version: '3.12'
