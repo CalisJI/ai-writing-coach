@@ -69,22 +69,23 @@ or secret values.
 
 ## L2.5 STATUS
 
-- Support language separated from learning language and UI locale, one rule in
+- Support language separated from learning language and UI locale; one rule in
   `core/support_languages.py`, persistent in the profile, twelve languages, nine
   Vietnamese defaults removed. One recovery policy shared by My Media and the
-  importer; `transcript_origin` on every media response. Both DONE.
-- Caption-less video is NOT rejected: a real YouTube URL returns embed playback
-  and title with `transcript_origin: none` plus a Supadata job.
+  importer; `transcript_origin` on every response.
 - Curated meaning resolves editorial → cached → live → truthful unavailable,
-  persisted in the non-critical cache DB keyed by asset+segment+text
-  fingerprint+language+provider. ZH Pinyin derived where absent.
-- Live meaning PROVEN for ja and es: first request generates (1 call), second
-  returns `cached-generated` with 0 calls. ZH returns Hanzi + Pinyin + meaning.
-- The Groq key is FINE. An earlier "403 bad key" reading was wrong twice: the
-  403 was Cloudflare 1010 blocking a `Python-urllib` User-Agent (the app uses
-  `requests`, gets 200), and the real intermittent failure is HTTP 413
-  `rate_limit_exceeded` — `max_tokens: 8000` against an 8000-token org ceiling
-  claims the whole per-minute budget.
+  persisted by asset+segment+text fingerprint+language+provider. ZH Pinyin
+  derived where absent. PROVEN live: ja and es generate on the first request and
+  return `cached-generated` with 0 calls on the second; ZH returns Hanzi +
+  Pinyin + meaning.
+- Groq key is VALID; never replace it. An earlier "403 bad key" reading was
+  wrong: the 403 was Cloudflare 1010 blocking a `Python-urllib` User-Agent (the
+  app uses `requests`, gets 200). HTTP 403 does NOT mean a bad Groq key.
+- FIXED: `max_completion_tokens` (default 2048, env-configurable, validated)
+  replaces `max_tokens: 8000`, which equalled the org ceiling; a 413 now splits
+  the batch instead of retrying the same oversized request; the provider's
+  private vi/en/zh name map is gone in favour of the canonical registry.
+- Caption-less recovery proven to START only; no real generated transcript.
 - Production is `MEDIA_TRANSCRIPT_FALLBACK=none` with `SUPADATA_CONFIGURED=true`
   — configured but off. Enabling it there is a paid-provider gate, NOT done.
 
@@ -104,14 +105,14 @@ or secret values.
 
 ## OPEN P1
 
-- `GroqTranslationProvider` sends `max_tokens: 8000` against an 8000-token org
-  ceiling, so translation fails with 413 whenever the bucket is not full, and
-  `_LANGUAGE_NAMES` maps only vi/en/zh so other languages reach the prompt as a
-  bare code.
-- Caption-less recovery proven to START; a generated transcript and async resume
-  are NOT demonstrated.
+- **Supadata client timeout too short.** `request_timeout_seconds` defaults to
+  20s but `mode=generate` measured **56.1s**, so recovery reports
+  `provider_timeout` before the provider replies. Raise it, or use the async job
+  path, before claiming Supadata recovery works.
+- No real smoke source yet: needs a SHORT video with speech and no native
+  captions. `ScMzIvxBSi4` has no captions but no speech (`content: []`).
 - Real catalog breadth: one EN and one ZH real lesson; spec 3.23 waits on L3.
-- L1 is responsive web only; native needs the L6 port.
+- L1 is web only; native needs the L6 port.
 - Native curated video verified by tests and prebuild, not on a device. iOS
   VP9/WebM decode unproven; the fix would be an H.264 derivative.
 - Generated excerpts are `proposed` candidates; ids are provisional.
@@ -126,12 +127,10 @@ or secret values.
 
 ## NEXT EXACT TASK
 
-Finish L2.5 before L3. Do NOT replace the Groq key; it works. Reduce
-`GroqTranslationProvider`'s `max_tokens` below the org TPM ceiling (8000) so a
-single request cannot claim the whole budget, and fill `_LANGUAGE_NAMES`, which
-still maps only vi/en/zh so other languages are named by raw code in the prompt.
-Then the Supadata no-caption smoke test, real async resume, and web/native
-visual QA. Then Batch L3: run the importer over the
+Finish L2.5 before L3. Both Groq P1s are fixed. Remaining: raise the Supadata
+request timeout above its measured ~56s generate latency, find a SHORT
+speech-bearing video with no native captions, and run the real recovery smoke
+test end to end. Then web/native visual QA. Then Batch L3: run the importer over the
 full EN/ZH pack
 (`build_listening_dev_catalog.py --report <path>`), read the per-candidate
 entries, **curate** the proposed excerpts, and commit the snapshot. Excerpts
