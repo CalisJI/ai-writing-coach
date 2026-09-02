@@ -8,6 +8,7 @@ editing a React screen or creating a second player/transcript architecture.
 from __future__ import annotations
 
 import json
+import os
 from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
@@ -32,6 +33,14 @@ CONTENT_STATUSES = frozenset({"DRAFT", "PROCESSING", "NEEDS_REVIEW", "READY", "P
 # edge; validating here means an editorial pipeline cannot introduce a source
 # the players would then have to reject.
 REVIEWED_MEDIA_HOSTS = frozenset({"commons.wikimedia.org", "upload.wikimedia.org"})
+# A poster is published by the same provider as the media it depicts, so the
+# allowlist is per provider rather than one global set: a YouTube lesson's
+# thumbnail legitimately comes from YouTube's image CDN, and a Commons lesson's
+# never does. The web player and the native adapter apply the same mapping.
+REVIEWED_POSTER_HOSTS: Mapping[str, frozenset[str]] = {
+    "wikimedia-commons": REVIEWED_MEDIA_HOSTS,
+    "youtube": frozenset({"i.ytimg.com", "img.youtube.com"}),
+}
 PUBLIC_CONTENT_STATUS = "PUBLISHED"
 EN_LEVELS = frozenset({"A1", "A2", "B1", "B2", "C1", "C2"})
 ZH_LEVELS = frozenset({"HSK1", "HSK2", "HSK3", "HSK4", "HSK5", "HSK6", "HSK7-9"})
@@ -127,7 +136,12 @@ def _playback_url(playback: Mapping[str, Any], source_id: str) -> str:
     return url
 
 
-def _reviewed_media_url(value: Any, field: str, source_id: str) -> str:
+def _reviewed_media_url(
+    value: Any,
+    field: str,
+    source_id: str,
+    hosts: frozenset[str] = REVIEWED_MEDIA_HOSTS,
+) -> str:
     """An https URL on a rights-reviewed host, or a hard failure."""
 
     cleaned = str(value or "").strip()
@@ -140,7 +154,7 @@ def _reviewed_media_url(value: Any, field: str, source_id: str) -> str:
     # player and the native adapter all apply exactly these four rules.
     if (
         parsed.scheme != "https"
-        or parsed.hostname not in REVIEWED_MEDIA_HOSTS
+        or parsed.hostname not in hosts
         or parsed.username
         or parsed.password
         or parsed.port is not None
@@ -235,7 +249,12 @@ def _load_source(raw: Mapping[str, Any]) -> CatalogSource:
         allowed_usage_type=_required_text(rights.get("allowed_usage_type"), "allowed_usage_type"),
         rights_review_status="verified",
         segments=tuple(normalized_segments),
-        poster_url=_reviewed_media_url(raw.get("poster_url"), "poster_url", source_id),
+        poster_url=_reviewed_media_url(
+            raw.get("poster_url"),
+            "poster_url",
+            source_id,
+            REVIEWED_POSTER_HOSTS.get(str(raw.get("source_provider") or "").strip(), REVIEWED_MEDIA_HOSTS),
+        ),
     )
 
 
@@ -391,7 +410,51 @@ def load_catalog_manifest(path: Path = CATALOG_MANIFEST) -> tuple[Mapping[str, C
     return sources, tuple(lessons)
 
 
-CATALOG_SOURCES, CATALOG = load_catalog_manifest()
+DEV_CATALOG_MANIFEST = Path(__file__).with_name("content") / "listening_catalog.dev.generated.json"
+DEV_CATALOG_FLAG = "ENABLE_DEV_LISTENING_CATALOG"
+
+
+def dev_catalog_enabled(env: Mapping[str, str] | None = None) -> bool:
+    """Whether the generated development overlay may load.
+
+    LISTENING_PRODUCT_SPEC 7: production defaults OFF and publication rules must
+    not be weakened. So the flag is opt-in only, and in production it is refused
+    outright rather than merely defaulted off - generated development content
+    must not be one environment variable away from a production learner.
+    """
+
+    values = os.environ if env is None else env
+    if str(values.get("APP_ENV", "")).strip().casefold() == "production":
+        return False
+    return str(values.get(DEV_CATALOG_FLAG, "")).strip().casefold() in {"1", "true", "yes", "on"}
+
+
+def load_catalog(
+    base_path: Path = CATALOG_MANIFEST,
+    dev_path: Path = DEV_CATALOG_MANIFEST,
+    env: Mapping[str, str] | None = None,
+) -> tuple[Mapping[str, CatalogSource], tuple[CuratedListeningLesson, ...]]:
+    """BASE VERIFIED CATALOG, plus the DEV GENERATED CATALOG when enabled.
+
+    The base catalog is always loaded and never modified by the overlay; the
+    overlay only adds. A dev source or lesson that collides with a base id is
+    dropped, so generated content can never redefine reviewed content.
+    """
+
+    sources, lessons = load_catalog_manifest(base_path)
+    if not dev_catalog_enabled(env) or not dev_path.is_file():
+        return sources, lessons
+
+    dev_sources, dev_lessons = load_catalog_manifest(dev_path)
+    merged_sources = dict(sources)
+    for source_id, source in dev_sources.items():
+        merged_sources.setdefault(source_id, source)
+    known = {lesson.lesson_id for lesson in lessons}
+    merged_lessons = list(lessons) + [item for item in dev_lessons if item.lesson_id not in known]
+    return merged_sources, tuple(merged_lessons)
+
+
+CATALOG_SOURCES, CATALOG = load_catalog()
 
 
 def catalog_lesson(lesson_id: str) -> CuratedListeningLesson | None:

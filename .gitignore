@@ -11,3 +11,8 @@ backups/
 # Updater backups
 *.v*-backup-*
 .upgrade_backups/
+
+# Generated Listening development catalog. Built by
+# scripts/build_listening_dev_catalog.py from the source CSVs; never hand-edited
+# and never part of the base verified catalog.
+writing_coach/content/listening_catalog.dev.generated.json
