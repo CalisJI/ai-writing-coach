@@ -37,6 +37,24 @@ EN_LEVELS = frozenset({"A1", "A2", "B1", "B2", "C1", "C2"})
 ZH_LEVELS = frozenset({"HSK1", "HSK2", "HSK3", "HSK4", "HSK5", "HSK6", "HSK7-9"})
 PRACTICE_MODES = frozenset({"listen", "active", "dictation", "shadowing"})
 
+# LISTENING_PRODUCT_SPEC 3.4. Topical rails are DERIVED from a lesson's topic and
+# tags rather than hand-listed per lesson, so the bulk source importer (L2) can
+# add content without an editor maintaining section membership by hand. A lesson
+# may still name a section explicitly; the two are merged.
+DISCOVERY_TOPIC_SECTIONS: tuple[tuple[str, frozenset[str]], ...] = (
+    ("movie-animation", frozenset({"animation", "movie", "movies", "film", "drama", "series", "trailer", "cartoon"})),
+    ("daily-conversations", frozenset({"daily-life", "conversation", "conversations", "social-life"})),
+    ("stories", frozenset({"story", "stories", "narrative", "storytelling"})),
+    ("podcast-interview", frozenset({"podcast", "interview", "interviews", "talk"})),
+    ("science-technology", frozenset({"science", "technology", "tech", "documentary", "how-to"})),
+    ("culture", frozenset({"culture", "history", "travel"})),
+    ("kids-family", frozenset({"kids", "family", "family-friendly", "children"})),
+)
+
+# A lesson short enough to finish in one sitting. The spec asks for a Quick
+# Practice rail; deriving it from real duration beats trusting a hand-typed tag.
+QUICK_PRACTICE_MAX_MS = 90_000
+
 
 @dataclass(frozen=True)
 class CatalogSource:
@@ -219,6 +237,52 @@ def _load_source(raw: Mapping[str, Any]) -> CatalogSource:
         segments=tuple(normalized_segments),
         poster_url=_reviewed_media_url(raw.get("poster_url"), "poster_url", source_id),
     )
+
+
+def discovery_sections(lesson: CuratedListeningLesson) -> tuple[str, ...]:
+    """Every discovery rail this lesson belongs in, explicit plus derived.
+
+    LISTENING_PRODUCT_SPEC 3.4 names the rails; 3.5 wants real playable media to
+    lead. `popular` is deliberately never derived: there is no popularity signal
+    in the repository, and the spec allows that rail only when real data exists.
+    """
+
+    sections: list[str] = [s for s in lesson.sections if s != "popular"]
+    vocabulary = {lesson.topic, *lesson.subtopics, *lesson.content_tags}
+
+    for section_id, matches in DISCOVERY_TOPIC_SECTIONS:
+        if section_id not in sections and vocabulary & matches:
+            sections.append(section_id)
+
+    if "dictation" not in sections and "dictation" in lesson.available_modes:
+        sections.append("dictation")
+    if "shadowing" not in sections and "shadowing" in lesson.available_modes:
+        sections.append("shadowing")
+    if "quick-practice" not in sections and 0 < lesson.duration_ms <= QUICK_PRACTICE_MAX_MS:
+        sections.append("quick-practice")
+    # Seed audio is still practice, but it belongs in its own rail rather than
+    # competing with real video for the first viewport.
+    if lesson.playback.kind == "audio" and "audio-practice" not in sections:
+        sections.append("audio-practice")
+
+    return tuple(sections)
+
+
+def is_real_media(lesson: CuratedListeningLesson) -> bool:
+    """Real playable video with a real poster, as the spec means it in 3.5."""
+
+    return lesson.playback.kind == "video" and bool(lesson.source.poster_url)
+
+
+def discovery_rank(lesson: CuratedListeningLesson) -> tuple[int, int, str]:
+    """Ordering inside a rail: real poster-backed video first, then stable.
+
+    Spec 3.5: old audio seed lessons must not visually dominate the first
+    viewport. Ties fall back to the lesson id so the order never wobbles
+    between requests.
+    """
+
+    return (0 if is_real_media(lesson) else 1, 0 if lesson.source.poster_url else 1, lesson.lesson_id)
 
 
 def _media_object(source: CatalogSource, title: str, start_ms: int, end_ms: int) -> MediaLearningObject:

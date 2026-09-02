@@ -13,6 +13,8 @@ from writing_coach.core.request_context import current_language_code
 from writing_coach.listening_catalog import (
     catalog_lesson,
     catalog_lessons,
+    discovery_rank,
+    discovery_sections,
     lesson_metadata,
     translated_media_object,
 )
@@ -23,13 +25,26 @@ from writing_coach.persistence.specialized_repository import SpecializedLearning
 
 router = APIRouter(prefix="/api/listening", tags=["listening"])
 _repository: SpecializedLearningRepository | None = None
+# LISTENING_PRODUCT_SPEC 3.4, in the order the learner should meet them.
+# `continue-learning` stays first and is filled from real progress, so it is
+# empty until a learner has some. `popular` is listed but never populated: there
+# is no popularity signal yet, and the spec allows that rail only with real data.
 _DISCOVERY_SECTION_ORDER = (
     "continue-learning",
     "recommended",
     "quick-practice",
+    "movie-animation",
+    "daily-conversations",
+    "stories",
+    "podcast-interview",
+    "science-technology",
+    "culture",
+    "kids-family",
     "dictation",
-    "popular",
+    "shadowing",
     "new",
+    "popular",
+    "audio-practice",
     "beginner",
     "intermediate",
     "advanced",
@@ -86,11 +101,18 @@ def listening_library(
     """Return lightweight discovery metadata; transcripts load per lesson."""
     selected_language = (language or current_language_code()).strip().casefold()
     items = catalog_lessons(language=selected_language, level=level, topic=topic, tag=tag)
-    item_metadata = [lesson_metadata(lesson) for lesson in items]
+    # Real poster-backed video leads every rail, so the first viewport is media
+    # rather than seed audio (spec 3.5). The order is deterministic.
+    ranked = sorted(items, key=discovery_rank)
+    item_metadata = [lesson_metadata(lesson) for lesson in ranked]
+    membership = {lesson.lesson_id: discovery_sections(lesson) for lesson in ranked}
     sections = [
         {
             "id": section_id,
-            "item_ids": [lesson.lesson_id for lesson in items if section_id in lesson.sections],
+            "item_ids": [
+                lesson.lesson_id for lesson in ranked
+                if section_id in membership[lesson.lesson_id]
+            ],
         }
         for section_id in _DISCOVERY_SECTION_ORDER
     ]
