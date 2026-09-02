@@ -6,13 +6,15 @@ const segmentTimers=new WeakMap();
 const controllers=new WeakMap();
 let youtubeApiPromise=null;
 
+const COMMONS_MEDIA_HOSTS=['commons.wikimedia.org','upload.wikimedia.org'];
+
 function playbackAdapter(playback){
-  if(playback?.kind==='audio'){
+  if(playback?.kind==='audio'||playback?.kind==='video'){
     try{
       const url=new URL(playback.url);
       if(url.protocol!=='https:'||url.username||url.password||playback.provider!=='wikimedia-commons')return null;
-      if(!['commons.wikimedia.org','upload.wikimedia.org'].includes(url.hostname))return null;
-      return {kind:'audio',url:url.href,origin:url.origin,controllable:true};
+      if(!COMMONS_MEDIA_HOSTS.includes(url.hostname))return null;
+      return {kind:playback.kind,url:url.href,origin:url.origin,controllable:true};
     }catch{return null;}
   }
   if(playback?.kind!=='embed')return null;
@@ -147,7 +149,11 @@ export function connectMediaPlayer(root,playback){
   if(!(root instanceof Element))return false;
   const adapter=playbackAdapter(playback);
   const frame=root.querySelector('#listeningPlayer');
-  const validFrame=adapter?.kind==='audio'?frame instanceof HTMLAudioElement:frame instanceof HTMLIFrameElement;
+  const validFrame=adapter?.kind==='audio'
+    ?frame instanceof HTMLAudioElement
+    :adapter?.kind==='video'
+      ?frame instanceof HTMLVideoElement
+      :frame instanceof HTMLIFrameElement;
   if(!adapter||!validFrame){
     destroyController(root);
     return false;
@@ -169,7 +175,7 @@ export function connectMediaPlayer(root,playback){
   controllers.set(root,controller);
   root.dataset.mediaClock='connecting';
 
-  if(adapter.kind==='audio'){
+  if(adapter.kind==='audio'||adapter.kind==='video'){
     controller.player={
       getCurrentTime:()=>frame.currentTime,
       getDuration:()=>frame.duration,
@@ -257,13 +263,28 @@ export function playbackAvailable(playback){
   return playbackAdapter(playback)!==null;
 }
 
-export function mediaPlayer(playback,title,{startMs=0,endMs=null}={}){
+// A poster only ever decorates a player; it must never become a way to point
+// the page at an arbitrary host, so it is held to the same Commons origins.
+function posterUrl(poster){
+  if(typeof poster!=='string'||!poster)return '';
+  try{
+    const url=new URL(poster);
+    if(url.protocol!=='https:'||url.username||url.password)return '';
+    return COMMONS_MEDIA_HOSTS.includes(url.hostname)?url.href:'';
+  }catch{return '';}
+}
+
+export function mediaPlayer(playback,title,{startMs=0,endMs=null,poster=''}={}){
   const adapter=playbackAdapter(playback);
   if(!adapter)return '<div class="listening-player-unavailable" role="status">Playback is unavailable for this source.</div>';
   const safeStart=Math.max(0,Number(startMs)||0);
   const safeEnd=Number(endMs);
   const bounds=`data-excerpt-start-ms="${safeStart}" ${Number.isFinite(safeEnd)&&safeEnd>safeStart?`data-excerpt-end-ms="${safeEnd}"`:''}`;
   if(adapter.kind==='audio')return `<audio id="listeningPlayer" src="${esc(adapter.url)}" aria-label="${esc(title||'Lesson audio')}" preload="metadata" ${bounds}></audio>`;
+  if(adapter.kind==='video'){
+    const art=posterUrl(poster);
+    return `<video id="listeningPlayer" src="${esc(adapter.url)}"${art?` poster="${esc(art)}"`:''} title="${esc(title||'Lesson video')}" aria-label="${esc(title||'Lesson video')}" preload="metadata" playsinline controls ${bounds}></video>`;
+  }
   return `<iframe id="listeningPlayer" src="${esc(adapter.url)}" title="${esc(title||'Lesson video')}" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen referrerpolicy="strict-origin-when-cross-origin" ${bounds}></iframe>`;
 }
 

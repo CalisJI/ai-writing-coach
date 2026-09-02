@@ -58,6 +58,7 @@
 }
 .listening-video-frame iframe{position:absolute;inset:0;width:100%;height:100%;border:0;display:block}
 .listening-video-frame audio{position:absolute;inset:0;width:100%;height:100%;padding:24px;background:linear-gradient(145deg,var(--o-accent-soft),var(--o-surface-sunken));display:block}
+.listening-video-frame video{position:absolute;inset:0;width:100%;height:100%;border:0;display:block;background:#000;object-fit:contain}
 
 /* Listening Library is the route's primary state. It uses the same Orena
    surfaces, controls and typography as the lesson workspace; artwork is a
@@ -81,6 +82,7 @@
 .listening-library-card[data-artwork="travel"] .listening-library-art{background:linear-gradient(155deg,color-mix(in srgb,var(--o-positive) 14%,var(--o-surface)),var(--o-surface-sunken))}
 .listening-library-card[data-artwork="culture"] .listening-library-art{background:linear-gradient(155deg,color-mix(in srgb,var(--o-attention) 14%,var(--o-surface)),var(--o-surface-sunken))}
 .listening-library-art svg{width:36px;height:36px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.listening-library-art img{width:100%;height:100%;object-fit:cover;display:block}
 .listening-library-card-body{display:grid;align-content:start;gap:10px;padding:18px}
 .listening-library-card h3{margin:0;color:var(--o-heading);font-size:20px;line-height:1.25}
 .listening-library-card p{margin:0;color:var(--o-ink-muted);font-size:var(--o-text-body);line-height:1.55}

@@ -56,9 +56,9 @@ const LIBRARY_TERM_LABELS={
   vi:{'daily-life':'Đời sống hằng ngày',travel:'Du lịch',conversations:'Hội thoại',culture:'Văn hóa',follow:'Nghe',active:'Nghe chủ động',dictation:'Chính tả',shadowing:'Shadowing'},
   zh:{'daily-life':'日常生活',travel:'旅行',conversations:'对话',culture:'文化',follow:'听力',active:'主动听力',dictation:'听写',shadowing:'跟读'},
 };
-Object.assign(LIBRARY_TERM_LABELS.en,{listen:'Listen'});
-Object.assign(LIBRARY_TERM_LABELS.vi,{listen:'Nghe'});
-Object.assign(LIBRARY_TERM_LABELS.zh,{listen:'听力'});
+Object.assign(LIBRARY_TERM_LABELS.en,{listen:'Listen',science:'Science',technology:'Technology'});
+Object.assign(LIBRARY_TERM_LABELS.vi,{listen:'Nghe',science:'Khoa học',technology:'Công nghệ'});
+Object.assign(LIBRARY_TERM_LABELS.zh,{listen:'听力',science:'科学',technology:'科技'});
 const libraryTerm=value=>(LIBRARY_TERM_LABELS[uiLocale()]||LIBRARY_TERM_LABELS.en)[value]||String(value||'').replaceAll('-',' ');
 const isPracticeMode=mode=>mode==='active'||mode==='dictation';
 
@@ -692,7 +692,7 @@ function workspace(payload,selectedId=null,model={}){
      change, losing the position the learner was at. In the studio it shrinks
      to the thumbnail the reference shows in the media header. */
   const playerCard=`<section class="listening-video o-card o-player">
-    <div class="listening-video-frame">${mediaPlayer(payload.playback,payload.asset?.title,{startMs:payload.catalog?.excerpt_start_ms||0,endMs:payload.catalog?.excerpt_end_ms||null}).replace('Playback is unavailable for this source.',c.playback)}</div>
+    <div class="listening-video-frame">${mediaPlayer(payload.playback,payload.asset?.title,{startMs:payload.catalog?.excerpt_start_ms||0,endMs:payload.catalog?.excerpt_end_ms||null,poster:payload.catalog?.poster_url||''}).replace('Playback is unavailable for this source.',c.playback)}</div>
     <div class="o-player-track">
       <div class="o-player-bar" role="progressbar" aria-label="${esc(payload.asset?.title||'')}"><span data-progress-fill><i></i></span></div>
       <span class="o-player-time" data-elapsed>0:00</span>
@@ -975,7 +975,9 @@ function libraryLessonCard(item){
   const l=libraryText();
   const minutes=stamp(Number(item.duration_ms)||0);
   return `<article class="o-card listening-library-card" data-artwork="${esc(item.artwork||'listen')}">
-    <div class="listening-library-art" aria-hidden="true">${oIcon(item.topic==='conversations'?'speak':'listen')}</div>
+    <div class="listening-library-art" aria-hidden="true">${item.poster_url
+      ?`<img src="${esc(item.poster_url)}" alt="" loading="lazy" decoding="async">`
+      :oIcon(item.topic==='conversations'?'speak':'listen')}</div>
     <div class="listening-library-card-body">
       <div class="listening-library-meta"><span>${esc(libraryTerm(item.topic))}</span><span title="${esc(item.level_source==='editorial-review'?l.reviewedLevel:l.level)}">${esc(item.level)}</span><span>${esc(minutes)}</span></div>
       <h3>${esc(item.title)}</h3>
