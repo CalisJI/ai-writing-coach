@@ -170,16 +170,20 @@ def validate_state_semantics(state: dict[str, Any]) -> list[str]:
 
     release = state.get("release_state", {})
     public_skills = set(release.get("public_skills", []))
+    skill_state = state.get("skills", {}).get("state", {})
     declared_public = {
-        skill for skill in ("writing", "speaking", "reading", "listening")
-        if release.get(skill) == "public"
+        skill for skill, facts in skill_state.items()
+        if facts.get("learner_visibility") == "public"
     }
     if public_skills != declared_public:
-        errors.append("state: public_skills must exactly match per-skill public statuses")
+        errors.append("state: public_skills must exactly match the skills whose learner_visibility is public")
     if release.get("public_release_approved") is False and public_skills:
         errors.append("state: skills cannot be public without public release approval")
     if release.get("overall") == "public" and not release.get("public_release_approved"):
         errors.append("state: overall public state requires explicit public release approval")
+
+    errors.extend(_validate_skill_dimensions(skill_state, release))
+    errors.extend(_validate_real_media_catalog(state, skill_state))
 
     gates = {item.get("id"): item.get("status") for item in state.get("human_gates", [])}
     if set(gates) != REQUIRED_GATES:
@@ -209,6 +213,87 @@ def _walk_product_files(base: Path) -> list[Path]:
             elif entry.is_file():
                 files.append(entry)
     return files
+
+
+def _validate_skill_dimensions(skill_state: dict[str, Any], release: dict[str, Any]) -> list[str]:
+    """Keep the seven skill truths independent and mutually consistent.
+
+    Implementation and local acceptance are deliberately NOT allowed to imply
+    visibility or release, and release is never allowed to imply content. A
+    fresh agent must be able to read "complete_local, internal" without
+    concluding the work is missing, and "pre_public_matrix complete" without
+    concluding the content is real.
+    """
+
+    errors: list[str] = []
+    for skill, facts in sorted(skill_state.items()):
+        visibility = facts.get("learner_visibility")
+        public_release = facts.get("public_release")
+        human = facts.get("human_acceptance")
+        content = facts.get("content_readiness")
+
+        if visibility == "public" and public_release != "approved":
+            errors.append(f"state: {skill} is learner-visible as public without an approved public release")
+        if public_release == "approved":
+            if human != "approved":
+                errors.append(f"state: {skill} public release is approved without human acceptance")
+            if not release.get("public_release_approved"):
+                errors.append(f"state: {skill} public release contradicts release_state.public_release_approved")
+
+        # Seed and mock content are never completion evidence.
+        if content == "seed_or_mock_only":
+            if public_release == "approved":
+                errors.append(f"state: {skill} cannot be publicly released on seed/mock content")
+            if human == "approved":
+                errors.append(f"state: {skill} cannot hold human acceptance on seed/mock content")
+        if content == "real_content_complete" and facts.get("implementation") != "complete_local":
+            errors.append(f"state: {skill} claims complete real content without a complete implementation")
+
+    return errors
+
+
+def _validate_real_media_catalog(state: dict[str, Any], skill_state: dict[str, Any]) -> list[str]:
+    """The Listening engine and the real media catalog are separate truths.
+
+    Human QA confirmed the built-in lessons are still seed/synthetic, so the
+    catalog carries its own readiness, its own per-language playable evidence,
+    and its own acceptance and publication gates. Behavioural pre-public matrix
+    completion says nothing about any of them.
+    """
+
+    errors: list[str] = []
+    catalog = state.get("listening", {}).get("real_media_catalog", {})
+    if not catalog:
+        return errors
+
+    status = catalog.get("status")
+    english = catalog.get("real_playable_en_evidence")
+    chinese = catalog.get("real_playable_zh_evidence")
+    acceptance = catalog.get("human_playback_acceptance")
+    publication = catalog.get("public_catalog_publication")
+
+    listening_content = skill_state.get("listening", {}).get("content_readiness")
+    if listening_content != status:
+        errors.append("state: listening content_readiness must match listening.real_media_catalog.status")
+
+    if status == "seed_or_mock_only":
+        if english or chinese:
+            errors.append("state: seed/mock catalog cannot carry real playable EN/ZH evidence")
+        if acceptance == "approved":
+            errors.append("state: seed/mock catalog cannot hold human playback acceptance")
+        if publication == "approved":
+            errors.append("state: seed/mock catalog cannot be published")
+    if status == "real_content_complete":
+        if not (english and chinese):
+            errors.append("state: complete real catalog requires real playable EN and ZH evidence")
+        if acceptance != "approved":
+            errors.append("state: complete real catalog requires human playback acceptance")
+    if status == "real_content_partial" and not (english or chinese):
+        errors.append("state: partial real catalog requires at least one real playable language")
+    if publication == "approved" and acceptance != "approved":
+        errors.append("state: catalog publication requires human playback acceptance")
+
+    return errors
 
 
 def _read(root: Path, relative: str) -> str:
@@ -410,6 +495,19 @@ def main() -> int:
     print("Deprecated compatibility route: /becoming")
     print("Languages: en, zh")
     print("Native strategy: full_native_port")
+
+    # Print the two truths most often collapsed, so anyone running the gate
+    # sees them without opening the state file.
+    try:
+        state = _json(ROOT / STATE_PATH)
+    except (json.JSONDecodeError, OSError):
+        return 0
+    catalog = state.get("listening", {}).get("real_media_catalog", {})
+    print(f"Listening engine: {state['skills']['state']['listening']['implementation']}"
+          f" (local acceptance {state['skills']['state']['listening']['local_acceptance']})")
+    print(f"Listening real media catalog: {catalog.get('status')}"
+          f" (EN playable {catalog.get('real_playable_en_evidence')},"
+          f" ZH playable {catalog.get('real_playable_zh_evidence')})")
     return 0
 
 

@@ -12,7 +12,7 @@ or secret values.
 
 - Branch: `claude/integration-v2`
 - Lane: Orena integration; feature development paused for repository-backed
-  project memory.
+  project memory and its reviewed state-model correction.
 - Live HEAD must be read with `git rev-parse HEAD`; the application baseline
   entering this governance batch is `7b1740e66a3f8ef82b2fc728dedaf7dd2c1d1b6f`.
 
@@ -21,16 +21,21 @@ or secret values.
 - `7b1740e` — rights-aware, content-library-first Listening catalog and shared
   web/native learning engine.
 - Local evidence: backend `698 passed / 0 failed` in the CI-equivalent container
-  environment; native `48` suites / `346` tests; web contracts pass except the
-  open P1 below.
+  environment; native `48` suites / `346` tests; all 9 web contract tests pass.
 - This is local evidence, not CI or production acceptance.
 
 ## DONE
 
 - R0–R20 local foundations are preserved; R20 has local acceptance evidence.
-- Listening is library-first with EN/ZH rights-reviewed starter content,
-  Dictation, shared curated/import engine, progress/resume, vocabulary, and
-  Shadowing handoff.
+- Listening ENGINE is library-first: Dictation, Shadowing, shared
+  curated/import media contracts, progress/resume, and vocabulary all exist and
+  are locally accepted.
+- Listening REAL MEDIA CATALOG is NOT complete. Built-in lessons are still
+  seed/synthetic, real source video playback is unaccepted, cards can present
+  text with no meaningful real video, and neither EN nor ZH real playback has
+  passed human acceptance. Seed content is not completion evidence.
+- Writing, Speaking and Reading are complete locally with acceptance passes and
+  pre-public matrices. They are internal, not public. Do not rebuild them.
 
 ## IN PROGRESS
 
@@ -57,9 +62,8 @@ or secret values.
 
 ## OPEN P1
 
-- `scripts/test_listening_player_lifecycle_contract.mjs` throws at
-  `media-player.js:160` (`frame.dataset` undefined). Pre-existing at `7b1740e`;
-  outside the project-memory batch and not introduced by it.
+- Listening real media catalog readiness: seed/synthetic only, pending real
+  EN/ZH playable evidence and human playback acceptance.
 
 ## HUMAN GATES
 
@@ -71,5 +75,6 @@ or secret values.
 
 ## NEXT EXACT TASK
 
-Human review of the project-memory commits. Then root-cause the open P1 in
-`media-player.js` before further Listening work.
+Human review of the memory-truth correction. Then source real, rights-cleared EN
+and ZH media and obtain human playback acceptance; that, not more engine work,
+is what the Listening catalog is missing.

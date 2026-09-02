@@ -38,6 +38,11 @@ inventories, implementation history, task status, or old architectures.
   Library; segment to Speaking; evidence to Progress and future practice.
 - **Canonical contracts:** one Media Learning identity and one Listening Engine
   for curated and imported sources.
+- **Engine versus catalog:** the Listening Engine and the real media catalog are
+  two separate truths. The engine, its modes, and the shared media contracts
+  exist and are locally accepted; the built-in catalog is still seed/synthetic
+  and has no accepted real EN or ZH playback. A working engine over seed content
+  is not a shipped catalog, and neither one completes the other.
 - **Must not duplicate:** imported player, curated player, transcript store,
   vocabulary system, progress authority, or media ingestion per mode.
 

@@ -1,5 +1,5 @@
 {
-  "memory_schema_version": "1.0",
+  "memory_schema_version": "1.1",
   "memory_governance": {
     "purpose": "machine_readable_current_truth",
     "authority": "agent_updates_after_verified_evidence",
@@ -50,7 +50,7 @@
   "current_primary_workstream": {
     "id": "repository_backed_project_memory",
     "status": "complete",
-    "next_task": "Human review of the project-memory commits."
+    "next_task": "Human review of the memory-truth correction, then real EN/ZH media sourcing and playback acceptance."
   },
   "design": {
     "web_is_visual_source_of_truth": true,
@@ -70,14 +70,60 @@
       "dictionary",
       "progress",
       "media_learning"
-    ]
+    ],
+    "state": {
+      "writing": {
+        "implementation": "complete_local",
+        "local_acceptance": "passed",
+        "pre_public_matrix": "complete",
+        "learner_visibility": "internal",
+        "content_readiness": "not_applicable",
+        "human_acceptance": "approval_required",
+        "public_release": "not_approved"
+      },
+      "speaking": {
+        "implementation": "complete_local",
+        "local_acceptance": "passed",
+        "pre_public_matrix": "complete",
+        "learner_visibility": "internal",
+        "content_readiness": "not_applicable",
+        "human_acceptance": "approval_required",
+        "public_release": "not_approved"
+      },
+      "reading": {
+        "implementation": "complete_local",
+        "local_acceptance": "passed",
+        "pre_public_matrix": "complete",
+        "learner_visibility": "internal",
+        "content_readiness": "not_applicable",
+        "human_acceptance": "approval_required",
+        "public_release": "not_approved"
+      },
+      "listening": {
+        "implementation": "complete_local",
+        "local_acceptance": "passed",
+        "pre_public_matrix": "complete",
+        "learner_visibility": "internal",
+        "content_readiness": "seed_or_mock_only",
+        "human_acceptance": "approval_required",
+        "public_release": "not_approved"
+      }
+    }
   },
   "listening": {
     "primary_entry": "curated_content_library",
     "user_import_role": "secondary",
     "shared_learning_engine": true,
     "curated_and_imported_share_media_contract": true,
-    "first_class_languages": ["en", "zh"]
+    "first_class_languages": ["en", "zh"],
+    "real_media_catalog": {
+      "status": "seed_or_mock_only",
+      "real_playable_en_evidence": false,
+      "real_playable_zh_evidence": false,
+      "human_playback_acceptance": "approval_required",
+      "public_catalog_publication": "not_approved",
+      "seed_or_mock_counts_as_real_content": false
+    }
   },
   "persistence": {
     "authoritative_runtime": "postgresql",
@@ -90,11 +136,7 @@
     "overall": "pre_public",
     "production_ready": false,
     "public_release_approved": false,
-    "public_skills": [],
-    "writing": "development",
-    "speaking": "development",
-    "reading": "development",
-    "listening": "pre_public_matrix_complete"
+    "public_skills": []
   },
   "human_gates": [
     {"id": "production_authentication", "status": "approval_required"},
@@ -108,6 +150,6 @@
     {"id": "learner_skill_or_catalog_publication", "status": "approval_required"}
   ],
   "current_p0": [],
-  "current_p1": ["listening_player_lifecycle_contract_fails_at_media_player_frame_dataset"],
+  "current_p1": ["listening_real_media_catalog_is_seed_only_pending_real_en_zh_playback_acceptance"],
   "last_verified_at": "2026-09-02"
 }

@@ -915,3 +915,42 @@ tests remain allowed.
 that chat history, human recollection, legacy filenames, or the old route is the
 primary source of current project direction. It does not supersede valid
 historical implementation contracts recorded by D-014 through D-039.
+
+## D-041 - Skill state is seven independent truths, and a Listening engine is not a Listening catalog
+
+**Status:** Accepted
+
+**Decision:** `CURRENT_PRODUCT_STATE.yaml` records each learner skill as seven
+independent dimensions - implementation, local acceptance, pre-public matrix,
+learner visibility, content readiness, human acceptance, and public release -
+instead of one collapsed status enum. Listening additionally carries a
+`real_media_catalog` block holding its own readiness, per-language real playable
+evidence, human playback acceptance, and catalog publication state. Seed, mock,
+or synthetic content is never real-content completion evidence.
+
+**Reason:** The single per-skill enum (`development` /
+`pre_public_matrix_complete` / `public`) collapsed distinct verified truths into
+one misleading value, in both directions. Reading `development` for locally
+completed Writing, Speaking, and Reading invited a fresh agent to rebuild work
+that R3/R4, R6/R7/R9, and R10 had already closed with local acceptance passes.
+Reading `pre_public_matrix_complete` for Listening implied a finished product,
+when human QA confirmed the built-in lessons remain seed/synthetic, real source
+video playback has not been accepted, and cards can present text with no
+meaningful real video. Behavioural completeness and content completeness are
+different facts and now have different fields.
+
+**Consequences:** `release_state` keeps only genuinely global release facts;
+per-skill status lives in `skills.state`. The validator enforces that public
+visibility requires an approved public release, that release requires human
+acceptance, that seed/mock content can never carry real playable evidence,
+human acceptance, or publication, that a complete real catalog requires real
+playable EN *and* ZH evidence plus human playback acceptance, and that
+`skills.state.listening.content_readiness` cannot drift from
+`listening.real_media_catalog.status`. Completed local work paired with
+`internal` visibility is an explicitly valid state and must not be read as
+missing. The memory schema version moves to 1.1.
+
+**Supersedes / Superseded by:** Supersedes the collapsed per-skill
+`release_state` enum introduced with D-040. It does not modify D-040's memory
+topology, precedence model, or governance ownership, and supersedes no
+implementation contract.

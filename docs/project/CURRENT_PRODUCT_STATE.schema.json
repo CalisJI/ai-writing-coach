@@ -27,7 +27,7 @@
     "last_verified_at"
   ],
   "properties": {
-    "memory_schema_version": {"const": "1.0"},
+    "memory_schema_version": {"const": "1.1"},
     "memory_governance": {
       "type": "object",
       "additionalProperties": false,
@@ -135,7 +135,7 @@
     "skills": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["architecture", "core", "shared_infrastructure"],
+      "required": ["architecture", "core", "shared_infrastructure", "state"],
       "properties": {
         "architecture": {"const": "connected_learning_system"},
         "core": {
@@ -147,13 +147,76 @@
           "type": "array",
           "minItems": 5,
           "items": {"enum": ["library_active_recall", "grammar", "dictionary", "progress", "media_learning"]}
+        },
+        "state": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["writing", "speaking", "reading", "listening"],
+          "properties": {
+        "writing": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["implementation", "local_acceptance", "pre_public_matrix", "learner_visibility", "content_readiness", "human_acceptance", "public_release"],
+          "properties": {
+            "implementation": {"enum": ["not_started", "in_progress", "complete_local"]},
+            "local_acceptance": {"enum": ["not_run", "in_progress", "passed"]},
+            "pre_public_matrix": {"enum": ["not_started", "in_progress", "complete"]},
+            "learner_visibility": {"enum": ["internal", "beta", "public"]},
+            "content_readiness": {"enum": ["not_applicable", "seed_or_mock_only", "real_content_partial", "real_content_complete"]},
+            "human_acceptance": {"enum": ["not_requested", "approval_required", "approved"]},
+            "public_release": {"enum": ["not_approved", "approved"]}
+          }
+        },
+        "speaking": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["implementation", "local_acceptance", "pre_public_matrix", "learner_visibility", "content_readiness", "human_acceptance", "public_release"],
+          "properties": {
+            "implementation": {"enum": ["not_started", "in_progress", "complete_local"]},
+            "local_acceptance": {"enum": ["not_run", "in_progress", "passed"]},
+            "pre_public_matrix": {"enum": ["not_started", "in_progress", "complete"]},
+            "learner_visibility": {"enum": ["internal", "beta", "public"]},
+            "content_readiness": {"enum": ["not_applicable", "seed_or_mock_only", "real_content_partial", "real_content_complete"]},
+            "human_acceptance": {"enum": ["not_requested", "approval_required", "approved"]},
+            "public_release": {"enum": ["not_approved", "approved"]}
+          }
+        },
+        "reading": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["implementation", "local_acceptance", "pre_public_matrix", "learner_visibility", "content_readiness", "human_acceptance", "public_release"],
+          "properties": {
+            "implementation": {"enum": ["not_started", "in_progress", "complete_local"]},
+            "local_acceptance": {"enum": ["not_run", "in_progress", "passed"]},
+            "pre_public_matrix": {"enum": ["not_started", "in_progress", "complete"]},
+            "learner_visibility": {"enum": ["internal", "beta", "public"]},
+            "content_readiness": {"enum": ["not_applicable", "seed_or_mock_only", "real_content_partial", "real_content_complete"]},
+            "human_acceptance": {"enum": ["not_requested", "approval_required", "approved"]},
+            "public_release": {"enum": ["not_approved", "approved"]}
+          }
+        },
+        "listening": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["implementation", "local_acceptance", "pre_public_matrix", "learner_visibility", "content_readiness", "human_acceptance", "public_release"],
+          "properties": {
+            "implementation": {"enum": ["not_started", "in_progress", "complete_local"]},
+            "local_acceptance": {"enum": ["not_run", "in_progress", "passed"]},
+            "pre_public_matrix": {"enum": ["not_started", "in_progress", "complete"]},
+            "learner_visibility": {"enum": ["internal", "beta", "public"]},
+            "content_readiness": {"enum": ["not_applicable", "seed_or_mock_only", "real_content_partial", "real_content_complete"]},
+            "human_acceptance": {"enum": ["not_requested", "approval_required", "approved"]},
+            "public_release": {"enum": ["not_approved", "approved"]}
+          }
+        }
+          }
         }
       }
     },
     "listening": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["primary_entry", "user_import_role", "shared_learning_engine", "curated_and_imported_share_media_contract", "first_class_languages"],
+      "required": ["primary_entry", "user_import_role", "shared_learning_engine", "curated_and_imported_share_media_contract", "first_class_languages", "real_media_catalog"],
       "properties": {
         "primary_entry": {"const": "curated_content_library"},
         "user_import_role": {"const": "secondary"},
@@ -163,6 +226,19 @@
           "type": "array",
           "minItems": 2,
           "items": {"enum": ["en", "zh"]}
+        },
+        "real_media_catalog": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["status", "real_playable_en_evidence", "real_playable_zh_evidence", "human_playback_acceptance", "public_catalog_publication", "seed_or_mock_counts_as_real_content"],
+          "properties": {
+            "status": {"enum": ["seed_or_mock_only", "real_content_partial", "real_content_complete"]},
+            "real_playable_en_evidence": {"type": "boolean"},
+            "real_playable_zh_evidence": {"type": "boolean"},
+            "human_playback_acceptance": {"enum": ["not_requested", "approval_required", "approved"]},
+            "public_catalog_publication": {"enum": ["not_approved", "approved"]},
+            "seed_or_mock_counts_as_real_content": {"const": false}
+          }
         }
       }
     },
@@ -181,7 +257,7 @@
     "release_state": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["overall", "production_ready", "public_release_approved", "public_skills", "writing", "speaking", "reading", "listening"],
+      "required": ["overall", "production_ready", "public_release_approved", "public_skills"],
       "properties": {
         "overall": {"enum": ["development", "pre_public", "public"]},
         "production_ready": {"type": "boolean"},
@@ -189,11 +265,7 @@
         "public_skills": {
           "type": "array",
           "items": {"enum": ["writing", "speaking", "reading", "listening"]}
-        },
-        "writing": {"enum": ["development", "pre_public_matrix_complete", "public"]},
-        "speaking": {"enum": ["development", "pre_public_matrix_complete", "public"]},
-        "reading": {"enum": ["development", "pre_public_matrix_complete", "public"]},
-        "listening": {"enum": ["development", "pre_public_matrix_complete", "public"]}
+        }
       }
     },
     "human_gates": {
