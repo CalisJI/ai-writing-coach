@@ -41,16 +41,16 @@
     "lane": "orena_integration"
   },
   "last_verified_application_commit": "48a9eabab6422dd9dab7a6b8285a3a3def1db30d",
-  "last_verified_batch": "listening_real_media_web_and_native_parity",
+  "last_verified_batch": "listening_real_media_deployed_for_human_qa",
   "current_program_stage": {
     "id": "R21",
     "name": "Mobile Release Readiness",
     "status": "human_gate"
   },
   "current_primary_workstream": {
-    "id": "repository_backed_project_memory",
-    "status": "complete",
-    "next_task": "Human playback acceptance of the two real lessons, then broaden the real catalog across categories."
+    "id": "listening_real_media_catalog",
+    "status": "in_progress",
+    "next_task": "Await human QA acceptance of the two real lessons on orena.chillpickle.org, then broaden the real catalog."
   },
   "design": {
     "web_is_visual_source_of_truth": true,
@@ -152,8 +152,10 @@
   "current_p0": [],
   "current_p1": [
     "listening_real_media_catalog_has_one_en_and_one_zh_lesson_only",
-    "listening_durable_progress_unverified_on_sqlite_needs_postgresql_runtime",
-    "native_curated_video_verified_by_tests_and_prebuild_not_on_a_real_device"
+    "listening_durable_progress_tables_exist_but_saving_is_unconfirmed_until_human_qa",
+    "native_curated_video_verified_by_tests_and_prebuild_not_on_a_real_device",
+    "ios_vp9_webm_decode_unproven_both_real_lessons_are_vp9_transcodes",
+    "qa_domain_runs_an_unmerged_branch_commit_not_main"
   ],
   "last_verified_at": "2026-09-02"
 }

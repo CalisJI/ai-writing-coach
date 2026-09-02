@@ -10,73 +10,74 @@ or secret values.
 
 ## Current branch / lane
 
-- Branch: `claude/integration-v2`
-- Lane: Orena integration; feature development paused for repository-backed
-  project memory and its reviewed state-model correction.
-- Live HEAD must be read with `git rev-parse HEAD`; the verified application
-  baseline is `48a9eabab6422dd9dab7a6b8285a3a3def1db30d` (native curated-video
-  parity). Later governance-only commits do not move it.
+- Branch: `claude/integration-v2`. PR #54 is OPEN and NOT merged; `main` is
+  behind this branch.
+- Lane: Orena integration, Listening real-media catalog.
+- Read live HEAD with `git rev-parse HEAD`. The verified application baseline is
+  `48a9eabab6422dd9dab7a6b8285a3a3def1db30d`; later commits on this branch are
+  governance-only and do not move it.
 
 ## Last verified batch
 
-- Real-media Listening at web/native parity: video playback kind, real posters
-  on player and discovery cards, the first two real EN/ZH lessons, the native
-  expo-video adapter, and one reviewed-media URL rule on all three sides.
-- Local evidence: backend `703 passed / 0 failed` in the CI-equivalent container;
-  all 10 web contract tests pass. Real playback verified by browser decode:
-  EN 854x481 / 47.328s / 96 frames, ZH 854x481 / 198.241s seeked to its 16.12s
-  excerpt start; transcript sync, Dictation 100% match and Shadowing handoff all
-  exercised over the real media. Local execution, not CI, not human acceptance.
-- This is local evidence, not CI or production acceptance.
+- Real-media Listening at web/native parity, then deployed for human QA.
+- CI evidence, GitHub, both workflows green on this branch: CI run
+  `33585926995` (705 passed, validators, ESM graph, media contracts, Docker
+  build) and Mobile validation run `33585927013` (48 suites / 358 tests,
+  TypeScript, Android **and** iOS prebuild).
+- Real playback verified by browser decode through Orena's own player:
+  EN 854x481 / 47.328s / 96 frames; ZH 854x481 / 198.241s opened at its 16.12s
+  excerpt start. Transcript sync stepped on the real subtitle boundaries,
+  Dictation graded the real segment at 100%, Shadowing reused the same media
+  object. Automated evidence, not human acceptance.
 
-## DONE
+## DEPLOYED FOR QA — read this before touching the runtime
 
-- R0–R20 local foundations are preserved; R20 has local acceptance evidence.
-- Listening ENGINE is library-first: Dictation, Shadowing, shared
-  curated/import media contracts, progress/resume, and vocabulary all exist and
-  are locally accepted.
-- Listening REAL MEDIA CATALOG is PARTIAL, not complete. Two real rights-cleared
-  video lessons now play on web AND native, one EN (The Royal Society, CC BY 3.0)
-  and one ZH (Commons, CC BY-SA 3.0), with real posters and subtitle-derived
-  timings. The other five lessons remain seed/synthetic audio. Human playback
-  acceptance is still an open gate; two lessons are not a catalog.
-- Media provenance is validated once, at the canonical catalog boundary, and the
-  web player, the discovery card and native all consume the same rule.
-- Writing, Speaking and Reading are complete locally with acceptance passes and
-  pre-public matrices. They are internal, not public. Do not rebuild them.
+- `orena.chillpickle.org` runs commit `cbdedfd` from `claude/integration-v2`,
+  **not** `main`. Do not tell anyone the domain reflects `main`.
+- There is no CD. The domain changes only when someone rebuilds on the host:
+  `docker compose --profile public up -d --build writing-coach`. A GitHub push
+  deploys nothing.
+- The three worktrees (`-v030`, `-claudecode`, `-codex`) share one Docker
+  runtime. The public stack belongs to the `-claudecode` project
+  `ai-writing-coach`. Confirm no other lane is mid-batch before operating it.
+- A human-approved production PostgreSQL migration ran 2026-09-02:
+  `20260811_0001` -> `20260828_0004`, adding `speaking_attempts`,
+  `listening_progress`, `shadowing_progress`. 16 -> 19 tables, additive, nothing
+  dropped. Before it, the database was three revisions behind the code and the
+  runtime refused to start; that guard is correct and must not be weakened.
+- That approval covered that one run. The gate stays `approval_required`.
 
 ## IN PROGRESS
 
-- None. Repository-backed project memory, drift enforcement, and the bounded
-  `/resume-orena` workflow are implemented and validated locally; the batch is
-  awaiting human review.
+- Human QA of the two real-media lessons on the deployed domain. Nothing to
+  implement until QA reports back.
 
-## DEPLOYED FOR QA
+## DONE
 
-- `orena.chillpickle.org` runs `cbdedfd` (branch `claude/integration-v2`, NOT
-  merged to `main`), rebuilt via `docker compose --profile public up -d --build
-  writing-coach`. There is no CD; the domain only changes when someone rebuilds
-  on the host.
-- Human-approved production PostgreSQL migration ran on 2026-09-02:
-  `20260811_0001` -> `20260828_0004`, adding `speaking_attempts`,
-  `listening_progress` and `shadowing_progress`. 16 -> 19 tables, additive only,
-  no data dropped. The runtime had refused to start until this ran, because the
-  database was three revisions behind the code.
-- The gate itself stays `approval_required`: that approval covered this run, not
-  future migrations.
+- R0-R20 local foundations preserved; R20 has local acceptance evidence.
+- Listening ENGINE is library-first and locally accepted: Dictation, Shadowing,
+  shared curated/import media contracts, progress/resume, vocabulary.
+- Listening REAL MEDIA CATALOG is PARTIAL. Two rights-cleared video lessons play
+  on web and native, EN (The Royal Society, CC BY 3.0) and ZH (Commons,
+  CC BY-SA 3.0), with real posters and subtitle-derived timings. The other five
+  lessons are still seed/synthetic audio. Two lessons are not a catalog.
+- One reviewed-media URL rule (https, exact allowlisted host, no credentials, no
+  port) is enforced on the server, the web player and native, and validated at
+  the canonical catalog boundary.
+- Writing, Speaking and Reading are complete locally with acceptance passes and
+  pre-public matrices. Writing is `beta`, the others `internal`. Do not rebuild
+  them because they are not public.
 
 ## PENDING
 
-- Human review of this project-memory checkpoint.
-- R21 device/release-readiness evidence when explicitly resumed.
-- Human visual/product acceptance and broader editorial/licensing approval for
-  Listening.
+- Human playback/product acceptance of the two real lessons on the domain.
+- Real-device native verification, then broader real catalog across the
+  discovery categories.
+- Merge of PR #54 after acceptance.
 
 ## BLOCKED
 
-- No code blocker for this governance batch.
-- The standalone `127.0.0.1:8011` QA runtime does not validate durable
-  PostgreSQL Listening progress; automated contracts pass.
+- No code blocker. The batch is waiting on human QA, not on implementation.
 
 ## OPEN P0
 
@@ -84,15 +85,16 @@ or secret values.
 
 ## OPEN P1
 
-- Real catalog breadth: one EN and one ZH real lesson only. Discovery categories
-  (Animation, Movies & Drama, Podcast, Stories, Kids, Interview, ...) have no
-  real content yet.
-- Native curated video is verified by unit/route tests, typecheck and Android
-  prebuild, NOT on a real device or simulator. Device playback remains unproven.
-- Durable Listening progress is unverified over real media. `app.py` wires
-  `configure_listening_progress` only for the PostgreSQL backend, so the SQLite
-  harness answers 503 and the UI correctly degrades to device-only practice.
-  Verifying it needs the PostgreSQL runtime, which is a human gate.
+- Real catalog breadth: one EN and one ZH real lesson only. Animation, Movies &
+  Drama, Podcast, Stories, Kids, Interview and the rest have no real content.
+- Native curated video is verified by unit/route tests, typecheck and prebuild,
+  NOT on a real device or simulator.
+- iOS VP9/WebM decode is unproven. Both real lessons are VP9 transcodes and
+  Safari/AVFoundation historically lacks VP9 in WebM. iOS prebuild passing means
+  `expo-video` integrates, not that the file decodes. If iOS fails, the fix is a
+  source-level H.264/MP4 derivative in the manifest, not a player change.
+- Durable Listening progress now has its tables in production and the app is on
+  the PostgreSQL backend, but saving is unconfirmed until QA exercises it.
 
 ## HUMAN GATES
 
@@ -104,6 +106,12 @@ or secret values.
 
 ## NEXT EXACT TASK
 
-Require both GitHub workflows green on PR #54, then human playback/product
-acceptance of the two real lessons on web and on a real device. Only after that,
-broaden the real catalog across the discovery categories.
+Wait for human QA on `orena.chillpickle.org`: sign in with Google, open Listening
+and exercise both real lessons — `en-science-cosmic-calendar` and
+`zh-technology-search-wikipedia` — for poster, real playback, transcript sync,
+Dictation, next segment, Shadowing handoff, and progress/resume.
+
+If QA passes, record acceptance in memory and propose merging PR #54. If QA
+fails, fix the reported defect at the smallest correct layer and redeploy with
+the command above. Do not broaden the catalog, mark it complete, merge, or
+redeploy before QA reports.
