@@ -20,8 +20,8 @@ or secret values.
 - That baseline ALREADY CONTAINS, do not re-implement: support-language
   separation, curated meaning + translation cache, Groq token sizing, background
   recovery orchestration, the atomic provider-poll claim, the L3 import
-  pipeline, the curated-transcript runtime contract (D-046), and the offline
-  transcript acquisition producer.
+  pipeline, the curated-transcript contract (D-046), and the offline transcript
+  acquisition producer.
 - This field goes stale on EVERY application commit — update it and the YAML in
   the same batch, or the next agent rebuilds finished work.
 
@@ -93,12 +93,12 @@ or secret values.
 - Three approved paths, three distinct causes, measured 2026-09-03:
   1. `youtube_transcript_api` body → `IpBlocked` (listing still works).
   2. Supadata → **HTTP 429 `limit-exceeded`**; quota still exhausted.
-  3. Groq ASR over a short-lived provider URL → yt-dlp resolves only 1 of 11 EN
-     pilot sources ("video is not available" for the Movieclips ones); the ZH
-     source resolves, but Groq returns HTTP 400 "failed to retrieve media:
-     received status code: 302" — it will not follow googlevideo's redirect.
-- The blocker is INGESTION only. The curated runtime (D-046) is done and proven,
-  so a transcript is all that stands between here and a working web lesson.
+  3. Groq ASR over a provider URL → yt-dlp resolves only 1 of 11 EN sources
+     ("video is not available"); the ZH source resolves, but Groq returns HTTP
+     400 "failed to retrieve media: received status code: 302" — it will not
+     follow googlevideo's redirect.
+- The blocker is INGESTION only: the curated runtime is proven, so a transcript
+  is all that stands between here and a working web lesson.
 - `scripts/acquire_listening_transcripts.py` is the producer half of the offline
   handoff. It refuses to invent, never relabels ASR as provider captions, never
   re-acquires, and its output is tested through the consumer adapter.
