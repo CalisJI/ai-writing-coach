@@ -1200,3 +1200,54 @@ tier rather than only by APP_ENV. Supersedes no rights, persistence or
 publication contract: preview visibility is a deployment concern, not a
 publication decision.
 
+## D-048 - One local Orena runtime; preview is per-user, not per-deployment
+
+**Date:** 2026-09-03
+
+**Status:** Accepted (human operational decision)
+
+**Decision:** This machine runs ONE long-lived Orena runtime: the existing
+Compose stack on `127.0.0.1:8000`, with one PostgreSQL and one Cloudflare
+tunnel, reached over real HTTPS with real Google login. Preview content is an
+authorization capability of that runtime, enabled with
+`ORENA_DEPLOYMENT_TIER=preview` in the existing environment. There is no second
+Orena container, PostgreSQL, image, port, tunnel or Compose project, and no
+feature-specific database volumes.
+
+The preview marker is scoped to the USER, not the deployment: it appears only
+for a caller who may actually see preview content. Normal learners see the
+ordinary product with no marker, on the same runtime, at the same time.
+
+Daily development is `docker compose restart writing-coach` — source is
+bind-mounted, so Python, JS, CSS and catalog changes need no rebuild. Rebuild
+only when the image changes (Dockerfile, requirements, system packages). Docker
+keeps one CURRENT image and one ROLLBACK image; QA, feature, milestone and test
+images are not retained.
+
+**Reason:** A second stack duplicated the parts that carry real risk -
+persistence and identity - to gain nothing the tier did not already provide.
+Preview visibility is a question about WHO is asking, and that is already
+answered inside one process. Duplicating databases per feature is how learner
+data gets stranded in a volume nobody remembers, and the previous plan would
+also have taught a bad default: spin up infrastructure to look at content.
+
+The deployment-wide badge was the same mistake in miniature. On a shared runtime
+it would have told every ordinary learner they were using a preview, which is
+false for them.
+
+**Consequences:** `compose.preview.yaml` remains as an optional ISOLATED STAGING
+pattern for something that genuinely must not share persistence, and its header
+says it is not the normal workflow. Port 18080 and `orena-preview-*` volumes are
+not part of ordinary development; none were ever created.
+
+Port 8000 is the current developer/dogfood convention, NOT permanent product
+architecture.
+
+The tier contract, its server-side enforcement and its security tests from
+**D-047** are unchanged and still required.
+
+**Supersedes / Superseded by:** SUPERSEDES the deployment topology of **D-047**
+(a separate preview stack with its own database and port). D-047's tier
+contract, fail-closed production behaviour and admin-only visibility remain in
+force. Extends **D-043**; no history rewritten.
+
