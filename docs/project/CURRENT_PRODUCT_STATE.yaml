@@ -40,8 +40,8 @@
     "expected_development_branch": "claude/integration-v2",
     "lane": "orena_integration"
   },
-  "last_verified_application_commit": "cac4ebf2f0e7f3913aa52820c2e587e6c7f1da86",
-  "last_verified_batch": "orena_product_components_and_golden_home_h1",
+  "last_verified_application_commit": "e7b846f634009893768875580b517fcf84cfccbb",
+  "last_verified_batch": "golden_home_h1_1_audit_fixes",
   "current_program_stage": {
     "id": "R21",
     "name": "Mobile Release Readiness",
@@ -50,7 +50,7 @@
   "current_primary_workstream": {
     "id": "orena_golden_web_home",
     "status": "in_progress",
-    "next_task": "H2 Golden Home: replace the development artwork wash with approved production artwork inside the containers H1 built, render the signed-in Home at 1440/1024/390, compare against ORENA_HOME_GOLDEN_SPEC.md and fix the three largest gaps at the highest shared level. Deferred and preserved: HUMAN applies Alembic 20260903_0005 to the dogfood DB (still 20260828_0004) then dogfood-accepts lesson-scoped progress; L3 ingestion; Listening mode persistence."
+    "next_task": "H2 Golden Home: replace the development artwork wash with approved production artwork inside the containers H1/H1.1 built, render the signed-in Home at 1440/1024/390, compare against ORENA_HOME_GOLDEN_SPEC.md and fix the three largest gaps at the highest shared level. Do not redesign the composition or re-open the H1.1 audit fixes. Deferred and preserved: HUMAN applies Alembic 20260903_0005 to the dogfood DB (still 20260828_0004) then dogfood-accepts lesson-scoped progress; L3 ingestion; Listening mode persistence."
   },
   "design": {
     "web_is_visual_source_of_truth": true,
@@ -164,7 +164,8 @@
     "home_h1_artwork_is_a_textless_development_placeholder_h2_owns_production_artwork",
     "home_h1_was_not_rendered_signed_in_because_dogfood_login_is_a_human_gate",
     "no_explore_route_exists_so_a_world_card_opens_its_lead_lesson",
-    "eight_mjs_tests_fail_at_the_previous_head_and_are_outside_ci"
+    "eight_mjs_tests_fail_at_the_previous_head_and_are_outside_ci",
+    "test_r12_listening_goal_editor_mjs_fails_on_a_pre_existing_harness_gap_not_in_ci"
   ],
-  "last_verified_at": "2026-09-02"
+  "last_verified_at": "2026-09-03"
 }

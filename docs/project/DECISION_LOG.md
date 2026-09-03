@@ -1393,3 +1393,49 @@ textless development placeholder - H2 owns production artwork and visual Golden.
 
 **Supersedes / Superseded by:** Implements D-050 for Home. Does not supersede
 D-049; it consumes that contract. Does not change any public-release gate.
+
+## D-052 - Orena product components carry no raw-markup escape hatch; the practice-outcome contract is backend-authoritative
+
+**Date:** 2026-09-03
+
+**Status:** Accepted (audit correction to D-051's H1 implementation)
+
+**Decision:** Two standing rules for the Orena product component layer,
+established while fixing the H1 audit findings.
+
+First, a product component never accepts page-authored HTML. `bodyHtml` and
+`secondaryActions` existed in the first H1 cut of
+`static/becoming/orena/product-components.js` and are removed permanently.
+Supporting text, a quoted sentence, or a secondary action is a semantic prop
+(`quote`/`quoteLang`, `note`, `links`) that the component itself renders and
+escapes. A caller that can inject markup will eventually inject page-specific
+markup, at which point the "component" is a template and a native port has to
+reimplement whatever the page happened to put in it.
+
+Second, any UI surface that renders a backend-derived status enum must treat
+that backend function as authoritative, not reinvent the enum from memory or
+convenience. `derive_practice_outcome()` in `writing_coach/becoming_outcomes.py`
+emits exactly seven statuses (`improved`, `transferred`, `held`,
+`still_working`, `needs_attention`, `not_observed`, `needs_more_evidence`); a
+frontend contract for that field must recognise exactly those seven, with
+regression coverage per status.
+
+**Reason:** The H1 implementation of Home invented four practice-outcome
+statuses no backend has ever produced and silently excluded six of the seven
+real ones, so a learner whose revision came back `still_working` or
+`needs_attention` lost the Grammar practice handoff - the exact evidence,
+grammar id and parent-essay lineage - without any visible error. Separately,
+`bodyHtml`/`secondaryActions` had already let one screen's markup start
+leaking into the "component" layer the Component Contract exists to keep
+generic.
+
+**Consequences:** `recommendationTile`, `challengeCard` and every other Orena
+product component reject raw HTML through any prop name - the H1.1 regression
+test in `test_orena_home_h1.mjs` checks this behaviourally, not by grepping for
+one prop name. Any future screen that surfaces a backend enum states which
+backend function is authoritative and lists every value that function can
+return, the way this entry does for practice outcomes.
+
+**Supersedes / Superseded by:** Corrects the H1 implementation of D-051; does
+not change D-051's decision itself (Home's composition, the world-catalog
+contract, or the removal of Home analytics).
