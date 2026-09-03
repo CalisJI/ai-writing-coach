@@ -10,18 +10,19 @@ or secret values.
 
 ## Current branch / lane
 
-- Branch: `claude/integration-v2`. **PR #55 was merged by a human 2026-09-03**
-  (`main` = `e8e2d70`). Work since sits on **draft PR #56**.
+- Branch: `claude/integration-v2`. PR #55 merged 2026-09-03 (`main` =
+  `e8e2d70`); work since sits on **draft PR #56**.
 - CI runs only on `push: [main]` and `pull_request`, so branch commits with no
   open PR get NO CI. Check the PR before claiming CI.
 - Lane: Orena integration, Listening catalog.
 - Read live HEAD with `git rev-parse HEAD`. Verified application baseline:
-  `2791eabb31c9dedd12f68d5024d75b41b3060d58`.
+  `66cbcadcd75b89d2ee44911f15c13ee8031ee74d`.
 - That baseline ALREADY CONTAINS, do not re-implement: support-language
   separation, curated meaning + translation cache, Groq token sizing, background
   recovery orchestration, the atomic provider-poll claim, the L3 import
   pipeline, the curated-transcript contract (D-046), the offline transcript
-  acquisition producer, and the preview tier (D-047/D-048).
+  acquisition producer, the preview tier (D-047/D-048), and lesson-scoped
+  progress + Continue Learning (D-049).
 - This field goes stale on EVERY application commit — update it and the YAML in
   the same batch.
 
@@ -39,7 +40,7 @@ or secret values.
 - **D-048: ONE long-lived runtime.** `ai-writing-coach-writing-coach-1` on
   `127.0.0.1:8000`, `ai-writing-coach-postgres-1`, one cloudflared. Do NOT start
   a second Orena container, PostgreSQL, image, port, tunnel or Compose project,
-  and never create feature-specific volumes. Port 8000 is the current dogfood
+  and never create feature-specific volumes. Port 8000 is today's dogfood
   convention, not permanent architecture.
 - Daily loop: source is bind-mounted, so `docker compose restart writing-coach`
   suffices for Python/JS/CSS/catalog changes. Rebuild ONLY for Dockerfile,
@@ -49,13 +50,12 @@ or secret values.
 - **D-047 tier**: `APP_ENV` = runtime/security; `ORENA_DEPLOYMENT_TIER` =
   content visibility, default production. Production tier never loads the
   preview artifact; preview tier needs the platform-admin role, enforced
-  server-side on BOTH listing and lesson endpoints. The marker is per-USER:
-  normal learners see the ordinary product.
+  server-side on BOTH listing and lesson endpoints. The marker is per-USER.
 - `compose.preview.yaml` is optional isolated staging only — never started
   routinely; no `orena-preview-*` volume has ever been created.
 - Verified live: `APP_ENV=production`, `PERSISTENCE_BACKEND=postgresql`, tier
-  `production`, `PostgresSpecializedLearningRepository` installed (503s on
-  SQLite). Root 302s to Google login; catalog API 401s anonymously.
+  `production`, `PostgresSpecializedLearningRepository` installed. Root 302s to
+  Google login; catalog API 401s anonymously.
 - 8 unused `orena-postgres-preview-data-*` volumes remain from an earlier era;
   volume deletion is a HUMAN GATE, so they are reported, not removed.
 - `orena.chillpickle.org` runs `cbdedfd`, does NOT follow `main`, no CD. Three
@@ -77,8 +77,12 @@ or secret values.
   caption request is never recorded as "no captions".
 - L2.5 (D-042/D-044): support/learning language and UI locale distinct; meaning
   editorial → cached → live → truthful unavailable, second call free; warm
-  no-caption recovery proven on `iVk7Ft6gl5w`; the paid provider poll is claimed
-  atomically. Groq key is VALID — that 403 was Cloudflare 1010, not a bad key.
+  no-caption recovery proven on `iVk7Ft6gl5w`. Groq key is VALID — that 403 was
+  Cloudflare 1010.
+- **D-049**: progress is keyed by (user, language, LESSON, segment) for
+  Dictation and Shadowing, asset_id kept as provenance; Continue Learning is
+  built server-side from real PostgreSQL progress with the same visibility
+  boundary as discovery.
 
 ## CURATED TRANSCRIPT RUNTIME — done, proven in a browser
 
@@ -93,14 +97,12 @@ or secret values.
 
 ## L3 SHORT-FORM PILOT — gated on ingestion
 
-- 0 transcripts acquired; nothing invented. Three approved paths, three causes
-  (2026-09-03): transcript body → `IpBlocked`; Supadata → **429
-  `limit-exceeded`**; Groq ASR → yt-dlp resolves 1 of 11 EN sources and Groq
-  returns 400 on googlevideo's 302 redirect.
-- The blocker is INGESTION only; the curated runtime is proven.
-- `scripts/acquire_listening_transcripts.py` is the producer half of the offline
-  handoff: refuses to invent, never relabels ASR as provider captions, never
-  re-acquires; its output is tested through the consumer adapter.
+- 0 transcripts acquired; nothing invented. Three paths, three causes
+  (2026-09-03): transcript body → `IpBlocked`; Supadata → **429**; Groq ASR →
+  yt-dlp resolves 1 of 11 EN sources and Groq 400s on googlevideo's 302.
+- INGESTION is the only blocker; the curated runtime is proven.
+- `scripts/acquire_listening_transcripts.py` produces the offline handoff:
+  refuses to invent, never relabels ASR as captions, never re-acquires.
 - `SNAPSHOT_REQUIRED` stays False. Pilot packs unchanged (D-045).
 
 ## PENDING
@@ -119,17 +121,14 @@ or secret values.
 
 ## OPEN P1
 
-- **P1-A progress identity**: Listening progress is keyed by `asset_id`, so two
-  excerpts of one source share a record. Each lesson/excerpt needs independent
-  progress identity without breaking media identity.
-- **P1-B Continue Learning**: declared but never populated server-side — the
-  library endpoint emits no `continue-learning` section. Build it from persisted
-  PostgreSQL progress, EN/ZH parity, nothing fabricated. Which MODE the learner
-  was in is also unpersisted today.
 - **L2_5_REAL_COLD_ACCEPTANCE=PENDING_EXTERNAL_PROVIDER_QUOTA** on
   `iSTlFeW-Z9M` (Supadata 429). Per D-044 an external gate; L2.5 is NOT complete.
 - **L3 content blocked**: YouTube IpBlocked on transcript bodies; the ZH pilot
   family has no captions, so recovery is on the critical path.
+- **Listening MODE is still not persisted** — Continue Learning resumes the
+  lesson and segment, not the prior mode. Recorded, not claimed fixed.
+- **Migration `20260903_0005` is NOT applied to the dogfood DB** (still
+  `20260828_0004`). Applying it is a human step; the command is below.
 - Registry is process-local: resume handles do not survive a restart.
 - L1 is web only; native needs the L6 port. iOS VP9/WebM decode unproven.
 - Generated excerpts are `proposed`; ids are provisional.
@@ -142,16 +141,15 @@ or secret values.
 
 ## NEXT EXACT TASK
 
-Fix the two dogfood P1s on the single runtime (D-048), in order:
+**Human step first — apply the migration, then dogfood.** Nothing in the last
+batch is usable until the dogfood DB moves from `20260828_0004` to
+`20260903_0005`; the exact command is in the batch report and uses
+`alembic.ini` with `script_location=migrations` and the runtime URL.
 
-**P1-A** give each lesson/excerpt its own progress identity — today `asset_id`
-alone means two excerpts of one source overwrite each other's progress. Keep
-media/source identity intact; do not break existing rows silently.
+Then acceptance: sign in, make Dictation and Shadowing progress in one lesson,
+leave and return — Continue Learning shows it and reopens the right excerpt and
+segment; close the browser, reopen, restart `writing-coach`, progress remains;
+and a SECOND excerpt of the same source must show no inherited progress.
 
-**P1-B** populate Continue Learning server-side from persisted PostgreSQL
-progress, resuming at the right lesson/excerpt and last segment, EN/ZH parity,
-nothing fabricated. It is the first thing a returning learner sees, and it is
-empty today.
-
-Do not expand into L4. Transcript ingestion stays blocked (IpBlocked +
-Supadata 429); short-form content drops in later with no runtime change.
+After that L4, but only once L2.5's cold acceptance and L3 ingestion are
+unblocked or explicitly deferred by a human.

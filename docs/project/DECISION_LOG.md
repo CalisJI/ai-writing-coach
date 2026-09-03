@@ -1251,3 +1251,48 @@ The tier contract, its server-side enforcement and its security tests from
 contract, fail-closed production behaviour and admin-only visibility remain in
 force. Extends **D-043**; no history rewritten.
 
+## D-049 - Learner progress is lesson-scoped; Continue Learning is real progress
+
+**Date:** 2026-09-03
+
+**Status:** Accepted
+
+**Decision:** Durable Listening/Dictation and Shadowing progress is identified by
+`(user, language, lesson, segment)`. `asset_id` remains on the row as
+provenance and keeps its index, but no longer defines progress identity.
+Continue Learning is generated server-side from that persisted PostgreSQL
+progress, not from catalog metadata, client storage or any recommendation
+heuristic.
+
+**Reason:** Shared media identity and learner progress identity are different
+things. One source carries several curated excerpts, so keying progress by the
+media asset meant finishing one excerpt made its siblings look started, and two
+excerpts sharing a segment id shared a row. Continue Learning, meanwhile, was
+declared in the discovery order and never populated: the first rail a returning
+learner sees was always empty.
+
+**Consequences:** Migration `20260903_0005` adds `lesson_id` and re-keys both
+tables. Backfill associates a legacy row with a lesson ONLY where its asset maps
+to exactly one lesson; assets with none or several stay `lesson_id = ""`,
+legacy/unassigned. Picking the first or newest lesson would manufacture a
+certainty the data does not contain and attach real work to the wrong excerpt,
+so ambiguous history is preserved rather than resolved.
+
+The server validates every progress write: the lesson must exist, belong to the
+stated asset, match the learning language and contain the segment. A client
+lesson_id is never trusted on its own. An omitted lesson_id is a legacy path
+that resolves only when the asset is unambiguous; it can be removed once no
+client omits it.
+
+Continue Learning obeys the same visibility boundary as discovery, enforced
+server-side, so preview content cannot reappear through a learner's own
+progress. A segment that no longer exists resumes at the lesson start rather
+than seeking to something gone.
+
+Listening MODE is still not persisted; resuming restores the lesson and segment
+only. That is recorded as a follow-up rather than claimed.
+
+**Supersedes / Superseded by:** Supersedes the asset-scoped progress identity
+introduced with durable Listening progress. Supersedes no persistence,
+publication or visibility contract.
+
