@@ -57,6 +57,7 @@ from writing_coach.media_ingestion import MediaIngestionService
 from writing_coach.media_providers.supadata import SupadataTranscriptClient
 from writing_coach.media_recovery_policy import build_youtube_adapter
 from writing_coach.media_providers.youtube_audio import YtDlpYouTubeAudioUrlResolver
+from writing_coach.core.deployment import TIER_PREVIEW, resolve_deployment_tier
 from writing_coach.media_timing import MediaTimingService
 from writing_coach.media_translation import (
     GroqTranslationProvider,
@@ -644,10 +645,19 @@ def home() -> HTMLResponse:
     # added since is simply never requested, and the screen renders unstyled.
     # Every asset already answers `no-store`; the document that names them has
     # to as well.
-    return HTMLResponse(
-        (ROOT / "templates" / "becoming" / "index.html").read_text(encoding="utf-8"),
-        headers={"Cache-Control": "no-store, max-age=0"},
-    )
+    shell = (ROOT / "templates" / "becoming" / "index.html").read_text(encoding="utf-8")
+    # A preview deployment looks exactly like production by design, which is
+    # also its one risk: somebody has to be able to tell which one they are
+    # looking at. One small marker, server-rendered so it cannot be spoofed by
+    # a client and needs no change to the pinned session contract.
+    if resolve_deployment_tier() == TIER_PREVIEW:
+        shell = shell.replace(
+            "</body>",
+            '<div class="orena-preview-badge" role="status" aria-label="Preview deployment">'
+            "Preview</div></body>",
+            1,
+        )
+    return HTMLResponse(shell, headers={"Cache-Control": "no-store, max-age=0"})
 
 
 

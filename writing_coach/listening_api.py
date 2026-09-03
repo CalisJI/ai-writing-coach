@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any, Literal
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Request
 from pydantic import BaseModel, Field
 
 from writing_coach.core.errors import orena_http_error
@@ -27,6 +27,34 @@ from writing_coach.media_api import media_translation_service
 from writing_coach.media_api import serialize_media_acquisition
 from writing_coach.media_ingestion import MediaAcquisition
 from writing_coach.persistence.specialized_repository import SpecializedLearningRepository
+
+
+def preview_visible(request: Request | None) -> bool:
+    """Whether THIS caller may see preview catalog content.
+
+    Two independent conditions, both required. The deployment must be a preview
+    tier - on production tier the artifact is never loaded, so this is moot -
+    and the caller must be a platform administrator. Preview content is not
+    "visible to anyone who signs in"; it is unreviewed material with unresolved
+    rights, so it stays behind an existing trusted role rather than a new
+    account system.
+    """
+
+    from writing_coach.core.deployment import TIER_PREVIEW, resolve_deployment_tier
+
+    if resolve_deployment_tier() != TIER_PREVIEW:
+        return False
+    if request is None:
+        # No request to authorize against, so no preview content. Failing
+        # closed here means an internal caller can never widen visibility.
+        return False
+    try:
+        from auth_support import require_admin
+
+        require_admin(request)
+    except Exception:
+        return False
+    return True
 
 
 router = APIRouter(prefix="/api/listening", tags=["listening"])
@@ -103,10 +131,14 @@ def listening_library(
     level: str | None = Query(default=None, min_length=1, max_length=32),
     topic: str | None = Query(default=None, min_length=1, max_length=64),
     tag: str | None = Query(default=None, min_length=1, max_length=64),
+    request: Request = None,  # type: ignore[assignment]
 ) -> dict[str, Any]:
     """Return lightweight discovery metadata; transcripts load per lesson."""
     selected_language = (language or current_language_code()).strip().casefold()
-    items = catalog_lessons(language=selected_language, level=level, topic=topic, tag=tag)
+    items = catalog_lessons(
+        language=selected_language, level=level, topic=topic, tag=tag,
+        include_preview=preview_visible(request),
+    )
     # Real poster-backed video leads every rail, so the first viewport is media
     # rather than seed audio (spec 3.5). The order is deterministic.
     ranked = sorted(items, key=discovery_rank)
@@ -186,9 +218,10 @@ def open_listening_library_lesson(
     # No language default lives here. An omitted target resolves against the
     # learner's stored support language, then the configured neutral default.
     target_language: str = Query(default="", max_length=32),
+    request: Request = None,  # type: ignore[assignment]
 ) -> dict[str, Any]:
     """Resolve a curated excerpt into the universal Media Learning payload."""
-    lesson = catalog_lesson(lesson_id)
+    lesson = catalog_lesson(lesson_id, include_preview=preview_visible(request))
     if lesson is None:
         raise orena_http_error(404, "listening_lesson_not_found", "This Listening lesson is unavailable.")
     target_language = resolve_support_language(

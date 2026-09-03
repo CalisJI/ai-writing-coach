@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import json
 import os
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -17,6 +17,7 @@ from urllib.parse import urlsplit
 
 from writing_coach.listening_dev_artifact import verify_manifest_integrity
 from writing_coach.media_ingestion import MediaPlayback
+from writing_coach.core.deployment import TIER_PREVIEW, resolve_deployment_tier
 from writing_coach.media_learning import (
     MediaLearningAsset,
     MediaLearningObject,
@@ -538,6 +539,10 @@ def load_catalog_manifest(
 
 
 DEV_CATALOG_MANIFEST = Path(__file__).with_name("content") / "listening_catalog.dev.generated.json"
+# The governed preview artifact. Same schema, same loader, same integrity check
+# as every other catalog file - only its visibility differs. It is NOT the L3
+# publication snapshot and does not flip SNAPSHOT_REQUIRED.
+PREVIEW_CATALOG_MANIFEST = Path(__file__).with_name("content") / "listening_catalog.preview.json"
 DEV_CATALOG_FLAG = "ENABLE_DEV_LISTENING_CATALOG"
 
 
@@ -556,10 +561,52 @@ def dev_catalog_enabled(env: Mapping[str, str] | None = None) -> bool:
     return str(values.get(DEV_CATALOG_FLAG, "")).strip().casefold() in {"1", "true", "yes", "on"}
 
 
+def preview_catalog_enabled(env: Mapping[str, str] | None = None) -> bool:
+    """Whether this deployment may load the preview catalog at all.
+
+    Deliberately NOT tied to APP_ENV. A preview deployment runs
+    APP_ENV=production so it exercises real security and persistence; what makes
+    it a preview is the deployment TIER. Production tier never loads the preview
+    artifact, so preview lessons are not merely hidden there - they are absent
+    from the process, and no request can reach them.
+    """
+
+    return resolve_deployment_tier(env) == TIER_PREVIEW
+
+
+def _overlay(
+    path: Path,
+    sources: dict[str, CatalogSource],
+    lessons: list[CuratedListeningLesson],
+    expected_source_lists: Sequence[str] | None = None,
+) -> tuple[str, ...]:
+    """Merge one generated overlay, returning the lesson ids it contributed.
+
+    Generated content may only ADD. A source or lesson whose id collides with
+    something already loaded is dropped, so an overlay can never redefine
+    reviewed content.
+    """
+
+    tampered = verify_manifest_integrity(
+        json.loads(path.read_text(encoding="utf-8")),
+        expected_source_lists=expected_source_lists,
+    )
+    if tampered:
+        raise ValueError(f"generated Listening catalog rejected: {tampered}")
+    extra_sources, extra_lessons = load_catalog_manifest(path, allow_dev=True)
+    for source_id, source in extra_sources.items():
+        sources.setdefault(source_id, source)
+    known = {lesson.lesson_id for lesson in lessons}
+    added = [item for item in extra_lessons if item.lesson_id not in known]
+    lessons.extend(added)
+    return tuple(item.lesson_id for item in added)
+
+
 def load_catalog(
     base_path: Path = CATALOG_MANIFEST,
     dev_path: Path = DEV_CATALOG_MANIFEST,
     env: Mapping[str, str] | None = None,
+    preview_path: Path = PREVIEW_CATALOG_MANIFEST,
 ) -> tuple[Mapping[str, CatalogSource], tuple[CuratedListeningLesson, ...]]:
     """BASE VERIFIED CATALOG, plus the DEV GENERATED CATALOG when enabled.
 
@@ -569,24 +616,29 @@ def load_catalog(
     """
 
     sources, lessons = load_catalog_manifest(base_path)
-    if not dev_catalog_enabled(env) or not dev_path.is_file():
-        return sources, lessons
-
-    # The artifact is committed, so it must be tamper-evident: a hand edit is
-    # refused rather than loaded, which is what keeps "humans edit only the CSV"
-    # true in practice.
-    tampered = verify_manifest_integrity(json.loads(dev_path.read_text(encoding="utf-8")))
-    if tampered:
-        raise ValueError(f"development Listening catalog rejected: {tampered}")
-    dev_sources, dev_lessons = load_catalog_manifest(dev_path, allow_dev=True)
     merged_sources = dict(sources)
-    for source_id, source in dev_sources.items():
-        merged_sources.setdefault(source_id, source)
-    known = {lesson.lesson_id for lesson in lessons}
-    merged_lessons = list(lessons) + [item for item in dev_lessons if item.lesson_id not in known]
+    merged_lessons = list(lessons)
+    preview_ids: tuple[str, ...] = ()
+
+    # Committed artifacts are tamper-evident: a hand edit is refused rather than
+    # loaded, which keeps "humans edit only the CSV" true in practice.
+    if dev_catalog_enabled(env) and dev_path.is_file():
+        _overlay(dev_path, merged_sources, merged_lessons)
+    if preview_catalog_enabled(env) and preview_path.is_file():
+        # A preview artifact is generated from whatever pilot pack it names, so
+        # it is not held to the L3 snapshot's two development CSVs. Every
+        # tamper-evidence check still applies.
+        preview_ids = _overlay(preview_path, merged_sources, merged_lessons,
+                               expected_source_lists=())
+
+    global PREVIEW_LESSON_IDS
+    PREVIEW_LESSON_IDS = frozenset(preview_ids)
     return merged_sources, tuple(merged_lessons)
 
 
+# Lesson ids that came from the preview artifact. Empty on production tier,
+# because there the artifact is never loaded at all.
+PREVIEW_LESSON_IDS: frozenset[str] = frozenset()
 CATALOG_SOURCES, CATALOG = load_catalog()
 
 
@@ -601,7 +653,24 @@ def _learner_visible(lesson: CuratedListeningLesson) -> bool:
     return lesson.content_status in {PUBLIC_CONTENT_STATUS, DEV_CONTENT_STATUS}
 
 
-def catalog_lesson(lesson_id: str) -> CuratedListeningLesson | None:
+def is_preview_lesson(lesson_id: str) -> bool:
+    return lesson_id in PREVIEW_LESSON_IDS
+
+
+def catalog_lesson(
+    lesson_id: str,
+    *,
+    include_preview: bool = False,
+) -> CuratedListeningLesson | None:
+    """One lesson, refusing preview content unless the caller is authorized.
+
+    The check is here, in the catalog, rather than in a screen: hiding a card in
+    JavaScript is not access control, and the lesson endpoint is reachable
+    directly.
+    """
+
+    if not include_preview and is_preview_lesson(lesson_id):
+        return None
     return next(
         (lesson for lesson in CATALOG if lesson.lesson_id == lesson_id and _learner_visible(lesson)),
         None,
@@ -609,7 +678,8 @@ def catalog_lesson(lesson_id: str) -> CuratedListeningLesson | None:
 
 
 def catalog_lessons(
-    *, language: str | None = None, level: str | None = None, topic: str | None = None, tag: str | None = None,
+    *, language: str | None = None, level: str | None = None, topic: str | None = None,
+    tag: str | None = None, include_preview: bool = False,
 ) -> tuple[CuratedListeningLesson, ...]:
     language_key = (language or "").strip().casefold()
     level_key = (level or "").strip().casefold()
@@ -619,6 +689,7 @@ def catalog_lessons(
         lesson
         for lesson in CATALOG
         if _learner_visible(lesson)
+        and (include_preview or not is_preview_lesson(lesson.lesson_id))
         and (not language_key or lesson.source.language.casefold() == language_key)
         and (not level_key or lesson.level.casefold() == level_key)
         and (
