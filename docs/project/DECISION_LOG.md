@@ -1439,3 +1439,78 @@ return, the way this entry does for practice outcomes.
 **Supersedes / Superseded by:** Corrects the H1 implementation of D-051; does
 not change D-051's decision itself (Home's composition, the world-catalog
 contract, or the removal of Home analytics).
+
+## D-053 - Home obeys the screen-lifecycle contract, and a Listening continuation has exactly one source
+
+**Date:** 2026-09-03
+
+**Status:** Accepted (audit correction to D-051/D-052's Home implementation)
+
+**Decision:** Four standing rules, established while fixing the H1.2 audit
+findings.
+
+First, Home's progressive render obeys the same `root._cleanupScreen` contract
+every other screen already uses (write.js, speaking.js, reading.js,
+profile.js): `renderHome` registers a disposal flag as soon as it starts, and
+every later repaint checks it before touching `root.innerHTML`. A
+`settle()`-then-`paint()` that resolves after the learner has navigated away
+is a no-op, not a rewrite of whatever screen is now on the page.
+
+Second, `renderHome`'s returned promise is bounded. A request that never
+settles at all - not merely a slow one - cannot hold the app-level render
+lifecycle (`aria-busy`, the rail refresh, focus) open indefinitely. A
+section-settle budget races the real requests; a request still outstanding
+past the budget keeps running and still repaints if it answers, subject to the
+disposal guard above, but the render lifecycle itself moves on.
+
+Third, a Listening continuation has exactly one owner. D-049's server-side
+Continue Learning already outranks a local per-device resume for the Hero
+card; H1.2 closes the gap where Next Practice could independently reach for
+the same, or a different, local resume and render a second, competing "resume
+listening" affordance. Next Practice only considers a local resume when
+nothing - server or local - has already claimed Listening as the
+continuation.
+
+Fourth, a section's "nothing to show" state distinguishes a genuine empty
+answer from a real provider outage, and a composed label's UI-language and
+content-language halves are tracked separately rather than forced into one
+string. For You only claims "loading" while a provider that could still
+supply content has not answered, only claims a genuine empty state once every
+relevant provider has truthfully answered with nothing, and only claims
+"unavailable" once at least one of them has failed outright. Personal's six
+independent sub-requests keep their per-call resilience - one missing signal
+must not cost the others - while a *total* failure across all six is now
+distinguishable from a fresh learner's true absence of evidence. Separately, a
+World's lead label ("Start with {title}") no longer forces its
+interface-language prefix and its content-language lesson title into one
+shared `lang`.
+
+**Reason:** Home repaints itself progressively through independent,
+asynchronously-settling request groups (D-052). Without a lifecycle guard, a
+request that resolves after the learner has navigated to Write or Listen would
+silently overwrite that screen with a stale Home render, and a request that
+never resolves at all - `api.js` sets no client-side fetch timeout - would
+leave `aria-busy="true"` on the page forever. Separately, the same per-device
+local resume that legitimately becomes Home's own continuation card when no
+server progress exists was also, independently, being offered a second time
+through Next Practice: a real product bug where a learner could see two
+different "resume listening" affordances for two different lessons at once.
+And a personal-provider outage was rendering identically to a genuine
+new-learner empty state, erasing exactly the signal an operator needs to tell
+"nothing to see yet" from "something is broken".
+
+**Consequences:** `static/becoming/screens/home.js` registers
+`root._cleanupScreen` at the top of `renderHome` and guards `paint()` with it;
+`renderHome` accepts an internal section-settle budget (default 6s) the render
+lifecycle cannot exceed. `nextPracticePlan`'s local-resume branch is excluded
+whenever the continuation already resolves to `listening` or
+`listening-local`. The `personal` request group uses `Promise.allSettled` over
+six independently-wrapped calls instead of per-call `optional()`, and rejects
+only when every one of them failed. `worldCard` takes
+`leadPrefix`/`leadTitle`/`leadSuffix`/`leadLang` instead of one pre-formatted
+`leadLabel` string. Regression coverage lives in `test_orena_home_h1.mjs`
+(blocks 15-19).
+
+**Supersedes / Superseded by:** Corrects the H1/H1.1 implementation of
+D-051/D-052; does not change either decision's own scope (Home's composition,
+the product-component contract, or the practice-outcome status set).

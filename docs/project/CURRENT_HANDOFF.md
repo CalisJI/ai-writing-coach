@@ -11,45 +11,45 @@ product philosophy, historical closeouts, implementation inventories, secrets.
 
 - Branch: `claude/integration-v2`; work sits on **draft PR #56** (`main` =
   `e8e2d70`). CI runs only on `push: [main]`/`pull_request` — no open PR means
-  NO CI; check the PR before claiming CI.
-- Lane: Orena integration — Product UI Foundation + Golden Web Home. Listening
-  catalog lane preserved, explicitly deferred.
+  NO CI; check PR before claiming CI.
+- Lane: Orena integration — Product UI Foundation + Golden Web Home;
+  Listening catalog lane preserved, deferred.
 - Read live HEAD via `git rev-parse HEAD`. Verified application baseline:
-  `e7b846f634009893768875580b517fcf84cfccbb`.
-- That baseline ALREADY CONTAINS, do not re-implement: support-language
-  separation, curated meaning + translation cache, background recovery
-  orchestration, the atomic provider-poll claim, the L3 import pipeline,
+  `eeea1133003a5911616619c44dbe52d39c832ec4`.
+- Baseline ALREADY CONTAINS, do not re-implement: support-language
+  separation, curated meaning+translation cache, background recovery
+  orchestration, atomic provider-poll claim, L3 import pipeline,
   curated-transcript contract (D-046), offline transcript producer, preview
   tier (D-047/D-048), lesson-scoped progress + Continue Learning (D-049), and
-  the Orena product component layer + Home H1/H1.1 (D-051/D-052).
-- Goes stale on EVERY application commit — update it and the YAML together.
+  the Orena product layer + Home H1-H1.2 (D-051-D-053).
+- Goes stale on EVERY commit — update it and the YAML together.
 
 ## Last verified batch
 
-- **H1.1 audit fixes**, local: 866 backend passing (no Python touched), 20/20
-  CI web contracts (H1's 12 + 8 Home handoff tests added this batch), ESM
-  graph and `validate_architecture` OK. Same 8 pre-H1 `.mjs` failures; none
-  in CI, none from this batch.
+- **H1.2 lifecycle/truth fixes**, local: no Python touched (866 backend
+  unchanged), 31/31 CI-gated `.mjs` contracts, ESM graph (55 modules) and
+  `validate_architecture` OK. Same 8 pre-H1 `.mjs` failures plus the isolated
+  goal-editor gap; none in CI.
 - Real EN/ZH playback verified by browser decode, not by a human.
 
 ## RUNTIME — ONE local Orena, read before touching Docker
 
 - **D-048: ONE long-lived runtime.** `ai-writing-coach-writing-coach-1` on
-  `127.0.0.1:8000`, `ai-writing-coach-postgres-1`, one cloudflared. Never start
-  a second container/DB/image/port/tunnel/Compose project or a feature volume.
-- Source is bind-mounted: `docker compose restart writing-coach` suffices for
-  Python/JS/CSS/catalog changes. Rebuild ONLY for Dockerfile/requirements/
-  system packages. Env changes need `up -d`.
-- Images: keep CURRENT `ai-writing-coach:local` and ROLLBACK
+  `127.0.0.1:8000`, `ai-writing-coach-postgres-1`, one cloudflared. Never a
+  second container/DB/image/port/tunnel/Compose project or feature volume.
+- Bind-mounted source: `docker compose restart writing-coach` suffices for
+  Python/JS/CSS/catalog changes; rebuild ONLY for Dockerfile/requirements/
+  system packages; env changes need `up -d`.
+- Images: CURRENT `ai-writing-coach:local`, ROLLBACK
   `orena-rollback:pre-realmedia`. No QA/feature/milestone/test images.
 - **D-047 tier**: `APP_ENV`=runtime/security, `ORENA_DEPLOYMENT_TIER`=content
-  visibility (default production). Preview content needs platform-admin,
-  enforced server-side on listing AND lesson endpoints, per-USER.
-  `compose.preview.yaml` is optional isolated staging only.
-- 8 unused `orena-postgres-preview-data-*` volumes remain; deletion is a HUMAN
-  GATE, reported not removed.
-- `orena.chillpickle.org` runs `cbdedfd`, does NOT follow `main`, no CD. Three
-  worktrees share one Docker runtime; check no other lane is mid-batch.
+  visibility (default production). Preview needs platform-admin, enforced
+  server-side on listing AND lesson endpoints, per-USER. `compose.preview.yaml`
+  is optional isolated staging only.
+- 8 unused `orena-postgres-preview-data-*` volumes remain; deletion is a
+  HUMAN GATE, reported not removed. `orena.chillpickle.org` runs `cbdedfd`,
+  does NOT follow `main`, no CD.
+- Three worktrees share one Docker runtime; check no other lane is mid-batch.
 
 ## IN PROGRESS
 
@@ -62,7 +62,7 @@ product philosophy, historical closeouts, implementation inventories, secrets.
 
 - R0-R20 preserved. Listening ENGINE locally accepted; Writing (`beta`),
   Speaking, Reading (`internal`) complete locally — do not rebuild them.
-- REAL MEDIA CATALOG PARTIAL: two rights-cleared video lessons, five seed audio.
+- REAL MEDIA CATALOG PARTIAL: 2 rights-cleared video lessons, 5 seed audio.
   L2/L3 importer reuses the YouTube adapter and canonical Media Learning
   Object; a failed caption request is never "no captions".
 - L2.5 (D-042/D-044): support/learning language and UI locale distinct; meaning
@@ -72,49 +72,51 @@ product philosophy, historical closeouts, implementation inventories, secrets.
   Dictation/Shadowing; Continue Learning built server-side from real
   PostgreSQL progress with discovery's visibility boundary.
 - **D-051 (H1)**: `orena/product-components.{js,css}`, first reusable Orena
-  layer, opt-in via `data-orena-ui="v2"`. Home body: Hero → Continue → Worlds
-  → For You → Challenge → Continue Exploring; Writing dashboard/score/memory/
-  streak off Home (Journey still renders them, untouched APIs). Worlds: a
-  versioned source (`content/orena_worlds.v1.json` + `world_catalog.py` +
-  `GET /api/worlds`) MEASURED against the real catalog: EN 3/6, ZH 3/6.
-- **D-052 (H1.1)**: 7 audit P1s fixed. Outcome status matches
-  `derive_practice_outcome()`'s real 7 (not 4 invented) — Grammar handoff no
-  longer vanishes on `still_working`/`needs_attention`. Empty sections render
-  nothing (2 real starters replace an empty For You); one surfaced-id set
-  stops double-listing; 4 request groups repaint independently, loading/
-  error/real-empty distinct. Components dropped `bodyHtml`/`secondaryActions`
-  for semantic quote/note/link props. `lang`/`titleLang`/`quoteLang` split
-  interface copy from content language.
+  layer (`data-orena-ui="v2"`). Home: Hero → Continue → Worlds → For You →
+  Challenge → Continue Exploring; Writing dashboard/streak off Home (Journey
+  still renders them). Worlds: versioned source (`orena_worlds.v1.json` +
+  `world_catalog.py` + `GET /api/worlds`) MEASURED: EN 3/6, ZH 3/6.
+- **D-052/D-053 (H1.1/H1.2)**: audit corrections to H1's Home. Outcome status
+  matches `derive_practice_outcome()`'s real 7, not 4 invented; Grammar
+  handoff survives every status. Empty sections show real starters, not
+  placeholders; one surfaced-id set stops double-listing; sections repaint
+  independently. Components dropped `bodyHtml`/`secondaryActions` for
+  semantic props; `lang` splits interface from content language.
+  `renderHome` honors `root._cleanupScreen` plus a bounded settle budget (no
+  stale repaint, no permanent `aria-busy`); Next Practice no longer
+  duplicates a Listening continuation the Hero already shows; a total
+  personal-provider outage reads as unavailable, not empty; a World's lead
+  label splits UI-language prefix from content-language title.
 
 ## CURATED TRANSCRIPT RUNTIME — done, proven in a browser
 
 - **D-046**: transcript acquisition is INGESTION-time; a lesson never calls a
-  transcript provider on open. `tests/test_curated_transcript_contract.py`
-  makes every provider raise and opens real EN/ZH lessons: **10ms**, 0 calls.
-- Provenance travels with the text; older lessons default UNSPECIFIED. Durable
-  rule: PERSISTED CANONICAL TRANSCRIPT ARTIFACT, not "JSON forever".
+  provider on open. `tests/test_curated_transcript_contract.py` makes every
+  provider raise and opens real EN/ZH lessons: **10ms**, 0 calls.
+- Provenance travels with the text; older lessons default UNSPECIFIED: a
+  PERSISTED CANONICAL TRANSCRIPT ARTIFACT, not "JSON forever".
 
 ## L3 SHORT-FORM PILOT — gated on ingestion
 
-- 0 transcripts acquired; nothing invented. Three causes (2026-09-03):
-  transcript body → `IpBlocked`; Supadata → **429**; Groq ASR → yt-dlp
-  resolves 1/11 EN sources and Groq 400s on googlevideo's 302.
-- `scripts/acquire_listening_transcripts.py` produces the offline handoff.
+- 0 transcripts acquired; nothing invented. Three causes: transcript body →
+  `IpBlocked`; Supadata → **429**; Groq ASR → yt-dlp resolves 1/11 EN sources
+  and Groq 400s on googlevideo's 302.
+- `scripts/acquire_listening_transcripts.py` produces the offline handoff;
   `SNAPSHOT_REQUIRED` stays False; pilot packs unchanged (D-045).
 
 ## PENDING
 
-- H2 artwork; then the shell/navigation migration. No Explore/Progress route
-  exists yet, so a World card opens its lead lesson via the autostart handoff.
-- Listening human migration/dogfood step and ingestion work stay preserved.
-- Human playback acceptance of the two real lessons.
+- H2 artwork, then the shell/navigation migration. No Explore/Progress route
+  yet, so a World card opens its lead lesson via the autostart handoff.
+- Listening human migration/dogfood, ingestion work, and human playback
+  acceptance of the two real lessons all stay preserved.
 
 ## BLOCKED
 
-- L3 content: YouTube IP ban (above). L2.5 cold acceptance: Supadata quota, a
+- L3 content: YouTube IP ban (above). L2.5 cold acceptance: Supadata quota,
   paid-provider human gate.
-- Home was NOT rendered signed-in: dogfood requires Google sign-in, a human
-  gate. Verified instead against the real components/CSS in sized frames.
+- Home NOT rendered signed-in: dogfood requires Google sign-in, a human gate.
+  Verified instead against real components/CSS in sized frames.
 
 ## OPEN P0
 
@@ -123,33 +125,32 @@ product philosophy, historical closeouts, implementation inventories, secrets.
 ## OPEN P1
 
 - **L2_5_REAL_COLD_ACCEPTANCE=PENDING_EXTERNAL_PROVIDER_QUOTA** on
-  `iSTlFeW-Z9M` (Supadata 429, D-044 external gate, L2.5 NOT done).
-- L3 content blocked (see L3 SHORT-FORM PILOT above).
-- **Listening MODE not persisted** — Continue Learning resumes lesson/segment,
-  not the prior mode.
-- **Migration `20260903_0005` NOT applied to dogfood DB** (still
-  `20260828_0004`); applying it is a human step.
-- `test_r12_listening_goal_editor.mjs` fails, not in CI: split off the Home
-  habit test; its harness never resolves the library load before asserting.
-- Eight pre-existing `.mjs` failures from before H1; none in CI.
-- `orena/home.css` is largely dead; kept until the shell migration proves no
-  other screen depends on it.
-- Registry is process-local: resume handles do not survive a restart.
-- L1 is web only; native needs L6. iOS VP9/WebM decode unproven.
+  `iSTlFeW-Z9M` (Supadata 429, D-044, L2.5 NOT done). L3 content blocked (see
+  L3 SHORT-FORM PILOT above).
+- **Listening MODE not persisted**: Continue Learning resumes lesson/segment,
+  not the prior mode. **Migration `20260903_0005` NOT applied** to dogfood DB
+  (still `20260828_0004`); applying it is a human step.
+- `test_r12_listening_goal_editor.mjs` and eight pre-H1 `.mjs` tests fail,
+  none in CI (goal-editor: harness never resolves the library load before
+  asserting).
+- `orena/home.css` is largely dead, kept until the shell migration proves
+  nothing depends on it. Registry is process-local: resume handles don't
+  survive a restart. L1 is web only; native needs L6; iOS VP9/WebM unproven.
 
 ## HUMAN GATES
 
 - Standing list: AGENTS.md §15 (production data/runtime, secrets, DNS, paid
   providers, deployment, mobile signing, publication, volume deletion).
-- Signing in to dogfood; deleting the 8 legacy volumes.
+  Signing in to dogfood; deleting 8 legacy volumes.
 
 ## NEXT EXACT TASK
 
-**H2 Golden Home.** H1.1's audit corrections are done — do not re-open them.
-Replace the development artwork wash with approved production artwork inside
-the containers H1 already built, render the signed-in Home at 1440/1024/390,
-compare against `ORENA_HOME_GOLDEN_SPEC.md`, fix the three largest gaps at the
-highest shared level, and render again. Do not redesign H1's composition.
+**H2 Golden Home.** H1.1/H1.2 audit corrections are done — do not re-open
+them. Replace the development artwork wash with approved production artwork
+inside the containers H1 already built, render the signed-in Home at
+1440/1024/390, compare against `ORENA_HOME_GOLDEN_SPEC.md`, fix the three
+largest gaps at the highest shared level, and render again. Do not redesign
+H1's composition.
 
-Listening migration/dogfood and L3 ingestion remain preserved deferred work.
-Do not run production/database mutation while executing UI work.
+Listening migration/dogfood and L3 ingestion stay preserved deferred work. Do
+not run production/database mutation while executing UI work.
