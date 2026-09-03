@@ -26,11 +26,12 @@ or secret values.
 
 ## Last verified batch
 
-- CI + Mobile green at `876dd1a`. Local now: **803 backend passing, 0 failures**,
-  11/11 web contracts, validators OK. (The old 4 admin/reference failures were
-  the Compose-OAuth gotcha; clearing that env passes them.)
-- Real EN/ZH playback verified by browser decode through Orena's own player.
-  Automated evidence, not human acceptance.
+- **CI green at `c02f423`**; Mobile last green at `876dd1a` (path-filtered to
+  `mobile/**`, so it skips backend-only commits). Local: **805 backend passing,
+  0 failures**, 11/11 web contracts, validators OK. Baseline stays `7192cf0`:
+  `c02f423` changed tests only.
+- Real EN/ZH playback verified by browser decode. Automated evidence, not
+  human acceptance.
 
 ## DEPLOYED FOR QA — read before touching the runtime
 
