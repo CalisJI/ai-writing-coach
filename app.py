@@ -58,6 +58,7 @@ from writing_coach.media_providers.supadata import SupadataTranscriptClient
 from writing_coach.media_recovery_policy import build_youtube_adapter
 from writing_coach.media_providers.youtube_audio import YtDlpYouTubeAudioUrlResolver
 from writing_coach.listening_api import preview_visible
+from writing_coach.world_api import router as world_router
 from writing_coach.media_timing import MediaTimingService
 from writing_coach.media_translation import (
     GroqTranslationProvider,
@@ -308,6 +309,9 @@ configure_listening_progress(
 # given support language costs no provider quota.
 configure_listening_translation_cache(_learning_cache)
 app.include_router(listening_progress_router)
+# Worlds are the discovery layer above lessons; they read the same curated
+# catalog and the same preview-visibility rule, so nothing new is authorised.
+app.include_router(world_router)
 install_platform_ai(app, require_admin)
 configure_becoming_memory(_specialized_learning_repository)
 configure_becoming_outcomes(_specialized_learning_repository)
