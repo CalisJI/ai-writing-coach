@@ -756,6 +756,92 @@ console.log('Orena Home H1.1 audit contract: PASS');
 }
 
 console.log('Orena Home H1.2 audit contract: PASS');
+
+/* ================================================================ H1.3 ==== */
+
+/* 20 — cleanup resolves renderHome immediately, and a stale result can never
+   mutate shared learner state --------------------------------------------- */
+{
+  resetApis();
+  cleanState('en');
+  let resolveRecommendation;
+  api.practiceRecommendation=()=>new Promise(resolve=>{resolveRecommendation=resolve;});
+  state.memory=null;
+  state.practiceRecommendation=null;
+  state.latestPracticeOutcome=null;
+
+  const root=homeRoot();
+  const pending=renderHome(root,{sectionBudgetMs:5000});
+  await new Promise(resolve=>setTimeout(resolve,10));
+  assert.equal(typeof root._cleanupScreen,'function',
+    'Home must register the standard app.js screen-cleanup hook');
+
+  // The learner navigates away, and switches their learning language, before
+  // the deferred personal request has answered at all.
+  root._cleanupScreen();
+  state.language='zh';
+  root.innerHTML='<section class="page" data-other-screen="write">Write</section>';
+
+  const disposalStart=Date.now();
+  await pending;
+  assert.ok(Date.now()-disposalStart<200,
+    'cleanup must resolve renderHome immediately, not leave app.js waiting out the section budget');
+
+  // The stale request resolves only now, long after cleanup and the language
+  // switch.
+  resolveRecommendation({
+    language:'en',intent:'repair',focus_category:'grammar',focus_family:'grammar',
+    target_level:'B2',task_type:'story',topic:'a real task',word_target:120,
+  });
+  await new Promise(resolve=>setTimeout(resolve,20));
+
+  assert.equal(root.innerHTML,'<section class="page" data-other-screen="write">Write</section>',
+    'a stale Home repaint must not overwrite the screen the learner navigated to');
+  assert.equal(state.practiceRecommendation,null,
+    'a stale personal result must not overwrite state.practiceRecommendation after cleanup');
+  assert.equal(state.latestPracticeOutcome,null,
+    'a stale personal result must not overwrite state.latestPracticeOutcome after cleanup');
+  assert.equal(state.memory,null,
+    'a stale personal result must not overwrite state.memory after cleanup');
+
+  state.language='en';
+}
+
+/* 21 — a stale dashboard result is held to the same rule -------------------- */
+{
+  resetApis();
+  cleanState('en');
+  let resolveDashboard;
+  api.dashboard=()=>new Promise(resolve=>{resolveDashboard=resolve;});
+  state.dashboard=null;
+
+  const root=homeRoot();
+  const pending=renderHome(root,{sectionBudgetMs:5000});
+  await new Promise(resolve=>setTimeout(resolve,10));
+  root._cleanupScreen();
+  root.innerHTML='<section class="page" data-other-screen="listen">Listen</section>';
+  await pending;
+
+  resolveDashboard({essay_count:9,streak:9,metrics:{}});
+  await new Promise(resolve=>setTimeout(resolve,20));
+
+  assert.equal(state.dashboard,null,
+    'a stale dashboard result must not overwrite state.dashboard after cleanup');
+}
+
+/* 22 — the bounded provider budget still applies while Home stays active --- */
+{
+  resetApis();
+  cleanState('en');
+  api.listeningLibrary=()=>new Promise(()=>{}); // never settles, ever
+  const root=homeRoot();
+  const start=Date.now();
+  await renderHome(root,{sectionBudgetMs:30});
+  assert.ok(Date.now()-start<2000,
+    'renderHome must still resolve on its own budget when Home never gets cleaned up at all');
+}
+
+console.log('Orena Home H1.3 audit contract: PASS');
 }finally{
   Object.assign(api,original);
 }

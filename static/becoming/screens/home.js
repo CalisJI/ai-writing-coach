@@ -613,9 +613,22 @@ export async function renderHome(root,{sectionBudgetMs=HOME_SECTION_BUDGET_MS}={
      must not overwrite whatever screen is on the page now. app.js already
      runs `root._cleanupScreen` before rendering the next screen (ORENA
      screen-cleanup contract); Home hooks into that same contract rather than
-     inventing a second one. */
+     inventing a second one.
+
+     Disposal has to reach past paint(), too: `state.memory`,
+     `state.practiceRecommendation`, `state.latestPracticeOutcome` and
+     `state.dashboard` are shared learner state, not local to this render, and
+     a request that resolves after cleanup can still write into them even
+     though it can no longer paint. `renderLanguage` is a second, independent
+     check on top of `disposed`: a stale result must not apply even in the
+     (currently unreachable, but not contract-guaranteed) case where the
+     learning language changed without a full screen cleanup. */
   let disposed=false;
-  root._cleanupScreen=()=>{ disposed=true; };
+  let resolveDisposal;
+  const disposal=new Promise(resolve=>{ resolveDisposal=resolve; });
+  const renderLanguage=state.language;
+  const stale=()=>disposed||state.language!==renderLanguage;
+  root._cleanupScreen=()=>{ disposed=true; resolveDisposal(); };
 
   /* Four independent groups. Nothing here is awaited together, so the first
      paint waits for none of them and a stalled group costs one section rather
@@ -988,7 +1001,9 @@ export async function renderHome(root,{sectionBudgetMs=HOME_SECTION_BUDGET_MS}={
      analytics itself; it just keeps that shared state populated, and nothing on
      this screen waits for it. */
   const chrome=optional(()=>api.dashboard()).then(dashboard=>{
-    if(dashboard)state.dashboard=dashboard;
+    // Checked here, not at call time: staleness is a property of the moment
+    // this resolves, not the moment it was requested.
+    if(dashboard&&!stale())state.dashboard=dashboard;
   });
 
   /* Six independent sub-requests, each free to fail on its own without taking
@@ -1023,9 +1038,14 @@ export async function renderHome(root,{sectionBudgetMs=HOME_SECTION_BUDGET_MS}={
     const [recommendation,outcomes,memory,readingHistory,speakingHistory,crossCue]=results.map(
       result=>result.status==='fulfilled'?result.value:null,
     );
-    if(memory)state.memory=memory;
-    state.practiceRecommendation=recommendation;
-    state.latestPracticeOutcome=outcomes?.latest||null;
+    // Checked here, at the moment this batch actually resolves, not at the
+    // moment it was requested - a request fired while Home was current can
+    // still land after cleanup, or after the learning language changed.
+    if(!stale()){
+      if(memory)state.memory=memory;
+      state.practiceRecommendation=recommendation;
+      state.latestPracticeOutcome=outcomes?.latest||null;
+    }
     return {recommendation,outcomes,memory,readingHistory,speakingHistory,crossCue};
   };
 
@@ -1046,10 +1066,19 @@ export async function renderHome(root,{sectionBudgetMs=HOME_SECTION_BUDGET_MS}={
      aria-busy stuck at "true" for the rest of the session. Racing against a
      bound lets the render lifecycle move on while the real request keeps
      running in the background and still paints through settle() if it ever
-     answers. */
+     answers.
+
+     `disposal` races alongside it for a narrower reason: cleanup can happen
+     well inside the budget, once the learner has already navigated on to
+     another screen. Without `disposal` in this race, THIS render's own
+     lifecycle - the one that already stopped mattering the moment
+     `root._cleanupScreen` ran - would still hold app.js's `await
+     screen(root)` open for whatever's left of the budget, even though
+     nothing it does from here can reach the page. Disposal lets it resolve
+     immediately instead. */
   let budgetTimer=null;
   const budget=new Promise(resolve=>{ budgetTimer=setTimeout(resolve,sectionBudgetMs); });
-  await Promise.race([settled,budget]);
+  await Promise.race([settled,budget,disposal]);
   // The common case is `settled` winning well inside the budget; clearing the
   // timer then means an outstanding request does not leave a live timer
   // behind it for the rest of the session (or, in a test process, for the
