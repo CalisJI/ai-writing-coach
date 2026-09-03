@@ -1344,3 +1344,52 @@ Contract by replacing any pixel-identical/same-simultaneous-layout
 interpretation with adaptive composition. It does not supersede D-004/D-005
 public-release gates.
 
+## D-051 - Home is built from Orena product components, and a World must have content
+
+**Date:** 2026-09-03
+
+**Status:** Accepted (implements D-050 and the H1 brief)
+
+**Decision:** Migrated Orena learner screens are composed from a shared product
+component layer rather than page-local markup. The first layer ships as
+`static/becoming/orena/product-components.js` and its `.css`, opted into per
+screen with `data-orena-ui="v2"` so a migrated screen cannot restyle a screen
+that has not migrated yet. Home is the first migrated surface: its body is
+JourneyHero → Continue → Explore Worlds → For You Today → Challenge → Continue
+Exploring, and the Writing dashboard, latest-score panel, learning-memory cards,
+streak block and recent-drafts list are no longer Home's.
+
+Worlds become a versioned semantic source: `orena_worlds.v1.json` declares the
+editorial world set per learning language, `world_catalog.py` computes each
+world's availability, lesson count and lead lesson from the real curated
+catalog, and `GET /api/worlds` returns that. A world with no real lesson is
+defined but reports `available: false` and is not offered to a learner.
+Membership is by canonical lesson topic, never by content tag.
+
+Home shows no completion percentage. The D-049 resume contract carries a lesson
+and a segment, not a ratio, so the continuation card states where the learner
+was rather than how far along they are.
+
+**Reason:** The previous Home was a Writing dashboard: same-weight analytics
+panels organised around evidence rather than around wanting to start something.
+Rebuilding it as page-local markup would have produced a second one-off visual
+system, which the Component Contract exists to prevent. Worlds needed a source
+of truth because the tempting failure is a discovery surface that looks full -
+six confident cards per language claiming lessons that were never ingested.
+
+**Consequences:** The catalog is small, so today EN exposes 3 of 6 defined
+worlds and ZH 3 of 6; the rest appear when content does. Learning analytics
+remain available and unchanged at their own surfaces - Journey still reads
+`/api/dashboard` and `/api/learning-memory`, and no backend data or persistence
+was removed. Stable Home handoffs are preserved inside the new components:
+Library due review, personalized Writing practice, the Grammar handoff from the
+latest outcome with its evidence and parent-essay lineage, the review cue, the
+listening goal, and the cross-skill cue. Home tests that asserted the dashboard
+were retired with their reason recorded rather than deleted silently. There is
+no Explore route yet, so a World card opens its lead lesson through the existing
+lesson autostart handoff; a real World route arrives with the shell migration.
+Artwork containers, ratios and crop rules are real, but the artwork itself is a
+textless development placeholder - H2 owns production artwork and visual Golden.
+
+**Supersedes / Superseded by:** Implements D-050 for Home. Does not supersede
+D-049; it consumes that contract. Does not change any public-release gate.

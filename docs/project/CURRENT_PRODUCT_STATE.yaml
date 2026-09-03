@@ -40,17 +40,17 @@
     "expected_development_branch": "claude/integration-v2",
     "lane": "orena_integration"
   },
-  "last_verified_application_commit": "66cbcadcd75b89d2ee44911f15c13ee8031ee74d",
-  "last_verified_batch": "listening_l2_5_support_language_and_recovery_orchestration",
+  "last_verified_application_commit": "cac4ebf2f0e7f3913aa52820c2e587e6c7f1da86",
+  "last_verified_batch": "orena_product_components_and_golden_home_h1",
   "current_program_stage": {
     "id": "R21",
     "name": "Mobile Release Readiness",
     "status": "human_gate"
   },
   "current_primary_workstream": {
-    "id": "listening_real_media_catalog",
+    "id": "orena_golden_web_home",
     "status": "in_progress",
-    "next_task": "HUMAN: apply Alembic 20260903_0005 to the dogfood DB (still at 20260828_0004), then dogfood-accept lesson-scoped progress and Continue Learning - including that a second excerpt of the same source inherits nothing. Listening mode persistence remains a follow-up."
+    "next_task": "H2 Golden Home: replace the development artwork wash with approved production artwork inside the containers H1 built, render the signed-in Home at 1440/1024/390, compare against ORENA_HOME_GOLDEN_SPEC.md and fix the three largest gaps at the highest shared level. Deferred and preserved: HUMAN applies Alembic 20260903_0005 to the dogfood DB (still 20260828_0004) then dogfood-accepts lesson-scoped progress; L3 ingestion; Listening mode persistence."
   },
   "design": {
     "web_is_visual_source_of_truth": true,
@@ -160,7 +160,11 @@
     "most_l1_discovery_rails_are_empty_until_l3_loads_real_content",
     "dev_generated_catalog_is_unreviewed_development_content_never_production",
     "generated_excerpts_are_proposed_candidates_needing_human_curation",
-    "generated_lesson_ids_are_provisional_and_can_move_if_captions_are_retimed"
+    "generated_lesson_ids_are_provisional_and_can_move_if_captions_are_retimed",
+    "home_h1_artwork_is_a_textless_development_placeholder_h2_owns_production_artwork",
+    "home_h1_was_not_rendered_signed_in_because_dogfood_login_is_a_human_gate",
+    "no_explore_route_exists_so_a_world_card_opens_its_lead_lesson",
+    "eight_mjs_tests_fail_at_the_previous_head_and_are_outside_ci"
   ],
   "last_verified_at": "2026-09-02"
 }
