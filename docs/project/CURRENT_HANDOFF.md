@@ -16,12 +16,12 @@ or secret values.
   open PR get NO CI. Check the PR before claiming CI.
 - Lane: Orena integration, Listening catalog.
 - Read live HEAD with `git rev-parse HEAD`. Verified application baseline:
-  `699af1a2801d165fcda869d01a60cba3f7386e7f`.
+  `a25675190f0190c8e43cd1ee64773b4126e6ec28`.
 - That baseline ALREADY CONTAINS, do not re-implement: support-language
   separation, curated meaning + translation cache, Groq token sizing, background
   recovery orchestration, the atomic provider-poll claim, the L3 import
-  pipeline, the curated-transcript contract (D-046), and the offline transcript
-  acquisition producer.
+  pipeline, the curated-transcript contract (D-046), the offline transcript
+  acquisition producer, and the preview deployment tier (D-047).
 - This field goes stale on EVERY application commit — update it and the YAML in
   the same batch, or the next agent rebuilds finished work.
 
@@ -34,20 +34,27 @@ or secret values.
 - Real EN/ZH playback verified by browser decode. Automated evidence, not
   human acceptance.
 
-## DEPLOYED FOR QA — read before touching the runtime
+## DEPLOYMENT TIERS — read before touching any runtime
 
-- `orena.chillpickle.org` still runs `cbdedfd` and does NOT follow `main`, so
-  nothing since L1 is deployed. It is `APP_ENV=production` + PostgreSQL, so the
-  dev overlay is refused there by design — do not weaken that guard.
-- No CD. The domain changes only when someone runs `docker compose --profile
-  public up -d --build writing-coach` on the host. Three worktrees share one
-  Docker runtime; the public stack is `-claudecode`. Check no other lane is
-  mid-batch.
+- **D-047**: `APP_ENV` = runtime/security posture; `ORENA_DEPLOYMENT_TIER` =
+  publication tier. Tier defaults to `production` when unset; an unrecognised
+  value is refused at startup.
+- **PRODUCTION** `orena.chillpickle.org` still runs `cbdedfd` and does NOT
+  follow `main`. Production tier never loads the preview artifact, so preview
+  lessons are absent from the process, not merely hidden.
+- **PREVIEW** `compose.preview.yaml` — a separate Compose project
+  (`orena-preview`), own volumes `orena-preview-*`, own PostgreSQL, loopback
+  port 18080, own tunnel token. Runs `APP_ENV=production` +
+  `ORENA_DEPLOYMENT_TIER=preview`. NOT DEPLOYED YET: Cloudflare/DNS/OAuth are
+  human gates.
+- Preview content stays DEV_CANDIDATE / proposed / rights_review and is visible
+  only to platform admins, enforced server-side on BOTH listing and lesson
+  endpoints. Signing in is not enough.
+- No CD. The domain changes only when someone runs the compose command on the
+  host. Three worktrees share one Docker runtime; the public stack is
+  `-claudecode`. Check no other lane is mid-batch.
 - A human-approved production PostgreSQL migration ran 2026-09-02 to
   `20260828_0004`; one run only, gate stays `approval_required`.
-- OPEN HUMAN QA there: open Listening, exercise `en-science-cosmic-calendar`
-  and `zh-technology-search-wikipedia` for poster, playback, transcript sync,
-  Dictation, Shadowing, resume.
 
 ## IN PROGRESS
 
@@ -76,31 +83,23 @@ or secret values.
 
 - **D-046**: curated transcript acquisition is INGESTION-time; opening a lesson
   never calls a transcript provider. Meaning stays lazy/cached, transcript is
-  eager/persisted. My Media keeps async recovery — CURATED READY only.
+  eager. My Media keeps async recovery — CURATED READY only.
 - Proven not asserted: `tests/test_curated_transcript_contract.py` makes every
   transcript provider raise, then opens real EN and ZH lessons; one test proves
-  the guard itself bites. Measured open **10ms**, 0 provider calls; the browser
-  showed video, segments, Hanzi + toned Pinyin, Dictation and Shadowing.
-- Provenance travels with the text (origin/revision/language/quality_state).
-  Older lessons default to UNSPECIFIED, never "official captions".
-- Storage today is the catalog artifact; the durable rule is PERSISTED CANONICAL
-  TRANSCRIPT ARTIFACT, not "JSON forever".
+  the guard itself bites. Measured open **10ms**, 0 provider calls.
+- Provenance travels with the text; older lessons default to UNSPECIFIED, never
+  "official captions". Storage is the catalog artifact today; the durable rule
+  is PERSISTED CANONICAL TRANSCRIPT ARTIFACT, not "JSON forever".
 
-## L3 SHORT-FORM PILOT — gated: all three acquisition paths blocked
+## L3 SHORT-FORM PILOT — gated on ingestion
 
-- Goal was 1 EN + 1 ZH real short-form lesson on the local web. **Not achieved:
-  0 transcripts acquired.** Nothing invented, nothing published.
-- Three approved paths, three distinct causes, measured 2026-09-03:
-  1. `youtube_transcript_api` body → `IpBlocked` (listing still works).
-  2. Supadata → **HTTP 429 `limit-exceeded`**; quota still exhausted.
-  3. Groq ASR over a provider URL → yt-dlp resolves only 1 of 11 EN sources
-     ("video is not available"); the ZH source resolves, but Groq returns HTTP
-     400 "failed to retrieve media: received status code: 302" — it will not
-     follow googlevideo's redirect.
-- The blocker is INGESTION only: the curated runtime is proven, so a transcript
-  is all that stands between here and a working web lesson.
+- 0 transcripts acquired; nothing invented. Three approved paths, three causes,
+  measured 2026-09-03: `youtube_transcript_api` body → `IpBlocked`; Supadata →
+  **429 `limit-exceeded`**; Groq ASR → yt-dlp resolves only 1 of 11 EN sources
+  and Groq returns 400 "failed to retrieve media: received status code: 302".
+- The blocker is INGESTION only; the curated runtime is proven.
 - `scripts/acquire_listening_transcripts.py` is the producer half of the offline
-  handoff. It refuses to invent, never relabels ASR as provider captions, never
+  handoff: it refuses to invent, never relabels ASR as provider captions, never
   re-acquires, and its output is tested through the consumer adapter.
 - `SNAPSHOT_REQUIRED` stays False. Pilot packs unchanged (D-045).
 

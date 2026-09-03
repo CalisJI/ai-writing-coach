@@ -1147,3 +1147,56 @@ pipeline is not duplicated.
 architecture the code already had but did not guarantee. Extends D-042's
 disclosure rule to persisted curated transcripts.
 
+## D-047 - A preview deployment tier, separate from APP_ENV
+
+**Date:** 2026-09-03
+
+**Status:** Accepted (human product decision)
+
+**Decision:** Orena gains an explicit deployment tier, `ORENA_DEPLOYMENT_TIER`,
+with values `production` and `preview`. It is distinct from `APP_ENV`:
+
+    APP_ENV                runtime and security posture (HTTPS, Google auth,
+                           secure cookies, fail-fast guards)
+    ORENA_DEPLOYMENT_TIER  product publication tier: which catalog content this
+                           deployment may expose at all
+
+A preview deployment runs `APP_ENV=production` with
+`PERSISTENCE_BACKEND=postgresql` on its own database, reached over real HTTPS
+with real Google login. It is production-like runtime behaviour with restricted
+unreviewed content. It is NOT production publication.
+
+The tier defaults to `production` when unset, and an unrecognised value is
+refused at startup rather than coerced.
+
+**Reason:** The previous preview rule (D-043) put unreviewed content on a local
+development runtime. That was right for a throwaway check and wrong for using
+Orena as a learner: `APP_ENV=development` skips the auth, cookie and persistence
+paths that production actually uses, and SQLite cannot exercise the Listening
+progress/resume path at all. A preview that does not exercise production
+behaviour cannot tell us whether production behaviour works.
+
+**Consequences:** Production tier never loads the preview artifact, so preview
+lessons are absent from the process rather than filtered from a response - the
+failure mode is closed, not cosmetic. On preview tier, visibility is enforced
+server-side in the catalog on both the listing and the single-lesson endpoint,
+and requires the existing platform-admin role; authentication alone is not
+enough, because preview content is unreviewed with unresolved rights.
+
+Preview content keeps DEV_CANDIDATE / proposed / rights_review /
+reviewed_level null, and uses the same lesson model, canonical segments,
+Dictation, Shadowing, Meaning, Pinyin and progress model as everything else.
+Only visibility differs.
+
+`compose.preview.yaml` is a separate Compose project with its own volumes,
+database, loopback port and tunnel token, so preview runs beside production
+without stopping it and shares no production data. Deployment, DNS, Cloudflare
+and Google OAuth changes remain human gates.
+
+**Supersedes / Superseded by:** EXTENDS **D-043**, which stays correct for local
+development QA of generated content. D-043's rule that unreviewed content must
+never reach the production deployment is unchanged and is now enforced by the
+tier rather than only by APP_ENV. Supersedes no rights, persistence or
+publication contract: preview visibility is a deployment concern, not a
+publication decision.
+
