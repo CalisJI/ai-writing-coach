@@ -1054,3 +1054,45 @@ as an open item even if L3 completes and the next task advances to L4.
 pass completely before L3 began. Supersedes no product, rights or persistence
 contract, and does not weaken any production guard.
 
+## D-045 - Listening content is short-form dialogue, not long informational video
+
+**Date:** 2026-09-03
+
+**Status:** Accepted (human product decision)
+
+**Decision:** The Listening library's primary material is short memorable
+dialogue: movie and animation scene excerpts, quotes in real spoken context,
+short stories and situational comedy, natural conversational speech. Most
+lessons run 15-60 seconds, up to ~90 when a scene needs the context. Long
+informational video is no longer primary material and is used only where it
+contains clearly excerptable sections. The 100 EN / 100 ZH development pack is
+retired as the primary source strategy; the first pilot families are Kung Fu
+Panda scene clips from licensed distributors (EN) and the DaihuaXiyou 呆話西遊
+channel (ZH).
+
+**Reason:** The old pack was too long, too informational and too boring for the
+product this is meant to be. The learner should think "I want to watch this",
+not "I am opening a textbook video". Excerpt length should follow the natural
+dialogue unit - setup, response, conclusion - rather than a fixed duration.
+
+**Consequences:** Pilot source packs
+`listening_sources_en_pilot_dialogue.csv` (11 rows) and
+`listening_sources_zh_pilot_daihuaxiyou.csv` (6 rows) encode the new policy at
+15-90 seconds and at most two excerpts per source. Every row's channel identity
+was verified through provider oEmbed rather than assumed, and reupload channels
+were excluded rather than used to pad the count. Rights truth is unchanged:
+everything stays DEV_CANDIDATE / rights_review / proposed / reviewed_level null,
+because availability on YouTube is not publication permission.
+
+A structural consequence found while verifying: short-form animation channels
+commonly disable captions entirely. All 7 DaihuaXiyou videos checked have
+captions disabled, so this content direction depends on generated transcript
+recovery - a paid provider - far more than the old informational pack did. That
+is a cost and gating consideration for scaling, not a reason to reject the
+direction.
+
+**Supersedes / Superseded by:** Supersedes the source strategy behind the
+100 EN / 100 ZH development pack as primary Listening material. Supersedes no
+rights, persistence or excerpt-timing contract - excerpt boundaries still come
+only from real transcript timing.
+
