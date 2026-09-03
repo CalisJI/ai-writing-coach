@@ -1,3 +1,17 @@
+# NOT THE NORMAL WORKFLOW. Superseded as the default path by D-048.
+#
+# This machine runs ONE long-lived Orena runtime: the main compose stack on
+# 127.0.0.1:8000, with one PostgreSQL and one Cloudflare tunnel. Preview content
+# is a per-user authorization capability of THAT runtime - set
+# ORENA_DEPLOYMENT_TIER=preview in the existing .env - not a reason for a second
+# deployment. Do not start this file for ordinary development, and do not create
+# orena-preview-* volumes.
+#
+# It is kept only as an optional ISOLATED STAGING pattern: a throwaway
+# environment with its own database, for something that genuinely must not share
+# persistence with the dogfood runtime. Starting it is a deliberate, explicit
+# act with its own human deployment gates.
+#
 # Orena PREVIEW deployment — production-like runtime, restricted content.
 #
 # Deliberately a SEPARATE Compose project (`name:` below) rather than an

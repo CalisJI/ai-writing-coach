@@ -57,7 +57,7 @@ from writing_coach.media_ingestion import MediaIngestionService
 from writing_coach.media_providers.supadata import SupadataTranscriptClient
 from writing_coach.media_recovery_policy import build_youtube_adapter
 from writing_coach.media_providers.youtube_audio import YtDlpYouTubeAudioUrlResolver
-from writing_coach.core.deployment import TIER_PREVIEW, resolve_deployment_tier
+from writing_coach.listening_api import preview_visible
 from writing_coach.media_timing import MediaTimingService
 from writing_coach.media_translation import (
     GroqTranslationProvider,
@@ -639,18 +639,21 @@ def startup() -> None:
 
 
 @app.get("/", response_class=HTMLResponse)
-def home() -> HTMLResponse:
+def home(request: Request = None) -> HTMLResponse:  # type: ignore[assignment]
     # The shell carries the list of stylesheets and modules the app loads, so a
     # cached copy of it keeps loading yesterday's asset list - a stylesheet
     # added since is simply never requested, and the screen renders unstyled.
     # Every asset already answers `no-store`; the document that names them has
     # to as well.
     shell = (ROOT / "templates" / "becoming" / "index.html").read_text(encoding="utf-8")
-    # A preview deployment looks exactly like production by design, which is
-    # also its one risk: somebody has to be able to tell which one they are
-    # looking at. One small marker, server-rendered so it cannot be spoofed by
-    # a client and needs no change to the pinned session contract.
-    if resolve_deployment_tier() == TIER_PREVIEW:
+    # The marker is scoped to the people who can actually see preview content,
+    # not to the deployment. One runtime serves normal learners and admin
+    # dogfooding at the same time, so a deployment-wide badge would tell every
+    # learner they are using a preview when, for them, they are not: they see
+    # the ordinary product. Server-rendered against the same admin check that
+    # gates the content, so a client cannot summon it and the pinned session
+    # contract is untouched.
+    if preview_visible(request):
         shell = shell.replace(
             "</body>",
             '<div class="orena-preview-badge" role="status" aria-label="Preview deployment">'

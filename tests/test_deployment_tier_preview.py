@@ -323,29 +323,74 @@ def test_preview_authorization_is_not_client_side(monkeypatch, tmp_path) -> None
         "both the listing and the single-lesson endpoint must be gated"
 
 
-# --- the preview marker ------------------------------------------------------
+# --- the preview marker is scoped to people, not to the deployment ----------
 
-def test_the_shell_marks_a_preview_deployment_and_nothing_else(monkeypatch) -> None:
-    """Preview looks like production on purpose; one marker says which it is."""
+def test_a_normal_learner_never_sees_a_preview_marker(monkeypatch) -> None:
+    """One runtime serves normal learners and admin dogfooding at once.
+
+    A deployment-wide badge would tell every learner they are on a preview when,
+    for them, they are not: they see the ordinary product. So the marker follows
+    the same admin check that gates the content.
+    """
 
     monkeypatch.setenv(DEPLOYMENT_TIER_ENV, TIER_PREVIEW)
+    import writing_coach.listening_api as listening_api
+    monkeypatch.setattr(listening_api, "preview_visible", lambda request: False)
+    import app as orena_app
+    monkeypatch.setattr(orena_app, "preview_visible", lambda request: False)
+
+    body = client().get("/").text
+    assert "orena-preview-badge" not in body, "a normal learner sees the normal product"
+
+
+def test_an_authorized_admin_sees_the_marker(monkeypatch) -> None:
+    monkeypatch.setenv(DEPLOYMENT_TIER_ENV, TIER_PREVIEW)
+    import app as orena_app
+    monkeypatch.setattr(orena_app, "preview_visible", lambda request: True)
+
     body = client().get("/").text
     assert 'class="orena-preview-badge"' in body
     assert body.count("orena-preview-badge") == 1
-    assert "</body>" in body, "the shell must still be a complete document"
+    assert "</body>" in body
 
+
+def test_production_tier_shows_no_marker_to_anyone(monkeypatch) -> None:
     monkeypatch.delenv(DEPLOYMENT_TIER_ENV, raising=False)
-    production = client().get("/").text
-    assert "orena-preview-badge" not in production, "production must carry no marker"
+    assert "orena-preview-badge" not in client().get("/").text
 
 
-def test_the_marker_is_server_rendered_not_client_asserted(monkeypatch) -> None:
-    """A client cannot invent it, and the pinned session contract is untouched."""
+def test_the_marker_uses_the_same_gate_as_the_content(monkeypatch) -> None:
+    """One check, not two that can drift apart."""
 
-    monkeypatch.setenv(DEPLOYMENT_TIER_ENV, TIER_PREVIEW)
     from pathlib import Path as _Path
-    source = (_Path(__file__).resolve().parents[1] / "app.py").read_text(encoding="utf-8")
-    assert "resolve_deployment_tier() == TIER_PREVIEW" in source
-    # The session bootstrap contract keeps its exact key set.
-    assert "orena-preview-badge" not in (
-        _Path(__file__).resolve().parents[1] / "auth_support.py").read_text(encoding="utf-8")
+    root = _Path(__file__).resolve().parents[1]
+    app_source = (root / "app.py").read_text(encoding="utf-8")
+    assert "if preview_visible(request):" in app_source
+    assert "resolve_deployment_tier() == TIER_PREVIEW" not in app_source,         "the shell must not decide visibility on tier alone"
+    # The pinned session contract keeps its exact key set.
+    assert "orena-preview-badge" not in (root / "auth_support.py").read_text(encoding="utf-8")
+
+
+def test_one_runtime_serves_both_audiences(monkeypatch, tmp_path) -> None:
+    """The single-runtime topology: same process, different answers per caller."""
+
+    lesson_id = install_preview_lesson(monkeypatch, tmp_path)
+    monkeypatch.setenv(DEPLOYMENT_TIER_ENV, TIER_PREVIEW)
+    import writing_coach.listening_api as listening_api
+    import app as orena_app
+
+    # A normal learner: ordinary product, no preview lesson, no marker.
+    monkeypatch.setattr(listening_api, "preview_visible", lambda request: False)
+    monkeypatch.setattr(orena_app, "preview_visible", lambda request: False)
+    assert client().get(f"/api/listening/library/{lesson_id}").status_code == 404
+    assert "orena-preview-badge" not in client().get("/").text
+    learner_items = {item["lesson_id"]
+                     for item in client().get("/api/listening/library").json()["items"]}
+    assert lesson_id not in learner_items
+    assert learner_items, "the learner still gets the real catalog"
+
+    # An admin on the SAME runtime: preview content and the marker.
+    monkeypatch.setattr(listening_api, "preview_visible", lambda request: True)
+    monkeypatch.setattr(orena_app, "preview_visible", lambda request: True)
+    assert client().get(f"/api/listening/library/{lesson_id}").status_code == 200
+    assert "orena-preview-badge" in client().get("/").text
