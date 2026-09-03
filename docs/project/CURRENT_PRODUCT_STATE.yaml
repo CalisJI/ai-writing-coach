@@ -40,7 +40,7 @@
     "expected_development_branch": "claude/integration-v2",
     "lane": "orena_integration"
   },
-  "last_verified_application_commit": "7192cf0eadc2c536d83a40e6323584583b20fad5",
+  "last_verified_application_commit": "699af1a2801d165fcda869d01a60cba3f7386e7f",
   "last_verified_batch": "listening_l2_5_support_language_and_recovery_orchestration",
   "current_program_stage": {
     "id": "R21",
@@ -50,7 +50,7 @@
   "current_primary_workstream": {
     "id": "listening_real_media_catalog",
     "status": "in_progress",
-    "next_task": "L3 pipeline is complete but content is BLOCKED: YouTube IpBlocked refuses transcript bodies from this host, and the ZH pack has only 13/100 Chinese-captioned rows. Needs a human decision on an unblocked network, paid bulk recovery, or a replacement ZH pack. L2.5 cold acceptance on iSTlFeW-Z9M also stays PENDING_EXTERNAL_PROVIDER_QUOTA."
+    "next_task": "L3 short-form pilot is gated on transcript INGESTION only: IpBlocked, Supadata 429, and Groq cannot fetch googlevideo 302. Run scripts/acquire_listening_transcripts.py from an unblocked host, then build here with --offline-transcripts. Curated runtime (D-046) is done."
   },
   "design": {
     "web_is_visual_source_of_truth": true,

@@ -16,11 +16,12 @@ or secret values.
   open PR get NO CI. Check the PR before claiming CI.
 - Lane: Orena integration, Listening catalog.
 - Read live HEAD with `git rev-parse HEAD`. Verified application baseline:
-  `7192cf0eadc2c536d83a40e6323584583b20fad5`.
+  `699af1a2801d165fcda869d01a60cba3f7386e7f`.
 - That baseline ALREADY CONTAINS, do not re-implement: support-language
   separation, curated meaning + translation cache, Groq token sizing, background
   recovery orchestration, the atomic provider-poll claim, the L3 import
-  pipeline, and the curated-transcript runtime contract (D-046).
+  pipeline, the curated-transcript runtime contract (D-046), and the offline
+  transcript acquisition producer.
 - This field goes stale on EVERY application commit — update it and the YAML in
   the same batch, or the next agent rebuilds finished work.
 
@@ -71,37 +72,37 @@ or secret values.
 - Groq key is VALID; never replace it. HTTP 403 was Cloudflare 1010 refusing a
   `Python-urllib` UA, not a bad key.
 
-## CURATED TRANSCRIPT MVP — done, proven in a browser
+## CURATED TRANSCRIPT RUNTIME — done, proven in a browser
 
-- **D-046**: curated transcript acquisition is INGESTION-time. Opening a curated
-  lesson never calls a transcript provider. Meaning stays lazy/cached, transcript
-  is eager/persisted. My Media keeps async recovery — CURATED READY only.
+- **D-046**: curated transcript acquisition is INGESTION-time; opening a lesson
+  never calls a transcript provider. Meaning stays lazy/cached, transcript is
+  eager/persisted. My Media keeps async recovery — CURATED READY only.
 - Proven not asserted: `tests/test_curated_transcript_contract.py` makes every
-  provider raise, then opens real EN and ZH lessons; one test proves the guard
-  itself bites, so the suite cannot pass vacuously.
-- Measured: open **10ms**, 0 provider calls. Browser showed video, timestamped
-  segments, Hanzi + toned Pinyin, Dictation and Shadowing; the only external
-  request was the media file streaming.
+  transcript provider raise, then opens real EN and ZH lessons; one test proves
+  the guard itself bites. Measured open **10ms**, 0 provider calls; the browser
+  showed video, segments, Hanzi + toned Pinyin, Dictation and Shadowing.
 - Provenance travels with the text (origin/revision/language/quality_state).
   Older lessons default to UNSPECIFIED, never "official captions".
 - Storage today is the catalog artifact; the durable rule is PERSISTED CANONICAL
   TRANSCRIPT ARTIFACT, not "JSON forever".
-- `OfflineTranscriptAdapter` + `--offline-transcripts`: one machine acquires, a
-  blocked host builds with no network.
 
-## L3 STATUS — strategy replaced (D-045); ingestion blocked
+## L3 SHORT-FORM PILOT — gated: all three acquisition paths blocked
 
-- Content is short-form dialogue now, 15-90s. Pilot packs:
-  `listening_sources_en_pilot_dialogue.csv` (11 Kung Fu Panda clips from
-  licensed distributors, all with EN captions) and
-  `listening_sources_zh_pilot_daihuaxiyou.csv` (6). Channels verified via
-  oEmbed; reuploads excluded, not used to pad.
-- **IP_BLOCKED_REPRODUCED=YES**: `IpBlocked` on transcript BODY fetch; metadata
-  and caption LISTING still work. External block, not a code defect. No proxy.
-- **All 7 DaihuaXiyou videos checked have captions DISABLED** — the ZH pilot
-  needs paid recovery even once the ban lifts.
-- Nothing generated or committed; `SNAPSHOT_REQUIRED` stays False. Evidence:
-  `l3_import_report.json`, `l3_caption_audit.json` (local).
+- Goal was 1 EN + 1 ZH real short-form lesson on the local web. **Not achieved:
+  0 transcripts acquired.** Nothing invented, nothing published.
+- Three approved paths, three distinct causes, measured 2026-09-03:
+  1. `youtube_transcript_api` body → `IpBlocked` (listing still works).
+  2. Supadata → **HTTP 429 `limit-exceeded`**; quota still exhausted.
+  3. Groq ASR over a short-lived provider URL → yt-dlp resolves only 1 of 11 EN
+     pilot sources ("video is not available" for the Movieclips ones); the ZH
+     source resolves, but Groq returns HTTP 400 "failed to retrieve media:
+     received status code: 302" — it will not follow googlevideo's redirect.
+- The blocker is INGESTION only. The curated runtime (D-046) is done and proven,
+  so a transcript is all that stands between here and a working web lesson.
+- `scripts/acquire_listening_transcripts.py` is the producer half of the offline
+  handoff. It refuses to invent, never relabels ASR as provider captions, never
+  re-acquires, and its output is tested through the consumer adapter.
+- `SNAPSHOT_REQUIRED` stays False. Pilot packs unchanged (D-045).
 
 ## PENDING
 
@@ -144,14 +145,15 @@ or secret values.
 
 ## NEXT EXACT TASK
 
-The learner runtime is done and proven; only content acquisition is blocked. Get
-an unblocked ingestion path, then run the pilot:
+Acquire transcripts from an unblocked host; everything downstream is done.
 
-    python scripts/build_listening_dev_catalog.py       writing_coach/content/listening_sources_en_pilot_dialogue.csv       writing_coach/content/listening_sources_zh_pilot_daihuaxiyou.csv       --pause-seconds 3.5 --retry-passes 3 --report l3_pilot_report.json
+    python scripts/acquire_listening_transcripts.py <the two pilot CSVs>       --out pilot_transcripts.json --limit 2
 
-Options: (1) run it from an unblocked network, or acquire there and hand over a
-transcript JSON for `--offline-transcripts`; (2) authorise Supadata for
-development recovery — needed anyway for the ZH family, which has no captions.
-Then QA on a local development runtime, never the production domain (**D-043**);
-`SNAPSHOT_REQUIRED` stays False until we agree to scale. Separately, when quota
-resets, run the ONE L2.5 cold acceptance on `iSTlFeW-Z9M`.
+Then here, with no network at all:
+
+    python scripts/build_listening_dev_catalog.py <the two pilot CSVs>       --offline-transcripts pilot_transcripts.json --report l3_pilot_report.json
+
+Restoring Supadata quota is the alternative, and also unblocks the ZH family
+(no captions at all) and the ONE remaining L2.5 cold acceptance on
+`iSTlFeW-Z9M`. QA on a local development runtime, never the production domain
+(**D-043**); `SNAPSHOT_REQUIRED` stays False until we agree to scale.
