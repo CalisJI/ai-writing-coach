@@ -54,6 +54,13 @@ _VIDEO_ID = re.compile(r"^[A-Za-z0-9_-]{11}$")
 _OEMBED_ENDPOINT = "https://www.youtube.com/oembed"
 
 
+# Why an acquisition carries the transcript it does.
+TRANSCRIPT_NATIVE = "native"
+TRANSCRIPT_ABSENT = "absent"
+TRANSCRIPT_MALFORMED = "malformed"
+TRANSCRIPT_PROBE_FAILED = "probe_failed"
+
+
 @dataclass(frozen=True)
 class YouTubeCaptionSnippet:
     """Provider caption fields before deterministic M1.1 normalization."""
@@ -473,6 +480,19 @@ class YouTubeMediaProviderAdapter:
                 raise ProviderTranscriptMalformed()
             if native_caption_error is not None:
                 raise native_caption_error
+
+        # Deferral means a missing transcript is not fatal. It must NOT mean a
+        # failed caption request is quietly reported as "this source has no
+        # captions": one is a fact about the source, the other is a fact about
+        # the network, and only the first should ever be acted on.
+        if transcript is not None:
+            transcript_status = TRANSCRIPT_NATIVE
+        elif native_malformed:
+            transcript_status = TRANSCRIPT_MALFORMED
+        elif native_caption_error is not None:
+            transcript_status = TRANSCRIPT_PROBE_FAILED
+        else:
+            transcript_status = TRANSCRIPT_ABSENT
         source_language = transcript.source_language if transcript is not None else "und"
         asset = MediaLearningAsset(
             asset_id=asset_id,
@@ -497,4 +517,5 @@ class YouTubeMediaProviderAdapter:
                 kind="embed",
                 url=youtube_embed_url(video_id),
             ),
+            transcript_status=transcript_status,
         )
