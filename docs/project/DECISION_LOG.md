@@ -1296,3 +1296,51 @@ only. That is recorded as a follow-up rather than claimed.
 introduced with durable Listening progress. Supersedes no persistence,
 publication or visibility contract.
 
+## D-050 - Orena discovery is world-first; Web launches first with adaptive composition
+
+**Date:** 2026-09-03
+
+**Status:** Accepted (human product/design decision)
+
+**Decision:** Orena's learner-facing discovery model is world-first:
+
+```text
+Language → World → Zone → Journey → Lesson → Activity
+```
+
+Listening, Speaking, Reading, Writing, Grammar, Vocabulary/Dictionary and Review
+remain connected learning mechanisms, but Home/Explore do not have to present
+them as a flat primary feature menu. Home owns motivation, discovery and real
+continuation; detailed learning analytics live on a separate Progress surface.
+
+Orena launches on responsive Web first. The Web product is the design and
+product-meaning source of truth, but cross-platform parity follows **shared
+meaning, adaptive composition** rather than pixel-identical layout. Desktop may
+show more useful content simultaneously; tablet/mobile may progressively reveal
+the same product meaning with different columns, rails, stacking, chrome and
+gesture patterns.
+
+The initial UI-system proof is the Golden Web slice Home → World → Listening
+Journey. This establishes the Orena product UI kit and responsive grammar; it
+does not by itself change existing public-release gates for skills.
+
+**Reason:** Previous AI-generated UI repeatedly converged on sterile,
+same-weight SaaS/dashboard patterns and made mobile a separate redesign effort.
+The new system must create emotional pull before disciplined learning, while
+remaining production-realistic and reusable across Web and later native
+clients.
+
+**Consequences:** `docs/ORENA_PRODUCT_DNA.md`,
+`docs/ORENA_DESIGN_TOKENS.json`, `docs/ORENA_COMPONENT_CONTRACT.md`,
+`docs/ORENA_RESPONSIVE_COMPOSITION.md`, and relevant Golden Specs govern
+migrated learner UI. Agents compose approved product components/recipes instead
+of redesigning from a blank canvas. Golden screens are reviewed at 1440, 1024
+and 390 widths. Home analytics blocks are prohibited; journey-specific progress
+cues remain allowed. Native preserves product semantics, feature access, state
+and visual DNA but need not preserve desktop simultaneous visibility.
+
+**Supersedes / Superseded by:** Clarifies and extends D-040 and the Design
+Contract by replacing any pixel-identical/same-simultaneous-layout
+interpretation with adaptive composition. It does not supersede D-004/D-005
+public-release gates.
+

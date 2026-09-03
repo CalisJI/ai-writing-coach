@@ -14,7 +14,9 @@ or secret values.
   `e8e2d70`); work since sits on **draft PR #56**.
 - CI runs only on `push: [main]` and `pull_request`, so branch commits with no
   open PR get NO CI. Check the PR before claiming CI.
-- Lane: Orena integration, Listening catalog.
+- Lane: Orena integration, Product UI Foundation + Golden Web Home. The prior
+  Listening catalog lane is preserved and explicitly deferred until the human
+  returns to it; do not discard its verified state.
 - Read live HEAD with `git rev-parse HEAD`. Verified application baseline:
   `66cbcadcd75b89d2ee44911f15c13ee8031ee74d`.
 - That baseline ALREADY CONTAINS, do not re-implement: support-language
@@ -63,8 +65,11 @@ or secret values.
 
 ## IN PROGRESS
 
-- Listening batches from `docs/product/AGENT_IMPLEMENTATION_ORDER.md`: L1 and L2
-  implemented, L2.5 one live check from done, L3 blocked on ingestion (below).
+- Human-directed priority: integrate Orena Product UI Foundation v0.1 into
+  canonical startup/design contracts, then implement and visually prove the
+  Golden Web Home.
+- Listening batches remain preserved: L1 and L2 implemented, L2.5 one live
+  check from done, L3 blocked on ingestion. They are deferred, not invalidated.
 
 ## DONE
 
@@ -107,6 +112,10 @@ or secret values.
 
 ## PENDING
 
+- Golden Home implementation after the UI integration gate passes.
+- Preserve the Listening human migration/dogfood step and ingestion work for
+  when the human resumes that lane; do not silently execute production/runtime
+  mutation as part of UI work.
 - Unblock the import environment, run the pilot, then L4-L7.
 - Human playback acceptance of the two real lessons.
 
@@ -141,15 +150,16 @@ or secret values.
 
 ## NEXT EXACT TASK
 
-**Human step first — apply the migration, then dogfood.** Nothing in the last
-batch is usable until the dogfood DB moves from `20260828_0004` to
-`20260903_0005`; the exact command is in the batch report and uses
-`alembic.ini` with `script_location=migrations` and the runtime URL.
+**Orena UI Integration Gate v0.1.**
 
-Then acceptance: sign in, make Dictation and Shadowing progress in one lesson,
-leave and return — Continue Learning shows it and reopens the right excerpt and
-segment; close the browser, reopen, restart `writing-coach`, progress remains;
-and a SECOND excerpt of the same source must show no inherited progress.
+1. Make canonical UI startup read the Orena Product UI Foundation.
+2. Replace the legacy writing/dashboard Home screen contract with the
+   motivation → discovery → continuation Home contract.
+3. Validate project memory and the screen/release contract.
+4. Commit this governance/contract batch separately.
+5. Then inspect the real Home implementation and backend data sources before
+   coding Golden Home. Do not redesign from a blank canvas.
 
-After that L4, but only once L2.5's cold acceptance and L3 ingestion are
-unblocked or explicitly deferred by a human.
+Listening migration/dogfood and L3 ingestion remain preserved deferred work.
+Do not run production/database mutation while executing this UI batch unless
+the human explicitly returns to that gate.
