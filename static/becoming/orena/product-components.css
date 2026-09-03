@@ -127,6 +127,12 @@ html[data-theme="dark"] [data-orena-ui="v2"]{
   color:var(--oc-ink-muted);
 }
 
+[data-orena-ui="v2"] .oc-empty[data-oc-notice="loading"]{
+  border-style:solid;
+  color:var(--oc-ink-muted);
+  opacity:.75;
+}
+
 [data-orena-ui="v2"] .oc-empty{
   margin:0;
   padding:var(--oc-space-5);
@@ -186,7 +192,18 @@ html[data-theme="dark"] [data-orena-ui="v2"]{
   background:var(--oc-accent,var(--oc-orange-500));
 }
 
-[data-orena-ui="v2"] .cjk{font-family:var(--oc-font-cjk);line-height:var(--oc-line-cjk);letter-spacing:0}
+/* CJK typography is attached to the TEXT, not to the screen. Components emit
+   `lang` on the element carrying the string, so a Chinese lesson title reads
+   correctly inside an English interface and an English button does not pick up
+   CJK metrics because the learner happens to study Chinese. `:lang()` does the
+   work; `.cjk` is kept as the explicit hook for the same elements. */
+[data-orena-ui="v2"] .cjk,
+[data-orena-ui="v2"] [lang="zh"],
+[data-orena-ui="v2"] [lang^="zh-"]{
+  font-family:var(--oc-font-cjk);
+  line-height:var(--oc-line-cjk);
+  letter-spacing:0;
+}
 
 /* ========================================================== artwork ====== */
 
@@ -410,7 +427,7 @@ html[data-theme="dark"] [data-orena-ui="v2"]{
   line-height:var(--oc-line-body);
   color:var(--oc-ink-muted);
 }
-[data-orena-ui="v2"] .oc-tile blockquote{
+[data-orena-ui="v2"] .oc-quote{
   margin:0;
   padding-left:var(--oc-space-3);
   border-left:3px solid var(--oc-accent,var(--oc-orange-300));
@@ -460,14 +477,8 @@ html[data-theme="dark"] [data-orena-ui="v2"]{
 }
 [data-orena-ui="v2"] .oc-challenge .oc-btn{justify-self:start}
 
-[data-orena-ui="v2"] .oc-challenge-stack{display:grid;gap:var(--oc-space-4)}
-
-/* Cross-skill still renders the shared legacy card markup, because Journey
-   renders the same component. It is boxed here rather than forked. */
-[data-orena-ui="v2"] .oc-legacy-slot > .o-card{
-  border-radius:var(--oc-radius-card);
-  box-shadow:var(--oc-shadow-soft);
-}
+/* A vertical run of product components inside a section. */
+[data-orena-ui="v2"] .oc-stack{display:grid;gap:var(--oc-space-4)}
 
 /* ======================================================== discovery ====== */
 
@@ -515,6 +526,9 @@ html[data-theme="dark"] [data-orena-ui="v2"]{
     gap:var(--oc-space-8);
     align-items:start;
   }
+  /* When there is no truthful challenge to make, the Challenge section is not
+     rendered at all, and the row must not hold an empty column open for it. */
+  [data-orena-ui="v2"] .oc-home-row[data-columns="1"]{grid-template-columns:minmax(0,1fr)}
 }
 
 /* Tablet 1024: the hero stacks, worlds fall to two columns, supporting

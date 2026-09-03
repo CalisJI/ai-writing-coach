@@ -1,4 +1,4 @@
-/* Orena Home — migrated to the Orena Product UI System (H1).
+/* Orena Home — the Orena Product UI System (H1, corrected by the H1.1 audit).
  *
  * Home's job is motivation, discovery and real continuation. It is not a
  * dashboard, and the analytics that used to live here - the Writing cycle, the
@@ -13,17 +13,22 @@
  *   JourneyHero -> Continue -> Explore Worlds -> For You Today
  *   -> Challenge -> Continue Exploring
  *
- * Two rules run through the whole file.
+ * Four rules run through the whole file.
  *
- * Nothing is invented. Every card is backed by a real record; a section with no
- * data says so rather than showing a plausible number. There is deliberately no
- * completion percentage on the continuation card: the D-049 resume contract
- * carries a lesson and a segment, not a ratio.
+ * Nothing is invented. Every card is backed by a real record. There is
+ * deliberately no completion percentage on the continuation card: the D-049
+ * resume contract carries a lesson and a segment, not a ratio.
  *
- * Every section fails alone. Worlds, the listening library, recommendations and
- * the vocabulary library are fetched independently, and a failure in any of
- * them degrades that one section. Losing the network must not erase a real
- * writing draft or a real resume point.
+ * A section with nothing to say says nothing. A learner with no history gets
+ * discovery - real starter lessons from the catalog - not a wall of cards
+ * explaining what they have not done yet. An absent card IS the empty state.
+ *
+ * Nothing is offered twice. One set of surfaced lesson ids is threaded through
+ * the continuation, For You and Continue Exploring in that order.
+ *
+ * Sections load independently. The first paint happens before any request
+ * resolves, and each group of requests repaints only what it owns, so one slow
+ * or failing provider cannot hold the page.
  */
 
 import {api} from '../api.js';
@@ -33,9 +38,9 @@ import {requestLessonAutostart,resumableLesson} from '../domain/media-lesson-his
 import {listeningHabitSnapshot} from '../domain/listening-habit.js';
 import {selectSharedMediaSegment,getSharedMediaSession} from '../domain/shared-media-session.js';
 import {difficultyAdjustment} from '../domain/adaptive.js';
-import {crossSkillCueMarkup} from '../domain/cross-skill.js';
-import {attr,esc,errorBlock,loadingBlock,runBusy} from '../components/primitives.js';
-import {t,categoryLabel,statusLabel,uiLocale} from '../domain/i18n.js';
+import {normalizeCrossSkillCue} from '../domain/cross-skill.js';
+import {errorBlock,loadingBlock,runBusy} from '../components/primitives.js';
+import {t,categoryLabel,statusLabel,uiLocale,uiHtmlLang} from '../domain/i18n.js';
 import {
   availableWorlds,
   discoveryItems,
@@ -55,7 +60,22 @@ import {
   worldRail,
 } from '../orena/product-components.js';
 
-const isCjk=()=>state.language==='zh'||uiLocale()==='zh';
+/* ------------------------------------------------------------ language --- */
+
+/* Two different languages live on this screen and they must not be conflated.
+ *
+ * `uiLang` is the language of the INTERFACE - headings, buttons, explanations -
+ * and follows the learner's interface locale. `contentLang` is the language of
+ * the material being learned - lesson titles, the learner's own sentences - and
+ * follows the learning language.
+ *
+ * Treating "either one is Chinese" as a single CJK flag, which is what H1 did,
+ * gives an English interface Chinese typography as soon as somebody studies
+ * Chinese, and leaves a Chinese lesson title in Latin metrics whenever the
+ * interface is English. They are independent, so they are computed separately
+ * and travel to the components attached to the specific string. */
+const uiLang=()=>uiHtmlLang();
+const contentLang=()=>(state.language==='zh'?'zh-Hans':String(state.language||'en'));
 
 /* An optional data source. Home renders whatever succeeded, so a rejection is
    a section state rather than a page state. */
@@ -80,7 +100,24 @@ function hasLocalWritingDraft(draft=state.draft){
 
 /* ===================================================== validated records == */
 
-const PRACTICE_OUTCOME_STATUSES=new Set(['improved','partial','regressed','unchanged']);
+/* The canonical practice-outcome statuses, read from the only thing that emits
+ * them: `derive_practice_outcome` in writing_coach/becoming_outcomes.py.
+ *
+ * This list is not a matter of taste. Home inherited a set of four invented
+ * statuses - partial, regressed, unchanged - that no backend has ever produced
+ * and which excluded six of the seven real ones. The visible cost was that a
+ * learner whose revision came back `still_working` or `needs_attention` lost
+ * the Grammar practice handoff entirely and silently, because the tile refused
+ * to render. Every value here is a status the backend can actually return. */
+const PRACTICE_OUTCOME_STATUSES=new Set([
+  'improved',
+  'transferred',
+  'held',
+  'still_working',
+  'needs_attention',
+  'not_observed',
+  'needs_more_evidence',
+]);
 
 /* A practice outcome is only shown when every field it renders is well formed.
    A malformed record produces nothing at all - never "[object Object]" and
@@ -193,33 +230,27 @@ function nextPracticePlan({recommendation,readingHistory,speakingHistory,listeni
 
 /* ============================================================ For You ===== */
 
-function practiceDifficultyMarkup(recommendation){
+function practiceDifficultyNote(recommendation){
   const difficulty=difficultyAdjustment(recommendation);
   return difficulty
-    ?`<p class="oc-meta" data-practice-difficulty>${esc(t(difficulty.key,{delta:difficulty.delta}))}</p>`
-    :'';
+    ?{text:t(difficulty.key,{delta:difficulty.delta}),attributes:{'data-practice-difficulty':''}}
+    :null;
 }
 
+/* No plan means no tile. There is nothing actionable to say, and a card that
+   says "nothing yet" is a placeholder occupying the space discovery should
+   have. */
 function nextPlanTile(plan,recommendation){
-  const kind=plan?.kind||'empty';
-  if(kind==='empty'){
-    return recommendationTile({
-      contentKind:'next-plan',
-      reason:t('home.next_plan_title'),
-      title:t('home.next_plan_empty'),
-      accentFamily:'writing',
-      cjk:isCjk(),
-      attributes:{'data-home-next-plan':'','data-plan-kind':'empty'},
-    });
-  }
+  if(!plan?.kind)return '';
+  const kind=plan.kind;
   return recommendationTile({
     contentKind:'next-plan',
     reason:t('home.next_plan_title'),
     title:t(`home.next_plan_${kind}_title`),
     subtitle:t(`home.next_plan_${kind}_body`),
-    bodyHtml:practiceDifficultyMarkup(recommendation),
+    lang:uiLang(),
+    note:practiceDifficultyNote(recommendation),
     accentFamily:kind==='listening'?'listening':kind==='reading'?'reading':kind==='speaking'?'speaking':'writing',
-    cjk:isCjk(),
     actionLabel:t('home.next_plan_action'),
     actionAttributes:{'data-home-next-plan-action':''},
     attributes:{'data-home-next-plan':'','data-plan-kind':kind},
@@ -228,16 +259,20 @@ function nextPlanTile(plan,recommendation){
 
 /* The Grammar handoff carried by the latest practice outcome. Evidence and
    parent-essay lineage travel on the button exactly as before, so Write still
-   receives the sentence the learner actually got wrong. */
+   receives the sentence the learner actually got wrong - for every canonical
+   status, not only the one Home happened to recognise. */
 function practiceOutcomeTile(rawOutcome){
   const outcome=normalizedPracticeOutcome(rawOutcome);
   if(!outcome)return '';
   const key=outcome.status;
   const grammarId=typeof outcome.grammar_id==='string'?outcome.grammar_id.trim():'';
-  const secondary=[
-    grammarId?`<button type="button" class="oc-link" data-home-open-grammar="${attr(grammarId)}">${esc(t('review.open_grammar'))}</button>`:'',
-    outcome.essay_id!==null?`<button type="button" class="oc-link" data-home-open-review="${attr(outcome.essay_id)}">${esc(t('home.open_review'))}</button>`:'',
-  ].join('');
+  const links=[];
+  if(grammarId){
+    links.push({label:t('review.open_grammar'),attributes:{'data-home-open-grammar':grammarId}});
+  }
+  if(outcome.essay_id!==null){
+    links.push({label:t('home.open_review'),attributes:{'data-home-open-review':outcome.essay_id}});
+  }
   return recommendationTile({
     contentKind:'practice-outcome',
     contentId:grammarId,
@@ -248,35 +283,29 @@ function practiceOutcomeTile(rawOutcome){
       count:outcome.issue_count??0,
       focus:outcome.focus_label||t('common.current_focus'),
     }),
+    lang:uiLang(),
+    // The learner's own sentence is in the language they are learning.
+    quote:outcome.error_evidence[0]||'',
+    quoteLang:contentLang(),
     meta:`${outcome.focus_label||t('common.current_focus')} · ${t('outcome.revision')} ${outcome.revision_no||1}`,
     accentFamily:'grammar',
-    cjk:isCjk(),
     actionLabel:grammarId?t('review.practice_grammar'):'',
     actionAttributes:grammarId?{
       'data-home-practice-grammar':grammarId,
       'data-home-practice-evidence':outcome.error_evidence[0]||'',
       'data-home-practice-essay':outcome.essay_id||'',
     }:null,
-    secondaryActions:secondary,
+    links,
     attributes:{'data-practice-outcome-status':key},
   });
 }
 
 /* A recurring issue worth another look. This is a handoff into the learner's
    own work, not an analytics readout: it shows the exact sentence and opens
-   the review that contains it. */
+   the review that contains it. No cue means no tile. */
 function reviewCueTile(value){
   const cue=normalizedReviewCue(value);
-  if(!cue){
-    return recommendationTile({
-      contentKind:'review-cue',
-      reason:t('home.review_cue_kicker'),
-      title:t('home.review_cue_empty'),
-      accentFamily:'review',
-      cjk:isCjk(),
-      attributes:{'data-review-cue-state':'none'},
-    });
-  }
+  if(!cue)return '';
   return recommendationTile({
     contentKind:'review-cue',
     reason:t('home.review_cue_kicker'),
@@ -286,31 +315,73 @@ function reviewCueTile(value){
       status:statusLabel(cue.status),
       source:t(`home.review_cue_source_${cue.source}`),
     }),
-    bodyHtml:`<blockquote>“${esc(cue.evidence)}”</blockquote>`,
+    lang:uiLang(),
+    quote:cue.evidence,
+    quoteLang:contentLang(),
     accentFamily:'review',
-    cjk:isCjk(),
-    secondaryActions:cue.essay_id
-      ?`<button type="button" class="oc-link" data-open-review-cue="${attr(cue.essay_id)}">${esc(t('home.review_cue_open'))}</button>`
-      :'',
+    links:cue.essay_id
+      ?[{label:t('home.review_cue_open'),attributes:{'data-open-review-cue':cue.essay_id}}]
+      :[],
     attributes:{'data-review-cue-state':cue.state},
   });
 }
 
-/* A short listening entry point drawn from the real catalog. Only rendered
-   when the library actually returned something the learner has not already
-   been offered as their continuation. */
-function listeningTile(item){
+/* Cross-skill transfer, rendered as an Orena recommendation.
+ *
+ * The business logic is NOT forked: `normalizeCrossSkillCue` is the same
+ * validator Journey uses, including its shared-media session check. Only the
+ * representation is Home's, which is what lets Home drop the legacy card
+ * markup without Journey changing at all. */
+function crossSkillTile(value){
+  const cue=normalizeCrossSkillCue(value,{learningLanguage:state.language});
+  if(!cue)return '';
+  const action=cue.action;
+  const attributes={
+    review:()=>({'data-cross-skill-kind':'review','data-cross-skill-essay':action.essay_id}),
+    reading:()=>({'data-cross-skill-kind':'reading','data-cross-skill-session':action.session_id}),
+    listening:()=>({
+      'data-cross-skill-kind':'listening',
+      'data-cross-skill-asset':action.asset_id,
+      'data-cross-skill-segment':action.segment_id,
+      'data-cross-skill-url':action.source_url||'',
+      'data-cross-skill-title':action.title||'',
+    }),
+    speaking:()=>({
+      'data-cross-skill-kind':'speaking',
+      'data-cross-skill-asset':action.asset_id,
+      'data-cross-skill-segment':action.segment_id,
+    }),
+  }[action.kind]();
+  return recommendationTile({
+    contentKind:'cross-skill',
+    reason:t('cross_skill.kicker'),
+    title:t('cross_skill.title'),
+    subtitle:t('cross_skill.body',{source:t(`cross_skill.source_${cue.source}`)}),
+    lang:uiLang(),
+    quote:cue.evidence,
+    quoteLang:contentLang(),
+    accentFamily:'speaking',
+    actionLabel:t(`cross_skill.action_${cue.source}`),
+    actionAttributes:attributes,
+    attributes:{'data-cross-skill-state':'transfer','data-cross-skill-source':cue.source},
+  });
+}
+
+/* A short listening entry point drawn from the real catalog. */
+function listeningTile(item,{reason=''}={}){
   if(!item)return '';
   const minutes=durationMinutes(item);
   return recommendationTile({
     contentKind:'listening-lesson',
     contentId:String(item.lesson_id||''),
-    reason:t('home.h1_reason_listening'),
+    reason:reason||t('home.h1_reason_listening'),
     title:String(item.title||''),
     subtitle:String(item.description||''),
+    // A lesson title is content, so it carries the learning language whatever
+    // the interface happens to be.
+    lang:contentLang(),
     meta:minutes?t('home.h1_minutes',{count:minutes}):'',
     accentFamily:'listening',
-    cjk:isCjk(),
     actionLabel:t('home.h1_open_lesson'),
     actionAttributes:{
       'data-home-open-lesson':String(item.lesson_id||''),
@@ -322,25 +393,16 @@ function listeningTile(item){
 /* ========================================================== Challenge ===== */
 
 /* The due-review challenge. The word, the handoff and the language scoping are
-   the R14 contract; only the surface changed. */
+   the R14 contract; only the surface changed. Nothing due means no card. */
 function libraryReviewChallenge(item){
-  if(!item){
-    return challengeCard({
-      challengeId:'library-review',
-      kicker:t('home.library_review_title'),
-      title:t('home.library_review_neutral'),
-      accentFamily:'review',
-      cjk:isCjk(),
-      attributes:{'data-home-library-review-state':'none'},
-    });
-  }
+  if(!item)return '';
   return challengeCard({
     challengeId:'library-review',
     kicker:t('home.library_review_title'),
     title:t('home.library_review_due'),
     description:t('home.library_review_body',{word:item.word}),
+    lang:uiLang(),
     accentFamily:'review',
-    cjk:isCjk(),
     actionLabel:t('home.library_review_action'),
     actionAttributes:{'data-home-library-review-action':''},
     attributes:{
@@ -352,7 +414,8 @@ function libraryReviewChallenge(item){
 
 /* The listening goal, as an action rather than a statistic. Minutes appear
    because the learner set the goal and the time is really recorded; an
-   unavailable or malformed snapshot says so instead of showing zero. */
+   unavailable or malformed snapshot says so, and still offers the action that
+   fixes it, which is what keeps it a challenge rather than a placeholder. */
 function listeningHabitChallenge(snapshot){
   if(!snapshot)return '';
   const status=snapshot.status==='unavailable'||snapshot.status==='malformed'?snapshot.status:'ok';
@@ -361,8 +424,8 @@ function listeningHabitChallenge(snapshot){
       challengeId:'listening-habit',
       kicker:t('home.listening_habit_title'),
       title:t(`home.listening_habit_${status}`),
+      lang:uiLang(),
       accentFamily:'listening',
-      cjk:isCjk(),
       actionLabel:t('home.listening_habit_action'),
       actionAttributes:{'data-home-listening-goal':''},
       attributes:{'data-home-listening-habit':'','data-state':status},
@@ -376,10 +439,10 @@ function listeningHabitChallenge(snapshot){
     kicker:t('home.listening_habit_title'),
     title:t('home.listening_habit_body',{today,goal:snapshot.daily_goal_minutes}),
     description:t('home.listening_habit_week',{week:minutes(snapshot.week_seconds)}),
+    lang:uiLang(),
     current:today,
     target:Number.isFinite(goal)&&goal>0?goal:null,
     accentFamily:'listening',
-    cjk:isCjk(),
     actionLabel:t('home.listening_habit_action'),
     actionAttributes:{'data-home-listening-goal':''},
     attributes:{'data-home-listening-habit':'','data-state':'ok'},
@@ -388,81 +451,76 @@ function listeningHabitChallenge(snapshot){
 
 /* ============================================================= Worlds ===== */
 
-function worldsSection(worldsPayload){
-  if(worldsPayload===null){
-    return worldRail({
-      id:'worlds',
-      title:t('home.h1_worlds_title'),
-      description:t('home.h1_worlds_lede'),
-      cards:[],
-      empty:t('home.h1_worlds_unavailable'),
-    });
-  }
-  const worlds=availableWorlds(worldsPayload,{locale:uiLocale()});
+function worldsSection(section){
+  const shell=(cards,empty,sectionState)=>worldRail({
+    id:'worlds',
+    title:t('home.h1_worlds_title'),
+    description:t('home.h1_worlds_lede'),
+    cards,
+    empty,
+    state:sectionState,
+  });
+  if(section.status==='loading')return shell([],t('home.h1_loading'),'loading');
+  if(section.status==='error')return shell([],t('home.h1_worlds_unavailable'),'error');
+
+  const worlds=availableWorlds(section.data,{locale:uiLocale()});
   const cards=worlds.map((world,index)=>worldCard({
     worldId:world.worldId,
     title:world.title,
     description:world.description,
+    // World copy is editorial interface text, localized per interface locale.
+    lang:uiLang(),
     artwork:world.artwork,
     posterUrl:world.posterUrl,
     accentFamily:world.accentFamily,
-    cjk:isCjk(),
     // Both are measured server-side against the real catalog.
     countLabel:world.lessonCount===1
       ?t('home.h1_world_count',{count:world.lessonCount})
       :t('home.h1_world_count_plural',{count:world.lessonCount}),
     leadLabel:world.leadLessonTitle?t('home.h1_world_lead',{title:world.leadLessonTitle}):'',
+    // The distinctive part of that label is a real lesson title.
+    leadLang:contentLang(),
     variant:index===0?'featured':'standard',
     openAttributes:{
       'data-world-lesson':world.leadLessonId,
       'data-world-url':world.leadLessonSourceUrl,
     },
   }));
-  return worldRail({
-    id:'worlds',
-    title:t('home.h1_worlds_title'),
-    description:t('home.h1_worlds_lede'),
-    cards,
-    empty:t('home.h1_worlds_empty'),
-  });
+  return shell(cards,t('home.h1_worlds_empty'),'ready');
 }
 
 /* ========================================================== Discovery ===== */
 
-function discoverySection(library,excludeIds){
-  if(library===null){
-    return discoveryRail({
-      id:'continue-exploring',
-      title:t('home.h1_discovery_title'),
-      description:t('home.h1_discovery_lede'),
-      cards:[],
-      empty:t('home.h1_listening_unavailable'),
-    });
-  }
-  const cards=discoveryItems(library,{exclude:excludeIds}).map(item=>{
+function discoverySection(section,surfaced){
+  const shell=(cards,empty,sectionState)=>discoveryRail({
+    id:'continue-exploring',
+    title:t('home.h1_discovery_title'),
+    description:t('home.h1_discovery_lede'),
+    cards,
+    empty,
+    state:sectionState,
+  });
+  if(section.status==='loading')return shell([],t('home.h1_loading'),'loading');
+  if(section.status==='error')return shell([],t('home.h1_listening_unavailable'),'error');
+
+  const cards=discoveryItems(section.data,{exclude:[...surfaced]}).map(item=>{
     const minutes=durationMinutes(item);
     return discoveryCard({
       contentId:String(item.lesson_id||''),
       title:String(item.title||''),
       description:String(item.description||''),
+      lang:contentLang(),
       meta:minutes?t('home.h1_minutes',{count:minutes}):'',
       artwork:String(item.artwork||''),
       posterUrl:String(item.poster_url||''),
       accentFamily:'listening',
-      cjk:isCjk(),
       openAttributes:{
         'data-home-open-lesson':String(item.lesson_id||''),
         'data-home-open-lesson-url':String(item.source?.source_url||''),
       },
     });
   });
-  return discoveryRail({
-    id:'continue-exploring',
-    title:t('home.h1_discovery_title'),
-    description:t('home.h1_discovery_lede'),
-    cards,
-    empty:t('home.h1_discovery_empty'),
-  });
+  return shell(cards,t('home.h1_discovery_empty'),'ready');
 }
 
 /* ======================================================== continuation ==== */
@@ -488,11 +546,11 @@ function continuationMarkup(continuation){
       journeyId:continuation.lessonId,
       kicker:t('home.h1_continue_kicker'),
       title:continuation.title,
+      titleLang:contentLang(),
       subtitle:continuation.segmentId?t('home.h1_continue_segment'):t('home.h1_continue_start'),
       artwork:continuation.artwork,
       posterUrl:continuation.posterUrl,
       accentFamily:'listening',
-      cjk:isCjk(),
       resumeLabel:t('home.h1_continue_action'),
       actionAttributes:{'data-home-continue':'listening'},
       attributes:{'data-home-continue-source':'server'},
@@ -502,11 +560,12 @@ function continuationMarkup(continuation){
     return continueJourneyCard({
       journeyId:'writing-draft',
       kicker:t('home.h1_continue_kicker'),
+      // This title is interface copy about the learner's draft, not content.
       title:t('home.h1_continue_writing_title'),
+      titleLang:uiLang(),
       subtitle:t('home.h1_continue_writing_sub'),
       artwork:'writing',
       accentFamily:'writing',
-      cjk:isCjk(),
       resumeLabel:t('home.h1_continue_action'),
       actionAttributes:{'data-home-continue':'writing'},
       attributes:{'data-home-continue-source':'draft'},
@@ -516,10 +575,10 @@ function continuationMarkup(continuation){
     journeyId:continuation.lesson.lesson_id||'',
     kicker:t('home.listening_resume_title'),
     title:continuation.lesson.title||t('title.listen'),
+    titleLang:contentLang(),
     subtitle:t('home.listening_resume_body'),
     artwork:'listening',
     accentFamily:'listening',
-    cjk:isCjk(),
     resumeLabel:t('home.listening_resume_action'),
     actionAttributes:{'data-home-resume-listening':''},
     attributes:{'data-home-continue-source':'local'},
@@ -532,65 +591,109 @@ export async function renderHome(root){
   document.querySelector('#primaryNav')?.classList.remove('hidden');
   root.innerHTML=`<section class="page">${loadingBlock(5)}</section>`;
 
-  try{
-    /* Every one of these is optional. The page is assembled from whatever came
-       back, so one failing provider costs one section. */
-    const [dashboard,memory,recommendation,outcomes,readingHistory,speakingHistory,crossCue,library,worldsPayload,libraryPayload]=await Promise.all([
-      optional(()=>api.dashboard()),
-      optional(()=>api.learningMemory()),
-      optional(()=>api.practiceRecommendation()),
-      optional(()=>api.practiceOutcomes(1)),
-      optional(()=>api.readingSessions(8)),
-      optional(()=>api.speakingAttempts(1)),
-      optional(()=>api.crossSkillCue()),
-      optional(()=>api.listeningLibrary(state.language)),
-      optional(()=>api.worlds(state.language)),
-      optional(()=>api.libraryVocabulary()),
-    ]);
+  /* Four independent groups. Nothing here is awaited together, so the first
+     paint waits for none of them and a stalled group costs one section rather
+     than the screen. */
+  const sections={
+    worlds:{status:'loading',data:null},
+    library:{status:'loading',data:null},
+    personal:{status:'loading',data:null},
+    vocabulary:{status:'loading',data:null},
+  };
 
-    /* The global chrome shows a streak cue from state.dashboard. Home renders
-       no analytics itself; it just keeps that shared state populated. */
-    if(dashboard)state.dashboard=dashboard;
-    if(memory)state.memory=memory;
-    state.practiceRecommendation=recommendation;
-    state.latestPracticeOutcome=outcomes?.latest||null;
+  let handlers={continuation:null,nextPlan:null,dueReview:null,recommendation:null,localListening:null};
 
+  function compose(){
     const localListening=resumableLesson(state.language);
     const listeningHabit=listeningHabitSnapshot();
+    const library=sections.library.status==='ready'?sections.library.data:null;
+    const personal=sections.personal.status==='ready'?sections.personal.data:null;
     const continuation=continuationModel(library,localListening);
-    const nextPlan=nextPracticePlan({recommendation,readingHistory,speakingHistory,listeningResume:localListening});
-    const dueReview=dueLibraryReview(libraryPayload);
 
-    /* Whatever the continuation already offers must not reappear below it. */
-    const surfaced=continuation?.kind==='listening'?[continuation.lessonId]:[];
-    const suggestion=discoveryItems(library,{exclude:surfaced,limit:1})[0]||null;
+    const nextPlan=personal?nextPracticePlan({
+      recommendation:personal.recommendation,
+      readingHistory:personal.readingHistory,
+      speakingHistory:personal.speakingHistory,
+      listeningResume:localListening,
+    }):null;
+    const dueReview=sections.vocabulary.status==='ready'
+      ?dueLibraryReview(sections.vocabulary.data):null;
 
-    const forYouTiles=[
-      nextPlanTile(nextPlan,recommendation),
-      practiceOutcomeTile(outcomes?.latest),
-      reviewCueTile(memory?.review_cue),
-      suggestion?listeningTile(suggestion):'',
-      /* Cross-skill still renders its own shared markup: it is used by Journey
-         too, and forking it for one screen would create the second component
-         the contract forbids. */
-      `<div class="oc-legacy-slot">${crossSkillCueMarkup(crossCue,{learningLanguage:state.language})}</div>`,
-    ].filter(Boolean);
+    /* One set of ids, threaded through every rail in render order, so nothing
+       Home has already offered can be offered again below it. */
+    const surfaced=new Set();
+    if(continuation?.kind==='listening')surfaced.add(continuation.lessonId);
+    if(continuation?.kind==='listening-local'&&continuation.lesson.lesson_id){
+      surfaced.add(continuation.lesson.lesson_id);
+    }
 
-    const challengeCards=[
+    const personalTiles=personal?[
+      nextPlanTile(nextPlan,personal.recommendation),
+      practiceOutcomeTile(personal.outcomes?.latest),
+      reviewCueTile(personal.memory?.review_cue),
+      crossSkillTile(personal.crossCue),
+    ].filter(Boolean):[];
+
+    let forYou=personalTiles;
+    if(library){
+      if(personalTiles.length){
+        // One real lesson alongside the learner's own work.
+        const suggestion=discoveryItems(library,{exclude:[...surfaced],limit:1})[0]||null;
+        if(suggestion){
+          forYou=[...personalTiles,listeningTile(suggestion)];
+          surfaced.add(String(suggestion.lesson_id||''));
+        }
+      }else{
+        /* A learner with no history gets real content to start on, not a card
+           explaining that they have no history. */
+        const starters=discoveryItems(library,{exclude:[...surfaced],limit:2});
+        forYou=starters.map(item=>listeningTile(item,{reason:t('home.h1_reason_starter')}));
+        for(const item of starters)surfaced.add(String(item.lesson_id||''));
+      }
+    }
+
+    const challenges=[
       libraryReviewChallenge(dueReview),
       listeningHabitChallenge(listeningHabit),
     ].filter(Boolean);
 
-    root.innerHTML=`<div class="o-page">
+    const forYouLoading=!forYou.length
+      &&sections.personal.status==='loading'
+      &&sections.library.status==='loading';
+    const forYouSection=recommendationRail({
+      id:'for-you',
+      title:t('home.h1_foryou_title'),
+      description:t('home.h1_foryou_lede'),
+      tiles:forYou,
+      empty:forYouLoading?t('home.h1_loading'):t('home.h1_foryou_empty'),
+      state:forYouLoading?'loading':'ready',
+    });
+    /* No challenge worth making is no Challenge section. An empty box would be
+       the placeholder wall this audit removed. */
+    const challengeSection=challenges.length
+      ?productSection({
+        id:'challenge',
+        title:t('home.h1_challenge_title'),
+        description:t('home.h1_challenge_lede'),
+        variant:'challenge',
+        items:challenges,
+      })
+      :'';
+
+    handlers={continuation,nextPlan,dueReview,recommendation:personal?.recommendation||null,localListening};
+
+    return `<div class="o-page">
       <div class="o-home-v2" data-orena-ui="v2" data-home-composition="hero-mosaic-rail">
         ${journeyHero({
           eyebrow:greeting(),
           title:t('home.h1_hero_title'),
           supportingText:t('home.h1_hero_lede'),
+          // Hero copy is interface text: it follows the interface locale, not
+          // the language being studied.
+          lang:uiLang(),
           artwork:'orena-home',
           artworkLabel:'',
           accentFamily:'listening',
-          cjk:isCjk(),
           primaryAction:{
             id:'homePrimary',
             label:continuation?t('home.h1_hero_continue'):t('home.h1_hero_explore'),
@@ -598,87 +701,77 @@ export async function renderHome(root){
           continuation:continuationMarkup(continuation),
         })}
 
-        ${worldsSection(worldsPayload)}
+        ${worldsSection(sections.worlds)}
 
-        <div class="oc-home-row">
-          ${recommendationRail({
-            id:'for-you',
-            title:t('home.h1_foryou_title'),
-            description:t('home.h1_foryou_lede'),
-            tiles:forYouTiles,
-            empty:t('home.h1_foryou_empty'),
-          })}
-          ${productSection({
-            id:'challenge',
-            title:t('home.h1_challenge_title'),
-            description:t('home.h1_challenge_lede'),
-            variant:'challenge',
-            body:`<div class="oc-challenge-stack">${challengeCards.join('')}</div>`,
-          })}
+        <div class="oc-home-row" data-columns="${challengeSection?'2':'1'}">
+          ${forYouSection}
+          ${challengeSection}
         </div>
 
-        ${discoverySection(library,surfaced)}
+        ${discoverySection(sections.library,surfaced)}
       </div>
     </div>`;
+  }
 
-    /* ------------------------------------------------------ behaviour --- */
+  /* --------------------------------------------------------- behaviour --- */
 
-    /* The handoff carries the segment AND the mode the learner was in. Dropping
-       the mode would silently return a shadowing learner to Follow. */
-    const openLesson=(lessonId,sourceUrl,segmentId='',mode='')=>{
-      if(!lessonId&&!sourceUrl)return;
-      requestLessonAutostart(state.language,sourceUrl||'',{
-        lesson_id:lessonId||'',
-        selected_segment_id:segmentId||'',
-        mode:mode||'',
-      });
-      go('listen');
-    };
+  const openLesson=(lessonId,sourceUrl,segmentId='',mode='')=>{
+    if(!lessonId&&!sourceUrl)return;
+    requestLessonAutostart(state.language,sourceUrl||'',{
+      lesson_id:lessonId||'',
+      selected_segment_id:segmentId||'',
+      mode:mode||'',
+    });
+    go('listen');
+  };
 
-    const startRecommendedPractice=async(button)=>{
-      await runBusy(button,async()=>{
-        const task=await api.nextPractice({target_level:recommendation?.target_level||state.draft.level||''});
-        const personalization=task.personalization||recommendation;
-        saveDraft({
-          mode:task.task_type||personalization.task_type||'opinion',
-          topic:task.topic||personalization.topic||'random',
-          level:personalization.target_level||state.draft.level,
-          length:Number(task.word_target||personalization.word_target||state.draft.length),
-          prompt:task.prompt||'',
-          generatedTask:task,
-          practiceContext:personalization,
-          text:'',
-          html:'',
-          savedAt:null,
-          parentEssayId:null,
-        });
-        state.practiceRecommendation=personalization;
-        go('write');
-      },{label:t('busy.creating')});
-    };
-
-    async function openEssay(id){
-      try{
-        const essay=await api.essay(id);
-        state.lastEvaluation=essay;
-        state.draft={
-          ...state.draft,
-          text:essay.text||'',
-          html:essay.html||'',
-          prompt:essay.prompt||'',
-          parentEssayId:essay.id,
-          level:essay.target_cefr||state.draft.level,
-          practiceContext:essay.practice_context||null,
-        };
-        go('review');
-      }catch(error){
-        root.insertAdjacentHTML('afterbegin',errorBlock(error.message));
-      }
+  async function openEssay(id){
+    try{
+      const essay=await api.essay(id);
+      state.lastEvaluation=essay;
+      state.draft={
+        ...state.draft,
+        text:essay.text||'',
+        html:essay.html||'',
+        prompt:essay.prompt||'',
+        parentEssayId:essay.id,
+        level:essay.target_cefr||state.draft.level,
+        practiceContext:essay.practice_context||null,
+      };
+      go('review');
+    }catch(error){
+      root.insertAdjacentHTML('afterbegin',errorBlock(error.message));
     }
+  }
+
+  const startRecommendedPractice=async(button,recommendation)=>{
+    await runBusy(button,async()=>{
+      const task=await api.nextPractice({target_level:recommendation?.target_level||state.draft.level||''});
+      const personalization=task.personalization||recommendation;
+      saveDraft({
+        mode:task.task_type||personalization.task_type||'opinion',
+        topic:task.topic||personalization.topic||'random',
+        level:personalization.target_level||state.draft.level,
+        length:Number(task.word_target||personalization.word_target||state.draft.length),
+        prompt:task.prompt||'',
+        generatedTask:task,
+        practiceContext:personalization,
+        text:'',
+        html:'',
+        savedAt:null,
+        parentEssayId:null,
+      });
+      state.practiceRecommendation=personalization;
+      go('write');
+    },{label:t('busy.creating')});
+  };
+
+  function bind(){
+    const {continuation,nextPlan,dueReview,recommendation,localListening}=handlers;
 
     /* The hero's single action follows the continuation it was rendered with,
        so the button never promises something the page cannot deliver. */
-    root.querySelector('#homePrimary')?.addEventListener('click',async()=>{
+    root.querySelector('#homePrimary')?.addEventListener('click',()=>{
       if(continuation?.kind==='listening'){
         openLesson(continuation.lessonId,continuation.sourceUrl,continuation.segmentId);
         return;
@@ -732,7 +825,7 @@ export async function renderHome(root){
       }else if(nextPlan.kind==='writing'||nextPlan.kind==='baseline'){
         const button=root.querySelector('[data-home-next-plan-action]');
         try{
-          await startRecommendedPractice(button);
+          await startRecommendedPractice(button,recommendation);
         }catch(error){
           root.insertAdjacentHTML('afterbegin',errorBlock(error.message||t('busy.working')));
         }
@@ -811,7 +904,59 @@ export async function renderHome(root){
         selectSharedMediaSegment(state.language,button.dataset.crossSkillSegment); go('speak');
       }
     });
-  }catch(error){
-    root.innerHTML=`<section class="page">${errorBlock(error.message)}</section>`;
   }
+
+  function paint(){
+    try{
+      root.innerHTML=compose();
+      bind();
+    }catch(error){
+      root.innerHTML=`<section class="page">${errorBlock(error.message)}</section>`;
+    }
+  }
+
+  // First paint: hero, the local continuation and per-section loading states,
+  // before a single request has resolved.
+  paint();
+
+  /* A rejection is an error state; a successful empty answer is a ready state
+     with nothing in it. Those are different things to a learner - "we could
+     not load this" versus "there is nothing here yet" - so they are kept
+     apart rather than collapsed into one null. */
+  const settle=(key,load)=>Promise.resolve()
+    .then(load)
+    .then(
+      data=>{ sections[key]={status:'ready',data}; },
+      ()=>{ sections[key]={status:'error',data:null}; },
+    )
+    .then(paint);
+
+  /* The global chrome shows a streak cue from state.dashboard. Home renders no
+     analytics itself; it just keeps that shared state populated, and nothing on
+     this screen waits for it. */
+  const chrome=optional(()=>api.dashboard()).then(dashboard=>{
+    if(dashboard)state.dashboard=dashboard;
+  });
+
+  const personal=()=>Promise.all([
+    optional(()=>api.practiceRecommendation()),
+    optional(()=>api.practiceOutcomes(1)),
+    optional(()=>api.learningMemory()),
+    optional(()=>api.readingSessions(8)),
+    optional(()=>api.speakingAttempts(1)),
+    optional(()=>api.crossSkillCue()),
+  ]).then(([recommendation,outcomes,memory,readingHistory,speakingHistory,crossCue])=>{
+    if(memory)state.memory=memory;
+    state.practiceRecommendation=recommendation;
+    state.latestPracticeOutcome=outcomes?.latest||null;
+    return {recommendation,outcomes,memory,readingHistory,speakingHistory,crossCue};
+  });
+
+  await Promise.all([
+    chrome,
+    settle('library',()=>api.listeningLibrary(state.language)),
+    settle('worlds',()=>api.worlds(state.language)),
+    settle('vocabulary',()=>api.libraryVocabulary()),
+    settle('personal',personal),
+  ]);
 }

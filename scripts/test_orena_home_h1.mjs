@@ -19,7 +19,7 @@ import {state} from '../static/becoming/store.js';
 import {renderHome} from '../static/becoming/screens/home.js';
 import {rememberMediaLesson} from '../static/becoming/domain/media-lesson-history.js';
 import {availableWorlds, durationMinutes, homeContinuation, serverListeningContinuation} from '../static/becoming/domain/home-model.js';
-import {worldCard, journeyHero, recommendationTile} from '../static/becoming/orena/product-components.js';
+import {challengeCard, worldCard, journeyHero, recommendationTile} from '../static/becoming/orena/product-components.js';
 
 /* ------------------------------------------------------------ fake DOM --- */
 
@@ -246,8 +246,8 @@ try{
     }
     assert.match(root.innerHTML,/data-oc-section="for-you"/,
       `${failure}: For You must still render`);
-    assert.match(root.innerHTML,/data-home-library-review-state=/,
-      `${failure}: the Challenge section must still render`);
+    assert.match(root.innerHTML,/data-home-listening-habit/,
+      `${failure}: the Challenge section must still offer its local-state action`);
     if(failure!=='worlds'){
       assert.match(root.innerHTML,/data-oc-section="worlds"/,
         `${failure}: a failed Worlds section keeps its own scoped state`);
@@ -346,6 +346,246 @@ try{
 }
 
 console.log('Orena Golden Home H1 contract: PASS');
+
+/* ================================================================ H1.1 ==== */
+
+/* 9 — every canonical practice-outcome status renders, with its handoffs ---- */
+{
+  /* The authority is derive_practice_outcome() in
+     writing_coach/becoming_outcomes.py. If that function grows a status, this
+     list is where the frontend finds out. */
+  const CANONICAL=['improved','transferred','held','still_working','needs_attention','not_observed','needs_more_evidence'];
+  for(const status of CANONICAL){
+    resetApis();
+    cleanState('en');
+    api.practiceOutcomes=async()=>({items:[],latest:{
+      status,
+      issue_count:1,
+      previous_issue_count:2,
+      revision_no:2,
+      essay_id:412,
+      focus_label:'Agreement practice',
+      grammar_id:'a1-complete-sentences-and-basic-word-order',
+      error_evidence:['I has a book'],
+    }});
+    const root=homeRoot();
+    await renderHome(root);
+    assert.match(root.innerHTML,new RegExp(`data-practice-outcome-status="${status}"`),
+      `${status} is a real backend status and must render on Home`);
+    // The Grammar handoff must survive every status, with its lineage intact.
+    assert.match(root.innerHTML,/data-home-practice-grammar="a1-complete-sentences-and-basic-word-order"/,
+      `${status} must keep the Grammar practice handoff`);
+    assert.match(root.innerHTML,/data-home-practice-evidence="I has a book"/,
+      `${status} must carry the learner's own sentence into Write`);
+    assert.match(root.innerHTML,/data-home-practice-essay="412"/,
+      `${status} must preserve the parent essay lineage`);
+    assert.match(root.innerHTML,/data-home-open-review="412"/,
+      `${status} must still link to the review it came from`);
+    assert.doesNotMatch(root.innerHTML,new RegExp(`outcome\\.${status}\\.`),
+      `${status} must have real copy, not a raw translation key`);
+    assert.doesNotMatch(root.innerHTML,/\[object Object\]|undefined/);
+  }
+
+  // A status no backend emits is still refused.
+  for(const invented of ['partial','regressed','unchanged','mastered']){
+    resetApis();
+    cleanState('en');
+    api.practiceOutcomes=async()=>({items:[],latest:{
+      status:invented,issue_count:0,revision_no:2,essay_id:412,grammar_id:'g1',error_evidence:['x'],
+    }});
+    const root=homeRoot();
+    await renderHome(root);
+    assert.doesNotMatch(root.innerHTML,/data-practice-outcome-status/,
+      `${invented} is not a backend status and must not render`);
+  }
+
+  // An outcome with no grammar link keeps the review link and loses only the
+  // action it cannot perform.
+  resetApis();
+  cleanState('en');
+  api.practiceOutcomes=async()=>({items:[],latest:{
+    status:'held',issue_count:0,revision_no:2,essay_id:99,focus_label:'Tone',error_evidence:[],
+  }});
+  const noGrammar=homeRoot();
+  await renderHome(noGrammar);
+  assert.match(noGrammar.innerHTML,/data-practice-outcome-status="held"/);
+  assert.doesNotMatch(noGrammar.innerHTML,/data-home-practice-grammar/);
+  assert.match(noGrammar.innerHTML,/data-home-open-review="99"/);
+}
+
+/* 10 — an empty learner gets discovery, not a wall of placeholders --------- */
+{
+  resetApis();
+  cleanState('en');
+  const root=homeRoot();
+  await renderHome(root);
+
+  for(const placeholder of [
+    /data-home-next-plan/,
+    /data-review-cue-state/,
+    /data-cross-skill-state/,
+    /data-home-library-review-state/,
+  ]){
+    assert.doesNotMatch(root.innerHTML,placeholder,
+      `a learner with no history must not be shown ${placeholder}`);
+  }
+  // ...and gets real content to start on instead.
+  assert.match(root.innerHTML,/data-content-kind="listening-lesson"/,
+    'an empty For You must offer real starter lessons');
+  assert.match(root.innerHTML,/A pen in my bag|A rainy day taxi/,
+    'the starters must be real catalog lessons, not invented ones');
+  // If the Challenge section is on the page at all, it holds a real challenge.
+  const challengeAt=root.innerHTML.indexOf('data-oc-section="challenge"');
+  if(challengeAt>=0){
+    const challenge=root.innerHTML.slice(challengeAt,root.innerHTML.indexOf('</section>',challengeAt));
+    assert.match(challenge,/data-oc-component="challenge-card"/,
+      'a rendered Challenge section must contain a real challenge, not an empty box');
+  }
+
+  // With no catalog either, Home says so once rather than in five cards.
+  resetApis({library:new Error('down'),worlds:new Error('down')});
+  cleanState('en');
+  const bare=homeRoot();
+  await renderHome(bare);
+  assert.doesNotMatch(bare.innerHTML,/data-home-next-plan|data-review-cue-state|data-cross-skill-state/,
+    'no data still means no placeholder cards');
+}
+
+/* 11 — a lesson is never offered twice ------------------------------------- */
+{
+  resetApis();
+  cleanState('en');
+  const root=homeRoot();
+  await renderHome(root);
+  /* One id per rendered card: the continuation carries `data-journey-id`, and
+     every tile and discovery card carries `data-content-id`. */
+  const ids=[...root.innerHTML.matchAll(/data-(?:content|journey)-id="([^"]+)"/g)]
+    .map(match=>match[1])
+    .filter(id=>id&&id!=='writing-draft');
+  const seen=new Set();
+  for(const id of ids){
+    assert.ok(!seen.has(id),`lesson ${id} was surfaced twice on Home`);
+    seen.add(id);
+  }
+  assert.ok(seen.size>0,'this fixture should surface at least one lesson');
+  assert.ok(seen.has('en-daily-pen-in-my-bag'),'the continuation lesson should be one of them');
+
+  /* The continuation's lesson must not reappear as a tile or a discovery card
+     below it, and neither must whatever For You suggested. */
+  const cardCount=id=>(root.innerHTML.match(new RegExp(`data-(?:content|journey)-id="${id}"`,'g'))||[]).length;
+  assert.equal(cardCount('en-daily-pen-in-my-bag'),1,
+    'the continuation lesson must appear on exactly one card');
+  assert.equal(cardCount('en-travel-rainy-day-taxi'),1,
+    'the For You suggestion must not reappear in Continue Exploring');
+}
+
+/* 12 — sections load independently ----------------------------------------- */
+{
+  // The listening library never settles. Everything else must still render,
+  // and the first paint must not have waited for it.
+  resetApis();
+  cleanState('en');
+  let painted='';
+  api.listeningLibrary=()=>new Promise(()=>{});
+  const root=homeRoot();
+  const pending=renderHome(root);
+  await new Promise(resolve=>setTimeout(resolve,0));
+  painted=root.innerHTML;
+  assert.match(painted,/data-oc-component="journey-hero"/,
+    'the hero must paint before any request resolves');
+  assert.match(painted,/data-oc-section="continue-exploring"[^>]*data-section-state="loading"/,
+    'a section still waiting must say so rather than claim to be empty');
+
+  // Let the other groups settle; the stalled one stays in its own loading state.
+  await new Promise(resolve=>setTimeout(resolve,20));
+  assert.match(root.innerHTML,/data-oc-section="worlds"[^>]*data-section-state="ready"/,
+    'Worlds must not wait for the listening library');
+  assert.match(root.innerHTML,/data-world-id="en-daily-life"/);
+  assert.match(root.innerHTML,/data-oc-section="continue-exploring"[^>]*data-section-state="loading"/,
+    'the stalled section keeps its own state');
+  void pending;
+
+  // A section that fails says it failed; a section that succeeds with nothing
+  // says it is empty. Those are different states.
+  resetApis({library:new Error('library down')});
+  cleanState('en');
+  const failed=homeRoot();
+  await renderHome(failed);
+  assert.match(failed.innerHTML,/data-oc-section="continue-exploring"[^>]*data-section-state="error"/);
+  resetApis({library:{items:[],sections:[],resume:{}}});
+  cleanState('en');
+  const emptyLibrary=homeRoot();
+  await renderHome(emptyLibrary);
+  assert.match(emptyLibrary.innerHTML,/data-oc-section="continue-exploring"[^>]*data-section-state="ready"/);
+}
+
+/* 13 — interface language and content language are separate ---------------- */
+{
+  // English interface, Chinese learning language. The interface must stay
+  // Latin; the lesson title must be Chinese.
+  resetApis({library:{
+    items:[{lesson_id:'zh-daily-what-is-this',title:'这是什么？',description:'一段简短的日常对话。',duration_ms:9000,artwork:'conversations',poster_url:'',source:{source_url:'https://example.invalid/zh'}}],
+    sections:[{id:'recommended',item_ids:['zh-daily-what-is-this']}],
+    resume:{},
+  }});
+  cleanState('zh');
+  state.supportLanguage='en';
+  const mixed=homeRoot();
+  await renderHome(mixed);
+  const heroTitle=mixed.innerHTML.match(/<h1 class="oc-hero-title([^"]*)"/)?.[1]||'';
+  assert.doesNotMatch(heroTitle,/cjk/,
+    'an English interface must not take CJK typography because the learner studies Chinese');
+  assert.match(mixed.innerHTML,/<h3 class="oc-tile-title cjk" lang="zh-Hans">这是什么？/,
+    'a Chinese lesson title must carry its own language inside an English interface');
+
+  // Chinese interface, English learning language: the mirror image.
+  resetApis();
+  cleanState('en');
+  state.supportLanguage='zh';
+  const zhUi=homeRoot();
+  await renderHome(zhUi);
+  assert.match(zhUi.innerHTML,/<h1 class="oc-hero-title cjk">/,
+    'a Chinese interface takes CJK typography for interface copy');
+  assert.match(zhUi.innerHTML,/class="oc-tile-title" lang="en"/,
+    'an English lesson title stays English inside a Chinese interface');
+  state.supportLanguage='en';
+}
+
+/* 14 — the component API is semantic, with no raw-markup escape hatch ------ */
+{
+  /* Behavioural, not textual: raw markup handed to a component must not reach
+     the page, whatever the prop is called. */
+  for(const hatch of ['bodyHtml','secondaryActions','innerHtml','html']){
+    const injected=recommendationTile({title:'T',[hatch]:'<b data-injected>x</b>'});
+    assert.doesNotMatch(injected,/data-injected/,
+      `${hatch} must not be an accepted raw-markup escape hatch`);
+    const injectedChallenge=challengeCard({title:'T',[hatch]:'<b data-injected>x</b>'});
+    assert.doesNotMatch(injectedChallenge,/data-injected/,
+      `${hatch} must not be an accepted raw-markup escape hatch on a challenge`);
+  }
+  const homeSource=fs.readFileSync(new URL('../static/becoming/screens/home.js',import.meta.url),'utf8');
+  assert.ok(!homeSource.includes('crossSkillCueMarkup'),
+    'Home must render cross-skill through Orena components, not legacy card markup');
+  assert.ok(homeSource.includes('normalizeCrossSkillCue'),
+    'Home must reuse the shared cross-skill validator rather than fork its logic');
+  assert.ok(!homeSource.includes('oc-legacy-slot'),
+    'the legacy markup slot must be gone');
+
+  // Semantic quote/note/link props render, and escape.
+  const tile=recommendationTile({
+    contentKind:'k', title:'T', quote:'<script>x</script>',
+    note:{text:'n', attributes:{'data-practice-difficulty':''}},
+    links:[{label:'L', attributes:{'data-home-open-review':'7'}}],
+  });
+  assert.match(tile,/<blockquote class="oc-quote"/);
+  assert.doesNotMatch(tile,/<script>/,'a quote is text, and is escaped as text');
+  assert.match(tile,/data-practice-difficulty/);
+  assert.match(tile,/class="oc-link" data-home-open-review="7"/);
+  assert.doesNotMatch(recommendationTile({title:'T',links:[{label:'L',attributes:{onclick:'alert(1)'}}]}),/onclick/,
+    'a link may only carry data attributes');
+}
+
+console.log('Orena Home H1.1 audit contract: PASS');
 }finally{
   Object.assign(api,original);
 }

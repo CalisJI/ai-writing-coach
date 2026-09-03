@@ -88,7 +88,8 @@ try{
   clearSharedMediaSession('zh');
   setSharedMediaSession({learning_language:'zh',payload:{...MEDIA_LEARNING_FIXTURE,asset:{...MEDIA_LEARNING_FIXTURE.asset,asset_id:'asset-current'}},selected_segment_id:'segment-001'});
   root=await renderPlan('zh',{recommendation:null,speaking:{items:[{asset_id:'asset-other',segment_id:'segment-001'}]}});
-  assert.match(root.innerHTML,/data-home-next-plan[^>]*data-plan-kind="empty"/);
+  assert.doesNotMatch(root.innerHTML,/data-home-next-plan/,
+    'no usable plan means no plan tile at all (H1.1: no placeholder cards)');
   assert.doesNotMatch(root.innerHTML,/data-home-next-plan-action/);
 
   state.readingSession={id:999,title:'Stale reading'};
@@ -108,11 +109,12 @@ try{
       reading:()=>{throw new Error('reading unavailable');},
       speaking:()=>Promise.reject(new Error('speaking unavailable')),
     });
-    assert.match(root.innerHTML,/data-home-next-plan[^>]*data-plan-kind="empty"/);
-    assert.ok(root.innerHTML.includes(t('home.next_plan_empty')));
+    /* H1.1: Home is discovery-first when there is nothing to recommend. The
+       plan tile is absent rather than present-and-empty, and nothing invents a
+       number to fill the space. */
+    assert.doesNotMatch(root.innerHTML,/data-home-next-plan/);
     assert.doesNotMatch(root.innerHTML,/data-home-next-plan-action/);
-    const planMarkup=root.innerHTML.match(/<section class="o-card o-panel home-next-plan"[\s\S]*?<\/section>/)?.[0]||'';
-    assert.doesNotMatch(planMarkup,/100%|completed|streak/i);
+    assert.doesNotMatch(root.innerHTML,/100%|completed|streak/i);
   }
 
   for(const language of ['en','zh']){
@@ -120,7 +122,7 @@ try{
     clearSharedMediaSession(language);
     api.practiceRecommendation=async()=>{throw new Error('recommendation unavailable');};
     root=await renderPlan(language,{recommendation:()=>{throw new Error('unused');},reading:{items:[{id:22,latest_attempt:{correct_count:4,total:4}}]},speaking:{items:[]}});
-    assert.match(root.innerHTML,/data-home-next-plan[^>]*data-plan-kind="empty"/);
+    assert.doesNotMatch(root.innerHTML,/data-home-next-plan/);
     assert.doesNotMatch(root.innerHTML,/data-home-next-plan-action/);
 
     storage.clear();
