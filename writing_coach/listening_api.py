@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from collections.abc import Sequence
 from typing import Any, Literal
 
 from fastapi import APIRouter, HTTPException, Query, Request
@@ -88,6 +89,9 @@ _DISCOVERY_SECTION_ORDER = (
 
 class ListeningProgressIn(BaseModel):
     asset_id: str = Field(min_length=1, max_length=255)
+    # Progress belongs to a lesson. Empty is the legacy path and is resolved
+    # only when the asset is unambiguous; see resolve_progress_lesson().
+    lesson_id: str = Field(default="", max_length=255)
     segment_id: str = Field(min_length=1, max_length=255)
     presentation: Literal["prompt", "checked", "revealed"] = "prompt"
     revealed: bool = False
@@ -99,8 +103,67 @@ class ListeningProgressIn(BaseModel):
 
 class ShadowingProgressIn(BaseModel):
     asset_id: str = Field(min_length=1, max_length=255)
+    lesson_id: str = Field(default="", max_length=255)
     segment_id: str = Field(min_length=1, max_length=255)
     completed_rounds: int = Field(default=0, ge=0, le=1000)
+
+
+def resolve_progress_lesson(
+    *,
+    asset_id: str,
+    lesson_id: str,
+    segment_id: str,
+    request: Request | None = None,
+) -> str:
+    """Validate the lesson a progress write claims, and return its canonical id.
+
+    A client-supplied lesson_id is never trusted on its own. The lesson must
+    exist, belong to the stated asset, be in the learner's current learning
+    language, and actually contain the segment - otherwise progress in one
+    excerpt could be written against another.
+
+    An omitted lesson_id is the legacy client path. It resolves ONLY when the
+    asset has exactly one lesson; with several, this fails truthfully rather
+    than picking one, because guessing would attach real work to the wrong
+    excerpt. That compatibility path can be removed once no client omits
+    lesson_id - the web client sends it as of this change.
+    """
+
+    language = (current_language_code() or "").strip().casefold()
+    candidates = [
+        lesson for lesson in catalog_lessons(
+            language=language or None, include_preview=preview_visible(request))
+        if lesson.source.source_media_id == asset_id
+    ]
+
+    if lesson_id:
+        lesson = next((item for item in candidates if item.lesson_id == lesson_id), None)
+        if lesson is None:
+            raise orena_http_error(
+                400, "listening_lesson_mismatch",
+                "This lesson does not exist for that media in this language.")
+    elif len(candidates) == 1:
+        lesson = candidates[0]
+    elif not candidates:
+        # Nothing to attach it to. Legacy/unassigned is the truthful answer:
+        # the row is still stored, keyed by an empty lesson.
+        return ""
+    else:
+        raise orena_http_error(
+            400, "listening_lesson_required",
+            "This media has several lessons, so progress must name its lesson.")
+
+    known = {segment.segment_id for segment in _lesson_segments(lesson)}
+    if known and segment_id not in known:
+        raise orena_http_error(
+            400, "listening_segment_mismatch",
+            "That segment does not belong to this lesson.")
+    return lesson.lesson_id
+
+
+def _lesson_segments(lesson: Any) -> tuple[Any, ...]:
+    transcript = lesson.media_object.transcript
+    return tuple(transcript.segments) if transcript is not None else ()
 
 
 def configure_listening_progress(repository: SpecializedLearningRepository | None) -> None:
@@ -118,11 +181,87 @@ def _installed() -> SpecializedLearningRepository:
     return _repository
 
 
+def _optional_identity(value: Any) -> str:
+    """An optional identifier, tolerant of being called outside FastAPI.
+
+    Called over HTTP this is a string. Called directly - tests, internal callers
+    - the parameter default is still FastAPI's Query object, and treating that
+    as an identifier would scope a read to nonsense. Anything that is not a
+    non-empty string means "no lesson given".
+    """
+
+    return value.strip() if isinstance(value, str) and value.strip() else ""
+
+
 def _clean_identity(value: str, field: str) -> str:
     cleaned = value.strip()
     if not cleaned:
         raise orena_http_error(422, "listening_progress_invalid", f"{field} must not be empty.")
     return cleaned
+
+
+# How many lessons the first rail may carry. A resume rail is a short list of
+# what you were actually doing, not a history page.
+CONTINUE_LEARNING_LIMIT = 8
+
+
+def continue_learning_lessons(
+    ranked: Sequence[Any],
+    *,
+    language: str,
+) -> tuple[list[str], dict[str, dict[str, Any]]]:
+    """Lessons this learner actually has progress in, most recent first.
+
+    Built from durable PostgreSQL progress, never from catalog metadata,
+    localStorage or a guess. Every candidate is joined against the catalog the
+    caller can currently see, so a lesson that was removed, belongs to another
+    learning language, or is preview content this learner may not access simply
+    does not appear - the visibility rule is the same one discovery uses,
+    enforced here rather than in the client.
+
+    Returns the ordered lesson ids and, per lesson, the resume hint the existing
+    frontend needs. No transcript is duplicated into discovery: opening the
+    lesson still goes through the lesson endpoint and its persisted transcript.
+    """
+
+    if _repository is None:
+        return [], {}
+    try:
+        records = _repository.list_recent_listening_progress_records(limit=60)
+    except RuntimeError:
+        # Progress is a PostgreSQL capability. Without it there is simply
+        # nothing to continue; discovery still renders.
+        return [], {}
+
+    visible = {lesson.lesson_id: lesson for lesson in ranked}
+    ordered: list[str] = []
+    resume: dict[str, dict[str, Any]] = {}
+    for record in records:
+        lesson_id = str(record.get("lesson_id") or "")
+        # Legacy rows carry no lesson, so there is nothing truthful to resume.
+        if not lesson_id or lesson_id in resume:
+            continue
+        lesson = visible.get(lesson_id)
+        if lesson is None or lesson.source.language.strip().casefold() != language:
+            continue
+        segment_id = str(record.get("segment_id") or "")
+        known = {segment.segment_id for segment in _lesson_segments(lesson)}
+        resume[lesson_id] = {
+            "lesson_id": lesson_id,
+            "asset_id": lesson.source.source_media_id,
+            # A revised lesson may no longer contain the segment the learner
+            # left off at. Resume at its start rather than seeking to something
+            # that is gone.
+            "segment_id": segment_id if segment_id in known else "",
+            "presentation": record.get("presentation") or "prompt",
+            "checked_attempt_count": int(record.get("checked_attempt_count") or 0),
+            "best_exact": bool(record.get("best_exact")),
+            "updated_at": record.get("updated_at"),
+        }
+        ordered.append(lesson_id)
+        if len(ordered) >= CONTINUE_LEARNING_LIMIT:
+            break
+    return ordered, resume
 
 
 @router.get("/library")
@@ -144,10 +283,13 @@ def listening_library(
     ranked = sorted(items, key=discovery_rank)
     item_metadata = [lesson_metadata(lesson) for lesson in ranked]
     membership = {lesson.lesson_id: discovery_sections(lesson) for lesson in ranked}
+    continue_ids, resume = continue_learning_lessons(ranked, language=selected_language)
     sections = [
         {
             "id": section_id,
-            "item_ids": [
+            # Continue Learning is ordered by real recency, not by curation
+            # rank, so it keeps the progress order rather than the catalog's.
+            "item_ids": continue_ids if section_id == "continue-learning" else [
                 lesson.lesson_id for lesson in ranked
                 if section_id in membership[lesson.lesson_id]
             ],
@@ -167,6 +309,9 @@ def listening_library(
             "practice_modes": sorted({mode for lesson in items for mode in lesson.available_modes}),
         },
         "personalization": "deterministic-curation",
+        # Enough to reopen at the right excerpt and segment; the transcript
+        # itself still comes from the lesson endpoint.
+        "resume": resume,
     }
 
 
@@ -283,21 +428,30 @@ def open_listening_library_lesson(
 @router.get("/progress")
 def list_listening_progress(
     asset_id: str = Query(..., min_length=1, max_length=255),
+    lesson_id: str = Query(default="", max_length=255),
 ) -> dict[str, Any]:
     repository = _installed()
     asset = _clean_identity(asset_id, "asset_id")
+    lesson = _optional_identity(lesson_id)
     try:
-        return {"items": repository.list_listening_progress_records(asset)}
+        return {"items": repository.list_listening_progress_records(asset, lesson)}
     except RuntimeError as exc:
         raise orena_http_error(503, "listening_progress_unavailable", str(exc)) from exc
 
 
 @router.post("/progress")
-def save_listening_progress(payload: ListeningProgressIn) -> dict[str, Any]:
+def save_listening_progress(
+    payload: ListeningProgressIn,
+    request: Request = None,  # type: ignore[assignment]
+) -> dict[str, Any]:
     repository = _installed()
     values = payload.model_dump() if hasattr(payload, "model_dump") else payload.dict()
     values["asset_id"] = _clean_identity(values["asset_id"], "asset_id")
     values["segment_id"] = _clean_identity(values["segment_id"], "segment_id")
+    values["lesson_id"] = resolve_progress_lesson(
+        asset_id=values["asset_id"], lesson_id=str(values.get("lesson_id") or ""),
+        segment_id=values["segment_id"], request=request,
+    )
     if values["presentation"] == "revealed":
         values["revealed"] = True
     if values["revealed"] and values["presentation"] == "prompt":
@@ -314,21 +468,30 @@ def save_listening_progress(payload: ListeningProgressIn) -> dict[str, Any]:
 @router.get("/shadowing-progress")
 def list_shadowing_progress(
     asset_id: str = Query(..., min_length=1, max_length=255),
+    lesson_id: str = Query(default="", max_length=255),
 ) -> dict[str, Any]:
     repository = _installed()
     asset = _clean_identity(asset_id, "asset_id")
+    lesson = _optional_identity(lesson_id)
     try:
-        return {"items": repository.list_shadowing_progress_records(asset)}
+        return {"items": repository.list_shadowing_progress_records(asset, lesson)}
     except RuntimeError as exc:
         raise orena_http_error(503, "shadowing_progress_unavailable", str(exc)) from exc
 
 
 @router.post("/shadowing-progress")
-def save_shadowing_progress(payload: ShadowingProgressIn) -> dict[str, Any]:
+def save_shadowing_progress(
+    payload: ShadowingProgressIn,
+    request: Request = None,  # type: ignore[assignment]
+) -> dict[str, Any]:
     repository = _installed()
     values = payload.model_dump() if hasattr(payload, "model_dump") else payload.dict()
     values["asset_id"] = _clean_identity(values["asset_id"], "asset_id")
     values["segment_id"] = _clean_identity(values["segment_id"], "segment_id")
+    values["lesson_id"] = resolve_progress_lesson(
+        asset_id=values["asset_id"], lesson_id=str(values.get("lesson_id") or ""),
+        segment_id=values["segment_id"], request=request,
+    )
     values["updated_at"] = datetime.now(timezone.utc).isoformat()
     try:
         item = repository.save_shadowing_progress_record(values)
