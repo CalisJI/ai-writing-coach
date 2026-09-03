@@ -1514,3 +1514,47 @@ only when every one of them failed. `worldCard` takes
 **Supersedes / Superseded by:** Corrects the H1/H1.1 implementation of
 D-051/D-052; does not change either decision's own scope (Home's composition,
 the product-component contract, or the practice-outcome status set).
+
+## D-054 - Home's screen-lifecycle guard covers shared state, not only the DOM
+
+**Date:** 2026-09-04
+
+**Status:** Accepted (audit correction to D-053's Home lifecycle guard)
+
+**Decision:** `root._cleanupScreen`'s disposal signal is authoritative for
+every effect a progressive Home request can still have after it fires, not
+only for `paint()`. A request that resolves after cleanup must not write into
+`state.dashboard`, `state.memory`, `state.practiceRecommendation` or
+`state.latestPracticeOutcome` - these are shared learner state, not local to
+one render, and a late write reaches whatever screen or learning language is
+current when the promise settles, not the one it was requested for. The check
+runs at the moment of mutation, not at request time, and is joined by an
+independent check on the learning language the render started with: a result
+must not apply if that language is no longer current, even in a hypothetical
+path that changes it without a full screen cleanup. Separately,
+`root._cleanupScreen` now resolves a disposal promise that joins the same
+`Promise.race` as the section-settle budget, so cleanup unblocks a render's
+outstanding lifecycle immediately rather than leaving it to expire against
+the budget after another screen has already started.
+
+**Reason:** D-053 gave Home a screen-lifecycle guard, but only for the DOM:
+`paint()` checked disposal, and nothing else did. A request already in flight
+when the learner navigates away still resolves afterward, and its mutations
+of shared state landed regardless - so a stale personal recommendation, a
+stale learning-memory payload, or a stale dashboard snapshot could silently
+overwrite what a *different* screen, or the learner's *new* learning
+language, should have seen. Racing disposal into the section-budget wait
+closes a smaller but related gap: without it, a render that has already been
+cleaned up would still hold the app-level render lifecycle open for whatever
+budget remained.
+
+**Consequences:** `renderHome` snapshots `renderLanguage` and exposes a
+`stale()` check; the `chrome` and `personal` request groups evaluate it
+immediately before their respective `state.*` writes and skip the write when
+stale. `root._cleanupScreen` resolves a `disposal` promise included in the
+existing `Promise.race([settled, budget, disposal])`. Regression coverage
+lives in `test_orena_home_h1.mjs` (blocks 20-22).
+
+**Supersedes / Superseded by:** Corrects the H1.2 implementation of D-053;
+does not change D-053's own scope (the disposal contract and bounded
+provider budget both stand, just applied more completely).

@@ -15,18 +15,18 @@ product philosophy, historical closeouts, implementation inventories, secrets.
 - Lane: Orena integration — Product UI Foundation + Golden Web Home;
   Listening catalog lane preserved, deferred.
 - Read live HEAD via `git rev-parse HEAD`. Verified application baseline:
-  `eeea1133003a5911616619c44dbe52d39c832ec4`.
+  `817429407f158c40d84d0555497802d325ea47a9`.
 - Baseline ALREADY CONTAINS, do not re-implement: support-language
   separation, curated meaning+translation cache, background recovery
   orchestration, atomic provider-poll claim, L3 import pipeline,
   curated-transcript contract (D-046), offline transcript producer, preview
   tier (D-047/D-048), lesson-scoped progress + Continue Learning (D-049), and
-  the Orena product layer + Home H1-H1.2 (D-051-D-053).
+  the Orena product layer + Home H1-H1.3 (D-051-D-054).
 - Goes stale on EVERY commit — update it and the YAML together.
 
 ## Last verified batch
 
-- **H1.2 lifecycle/truth fixes**, local: no Python touched (866 backend
+- **H1.3 lifecycle closeout**, local: no Python touched (866 backend
   unchanged), 31/31 CI-gated `.mjs` contracts, ESM graph (55 modules) and
   `validate_architecture` OK. Same 8 pre-H1 `.mjs` failures plus the isolated
   goal-editor gap; none in CI.
@@ -65,28 +65,27 @@ product philosophy, historical closeouts, implementation inventories, secrets.
 - REAL MEDIA CATALOG PARTIAL: 2 rights-cleared video lessons, 5 seed audio.
   L2/L3 importer reuses the YouTube adapter and canonical Media Learning
   Object; a failed caption request is never "no captions".
-- L2.5 (D-042/D-044): support/learning language and UI locale distinct; meaning
-  editorial → cached → live → truthful unavailable. Groq key is VALID — that
-  403 was Cloudflare 1010.
+- L2.5 (D-042/D-044): support/learning language and UI locale distinct;
+  meaning editorial → cached → live → truthful unavailable. Groq key VALID —
+  that 403 was Cloudflare 1010.
 - **D-049**: progress keyed by (user, language, LESSON, segment) for
   Dictation/Shadowing; Continue Learning built server-side from real
   PostgreSQL progress with discovery's visibility boundary.
 - **D-051 (H1)**: `orena/product-components.{js,css}`, first reusable Orena
-  layer (`data-orena-ui="v2"`). Home: Hero → Continue → Worlds → For You →
-  Challenge → Continue Exploring; Writing dashboard/streak off Home (Journey
-  still renders them). Worlds: versioned source (`orena_worlds.v1.json` +
-  `world_catalog.py` + `GET /api/worlds`) MEASURED: EN 3/6, ZH 3/6.
-- **D-052/D-053 (H1.1/H1.2)**: audit corrections to H1's Home. Outcome status
-  matches `derive_practice_outcome()`'s real 7, not 4 invented; Grammar
-  handoff survives every status. Empty sections show real starters, not
-  placeholders; one surfaced-id set stops double-listing; sections repaint
-  independently. Components dropped `bodyHtml`/`secondaryActions` for
-  semantic props; `lang` splits interface from content language.
-  `renderHome` honors `root._cleanupScreen` plus a bounded settle budget (no
-  stale repaint, no permanent `aria-busy`); Next Practice no longer
-  duplicates a Listening continuation the Hero already shows; a total
-  personal-provider outage reads as unavailable, not empty; a World's lead
-  label splits UI-language prefix from content-language title.
+  layer (`data-orena-ui="v2"`). Home: Hero→Continue→Worlds→For You→
+  Challenge→Continue Exploring; Writing dashboard/streak off Home. Worlds:
+  versioned source (`orena_worlds.v1.json`+`world_catalog.py`+
+  `GET /api/worlds`) MEASURED: EN 3/6, ZH 3/6.
+- **D-052/D-053/D-054 (H1.1-H1.3)**: Home audit corrections — real
+  practice-outcome statuses (not 4 invented); empty sections show real
+  starters, no double-listing, independent repaint; components dropped
+  `bodyHtml`/`secondaryActions`; `lang` split from content language.
+  `renderHome` honors `root._cleanupScreen` + a bounded settle budget (no
+  stale repaint, no permanent `aria-busy`, no waiting past cleanup) and now
+  gates every shared-state write, not only `paint()`. Next Practice no
+  longer duplicates a Listening continuation; a total personal outage reads
+  unavailable not empty; a World's lead label splits UI from content
+  language.
 
 ## CURATED TRANSCRIPT RUNTIME — done, proven in a browser
 
@@ -114,9 +113,9 @@ product philosophy, historical closeouts, implementation inventories, secrets.
 ## BLOCKED
 
 - L3 content: YouTube IP ban (above). L2.5 cold acceptance: Supadata quota,
-  paid-provider human gate.
-- Home NOT rendered signed-in: dogfood requires Google sign-in, a human gate.
-  Verified instead against real components/CSS in sized frames.
+  paid-provider human gate. Home NOT rendered signed-in: dogfood requires
+  Google sign-in, a human gate — verified instead against real
+  components/CSS in sized frames.
 
 ## OPEN P0
 
@@ -145,7 +144,7 @@ product philosophy, historical closeouts, implementation inventories, secrets.
 
 ## NEXT EXACT TASK
 
-**H2 Golden Home.** H1.1/H1.2 audit corrections are done — do not re-open
+**H2 Golden Home.** H1.1-H1.3 audit corrections are done — do not re-open
 them. Replace the development artwork wash with approved production artwork
 inside the containers H1 already built, render the signed-in Home at
 1440/1024/390, compare against `ORENA_HOME_GOLDEN_SPEC.md`, fix the three

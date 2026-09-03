@@ -40,8 +40,8 @@
     "expected_development_branch": "claude/integration-v2",
     "lane": "orena_integration"
   },
-  "last_verified_application_commit": "eeea1133003a5911616619c44dbe52d39c832ec4",
-  "last_verified_batch": "golden_home_h1_2_lifecycle_and_truth_fixes",
+  "last_verified_application_commit": "817429407f158c40d84d0555497802d325ea47a9",
+  "last_verified_batch": "golden_home_h1_3_lifecycle_closeout",
   "current_program_stage": {
     "id": "R21",
     "name": "Mobile Release Readiness",
@@ -50,7 +50,7 @@
   "current_primary_workstream": {
     "id": "orena_golden_web_home",
     "status": "in_progress",
-    "next_task": "H2 Golden Home: replace the development artwork wash with approved production artwork inside the containers H1/H1.1/H1.2 built, render the signed-in Home at 1440/1024/390, compare against ORENA_HOME_GOLDEN_SPEC.md and fix the three largest gaps at the highest shared level. Do not redesign the composition or re-open the H1.1/H1.2 audit fixes. Deferred and preserved: HUMAN applies Alembic 20260903_0005 to the dogfood DB (still 20260828_0004) then dogfood-accepts lesson-scoped progress; L3 ingestion; Listening mode persistence."
+    "next_task": "H2 Golden Home: replace the development artwork wash with approved production artwork inside the containers H1/H1.1/H1.2/H1.3 built, render the signed-in Home at 1440/1024/390, compare against ORENA_HOME_GOLDEN_SPEC.md and fix the three largest gaps at the highest shared level. Do not redesign the composition or re-open the H1.1/H1.2/H1.3 audit fixes. Deferred and preserved: HUMAN applies Alembic 20260903_0005 to the dogfood DB (still 20260828_0004) then dogfood-accepts lesson-scoped progress; L3 ingestion; Listening mode persistence."
   },
   "design": {
     "web_is_visual_source_of_truth": true,
@@ -167,5 +167,5 @@
     "eight_mjs_tests_fail_at_the_previous_head_and_are_outside_ci",
     "test_r12_listening_goal_editor_mjs_fails_on_a_pre_existing_harness_gap_not_in_ci"
   ],
-  "last_verified_at": "2026-09-03"
+  "last_verified_at": "2026-09-04"
 }
