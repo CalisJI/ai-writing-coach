@@ -488,7 +488,10 @@ console.log('Orena Golden Home H1 contract: PASS');
   let painted='';
   api.listeningLibrary=()=>new Promise(()=>{});
   const root=homeRoot();
-  const pending=renderHome(root);
+  // A short budget so this deliberately-unresolved request does not leave a
+  // live timer running for the rest of the test process; renderHome's own
+  // section-budget race (H1.2) is what makes that timer bounded at all.
+  const pending=renderHome(root,{sectionBudgetMs:50});
   await new Promise(resolve=>setTimeout(resolve,0));
   painted=root.innerHTML;
   assert.match(painted,/data-oc-component="journey-hero"/,
@@ -586,6 +589,173 @@ console.log('Orena Golden Home H1 contract: PASS');
 }
 
 console.log('Orena Home H1.1 audit contract: PASS');
+
+/* ================================================================ H1.2 ==== */
+
+/* 15 — a local resume must not compete with the server's Listening continuation */
+{
+  resetApis();
+  cleanState('en');
+  // The server owns the continuation (LESSON, via LIBRARY's continue-learning
+  // section). A DIFFERENT lesson is also sitting in the per-device resume -
+  // the exact shape that used to leak into Next Practice as a second,
+  // competing "resume listening" card.
+  rememberMediaLesson({learning_language:'en',source_url:OTHER_LESSON.source.source_url,lesson_id:OTHER_LESSON.lesson_id,title:OTHER_LESSON.title,selected_segment_id:'segment-001',mode:'follow'});
+  const root=homeRoot();
+  await renderHome(root);
+
+  assert.match(root.innerHTML,/data-home-continue-source="server"/,
+    'the server continuation must still own the Hero card');
+  assert.doesNotMatch(root.innerHTML,/data-home-continue-source="local"/,
+    'a local resume must not create a second continuation once the server owns one');
+  assert.equal((root.innerHTML.match(/data-oc-component="continue-journey"/g)||[]).length,1,
+    'exactly one continuation card may render, never two');
+  assert.doesNotMatch(root.innerHTML,/data-home-next-plan/,
+    'a local Listening resume must not surface as Next Practice once the server continuation owns Listening');
+
+  // The local-resume lesson is still a real catalog lesson, so ordinary
+  // discovery may still offer it - once, not as a disguised second resume.
+  const localLessonCount=(root.innerHTML.match(new RegExp(`data-(?:content|journey)-id="${OTHER_LESSON.lesson_id}"`,'g'))||[]).length;
+  assert.equal(localLessonCount,1,
+    'the local-resume lesson still appears once through ordinary discovery, never as a competing continuation');
+  assert.equal((root.innerHTML.match(new RegExp(`data-(?:content|journey)-id="${LESSON.lesson_id}"`,'g'))||[]).length,1,
+    'the server continuation lesson must still appear exactly once');
+
+  // Without any server continuation, the local resume remains the honest
+  // fallback and next-plan is free to reach for it again.
+  resetApis({library:{items:[],sections:[],resume:{}}});
+  cleanState('en');
+  rememberMediaLesson({learning_language:'en',source_url:OTHER_LESSON.source.source_url,lesson_id:OTHER_LESSON.lesson_id,title:OTHER_LESSON.title,selected_segment_id:'segment-001',mode:'follow'});
+  const fallback=homeRoot();
+  await renderHome(fallback);
+  assert.match(fallback.innerHTML,/data-home-continue-source="local"/,
+    'with no server progress the local resume is still the honest continuation');
+}
+
+/* 16 — Home stops repainting once it is no longer the active screen -------- */
+{
+  resetApis();
+  cleanState('en');
+  let resolveLibrary;
+  api.listeningLibrary=()=>new Promise(resolve=>{resolveLibrary=resolve;});
+  const root=homeRoot();
+  const pending=renderHome(root,{sectionBudgetMs:30});
+  await new Promise(resolve=>setTimeout(resolve,0));
+  assert.match(root.innerHTML,/data-oc-component="journey-hero"/,
+    'Home paints normally while it is still the active screen');
+  assert.equal(typeof root._cleanupScreen,'function',
+    'Home must register the standard app.js screen-cleanup hook');
+
+  // The learner navigates away. This is exactly what app.js's renderCurrent()
+  // does: call the outgoing screen's cleanup, then render the next screen
+  // into the SAME root.
+  root._cleanupScreen();
+  root.innerHTML='<section class="page" data-other-screen="write">Write</section>';
+
+  // Home's deferred request now resolves, long after the navigation away.
+  resolveLibrary(LIBRARY);
+  await pending;
+  await new Promise(resolve=>setTimeout(resolve,20));
+  assert.equal(root.innerHTML,'<section class="page" data-other-screen="write">Write</section>',
+    'a stale Home repaint must not overwrite the screen the learner navigated to');
+}
+
+/* 17 — renderHome resolves on its own budget, even if a provider never answers */
+{
+  resetApis();
+  cleanState('en');
+  api.listeningLibrary=()=>new Promise(()=>{}); // never settles, ever
+  const root=homeRoot();
+  const start=Date.now();
+  await renderHome(root,{sectionBudgetMs:30});
+  assert.ok(Date.now()-start<2000,
+    'renderHome must resolve on a bounded budget rather than hang the render lifecycle on a provider that never answers');
+}
+
+/* 18 — For You separates "still loading" from "unavailable" from "empty" --- */
+{
+  // Personal and the rest settle with nothing to say; the listening library
+  // has not answered yet. For You must say it is loading - the library could
+  // still supply starter lessons - never that it is already empty.
+  resetApis();
+  cleanState('en');
+  let resolveLibrary;
+  api.listeningLibrary=()=>new Promise(resolve=>{resolveLibrary=resolve;});
+  const root=homeRoot();
+  const pending=renderHome(root,{sectionBudgetMs:5000});
+  await new Promise(resolve=>setTimeout(resolve,10));
+  assert.match(root.innerHTML,/data-oc-section="for-you"[^>]*data-section-state="loading"/,
+    'For You must not claim to be empty while the listening library might still supply starters');
+  resolveLibrary({items:[],sections:[],resume:{}});
+  await pending;
+  assert.match(root.innerHTML,/data-oc-section="for-you"[^>]*data-section-state="ready"/,
+    'once both providers have genuinely answered with nothing, For You is a real empty state');
+
+  // A real personal-provider outage is a different claim from a genuine empty
+  // state, and must render as such - isolated here with an equally empty
+  // library, since real starter content from the library would legitimately
+  // fill For You regardless of the personal outage.
+  resetApis({library:{items:[],sections:[],resume:{}}});
+  cleanState('en');
+  api.practiceRecommendation=async()=>{throw new Error('down');};
+  api.practiceOutcomes=async()=>{throw new Error('down');};
+  api.learningMemory=async()=>{throw new Error('down');};
+  api.readingSessions=async()=>{throw new Error('down');};
+  api.speakingAttempts=async()=>{throw new Error('down');};
+  api.crossSkillCue=async()=>{throw new Error('down');};
+  const failedRoot=homeRoot();
+  await renderHome(failedRoot);
+  assert.match(failedRoot.innerHTML,/data-oc-section="for-you"[^>]*data-section-state="error"/,
+    'a total personal-provider outage must not read as "nothing personal yet"');
+  assert.doesNotMatch(failedRoot.innerHTML,/data-oc-section="for-you"[^>]*data-section-state="ready"/,
+    'an outage is not a ready state');
+
+  // One of the six personal calls failing is still a partial answer, not an
+  // outage: whatever the others returned is real and renders.
+  resetApis();
+  cleanState('en');
+  api.crossSkillCue=async()=>{throw new Error('down');};
+  api.practiceOutcomes=async()=>({items:[],latest:{status:'held',issue_count:0,revision_no:2,essay_id:5,focus_label:'Tone',error_evidence:[]}});
+  const partial=homeRoot();
+  await renderHome(partial);
+  assert.match(partial.innerHTML,/data-practice-outcome-status="held"/,
+    'one failing personal sub-request must not cost the others their real data');
+}
+
+/* 19 — a World's lead label keeps interface copy and content title apart --- */
+{
+  resetApis();
+  cleanState('en');
+  const root=homeRoot();
+  await renderHome(root);
+  const worldAt=root.innerHTML.indexOf('data-world-id="en-daily-life"');
+  const world=root.innerHTML.slice(worldAt,root.innerHTML.indexOf('</article>',worldAt));
+  assert.match(world,/<span class="oc-lead-prefix" lang="en">Start with<\/span>/,
+    'the lead label\'s UI-language prefix must render as interface copy');
+  assert.match(world,/<span class="oc-lead-title" lang="en">A pen in my bag<\/span>/,
+    'the lead label\'s lesson title must carry its own content-language lang attribute');
+
+  resetApis({library:{
+    items:[{lesson_id:'zh-daily-what-is-this',title:'这是什么？',description:'一段简短的日常对话。',duration_ms:9000,artwork:'conversations',poster_url:'',source:{source_url:'https://example.invalid/zh'}}],
+    sections:[{id:'recommended',item_ids:['zh-daily-what-is-this']}],
+    resume:{},
+  },worlds:{language:'en',worlds:[{...WORLDS.worlds[0],lead_lesson_id:'zh-daily-what-is-this',lead_lesson_title:'这是什么？',lead_lesson_source_url:'https://example.invalid/zh'}],available_count:1}});
+  cleanState('zh');
+  state.supportLanguage='en';
+  const mixed=homeRoot();
+  await renderHome(mixed);
+  const mixedAt=mixed.innerHTML.indexOf('data-world-id="en-daily-life"');
+  const mixedWorld=mixed.innerHTML.slice(mixedAt,mixed.innerHTML.indexOf('</article>',mixedAt));
+  // An English interface studying Chinese: the prefix must not go CJK just
+  // because the lesson title next to it is Chinese.
+  assert.doesNotMatch(mixedWorld,/class="oc-lead-prefix[^"]*cjk/,
+    'the UI-language prefix must never take on the content title\'s language');
+  assert.match(mixedWorld,/class="oc-lead-title cjk" lang="zh-Hans">这是什么？/,
+    'the lesson title keeps its own Chinese lang attribute inside an English interface');
+  state.supportLanguage='en';
+}
+
+console.log('Orena Home H1.2 audit contract: PASS');
 }finally{
   Object.assign(api,original);
 }

@@ -73,8 +73,13 @@ try{
   storage.clear();clearSharedMediaSession('en');
   rememberMediaLesson({learning_language:'en',source_url:MEDIA_LEARNING_FIXTURE.asset.source_url,title:'Recent lesson',selected_segment_id:'segment-001',mode:'follow'});
   root=await renderPlan('en',{recommendation:null});
-  assert.match(root.innerHTML,/data-home-next-plan[^>]*data-plan-kind="listening"/);
-  await root.querySelector('[data-home-next-plan-action]').click();
+  /* H1.2: with no server continuation, the local resume becomes the Hero's
+     own continuation card. It must not ALSO surface as a Next Practice tile
+     for the same lesson - that would be a second, competing continuation. */
+  assert.doesNotMatch(root.innerHTML,/data-home-next-plan/,
+    'a local Listening resume is the continuation itself, not a second Next Practice tile');
+  assert.match(root.innerHTML,/data-home-continue-source="local"/);
+  await root.querySelector('[data-home-resume-listening]').click();
   assert.equal(globalThis.location.hash,'#/listen');
 
   storage.clear();clearSharedMediaSession('zh');

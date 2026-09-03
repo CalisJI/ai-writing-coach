@@ -245,6 +245,9 @@ function nextPlanTile(plan,recommendation){
   const kind=plan.kind;
   return recommendationTile({
     contentKind:'next-plan',
+    // A plan that names a real lesson carries its id, so the same lesson-dedup
+    // set that tracks Hero/For You/Continue Exploring can also see it here.
+    contentId:kind==='listening'?String(plan.lesson?.lesson_id||''):'',
     reason:t('home.next_plan_title'),
     title:t(`home.next_plan_${kind}_title`),
     subtitle:t(`home.next_plan_${kind}_body`),
@@ -477,8 +480,12 @@ function worldsSection(section){
     countLabel:world.lessonCount===1
       ?t('home.h1_world_count',{count:world.lessonCount})
       :t('home.h1_world_count_plural',{count:world.lessonCount}),
-    leadLabel:world.leadLessonTitle?t('home.h1_world_lead',{title:world.leadLessonTitle}):'',
-    // The distinctive part of that label is a real lesson title.
+    // The lead label reads as one phrase but is two languages: the prefix is
+    // interface copy, the lesson title is content. They travel separately so
+    // neither is forced into the other's typography.
+    leadPrefix:world.leadLessonTitle?t('home.h1_world_lead_prefix'):'',
+    leadTitle:world.leadLessonTitle,
+    leadSuffix:world.leadLessonTitle?t('home.h1_world_lead_suffix'):'',
     leadLang:contentLang(),
     variant:index===0?'featured':'standard',
     openAttributes:{
@@ -587,9 +594,28 @@ function continuationMarkup(continuation){
 
 /* ============================================================== render ==== */
 
-export async function renderHome(root){
+/* How long renderHome's returned promise will wait on its optional sections
+   before giving up on them. Requests that are still outstanding keep running
+   and still repaint through settle()'s own `.then(paint)` when/if they
+   resolve - subject to the screen-lifecycle guard below - but the app-level
+   render lifecycle (aria-busy, the rail refresh, focus) must not hang forever
+   behind one provider that never answers at all. */
+const HOME_SECTION_BUDGET_MS=6000;
+
+export async function renderHome(root,{sectionBudgetMs=HOME_SECTION_BUDGET_MS}={}){
   document.querySelector('#primaryNav')?.classList.remove('hidden');
   root.innerHTML=`<section class="page">${loadingBlock(5)}</section>`;
+
+  /* Screen lifecycle: app.js calls this exactly once, then reuses the SAME
+     root element for whatever screen the learner navigates to next. Home's
+     own requests are progressive and can still be outstanding at that point,
+     so a stale settle()->paint() arriving after the learner has left Home
+     must not overwrite whatever screen is on the page now. app.js already
+     runs `root._cleanupScreen` before rendering the next screen (ORENA
+     screen-cleanup contract); Home hooks into that same contract rather than
+     inventing a second one. */
+  let disposed=false;
+  root._cleanupScreen=()=>{ disposed=true; };
 
   /* Four independent groups. Nothing here is awaited together, so the first
      paint waits for none of them and a stalled group costs one section rather
@@ -609,12 +635,20 @@ export async function renderHome(root){
     const library=sections.library.status==='ready'?sections.library.data:null;
     const personal=sections.personal.status==='ready'?sections.personal.data:null;
     const continuation=continuationModel(library,localListening);
+    /* The continuation already owns Listening the moment it exists, server or
+       local: D-049's server signal wins when both exist, and a per-device
+       local resume becomes the continuation itself when the server has none.
+       Either way, offering the SAME (or a different, competing) local resume
+       again through Next Plan would be a second continuation, so Next Plan is
+       only allowed to reach for a local resume when nothing has claimed
+       Listening yet. */
+    const continuationOwnsListening=continuation?.kind==='listening'||continuation?.kind==='listening-local';
 
     const nextPlan=personal?nextPracticePlan({
       recommendation:personal.recommendation,
       readingHistory:personal.readingHistory,
       speakingHistory:personal.speakingHistory,
-      listeningResume:localListening,
+      listeningResume:continuationOwnsListening?null:localListening,
     }):null;
     const dueReview=sections.vocabulary.status==='ready'
       ?dueLibraryReview(sections.vocabulary.data):null;
@@ -625,6 +659,9 @@ export async function renderHome(root){
     if(continuation?.kind==='listening')surfaced.add(continuation.lessonId);
     if(continuation?.kind==='listening-local'&&continuation.lesson.lesson_id){
       surfaced.add(continuation.lesson.lesson_id);
+    }
+    if(nextPlan?.kind==='listening'&&nextPlan.lesson?.lesson_id){
+      surfaced.add(String(nextPlan.lesson.lesson_id));
     }
 
     const personalTiles=personal?[
@@ -657,16 +694,29 @@ export async function renderHome(root){
       listeningHabitChallenge(listeningHabit),
     ].filter(Boolean);
 
-    const forYouLoading=!forYou.length
-      &&sections.personal.status==='loading'
-      &&sections.library.status==='loading';
+    /* Either provider can still fill For You: personal evidence supplies the
+       personalized tiles, and the listening library alone can supply the
+       starter lessons a learner with no history gets instead. So the section
+       only leaves "loading" once BOTH have answered - claiming "empty" while
+       either one might still deliver content would be a false negative. And a
+       real provider failure is not a genuine empty state: an empty result
+       Home measured and a result Home never got are different claims, so they
+       get different copy rather than one collapsing into the other. */
+    const forYouSettled=sections.personal.status!=='loading'&&sections.library.status!=='loading';
+    const forYouFailed=sections.personal.status==='error'||sections.library.status==='error';
+    const forYouState=forYou.length?'ready':!forYouSettled?'loading':forYouFailed?'error':'ready';
+    const forYouEmpty=forYouState==='loading'
+      ?t('home.h1_loading')
+      :forYouState==='error'
+        ?t('home.h1_foryou_unavailable')
+        :t('home.h1_foryou_empty');
     const forYouSection=recommendationRail({
       id:'for-you',
       title:t('home.h1_foryou_title'),
       description:t('home.h1_foryou_lede'),
       tiles:forYou,
-      empty:forYouLoading?t('home.h1_loading'):t('home.h1_foryou_empty'),
-      state:forYouLoading?'loading':'ready',
+      empty:forYouEmpty,
+      state:forYouState,
     });
     /* No challenge worth making is no Challenge section. An empty box would be
        the placeholder wall this audit removed. */
@@ -907,6 +957,9 @@ export async function renderHome(root){
   }
 
   function paint(){
+    // Home is no longer the active screen: this root belongs to whatever the
+    // learner navigated to, and a late repaint would clobber it.
+    if(disposed)return;
     try{
       root.innerHTML=compose();
       bind();
@@ -938,25 +991,68 @@ export async function renderHome(root){
     if(dashboard)state.dashboard=dashboard;
   });
 
-  const personal=()=>Promise.all([
-    optional(()=>api.practiceRecommendation()),
-    optional(()=>api.practiceOutcomes(1)),
-    optional(()=>api.learningMemory()),
-    optional(()=>api.readingSessions(8)),
-    optional(()=>api.speakingAttempts(1)),
-    optional(()=>api.crossSkillCue()),
-  ]).then(([recommendation,outcomes,memory,readingHistory,speakingHistory,crossCue])=>{
+  /* Six independent sub-requests, each free to fail on its own without taking
+     the others down - a missing reading history must not cost the learner
+     their practice outcome. But `optional()`'s per-call swallow, used
+     everywhere else on this screen, would erase the difference between "every
+     one of these failed" and "every one of these truthfully has nothing to
+     say", and personal is the one section where that difference matters: the
+     first is a provider outage, the second is a genuine new-learner state.
+     `Promise.allSettled` keeps the per-call resilience and still lets a total
+     failure surface as one, by rejecting only when NOTHING came back. Each
+     call is invoked inside its own try, not just awaited: a call that throws
+     synchronously rather than returning a rejected promise (an unconfigured
+     endpoint, say) must still cost only its own slot, not abort the batch
+     before `allSettled` ever sees the other five. */
+  const safeCall=load=>{
+    try{ return Promise.resolve(load()); }
+    catch(error){ return Promise.reject(error); }
+  };
+  const personal=async()=>{
+    const results=await Promise.allSettled([
+      safeCall(()=>api.practiceRecommendation()),
+      safeCall(()=>api.practiceOutcomes(1)),
+      safeCall(()=>api.learningMemory()),
+      safeCall(()=>api.readingSessions(8)),
+      safeCall(()=>api.speakingAttempts(1)),
+      safeCall(()=>api.crossSkillCue()),
+    ]);
+    if(results.every(result=>result.status==='rejected')){
+      throw new Error('personal recommendations unavailable');
+    }
+    const [recommendation,outcomes,memory,readingHistory,speakingHistory,crossCue]=results.map(
+      result=>result.status==='fulfilled'?result.value:null,
+    );
     if(memory)state.memory=memory;
     state.practiceRecommendation=recommendation;
     state.latestPracticeOutcome=outcomes?.latest||null;
     return {recommendation,outcomes,memory,readingHistory,speakingHistory,crossCue};
-  });
+  };
 
-  await Promise.all([
+  const settled=Promise.all([
     chrome,
     settle('library',()=>api.listeningLibrary(state.language)),
     settle('worlds',()=>api.worlds(state.language)),
     settle('vocabulary',()=>api.libraryVocabulary()),
     settle('personal',personal),
   ]);
+
+  /* Every one of those already resolves on its own - `optional()` and
+     `settle()` both turn a rejection into a state rather than letting it
+     propagate - so this budget is not a timeout for a slow request. It exists
+     for the one case neither of those helpers can catch: a request that never
+     settles at all. Without a ceiling here, renderCurrent()'s `await
+     screen(root)` in app.js would never proceed past this call, leaving
+     aria-busy stuck at "true" for the rest of the session. Racing against a
+     bound lets the render lifecycle move on while the real request keeps
+     running in the background and still paints through settle() if it ever
+     answers. */
+  let budgetTimer=null;
+  const budget=new Promise(resolve=>{ budgetTimer=setTimeout(resolve,sectionBudgetMs); });
+  await Promise.race([settled,budget]);
+  // The common case is `settled` winning well inside the budget; clearing the
+  // timer then means an outstanding request does not leave a live timer
+  // behind it for the rest of the session (or, in a test process, for the
+  // rest of the run).
+  clearTimeout(budgetTimer);
 }

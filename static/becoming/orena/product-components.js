@@ -202,6 +202,12 @@ export function continueJourneyCard({
  * of the image, and the lesson count is supporting metadata rather than the
  * visual hero (ORENA_COMPONENT_CONTRACT §5). The count is only rendered when
  * the caller passes one it measured. */
+/* A World's lead label reads as one phrase - "Start with {title}" - but it is
+   made of two different languages: the prefix is interface copy in the
+   interface language, and the title is the lesson's own content language.
+   Treating the whole phrase as one string forces a single `lang`, which is
+   wrong in either direction as soon as interface and content languages
+   differ. The two halves carry their own `lang` instead. */
 export function worldCard({
   worldId = '',
   title = '',
@@ -211,7 +217,9 @@ export function worldCard({
   posterUrl = '',
   accentFamily = '',
   countLabel = '',
-  leadLabel = '',
+  leadPrefix = '',
+  leadTitle = '',
+  leadSuffix = '',
   leadLang = '',
   variant = 'standard',
   attributes = {},
@@ -220,6 +228,9 @@ export function worldCard({
   const shape = ['featured', 'standard', 'compact'].includes(variant) ? variant : 'standard';
   const text = langAttributes(lang);
   const lead = langAttributes(leadLang);
+  const leadMarkup = leadTitle
+    ? `<span class="oc-meta oc-meta--lead">${leadPrefix ? `<span class="oc-lead-prefix${text.className}"${text.attribute}>${esc(leadPrefix)}</span> ` : ''}<span class="oc-lead-title${lead.className}"${lead.attribute}>${esc(leadTitle)}</span>${leadSuffix ? ` <span class="oc-lead-suffix${text.className}"${text.attribute}>${esc(leadSuffix)}</span>` : ''}</span>`
+    : '';
   return `<article class="oc-world" data-oc-component="world-card" data-world-id="${attr(worldId)}" data-variant="${attr(shape)}" data-accent="${attr(accent(accentFamily))}"${extraAttributes(attributes)}>
     <button class="oc-world-open" type="button" data-world-open="${attr(worldId)}"${extraAttributes(openAttributes)}>
       ${artworkFrame({artwork, posterUrl, label: title, ratio: 'world', accentFamily})}
@@ -228,7 +239,7 @@ export function worldCard({
         ${description ? `<span class="oc-world-lede${text.className}"${text.attribute}>${esc(description)}</span>` : ''}
         <span class="oc-world-meta">
           ${countLabel ? `<span class="oc-meta">${esc(countLabel)}</span>` : ''}
-          ${leadLabel ? `<span class="oc-meta oc-meta--lead${lead.className}"${lead.attribute}>${esc(leadLabel)}</span>` : ''}
+          ${leadMarkup}
         </span>
       </span>
     </button>
