@@ -79,6 +79,30 @@ DISCOVERY_TOPIC_SECTIONS: tuple[tuple[str, frozenset[str]], ...] = (
 QUICK_PRACTICE_MAX_MS = 90_000
 
 
+# How a persisted curated transcript came to exist, and how far it has been
+# checked. These travel with the transcript so nothing downstream has to guess.
+TRANSCRIPT_ORIGIN_PROVIDER_CAPTION = "provider_caption"
+TRANSCRIPT_ORIGIN_GENERATED_ASR = "generated_asr"
+TRANSCRIPT_ORIGIN_UNSPECIFIED = "unspecified"
+
+TRANSCRIPT_QUALITY_PROVIDER_CAPTION = "provider_caption"
+TRANSCRIPT_QUALITY_GENERATED_UNREVIEWED = "generated_unreviewed"
+TRANSCRIPT_QUALITY_REVIEWED = "reviewed"
+TRANSCRIPT_QUALITY_UNSPECIFIED = "unspecified"
+
+TRANSCRIPT_ORIGINS = frozenset({
+    TRANSCRIPT_ORIGIN_PROVIDER_CAPTION,
+    TRANSCRIPT_ORIGIN_GENERATED_ASR,
+    TRANSCRIPT_ORIGIN_UNSPECIFIED,
+})
+TRANSCRIPT_QUALITY_STATES = frozenset({
+    TRANSCRIPT_QUALITY_PROVIDER_CAPTION,
+    TRANSCRIPT_QUALITY_GENERATED_UNREVIEWED,
+    TRANSCRIPT_QUALITY_REVIEWED,
+    TRANSCRIPT_QUALITY_UNSPECIFIED,
+})
+
+
 @dataclass(frozen=True)
 class CatalogSource:
     source_media_id: str
@@ -97,6 +121,26 @@ class CatalogSource:
     rights_review_status: str
     segments: tuple[Mapping[str, Any], ...]
     poster_url: str = ""
+    # Transcript provenance. A curated transcript is acquired once at ingestion
+    # and persisted here, so a learner never waits on a provider - but a
+    # persisted transcript must still say what it is. The defaults are
+    # deliberately UNSPECIFIED rather than "provider_caption": an older lesson
+    # that predates this field has an unknown origin, and guessing the
+    # flattering answer would let generated text pass as official captions.
+    transcript_origin: str = TRANSCRIPT_ORIGIN_UNSPECIFIED
+    transcript_revision: int = 1
+    transcript_language: str = ""
+    transcript_quality_state: str = TRANSCRIPT_QUALITY_UNSPECIFIED
+    transcript_provider: str = ""
+    transcript_model: str = ""
+
+    @property
+    def transcript_is_generated(self) -> bool:
+        return self.transcript_origin == TRANSCRIPT_ORIGIN_GENERATED_ASR
+
+    @property
+    def transcript_is_reviewed(self) -> bool:
+        return self.transcript_quality_state == TRANSCRIPT_QUALITY_REVIEWED
 
 
 @dataclass(frozen=True)
@@ -197,6 +241,52 @@ def _string_tuple(value: Any, field: str) -> tuple[str, ...]:
     return items
 
 
+def _transcript_provenance(
+    raw: Any,
+    source_id: str,
+    language: str,
+) -> dict[str, Any]:
+    """Read the optional transcript provenance block.
+
+    Optional on purpose: lessons written before this existed stay loadable and
+    are reported as UNSPECIFIED rather than being silently upgraded to
+    "official captions". An unknown vocabulary value is rejected rather than
+    passed through, so a typo cannot invent a quality state.
+    """
+
+    if raw is None:
+        return {"transcript_language": language}
+    if not isinstance(raw, Mapping):
+        raise ValueError(f"Listening source {source_id} has a malformed transcript block.")
+
+    origin = str(raw.get("origin") or TRANSCRIPT_ORIGIN_UNSPECIFIED).strip().casefold()
+    quality = str(raw.get("quality_state") or TRANSCRIPT_QUALITY_UNSPECIFIED).strip().casefold()
+    if origin not in TRANSCRIPT_ORIGINS:
+        raise ValueError(f"Listening source {source_id} has unknown transcript origin {origin!r}.")
+    if quality not in TRANSCRIPT_QUALITY_STATES:
+        raise ValueError(f"Listening source {source_id} has unknown transcript quality {quality!r}.")
+    # Generated text may never be described as the provider's own captions.
+    if origin == TRANSCRIPT_ORIGIN_GENERATED_ASR and quality == TRANSCRIPT_QUALITY_PROVIDER_CAPTION:
+        raise ValueError(
+            f"Listening source {source_id} labels generated ASR as provider captions.")
+
+    try:
+        revision = int(raw.get("revision", 1))
+    except (TypeError, ValueError):
+        raise ValueError(f"Listening source {source_id} has a malformed transcript revision.") from None
+    if revision < 1:
+        raise ValueError(f"Listening source {source_id} has a transcript revision below 1.")
+
+    return {
+        "transcript_origin": origin,
+        "transcript_revision": revision,
+        "transcript_language": str(raw.get("language") or language).strip() or language,
+        "transcript_quality_state": quality,
+        "transcript_provider": str(raw.get("provider") or "").strip(),
+        "transcript_model": str(raw.get("model") or "").strip(),
+    }
+
+
 def _segment_in_excerpt(segment: Mapping[str, Any], start_ms: int, end_ms: int) -> bool:
     return int(segment["start_ms"]) >= start_ms and int(segment["end_ms"]) <= end_ms
 
@@ -266,6 +356,7 @@ def _load_source(raw: Mapping[str, Any], *, allow_dev: bool = False) -> CatalogS
         allowed_usage_type=_required_text(rights.get("allowed_usage_type"), "allowed_usage_type"),
         rights_review_status=review_status,
         segments=tuple(normalized_segments),
+        **_transcript_provenance(raw.get("transcript"), source_id, language),
         poster_url=_reviewed_media_url(
             raw.get("poster_url"),
             "poster_url",
@@ -589,6 +680,17 @@ def lesson_metadata(lesson: CuratedListeningLesson) -> dict[str, object]:
         "artwork": lesson.artwork,
         "poster_url": source.poster_url,
         "playback_kind": source.playback.kind,
+        # A curated transcript is persisted at ingestion, so it is READY the
+        # moment the lesson loads - and it says what it is.
+        "transcript_state": "ready" if source.segments else "unavailable",
+        "transcript_origin": source.transcript_origin,
+        "transcript_revision": source.transcript_revision,
+        "transcript_language": source.transcript_language or source.language,
+        "transcript_quality_state": source.transcript_quality_state,
+        "transcript_is_generated": source.transcript_is_generated,
+        "transcript_is_reviewed": source.transcript_is_reviewed,
+        "transcript_provider": source.transcript_provider,
+        "transcript_model": source.transcript_model,
         "published_state": lesson.content_status.casefold(),
         "curation_state": lesson.curation_state,
         "is_development_candidate": lesson.content_status == DEV_CONTENT_STATUS,

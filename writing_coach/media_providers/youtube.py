@@ -56,6 +56,7 @@ _OEMBED_ENDPOINT = "https://www.youtube.com/oembed"
 
 # Why an acquisition carries the transcript it does.
 TRANSCRIPT_NATIVE = "native"
+TRANSCRIPT_GENERATED = "generated"
 TRANSCRIPT_ABSENT = "absent"
 TRANSCRIPT_MALFORMED = "malformed"
 TRANSCRIPT_PROBE_FAILED = "probe_failed"
@@ -460,6 +461,7 @@ class YouTubeMediaProviderAdapter:
 
         transcript = None
         native_malformed = False
+        from_fallback = False
         if track is not None:
             try:
                 transcript = normalize_youtube_transcript(asset_id, track)
@@ -474,6 +476,7 @@ class YouTubeMediaProviderAdapter:
             )
             if fallback_track is not None:
                 transcript = normalize_youtube_transcript(asset_id, fallback_track)
+                from_fallback = transcript is not None
 
         if transcript is None and not self._defer_transcript_recovery:
             if native_malformed:
@@ -486,7 +489,10 @@ class YouTubeMediaProviderAdapter:
         # captions": one is a fact about the source, the other is a fact about
         # the network, and only the first should ever be acted on.
         if transcript is not None:
-            transcript_status = TRANSCRIPT_NATIVE
+            # A transcript the recovery chain generated is NOT the source's own
+            # captions. Labelling it "native" would let generated ASR be
+            # presented to a learner as official captions.
+            transcript_status = TRANSCRIPT_GENERATED if from_fallback else TRANSCRIPT_NATIVE
         elif native_malformed:
             transcript_status = TRANSCRIPT_MALFORMED
         elif native_caption_error is not None:

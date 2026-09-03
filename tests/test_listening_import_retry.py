@@ -196,3 +196,76 @@ def test_the_merged_report_counts_lessons_per_language_once() -> None:
     assert summary["GENERATED_LESSONS"] == len(manifest["lessons"])
     assert summary["generated_by_language"]["en"] == len(manifest["lessons"])
     assert sum(summary["excerpts_per_source"].values()) == 2
+
+
+# --- offline ingestion handoff ----------------------------------------------
+
+def test_offline_transcripts_build_a_catalog_with_no_provider_at_all() -> None:
+    """One machine acquires, another builds. Same pipeline, no network.
+
+    This is the practical answer to an IP-blocked build host: acquisition and
+    catalog building do not have to happen in the same place.
+    """
+
+    from writing_coach.listening_source_import import (
+        ImportReport, OfflineTranscriptAdapter, build_dev_catalog,
+    )
+
+    payload = {
+        "aaaaaaaaaaa": {
+            "language": "en",
+            "origin": "provider_caption",
+            "title": "An acquired lesson",
+            "segments": [
+                {"start_ms": i * 5000, "end_ms": (i + 1) * 5000,
+                 "original_text": "a clear line of recorded speech"}
+                for i in range(30)
+            ],
+        },
+    }
+
+    class Exploding:
+        def acquire(self, *a, **k):
+            raise AssertionError("the offline path must not contact a provider")
+
+        def fetch_metadata(self, *a, **k):
+            raise AssertionError("the offline path must not contact a provider")
+
+    adapter = OfflineTranscriptAdapter(payload)
+    manifest, report = build_dev_catalog([candidate("en-001")], adapter, ImportReport())
+    summary = report.as_dict()
+
+    assert summary[ACCEPTED] == 1
+    assert manifest["lessons"], "offline transcripts must produce real lessons"
+    source = manifest["sources"][0]
+    assert len(source["segments"]) == 30
+    # Provenance survives the handoff rather than being reset to a guess.
+    assert source["transcript"]["origin"] == "provider_caption"
+
+    # And an entry that does not say it was captions is not promoted to captions.
+    payload["aaaaaaaaaaa"]["origin"] = "generated_asr"
+    manifest2, _ = build_dev_catalog(
+        [candidate("en-001")], OfflineTranscriptAdapter(payload), ImportReport())
+    assert manifest2["sources"][0]["transcript"]["origin"] == "generated_asr"
+    assert manifest2["sources"][0]["transcript"]["quality_state"] == "generated_unreviewed"
+
+    # Excerpt timing came from the handed-over transcript, never invented.
+    starts = {s["start_ms"] for s in manifest["sources"][0]["segments"]}
+    ends = {s["end_ms"] for s in manifest["sources"][0]["segments"]}
+    for lesson in manifest["lessons"]:
+        assert lesson["excerpt_start_ms"] in starts
+        assert lesson["excerpt_end_ms"] in ends
+
+
+def test_an_unknown_source_falls_through_to_the_live_adapter() -> None:
+    """A partial handoff file is useful, not all-or-nothing."""
+
+    from writing_coach.listening_source_import import (
+        ImportReport, OfflineTranscriptAdapter, build_dev_catalog,
+    )
+
+    live = ThrottledAdapter(succeed_from_pass=1, outcomes={"bbbbbbbbbbb": True}).new_pass()
+    adapter = OfflineTranscriptAdapter({}, live)
+    _, report = build_dev_catalog([candidate("en-002")], adapter, ImportReport())
+    assert report.as_dict()[ACCEPTED] == 1
+    assert [video for _, video in live.seen] == ["bbbbbbbbbbb"]

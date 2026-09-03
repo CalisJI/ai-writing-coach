@@ -1096,3 +1096,54 @@ direction.
 rights, persistence or excerpt-timing contract - excerpt boundaries still come
 only from real transcript timing.
 
+## D-046 - Curated transcripts are acquired at ingestion, never at learner runtime
+
+**Date:** 2026-09-03
+
+**Status:** Accepted (human product decision)
+
+**Decision:** For curated Listening media, transcript acquisition is an
+INGESTION-time operation. The canonical transcript is persisted before a lesson
+is READY, and a learner opening that lesson must never cause a call to the
+YouTube transcript API, Supadata, or any other transcript provider. Provider
+APIs belong to ingestion; the learner runtime reads a PERSISTED CANONICAL
+TRANSCRIPT ARTIFACT.
+
+Meaning is deliberately the opposite: transcript is eager and persisted, while
+translation stays lazy and cached (editorial → persisted generated → live
+service → truthful unavailable). Pinyin is derived deterministically from the
+canonical Hanzi and never from an external AI.
+
+**Reason:** A learner should never wait on somebody else's API to read a
+sentence Orena already has, and Orena should never pay twice for the same
+transcript. It is also a resilience property, proven the hard way this week: the
+build host is IP-blocked by YouTube, yet every curated lesson still opens
+instantly, because the transcript was acquired once and stored.
+
+**Consequences:** The storage backend today is the existing generated catalog
+artifact - the durable rule is "persisted canonical transcript artifact", NOT
+"transcripts live in JSON forever". Migration to database or object storage is
+expected when artifact size slows checkout/build/CI, when the corpus reaches
+many thousands of lessons, or when editorial workflow needs independent
+transcript revisions; it must happen behind this same contract.
+
+Transcript provenance travels with the persisted text: origin
+(provider_caption / generated_asr / unspecified), revision, language, quality
+state (provider_caption / generated_unreviewed / reviewed) and provider/model.
+Lessons predating this default to UNSPECIFIED rather than being promoted to
+"official captions", and the loader refuses to let generated ASR be labelled as
+provider captions.
+
+`tests/test_curated_transcript_contract.py` makes this permanent: it patches
+every transcript provider to raise on any call, then opens real EN and ZH
+lessons. A refactor that moves acquisition back into the hot path fails there.
+
+My Media is explicitly NOT covered. User imports keep native captions →
+recovery → generated ASR, with the async provider_starting / queued /
+processing lifecycle. The rule applies to CURATED READY content only, and the
+pipeline is not duplicated.
+
+**Supersedes / Superseded by:** Supersedes nothing; it makes explicit an
+architecture the code already had but did not guarantee. Extends D-042's
+disclosure rule to persisted curated transcripts.
+

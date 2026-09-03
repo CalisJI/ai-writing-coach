@@ -142,6 +142,11 @@ def main() -> int:
                         help="write the full per-candidate report as JSON")
     parser.add_argument("--limit", type=int, default=0,
                         help="import at most N candidates per file (0 = all)")
+    parser.add_argument("--offline-transcripts", type=Path, default=None,
+                        help="JSON of already-acquired canonical transcripts, keyed "
+                             "by video id. Lets a machine with provider access "
+                             "acquire once and this machine build with no network. "
+                             "Same pipeline, same provenance rules.")
     parser.add_argument("--retry-passes", type=int, default=0,
                         help="extra passes over candidates left UNRESOLVED by a "
                              "failed caption request. Provider throttling is not a "
@@ -197,11 +202,24 @@ def main() -> int:
         rows = read_source_candidates(path)
         candidates.extend(rows[: args.limit] if args.limit > 0 else rows)
 
+    adapter_factory = None
+    if args.offline_transcripts:
+        from writing_coach.listening_source_import import OfflineTranscriptAdapter
+        from writing_coach.media_recovery_policy import build_youtube_adapter as _live
+
+        payload = json.loads(args.offline_transcripts.read_text(encoding="utf-8"))
+        print(f"offline transcripts: {len(payload)} source(s) from "
+              f"{args.offline_transcripts}")
+        # Offline entries win; anything absent still goes to the live adapter,
+        # so a partial handoff file is useful rather than all-or-nothing.
+        adapter_factory = lambda: OfflineTranscriptAdapter(payload, _live())  # noqa: E731
+
     manifest, report = _run_with_retries(
         candidates,
         pause_seconds=args.pause_seconds,
         retry_passes=args.retry_passes,
         retry_backoff=args.retry_backoff,
+        adapter_factory=adapter_factory,
     )
     write_manifest(manifest, args.out, source_lists=list(args.sources))
 

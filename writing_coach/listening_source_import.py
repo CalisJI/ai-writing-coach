@@ -325,6 +325,26 @@ def plan_excerpts(
     return [windows[i] for i in picked]
 
 
+def _transcript_provenance_for(acquisition: Any, language: str) -> dict[str, Any]:
+    """Describe the transcript this ingestion run persisted.
+
+    Generated ASR is never recorded as the provider's own captions: for
+    caption-less sources the recovery chain produces the text, and a learner is
+    entitled to know that before trusting it.
+    """
+
+    generated = getattr(acquisition, "transcript_status", "") == "generated"
+    asset = acquisition.media_object.asset
+    return {
+        "origin": "generated_asr" if generated else "provider_caption",
+        "revision": 1,
+        "language": asset.source_language or language,
+        "quality_state": "generated_unreviewed" if generated else "provider_caption",
+        "provider": asset.source_provider or "youtube",
+        "model": "",
+    }
+
+
 def _segments_of(acquisition: MediaAcquisition) -> list[dict[str, Any]]:
     transcript = acquisition.media_object.transcript
     if transcript is None:
@@ -522,6 +542,106 @@ def _topic_for(candidate: SourceCandidate) -> str:
     return CATEGORY_TOPICS.get(candidate.category, candidate.category or "conversations")
 
 
+class OfflineTranscriptAdapter:
+    """Serve already-acquired canonical transcripts instead of a provider.
+
+    One machine with working provider access acquires transcripts once and
+    writes them out; another machine builds the catalog from that file with no
+    network at all. It is an INPUT PATH, not a second pipeline: the acquisitions
+    it returns go through exactly the same normalization, excerpt planning and
+    provenance code as live ones.
+
+    The payload is `{video_id: {"language", "origin", "segments": [...]}}` where
+    every segment carries real provider timing. Nothing here invents timing, and
+    an entry marked `generated_asr` stays marked that way.
+    """
+
+    provider_id = "youtube"
+
+    def __init__(self, transcripts: Mapping[str, Any], inner: Any = None) -> None:
+        self._transcripts = dict(transcripts or {})
+        self._inner = inner
+
+    def _entry(self, source_url: str) -> Any:
+        try:
+            video_id = parse_youtube_video_id(source_url)
+        except ProviderUrlMalformed:
+            return None
+        return self._transcripts.get(video_id)
+
+    def acquire(self, source_url: str, source_language: str) -> Any:
+        entry = self._entry(source_url)
+        if entry is None:
+            if self._inner is None:
+                raise ProviderSourceUnavailable()
+            return self._inner.acquire(source_url, source_language)
+        return _acquisition_from_offline(entry, source_url, source_language)
+
+    def fetch_metadata(self, source_url: str) -> Any:
+        if self._inner is not None:
+            return self._inner.fetch_metadata(source_url)
+        entry = self._entry(source_url) or {}
+        return type("OfflineMetadata", (), {
+            "title": str(entry.get("title") or ""),
+            "author_name": str(entry.get("creator") or ""),
+            "thumbnail_url": str(entry.get("poster_url") or ""),
+        })()
+
+
+def _acquisition_from_offline(entry: Mapping[str, Any], source_url: str, language: str) -> Any:
+    from writing_coach.media_ingestion import MediaAcquisition, MediaPlayback
+    from writing_coach.media_learning import (
+        MediaLearningAsset,
+        MediaLearningObject,
+        MediaProcessingState,
+        MediaTranscript,
+        TranscriptSegment,
+    )
+    from writing_coach.media_providers.youtube import youtube_embed_url
+
+    video_id = parse_youtube_video_id(source_url)
+    asset_id = f"youtube:{video_id}"
+    rows = entry.get("segments") or []
+    segments = tuple(
+        TranscriptSegment(
+            segment_id=str(row.get("segment_id") or f"{asset_id}:{index:06d}"),
+            order=index,
+            start_ms=int(row["start_ms"]),
+            end_ms=int(row["end_ms"]),
+            original_text=" ".join(str(row.get("original_text") or "").split()),
+        )
+        for index, row in enumerate(rows)
+        if str(row.get("original_text") or "").strip()
+    )
+    if not segments:
+        raise ProviderTranscriptMalformed()
+
+    source_language = str(entry.get("language") or language)
+    asset = MediaLearningAsset(
+        asset_id=asset_id,
+        source_url=canonical_youtube_url(video_id),
+        source_provider="youtube",
+        source_type="external-video",
+        title=str(entry.get("title") or video_id),
+        source_language=source_language,
+        processing_state=MediaProcessingState.READY,
+        transcript_available=True,
+        translation_available=False,
+    )
+    return MediaAcquisition(
+        media_object=MediaLearningObject(
+            asset=asset,
+            transcript=MediaTranscript(asset_id, source_language, segments),
+        ),
+        playback=MediaPlayback("youtube", "embed", youtube_embed_url(video_id)),
+        # Whoever acquired it said how; default to generated rather than
+        # claiming captions Orena never saw.
+        transcript_status=(
+            "native" if str(entry.get("origin")) == "provider_caption" else "generated"
+        ),
+    )
+
+
 def build_dev_catalog(
     candidates: Iterable[SourceCandidate],
     adapter: Any,
@@ -656,6 +776,10 @@ def build_dev_catalog(
                 "review_status": "rights_review",
             },
             "segments": segments,
+            # Persisted with the transcript, not inferred later: a learner
+            # opening this lesson gets these segments with no provider call, so
+            # this block is the only remaining record of where they came from.
+            "transcript": _transcript_provenance_for(acquisition, candidate.language),
         })
         outcome.generated_sources += 1
 
