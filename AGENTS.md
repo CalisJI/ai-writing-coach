@@ -22,11 +22,12 @@ Product-intent precedence:
 
 1. explicit current human instruction;
 2. `docs/product/ORENA_PRODUCT_CONSTITUTION.md`;
-3. explicitly approved current experience / feature specification;
-4. `docs/product/ORENA_STATUS.md`;
-5. current technical constraints;
-6. existing implementation;
-7. historical product assumptions and documentation.
+3. `docs/product/ORENA_CONTENT_ARCHITECTURE.md` for content, discovery, import, and learner-content decisions;
+4. explicitly approved current experience / feature specification;
+5. `docs/product/ORENA_STATUS.md`;
+6. current technical constraints;
+7. existing implementation;
+8. historical product assumptions and documentation.
 
 Existing code proves what currently exists.
 
@@ -64,13 +65,14 @@ Before substantial learner-facing work, read:
 
 1. `AGENTS.md`
 2. `docs/product/ORENA_PRODUCT_CONSTITUTION.md`
-3. `docs/product/ORENA_STATUS.md`
-4. `docs/project/PROJECT_STATE.md`
-5. `docs/project/ARCHITECTURE_INVARIANTS.md`
-6. `docs/project/CURRENT_HANDOFF.md`
-7. `docs/project/DOMAIN_BOUNDARIES.md`
-8. the relevant current feature / experience specification
-9. the relevant implementation and tests
+3. `docs/product/ORENA_CONTENT_ARCHITECTURE.md`
+4. `docs/product/ORENA_STATUS.md`
+5. `docs/project/PROJECT_STATE.md`
+6. `docs/project/ARCHITECTURE_INVARIANTS.md`
+7. `docs/project/CURRENT_HANDOFF.md`
+8. `docs/project/DOMAIN_BOUNDARIES.md`
+9. the relevant current feature / experience specification
+10. the relevant implementation and tests
 
 Read `docs/project/DECISION_LOG.md` when a durable product or architecture decision matters.
 

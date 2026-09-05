@@ -822,3 +822,78 @@ that treat Writing-first sequencing, individual skill modules, or a historical
 presentation system as Orena's permanent conceptual hierarchy. It does not
 invalidate technical domain contracts or verified historical implementation
 facts.
+
+## D-038 — Orena content world combines discovery with learner-owned content
+
+**Status:** Accepted
+
+**Decision:** Orena's learner-facing content model must support both a rich
+discoverable Orena-provided content world and learner-owned content brought into
+the product.
+
+The durable content contract is defined by:
+
+`docs/product/ORENA_CONTENT_ARCHITECTURE.md`
+
+Orena should provide meaningful texts, media, situations, prompts,
+conversations, stories, ideas, and other language experiences worth
+discovering.
+
+Learners should also be able to bring supported content they genuinely care
+about into Orena.
+
+Where technically and pedagogically appropriate, Orena-provided and
+learner-imported content should enter the same learning architecture rather than
+forming disconnected products.
+
+Reading, Listening, Writing, Speaking, Grammar, Vocabulary, Shadowing,
+Dictation, and Recall remain learning capabilities that may participate in
+those experiences.
+
+**Reason:** The experience-first Product Constitution establishes discovery,
+meaningful content, continuity, and learner agency, but the existing
+implementation can still be interpreted as separate learning tools: generated
+Reading passages, a media-import-oriented Listening surface, Writing task
+selectors, Speaking recorders, and an Active Recall Library.
+
+Without a durable content contract, future agents may preserve or redesign
+those implementations as isolated feature modules rather than building the
+content-rich world required by the current Orena direction.
+
+The product must be useful and interesting before a learner imports anything,
+while still allowing learners to connect their own interests and materials to
+the same learning system.
+
+**Consequences:** Content origin must remain truthful. Curated/provided,
+generated, imported, and saved content must not be falsely represented as one
+another.
+
+Reading must not treat generated Article / Book / News / Quote simulations as
+the complete Reading end-state.
+
+Listening media import remains a valid and important input path, but it is not
+the definition of the Listening product.
+
+Speaking should continue to reuse shared media identities where appropriate
+rather than creating an unnecessary parallel media pipeline.
+
+Writing should evolve beyond exercise-type selection into meaningful reasons
+and situations for expression while preserving free/custom learner starting
+points.
+
+Explore, learner-owned content, learner-collected language, and Active Recall
+are distinct product concepts even if future UI terminology changes.
+
+Existing stable learning, evaluation, Media Learning, Grammar, persistence, and
+learner-evidence contracts should be reused rather than rebuilt merely to
+implement this content model.
+
+English and Chinese remain first-class across both Orena-provided and
+learner-owned content experiences.
+
+External content must preserve truthful provenance and follow applicable rights
+and provider constraints.
+
+**Supersedes / Superseded by:** Extends D-037 and D-014. It does not supersede
+the stable Shared Media Learning contract or existing verified learning-domain
+implementation.

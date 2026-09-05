@@ -14,13 +14,14 @@ For learner-facing product work:
 
 1. `AGENTS.md`
 2. `docs/product/ORENA_PRODUCT_CONSTITUTION.md`
-3. `docs/product/ORENA_STATUS.md`
-4. `PROJECT_STATE.md`
-5. `ARCHITECTURE_INVARIANTS.md`
-6. `CURRENT_HANDOFF.md`
-7. `DOMAIN_BOUNDARIES.md`
-8. relevant current feature / experience specification
-9. relevant implementation and tests
+3. `docs/product/ORENA_CONTENT_ARCHITECTURE.md`
+4. `docs/product/ORENA_STATUS.md`
+5. `PROJECT_STATE.md`
+6. `ARCHITECTURE_INVARIANTS.md`
+7. `CURRENT_HANDOFF.md`
+8. `DOMAIN_BOUNDARIES.md`
+9. relevant current feature / experience specification
+10. relevant implementation and tests
 
 Read `DECISION_LOG.md` when a durable decision changes.
 
@@ -29,25 +30,31 @@ It does not define Orena's current product identity.
 
 ## Which file answers which question?
 
-| File                         | Question answered                                                    |
-| ---------------------------- | -------------------------------------------------------------------- |
-| `PROJECT_STATE.md`           | What is verified true now?                                           |
-| `ARCHITECTURE_INVARIANTS.md` | What must not drift casually?                                        |
-| `CURRENT_HANDOFF.md`         | What is active, what is next, and where must an agent stop?          |
-| `DOMAIN_BOUNDARIES.md`       | Which domain owns the work and how are cross-domain changes handled? |
-| `ROADMAP.md`                 | What is the approved sequence and current stage status?              |
-| `DECISION_LOG.md`            | Why were durable product and architecture choices made?              |
-| `REVIEW_POLICY.md`           | What evidence and severity rules govern review?                      |
+| File                                         | Question answered                                                                  |
+| -------------------------------------------- | ---------------------------------------------------------------------------------- |
+| `docs/product/ORENA_PRODUCT_CONSTITUTION.md` | What should Orena fundamentally become?                                            |
+| `docs/product/ORENA_CONTENT_ARCHITECTURE.md` | What content world must Orena provide and how does learner-owned content enter it? |
+| `docs/product/ORENA_STATUS.md`               | What learner-facing milestone and review state are active now?                     |
+| `PROJECT_STATE.md`                           | What is verified true now?                                                         |
+| `ARCHITECTURE_INVARIANTS.md`                 | What must not drift casually?                                                      |
+| `CURRENT_HANDOFF.md`                         | What is active, what is next, and where must an agent stop?                        |
+| `DOMAIN_BOUNDARIES.md`                       | Which domain owns the work and how are cross-domain changes handled?               |
+| `ROADMAP.md`                                 | What is the approved sequence and current stage status?                            |
+| `DECISION_LOG.md`                            | Why were durable product and architecture choices made?                            |
+| `REVIEW_POLICY.md`                           | What evidence and severity rules govern review?                                    |
+
+## Product-intent authority
 
 ## Product-intent authority
 
 1. explicit current human instruction;
 2. `docs/product/ORENA_PRODUCT_CONSTITUTION.md`;
-3. approved current experience / feature specification;
-4. `docs/product/ORENA_STATUS.md`;
-5. current technical constraints;
-6. existing implementation;
-7. historical product documentation.
+3. `docs/product/ORENA_CONTENT_ARCHITECTURE.md` for content, discovery, import, and learner-content decisions;
+4. approved current experience / feature specification;
+5. `docs/product/ORENA_STATUS.md`;
+6. current technical constraints;
+7. existing implementation;
+8. historical product documentation.
 
 ## Technical-state authority
 

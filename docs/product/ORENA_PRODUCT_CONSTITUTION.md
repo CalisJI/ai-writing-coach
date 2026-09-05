@@ -721,7 +721,54 @@ Prefer that over an implementation whose primary achievement is:
 
 ---
 
-# 30. Constitution change policy
+# 30. Content world and learner-owned content
+
+Orena should provide a rich world of language worth exploring.
+
+A learner should not need to bring content into Orena before Orena becomes
+useful or interesting.
+
+Orena itself should contain meaningful experiences, media, texts, prompts,
+conversations, stories, ideas, situations, and cultural material worth
+discovering.
+
+At the same time, learners should be able to bring language they genuinely care
+about into the same learning system.
+
+The durable model is:
+
+Discover in Orena
+OR
+Bring your own
+→ enter the same learning world
+→ understand
+→ notice
+→ use
+→ remember
+→ re-encounter.
+
+Orena-curated content and learner-imported content should not become two
+disconnected products.
+
+Where technically and pedagogically appropriate, they should participate in the
+same learner memory, vocabulary, grammar evidence, progress, personalization,
+and continuation model.
+
+The learner should feel both:
+
+> There is a world here worth discovering.
+
+and:
+
+> I can bring the things I care about into this world.
+
+The detailed durable content contract is defined in:
+
+`docs/product/ORENA_CONTENT_ARCHITECTURE.md`
+
+---
+
+# 31. Constitution change policy
 
 Do not update this Constitution as part of ordinary feature implementation.
 
