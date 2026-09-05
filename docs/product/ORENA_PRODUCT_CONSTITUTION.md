@@ -1,0 +1,738 @@
+# Orena Product Constitution
+
+Status: AUTHORITATIVE PRODUCT NORTH STAR
+
+This document defines the durable product philosophy of Orena.
+
+It should change only when the human product owner intentionally changes Orena's long-term direction.
+
+---
+
+# 1. Why Orena exists
+
+Language is not a collection of isolated skills.
+
+People encounter language through:
+
+- stories;
+- conversations;
+- people;
+- ideas;
+- situations;
+- media;
+- curiosity;
+- misunderstanding;
+- expression;
+- repetition;
+- memory.
+
+Orena exists to create an environment where learners can experience another language in that way while receiving intelligent support appropriate to their current ability.
+
+The goal is not to make learners spend more time operating learning tools.
+
+The goal is to help them understand and use another language with increasing independence.
+
+---
+
+# 2. North Star
+
+Orena is a living language-learning world built around meaningful experiences.
+
+A learner should feel:
+
+> There is something here I want to enter, understand, explore, or respond to.
+
+The learner should not primarily experience Orena as a dashboard asking which language skill they want to train.
+
+The product should continuously create meaningful reasons to:
+
+- understand;
+- notice;
+- listen;
+- read;
+- speak;
+- write;
+- remember;
+- express;
+- return.
+
+---
+
+# 3. The learner is the protagonist
+
+Orena is not about displaying the intelligence of the system.
+
+The learner's:
+
+- curiosity;
+- understanding;
+- choices;
+- work;
+- expression;
+- mistakes;
+- discoveries;
+- improvement
+
+are the center of the experience.
+
+System intelligence exists to support that journey.
+
+Progress should be grounded in learner evidence rather than decorative metrics.
+
+---
+
+# 4. Language is the world
+
+Orena's primary learner-facing structure is built around meaningful contexts and experiences.
+
+Possible experience ingredients include:
+
+- a conversation;
+- a place;
+- a person;
+- a story;
+- a film or animation moment;
+- a cultural context;
+- an idea;
+- a real-life situation;
+- an emotional moment;
+- a challenge;
+- a question;
+- something the learner wants to express.
+
+These are not merely decoration around exercises.
+
+They are the reason language is being used.
+
+---
+
+# 5. Learning capabilities
+
+Orena contains powerful learning capabilities.
+
+They include:
+
+- Listening;
+- Reading;
+- Speaking;
+- Writing;
+- Grammar;
+- Vocabulary;
+- Pronunciation;
+- Dictation;
+- Shadowing;
+- Active Recall;
+- contextual explanation;
+- learner modeling;
+- adaptive difficulty;
+- progress evidence.
+
+These capabilities remain important internally.
+
+They may own:
+
+- domain contracts;
+- APIs;
+- scoring;
+- learner evidence;
+- analytics;
+- curriculum;
+- progress data;
+- specialized practice.
+
+However, capabilities do not automatically define the learner-facing structure of the product.
+
+The learner should not need to continuously navigate between isolated skill modules to have a coherent learning experience.
+
+---
+
+# 6. Experience continuity
+
+A meaningful Orena experience may naturally move through several learning capabilities.
+
+For example:
+
+Hear a meaningful sentence
+→ understand part of it
+→ inspect its text
+→ discover a new phrase
+→ understand why it works
+→ hear it again
+→ imitate it
+→ respond
+→ receive feedback
+→ encounter the phrase later
+→ recall it
+→ use it independently.
+
+This should feel like one connected experience.
+
+Orena should preserve useful learning signals across transitions.
+
+The product should remember what the learner:
+
+- struggled with;
+- understood;
+- used;
+- misused;
+- pronounced poorly;
+- recalled successfully;
+- has not yet mastered.
+
+Those signals should improve future experiences.
+
+---
+
+# 7. Not every experience needs every capability
+
+Cross-capability integration does not mean forcing Reading, Writing, Listening, and Speaking into everything.
+
+An experience should use only the capabilities that genuinely improve learning and meaning.
+
+Good integration is purposeful.
+
+Bad integration is mechanical.
+
+A short listening moment may naturally lead to:
+
+- comprehension;
+- vocabulary;
+- shadowing.
+
+It does not require an artificial essay merely to claim Writing integration.
+
+A writing experience may naturally create:
+
+- grammar evidence;
+- vocabulary evidence;
+- future reading or speaking opportunities.
+
+The system should choose coherent transitions.
+
+---
+
+# 8. AI philosophy
+
+AI is an enabling layer.
+
+It is not the protagonist of Orena.
+
+AI may:
+
+- model the learner;
+- identify gaps;
+- adapt difficulty;
+- choose useful content;
+- generate or transform appropriate content;
+- provide contextual feedback;
+- explain language;
+- connect current mistakes to previous learning;
+- decide what should be recalled;
+- help build a personalized continuation.
+
+The interface should expose:
+
+- useful explanations;
+- meaningful feedback;
+- learner evidence;
+- choices;
+- recommendations;
+- content;
+- responses.
+
+It should not unnecessarily expose implementation technology.
+
+A learner should notice that Orena understands them.
+
+They should not need to think constantly about which AI feature is running.
+
+AI identity should become visible when it is important for:
+
+- trust;
+- provenance;
+- learner control;
+- limitations;
+- safety;
+- transparency.
+
+---
+
+# 9. Content must be worth experiencing
+
+Good Orena content should possess value beyond being an exercise container.
+
+Content can be:
+
+- funny;
+- moving;
+- useful;
+- culturally interesting;
+- surprising;
+- relatable;
+- thought-provoking;
+- beautiful;
+- practical.
+
+Learning should grow from meaningful content.
+
+Content should not merely decorate drills.
+
+---
+
+# 10. Entry experience
+
+The main entry into Orena should create curiosity and continuation.
+
+It should help the learner perceive:
+
+- something worth entering;
+- something meaningful to continue;
+- what has changed since their previous visit;
+- how their learning is evolving;
+- a small number of meaningful next possibilities.
+
+The entry surface should not be designed primarily as a catalog of product features.
+
+Its purpose is to invite the learner into Orena.
+
+---
+
+# 11. World-building
+
+Orena being a "world" does not require a literal game map or 3D environment.
+
+World-building means the product has:
+
+- atmosphere;
+- identity;
+- continuity;
+- memory;
+- recognizable contexts;
+- meaningful transitions;
+- progression;
+- emotional texture;
+- anticipation;
+- discovery.
+
+Learners should gradually develop a relationship with Orena.
+
+The product should feel like a place they return to, not merely a utility they operate.
+
+---
+
+# 12. Visual philosophy
+
+Visual design should support curiosity, focus, emotion, meaning, and continuity.
+
+Useful tools include:
+
+- typography;
+- illustration;
+- photography;
+- spatial depth;
+- layering;
+- foreground/background relationships;
+- motion;
+- transitions;
+- sound;
+- environmental cues;
+- pacing;
+- whitespace.
+
+These are not goals by themselves.
+
+They are tools for experience design.
+
+The interface should have visual hierarchy.
+
+Not every piece of information should become an equally weighted card.
+
+Important experiences should feel important.
+
+Secondary controls should feel secondary.
+
+The product may be calm while still feeling alive.
+
+---
+
+# 13. Motion philosophy
+
+Motion should explain:
+
+- entering;
+- leaving;
+- continuation;
+- hierarchy;
+- state change;
+- discovery;
+- cause and effect.
+
+Motion should not exist merely to demonstrate technical capability.
+
+Transitions between related learning moments should help learners feel continuity rather than abrupt module switching.
+
+---
+
+# 14. Progression
+
+Progress should answer:
+
+> What am I becoming able to understand or do?
+
+Progress evidence may include:
+
+- language successfully understood;
+- language successfully used;
+- concepts repeatedly demonstrated;
+- vocabulary moving from recognition to active use;
+- improved comprehension;
+- improved pronunciation;
+- improved ability to respond;
+- reduced recurring errors;
+- successful recall;
+- increasingly difficult experiences completed with real evidence.
+
+Progress should not be reduced to activity counts alone.
+
+---
+
+# 15. Journey
+
+Journey represents the learner's evolving relationship with the language.
+
+It may include:
+
+- what they have experienced;
+- what they can now understand;
+- what they are beginning to use;
+- recurring gaps;
+- emerging strengths;
+- meaningful milestones;
+- what is likely to be useful next.
+
+Journey should create continuity.
+
+It should not be merely a level selector.
+
+---
+
+# 16. Grammar and vocabulary
+
+Grammar and vocabulary should connect to actual language use.
+
+A strong pattern is:
+
+Encounter
+→ Notice
+→ Understand
+→ Use
+→ Re-encounter
+→ Recall
+→ Master.
+
+Dedicated Grammar or Vocabulary practice can exist.
+
+When possible, it should remain connected to:
+
+- learner evidence;
+- real encounters;
+- current goals;
+- future experiences.
+
+---
+
+# 17. Listening
+
+Listening should help learners participate in real language.
+
+Useful experiences may include:
+
+- following meaningful clips;
+- transcript exploration;
+- dictation;
+- reconstruction;
+- replay;
+- speed control;
+- segment practice;
+- comprehension;
+- contextual vocabulary;
+- shadowing;
+- response.
+
+Listening content should be organized meaningfully by such properties as:
+
+- topic;
+- learner level;
+- language;
+- context;
+- source;
+- duration;
+- content type.
+
+The content library is an experience surface, not simply a technical media repository.
+
+---
+
+# 18. Speaking
+
+Speaking should help learners express and respond.
+
+Feedback should distinguish dimensions rather than collapse everything into one mysterious score.
+
+Possible dimensions include:
+
+- content match;
+- pronunciation;
+- fluency;
+- comprehensibility;
+- missing language;
+- extra language;
+- relevant language-specific evidence.
+
+Speaking should connect naturally to:
+
+- conversations;
+- listening;
+- shadowing;
+- vocabulary;
+- previous learner errors;
+- meaningful response opportunities.
+
+---
+
+# 19. Writing
+
+Writing helps learners construct language intentionally.
+
+Writing experiences should provide:
+
+- meaningful reasons to express something;
+- useful feedback;
+- visible learner evidence;
+- revision opportunities;
+- connections to recurring grammar or vocabulary patterns;
+- future transfer into other experiences.
+
+Writing remains a powerful capability.
+
+It is not required to define the structure of the entire product.
+
+---
+
+# 20. Reading
+
+Reading should expose learners to meaningful language and ideas.
+
+Reading may lead naturally into:
+
+- contextual vocabulary;
+- comprehension;
+- grammar discovery;
+- reflection;
+- discussion;
+- writing;
+- recall.
+
+Reading should not exist only as text followed by disconnected multiple-choice questions.
+
+---
+
+# 21. Active Recall
+
+Recall exists to help useful language survive beyond the original experience.
+
+Recall should be informed by:
+
+- what the learner encountered;
+- what they struggled with;
+- what they used incorrectly;
+- what they almost mastered;
+- what they are likely to need again.
+
+Recall should feel connected to the learner's actual journey.
+
+---
+
+# 22. English and Chinese
+
+English and Chinese are equally first-class Orena languages.
+
+Every important product concept must be designed with both in mind.
+
+Equivalent quality does not mean identical linguistic logic.
+
+English and Chinese may require different:
+
+- segmentation;
+- pronunciation models;
+- writing-system support;
+- grammar explanations;
+- reading aids;
+- error interpretation;
+- scoring logic.
+
+The product architecture should support those differences without creating two disconnected products.
+
+---
+
+# 23. Feedback quality
+
+Feedback must describe the learner's actual language problem.
+
+Do not call language ungrammatical merely because it differs from an expected answer.
+
+Where meaningful, distinguish:
+
+- grammatically invalid;
+- grammatically possible but unnatural;
+- contextually inappropriate;
+- semantically mismatched;
+- stylistically weak;
+- correct alternative;
+- pronunciation-related issue;
+- vocabulary-choice issue.
+
+Feedback should help the learner form a better internal model of the language.
+
+---
+
+# 24. Personalization
+
+Personalization should emerge from accumulated learner evidence.
+
+It may influence:
+
+- difficulty;
+- content;
+- recall;
+- explanation depth;
+- recommended continuation;
+- vocabulary recurrence;
+- grammar recurrence;
+- speaking opportunities;
+- listening difficulty.
+
+Personalization should not become a wall of settings the learner must configure manually.
+
+The system should learn from actual learning behavior.
+
+---
+
+# 25. Motivation
+
+Motivation should emerge primarily from:
+
+- curiosity;
+- meaningful content;
+- visible ability growth;
+- successful understanding;
+- successful expression;
+- continuity;
+- discovery;
+- anticipation.
+
+Gamification may support motivation when it reinforces meaningful learning.
+
+It should not replace learning evidence with arbitrary activity rewards.
+
+---
+
+# 26. Product quality
+
+A learner-facing experience is not successful merely because:
+
+- it compiles;
+- an API works;
+- tests pass;
+- the screen exists.
+
+It must also demonstrate:
+
+- coherent learner purpose;
+- Orena's world / experience philosophy;
+- EN/ZH quality;
+- meaningful learning behavior;
+- appropriate cross-capability continuity;
+- responsive behavior;
+- accessibility;
+- state continuity;
+- visual hierarchy;
+- truthful feedback.
+
+---
+
+# 27. Reviewable product development
+
+Orena should be developed visibly.
+
+Meaningful learner-facing work should be delivered as coherent reviewable slices.
+
+The desired cycle is:
+
+Experience idea
+→ define learner purpose
+→ implement one coherent slice
+→ validate behavior
+→ expose it in the web product
+→ human review
+→ refine
+→ approve
+→ continue.
+
+Large invisible product batches make product-direction mistakes expensive.
+
+Visual/product review should happen early enough to influence the next implementation.
+
+---
+
+# 28. Review questions
+
+Before presenting a learner-facing milestone, ask:
+
+Does the learner understand what they can do here?
+
+Is there a meaningful reason to engage?
+
+Does the experience feel connected to what came before or what can come next?
+
+Are learning capabilities supporting the experience rather than defining the interface mechanically?
+
+Does AI improve the experience without becoming its main identity?
+
+Does the interface have clear visual hierarchy?
+
+Is the learner's work or understanding visible as evidence?
+
+Does the experience work properly for both English and Chinese?
+
+Can the product owner open it in the browser and actually experience it?
+
+---
+
+# 29. Product decision principle
+
+When choosing between two valid implementations, prefer the one that makes the learner more likely to think:
+
+> I want to see, understand, or try what comes next.
+
+Prefer that over an implementation whose primary achievement is:
+
+> I can clearly see all the learning features available to me.
+
+---
+
+# 30. Constitution change policy
+
+Do not update this Constitution as part of ordinary feature implementation.
+
+Feature implementation should conform to the Constitution.
+
+If a task reveals that the Constitution itself needs to change:
+
+1. identify the conflict;
+2. explain the proposed durable product change;
+3. obtain human acceptance;
+4. update this file;
+5. record the durable decision where appropriate.
+
+Orena's long-term identity should evolve intentionally, not through incidental implementation.

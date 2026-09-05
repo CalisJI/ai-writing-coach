@@ -10,55 +10,54 @@ these governance documents are the shared handoff medium.
 
 ## Mandatory read order
 
-Before editing, every new agent must read in this order:
+For learner-facing product work:
 
-1. [`AGENTS.md`](../../AGENTS.md)
-2. [`docs/project/README.md`](README.md)
-3. [`PROJECT_STATE.md`](PROJECT_STATE.md)
-4. [`ARCHITECTURE_INVARIANTS.md`](ARCHITECTURE_INVARIANTS.md)
-5. [`CURRENT_HANDOFF.md`](CURRENT_HANDOFF.md)
-6. [`DOMAIN_BOUNDARIES.md`](DOMAIN_BOUNDARIES.md)
-7. the relevant section of [`ROADMAP.md`](ROADMAP.md)
-8. the relevant implementation and tests
+1. `AGENTS.md`
+2. `docs/product/ORENA_PRODUCT_CONSTITUTION.md`
+3. `docs/product/ORENA_STATUS.md`
+4. `PROJECT_STATE.md`
+5. `ARCHITECTURE_INVARIANTS.md`
+6. `CURRENT_HANDOFF.md`
+7. `DOMAIN_BOUNDARIES.md`
+8. relevant current feature / experience specification
+9. relevant implementation and tests
 
-Read [`DECISION_LOG.md`](DECISION_LOG.md) when a task changes a durable product
-or architecture decision. Read [`REVIEW_POLICY.md`](REVIEW_POLICY.md) before
-reviewing or declaring a checkpoint complete.
+Read `DECISION_LOG.md` when a durable decision changes.
+
+Read `ROADMAP.md` for implementation sequencing and historical program state.
+It does not define Orena's current product identity.
 
 ## Which file answers which question?
 
-| File | Question answered |
-| --- | --- |
-| `PROJECT_STATE.md` | What is verified true now? |
-| `ARCHITECTURE_INVARIANTS.md` | What must not drift casually? |
-| `CURRENT_HANDOFF.md` | What is active, what is next, and where must an agent stop? |
-| `DOMAIN_BOUNDARIES.md` | Which domain owns the work and how are cross-domain changes handled? |
-| `ROADMAP.md` | What is the approved sequence and current stage status? |
-| `DECISION_LOG.md` | Why were durable product and architecture choices made? |
-| `REVIEW_POLICY.md` | What evidence and severity rules govern review? |
+| File                         | Question answered                                                    |
+| ---------------------------- | -------------------------------------------------------------------- |
+| `PROJECT_STATE.md`           | What is verified true now?                                           |
+| `ARCHITECTURE_INVARIANTS.md` | What must not drift casually?                                        |
+| `CURRENT_HANDOFF.md`         | What is active, what is next, and where must an agent stop?          |
+| `DOMAIN_BOUNDARIES.md`       | Which domain owns the work and how are cross-domain changes handled? |
+| `ROADMAP.md`                 | What is the approved sequence and current stage status?              |
+| `DECISION_LOG.md`            | Why were durable product and architecture choices made?              |
+| `REVIEW_POLICY.md`           | What evidence and severity rules govern review?                      |
 
-## Source-of-truth precedence
+## Product-intent authority
 
-When sources differ, use this precedence:
+1. explicit current human instruction;
+2. `docs/product/ORENA_PRODUCT_CONSTITUTION.md`;
+3. approved current experience / feature specification;
+4. `docs/product/ORENA_STATUS.md`;
+5. current technical constraints;
+6. existing implementation;
+7. historical product documentation.
 
-1. actual repository implementation, tests, and verified Git state
-2. `PROJECT_STATE.md`
-3. `CURRENT_HANDOFF.md`
-4. `ARCHITECTURE_INVARIANTS.md`
-5. `DECISION_LOG.md`
-6. `ROADMAP.md`
-7. older or historical documentation
+## Technical-state authority
 
-A material contradiction is a stop condition. Do not silently select the
-convenient source, reinterpret a historical record as current truth, or invent
-a resolution. Report the conflicting files, implementation evidence, and Git
-checkpoint to the human coordinator.
-
-An application/runtime baseline SHA records the commit at which the documented
-application, runtime, product, or operational facts were verified. A newer
-docs-only or governance-only descendant `main` commit is not, by itself, a
-contradiction and does not require refreshing that baseline. Refresh it only
-when a reviewed change materially changes the facts it represents.
+1. actual repository implementation, tests, and verified Git state;
+2. `PROJECT_STATE.md`;
+3. `CURRENT_HANDOFF.md`;
+4. `ARCHITECTURE_INVARIANTS.md`;
+5. `DECISION_LOG.md`;
+6. `ROADMAP.md`;
+7. historical documentation.
 
 ## Update responsibilities
 

@@ -783,3 +783,42 @@ public store submission remain explicit human gates.
 
 **Supersedes / Superseded by:** Extends R18 mobile/API readiness and the shared
 web/server product architecture. Supersedes no earlier decision.
+
+## D-037 — Orena experience-first product model
+
+**Status:** Accepted
+
+**Decision:** Orena's durable product North Star is now defined by
+`docs/product/ORENA_PRODUCT_CONSTITUTION.md`.
+
+Learner-facing Orena is organized conceptually around meaningful language
+experiences, contexts, discovery, understanding, expression, and continuation.
+
+Reading, Writing, Listening, Speaking, Grammar, Vocabulary, Pronunciation,
+Dictation, Shadowing, and Active Recall remain underlying learning capabilities
+and technical domains, but do not automatically define the learner-facing
+information architecture.
+
+AI remains an enabling layer rather than the conceptual identity of the
+learner-facing product.
+
+Meaningful learner-facing development must use browser-reviewable vertical
+slices and human product checkpoints.
+
+**Reason:** Orena is evolving from a skill/module-centered learning application
+into a coherent language-learning world where multiple capabilities participate
+naturally in connected experiences. Durable repository guidance is required so
+new agents do not reconstruct product direction from historical implementation
+alone.
+
+**Consequences:** Product intent authority moves to
+`docs/product/ORENA_PRODUCT_CONSTITUTION.md`. Existing implementation, release
+states, historical decisions, and technical contracts remain valid evidence of
+current system state where factual, but no longer define Orena's product North
+Star.
+
+**Supersedes / Superseded by:** Supersedes earlier global product assumptions
+that treat Writing-first sequencing, individual skill modules, or a historical
+presentation system as Orena's permanent conceptual hierarchy. It does not
+invalidate technical domain contracts or verified historical implementation
+facts.

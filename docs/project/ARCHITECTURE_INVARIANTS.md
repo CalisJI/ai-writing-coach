@@ -19,11 +19,21 @@ entry, and corresponding current-state and handoff updates.
 
 ## Frontend
 
+These invariants protect technical consistency, accessibility, responsive
+behavior, shared contracts, and regression safety.
+
+Learner-facing product hierarchy, visual composition, and experience direction
+are governed by `docs/product/ORENA_PRODUCT_CONSTITUTION.md`.
+
+Shared primitives should be preserved and reused where useful, but existing
+screen composition is not permanently frozen when a deliberate product task
+requires it to evolve.
+
 - `BECOMING_FRONTEND_VERSION` remains exactly `2.17.5` until an explicitly
   scoped, reviewed change updates it.
 - Backend and architecture tasks do not casually touch frontend code or assets.
-- Preserve shared responsive behavior, accessibility, EN/ZH parity, light/dark
-  parity, shared tokens, and the established visual identity.
+- Preserve shared responsive behavior, accessibility, EN/ZH parity,
+  light/dark parity, and reusable design-system primitives.
 - Journey, Review, Library / Active Recall UI, shared layout primitives,
   gutters, spacing, overflow, and container-width primitives are protected.
 - `static/becoming/orena/**` is the bounded frontend `2.17.5` presentation layer
@@ -61,14 +71,20 @@ entry, and corresponding current-state and handoff updates.
 - Reopening a closed subsystem requires a concrete regression, explicit product
   extension, or accepted architecture decision.
 
-## Release
+## Release operations
 
-- Writing and Speaking form the first complete public learning product.
-- Writing COMPLETE, Speaking COMPLETE, EN PASS, and ZH PASS are all required.
-- Reading is a separate later public release.
-- Listening is later still.
-- No learner skill is currently PUBLIC. Promotion requires a reviewed release
-  gate and an explicit repository-state transition.
+Release order is an operational rollout decision.
+
+It does not define Orena's conceptual product hierarchy.
+
+A capability may reach public readiness earlier than another capability without
+becoming the identity or organizing principle of Orena.
+
+Current release state and operational gates are recorded in
+`PROJECT_STATE.md`, `CURRENT_HANDOFF.md`, and relevant accepted decisions.
+
+No learner-facing capability may be promoted to public without the required
+review and explicit human authorization.
 
 ## AI Platform
 
@@ -89,7 +105,6 @@ entry, and corresponding current-state and handoff updates.
   one reviewed atomic activation switches the whole runtime contract.
 - Persisted fallback policy is metadata until runtime activation explicitly
   implements its behavior.
-
 
 ## Mobile
 
@@ -119,6 +134,7 @@ entry, and corresponding current-state and handoff updates.
   secure storage, deep links, and system integration.
 
 ## Operations
+
 - Never use `docker compose down -v`.
 - Never print or commit secrets, credential-bearing URLs, authorization
   headers, or raw sensitive provider responses.

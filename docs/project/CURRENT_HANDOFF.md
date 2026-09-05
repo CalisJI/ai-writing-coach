@@ -1,5 +1,22 @@
 # Current Handoff
 
+## Product review checkpoint
+
+CURRENT_PRODUCT_MILESTONE:
+STATUS:
+
+WEB_URL:
+WEB_ROUTE:
+HOW_TO_REACH_IT:
+
+LAST_HUMAN_APPROVED_MILESTONE:
+NEXT_REVIEWABLE_SLICE:
+
+This section is required for meaningful learner-facing work.
+
+A learner-facing milestone may not be reported as REVIEWABLE without a working
+browser route that the product owner can inspect.
+
 **Application/runtime baseline:**
 `6c93d05b3cb1c79c2986af0ab4a83cf664eae3a9`
 
@@ -566,17 +583,18 @@ stages where existing records provide them: Writing submission attempts and
 completions, Reading session/attempt/completion stages, Listening progress
 attempts/completions, and completed Speaking takes. Unsupported stages are
 explicitly unavailable rather than zero. The response remains bounded,
-	identifier-free, content-free, read-only, and malformed-record tolerant; no
-	synthetic tracking events or learner-event writes were introduced.
+identifier-free, content-free, read-only, and malformed-record tolerant; no
+synthetic tracking events or learner-event writes were introduced.
 
 ## R17 learner-impact failure and degraded-state observability
 
-	Admin product-activity now includes bounded capability/day failure trends from
-	validated learner-origin AI telemetry only. Operator tests and configuration
-	events are excluded; output has no learner identifiers, text, URLs, or event
-	rows and reports explicit insufficient/unavailable states. Origin is an
-	allowlisted telemetry field persisted through the existing PostgreSQL AuditLog
-	boundary; no learner-event, scoring, billing, or provider-activation path was
+    Admin product-activity now includes bounded capability/day failure trends from
+    validated learner-origin AI telemetry only. Operator tests and configuration
+    events are excluded; output has no learner identifiers, text, URLs, or event
+    rows and reports explicit insufficient/unavailable states. Origin is an
+    allowlisted telemetry field persisted through the existing PostgreSQL AuditLog
+    boundary; no learner-event, scoring, billing, or provider-activation path was
+
 added.
 
 ## R17 operational readiness evidence summary
@@ -645,10 +663,10 @@ Stop and return to the human coordinator when:
 - an unresolved P0/P1 requires broader redesign;
 - the rollback path becomes unclear.
 
-	**R17 local-foundation closeout:** COMPLETE / LOCAL ACCEPTANCE PASS. The
-	Admin analytics and readiness decision surface is read-only, aggregate-only,
-	and locally verified; live PostgreSQL observation, provider activation, and
-	production release approval remain human-gated and deferred.
+  **R17 local-foundation closeout:** COMPLETE / LOCAL ACCEPTANCE PASS. The
+  Admin analytics and readiness decision surface is read-only, aggregate-only,
+  and locally verified; live PostgreSQL observation, provider activation, and
+  production release approval remain human-gated and deferred.
 
 **R18 local-foundation closeout:** COMPLETE / LOCAL ACCEPTANCE PASS. The
 reference-data cache, session bootstrap, and compact media-status contracts

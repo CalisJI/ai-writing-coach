@@ -1,3 +1,10 @@
+> This roadmap describes implementation sequencing and program state.
+>
+> It does not define Orena's durable product identity.
+>
+> Product direction is defined by
+> `docs/product/ORENA_PRODUCT_CONSTITUTION.md`.
+
 # Canonical Multi-Agent Roadmap
 
 This is the canonical program sequence for coordinated work. Status changes
@@ -24,31 +31,31 @@ require approval and must remain consistent with `PROJECT_STATE.md` and
 
 ## Program status
 
-| Stage | Scope | Status |
-| --- | --- | --- |
-| R0 | Product Release Architecture | CLOSED |
-| R1 | Production Staging + Cloudflare + Google OAuth | CLOSED |
-| R2 | AI Capability Control Plane | HUMAN GATE / READY, NOT PRODUCT-BLOCKING |
-| M1 | Media Learning Foundation (cross-cutting) | CLOSED / FOUNDATION COMPLETE |
-| R3 | Writing Evaluation Completion | COMPLETE / LOCAL ACCEPTANCE PASS |
-| R4 | Writing Learning Loop + Grammar Transfer | COMPLETE / LOCAL ACCEPTANCE PASS |
-| R5 | Grammar Knowledge System | CLOSED |
-| R6 | Speaking Core | COMPLETE / LOCAL ACCEPTANCE PASS |
-| R7 | Speaking Evaluation + Pronunciation Completion | COMPLETE / LOCAL ACCEPTANCE PASS |
-| R8 | Public Product Gate: Writing + Speaking EN/ZH | PLANNED |
-| R9 | Speaking Advanced / Shadowing Studio | COMPLETE / LOCAL ACCEPTANCE PASS |
-| R10 | Reading Completion → separate public release | COMPLETE / LOCAL ACCEPTANCE PASS |
-| R11 | Listening Completion → separate public release | PRE-PUBLIC MATRIX COMPLETE / HUMAN PROMOTION GATE |
-| R12 | Retention & Growth | COMPLETE / LOCAL ACCEPTANCE PASS |
-| R13 | Platform Admin Completion | COMPLETE / LOCAL ACCEPTANCE PASS |
-| R14 | AI Usage, Cost, Quota & Provider Operations | COMPLETE / LOCAL ACCEPTANCE PASS |
-| R15 | SaaS Plans, Entitlements & Usage Policy | COMPLETE / LOCAL ACCEPTANCE PASS |
-| R16 | Advanced Learning Intelligence | COMPLETE / LOCAL ACCEPTANCE PASS |
-| R17 | Product Analytics & Operational Observability | COMPLETE / LOCAL ACCEPTANCE PASS |
-| R18 | Mobile/API Readiness | COMPLETE / LOCAL ACCEPTANCE PASS |
-| R19 | Native Mobile App Foundation | PLANNED / NEXT AUTONOMOUS PRIMARY |
-| R20 | Mobile Learning Experience Parity | PLANNED |
-| R21 | Mobile Release Readiness | PLANNED / HUMAN STORE-RELEASE GATE |
+| Stage | Scope                                          | Status                                            |
+| ----- | ---------------------------------------------- | ------------------------------------------------- |
+| R0    | Product Release Architecture                   | CLOSED                                            |
+| R1    | Production Staging + Cloudflare + Google OAuth | CLOSED                                            |
+| R2    | AI Capability Control Plane                    | HUMAN GATE / READY, NOT PRODUCT-BLOCKING          |
+| M1    | Media Learning Foundation (cross-cutting)      | CLOSED / FOUNDATION COMPLETE                      |
+| R3    | Writing Evaluation Completion                  | COMPLETE / LOCAL ACCEPTANCE PASS                  |
+| R4    | Writing Learning Loop + Grammar Transfer       | COMPLETE / LOCAL ACCEPTANCE PASS                  |
+| R5    | Grammar Knowledge System                       | CLOSED                                            |
+| R6    | Speaking Core                                  | COMPLETE / LOCAL ACCEPTANCE PASS                  |
+| R7    | Speaking Evaluation + Pronunciation Completion | COMPLETE / LOCAL ACCEPTANCE PASS                  |
+| R8    | Public Product Gate: Writing + Speaking EN/ZH  | PLANNED                                           |
+| R9    | Speaking Advanced / Shadowing Studio           | COMPLETE / LOCAL ACCEPTANCE PASS                  |
+| R10   | Reading Completion → separate public release   | COMPLETE / LOCAL ACCEPTANCE PASS                  |
+| R11   | Listening Completion → separate public release | PRE-PUBLIC MATRIX COMPLETE / HUMAN PROMOTION GATE |
+| R12   | Retention & Growth                             | COMPLETE / LOCAL ACCEPTANCE PASS                  |
+| R13   | Platform Admin Completion                      | COMPLETE / LOCAL ACCEPTANCE PASS                  |
+| R14   | AI Usage, Cost, Quota & Provider Operations    | COMPLETE / LOCAL ACCEPTANCE PASS                  |
+| R15   | SaaS Plans, Entitlements & Usage Policy        | COMPLETE / LOCAL ACCEPTANCE PASS                  |
+| R16   | Advanced Learning Intelligence                 | COMPLETE / LOCAL ACCEPTANCE PASS                  |
+| R17   | Product Analytics & Operational Observability  | COMPLETE / LOCAL ACCEPTANCE PASS                  |
+| R18   | Mobile/API Readiness                           | COMPLETE / LOCAL ACCEPTANCE PASS                  |
+| R19   | Native Mobile App Foundation                   | PLANNED / NEXT AUTONOMOUS PRIMARY                 |
+| R20   | Mobile Learning Experience Parity              | PLANNED                                           |
+| R21   | Mobile Release Readiness                       | PLANNED / HUMAN STORE-RELEASE GATE                |
 
 ## Historical execution order
 
@@ -330,7 +337,6 @@ R12 focuses on return-to-practice, useful progress visibility, habit support,
 onboarding/activation, and growth without weakening learning quality,
 accessibility, multilingual behavior, or the closed contracts established by
 earlier stages.
-
 
 ## Post-R12 roadmap extension — preserve existing product sequence
 
