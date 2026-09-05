@@ -23,11 +23,12 @@ Product-intent precedence:
 1. explicit current human instruction;
 2. `docs/product/ORENA_PRODUCT_CONSTITUTION.md`;
 3. `docs/product/ORENA_CONTENT_ARCHITECTURE.md` for content, discovery, import, and learner-content decisions;
-4. explicitly approved current experience / feature specification;
-5. `docs/product/ORENA_STATUS.md`;
-6. current technical constraints;
-7. existing implementation;
-8. historical product assumptions and documentation.
+4. `assets/brand/orena/` for approved brand, mascot, logo, illustration, and generated brand-art decisions;
+5. explicitly approved current experience / feature specification;
+6. `docs/product/ORENA_STATUS.md`;
+7. current technical constraints;
+8. existing implementation;
+9. historical product assumptions and documentation.
 
 Existing code proves what currently exists.
 
@@ -74,15 +75,25 @@ Before substantial learner-facing work, read:
 9. the relevant current feature / experience specification
 10. the relevant implementation and tests
 
-Read `docs/project/DECISION_LOG.md` when a durable product or architecture decision matters.
+For learner-facing visual, brand, logo, mascot, illustration, app-icon,
+empty-state, onboarding-art, or generated brand imagery work, additionally read:
 
-Read `docs/project/REVIEW_POLICY.md` before reviewing or declaring a significant checkpoint complete.
+11. `assets/brand/orena/README.md`
+12. `assets/brand/orena/BRAND_MASCOT_GUIDE.md`
+13. `assets/brand/orena/AGENT_GENERATION_CONTRACT.md`
+14. `assets/brand/orena/references/00_MASTER_REFERENCE_APPROVED.png`
 
-Read `docs/project/ROADMAP.md` for implementation sequencing and historical program state.
+The approved master brand reference is the visual authority.
 
-Roadmap order does not define Orena's product identity.
+Do not redesign the Orena mascot from memory or invent a new brand identity when
+approved references exist.
 
-Historical BECOMING documents are not mandatory product reading. Consult them only when required to understand legacy implementation or historical decisions.
+Reuse an existing action, expression, or scene where appropriate before
+generating new artwork.
+
+Any newly generated mascot or brand artwork must preserve the approved
+character identity, proportions, palette, facial construction, tail language,
+and illustration style.
 
 ---
 
