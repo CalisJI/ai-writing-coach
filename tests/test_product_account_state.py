@@ -80,3 +80,47 @@ def test_admin_account_surface_is_read_only_and_redacted():
     assert result["read_only"] is True
     assert result["account"]["plan"]["id"] == "premium"
     assert "external_customer_id" not in result["account"]["subscription"]
+
+
+def _mobile_plan_schema_fields() -> set[str]:
+    """Field names declared by the native client's strict plan schema."""
+    import pathlib
+    import re
+
+    source = (
+        pathlib.Path(__file__).resolve().parents[1]
+        / "mobile/src/api/contracts/product.ts"
+    ).read_text(encoding="utf-8")
+    body = re.search(
+        r"export const productPlanSchema = z\.object\(\{(.*?)\}\)\.strict\(\);",
+        source,
+        re.DOTALL,
+    )
+    assert body, "productPlanSchema must stay a strict z.object literal"
+    return set(re.findall(r"^\s{2}(\w+):", body.group(1), re.MULTILINE))
+
+
+def test_mobile_plan_contract_matches_account_state_plan():
+    """The native strict schema must not require fields the API never returns.
+
+    `productPlanSchema` is `.strict()`, so any drift in either direction makes
+    every real `/api/product/me` response fail to parse on device while
+    hand-written mobile fixtures keep passing.
+    """
+    state = ProductService(Repo(Subscription("premium", "active"))).account_state("user-1")
+    assert set(state["plan"]) == _mobile_plan_schema_fields()
+
+
+def test_degraded_account_state_stays_parseable_by_the_mobile_contract():
+    class BrokenRepo(Repo):
+        def get_subscription(self, user_key):
+            raise RuntimeError("subscription store unavailable")
+
+    state = ProductService(BrokenRepo()).account_state("user-1")
+    assert state == {
+        "available": False,
+        "plan": None,
+        "subscription": {"state": "unknown", "status": "unknown"},
+        "features": {},
+        "billing_ready": False,
+    }

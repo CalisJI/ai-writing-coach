@@ -130,6 +130,16 @@ export const api={
     headers:JSON_HEADERS,
     body:JSON.stringify({...payload,compact:true}),
   }),
+  listeningLibrary:(language,filters={})=>{
+    const params=new URLSearchParams({language:String(language||'')});
+    if(filters.level)params.set('level',String(filters.level));
+    if(filters.topic)params.set('topic',String(filters.topic));
+    if(filters.tag)params.set('tag',String(filters.tag));
+    return request(`/api/listening/library?${params.toString()}`);
+  },
+  // An omitted target language is resolved by the server from the learner's
+// profile; the client must not substitute a language of its own.
+  listeningLibraryLesson:(lessonId,targetLanguage)=>request(`/api/listening/library/${encodeURIComponent(lessonId)}?target_language=${encodeURIComponent(targetLanguage||'')}`),
   annotateMediaText:(payload)=>request('/api/media-learning/annotate',{
     method:'POST',
     headers:JSON_HEADERS,

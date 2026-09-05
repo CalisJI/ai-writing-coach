@@ -5,8 +5,9 @@ import type {KeyValueStorage} from '../../storage/boundedCache';
 export const listeningResumeSchema = z.object({
   assetId: z.string().min(1).max(128),
   segmentId: z.string().min(1).max(128),
-  mode: z.enum(['follow', 'active']),
+  mode: z.enum(['follow', 'active', 'dictation', 'shadowing']),
   sourceUrl: z.string().min(1).max(2048),
+  lessonId: z.string().min(1).max(128).optional(),
 }).strict();
 export type ListeningResume = z.infer<typeof listeningResumeSchema>;
 
@@ -15,7 +16,7 @@ const PENDING_KEY = 'orena.listening.pending.v1';
 
 export const listeningPendingSchema = z.object({
   assetId: z.string().min(1).max(128),
-  mode: z.enum(['follow', 'active']),
+  mode: z.enum(['follow', 'active', 'dictation', 'shadowing']),
   sourceUrl: z.string().min(1).max(2048),
 }).strict();
 export type ListeningPending = z.infer<typeof listeningPendingSchema>;

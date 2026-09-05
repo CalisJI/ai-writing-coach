@@ -62,6 +62,15 @@ class PlatformRepository(Protocol):
         *,
         updated_by: str = "",
     ) -> None: ...
+    def get_provider_credential(self, provider_id: str) -> dict | None: ...
+    def set_provider_credential(
+        self,
+        provider_id: str,
+        value: dict,
+        *,
+        updated_by: str = "",
+    ) -> None: ...
+    def delete_provider_credential(self, provider_id: str) -> None: ...
     def record_ai_operation(self, telemetry: dict) -> None: ...
     def list_ai_operation_events(self, limit: int = 100) -> list[dict]: ...
 
@@ -206,6 +215,64 @@ class SQLitePlatformRepository:
             )
             conn.commit()
 
+    @staticmethod
+    def _provider_setting_key(provider_id: str) -> str:
+        from writing_coach.ai.credentials import credential_setting_key
+
+        return credential_setting_key(provider_id)
+
+    def get_provider_credential(self, provider_id: str) -> dict | None:
+        key = self._provider_setting_key(provider_id)
+        with self.connect() as conn:
+            if not self._has_platform_settings(conn):
+                return None
+            row = conn.execute(
+                "SELECT value_json FROM platform_settings WHERE key = ?", (key,)
+            ).fetchone()
+        if row is None:
+            return None
+        try:
+            value = json.loads(str(row["value_json"]))
+        except (TypeError, ValueError):
+            return None
+        return value if isinstance(value, dict) else None
+
+    def set_provider_credential(
+        self, provider_id: str, value: dict, *, updated_by: str = ""
+    ) -> None:
+        key = self._provider_setting_key(provider_id)
+        now = datetime.now().astimezone().isoformat(timespec="seconds")
+        with self.connect() as conn:
+            conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS platform_settings (
+                    key TEXT PRIMARY KEY,
+                    value_json TEXT NOT NULL,
+                    updated_at TEXT NOT NULL,
+                    updated_by TEXT NOT NULL DEFAULT ''
+                )
+                """
+            )
+            conn.execute(
+                """
+                INSERT INTO platform_settings(key, value_json, updated_at, updated_by)
+                VALUES (?, ?, ?, ?)
+                ON CONFLICT(key) DO UPDATE SET
+                  value_json = excluded.value_json,
+                  updated_at = excluded.updated_at,
+                  updated_by = excluded.updated_by
+                """,
+                (key, json.dumps(value, sort_keys=True), now, updated_by),
+            )
+            conn.commit()
+
+    def delete_provider_credential(self, provider_id: str) -> None:
+        key = self._provider_setting_key(provider_id)
+        with self.connect() as conn:
+            if self._has_platform_settings(conn):
+                conn.execute("DELETE FROM platform_settings WHERE key = ?", (key,))
+                conn.commit()
+
     def record_ai_operation(self, telemetry: dict) -> None:
         # SQLite is frozen archive/rollback storage; telemetry is PostgreSQL-only.
         return None
@@ -313,6 +380,48 @@ class PostgresPlatformRepository:
                 row.value = config.to_dict()
                 row.updated_at = now
                 row.updated_by = updated_by
+
+    @staticmethod
+    def _provider_setting_key(provider_id: str) -> str:
+        from writing_coach.ai.credentials import credential_setting_key
+
+        return credential_setting_key(provider_id)
+
+    def get_provider_credential(self, provider_id: str) -> dict | None:
+        row_key = self._provider_setting_key(provider_id)
+        with Session(self.engine) as session:
+            row = session.get(PlatformSetting, row_key)
+            if row is None or not isinstance(row.value, dict):
+                return None
+            return dict(row.value)
+
+    def set_provider_credential(
+        self, provider_id: str, value: dict, *, updated_by: str = ""
+    ) -> None:
+        row_key = self._provider_setting_key(provider_id)
+        now = datetime.now(timezone.utc)
+        with Session(self.engine) as session, session.begin():
+            row = session.get(PlatformSetting, row_key)
+            if row is None:
+                session.add(
+                    PlatformSetting(
+                        key=row_key,
+                        value=value,
+                        updated_at=now,
+                        updated_by=updated_by,
+                    )
+                )
+            else:
+                row.value = value
+                row.updated_at = now
+                row.updated_by = updated_by
+
+    def delete_provider_credential(self, provider_id: str) -> None:
+        row_key = self._provider_setting_key(provider_id)
+        with Session(self.engine) as session, session.begin():
+            row = session.get(PlatformSetting, row_key)
+            if row is not None:
+                session.delete(row)
 
     def record_ai_operation(self, telemetry: dict) -> None:
         from writing_coach.ai.base import sanitize_telemetry

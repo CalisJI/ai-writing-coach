@@ -1,17 +1,13 @@
 import {z} from 'zod';
 
-const entitlementSchema = z.object({
-  key: z.string().min(1).max(120),
-  enabled: z.boolean(),
-  monthly_limit: z.number().int().nonnegative().nullable(),
-}).strict();
-
+// `GET /api/product/me` returns the plan summary only. Per-feature entitlement
+// evidence arrives in `features`, so the plan object carries no entitlement
+// array; see writing_coach/product/service.py account_state.
 export const productPlanSchema = z.object({
   id: z.enum(['free', 'premium']),
   name: z.string().min(1).max(120),
   description: z.string().max(500),
   price_label: z.string().max(120),
-  entitlements: z.array(entitlementSchema),
 }).strict();
 
 export const featureAccessSchema = z.object({

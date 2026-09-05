@@ -1,63 +1,45 @@
-# Verified Project State
-
 > **Authority scope**
 >
 > This document records verified implementation, runtime, operational, release,
 > and technical state.
 >
-> It does not define Orena's product North Star or learner-facing information
+> It does not define Orena's Product North Star or learner-facing information
 > architecture.
 >
-> Product direction is defined by:
+> Current learner-facing product direction is defined by:
 >
 > `docs/product/ORENA_PRODUCT_CONSTITUTION.md`
 >
-> Earlier Writing-first, skill-release-order, or presentation descriptions in
-> this document remain valid as implementation/history evidence where factual,
-> but they do not override the current Product Constitution.
+> and:
+>
+> `docs/product/ORENA_CONTENT_ARCHITECTURE.md`
+>
+> Existing UI and historical release sequencing are implementation evidence,
+> not permanent learner-facing product authority.
+
+# Verified Project State
+
+## Provider credential configuration
+
+The Admin application has a server-managed provider credential flow for local
+QA: same-origin authenticated test/save/remove actions, encryption before
+platform-store persistence, and masked status responses. Provider/model
+capability configuration remains secret-free. The separate
+`AI_PROVIDER_SECRETS_KEY` bootstrap secret is required at runtime and must be
+delivered through an approved secret store. Production credential bootstrap,
+live validation, runtime activation, backup/restore, and public release remain
+human-gated.
 
 This document records verified current truth only. It is not a wish list or a
 historical narrative.
 
 ## Identity and versions
 
-### Current Codex learner-facing checkpoint (2026-09-05)
-
-`ORENA_UI_EXPLORATION_V1` is **REVIEWABLE / HUMAN APPROVAL PENDING** on
-`codex/work`, at `http://localhost:8010/#/explore`. The current human UI priority
-overrides the older mobile-next sequencing below for this lane. Commit identity:
-the commit titled `feat: add Orena field journal UI exploration`.
-
-Verified: an internal collection and reading room for EN/ZH generated fiction and
-learner-pasted text; user/language-scoped tab-local content and responses; actual
-Library vocabulary writes with source context; Writing draft handoff. No Reading
-session, proficiency, or personalization is inferred from preview interactions.
-Writing now cancels its initial dashboard render when navigation leaves the
-screen; the shared route finalizer ignores superseded renders. Keyboard skip
-navigation preserves the active hash route.
-
-Local evidence: 16 focused Python tests pass (2 deprecation warnings); exploration,
-Writing lifecycle, Writing/Review, Reading, Profile, Home continuation, all nine CI
-media Node contracts, architecture, and the 56-module ESM graph pass. Browser QA
-covers EN/ZH, light/dark, 320/390/767/1440 CSS-pixel widths, imports, restoration,
-Library/Writing handoffs, and dialog focus. No console errors observed.
-
-The legacy release-gate script has the same six failures at `ad52307` and this
-checkpoint, including Node missing in the Python image; the ESM check passes
-separately on host Node. Exact failures are in the milestone report. This is not
-a CI or release-gate PASS. The inherited fully verified baseline SHA below remains
-unchanged; this bounded local checkpoint does not replace its broad evidence.
-
-Runtime: `orena-codex-ui-web` at loopback port 8010, separate Docker network and
-temporary `orena-codex-ui-postgres`; no shared production volumes, provider keys,
-OAuth, or tunnel configuration. The empty review database uses the already
-verified bootstrap behavior. Application `1.4.0` and frontend `2.17.5` unchanged.
-No schema, provider activation, public release, or deployment change.
-
-- Product: Orena / BECOMING codebase
+- Product: Orena. BECOMING-named paths and symbols are legacy technical
+  compatibility, not the active product identity.
 - Repository: `CalisJI/ai-writing-coach`
 - Last verified application/runtime baseline:
-  `6c93d05b3cb1c79c2986af0ab4a83cf664eae3a9`
+  `7b1740e66a3f8ef82b2fc728dedaf7dd2c1d1b6f`
 
 This SHA identifies the verified application/runtime baseline inherited by this
 governance checkpoint. Documentation-only or governance-only descendant commits
@@ -66,10 +48,10 @@ a reviewed change materially changes verified application, runtime, product, or
 operational state.
 
 - Application version: `1.4.0`
-- BECOMING frontend version: `2.17.5`
-- Current Orena program: **R20 Mobile Learning Experience Parity — NEXT
-  AUTONOMOUS PRIMARY.** R0–R19 local foundations are preserved; R20–R21 add the real native
-  mobile client on top of those contracts. R8/R11 promotion, R2 activation,
+- Legacy-named `BECOMING_FRONTEND_VERSION` compatibility pin: `2.17.5`
+- Current Orena program: **R21 Mobile Release Readiness — HUMAN STORE-RELEASE
+  GATE.** R0–R20 local foundations are preserved; R20 delivered the real native
+  learner flows on top of those contracts and R21 prepares controlled release. R8/R11 promotion, R2 activation,
   production operations, store signing/credentials, billing, and public release
   remain deferred human gates and do not block non-production mobile development.
 
@@ -588,10 +570,15 @@ public capability-dependent release requires it.
   microphone/media boundaries, and portable Android/iOS build preparation.
   Host/device validation, signing, stores, and production actions remain human
   gates.
-- **R20 — Mobile Learning Experience Parity: PLANNED / NEXT AUTONOMOUS PRIMARY.** Implement the existing
-  Writing, Review, Grammar, Reading, Listening, Speaking/Shadowing, Library,
-  Journey, Home, onboarding, and Profile flows as native mobile vertical slices
-  consuming the same backend/domain contracts.
+- **R20 — Mobile Learning Experience Parity: COMPLETE / LOCAL ACCEPTANCE PASS.**
+  The existing Writing, Review, Grammar, Reading, Listening, Speaking/Shadowing,
+  Library, Journey, Home, onboarding, and Profile flows are implemented as
+  native mobile vertical slices consuming the same backend/domain contracts.
+  `scripts/r20_release_matrix.mjs` executes the mounted native suites and pins
+  the result in `docs/project/R20_LOCAL_ACCEPTANCE_MATRIX.json`: nine verified
+  mounted checks, six static contract inspections, and five explicit human
+  deferrals. Device QA, provider credentials, store release, billing
+  activation, and public skill promotion remain gated.
 - **R21 — Mobile Release Readiness: PLANNED / HUMAN STORE-RELEASE GATE.** Prepare
   Android/iOS release builds, OAuth/deep-link configuration, privacy/device QA,
   diagnostics, store metadata, and R15-compatible mobile entitlement/billing

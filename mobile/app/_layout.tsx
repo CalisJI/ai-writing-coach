@@ -16,8 +16,8 @@ function LifecycleRevalidationBridge() {
 }
 
 function RootStack() {
-  const {scheme} = useTheme();
-  return <><StatusBar style={scheme === 'dark' ? 'light' : 'dark'} /><Stack screenOptions={{headerShown: false}} /></>;
+  const {scheme, tokens} = useTheme();
+  return <><StatusBar style={scheme === 'dark' ? 'light' : 'dark'} /><Stack screenOptions={{headerShown: false, contentStyle: {backgroundColor: tokens.colors.background}}} /></>;
 }
 
 export default function RootLayout() {

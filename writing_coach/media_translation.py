@@ -7,12 +7,14 @@ from dataclasses import dataclass, replace
 from enum import StrEnum
 import hashlib
 import json
+import os
 import re
+from collections.abc import Mapping
 from typing import Protocol
 
 import requests
 
-from writing_coach.core.support_languages import normalize_support_language
+from writing_coach.core.support_languages import support_language, normalize_support_language
 from writing_coach.media_ingestion import primary_language
 from writing_coach.media_learning import (
     MediaLearningContractError,
@@ -24,6 +26,70 @@ from writing_coach.media_learning import (
 MAX_TRANSLATION_BATCH_SEGMENTS = 24
 MAX_TRANSLATION_BATCH_CHARS = 6_000
 MAX_TRANSLATION_BATCHES = 8
+
+# How much completion capacity one translation request may reserve.
+#
+# Derived from the batch bounds above rather than picked: a batch is at most
+# MAX_TRANSLATION_BATCH_CHARS of source, and the JSON envelope adds roughly 60
+# characters per segment, so a worst-case batch produces on the order of a few
+# thousand output tokens. 2048 covers a normal transcript batch while leaving
+# most of an 8000-token ceiling for the prompt - the previous 8000 reserved the
+# entire budget and left none, which is what produced HTTP 413.
+#
+# It is a reservation, not a target: a request that needs less simply uses less.
+GROQ_MAX_COMPLETION_TOKENS_ENV = "GROQ_TRANSLATION_MAX_COMPLETION_TOKENS"
+DEFAULT_GROQ_MAX_COMPLETION_TOKENS = 2048
+MIN_GROQ_MAX_COMPLETION_TOKENS = 256
+MAX_GROQ_MAX_COMPLETION_TOKENS = 8192
+# How many times an over-large batch may be halved before giving up truthfully.
+MAX_TRANSLATION_SPLIT_DEPTH = 3
+
+
+class _RequestTooLarge(Exception):
+    """The provider refused this request for its size, not its timing."""
+
+
+def _is_request_too_large(response: object) -> bool:
+    """Whether a 413 is a sizing refusal, read from structured JSON fields.
+
+    Groq returns its own error envelope; the code is read from it rather than
+    by matching prose. A 413 without a readable envelope is still treated as a
+    sizing refusal, because that is what the status itself means.
+    """
+
+    try:
+        payload = response.json()  # type: ignore[attr-defined]
+    except Exception:
+        return True
+    error = payload.get("error", payload) if isinstance(payload, dict) else {}
+    if not isinstance(error, dict):
+        return True
+    return str(error.get("code") or "") in {"rate_limit_exceeded", "request_too_large", ""}
+
+
+def resolve_max_completion_tokens(
+    value: int | None = None, env: Mapping[str, str] | None = None
+) -> int:
+    """A positive, bounded completion reservation.
+
+    An out-of-range or unparseable configuration falls back to the default
+    rather than silently reserving an absurd amount of capacity.
+    """
+
+    if value is None:
+        values = os.environ if env is None else env
+        raw = str(values.get(GROQ_MAX_COMPLETION_TOKENS_ENV, "")).strip()
+        if not raw:
+            return DEFAULT_GROQ_MAX_COMPLETION_TOKENS
+        try:
+            value = int(raw)
+        except ValueError:
+            return DEFAULT_GROQ_MAX_COMPLETION_TOKENS
+    if not isinstance(value, int) or isinstance(value, bool):
+        return DEFAULT_GROQ_MAX_COMPLETION_TOKENS
+    if value < MIN_GROQ_MAX_COMPLETION_TOKENS or value > MAX_GROQ_MAX_COMPLETION_TOKENS:
+        return DEFAULT_GROQ_MAX_COMPLETION_TOKENS
+    return value
 MAX_TRANSLATION_CACHE_ENTRIES = 128
 
 
@@ -171,12 +237,6 @@ class GroqTranslationProvider:
 
     engine_id = "groq"
 
-    _LANGUAGE_NAMES = {
-        "vi": "Vietnamese",
-        "en": "English",
-        "zh": "Simplified Chinese",
-    }
-
     def __init__(
         self,
         api_key: str,
@@ -184,12 +244,14 @@ class GroqTranslationProvider:
         model: str = "openai/gpt-oss-120b",
         base_url: str = "https://api.groq.com/openai/v1",
         timeout_seconds: float = 90.0,
+        max_completion_tokens: int | None = None,
     ) -> None:
         self._api_key = str(api_key or "").strip()
         self._model = str(model or "").strip()
         self._url = str(base_url or "").rstrip("/") + "/chat/completions"
         self._timeout = timeout_seconds
         self.model_version = self._model
+        self._max_completion_tokens = resolve_max_completion_tokens(max_completion_tokens)
         # The last response's quota headers, so an admin surface can report the
         # budget before it runs out rather than after.
         self.last_quota: dict[str, str] = {}
@@ -199,7 +261,16 @@ class GroqTranslationProvider:
         return bool(self._api_key and self._model)
 
     def _language_name(self, code: str) -> str:
-        return self._LANGUAGE_NAMES.get(code, code)
+        """Human-readable name from the canonical registry, never a local map.
+
+        A private mapping here recreated the three-language assumption L2.5
+        removed everywhere else: any language outside vi/en/zh reached the
+        prompt as a bare code, so Spanish was asked for "into natural es".
+        There is one language registry for the product, not one per provider.
+        """
+
+        definition = support_language(code)
+        return definition.translation_label if definition else str(code or "")
 
     def _prompt(self, source_language: str, target_language: str, segments: TranslationBatch) -> str:
         lines = "\n".join(
@@ -219,8 +290,47 @@ class GroqTranslationProvider:
         target_language: str,
         segments: TranslationBatch,
     ) -> dict[str, str]:
+        """Translate one batch, splitting it if the provider says it is too large.
+
+        A 413 `rate_limit_exceeded` where Requested exceeds Limit is a sizing
+        problem, not a transient one: retrying the identical request after a
+        reset would fail again. Splitting is deterministic and preserves every
+        segment id, so no line is lost or reordered. An ordinary 429 stays a
+        transient rate limit and is not handled here.
+        """
+
         if not self.configured:
             raise TranslationProviderError("Groq translation is not configured.")
+        return self._translate_batch(source_language, target_language, segments, depth=0)
+
+    def _translate_batch(
+        self,
+        source_language: str,
+        target_language: str,
+        segments: TranslationBatch,
+        depth: int,
+    ) -> dict[str, str]:
+        try:
+            return self._request_batch(source_language, target_language, segments)
+        except _RequestTooLarge:
+            if len(segments) < 2 or depth >= MAX_TRANSLATION_SPLIT_DEPTH:
+                raise TranslationProviderError(
+                    "Groq translation request exceeds the model token ceiling."
+                ) from None
+            middle = len(segments) // 2
+            merged: dict[str, str] = {}
+            for half in (segments[:middle], segments[middle:]):
+                merged.update(
+                    self._translate_batch(source_language, target_language, half, depth + 1)
+                )
+            return merged
+
+    def _request_batch(
+        self,
+        source_language: str,
+        target_language: str,
+        segments: TranslationBatch,
+    ) -> dict[str, str]:
 
         body = {
             "model": self._model,
@@ -239,7 +349,11 @@ class GroqTranslationProvider:
             "stream": False,
             "temperature": 0.0,
             "response_format": {"type": "json_object"},
-            "max_tokens": 8000,
+            # `max_completion_tokens` replaces the deprecated `max_tokens`.
+            # Groq reserves prompt + requested completion against one ceiling,
+            # so asking for the whole budget left no room for the prompt and
+            # returned 413 whenever the bucket was not already full.
+            "max_completion_tokens": self._max_completion_tokens,
         }
 
         try:
@@ -254,10 +368,14 @@ class GroqTranslationProvider:
                 for key, value in response.headers.items()
                 if key.lower().startswith("x-ratelimit-")
             }
+            if response.status_code == 413 and _is_request_too_large(response):
+                raise _RequestTooLarge()
             response.raise_for_status()
             envelope = response.json()
             content = envelope["choices"][0]["message"]["content"]
             data = json.loads(content)
+        except _RequestTooLarge:
+            raise
         except (requests.RequestException, ValueError, KeyError, IndexError, TypeError) as exc:
             raise TranslationProviderError("Groq translation is unavailable.") from exc
 

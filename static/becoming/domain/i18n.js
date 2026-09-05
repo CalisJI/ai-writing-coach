@@ -1,4 +1,4 @@
-import {state} from '../store.js';
+import {state,supportLanguage} from '../store.js';
 
 const UI_LOCALES=['vi','en','zh'];
 
@@ -113,6 +113,7 @@ const COPY={
     'title.grammar':'Grammar',
     'title.journey':'Journey',
     'title.profile':'Preferences',
+    'title.admin':'Platform Admin',
     'title.onboarding':'Welcome',
     'write.prompt':'Prompt',
     'write.no_prompt':'Write freely, or create a practice brief to work from.',
@@ -563,6 +564,7 @@ const COPY={
     'title.grammar':'Ngữ pháp',
     'title.journey':'Hành trình',
     'title.profile':'Tùy chỉnh',
+    'title.admin':'Quản trị nền tảng',
     'title.onboarding':'Chào bạn',
     'write.prompt':'Đề bài',
     'write.no_prompt':'Viết tự do, hoặc tạo một đề luyện tập để dựa vào.',
@@ -1013,6 +1015,7 @@ const COPY={
     'title.grammar':'语法',
     'title.journey':'学习轨迹',
     'title.profile':'偏好设置',
+    'title.admin':'平台管理',
     'title.onboarding':'欢迎',
     'write.prompt':'题目',
     'write.no_prompt':'可以自由写作，也可以先生成一个练习题目。',
@@ -2456,7 +2459,7 @@ function interpolate(value,vars={}){
 }
 
 export function uiLocale(){
-  const value=String(state.supportLanguage||state.profile?.native_language||'vi');
+  const value=String(supportLanguage()||'');
   return UI_LOCALES.includes(value)?value:'en';
 }
 

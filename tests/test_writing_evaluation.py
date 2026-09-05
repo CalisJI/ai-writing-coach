@@ -220,7 +220,10 @@ def test_errors_are_prioritized_by_confidence_with_stable_ties() -> None:
             "errors": [
                 _error(category="agreement", fragment="I has", confidence=0.8),
                 _error(category="article", fragment="a dog", confidence=0.95),
-                _error(category="word_order", fragment="I has a dog.", confidence=0.95),
+                # `sentence_structure`, not `word_order`: the English profile's
+                # ERROR_CATEGORIES allowlist drops anything it does not name, so an
+                # invalid category here would test the allowlist, not the tie order.
+                _error(category="sentence_structure", fragment="I has a dog.", confidence=0.95),
             ]
         },
         learner_text=LEARNER_TEXT,
@@ -228,7 +231,7 @@ def test_errors_are_prioritized_by_confidence_with_stable_ties() -> None:
 
     assert [(item["category"], item["confidence"]) for item in result["errors"]] == [
         ("article", 0.95),
-        ("word_order", 0.95),
+        ("sentence_structure", 0.95),
         ("agreement", 0.8),
     ]
 
@@ -385,7 +388,10 @@ def test_invalid_provider_response_uses_the_same_explicit_demo_fallback(monkeypa
     assert result["schema_version"] == "writing-evaluation-v2"
     assert result["errors"][0]["fragment"] == "I has"
     assert "Kết nối AI Coach" not in result["priorities_vi"][0]
-    assert "chưa tạo được đánh giá đầy đủ" in result["priorities_vi"][0]
+    # The degraded notice must say the evaluation is provisional. The priority
+    # line carries the re-run cue; the "chưa tạo được" phrasing lives in the summary.
+    assert "chạy lại khi AI Coach tạo được đánh giá đầy đủ" in result["priorities_vi"][0]
+    assert "chưa tạo được đánh giá đầy đủ" in result["summary_vi"]
 
 
 @pytest.mark.parametrize(
@@ -610,7 +616,10 @@ def test_provider_failures_use_canonical_learner_safe_evaluation_envelope(
         "retryable": retryable,
         "context": {},
     }
-    assert provider_error not in detail["message"]
+    # Assert the raw provider text does not leak. A bare `provider_error not in
+    # message` check cannot work here: "unavailable" is legitimately part of the
+    # canonical learner-facing copy, so it would fail on the truthful message.
+    assert f"raw provider detail: {provider_error}" not in str(detail)
     assert "raw provider detail" not in str(detail)
 
 

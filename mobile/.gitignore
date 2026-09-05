@@ -2,6 +2,10 @@ node_modules/
 .expo/
 dist/
 web-build/
+# Prebuild output: this workspace uses continuous native generation, so the
+# native projects are regenerated from app.config.ts and are never sources.
+android/
+ios/
 *.key
 *.p8
 *.p12

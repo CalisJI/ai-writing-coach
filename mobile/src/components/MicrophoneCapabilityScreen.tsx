@@ -24,7 +24,7 @@ export function MicrophoneCapabilityScreen({service: suppliedService}: {service?
   const recording = snapshot.state === 'recording';
   const canPlay = snapshot.state === 'recorded';
   return <SafeAreaView style={[styles.container, {backgroundColor: tokens.colors.background}]}>
-    <Text accessibilityRole="header" style={[styles.title, {color: tokens.colors.text}]}>{t('media.title')}</Text>
+    <Text accessibilityRole="header" style={[styles.title, {color: tokens.colors.heading}]}>{t('media.title')}</Text>
     <Text style={[styles.body, {color: tokens.colors.mutedText}]}>{stateMessage[snapshot.state]}</Text>
     <View style={styles.actions}>
       {recording ? <AccessibleButton label={t('media.stop')} onPress={() => { void service.stopRecording(); }} /> :
@@ -35,4 +35,4 @@ export function MicrophoneCapabilityScreen({service: suppliedService}: {service?
   </SafeAreaView>;
 }
 
-const styles = StyleSheet.create({container: {flex: 1, padding: 24, gap: 16}, title: {fontSize: 28, fontWeight: '700'}, body: {fontSize: 16, lineHeight: 24}, actions: {gap: 12}});
+const styles = StyleSheet.create({container: {flex: 1, padding: 24, gap: 16}, title: {fontSize: 20, fontWeight: '700'}, body: {fontSize: 15, lineHeight: 24}, actions: {gap: 12}});

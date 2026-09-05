@@ -87,7 +87,13 @@ def test_static_text_provider_definitions_need_no_credentials_or_network(monkeyp
         monkeypatch.delenv(variable, raising=False)
 
     definitions = provider_definitions()
-    assert {definition.id for definition in definitions} == {"ollama", "openai", "deepseek", "groq"}
+    assert {definition.id for definition in definitions} == {
+        "ollama",
+        "openai",
+        "deepseek",
+        "groq",
+        "gemini",
+    }
 
     speech_operations = {
         AIOperation.SPEECH_RECOGNITION,

@@ -143,6 +143,18 @@ export const SCREEN_CONTRACT={
     accentPolicy:'rank semantic accent only; settings stay neutral',
     fidelityMode:'high',
   },
+  admin:{
+    learnerGoal:'Give platform administrators a safe, evidence-led view of AI capability configuration and operations.',
+    dominantIdea:'Operational evidence stays visible while learner runtime activation remains explicit.',
+    primaryAction:'Inspect capability evidence',
+    progressiveDisclosure:'Runtime summary → capability matrix → activity → readiness → provider catalog.',
+    evidence:'Saved capability configuration, provider status, sanitized activity, and readiness indicators',
+    visualHero:'Platform AI and operational readiness summary',
+    surfaceHierarchy:'canvas → runtime summary → capability matrix → read-only evidence → provider catalog',
+    themeBias:'light-first with dark parity',
+    accentPolicy:'accent only on status and explicit administrative actions',
+    fidelityMode:'high',
+  },
 };
 
 export function screenContract(route){

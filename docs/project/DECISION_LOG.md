@@ -784,7 +784,241 @@ public store submission remain explicit human gates.
 **Supersedes / Superseded by:** Extends R18 mobile/API readiness and the shared
 web/server product architecture. Supersedes no earlier decision.
 
-## D-037 — Orena experience-first product model
+## D-037 - Provider credentials are configured through an authenticated server UI
+
+**Status:** Accepted
+
+**Decision:** Admin may submit a provider credential through the same-origin
+authenticated Admin application. The server validates the provider connection,
+encrypts the credential before persisting it in the authoritative platform
+settings store, and returns only masked status and model metadata. Credential
+values are never returned to the browser, included in capability configuration,
+telemetry, or operator-facing errors. A separate `AI_PROVIDER_SECRETS_KEY`
+bootstrap secret must be supplied by the deployment secret store; the UI never
+creates, displays, or replaces that encryption key.
+
+**Reason:** Editing provider keys in source or `.env` files is operationally
+unsafe and makes routine provider setup depend on filesystem access. The
+server-managed flow follows the Dify-style boundary of encrypted-at-rest
+credentials, explicit connection validation, and provider/model configuration
+that is separate from secrets, while keeping this repository's no-production-
+activation rule intact.
+
+**Consequences:** The Admin UI can test, save, and remove cloud-provider
+credentials without plaintext persistence. Production still requires TLS,
+secure bootstrap-secret delivery, backup/restore handling for the encryption
+key, audit/alert review, and explicit human approval before a credentialed
+provider is activated for learner traffic. Loss or rotation of the bootstrap
+key makes stored credentials unreadable until an approved key-recovery plan is
+executed.
+
+**Supersedes / Superseded by:** Supersedes no earlier decision.
+
+## D-038 - Listening is content-first over one canonical Media Learning engine
+
+**Status:** Accepted
+
+**Decision:** The primary Listening entry is a curated, topic- and level-aware
+content library. Learner-imported media remains available under My Media as a
+secondary source. Curated excerpts and imported assets both resolve to the
+existing canonical Media Learning Object, timestamped transcript segments, and
+the same Listening workspace; Listen, Active Listening, Dictation, Shadowing,
+progress, and Speaking handoff are modes over that shared identity rather than
+separate players or transcript stores. A source may own multiple curated
+excerpt identities, each with explicit start/end bounds and provenance, while
+the canonical media object continues to own transcript content.
+
+**Reason:** Requiring a learner to find and paste a URL before Listening has
+value makes acquisition tooling the product. A curated library gives the
+learner something useful immediately, while one shared engine prevents curated
+and imported media from drifting into unequal learning experiences.
+
+**Consequences:** Curated catalog listings stay metadata-light and load the
+full media/transcript only when a lesson opens. Excerpt duration follows a
+complete learning idea instead of a fixed timer. Built-in content requires
+explicit rights/provenance metadata and verified timing; absent internal timing
+must not be fabricated. EN and ZH, web and native, and resume/handoff contracts
+must remain aligned. Catalog publication, broad content licensing approval,
+and R11 public promotion remain human gates; this decision does not publish a
+lesson or activate a provider.
+
+**Supersedes / Superseded by:** Extends D-005, D-017, D-029, D-032, D-033,
+and D-036. Supersedes the former Listening landing hierarchy in which media
+URL import was the primary action, but does not supersede the canonical Media
+Learning architecture.
+
+## D-039 - Listening catalog publication is manifest-driven and rights-gated
+
+**Status:** Accepted
+
+**Decision:** Built-in Listening content is registered in a versioned catalog
+manifest that keeps canonical source media and transcript segments separate
+from curated excerpt lessons. A source may back multiple lesson identities;
+lessons reference the source's canonical segments and add only excerpt,
+discovery, level, lifecycle, and pedagogical metadata. Only `PUBLISHED` lessons
+whose source rights have been explicitly reviewed may be returned to learners.
+Both `estimated_level` and its evidence are retained, while an editorial
+`reviewed_level`, when present, is the displayed canonical level.
+
+**Reason:** Product content must be curatable without changing a React screen,
+must preserve the one-source-to-many-excerpts model, and must not turn unsafe or
+unreviewed external media into built-in catalog content. Separating source and
+lesson records also prevents transcript duplication and keeps level decisions
+explainable and overridable.
+
+**Consequences:** Topic and tag taxonomies can expand through catalog data;
+catalog listing remains metadata-light; full transcript/media payloads load
+only when a lesson opens. Editors can move content through draft, processing,
+review, ready, published, and archived states, but publication, licensing
+approval, and public Listening promotion remain human gates. This decision does
+not create a production CMS, publish third-party copyrighted content, or alter
+learner-import policy.
+
+**Supersedes / Superseded by:** Extends D-038 and the canonical Media Learning
+decisions it references. Supersedes no earlier decision.
+
+## D-040 - Orena direction is restored from repository-backed project memory
+
+**Status:** Accepted
+
+**Decision:** Orena is the canonical active product identity and `/` is its
+canonical web route. `/becoming` is compatibility-only. Historical
+BECOMING-named files, directories, symbols, database identifiers, and archived
+evidence may remain where technically required but do not define current
+product direction. The approved responsive Orena web product is the visual,
+functional, and interaction source of truth; native mobile is a full native
+port, not an independent redesign or simplified edition.
+
+Current project direction and execution state are restored from the bounded
+repository-backed memory rooted at `docs/project/PROJECT_MEMORY.md`. Agent chat
+history is never authoritative project state. Durable product intent is
+human-governed; machine-readable current truth is schema-validated; retired
+directions are tombstoned; and every verified batch runs the project-memory
+validator before commit.
+
+**Reason:** Multi-agent sessions lose chat context and were repeatedly reviving
+obsolete routes, names, design assumptions, and stale roadmap paths. A compact,
+versioned, machine-enforced repository memory lets a zero-context session
+recover the active product, current state, retired directions, human gates, and
+exact next task without loading all historical documents.
+
+**Consequences:** `PRODUCT_CONSTITUTION.md`, fundamental
+`DESIGN_CONTRACT.md` principles, and `LEGACY_TOMBSTONES.md` are human-governed.
+`CURRENT_PRODUCT_STATE.yaml` accepts only its validated schema. The compact
+`CURRENT_HANDOFF.md` no longer carries historical closeouts. CI fails on active
+navigation to `/becoming`, learner-facing BECOMING branding, route/state
+contradictions, EN/ZH parity loss, independent-native-redesign state, or missing
+memory contracts. Valid legacy technical namespaces and compatibility redirect
+tests remain allowed.
+
+**Supersedes / Superseded by:** Extends D-013 and supersedes any interpretation
+that chat history, human recollection, legacy filenames, or the old route is the
+primary source of current project direction. It does not supersede valid
+historical implementation contracts recorded by D-014 through D-039.
+
+## D-041 - Skill state is seven independent truths, and a Listening engine is not a Listening catalog
+
+**Status:** Accepted
+
+**Decision:** `CURRENT_PRODUCT_STATE.yaml` records each learner skill as seven
+independent dimensions - implementation, local acceptance, pre-public matrix,
+learner visibility, content readiness, human acceptance, and public release -
+instead of one collapsed status enum. Listening additionally carries a
+`real_media_catalog` block holding its own readiness, per-language real playable
+evidence, human playback acceptance, and catalog publication state. Seed, mock,
+or synthetic content is never real-content completion evidence.
+
+**Reason:** The single per-skill enum (`development` /
+`pre_public_matrix_complete` / `public`) collapsed distinct verified truths into
+one misleading value, in both directions. Reading `development` for locally
+completed Writing, Speaking, and Reading invited a fresh agent to rebuild work
+that R3/R4, R6/R7/R9, and R10 had already closed with local acceptance passes.
+Reading `pre_public_matrix_complete` for Listening implied a finished product,
+when human QA confirmed the built-in lessons remain seed/synthetic, real source
+video playback has not been accepted, and cards can present text with no
+meaningful real video. Behavioural completeness and content completeness are
+different facts and now have different fields.
+
+**Consequences:** `release_state` keeps only genuinely global release facts;
+per-skill status lives in `skills.state`. The validator enforces that public
+visibility requires an approved public release, that release requires human
+acceptance, that seed/mock content can never carry real playable evidence,
+human acceptance, or publication, that a complete real catalog requires real
+playable EN _and_ ZH evidence plus human playback acceptance, and that
+`skills.state.listening.content_readiness` cannot drift from
+`listening.real_media_catalog.status`. Completed local work paired with
+`internal` visibility is an explicitly valid state and must not be read as
+missing. The memory schema version moves to 1.1.
+
+**Supersedes / Superseded by:** Supersedes the collapsed per-skill
+`release_state` enum introduced with D-040. It does not modify D-040's memory
+topology, precedence model, or governance ownership, and supersedes no
+implementation contract.
+
+## D-042 - Support language is a learner choice, and missing captions are not rejection
+
+**Status:** Accepted
+
+**Decision:** LEARNING_LANGUAGE, SUPPORT_LANGUAGE and UI_LOCALE are three
+distinct concepts. Meaning, explanations, grammar notes and dictionary support
+are delivered in the learner's support language, resolved as stored profile
+preference → explicit valid selection → configured neutral default, and stored
+BCP-47-shaped in the learner profile. Separately, a playable supported video
+without captions is a valid media source: playback state and transcript state
+are independent, missing captions start recovery through the existing provider →
+ASR → Supadata chain, and a generated transcript discloses its provenance.
+
+**Reason:** Both rules were lost repeatedly. Vietnamese had become the de facto
+canonical translation target in four places - `validSupportLanguage` accepting
+only vi/en/zh, `supportLanguage()` falling back to vi, `target_language` defaulting
+to vi, and `targetLanguage || 'vi'` in the client - which encoded Orena as a
+Vietnamese-only product in the data model rather than in configuration. In
+parallel, a caption-less video was being treated as unsupported, which threw away
+media the product can genuinely teach from, and My Media and the bulk importer
+had drifted into two different definitions of "no captions" because they built
+the provider adapter with opposite recovery flags.
+
+**Consequences:** `writing_coach/core/support_languages.py` holds the one resolution
+rule; the profile exposes a resolved `support_language`; the client keeps no
+language default of its own. `writing_coach/media_recovery_policy.py` holds the
+one recovery policy, and both the runtime and the importer build their adapter
+through it, so neither can drift again. `transcript_origin` travels with every
+media response and joined the shared workspace contract. Vietnamese remains a
+fully supported support language - it is simply no longer the built-in answer.
+
+**Supersedes / Superseded by:** Supersedes any earlier reading in which
+Vietnamese was the canonical translation target or in which absent captions made
+a source unsupported. Supersedes no implementation contract.
+
+## D-043 - Unreviewed development catalog content is QA'd off production
+
+**Date:** 2026-09-02
+
+**Status:** Accepted
+
+**Decision:** Generated development catalog content (`DEV_CANDIDATE` /
+`rights_review` / `proposed`) is reviewed on a separate local development
+runtime, never on the production domain. The runtime is the same app image run
+from the worktree with `APP_ENV=development`, `ENABLE_DEV_LISTENING_CATALOG=1`,
+SQLite, writable paths under `/tmp`, published on `127.0.0.1` only and kept off
+the tunnel. Promotion into the production catalog remains a human gate.
+
+**Reason:** L3 produces content at scale whose rights and pedagogy are not yet
+reviewed. An admin-gated preview inside production was considered and rejected:
+it would mean the production runtime serving unreviewed content, and it would
+put the dev overlay one authorisation bug away from public learners.
+`orena.chillpickle.org` runs `APP_ENV=production`, where the overlay is refused
+by design, and that guard must not be weakened to enable QA.
+
+**Consequences:** L3 can proceed without touching production or the deployment
+gate. The production guard in `listening_catalog.dev_catalog_enabled()` stays a
+hard refusal rather than a configurable one. QA evidence for generated content
+comes from the development runtime and is labelled as such.
+
+**Supersedes / Superseded by:** Supersedes the earlier open question of how L3
+content would be visually QA'd. Supersedes no implementation contract.
+
+## D-044 — Orena experience-first product model
 
 **Status:** Accepted
 
@@ -823,7 +1057,7 @@ presentation system as Orena's permanent conceptual hierarchy. It does not
 invalidate technical domain contracts or verified historical implementation
 facts.
 
-## D-038 — Orena content world combines discovery with learner-owned content
+## D-045 — Orena content world combines discovery with learner-owned content
 
 **Status:** Accepted
 
@@ -894,6 +1128,6 @@ learner-owned content experiences.
 External content must preserve truthful provenance and follow applicable rights
 and provider constraints.
 
-**Supersedes / Superseded by:** Extends D-037 and D-014. It does not supersede
+**Supersedes / Superseded by:** Extends D-044 and D-014. It does not supersede
 the stable Shared Media Learning contract or existing verified learning-domain
 implementation.

@@ -3,12 +3,28 @@ import {MEDIA_LEARNING_FIXTURE} from '../tests/fixtures/media-learning.js';
 import {renderListening} from '../static/becoming/screens/listening.js';
 
 class FakeElement {}
+// A real HTMLIFrameElement inherits dataset from HTMLElement, so it is always a
+// DOMStringMap - never undefined - and the browser fills it from the data-*
+// attributes on the tag. The double has to honour that contract, otherwise it
+// fails on code that is correct against a real DOM.
 class FakeFrame extends FakeElement {
   addEventListener(){}
-  constructor(){
+  constructor(html=''){
     super();
     this.isConnected=true;
+    this.dataset=datasetFromMarkup(html);
   }
+}
+
+// Mirror the browser's data-* -> dataset camelCase mapping for the rendered tag.
+function datasetFromMarkup(html){
+  const tag=/<(?:iframe|audio)[^>]*id="listeningPlayer"[^>]*>/.exec(String(html||''));
+  const dataset={};
+  if(!tag)return dataset;
+  for(const [,name,value] of tag[0].matchAll(/data-([a-z0-9-]+)="([^"]*)"/g)){
+    dataset[name.replace(/-([a-z0-9])/g,(_,c)=>c.toUpperCase())]=value;
+  }
+  return dataset;
 }
 class ScrollContainer extends FakeElement {
   constructor(){
@@ -76,7 +92,7 @@ class ListeningRoot extends FakeElement {
     this.fullRenders+=1;
     this.html=value;
     this.view={};
-    this.player=value.includes('id="listeningPlayer"')?new FakeFrame():null;
+    this.player=value.includes('id="listeningPlayer"')?new FakeFrame(value):null;
     const column=new LearningColumn();
     this.learningColumn=column;
     this.workspace={

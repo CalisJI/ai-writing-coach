@@ -20,8 +20,19 @@ function readText(key,fallback=''){
   }
 }
 
+// Orena is globally designed: the support language is the learner's choice of
+// meaning/explanation language, not an assumption about who they are. This list
+// is the current translation capability, deliberately wider than the three
+// languages the product happened to ship with first. It mirrors
+// AVAILABLE_SUPPORT_LANGUAGES in writing_coach/support_language.py.
+const AVAILABLE_SUPPORT_LANGUAGES=['en','vi','zh','ja','ko','es','fr','de','pt','ru','id','th'];  // mirrors _DEFINITIONS in writing_coach/core/support_languages.py
+// The neutral fallback used before a learner has chosen. Configuration, not an
+// inference: the server resolves the authoritative value from the profile.
+const NEUTRAL_SUPPORT_LANGUAGE='en';
+
 function validSupportLanguage(value=''){
-  return ['vi','en','zh'].includes(String(value))?String(value):'';
+  const code=String(value||'').trim().replace('_','-').toLowerCase();
+  return AVAILABLE_SUPPORT_LANGUAGES.includes(code)?code:'';
 }
 
 function normalizeTargetLanguage(value='en'){
@@ -105,14 +116,14 @@ export function saveProfile(profile,{cache=true}={}){
 }
 
 export function setSupportLanguage(value){
-  const next=validSupportLanguage(value)||'vi';
+  const next=validSupportLanguage(value)||NEUTRAL_SUPPORT_LANGUAGE;
   state.supportLanguage=next;
   localStorage.setItem(SUPPORT_LANGUAGE_KEY,next);
   return next;
 }
 
 export function supportLanguage(){
-  return validSupportLanguage(state.supportLanguage)||'vi';
+  return validSupportLanguage(state.supportLanguage)||NEUTRAL_SUPPORT_LANGUAGE;
 }
 
 export function clearProfile(){

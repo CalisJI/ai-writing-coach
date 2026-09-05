@@ -25,7 +25,7 @@ export function AccessibleButton({label, textStyle, style, ...props}: Props) {
       accessibilityLabel={label}
       style={(state) => [baseStyle, typeof style === 'function' ? style(state) : style]}
     >
-      <Text style={[{color: tokens.scheme === 'dark' ? '#0B1726' : '#FFFFFF', fontWeight: '700'}, textStyle]}>{label}</Text>
+      <Text style={[{color: tokens.colors.onAccent, fontWeight: '700'}, textStyle]}>{label}</Text>
     </Pressable>
   );
 }

@@ -19,8 +19,11 @@ entry, and corresponding current-state and handoff updates.
 
 ## Frontend
 
-These invariants protect technical consistency, accessibility, responsive
-behavior, shared contracts, and regression safety.
+- Orena is the active product identity and `/` is the canonical learner route.
+  `/becoming` is compatibility-only; legacy BECOMING-named filesystem
+  namespaces do not define current product direction.
+  These invariants protect technical consistency, accessibility, responsive
+  behavior, shared contracts, and regression safety.
 
 Learner-facing product hierarchy, visual composition, and experience direction
 are governed by `docs/product/ORENA_PRODUCT_CONSTITUTION.md`.

@@ -6,7 +6,31 @@ const segmentTimers=new WeakMap();
 const controllers=new WeakMap();
 let youtubeApiPromise=null;
 
+const COMMONS_MEDIA_HOSTS=['commons.wikimedia.org','upload.wikimedia.org'];
+// Posters come from whichever provider publishes the media, so the poster
+// allowlist is wider than the playback one: a YouTube lesson's thumbnail is on
+// YouTube's image CDN. listening_catalog.py is the boundary that checks poster
+// host against the source's own provider; this is defence in depth against an
+// arbitrary origin, not a second provenance decision.
+const POSTER_HOSTS=[...COMMONS_MEDIA_HOSTS,'i.ytimg.com','img.youtube.com'];
+
+// One reviewed-media URL policy, matching listening_catalog.py and the native
+// adapter: https, an exact allowlisted host, no credentials, no port.
+function reviewedMediaUrl(value,hosts=COMMONS_MEDIA_HOSTS){
+  try{
+    const url=new URL(String(value||''));
+    if(url.protocol!=='https:'||url.username||url.password||url.port)return null;
+    return hosts.includes(url.hostname)?url.href:null;
+  }catch{return null;}
+}
+
 function playbackAdapter(playback){
+  if(playback?.kind==='audio'||playback?.kind==='video'){
+    if(playback.provider!=='wikimedia-commons')return null;
+    const href=reviewedMediaUrl(playback.url);
+    if(!href)return null;
+    return {kind:playback.kind,url:href,origin:new URL(href).origin,controllable:true};
+  }
   if(playback?.kind!=='embed')return null;
   try{
     const url=new URL(playback.url);
@@ -19,7 +43,7 @@ function playbackAdapter(playback){
     if(typeof pageOrigin==='string'&&/^https?:\/\//.test(pageOrigin)){
       url.searchParams.set('origin',pageOrigin);
     }
-    return {url:url.href,origin:url.origin,controllable:true};
+    return {kind:'youtube',url:url.href,origin:url.origin,controllable:true};
   }catch{return null;}
 }
 
@@ -102,9 +126,15 @@ function emitClock(root,controller){
     return;
   }
   try{
-    const currentTime=Number(controller.player.getCurrentTime?.());
+    let currentTime=Number(controller.player.getCurrentTime?.());
     if(!Number.isFinite(currentTime))return;
-    const state=Number(controller.player.getPlayerState?.());
+    let state=Number(controller.player.getPlayerState?.());
+    if(Number.isFinite(controller.endMs)&&currentTime*1000>=controller.endMs&&state===1){
+      controller.player.pauseVideo?.();
+      controller.player.seekTo?.(controller.startMs/1000,true);
+      currentTime=controller.startMs/1000;
+      state=2;
+    }
     root.dataset.mediaClock='ready';
     root.dispatchEvent(new CustomEvent('orena:media-time',{
       bubbles:true,
@@ -133,7 +163,12 @@ export function connectMediaPlayer(root,playback){
   if(!(root instanceof Element))return false;
   const adapter=playbackAdapter(playback);
   const frame=root.querySelector('#listeningPlayer');
-  if(!adapter||!(frame instanceof HTMLIFrameElement)){
+  const validFrame=adapter?.kind==='audio'
+    ?frame instanceof HTMLAudioElement
+    :adapter?.kind==='video'
+      ?frame instanceof HTMLVideoElement
+      :frame instanceof HTMLIFrameElement;
+  if(!adapter||!validFrame){
     destroyController(root);
     return false;
   }
@@ -142,9 +177,42 @@ export function connectMediaPlayer(root,playback){
   if(existing?.frame===frame&&existing?.player)return true;
   destroyController(root);
 
-  const controller={frame,player:null,pollTimer:null};
+  const parsedStart=Number(frame.dataset.excerptStartMs);
+  const parsedEnd=Number(frame.dataset.excerptEndMs);
+  const controller={
+    frame,
+    player:null,
+    pollTimer:null,
+    startMs:Number.isFinite(parsedStart)&&parsedStart>=0?parsedStart:0,
+    endMs:Number.isFinite(parsedEnd)&&parsedEnd>parsedStart?parsedEnd:null,
+  };
   controllers.set(root,controller);
   root.dataset.mediaClock='connecting';
+
+  if(adapter.kind==='audio'||adapter.kind==='video'){
+    controller.player={
+      getCurrentTime:()=>frame.currentTime,
+      getDuration:()=>frame.duration,
+      getPlayerState:()=>frame.paused?2:1,
+      seekTo:value=>{frame.currentTime=Math.max(0,Number(value)||0);},
+      playVideo:()=>frame.play().catch(()=>{}),
+      pauseVideo:()=>frame.pause(),
+      isMuted:()=>frame.muted,
+      mute:()=>{frame.muted=true;},
+      unMute:()=>{frame.muted=false;},
+      setPlaybackRate:value=>{frame.playbackRate=Number(value)||1;},
+      destroy:()=>{},
+    };
+    const ready=()=>{
+      if(controller.startMs>0&&Math.abs(frame.currentTime-controller.startMs/1000)>.1)frame.currentTime=controller.startMs/1000;
+      root.dataset.mediaClock='ready';startClock(root,controller);
+    };
+    frame.addEventListener('loadedmetadata',ready,{once:true});
+    frame.addEventListener('play',()=>emitClock(root,controller));
+    frame.addEventListener('pause',()=>emitClock(root,controller));
+    if(frame.readyState>=1)ready();
+    return true;
+  }
 
   ensureYouTubeIframeApi().then(YT=>{
     if(controllers.get(root)!==controller||!frame.isConnected)return;
@@ -152,6 +220,7 @@ export function connectMediaPlayer(root,playback){
       events:{
         onReady:()=>{
           if(controllers.get(root)!==controller)return;
+          if(controller.startMs>0)controller.player.seekTo(controller.startMs/1000,true);
           root.dataset.mediaClock='ready';
           startClock(root,controller);
         },
@@ -194,6 +263,7 @@ function sendCommand(root,playback,func,args=[]){
     }catch{}
   }
 
+  if(adapter.kind==='audio')return false;
   const frame=root.querySelector('#listeningPlayer');
   if(!frame?.contentWindow?.postMessage)return false;
   try{
@@ -207,10 +277,24 @@ export function playbackAvailable(playback){
   return playbackAdapter(playback)!==null;
 }
 
-export function mediaPlayer(playback,title){
+// A poster only ever decorates a player; it must never become a way to point
+// the page at an arbitrary host, so it is held to the same Commons origins.
+export function posterUrl(poster){
+  return typeof poster==='string'&&poster?(reviewedMediaUrl(poster,POSTER_HOSTS)||''):'';
+}
+
+export function mediaPlayer(playback,title,{startMs=0,endMs=null,poster=''}={}){
   const adapter=playbackAdapter(playback);
   if(!adapter)return '<div class="listening-player-unavailable" role="status">Playback is unavailable for this source.</div>';
-  return `<iframe id="listeningPlayer" src="${esc(adapter.url)}" title="${esc(title||'Lesson video')}" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>`;
+  const safeStart=Math.max(0,Number(startMs)||0);
+  const safeEnd=Number(endMs);
+  const bounds=`data-excerpt-start-ms="${safeStart}" ${Number.isFinite(safeEnd)&&safeEnd>safeStart?`data-excerpt-end-ms="${safeEnd}"`:''}`;
+  if(adapter.kind==='audio')return `<audio id="listeningPlayer" src="${esc(adapter.url)}" aria-label="${esc(title||'Lesson audio')}" preload="metadata" ${bounds}></audio>`;
+  if(adapter.kind==='video'){
+    const art=posterUrl(poster);
+    return `<video id="listeningPlayer" src="${esc(adapter.url)}"${art?` poster="${esc(art)}"`:''} title="${esc(title||'Lesson video')}" aria-label="${esc(title||'Lesson video')}" preload="metadata" playsinline controls ${bounds}></video>`;
+  }
+  return `<iframe id="listeningPlayer" src="${esc(adapter.url)}" title="${esc(title||'Lesson video')}" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen referrerpolicy="strict-origin-when-cross-origin" ${bounds}></iframe>`;
 }
 
 export function segmentPlaybackDelayMs(startMs,endMs,rate=1){
@@ -274,7 +358,13 @@ export function togglePlayback(root,playback){
   try{
     const state=Number(controller.player.getPlayerState?.());
     if(state===1)controller.player.pauseVideo();
-    else controller.player.playVideo();
+    else{
+      const current=Number(controller.player.getCurrentTime?.());
+      if(Number.isFinite(controller.endMs)&&Number.isFinite(current)&&current*1000>=controller.endMs-100){
+        controller.player.seekTo(controller.startMs/1000,true);
+      }
+      controller.player.playVideo();
+    }
     emitClock(root,controller);
     return true;
   }catch{return false;}

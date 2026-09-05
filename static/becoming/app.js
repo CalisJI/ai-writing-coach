@@ -1,14 +1,18 @@
 import {api} from './api.js';
 import {state,saveProfile,activateLanguage,setSupportLanguage,supportLanguage} from './store.js';
-import {currentRoute,go,syncNav} from './router.js?v=2.17.5';
+import {currentRoute,go,syncNav} from './router.js?v=2.17.6';
 import {closeDialog,toast,setBusy,installTooltipLayer} from './components/primitives.js';
 import {installTheme,applyPalette,activePalette,storedPalette} from './theme.js';
 import {installTempo,applyTempo,storedTempo,tempoForStyle} from './tempo.js';
 import {installSelectEnhancements,syncSelectField} from './components/select-field.js';
+
+// Dynamic Admin controls can be re-rendered after a save; expose the same
+// shared enhancer so those new selects keep the Orena listbox treatment.
+window.installOrenaSelectEnhancements = installSelectEnhancements;
 import {t,applyChromeI18n,uiHtmlLang,localeLabel} from './domain/i18n.js';
-import {installOrenaShell,syncOrenaChrome,installDisclosures} from './orena/shell.js?v=2.17.5';
-import {screenContract} from './domain/screen-contract.js?v=2.17.5';
-import {applySkillNavigation,routeAvailable} from './domain/skill-release.js?v=2.17.5';
+import {installOrenaShell,syncOrenaChrome,installDisclosures} from './orena/shell.js?v=2.17.6';
+import {screenContract} from './domain/screen-contract.js?v=2.17.6';
+import {applySkillNavigation,routeAvailable} from './domain/skill-release.js?v=2.17.6';
 import {renderOnboarding} from './screens/onboarding.js';
 import {renderHome} from './screens/home.js';
 import {renderExplore} from './screens/explore.js';
@@ -21,6 +25,7 @@ import {renderLibrary} from './screens/library.js';
 import {renderGrammar} from './screens/grammar.js?v=2.17.5';
 import {renderJourney} from './screens/journey.js';
 import {renderProfile} from './screens/profile.js';
+import {renderAdmin} from './screens/admin.js';
 
 const root=document.getElementById('mainContent');
 let renderEpoch=0;
@@ -52,6 +57,7 @@ const SCREENS={
   grammar:renderGrammar,
   journey:renderJourney,
   profile:renderProfile,
+  admin:renderAdmin,
 };
 
 function setDocumentLanguage(){
@@ -126,7 +132,7 @@ const INTERFACE_LANGUAGES=['vi','en','zh'];
 function renderLanguages(){
   const select=document.getElementById('languageSelect');
   if(!select)return;
-  const current=supportLanguage()||'vi';
+  const current=supportLanguage();
   select.innerHTML=INTERFACE_LANGUAGES.map(code=>
     `<option value="${code}" ${code===current?'selected':''}>${localeLabel(code)}</option>`
   ).join('');
@@ -138,7 +144,7 @@ async function loadProfileForActiveLanguage({allowLegacyMigration=true}={}){
   let remote=await api.learnerProfile();
   if(remote.exists){
     if(!state.supportLanguage){
-      setSupportLanguage(remote.native_language||'vi');
+      setSupportLanguage(remote.support_language||remote.native_language||'');
     }
 
     const localPalette=storedPalette();
@@ -176,10 +182,10 @@ async function loadProfileForActiveLanguage({allowLegacyMigration=true}={}){
       goal:legacy.goal||'everyday',
       style:legacy.style||'guided',
       pinyin:legacy.pinyin||'auto',
-      native_language:state.supportLanguage||legacy.native_language||'vi',
+      native_language:state.supportLanguage||legacy.native_language||'',
       theme_preset:legacy.theme_preset||activePalette(),
     });
-    setSupportLanguage(saved.native_language||'vi');
+    setSupportLanguage(saved.support_language||saved.native_language||'');
     saveProfile(saved);
     state.legacyProfile=null;
     return saved;

@@ -20,6 +20,22 @@ const controller=createListeningController({
   targetLanguage:()=> 'vi',
   onChange:model=>states.push(model.status),
 });
+assert.match(controller.html(),/data-library-view="discover"/);
+assert.doesNotMatch(controller.html(),/mediaImportForm/);
+const libraryController=createListeningController({importMedia:async()=>MEDIA_LEARNING_FIXTURE,targetLanguage:()=> 'vi'});
+const libraryItem=(lesson_id,title,level,topic,tags)=>({lesson_id,title,level,topic,description:title,duration_ms:30000,available_modes:['listen','dictation'],content_tags:tags,level_source:'editorial-review',source:{creator:'Rights-cleared creator'}});
+libraryController.setLibrary('ready',{items:[libraryItem('a1','Beginner city walk','A1','daily-life',['conversation','quick-practice']),libraryItem('b2','Intermediate city story','B2','travel',['story'])],topics:['daily-life','travel'],tags:['conversation','quick-practice','story'],filters:{levels:['A1','B2'],tags:['conversation','quick-practice','story']},sections:[{id:'recommended',item_ids:['a1','b2']}]});
+assert.match(libraryController.html(),/Beginner city walk/);
+assert.match(libraryController.html(),/Intermediate city story/);
+assert.equal(libraryController.setLibraryLevel('B2'),true);
+assert.doesNotMatch(libraryController.html(),/Beginner city walk/);
+assert.match(libraryController.html(),/Intermediate city story/);
+assert.match(libraryController.html(),/Rights-cleared creator/);
+assert.equal(libraryController.setLibraryLevel(''),true);
+assert.equal(libraryController.setLibraryTag('story'),true);
+assert.doesNotMatch(libraryController.html(),/Beginner city walk/);
+assert.match(libraryController.html(),/#story/);
+assert.equal(controller.setLibraryView('my-media'),true);
 assert.match(controller.html(),/mediaImportForm/);
 const pending=controller.importUrl('https://youtu.be/dQw4w9WgXcQ');
 assert.equal(controller.model.status,'validating');
@@ -125,6 +141,11 @@ assert.equal(shadowingFollowController.model.shadowingSession.current_segment_id
 const segmentOnlyController=createListeningController({importMedia:async()=>MEDIA_LEARNING_FIXTURE,targetLanguage:()=> 'vi'});
 await segmentOnlyController.importUrl('https://youtu.be/dQw4w9WgXcQ');
 assert.doesNotMatch(segmentOnlyController.html(),/transcript-token-timed|data-start-ms=/);
+
+const catalogExcerpt={...MEDIA_LEARNING_FIXTURE,catalog:{lesson_id:'curated-a',excerpt_start_ms:2100,excerpt_end_ms:6100,available_modes:['listen','active','dictation','shadowing']}};
+const excerptController=createListeningController({importMedia:async()=>catalogExcerpt,targetLanguage:()=> 'vi'});
+await excerptController.importUrl('https://example.invalid/curated-a');
+assert.match(excerptController.html(),/data-excerpt-start-ms="2100" data-excerpt-end-ms="6100"/);
 
 const generatedTranscriptController=createListeningController({
   importMedia:async()=>({...MEDIA_LEARNING_FIXTURE,transcript_generation:{status:'generated',source:'supadata'}}),
@@ -283,6 +304,19 @@ assert.match(activeController.html(),/active-listening-text-match/);
 assert.match(activeController.html(),/100%/);
 assert.match(activeController.html(),/Listen for the first complete idea\./);
 assert.ok(activeController.html().includes(MEDIA_LEARNING_FIXTURE.translations[0].translated_meaning));
+
+const dictationController=createListeningController({importMedia:async()=>MEDIA_LEARNING_FIXTURE,targetLanguage:()=> 'vi'});
+await dictationController.importUrl('https://youtu.be/dQw4w9WgXcQ');
+assert.equal(dictationController.setMode('dictation'),true);
+assert.equal(dictationController.setPracticeDraft(MEDIA_LEARNING_FIXTURE.transcript.segments[0].original_text),true);
+assert.equal(dictationController.checkPractice(),true);
+assert.match(dictationController.html(),/data-dictation-next/);
+assert.match(dictationController.html(),/data-dictation-shadow/);
+assert.match(dictationController.html(),/data-dictation-slow/);
+assert.equal(dictationController.retryPractice(),true);
+assert.equal(dictationController.setPracticeDraft('Listen wrong words'),true);
+assert.equal(dictationController.checkPractice(),true);
+assert.match(dictationController.html(),/data-save-dictation-word=/);
 for(const [locale,label] of [['en','Type what you heard'],['vi','G\u00f5 l\u1ea1i \u0111i\u1ec1u b\u1ea1n nghe \u0111\u01b0\u1ee3c'],['zh','\u8f93\u5165\u4f60\u542c\u5230\u7684\u5185\u5bb9']]){
   state.supportLanguage=locale;
   assert.ok(activeController.html().includes(label));

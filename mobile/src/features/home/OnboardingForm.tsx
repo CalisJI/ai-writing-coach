@@ -18,7 +18,7 @@ export function OnboardingForm({onSubmit, isSaving, failed}: {onSubmit: (profile
     <View style={formStyles.choiceGroup}>{items.map((value) => <Pressable key={value} accessibilityRole="radio" accessibilityState={{selected: selected === value}} onPress={() => set(value)} style={[formStyles.choice, {borderColor: selected === value ? tokens.colors.accent : tokens.colors.mutedText, backgroundColor: selected === value ? tokens.colors.surface : 'transparent'}]}><Text style={{color: tokens.colors.text}}>{label(value)}</Text></Pressable>)}</View>
   );
   return <ScrollView contentContainerStyle={[formStyles.container, {backgroundColor: tokens.colors.background}]}>
-    <Text accessibilityRole="header" style={[formStyles.title, {color: tokens.colors.text}]}>{t('onboarding.title')}</Text><Text style={[formStyles.body, {color: tokens.colors.mutedText}]}>{t('onboarding.body')}</Text>
+    <Text accessibilityRole="header" style={[formStyles.title, {color: tokens.colors.heading}]}>{t('onboarding.title')}</Text><Text style={[formStyles.body, {color: tokens.colors.mutedText}]}>{t('onboarding.body')}</Text>
     <Text style={[formStyles.label, {color: tokens.colors.text}]}>{t('onboarding.goal')}</Text>{choices(goals, goal, setGoal, (v) => t(`goal.${v}` as never))}
     <Text style={[formStyles.label, {color: tokens.colors.text}]}>{t('onboarding.style')}</Text>{choices(styles, style, setStyle, (v) => t(`style.${v}` as never))}
     <Text style={[formStyles.label, {color: tokens.colors.text}]}>{t('onboarding.native_language')}</Text>{choices(languages, nativeLanguage, setNativeLanguage, (v) => t(`language.${v}` as never))}
@@ -28,4 +28,4 @@ export function OnboardingForm({onSubmit, isSaving, failed}: {onSubmit: (profile
   </ScrollView>;
 }
 
-const formStyles = StyleSheet.create({container: {padding: 24, gap: 12, flexGrow: 1}, title: {fontSize: 28, fontWeight: '700'}, body: {fontSize: 16, lineHeight: 24}, label: {fontSize: 16, fontWeight: '700', marginTop: 12}, choiceGroup: {gap: 8}, choice: {borderWidth: 1, borderRadius: 12, padding: 14}, button: {padding: 16, borderRadius: 12, alignItems: 'center', marginTop: 12}, buttonText: {color: '#fff', fontWeight: '700'}});
+const formStyles = StyleSheet.create({container: {padding: 24, gap: 12, flexGrow: 1}, title: {fontSize: 20, fontWeight: '700'}, body: {fontSize: 15, lineHeight: 24}, label: {fontSize: 15, fontWeight: '700', marginTop: 12}, choiceGroup: {gap: 8}, choice: {borderWidth: 1, borderRadius: 15, padding: 14}, button: {padding: 16, borderRadius: 15, alignItems: 'center', minHeight: 44, justifyContent: 'center', marginTop: 12}, buttonText: {fontSize: 14, fontWeight: '700'}});

@@ -6,7 +6,7 @@ from app import BECOMING_ASSET_ROOT, home, becoming_preview
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def test_root_serves_becoming_not_legacy_template() -> None:
+def test_root_serves_orena_from_legacy_template_namespace() -> None:
     response = home()
     body = response.body.decode("utf-8")
     assert body == (ROOT / "templates" / "becoming" / "index.html").read_text(encoding="utf-8")
