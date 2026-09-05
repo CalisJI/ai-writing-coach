@@ -2,15 +2,37 @@
 
 ## Product review checkpoint
 
-CURRENT_PRODUCT_MILESTONE:
-STATUS:
+CURRENT_PRODUCT_MILESTONE: ORENA_UI_EXPLORATION_V1
+STATUS: REVIEWABLE / HUMAN APPROVAL PENDING
 
-WEB_URL:
-WEB_ROUTE:
-HOW_TO_REACH_IT:
+WEB_URL: http://localhost:8010/#/explore
+WEB_ROUTE: /#/explore
+HOW_TO_REACH_IT: Open the URL, or select Orena · Explore / 探索 in internal navigation.
+Normal onboarding is required on a fresh runtime; the local EN/ZH review profiles
+have been created through that existing flow.
 
-LAST_HUMAN_APPROVED_MILESTONE:
-NEXT_REVIEWABLE_SLICE:
+LAST_HUMAN_APPROVED_MILESTONE: NONE_RECORDED
+NEXT_REVIEWABLE_SLICE: Human review of this exploration; no next major UI milestone.
+
+Current lane: `codex/work`. The human's 2026-09-05 UI priority supersedes the older
+mobile-next instructions below for this lane. Implementation remains independent
+of the comparison branch; no comparison implementation was inspected.
+
+Commit: `feat: add Orena field journal UI exploration` (the commit carrying this
+checkpoint). Scope and exact validation are in
+`docs/product/ORENA_UI_EXPLORATION_V1.md`.
+
+Review runtime is left running: `orena-codex-ui-web`, loopback port 8010;
+`orena-codex-ui-postgres` uses temporary storage on the isolated
+`orena-codex-ui-review` network. Do not operate production port 8000 or its volumes.
+Stopping the temporary PostgreSQL container discards its QA data. Browser tab
+state is intentionally provisional; vocabulary writes use real PostgreSQL.
+
+No new P0/P1 found in the bounded change. Existing release-gate failures reproduce
+at the starting SHA; they remain documented, without weakening the validator.
+No durable architecture decision changed, so no Decision Log entry is required.
+Application/frontend versions, protected domain contracts, and deployment remain
+unchanged. Stop here for human product review.
 
 This section is required for meaningful learner-facing work.
 

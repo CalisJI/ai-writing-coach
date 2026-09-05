@@ -16,6 +16,7 @@ export function skillAvailable(item,{internal=false}={}){
 }
 
 export function routeAvailable(route,skills,{internal=false}={}){
+  if(route==='explore')return internal;
   const key=SKILL_BY_ROUTE[route];
   return !key || skillAvailable(byKey(skills).get(key),{internal});
 }

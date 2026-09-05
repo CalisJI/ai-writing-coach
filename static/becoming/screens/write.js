@@ -458,6 +458,11 @@ function asidePanel(config, adaptiveMode) {
 }
 
 export async function renderWrite(root) {
+  // Register cancellation before the first await: leaving Write while its
+  // optional dashboard loads must not repaint a different screen.
+  root._cleanupScreen?.();
+  let active=true;
+  root._cleanupScreen=()=>{active=false;};
   const config = configFor(state.language);
   if (!state.draft || typeof state.draft !== 'object' || Array.isArray(state.draft)) {
     state.draft = {};
@@ -490,8 +495,13 @@ export async function renderWrite(root) {
   // Home populates state.dashboard, but a learner can land on Write directly.
   // A failure here must never block writing.
   if (!state.dashboard) {
-    try { state.dashboard = await api.dashboard(); } catch { /* write without it */ }
+    try {
+      const dashboard=await api.dashboard();
+      if(!active)return;
+      state.dashboard=dashboard;
+    } catch { /* write without it */ }
   }
+  if(!active)return;
 
   const adaptiveMode = guidanceMode(state.profile || {}, state.language, state.draft.level);
 
@@ -633,6 +643,7 @@ export async function renderWrite(root) {
     savedStamp.textContent = savedLabel(state.draft.savedAt);
   }, 30000);
   root._cleanupScreen = () => {
+    active=false;
     window.clearInterval(savedTicker);
     document.removeEventListener('selectionchange', rememberRange);
   };

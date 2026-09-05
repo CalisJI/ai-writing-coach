@@ -11,6 +11,7 @@ import {screenContract} from './domain/screen-contract.js?v=2.17.5';
 import {applySkillNavigation,routeAvailable} from './domain/skill-release.js?v=2.17.5';
 import {renderOnboarding} from './screens/onboarding.js';
 import {renderHome} from './screens/home.js';
+import {renderExplore} from './screens/explore.js';
 import {renderWrite} from './screens/write.js';
 import {renderReview} from './screens/review.js';
 import {renderReading} from './screens/reading.js';
@@ -22,6 +23,7 @@ import {renderJourney} from './screens/journey.js';
 import {renderProfile} from './screens/profile.js';
 
 const root=document.getElementById('mainContent');
+let renderEpoch=0;
 
 const SCREEN_INDEX={
   home:'01',
@@ -38,6 +40,7 @@ const SCREEN_INDEX={
 };
 
 const SCREENS={
+  explore:renderExplore,
   onboarding:renderOnboarding,
   home:renderHome,
   write:renderWrite,
@@ -192,6 +195,7 @@ async function loadProfileForActiveLanguage({allowLegacyMigration=true}={}){
    bootstrap() handles with the same steps. Keeping a second, unreachable copy
    of the switch would read like the real entry point to anyone looking next. */
 async function renderCurrent(){
+  const epoch=++renderEpoch;
   if(typeof root._cleanupScreen==='function'){
     root._cleanupScreen();
     delete root._cleanupScreen;
@@ -219,6 +223,7 @@ async function renderCurrent(){
   }
 
   document.body.classList.toggle('onboarding-mode',route==='onboarding');
+  document.body.classList.toggle('orena-explore',route==='explore');
   syncNav(route);
   syncOrenaChrome(route);
   const screen=SCREENS[route]||SCREENS.home;
@@ -234,12 +239,14 @@ async function renderCurrent(){
   try{
     await screen(root);
   }catch(error){
+    if(epoch!==renderEpoch)return;
     console.error('BECOMING screen failed:',error);
     root.innerHTML=`<section class="page error-state" role="alert">
       <strong>${t('app.view_failed')}</strong>
       <div style="margin-top:6px">${String(error.message||error)}</div>
     </section>`;
   }finally{
+    if(epoch!==renderEpoch)return;
     // Screens re-render with innerHTML, so their selects are new elements every
     // time. Enhancement marks what it has already done, so running it after
     // every render is both correct and cheap.
@@ -331,6 +338,11 @@ function installDialogEvents(){
 }
 
 async function bootstrap(){
+  document.querySelector('.skip-link')?.addEventListener('click',event=>{
+    event.preventDefault();
+    const target=root.querySelector('h1[tabindex="-1"]')||root;
+    target.focus();target.scrollIntoView({block:'start'});
+  });
   installOrenaShell();
   installTheme();
   installTempo();
@@ -348,6 +360,8 @@ async function bootstrap(){
     state.me=me;
     state.languages=languages.languages||[];
     state.skills=skills.skills||[];
+    const exploreLink=document.getElementById('explorePreviewLink');
+    if(exploreLink)exploreLink.hidden=!me.is_admin;
     applySkillNavigation(state.skills,{internal:Boolean(me.is_admin)});
     const activeLanguage=languages.active||state.legacyProfile?.language||'en';
     activateLanguage(activeLanguage,{allowLegacyMigration:true});
@@ -361,6 +375,9 @@ async function bootstrap(){
     renderLanguages();
 
     window.addEventListener('hashchange',renderCurrent);
+    window.addEventListener('becoming:explore-locale-changed',()=>{
+      setDocumentLanguage();renderLanguages();
+    });
     window.addEventListener('becoming:language-changed',async event=>{
       const previousRoute=currentRoute();
       activateLanguage(event.detail.language,{allowLegacyMigration:false});

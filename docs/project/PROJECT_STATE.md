@@ -21,6 +21,39 @@ historical narrative.
 
 ## Identity and versions
 
+### Current Codex learner-facing checkpoint (2026-09-05)
+
+`ORENA_UI_EXPLORATION_V1` is **REVIEWABLE / HUMAN APPROVAL PENDING** on
+`codex/work`, at `http://localhost:8010/#/explore`. The current human UI priority
+overrides the older mobile-next sequencing below for this lane. Commit identity:
+the commit titled `feat: add Orena field journal UI exploration`.
+
+Verified: an internal collection and reading room for EN/ZH generated fiction and
+learner-pasted text; user/language-scoped tab-local content and responses; actual
+Library vocabulary writes with source context; Writing draft handoff. No Reading
+session, proficiency, or personalization is inferred from preview interactions.
+Writing now cancels its initial dashboard render when navigation leaves the
+screen; the shared route finalizer ignores superseded renders. Keyboard skip
+navigation preserves the active hash route.
+
+Local evidence: 16 focused Python tests pass (2 deprecation warnings); exploration,
+Writing lifecycle, Writing/Review, Reading, Profile, Home continuation, all nine CI
+media Node contracts, architecture, and the 56-module ESM graph pass. Browser QA
+covers EN/ZH, light/dark, 320/390/767/1440 CSS-pixel widths, imports, restoration,
+Library/Writing handoffs, and dialog focus. No console errors observed.
+
+The legacy release-gate script has the same six failures at `ad52307` and this
+checkpoint, including Node missing in the Python image; the ESM check passes
+separately on host Node. Exact failures are in the milestone report. This is not
+a CI or release-gate PASS. The inherited fully verified baseline SHA below remains
+unchanged; this bounded local checkpoint does not replace its broad evidence.
+
+Runtime: `orena-codex-ui-web` at loopback port 8010, separate Docker network and
+temporary `orena-codex-ui-postgres`; no shared production volumes, provider keys,
+OAuth, or tunnel configuration. The empty review database uses the already
+verified bootstrap behavior. Application `1.4.0` and frontend `2.17.5` unchanged.
+No schema, provider activation, public release, or deployment change.
+
 - Product: Orena / BECOMING codebase
 - Repository: `CalisJI/ai-writing-coach`
 - Last verified application/runtime baseline:

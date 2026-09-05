@@ -1,4 +1,16 @@
 export const SCREEN_CONTRACT={
+  explore:{
+    learnerGoal:'Discover a meaningful story, bring a personal text, notice language, and respond.',
+    dominantIdea:'The life between places: content invites the learner in.',
+    primaryAction:'Enter the story',
+    progressiveDisclosure:'Collection → reading room → contextual note → personal response',
+    evidence:'Actual tab-local choices and responses; existing server-saved vocabulary and Writing handoff',
+    visualHero:'Generated story illustration beside the invitation to enter',
+    surfaceHierarchy:'paper canvas → story window → continuation thread → distinct encounters',
+    themeBias:'light and dark parity',
+    accentPolicy:'ink for entry, rust for expressions and small navigation cues',
+    fidelityMode:'high',
+  },
   onboarding:{
     learnerGoal:'Choose a learning language, interface language, goal and guidance style without being overwhelmed.',
     dominantIdea:'Orena adapts to the learner before it asks for evidence.',

@@ -14,7 +14,7 @@ Do not turn it into a historical diary.
 
 CURRENT_MILESTONE: ORENA_UI_EXPLORATION_V1
 
-STATUS: PLANNED
+STATUS: REVIEWABLE
 
 PRODUCT_GOAL:
 
@@ -31,19 +31,17 @@ solution.
 
 ## Human review
 
-WEB_URL: TO_BE_CONFIRMED
+WEB_URL: http://localhost:8010/#/explore
 
-WEB_ROUTE: TO_BE_CONFIRMED
+WEB_ROUTE: /#/explore
 
-HOW_TO_REACH_IT: TO_BE_CONFIRMED
+HOW_TO_REACH_IT: Open the local preview directly, or use Orena · Explore / 探索 in the internal navigation. Normal onboarding applies on a fresh runtime.
 
 LAST_HUMAN_APPROVED_MILESTONE: NONE_RECORDED
 
 NEXT_REVIEWABLE_SLICE:
 
-A substantial coded browser preview demonstrating the new Orena product and
-visual direction, including the idea that Orena contains things worth
-discovering rather than only exposing learning tools.
+Human review of ORENA_UI_EXPLORATION_V1. Do not propagate the direction to another major surface until review.
 
 ---
 
@@ -51,6 +49,7 @@ discovering rather than only exposing learning tools.
 
 | Experience | Status | Web route | EN  | ZH  | Cross-capability | Human review | Commit |
 | ---------- | ------ | --------- | --- | --- | ---------------- | ------------ | ------ |
+| Field journal: The life between places | REVIEWABLE | /#/explore | Verified | Verified | Reading room → existing Library / Writing | Pending | Commit titled `feat: add Orena field journal UI exploration` |
 
 ---
 
@@ -58,9 +57,9 @@ discovering rather than only exposing learning tools.
 
 | Product requirement                                    | Current state                 | Target           |
 | ------------------------------------------------------ | ----------------------------- | ---------------- |
-| Shared discoverable Orena content world                | MISSING / NOT YET PRODUCTIZED | REQUIRED         |
+| Shared discoverable Orena content world                | BOUNDED GENERATED-FICTION PREVIEW | REQUIRED         |
 | Orena-curated / provided Reading catalog               | MISSING                       | REQUIRED         |
-| Reading learner-owned content import                   | MISSING                       | REQUIRED         |
+| Reading learner-owned content import                   | TAB-LOCAL PASTED-TEXT PREVIEW                       | REQUIRED         |
 | Generated Reading material                             | IMPLEMENTED / PARTIAL         | SUPPORTED SOURCE |
 | Discoverable Listening media catalog                   | MISSING / PARTIAL FOUNDATION  | REQUIRED         |
 | Listening learner media import                         | IMPLEMENTED / PARTIAL         | REQUIRED         |
@@ -69,7 +68,7 @@ discovering rather than only exposing learning tools.
 | Writing discoverable prompt / situation world          | PARTIAL                       | REQUIRED         |
 | Writing free / custom starting point                   | IMPLEMENTED                   | REQUIRED         |
 | Content provenance / rights metadata                   | PARTIAL                       | REQUIRED         |
-| Learner-owned content collection                       | INCOMPLETE                    | REQUIRED         |
+| Learner-owned content collection                       | TAB-LOCAL PREVIEW / INCOMPLETE                    | REQUIRED         |
 | Learner language / vocabulary collection               | IMPLEMENTED / PARTIAL         | REQUIRED         |
 | Active Recall                                          | IMPLEMENTED                   | REQUIRED         |
 | EN content-world quality                               | INCOMPLETE                    | REQUIRED         |
@@ -102,13 +101,29 @@ requirements above are optional.
 
 ## Current technical blockers
 
-None recorded.
+No blocker to the local UI review. The legacy release-gate script fails identically
+at starting commit `ad52307` and this checkpoint; see the exact evidence in
+`docs/product/ORENA_UI_EXPLORATION_V1.md`. No release-gate or CI PASS is claimed.
+
+## Preview truth
+
+Three generated fictional encounters per learning language, an integrated reading
+room, prepared contextual notes, pasted-text import, saved content, and personal
+responses are implemented. Content relationships, imports, and responses are
+tab-local presentation state, scoped by user and learning language. They are not
+server Reading sessions, mastery, or recommendations. Expressions use the existing
+PostgreSQL-backed Library API; responses transfer to the existing Writing draft
+with source context. No configured AI provider is used by the local preview.
+
+The preview is internal only and runs at localhost port 8010 with isolated,
+temporary PostgreSQL data. Its review account contains explicitly performed QA
+actions, not fabricated learner history. No production or public release changed.
 
 ---
 
 ## Current product blockers
 
-No approved visual/product direction has yet been established for the new Orena.
+The field-journal direction is implemented and REVIEWABLE; human approval remains pending.
 
 ---
 
